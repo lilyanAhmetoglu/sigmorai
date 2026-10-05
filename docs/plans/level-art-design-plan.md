@@ -8,6 +8,13 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05
+
+- **The pixelate pipeline stays outside the repo.** It is a Python script (numpy + Pillow), and this is a Bun repo. The maintainer decided not to ship it. It lives in the maintainer's local art folder with the raw Higgsfield renders. This replaces Pipeline step 2's "offline in `scripts/art/`". Only the finished PNGs are committed.
+- **What the pipeline does now** (replaces the "≤32 colours per realm, snapped to tokens" line in step 2): crop each raw 2688×1152 render so its ground line lands at 80%, box-downscale to the 1024×240 grid, hard alpha (no semi-transparent pixels), quilt a seamless left↔right join on **all four** layers (near too), drop floating half-objects the join cuts, then quantise each layer on its own: sky 24, far 32, mid 64, near 48 colours. No token snapping yet. The snow realm (08) skips the fake-checkerboard removal so the white snow survives.
+- **Output files:** `public/levels/realm-00` … `realm-08` and `public/levels/math`, each with `{sky,far,mid,near}.png` at **1×** (1024×240, ground at row 192). The level map scales them 2× with nearest-neighbour, so 1 art pixel = 2 screen pixels, as locked below.
+- **Realm 04 near was regenerated** (2026-10-05) because the first render had a heraldic cross on a pennant. The new prompt asks for a plain solid-blue pennant with no emblem. The other 39 layers are the 2026-10-04 renders.
+
 ## Amendments locked 2026-10-04
 
 - **The design export wins over this draft.** `design/assets/art/HIGGSFIELD_PROMPTS.md` already defines the hero layers and the per-realm subjects, and `design/assets/levels/layout.json` defines the level geometry. The per-realm table below is kept only as mood notes. Generate from the design file's prompts.
