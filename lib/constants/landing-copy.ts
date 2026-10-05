@@ -1,0 +1,73 @@
+import type { Audience } from '@/lib/types';
+import { REALMS, TRACK_ACCENTS } from './curriculum';
+import { SITE_NAME } from './site';
+
+/**
+ * Landing page words (product voice: plain, no lore outside a DialogBox).
+ * Hero and track text follow design/ui_kits/webapp/Sigmorai App.dc.html
+ * (landing screen, TR table). Only claims the curriculum backs up.
+ */
+
+const beginnerRealms = REALMS.filter((realm) => realm.tier === 'beginner');
+const firstRealm = beginnerRealms[0];
+const lastRealm = beginnerRealms[beginnerRealms.length - 1];
+
+export const LANDING_META = {
+  title: `${SITE_NAME}: learn AI engineering as a pixel-art RPG`,
+  description:
+    'Nine realms, from your first API call to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people and developers.',
+} as const;
+
+export const LANDING_TEXT = {
+  navLabel: 'Account',
+  eyebrow: 'AI ENGINEERING · PIXEL-ART RPG',
+  title: 'Start your AI engineering adventure.',
+  lede: `Nine realms, from your first API call to multi-agent systems in production. Every lesson cites its sources. You clear a level by writing code that passes the tests, or by deciding a real business case.`,
+  audienceEyebrow: 'WHO IT IS FOR',
+  audienceTitle: 'Pick the path that fits you',
+  audienceIntro:
+    'Both paths cross the same nine realms. Builders write code to clear levels. Strategists clear them by making decisions about real cases.',
+} as const;
+
+/** "Who it is for" cards, in the ticket's order: beginner, business, tech. */
+export const AUDIENCES: readonly Audience[] = [
+  {
+    id: 'beginner',
+    label: 'NEW TO AI',
+    accent: 'success',
+    title: 'For total beginners',
+    body: `No AI background needed. Realms ${firstRealm.id}–${lastRealm.id} are beginner level. Pick the strategist path when you sign up: no code, and you start with what a model is, what it can and can't do, and what it costs.`,
+    points: [
+      'One short lesson per chapter, then a case and a quick check',
+      'The strategist path needs no code',
+      'The Math Tower explains the maths, floor by floor',
+    ],
+    forWho: 'STUDENTS · GRADUATES · ANYONE WHO USES AI AT WORK',
+  },
+  {
+    id: 'strategist',
+    label: 'STRATEGIST',
+    accent: TRACK_ACCENTS.strategist,
+    title: 'For business people',
+    body: 'Managers, founders and operators. Every level ends with a real business case to decide.',
+    points: [
+      'What AI and agents can really do',
+      'Picking use cases and measuring ROI',
+      'Governance, risk and rolling out to teams',
+    ],
+    forWho: 'MANAGERS · FOUNDERS · PRODUCT · OPS',
+  },
+  {
+    id: 'builder',
+    label: 'BUILDER',
+    accent: TRACK_ACCENTS.builder,
+    title: 'For technical people',
+    body: 'Engineers and developers. Every level ends with a coding challenge checked by tests.',
+    points: [
+      'APIs, tool use and agent SDKs',
+      'MCP servers, evals and multi-agent systems',
+      'Pass levels by writing code that works',
+    ],
+    forWho: 'DEVELOPERS · DATA SCIENTISTS · ML ENGINEERS',
+  },
+];
