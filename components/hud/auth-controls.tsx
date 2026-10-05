@@ -1,5 +1,6 @@
 import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
 import { PixelButton } from '@/components/pixel-button';
+import { AUTH_TEXT } from '@/lib/constants';
 
 /** Sign in / sign up when signed out, the account button when signed in. Lives in the HUD. */
 export function AuthControls() {
@@ -8,11 +9,11 @@ export function AuthControls() {
       <Show when="signed-out">
         <SignInButton>
           <PixelButton variant="secondary" size="sm">
-            Sign in
+            {AUTH_TEXT.signIn}
           </PixelButton>
         </SignInButton>
         <SignUpButton>
-          <PixelButton size="sm">Start free</PixelButton>
+          <PixelButton size="sm">{AUTH_TEXT.startFree}</PixelButton>
         </SignUpButton>
       </Show>
       <Show when="signed-in">

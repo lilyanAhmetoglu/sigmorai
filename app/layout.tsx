@@ -1,6 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { Atkinson_Hyperlegible, JetBrains_Mono, Pixelify_Sans, Silkscreen } from 'next/font/google';
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/constants';
 import './globals.css';
 
 // The four families from design/tokens/typography.css. Each sets a CSS variable
@@ -23,8 +24,10 @@ const atkinson = Atkinson_Hyperlegible({
 const jetbrainsMono = JetBrains_Mono({ variable: '--font-jetbrains-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Sigmorai',
-  description: 'A pixel-art RPG for learning AI engineering and agentic systems.',
+  // Lets every route use relative canonical / Open Graph URLs.
+  metadataBase: new URL(SITE_URL),
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

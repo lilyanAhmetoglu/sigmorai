@@ -10,8 +10,8 @@ import { MAIN_CONTENT_ID } from '@/lib/constants';
 /**
  * The in-app shell (skip link, header + HUD, main, footer) for every route in
  * this (app) group. A route group, not the root layout, so the full-screen
- * sign-in pages (and later the landing page, which has its own hero nav in the
- * design) stay outside it without a second root layout.
+ * sign-in pages and the landing page ((marketing) group, its own hero nav)
+ * stay outside it without a second root layout.
  * The HUD streams in: the page doesn't wait on the stats query.
  */
 export default function AppLayout({ children }: LayoutProps<'/'>) {
