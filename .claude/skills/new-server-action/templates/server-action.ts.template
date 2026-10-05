@@ -1,0 +1,71 @@
+'use server';
+
+/**
+ * {{NAME}} — <one-line purpose>.
+ *
+ * Public HTTP endpoint: every argument is hostile. Auth from the session only.
+ * Grading and XP are decided here, never on the client.
+ */
+import { and, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+
+import { auth } from '@/auth';
+import { db } from '@/db';
+import { progress, xpEvents } from '@/db/schema';
+import { XP } from '@/lib/xp/constants';
+
+const Input = z.object({
+  exerciseId: z.string().min(1).max(128),
+  // TODO: the rest of the input shape. Never accept xp, passed, userId or track from the client.
+});
+
+type Result<T> = { ok: true; data: T } | { ok: false; error: 'unauthorized' | 'invalid_input' | 'locked' | 'no_hp' | 'server_error' };
+
+export async function {{NAME}}(raw: unknown): Promise<Result<{ xpGained: number }>> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: 'unauthorized' };
+  const userId = session.user.id;
+
+  const parsed = Input.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'invalid_input' };
+  const { exerciseId } = parsed.data;
+
+  try {
+    const xpGained = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(progress)
+        .where(and(eq(progress.userId, userId), eq(progress.exerciseId, exerciseId)))
+        .limit(1);
+
+      if (!row || row.status === 'locked') throw new ActionError('locked');
+
+      // TODO: grade on the server (lib/grading/), check/decrement HP, write the submission.
+      const passed = false;
+
+      // Idempotent: XP only on the first clear.
+      if (!passed || row.status === 'done') return 0;
+
+      const amount = XP.challenge; // never a literal
+      await tx.update(progress).set({ status: 'done', completedAt: new Date() }).where(eq(progress.exerciseId, exerciseId));
+      await tx.insert(xpEvents).values({ userId, amount, reason: `{{NAME_KEBAB}}:${exerciseId}` });
+      // TODO: bump users.xp and streak in this same transaction.
+      return amount;
+    });
+
+    revalidatePath('/dashboard');
+    revalidatePath('/leaderboard');
+    return { ok: true, data: { xpGained } };
+  } catch (err) {
+    if (err instanceof ActionError) return { ok: false, error: err.code };
+    console.error('[{{NAME}}]', err);
+    return { ok: false, error: 'server_error' };
+  }
+}
+
+class ActionError extends Error {
+  constructor(readonly code: 'locked' | 'no_hp') {
+    super(code);
+  }
+}

@@ -1,0 +1,51 @@
+/**
+ * /api/{{NAME_KEBAB}} — <one-line purpose>.
+ *
+ * Route handler (not a server action) because it streams or runs long:
+ * the AI mentor (Anthropic stream) or the E2B code runner.
+ * Auth from the session only. User code is never evaluated on this server.
+ */
+import { z } from 'zod';
+
+import { auth } from '@/auth';
+
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
+const Body = z.object({
+  exerciseId: z.string().min(1).max(128),
+  // TODO: request shape (e.g. code: z.string().max(20_000) for the runner, message: z.string().max(2_000) for the mentor)
+});
+
+export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user?.id) return json({ error: 'unauthorized' }, 401);
+
+  const parsed = Body.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return json({ error: 'invalid_input' }, 400);
+
+  // TODO: rate-limit per user before any paid call.
+
+  try {
+    // Mentor: stream from lib/mentor/ (grounded in the lesson's sources, prompt from prompts/),
+    //         persist both turns to mentor_messages, log tokens.
+    // Runner: call lib/runner/ (E2B) with a timeout; return visible-test results only.
+    //         Hidden-test grading + XP happen in a server action, not here.
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
+  } catch (err) {
+    console.error('[api/{{NAME_KEBAB}}]', err);
+    return json({ error: 'server_error' }, 500);
+  }
+}
+
+function json(body: unknown, status: number) {
+  return Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+}

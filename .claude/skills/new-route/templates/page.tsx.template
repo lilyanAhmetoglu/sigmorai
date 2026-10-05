@@ -1,0 +1,48 @@
+import type { Metadata } from 'next';
+import { notFound, redirect } from 'next/navigation';
+import { z } from 'zod';
+
+import { auth } from '@/auth';
+import { Panel } from '@/components/panel';
+import { get{{THING}} } from '@/lib/queries/{{THING_KEBAB}}';
+
+const Params = z.object({
+  // TODO: route params, e.g. realm: z.string().regex(/^realm-0[0-8]$/)
+});
+
+type Props = { params: Promise<z.input<typeof Params>> };
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: '{{THING}} · Sigmorai' };
+}
+
+// {{ROUTE}} — <one line: what this page is for; which screen in Sigmorai App.dc.html it matches>.
+export default async function {{PAGE}}({ params }: Props) {
+  const session = await auth();
+  if (!session?.user) redirect('/sign-in');
+
+  const parsed = Params.safeParse(await params);
+  if (!parsed.success) notFound();
+
+  const data = await get{{THING}}({ userId: session.user.id, ...parsed.data });
+
+  if (!data) {
+    // Empty state: say what will fill this space and how to get there.
+    return (
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
+        <Panel title="{{THING}}" tone="sunken">
+          <p className="font-body text-body">{/* TODO: empty copy from the design file */}</p>
+        </Panel>
+      </main>
+    );
+  }
+
+  return (
+    <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
+      <h1 className="font-display text-h1 text-ink">{/* TODO: heading */}</h1>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-4">
+        <Panel title="{{THING}}">{/* TODO: real content */}</Panel>
+      </div>
+    </main>
+  );
+}

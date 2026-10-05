@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# PreToolUse(Edit|Write|MultiEdit) guard — blocks writes to generated or
+# protected files and writes that would hardcode a secret.
+#
+# Contract: hook payload JSON on stdin, permissionDecision JSON on stdout.
+# Always exits 0; the DENY rides in the JSON so a bad payload can't wedge things.
+#
+# Test: bash .claude/hooks/__tests__/guard.test.sh
+set -uo pipefail
+
+payload=$(cat)
+path=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
+[ -z "$path" ] && exit 0
+
+# New/changed text across Write, Edit and MultiEdit shapes.
+content=$(printf '%s' "$payload" | jq -r '
+  [ .tool_input.content?,
+    .tool_input.new_string?,
+    (.tool_input.edits? // [] | .[]?.new_string?)
+  ] | map(select(. != null)) | join("\n")
+' 2>/dev/null)
+
+deny() {
+  jq -n --arg reason "$1" '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: $reason
+    }
+  }'
+  exit 0
+}
+
+# Repo-relative view of the path, so the checks below work for absolute paths.
+root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+rel="${path#"$root"/}"
+
+# ── 1. Generated files ───────────────────────────────────────────────────────
+# .next/ is build output; next-env.d.ts is rewritten by `next dev`/`next build`;
+# drizzle/meta/ is drizzle-kit's snapshot journal (never hand-edit it).
+case "$rel" in
+  .next/* | next-env.d.ts | drizzle/meta/*)
+    deny "BLOCKED: '$rel' is generated. Change the source (next.config.ts, db/schema/**) and regenerate: 'bun run build' or 'bun run db:generate' (AGENTS.md)."
+    ;;
+esac
+
+# ── 2. Lockfiles ─────────────────────────────────────────────────────────────
+case "$rel" in
+  bun.lock)
+    deny "BLOCKED: bun.lock is generated. Change package.json, then run 'bun install'."
+    ;;
+  package-lock.json | pnpm-lock.yaml | yarn.lock)
+    deny "BLOCKED: this repo is Bun-only (package-manager.md). Only bun.lock is committed."
+    ;;
+esac
+
+# ── 3. Secret-shaped paths ───────────────────────────────────────────────────
+case "$path" in
+  *.env|*.env.*|*.pem|*id_rsa*|*.key|*credentials*|*secret*)
+    # .env.example is the documented, committed template — allow it.
+    case "$path" in
+      *.env.example) ;;
+      *) deny "BLOCKED: '$path' looks like a secrets file. Claude never writes these. Secrets live in Vercel env ('bunx vercel env add KEY') and your local .env.local, which you write yourself. Document every var in .env.example." ;;
+    esac
+    ;;
+esac
+
+[ -z "$content" ] && exit 0
+
+# Test files legitimately contain key-SHAPED fixtures — that's how you test a
+# secret scanner. Narrow on purpose: only obvious test paths.
+case "$path" in
+  *__tests__/*|*.test.*|*.spec.*|*/fixtures/*|*/__fixtures__/*) exit 0 ;;
+esac
+
+# ── 4. Hardcoded live credentials ────────────────────────────────────────────
+# The allowlist is checked on the MATCHING LINE only; a whole-file check would
+# let a real key through whenever the word "example" appears anywhere.
+if printf '%s' "$content" \
+  | grep -E '(sk-[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{10,}|pk_live_[A-Za-z0-9]{10,}|rk_live_[A-Za-z0-9]{10,}|whsec_[A-Za-z0-9]{10,}|sk-ant-[A-Za-z0-9_-]{20,}|e2b_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|vercel_blob_rw_[A-Za-z0-9_]{10,}|npg_[A-Za-z0-9]{10,})' \
+  | grep -qviE '(example|placeholder|dummy|fake|xxx|your[-_]?key|test_)'; then
+  deny "BLOCKED: this write contains what looks like a live API key. Secrets never go in the repo — use Vercel env vars ('bunx vercel env add') and .env.local, and document the name in .env.example."
+fi
+
+# ── 5. Server-only secrets behind the client-visible prefix ──────────────────
+# Deliberately NOT matching bare KEY or URL: NEXT_PUBLIC_SITE_URL is
+# client-safe by design.
+if printf '%s' "$content" | grep -qE 'NEXT_PUBLIC_[A-Z_]*(SECRET|PRIVATE|TOKEN|ANTHROPIC|OPENAI|E2B|JUDGE0|DATABASE|POSTGRES|NEON|AUTH_|GITHUB|GOOGLE_CLIENT|RESEND|BLOB|WEBHOOK)'; then
+  deny "BLOCKED: NEXT_PUBLIC_ inlines the value into the browser bundle. Never put ANTHROPIC_API_KEY, E2B_API_KEY, DATABASE_URL, AUTH_SECRET / OAuth secrets, RESEND_API_KEY, BLOB_READ_WRITE_TOKEN or webhook secrets behind it. Read them in server code only."
+fi
+
+exit 0

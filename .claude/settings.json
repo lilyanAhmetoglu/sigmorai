@@ -1,0 +1,66 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run typecheck)",
+      "Bash(bun run lint)",
+      "Bash(bun run test)",
+      "Bash(bun test:*)",
+      "Bash(bun run build)",
+      "Bash(bun run format:check)",
+      "Bash(bun run hooks:test)",
+      "Bash(bunx tsc:*)",
+      "Bash(bunx drizzle-kit generate:*)",
+      "Bash(bunx drizzle-kit check:*)",
+      "Bash(bunx playwright test:*)",
+      "Bash(bash .claude/hooks/__tests__/guard.test.sh)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-bash.sh",
+            "statusMessage": "Checking command against repo guardrails..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard-write.sh",
+            "statusMessage": "Checking write against repo guardrails..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; [ -n \"$f\" ] && bunx prettier --write --ignore-unknown \"$f\"; } 2>/dev/null || true",
+            "statusMessage": "Formatting with prettier..."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/lint-file.sh",
+            "asyncRewake": true,
+            "timeout": 120,
+            "statusMessage": "Linting the edited file...",
+            "rewakeSummary": "ESLint errors in the file you just edited"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true
+  }
+}
