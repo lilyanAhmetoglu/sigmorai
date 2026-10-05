@@ -20,7 +20,7 @@ Content auditor for Sigmorai. Report only, do NOT fix. **A wrong fact in a lesso
 **Sources**
 
 - Every source URL is real and official (Anthropic, OpenAI, Google and open-model docs, MCP spec, or a repo listed in `content/sources.yaml`). WebFetch each one.
-- **Source rule:** `sources` lists at least 1 Anthropic page and at least 1 OpenAI page where both document the concept (REQUIRED). Google and MCP spec pages are optional, when they add something. Every url sits under a `trustTier: official` entry of `content/sources.yaml`. Community repos (e.g. learn-harness-engineering) are examples only, never the only source of a claim. A claim with no official page is a blocker.
+- **Source rule:** `sources` lists at least 1 Anthropic page and at least 1 OpenAI page where both document the concept (REQUIRED). Google and MCP spec pages are optional, when they add something. Every url sits under a `trustTier: official` entry of `content/sources.yaml`. Community repos and community blogs (e.g. learn-harness-engineering) are examples only, never the only source of a claim. Official vendor engineering posts (e.g. `anthropic.com/engineering`, `openai.com/index/harness-engineering`) count as official pages; they are the primary source for harness engineering. A claim with no official page is a blocker.
 - `sourceHash` matches what the sync job recorded for that page.
 - **Docs first:** the sources are the official Anthropic and OpenAI docs first, then other official sources. Keep only what matters.
 - The lesson only claims what the sources say. Flag any API name, parameter, model id, default value or behaviour you can't find in the cited page. Quote the line.
