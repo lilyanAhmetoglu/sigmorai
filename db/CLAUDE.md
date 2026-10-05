@@ -9,15 +9,17 @@
 1. **No RLS here: the server is the boundary.** Every query that touches user data filters by the session user id from `auth()`. Never by an id from the request body.
 2. **Erasure is one delete.** Every user-owned table references `users(id)` with `onDelete: 'cascade'`.
 3. **`xp_events` is the ledger.** The leaderboard aggregates from it (week / month / all time). `users.xp` is a cache written in the same transaction. A unique index on `(user_id, exercise_id, reason)` makes awards idempotent.
-4. **Progress is per track.** `progress` is keyed `(user_id, track, exercise_id)`.
+4. **The track lives in the exercise id.** `progress` is keyed `(user_id, exercise_id)`; ids like `builder/r0/c1/lesson` carry the track (grammar in `content/CLAUDE.md`, helpers in `lib/content/ids.ts`). Shared Math Tower and Frontier ids have no track, so they clear and grant XP once.
 5. **Computed, not stored:** level (from xp), HP refill (from attempts + date), "NEW LEVEL" visibility (from `level_announcements.created_at`).
-6. **Content lives in the repo** (`content/`), not the DB. The DB stores ids that point at it.
+6. **Enums are CHECK constraints or text + Zod, never Postgres enums.** Fixed sets (track, kb kind) get a CHECK built from the `lib/constants` list; growing sets (xp reason) are text + a Zod enum in `lib/types`.
+7. **Content lives in the repo** (`content/`), not the DB. The DB stores ids that point at it.
 
 ## Layout
 
 - `db/schema/*.ts`: one file per table group, re-exported from `db/schema/index.ts`.
 - `db/index.ts`: the Neon client + drizzle instance. `import 'server-only'`.
 - `drizzle/`: generated SQL migrations + `meta/` (never hand-edit `meta/`).
+- v1 tables: `users`, `progress`, `submissions`, `xp_events`, `kb_sources`. `mentor_messages` arrives in step 7; `level_announcements`, the other `kb_*` tables, `lesson_sources` and **pgvector** arrive in step 8.
 
 ## Migrations
 
@@ -26,7 +28,11 @@
 | Generate migration | `bun run db:generate` (drizzle-kit generate, named) |
 | Apply locally      | `bun run db:migrate`                                |
 | Check consistency  | `bunx drizzle-kit check`                            |
-| Apply to prod      | CI on merge to `main` (`migrate.yml`)               |
+| Seed (idempotent)  | `bun run seed`                                      |
+| Check the XP cache | `bun run db:check` (exit 1 if users.xp ≠ ledger)    |
+
+Scripts run with `--conditions=react-server`: `db/index.ts` imports `server-only`, which throws outside a React Server context unless this condition is set. Don't drop the flag or the import.
+| Apply to prod | CI on merge to `main` (`migrate.yml`) |
 
 - **Never edit an applied migration.** Generate a new one on top.
 - **Never `drizzle-kit push` against production.** Push is for a throwaway Neon branch only.
