@@ -1,49 +1,24 @@
-import type { ComponentProps, Ref } from 'react';
-
-type Variant = 'primary' | 'xp' | 'success' | 'secondary' | 'danger' | 'ghost';
-type Size = 'sm' | 'md' | 'lg';
+import type { ComponentProps } from 'react';
+// The option set lives in lib/constants ({{NAME_UPPER}}_VARIANTS = [...] as const);
+// its derived type lives in lib/types. Never declare the union here.
+import type { {{NAME}}Variant, {{NAME}}Size } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 type Props = ComponentProps<'button'> & {
-  variant?: Variant;
-  size?: Size;
-  ref?: Ref<HTMLButtonElement>;
+  variant?: {{NAME}}Variant;
+  size?: {{NAME}}Size;
 };
 
-// Token utilities only — no raw hex, no rounded-*, no blur shadows, no gradients.
-const VARIANT: Record<Variant, string> = {
-  primary: 'bg-primary text-on-primary bevel shadow-drop',
-  xp: 'bg-xp text-on-xp bevel shadow-drop',
-  success: 'bg-success text-on-success bevel shadow-drop',
-  secondary: 'bg-surface-raised text-ink bevel shadow-drop',
-  danger: 'bg-danger text-on-danger bevel shadow-drop',
-  ghost: 'bg-transparent text-ink',
-};
-
-// Every size keeps a ≥ 44px hit area; `sm` only shrinks the visual padding and type.
-const SIZE: Record<Size, string> = {
-  sm: 'min-h-11 px-3 text-hud-sm',
-  md: 'min-h-11 px-4 text-hud',
-  lg: 'min-h-14 px-6 text-hud-lg',
-};
-
-// {{NAME}} — <one line: what it is and where it's used>.
-export function {{NAME}}({ variant = 'primary', size = 'md', className, ref, type = 'button', ...rest }: Props) {
+// {{NAME}}: <one line: what it is and where it's used>. Styles: {{FILE}}.css.
+// No class maps here: every style, variant and size lives in
+// app/styles/components/{{FILE}}.css, keyed by data-* attributes.
+export function {{NAME}}({ variant = 'primary', size = 'md', className, type = 'button', ...rest }: Props) {
   return (
     <button
-      ref={ref}
       type={type}
-      className={[
-        'inline-flex select-none items-center justify-center gap-2 font-hud uppercase',
-        'focus-visible:outline-3 focus-visible:outline-spark focus-visible:outline-offset-2',
-        // Press moves 2px and swaps to the pressed bevel; no transition easing beyond steps.
-        'active:translate-x-0.5 active:translate-y-0.5 active:bevel-pressed active:shadow-none',
-        'disabled:cursor-not-allowed disabled:opacity-60 disabled:active:translate-none',
-        VARIANT[variant],
-        SIZE[size],
-        className,
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className={cn('{{FILE}}', className)}
+      data-variant={variant}
+      data-size={size}
       {...rest}
     />
   );

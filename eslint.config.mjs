@@ -20,6 +20,7 @@ export default defineConfig([
     'drizzle/**',
     '.claude/skills/*/templates/**',
     'design/**',
+    '.claude/worktrees/**',
   ]),
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -35,6 +36,7 @@ export default defineConfig([
       'components/**',
       'lib/xp/**',
       'lib/sprite/**',
+      'lib/utils/**',
       'lib/types/**',
       'lib/constants/**',
       'app/**/page.tsx',
