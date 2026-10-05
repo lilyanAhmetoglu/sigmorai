@@ -39,5 +39,28 @@ export const TEST_STATUS_TEXT: Record<TestStatus, { tag: string; label: string }
   running: { tag: 'RUN', label: 'Running' },
 };
 
+/** App shell and HudBar words. */
+export const SHELL_TEXT = {
+  skipLink: 'Skip to content',
+  navLabel: 'Main',
+  menu: 'Menu',
+  soon: 'Soon',
+  footerLeft: 'SIGMORAI.COM',
+  footerRight: 'LEARN · BUILD · ASCEND',
+} as const;
+
+export const HUD_TEXT = {
+  label: 'Your stats',
+  loading: 'Loading your stats',
+  error: "Your stats didn't load.",
+  retry: 'Retry',
+  notSetUp: 'Hero not set up',
+  hp: 'HP',
+  hpEmpty: '—',
+  hpEmptyHint: 'HP shows inside a challenge',
+  streak: 'STREAK',
+  streakUnit: 'days',
+} as const;
+
 export const DIALOG_NEXT_TEXT = '▸ NEXT';
 export const TOAST_DISMISS_TEXT = 'Dismiss';
