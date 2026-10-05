@@ -2,17 +2,17 @@ import { Badge } from '@/components/badge';
 import { PixelButton } from '@/components/pixel-button';
 import { XPBar } from '@/components/xp-bar';
 import { HUD_TEXT, ONBOARDING_HREF, TRACK_ACCENTS } from '@/lib/constants';
-import type { HpValue, HudState, HudStats } from '@/lib/types';
+import type { HudState, HudStats } from '@/lib/types';
 import { AuthControls } from './auth-controls';
 
-type Props = {
-  state: HudState;
-  /** Only a challenge page knows HP (it is per challenge). Leave it out elsewhere. */
-  hp?: HpValue;
-};
+type Props = { state: HudState };
 
-/** Top HUD: hero, level XP, HP, streak and the account controls. Presentational. Styles: hud-bar.css. */
-export function HudBar({ state, hp }: Props) {
+/**
+ * Top HUD: hero, level XP, streak and the account controls. Presentational.
+ * No HP here: HP is per challenge and lives in the quest panel (quest-actions
+ * spec). Styles: hud-bar.css.
+ */
+export function HudBar({ state }: Props) {
   const ready = state.status === 'ready';
   return (
     <div
@@ -20,7 +20,7 @@ export function HudBar({ state, hp }: Props) {
       role={ready ? 'group' : undefined}
       aria-label={ready ? HUD_TEXT.label : undefined}
     >
-      {state.status === 'ready' && <StatsRow stats={state.stats} hp={hp} />}
+      {state.status === 'ready' && <StatsRow stats={state.stats} />}
       {/* A real link, not just a badge: it catches every way in that skipped the
           sign-up redirect (hosted Clerk pages, an abandoned first visit). */}
       {state.status === 'onboarding' && (
@@ -33,7 +33,7 @@ export function HudBar({ state, hp }: Props) {
   );
 }
 
-function StatsRow({ stats, hp }: { stats: HudStats; hp?: HpValue }) {
+function StatsRow({ stats }: { stats: HudStats }) {
   return (
     <>
       {/* No PixelAvatar here: Clerk's UserButton is the one "me" picture (it owns
@@ -51,30 +51,10 @@ function StatsRow({ stats, hp }: { stats: HudStats; hp?: HpValue }) {
         max={stats.span}
         segments={10}
       />
-      <HpStat hp={hp} />
       <span className="hud-stat">
         {HUD_TEXT.streak} {stats.streak}
         <span className="sr-only"> {HUD_TEXT.streakUnit}</span>
       </span>
     </>
-  );
-}
-
-/** Filled and empty squares, so HP never relies on colour. Outside a challenge there is no HP, so no slot. */
-function HpStat({ hp }: { hp?: HpValue }) {
-  if (!hp) return null;
-  const max = Math.max(0, Math.floor(hp.max));
-  const value = Math.min(max, Math.max(0, Math.floor(hp.value)));
-  return (
-    <span className="hud-stat">
-      {HUD_TEXT.hp}{' '}
-      <span aria-hidden="true">
-        {'■'.repeat(value)}
-        {'□'.repeat(max - value)}
-      </span>
-      <span className="sr-only">
-        {value} of {max}
-      </span>
-    </span>
   );
 }

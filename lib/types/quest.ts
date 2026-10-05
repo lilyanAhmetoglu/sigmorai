@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { SANDBOX_KINDS, type SUBMISSION_STATUSES } from '@/lib/constants';
+import { RUN_CODE_MAX_CHARS, SANDBOX_KINDS, type SUBMISSION_STATUSES } from '@/lib/constants';
+import { ExerciseIdSchema } from './exercise';
 
 /**
  * Every reason a quest press (Run, Submit, a case or quick-check answer) can
@@ -52,3 +53,90 @@ export const RunErrorBodySchema = z.object({
   cap: CapReachedSchema.optional(),
 });
 export type RunErrorBody = z.infer<typeof RunErrorBodySchema>;
+
+// ── Quest page view ───────────────────────────────────────────────────────
+
+/** A disabled button: why, and when it opens again (UTC ISO; the browser shows local time). */
+export type QuestBlock = { message: string; resetsAt: string };
+
+/** Who is looking at a challenge, and what their buttons may do. Built on the server. */
+export type ChallengeViewer =
+  | { status: 'signed-out' }
+  | { status: 'onboarding' }
+  | {
+      status: 'ready';
+      /** Already cleared: Submit is practice (no HP, no XP). */
+      cleared: boolean;
+      hp: number;
+      hpMax: number;
+      /** When HP refills (next 00:00 UTC). */
+      hpResetsAt: string;
+      runBlock: QuestBlock | null;
+      submitBlock: QuestBlock | null;
+    };
+
+// ── Server Action contracts (quest-actions spec → API contract) ───────────
+
+/** What every quest Server Action returns when it refuses. Never a raw throw. */
+export type QuestActionFailure = {
+  ok: false;
+  code: QuestErrorCode;
+  message: string;
+  /** UTC ISO instant for CAP_REACHED; the browser shows local time. */
+  resetsAt?: string;
+};
+
+/** XP after a pass. `awarded` is 0 on a replay (award once). */
+export type XpOutcome = {
+  awarded: number;
+  total: number;
+  levelBefore: number;
+  levelAfter: number;
+};
+
+/** One graded test as the learner sees it. Hidden tests get a generic name and no detail. */
+export type QuestTestRow = {
+  name: string;
+  passed: boolean;
+  hidden: boolean;
+  /** Visible tests only. */
+  detail?: string;
+};
+
+/**
+ * submitChallenge input: code only. No score, pass flag, XP or level
+ * (acceptance: grep the schemas). `.strict()` refuses any extra key.
+ */
+export const SubmitChallengeInputSchema = z
+  .object({
+    exerciseId: ExerciseIdSchema.refine((id) => id.endsWith('/challenge'), {
+      message: 'Only challenges can be submitted',
+    }),
+    code: z.string().max(RUN_CODE_MAX_CHARS),
+  })
+  .strict();
+export type SubmitChallengeInput = z.infer<typeof SubmitChallengeInputSchema>;
+
+export type SubmitChallengeResult =
+  | {
+      ok: true;
+      passed: boolean;
+      replay: boolean;
+      hpLeft: number;
+      tests: QuestTestRow[];
+      /** Only after a pass. */
+      xp: XpOutcome | null;
+    }
+  | QuestActionFailure;
+
+/** completeLesson input (contract only; the "Lesson done" button is SIG-11). */
+export const CompleteLessonInputSchema = z
+  .object({
+    exerciseId: ExerciseIdSchema.refine((id) => id.endsWith('/lesson'), {
+      message: 'Only lessons can be completed',
+    }),
+  })
+  .strict();
+export type CompleteLessonInput = z.infer<typeof CompleteLessonInputSchema>;
+
+export type CompleteLessonResult = { ok: true; xp: XpOutcome } | QuestActionFailure;
