@@ -47,6 +47,17 @@ Apply your checklist:
 - Build-order scope (ENGINEERING.md → Build order)
 ```
 
+### 3b. Content changes: spawn `content-reviewer` too
+
+If any changed path is under `content/**` or is `lib/constants/curriculum.ts`, run `bun run content:check`, then spawn `content-reviewer` in parallel with `cto` (Agent tool, `subagent_type: content-reviewer`):
+
+```
+Validate these changed content files against canary. Follow .claude/skills/validate-content/SKILL.md.
+Changed: <the content/curriculum paths only>
+```
+
+Present its report after the CTO review, the same way (verbatim, A2 summary first).
+
 ### 4. Present
 
 Show the review **verbatim**, with a short A2-English summary above it. Don't shrink the review itself; the structure is the point.

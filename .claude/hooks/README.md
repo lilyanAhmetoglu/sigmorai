@@ -10,6 +10,7 @@ Deterministic guardrails. A rule in markdown is a **request**; a hook is a **gua
 | `guard-write.sh`                     | `PreToolUse(Edit\|Write\|MultiEdit)`  | generated files, lockfiles, secret leaks                           |
 | prettier (inline in `settings.json`) | `PostToolUse(Edit\|Write\|MultiEdit)` | formats every file Claude touches                                  |
 | `lint-file.sh`                       | `PostToolUse(Edit\|Write\|MultiEdit)` | ESLints the one file Claude just touched (async)                   |
+| `content-check.sh`                   | `PostToolUse(Edit\|Write\|MultiEdit)` | `bun run content:check` after a content or curriculum edit (async) |
 
 ### `guard-bash.sh` denies
 
@@ -25,11 +26,15 @@ Writes to generated `.next/`, `next-env.d.ts` or `drizzle/meta/` · `bun.lock` (
 
 Runs in the background (`asyncRewake: true`) and only wakes Claude on a real lint error. Skips `.next/` and `drizzle/` output, non-JS/TS files, deleted files, files outside the repo, and a broken ESLint install.
 
+### `content-check.sh`
+
+Runs `bun run content:check` (Zod loaders over every file in `content/`, no model, no network) when Claude edits `content/**`, `lib/constants/curriculum.ts`, `lib/constants/content.ts`, `lib/types/content.ts` or `lib/types/curriculum.ts`. Async like `lint-file.sh`: it wakes Claude only on a real schema problem. It checks shape, not facts. Facts are the `content-reviewer` agent's job, run by `/commit` and `/review` (`.claude/skills/validate-content/`).
+
 ## Contract: two kinds, don't mix them up
 
 **`PreToolUse` guards** read JSON on stdin and write a `permissionDecision` JSON to stdout. **They always exit 0.** The denial rides in the JSON, so a malformed payload can never wedge a session. Every deny names the escape hatch: the maintainer types `! <command>` to run it in their own shell.
 
-**`lint-file.sh`** runs after the write, so its exit code is its only channel: `0` = clean/skipped/toolchain broken (silent), `2` = real lint errors (stdout goes to Claude).
+**`lint-file.sh`** and **`content-check.sh`** run after the write, so the exit code is the only channel: `0` = clean/skipped/toolchain broken (silent), `2` = real lint errors (stdout goes to Claude).
 
 ## Tests: run after ANY hook change
 

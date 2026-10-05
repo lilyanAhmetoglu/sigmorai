@@ -8,6 +8,16 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (content validator)
+
+Layered on top; nothing below is rewritten except the docs-host name in the source-kinds table.
+
+- **`bun run content:check`** validates every file under `content/` with the app's own Zod loaders (`lib/content/validate.ts`): schemas, ids vs paths, stray files, and every lesson source URL under a `trustTier: official` entry of `sources.yaml`. It runs in the `content-check.sh` hook after Claude edits content or the curriculum, and in the CI `check` job. Free: no model, no network.
+- **Facts are checked by `content-reviewer`** following `.claude/skills/validate-content/SKILL.md`: each claim marked supported / not supported / not found against the live cited page. `/commit` and `/review` run it when the diff touches `content/**` or `lib/constants/curriculum.ts`.
+- **`.github/workflows/content-review.yml`** runs the same fact-check on PRs that touch content or the curriculum and posts one PR comment. It **costs money** (Anthropic API tokens), so it is **off by default**: it runs only when the repo variable `CONTENT_REVIEW_ENABLED=true` and the secret `ANTHROPIC_API_KEY` are set. Capped at **$3 per run** (`--max-budget-usd 3`) and 40 turns; only changed files; never edits, approves or merges.
+- **One Claude docs host:** `platform.claude.com/docs` (what live pages use). The source-kinds table below now says so (it said `docs.claude.com`).
+- **`sources.yaml` gains official entries** for Claude Code docs, Anthropic engineering posts, the OpenAI cookbook and the MCP spec. `openai.com/index` is not added: it returns 403 to automated fetches, so no claim from it can be verified.
+
 ## Amendments locked 2026-10-05 (no-code pivot, vendor-neutral)
 
 - **The drafter never writes a `challenge.json`.** `fill-stub` output is lesson + `case.json` + `quick-check.json` + blog post, on both tracks. The "Builder fill-stub opens as a draft PR until a human runs the challenge" row is dropped. `update-level` may touch the case, never a challenge.
@@ -68,12 +78,12 @@ Learners get levels that track the real, current state of AI engineering, not a 
 
 Registry lives in `content/sources.yaml` (git-reviewed), mirrored into `kb_sources` by the sync job.
 
-| Kind        | How it's fetched                                                          | Examples (seed list, verify URLs in phase 1)                                                                                                                                                                                                                    |
-| ----------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docs`      | `llms.txt` / `llms-full.txt` when present, else `sitemap.xml`, then pages | Claude docs (docs.claude.com), Claude Code docs, OpenAI platform docs, MCP spec (modelcontextprotocol.io). **Added 2026-10-05, verify URL in phase 1:** Google Gemini API docs, Mistral docs, Hugging Face docs, LangChain / LangGraph docs, Vercel AI SDK docs |
-| `changelog` | RSS/Atom or the changelog page                                            | Anthropic release notes, OpenAI changelog, Claude Code `CHANGELOG.md`                                                                                                                                                                                           |
-| `repo`      | GitHub API: README, `docs/**`, `examples/**`, latest releases             | anthropics/claude-cookbooks, anthropics/claude-code, walkinglabs/learn-harness-engineering, openai/openai-agents-python, modelcontextprotocol/servers, vercel/ai, pydantic/pydantic-ai, langchain-ai/langgraph, huggingface/smolagents                          |
-| `blog`      | RSS of **official engineering blogs only**                                | Anthropic engineering posts, OpenAI cookbook articles                                                                                                                                                                                                           |
+| Kind        | How it's fetched                                                          | Examples (seed list, verify URLs in phase 1)                                                                                                                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs`      | `llms.txt` / `llms-full.txt` when present, else `sitemap.xml`, then pages | Claude docs (platform.claude.com/docs), Claude Code docs (code.claude.com/docs), OpenAI platform docs, MCP spec (modelcontextprotocol.io). **Added 2026-10-05, verify URL in phase 1:** Google Gemini API docs, Mistral docs, Hugging Face docs, LangChain / LangGraph docs, Vercel AI SDK docs |
+| `changelog` | RSS/Atom or the changelog page                                            | Anthropic release notes, OpenAI changelog, Claude Code `CHANGELOG.md`                                                                                                                                                                                                                           |
+| `repo`      | GitHub API: README, `docs/**`, `examples/**`, latest releases             | anthropics/claude-cookbooks, anthropics/claude-code, walkinglabs/learn-harness-engineering, openai/openai-agents-python, modelcontextprotocol/servers, vercel/ai, pydantic/pydantic-ai, langchain-ai/langgraph, huggingface/smolagents                                                          |
+| `blog`      | RSS of **official engineering blogs only**                                | Anthropic engineering posts, OpenAI cookbook articles                                                                                                                                                                                                                                           |
 
 **Discovery of new repos** (the "large starred repo" part): a weekly GitHub search (`topic:ai-agents OR topic:mcp OR topic:llm-evaluation`, `stars:>5000`, pushed in the last 90 days) writes to `kb_source_candidates`. A human promotes a candidate into `sources.yaml` by PR. Nothing is crawled just because it's popular.
 

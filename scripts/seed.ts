@@ -5,7 +5,8 @@ import { db } from '@/db';
 import { kbSources, progress, users, xpEvents } from '@/db/schema';
 import { CHAPTER_COUNT, CHAPTER_STEPS, KB_SOURCES_FILE, XP_REWARDS } from '@/lib/constants';
 import { buildExerciseId } from '@/lib/content/ids';
-import { KbSourcesFileSchema, type Track, type XpReason } from '@/lib/types';
+import { loadKbSources } from '@/lib/content/load';
+import type { Track, XpReason } from '@/lib/types';
 
 /** Neon branch that must never get demo players (ENGINEERING.md). */
 const PRODUCTION_BRANCH = 'production';
@@ -51,19 +52,19 @@ function clears({ track, chapters }: Demo) {
 }
 
 async function seedKbSources() {
-  const file = KbSourcesFileSchema.parse(Bun.YAML.parse(await Bun.file(KB_SOURCES_FILE).text()));
+  const sources = await loadKbSources();
   await db.transaction(async (tx) => {
-    for (const { id, ...fields } of file.sources) {
+    for (const { id, ...fields } of sources) {
       await tx
         .insert(kbSources)
         .values({ id, ...fields })
         .onConflictDoUpdate({ target: kbSources.id, set: fields });
     }
     // A source removed from the YAML stays as history, but is switched off.
-    const ids = file.sources.map((s) => s.id);
+    const ids = sources.map((s) => s.id);
     await tx.update(kbSources).set({ enabled: false }).where(notInArray(kbSources.id, ids));
   });
-  console.log(`kb_sources: ${file.sources.length} upserted from ${KB_SOURCES_FILE}`);
+  console.log(`kb_sources: ${sources.length} upserted from ${KB_SOURCES_FILE}`);
 }
 
 /** Same shape as a real grant: ledger insert (award once) + cache bump in one transaction. */

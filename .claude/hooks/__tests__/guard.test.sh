@@ -154,5 +154,37 @@ assert_exit 2 "$(edit_file "$PROBE")" "file with duplicate imports → wakes the
 cleanup_probe
 trap - EXIT
 
+# ── content-check.sh ─────────────────────────────────────────────────────────
+# Same exit-code contract as lint-file.sh: 0 = valid/skip, 2 = schema problems.
+assert_content() {
+  local expect="$1" payload="$2" label="$3" got
+  printf '%s' "$payload" | bash "$HOOKS/content-check.sh" >/dev/null 2>&1
+  got=$?
+  if [ "$got" = "$expect" ]; then
+    pass=$((pass + 1)); printf '  \033[32m✓\033[0m %s\n' "$label"
+  else
+    fail=$((fail + 1)); printf '  \033[31m✗\033[0m %s \033[2m(expected exit %s, got %s)\033[0m\n' "$label" "$expect" "$got"
+  fi
+}
+
+echo "content-check.sh — must SKIP (exit 0)"
+assert_content 0 "$(edit_file "$ROOT/app/page.tsx")"   "file outside content/ and the curriculum"
+assert_content 0 "$(edit_file '')"                     "empty path"
+assert_content 0 "$(edit_file '/tmp/content/x.json')"  "content/ outside the repo"
+
+echo "content-check.sh — must RUN the check"
+assert_content 0 "$(edit_file "$ROOT/content/builder/outline.json")" "valid content → no wake"
+assert_content 0 "$(edit_file 'lib/constants/curriculum.ts')"         "curriculum map (relative path) → no wake"
+
+# A stray file the validator rejects. Removed by a trap; gitignored too.
+CPROBE="$ROOT/content/__content_hook_probe.json"
+cleanup_cprobe() { rm -f "$CPROBE"; }
+cleanup_cprobe
+trap cleanup_cprobe EXIT
+printf '{}' > "$CPROBE"
+assert_content 2 "$(edit_file "$CPROBE")" "unexpected content file → wakes the model"
+cleanup_cprobe
+trap - EXIT
+
 printf '\n\033[1m%d passed, %d failed\033[0m\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
