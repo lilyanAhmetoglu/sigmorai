@@ -33,13 +33,14 @@ describe('valid files load', () => {
 
   test('case: unmarked options default to not correct', async () => {
     const c = await loadCase(CASE, VALID);
-    expect(c.questions[0].options.map((o) => o.correct)).toEqual([false, true]);
+    expect(c.questions[0].options.map((o) => o.correct)).toEqual([false, true, false, false]);
   });
 
   test('builder case: same schema, keeps the correct flags on the server', async () => {
     const c = await loadCase(BUILDER_CASE, VALID);
     expect(c.id).toBe(BUILDER_CASE);
-    expect(c.questions[0].options.map((o) => o.correct)).toEqual([true, false]);
+    expect(c.questions[0].options.map((o) => o.correct)).toEqual([true, false, false, false]);
+    expect(c.exhibit).toContain('"fixture": true');
   });
 
   test('quick check', async () => {
@@ -120,6 +121,26 @@ describe('schemas', () => {
     expect(sourceHash).toBeDefined();
     expect(LessonFrontmatterSchema.safeParse(rest).success).toBe(true);
     expect(LessonFrontmatterSchema.safeParse({ ...rest, sourceHash: 'abc' }).success).toBe(false);
+  });
+
+  test('a case has 3–5 questions', async () => {
+    const c = await kase();
+    expect(CaseSchema.safeParse({ ...c, questions: c.questions.slice(0, 2) }).success).toBe(false);
+    const six = [...c.questions, ...c.questions];
+    expect(CaseSchema.safeParse({ ...c, questions: six }).success).toBe(false);
+  });
+
+  test('a case question has exactly 4 options', async () => {
+    const c = await kase();
+    c.questions[0].options = c.questions[0].options.filter((o) => o.correct);
+    c.questions[0].options.push({ text: 'Other', explanation: 'Not this one.', correct: false });
+    expect(CaseSchema.safeParse(c).success).toBe(false);
+  });
+
+  test('exhibit is optional but never blank', async () => {
+    const c = await kase();
+    expect(c.exhibit).toBeUndefined();
+    expect(CaseSchema.safeParse({ ...c, exhibit: '  ' }).success).toBe(false);
   });
 
   test('a quick check needs exactly 3 questions', async () => {

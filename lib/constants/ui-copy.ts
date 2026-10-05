@@ -1,4 +1,5 @@
 import type { ChoiceState, LevelStatus, QuestErrorCode, QuestStatus, Track } from '@/lib/types';
+import { QUICK_CHECK_QUESTIONS } from './content';
 import { CHAPTER_COUNT } from './exercises';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
@@ -131,7 +132,42 @@ export const QUEST_TEXT = {
   notifications: 'Notifications',
   noticeHeading: 'Quest',
   notAvailable: 'This step is not available yet.',
-  notAvailableHint: 'Lessons, cases and quick checks are not built yet.',
+  notAvailableHint: 'Lessons are not built yet.',
+  // Tags: "BOOTSTRAP VILLAGE · CHAPTER 1 · CASE"
+  chapterTag: (n: number) => `CHAPTER ${n}`,
+  bossTag: 'BOSS',
+  caseTag: 'CASE',
+  quickCheckTag: 'QUICK CHECK',
+  quickCheckTitle: 'Quick check',
+  quickCheckIntro: `${QUICK_CHECK_QUESTIONS} questions on this chapter. Get them all right for XP. It costs no HP.`,
+  caseFile: 'CASE FILE',
+  exhibit: 'EXHIBIT',
+  questionsLabel: 'Questions',
+  /** Decorative: rendered aria-hidden through PixelButton's `icon`. */
+  submitIcon: '▸',
+  submitAnswers: 'Submit answers',
+  submitting: 'Checking…',
+  tryAgain: 'Try again',
+  continue: 'Continue',
+  signInToSubmit: 'Sign in to submit',
+  answerAll: 'Answer every question to submit.',
+  caseNote: 'Costs 1 HP if any answer is wrong.',
+  quickCheckNote: 'No HP cost.',
+  replayNote: 'Practice · no HP, no XP.',
+  noHp: 'No HP left for this case. HP refills at',
+  resultHeading: 'Result',
+  passed: 'All answers correct.',
+  passedReplay: 'Cleared again · XP already earned.',
+  failed: (right: number, total: number) =>
+    `${right} of ${total} correct. Each wrong answer has a note under it.`,
+  /** Added to `failed` only when the Try again button shows. */
+  failedRetry: 'Then try again.',
+  hpLeft: (hp: number, max: number) => `${hp} of ${max} HP left today.`,
+  xpToastTitle: (xp: number) => `+${xp} XP`,
+  xpToastText: (title: string) => `Quest cleared: ${title}`,
+  levelUpTitle: (level: number) => `Level ${level} reached`,
+  /** The action may have finished (and spent HP) before the reply was lost. */
+  noReply: 'No reply from the server. Reload the page to see your HP and result.',
   locked: 'LOCKED',
   /** The back link until the world map ships (QUEST_BACK_HREF). */
   backIcon: '◂',

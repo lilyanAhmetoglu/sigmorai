@@ -24,8 +24,13 @@ export const LESSON_SOURCE_KINDS = [
 /** A quick check has exactly this many questions (curriculum-design-plan.md). */
 export const QUICK_CHECK_QUESTIONS = 3;
 
-/** Options per case / quick-check question. */
+/** Options per quick-check question. */
 export const QUESTION_OPTIONS = { min: 2, max: 6 } as const;
+
+/** A case has 3–5 questions (quest-actions spec, amended 2026-10-05). */
+export const CASE_QUESTIONS = { min: 3, max: 5 } as const;
+/** Each case question has exactly 4 options, one correct (exam style). */
+export const CASE_OPTIONS = { min: 4, max: 4 } as const;
 
 /** `sourceHash` in lesson frontmatter: a lowercase hex SHA-256 of the cited pages. */
 export const SOURCE_HASH_PATTERN = /^[a-f0-9]{64}$/;
