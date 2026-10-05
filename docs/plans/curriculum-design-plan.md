@@ -8,6 +8,16 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (Phase 1 build)
+
+The Phase 1 build and its CTO review changed these parts. The maintainer approved them.
+
+- **Outline and frontmatter schemas live in `lib/types/`,** per AGENTS.md ("every shared type and Zod schema"). `lib/content/schema.ts` is dropped. Amended in the same branch: `content/CLAUDE.md`.
+- **The accent helper returns the `data-accent` value** (`realmAccent(3)` → `realm-3`). `accents.css` maps it to `--realm-3`. Why: components already pick a tint with `data-accent`.
+- **`CHAPTERS_PER_REALM` is the existing `CHAPTER_COUNT`.** No second constant.
+- **A Math outline floor is `{ n, covers, formulas: [{ math, text }] }`.** No `title` (the name is in `MATH_FLOORS`) and no single `formulaText`. Why: floor 1 has two formulas, and each needs its own plain-words line.
+- **The Math Tower has a constant row** (`MATH_TOWER`: name, NPC) and one art path (`MATH_ART` = `/levels/math`).
+
 ## Amendments locked 2026-10-05 (devil pass)
 
 The `devil` reviewed the first draft. The team approved its full list (the maintainer delegated product calls). Each line replaces the matching part of the first draft or of `design/`.
