@@ -5,12 +5,16 @@ import {
   AVATAR_SIZES,
   BUTTON_SIZES,
   BUTTON_VARIANTS,
+  CHOICE_STATES,
+  LEVEL_STATUSES,
   PANEL_PADDINGS,
   PANEL_TONES,
+  QUEST_STATUSES,
+  TEST_STATUSES,
 } from './ui';
 
 // Guards against drift: every option name in TS needs a CSS rule, and the
-// reverse. The default value is styled by the base class, so it has no rule.
+// reverse. The base-styled value (usually the default) has no rule.
 const CSS_DIR = `${import.meta.dir}/../../app/styles/components`;
 
 async function cssNames(file: string, attr: string): Promise<string[]> {
@@ -30,6 +34,11 @@ describe('option lists match their CSS', () => {
     ['panel.css', 'padding', without(PANEL_PADDINGS, 'md')],
     ['pixel-avatar.css', 'size', without(AVATAR_SIZES, 'md')],
     ['accents.css', 'accent', without(ACCENTS)],
+    ['choice.css', 'state', without(CHOICE_STATES)],
+    ['level-node.css', 'status', without(LEVEL_STATUSES, 'open')],
+    // "done" is PixelButton's secondary variant, not a quest-card rule
+    ['quest-card.css', 'status', without(QUEST_STATUSES, 'done')],
+    ['test-result.css', 'status', without(TEST_STATUSES, 'pending')],
   ])('%s data-%s', async (file, attr, expected) => {
     expect(await cssNames(file, attr)).toEqual(expected);
   });
