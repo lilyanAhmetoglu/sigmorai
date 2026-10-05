@@ -16,7 +16,12 @@ export function AuthControls() {
         </SignUpButton>
       </Show>
       <Show when="signed-in">
-        <UserButton />
+        {/* Clerk's trigger is ~28px; grow it to the 44px tap target. */}
+        <UserButton
+          appearance={{
+            elements: { userButtonTrigger: 'min-h-11 min-w-11', userButtonAvatarBox: 'size-9' },
+          }}
+        />
       </Show>
     </div>
   );

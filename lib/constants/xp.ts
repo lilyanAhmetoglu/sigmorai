@@ -14,3 +14,10 @@ export const XP_REWARDS = {
   challenge: 150,
   boss: 500,
 } as const satisfies Record<(typeof XP_REASONS)[number], number>;
+
+/**
+ * Level = floor(sqrt(xp / LEVEL_XP_STEP)) (docs/build-prompt.md). Level n
+ * starts at LEVEL_XP_STEP × n² XP, so a new player is level 0. Computed from
+ * xp, never stored (db/CLAUDE.md invariant 5).
+ */
+export const LEVEL_XP_STEP = 100;

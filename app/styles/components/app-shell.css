@@ -1,0 +1,89 @@
+/*
+ * App shell: skip link, sticky header, nav (desktop row + mobile <details>
+ * menu), footer. Design: Sigmorai App.dc.html → the in-app top bar and footer.
+ * Every nav target keeps a 44px hit area (min-h-11; the design's 8px padding
+ * gave ~29px). Desktop row from lg; below it the Menu toggle.
+ * Dropped from the design (no token): the header's second 3px ink-800 line
+ * (box-shadow 0 3px 0), 11px HUD labels (use text-hud), 18px logo text (uses text-body-lg).
+ */
+@layer components {
+  /* Hidden until focused; it is the first focusable element on the page. */
+  .skip-link {
+    @apply sr-only;
+  }
+  .skip-link:focus {
+    @apply bg-xp text-text-on-accent font-hud text-hud tracking-hud shadow-notch not-sr-only fixed top-2 left-2 z-30 px-4 py-3 no-underline;
+  }
+
+  /* Sticky only from lg: on a phone the wrapped header is ~200px tall and
+     would pin too much of the screen. `relative` anchors the mobile menu panel. */
+  .site-header {
+    @apply bg-ink-900 border-ink-950 relative z-20 border-b-3 lg:sticky lg:top-0;
+  }
+  .site-header-bar {
+    @apply max-w-app mx-auto flex flex-wrap items-center gap-3 px-3 py-2.5 sm:px-6 lg:px-8;
+  }
+
+  .site-logo {
+    @apply font-display text-body-lg text-ink-100 flex min-h-11 items-center gap-2.5 font-bold no-underline;
+  }
+  .site-logo:hover {
+    @apply text-ink-100;
+  }
+
+  .site-nav {
+    @apply hidden lg:block;
+  }
+  .nav-list {
+    @apply m-0 flex list-none flex-wrap gap-1 p-0;
+  }
+  .nav-link {
+    @apply font-hud text-hud tracking-hud text-text-2 inline-flex min-h-11 items-center gap-2 px-3 uppercase no-underline;
+  }
+  a.nav-link:hover {
+    @apply text-text-1;
+  }
+  .nav-link[aria-current='page'] {
+    @apply bg-ink-100 text-ink-950;
+  }
+  .mobile-menu {
+    @apply ml-auto lg:hidden;
+  }
+  .mobile-menu-toggle {
+    @apply font-hud text-hud tracking-hud text-ink-100 bg-ink-700 shadow-notch inset-shadow-bevel inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 px-3 uppercase select-none;
+  }
+  .mobile-menu-toggle::-webkit-details-marker {
+    @apply hidden;
+  }
+  .mobile-menu[open] .mobile-menu-toggle {
+    @apply inset-shadow-bevel-pressed;
+  }
+  /* Glyph flips so the open state is not colour-only */
+  .mobile-menu-glyph::before {
+    content: '≡';
+  }
+  .mobile-menu[open] .mobile-menu-glyph::before {
+    content: '×';
+  }
+  .mobile-menu-panel {
+    @apply bg-ink-900 border-ink-950 shadow-drop absolute inset-x-0 top-full border-b-3 p-3;
+  }
+  .mobile-menu-panel .nav-list {
+    @apply flex-col;
+  }
+  .mobile-menu-panel .nav-link {
+    @apply w-full;
+  }
+
+  .app-main {
+    @apply max-w-app mx-auto flex w-full min-w-0 flex-1 flex-col;
+  }
+  /* The skip link focuses <main>; it is not interactive, so no ring there. */
+  .app-main:focus-visible {
+    @apply outline-none;
+  }
+
+  .site-footer {
+    @apply border-ink-800 font-hud text-hud tracking-hud text-text-3 flex flex-wrap justify-between gap-3 border-t-3 px-4 py-6 sm:px-12;
+  }
+}

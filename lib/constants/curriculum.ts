@@ -5,7 +5,14 @@
  * Per-track text (topic, lore, chapter titles) lives in content/<track>/outline.json.
  * Counts and track names are in ./exercises.ts.
  */
+import type { Accent, Track } from '@/lib/types';
 import { FRONTIER_AREA, MATH_AREA } from './exercises';
+
+/** Track chip colour, from the design's TR table (builder = ember, strategist = spark). */
+export const TRACK_ACCENTS: Record<Track, Accent> = {
+  builder: 'accent',
+  strategist: 'xp',
+};
 
 /** UI labels are the upper-case form (BEGINNER / INTERMEDIATE / ADVANCED). */
 export const TIERS = ['beginner', 'intermediate', 'advanced'] as const;
