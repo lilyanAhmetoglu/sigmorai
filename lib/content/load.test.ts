@@ -1,0 +1,145 @@
+import { describe, expect, test } from 'bun:test';
+import {
+  CaseSchema,
+  ChallengeSchema,
+  LessonFrontmatterSchema,
+  QuickCheckSchema,
+} from '@/lib/types';
+import { ContentError, loadCase, loadChallenge, loadLesson, loadQuickCheck } from './load';
+
+const VALID = `${import.meta.dir}/__fixtures__/valid`;
+const BROKEN = `${import.meta.dir}/__fixtures__/broken`;
+
+const LESSON = 'builder/r0/c1/lesson';
+const CHALLENGE = 'builder/r0/c1/challenge';
+const CASE = 'strategist/r0/c1/challenge';
+const QUICK_CHECK = 'builder/r0/c1/quick-check';
+
+/** The ContentError a promise rejects with. */
+async function failure(p: Promise<unknown>): Promise<ContentError> {
+  try {
+    await p;
+  } catch (err) {
+    expect(err).toBeInstanceOf(ContentError);
+    return err as ContentError;
+  }
+  throw new Error('expected the loader to throw');
+}
+
+describe('valid files load', () => {
+  test('lesson: frontmatter and body', async () => {
+    const { frontmatter, body } = await loadLesson(LESSON, VALID);
+    expect(frontmatter.id).toBe(LESSON);
+    expect(frontmatter.sources).toHaveLength(1);
+    expect(body).toContain('# Fixture lesson');
+    expect(body).not.toContain('sourceHash');
+  });
+
+  test('challenge keeps hidden tests and solution on the server', async () => {
+    const c = await loadChallenge(CHALLENGE, VALID);
+    expect(c.hiddenTests).toHaveLength(1);
+    expect(c.solution).toContain('return a + b');
+  });
+
+  test('case: unmarked options default to not correct', async () => {
+    const c = await loadCase(CASE, VALID);
+    expect(c.questions[0].options.map((o) => o.correct)).toEqual([false, true]);
+  });
+
+  test('quick check', async () => {
+    const q = await loadQuickCheck(QUICK_CHECK, VALID);
+    expect(q.questions).toHaveLength(3);
+  });
+});
+
+describe('bad files fail with the file name', () => {
+  test('lesson with no sources and a stray xp field', async () => {
+    const err = await failure(loadLesson(LESSON, BROKEN));
+    expect(err.code).toBe('invalid');
+    expect(err.message).toContain('builder/00-bootstrap-village/c1/lesson.mdx');
+    expect(err.message).toContain('sources');
+    expect(err.message).toContain('xp');
+  });
+
+  test('challenge with no hidden tests', async () => {
+    const err = await failure(loadChallenge(CHALLENGE, BROKEN));
+    expect(err.message).toContain('c1/challenge.json');
+    expect(err.message).toContain('hiddenTests');
+  });
+
+  test('case with two correct options', async () => {
+    const err = await failure(loadCase(CASE, BROKEN));
+    expect(err.message).toContain('strategist/00-bootstrap-village/c1/case.json');
+    expect(err.message).toContain('exactly one option must be correct');
+  });
+
+  test('a missing file is `missing`, so a page can 404', async () => {
+    const err = await failure(loadQuickCheck(QUICK_CHECK, BROKEN));
+    expect(err.code).toBe('missing');
+    expect(err.file).toContain('quick-check.json');
+  });
+
+  test('an invalid id', async () => {
+    expect((await failure(loadLesson('builder/r9/c1/lesson', VALID))).code).toBe('invalid');
+  });
+
+  test('the wrong loader for the id', async () => {
+    const err = await failure(loadChallenge(CASE, VALID));
+    expect(err.message).toContain('case.json, not challenge.json');
+  });
+
+  test('a file whose id does not match its path', async () => {
+    // The fixture sits in strategist/…/c1 but says it is c2.
+    const err = await failure(loadQuickCheck('strategist/r0/c1/quick-check', BROKEN));
+    expect(err.code).toBe('invalid');
+    expect(err.message).toContain('strategist/00-bootstrap-village/c1/quick-check.json');
+    expect(err.message).toContain('expected "strategist/r0/c1/quick-check"');
+  });
+});
+
+describe('schemas', () => {
+  const kase = async () => CaseSchema.parse(await loadCase(CASE, VALID));
+
+  test('a case question with 0 correct options fails', async () => {
+    const c = await kase();
+    for (const o of c.questions[0].options) o.correct = false;
+    expect(CaseSchema.safeParse(c).success).toBe(false);
+  });
+
+  test('a case question with 2 correct options fails', async () => {
+    const c = await kase();
+    for (const o of c.questions[0].options) o.correct = true;
+    expect(CaseSchema.safeParse(c).success).toBe(false);
+  });
+
+  test('an option without an explanation fails', async () => {
+    const c = await kase();
+    const { text, correct } = c.questions[0].options[0];
+    c.questions[0].options[0] = { text, correct } as (typeof c.questions)[0]['options'][0];
+    expect(CaseSchema.safeParse(c).success).toBe(false);
+  });
+
+  test('sourceHash is optional until step 8, but must be a SHA-256 when set', async () => {
+    const { sourceHash, ...rest } = (await loadLesson(LESSON, VALID)).frontmatter;
+    expect(sourceHash).toBeDefined();
+    expect(LessonFrontmatterSchema.safeParse(rest).success).toBe(true);
+    expect(LessonFrontmatterSchema.safeParse({ ...rest, sourceHash: 'abc' }).success).toBe(false);
+  });
+
+  test('a quick check needs exactly 3 questions', async () => {
+    const q = await loadQuickCheck(QUICK_CHECK, VALID);
+    q.questions.pop();
+    expect(QuickCheckSchema.safeParse(q).success).toBe(false);
+  });
+
+  test('a challenge id must end in /challenge', async () => {
+    const c = await loadChallenge(CHALLENGE, VALID);
+    expect(ChallengeSchema.safeParse({ ...c, id: LESSON }).success).toBe(false);
+  });
+
+  test('duplicate test names fail', async () => {
+    const c = await loadChallenge(CHALLENGE, VALID);
+    const hiddenTests = [{ ...c.hiddenTests[0], name: c.visibleTests[0].name }];
+    expect(ChallengeSchema.safeParse({ ...c, hiddenTests }).success).toBe(false);
+  });
+});

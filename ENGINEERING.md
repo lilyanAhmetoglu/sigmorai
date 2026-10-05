@@ -37,6 +37,7 @@ How Sigmorai is built. Stack, architecture rules, data model, build order. The f
 - **UI never imports a provider.** `components/**` and pure `lib/` modules can't import the DB, E2B, Anthropic or Blob SDKs (ESLint `no-restricted-imports`).
 - **Grading, XP, HP, streak: server only** (`.claude/rules/scoped/grading.md`).
 - **Content is files, progress is rows.** `content/` in git; DB stores ids.
+  - Keep `outputFileTracingIncludes` for `content/**` in `next.config.ts`: the `lib/content` loaders read `content/` from disk at runtime, so server routes must ship it.
 - **One place per thing.** Shared types/Zod → `lib/types`. Constants (XP amounts, flag positions, model ids) → `lib/constants`.
 
 ## Data model
