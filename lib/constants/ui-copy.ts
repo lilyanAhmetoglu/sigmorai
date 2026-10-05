@@ -169,9 +169,9 @@ export const QUEST_TEXT = {
   /** The action may have finished (and spent HP) before the reply was lost. */
   noReply: 'No reply from the server. Reload the page to see your HP and result.',
   locked: 'LOCKED',
-  /** The back link until the world map ships (QUEST_BACK_HREF). */
+  /** The back link (questBackHref): the quest's realm page until the world map ships. */
   backIcon: '◂',
-  back: 'Back to profile',
+  back: 'Back to realm',
   loading: 'Loading the quest',
   loadError: "The quest didn't load. Try again in a moment.",
   retry: 'Retry',

@@ -10,3 +10,4 @@ export * from './nav';
 export * from './content';
 export * from './site';
 export * from './landing-copy';
+export * from './realms-copy';

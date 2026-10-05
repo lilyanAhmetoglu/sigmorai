@@ -17,12 +17,15 @@ import {
   FRONTIER_AREA,
   MATH_AREA,
   MATH_FLOOR_COUNT,
+  QUEST_BACK_HREF,
   REALM_COUNT,
+  REALMS,
+  realmHref,
   SEGMENT_PREFIX,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
-import type { ChapterStep, ExerciseRef, SideStep, Track } from '@/lib/types';
+import type { ChapterStep, ExerciseRef, RealmId, SideStep, Track } from '@/lib/types';
 
 const alt = (xs: readonly (string | number)[]) => `(?:${xs.join('|')})`;
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
@@ -107,4 +110,28 @@ export function buildExerciseId(ref: ExerciseRef): string {
   const id = format(ref);
   if (!isExerciseId(id)) throw new RangeError(`Invalid exercise ref: ${JSON.stringify(ref)}`);
   return id;
+}
+
+/** Every exercise id of one realm on one track: each chapter step, then the boss. */
+export function realmExerciseIds(track: Track, realm: number): string[] {
+  const ids: string[] = [];
+  for (let chapter = 1; chapter <= CHAPTER_COUNT; chapter++) {
+    for (const step of CHAPTER_STEPS) {
+      ids.push(buildExerciseId({ area: 'chapter', track, realm, chapter, step }));
+    }
+  }
+  ids.push(buildExerciseId({ area: 'boss', track, realm }));
+  return ids;
+}
+
+/** Every realm exercise id of one track, realm by realm in map order. */
+export function trackExerciseIds(track: Track): string[] {
+  return Array.from({ length: REALM_COUNT }, (_, realm) => realmExerciseIds(track, realm)).flat();
+}
+
+/** Where a quest's back link goes: its realm page on its track, else the catalog. */
+export function questBackHref(exerciseId: string): string {
+  const ref = parseExerciseId(exerciseId);
+  if (ref?.area !== 'chapter' && ref?.area !== 'boss') return QUEST_BACK_HREF;
+  return realmHref(REALMS[ref.realm as RealmId].slug, ref.track);
 }

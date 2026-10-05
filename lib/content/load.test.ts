@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { REALM_COUNT, TRACKS } from '@/lib/constants';
 import { CaseSchema, LessonFrontmatterSchema, QuickCheckSchema } from '@/lib/types';
-import { ContentError, loadCase, loadLesson, loadQuickCheck } from './load';
+import { ContentError, loadCase, loadLesson, loadQuickCheck, loadTrackOutline } from './load';
 
 const VALID = `${import.meta.dir}/__fixtures__/valid`;
 const BROKEN = `${import.meta.dir}/__fixtures__/broken`;
@@ -164,5 +165,18 @@ describe('schemas', () => {
     expect(['docs', 'repo', 'blog'].map(cite)).toEqual([true, true, true]);
     expect(cite('changelog')).toBe(false);
     expect(cite('tweet')).toBe(false);
+  });
+});
+
+describe('loadTrackOutline', () => {
+  test('reads and validates the real outline of each track', async () => {
+    for (const track of TRACKS) {
+      const outline = await loadTrackOutline(track);
+      expect(outline.realms).toHaveLength(REALM_COUNT);
+    }
+  });
+
+  test('a missing outline is a "missing" ContentError', async () => {
+    expect((await failure(loadTrackOutline('builder', VALID))).code).toBe('missing');
   });
 });

@@ -22,6 +22,21 @@ export const OPEN_TIERS = [
   'intermediate',
 ] as const satisfies readonly (typeof TIERS)[number][];
 
+/** The track a visitor with no hero sees: the beginner path starts on strategist (spec → Beginner path). */
+export const DEFAULT_TRACK = 'strategist' as const satisfies Track;
+
+/**
+ * State of one step (lesson, case, quick check) or chapter, computed on the
+ * server (lib/grading/track-map.ts). `locked` = clear the chapter before it;
+ * `tier-locked` = advanced realm, comes later; `soon` = no content file yet.
+ */
+export const STEP_STATUSES = ['done', 'open', 'locked', 'tier-locked', 'soon'] as const;
+/** State of a whole realm. Open-tier realms are open from day one (spec → devil pass). */
+export const REALM_STATUSES = ['cleared', 'in-progress', 'open', 'tier-locked'] as const;
+
+/** How many realm cards the dashboard shows before "Browse all". */
+export const DASHBOARD_REALM_LIMIT = 3;
+
 /** Shared by both tracks. `id` is the realm number; helpers derive folder, art and accent. */
 export const REALMS = [
   {
@@ -88,3 +103,5 @@ export const CONTENT_DIR = 'content';
 export const OUTLINE_FILE = 'outline.json';
 /** Public URL base of the level art (public/levels/realm-0N, public/levels/math). */
 export const LEVEL_ART_BASE = '/levels';
+/** The parallax layers of every scene, back to front: `<base>/<layer>.png` (and /public/art/hero-<layer>.png). */
+export const LEVEL_ART_LAYERS = ['sky', 'far', 'mid', 'near'] as const;

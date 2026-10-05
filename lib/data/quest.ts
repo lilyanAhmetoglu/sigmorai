@@ -2,16 +2,9 @@ import 'server-only';
 import { auth } from '@clerk/nextjs/server';
 import { connection } from 'next/server';
 import { db } from '@/db';
-import {
-  HP_PER_CHALLENGE,
-  PROFILE_HREF,
-  QUEST_ERROR_TEXT,
-  QUEST_TEXT,
-  questHref,
-  REALMS,
-} from '@/lib/constants';
+import { HP_PER_CHALLENGE, QUEST_ERROR_TEXT, QUEST_TEXT, questHref, REALMS } from '@/lib/constants';
 import { isRealmOpen, realmAccent } from '@/lib/content/curriculum';
-import { parseExerciseId } from '@/lib/content/ids';
+import { parseExerciseId, questBackHref } from '@/lib/content/ids';
 import { ContentError, hasContent, loadCase, loadQuickCheck } from '@/lib/content/load';
 import { toPublicCase, toPublicQuickCheck } from '@/lib/content/public';
 import { readAttempts } from '@/lib/grading/attempts';
@@ -60,10 +53,10 @@ function tagFor(ref: RealmRef, kind: GradedKind): string {
   return `${realm} · ${where} · ${step}`;
 }
 
-/** Continue after a pass: the next case if it has content, else the profile. */
-async function nextHrefFor(ref: ExerciseRef): Promise<string> {
+/** Continue after a pass: the next case if it has content, else the realm page. */
+async function nextHrefFor(ref: ExerciseRef, exerciseId: string): Promise<string> {
   const next = nextCaseId(ref);
-  return next && (await hasContent(next)) ? questHref(next) : PROFILE_HREF;
+  return next && (await hasContent(next)) ? questHref(next) : questBackHref(exerciseId);
 }
 
 /**
@@ -158,6 +151,6 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
     tag: tagFor(ref, kind),
     accent: realmAccent(ref.realm as RealmId),
     viewer,
-    nextHref: await nextHrefFor(ref),
+    nextHref: await nextHrefFor(ref, exerciseId),
   };
 }

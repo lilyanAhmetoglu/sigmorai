@@ -7,7 +7,6 @@ import {
   BOSS_SEGMENT,
   CASE_FILE,
   CHAPTER_COUNT,
-  CHAPTER_STEPS,
   CONTENT_DIR,
   CONTENT_NOTES_FILE,
   FRONTIER_AREA,
@@ -17,12 +16,11 @@ import {
   MATH_FLOORS,
   OUTLINE_FILE,
   QUICK_CHECK_FILE,
-  REALMS,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
 import { MathOutlineSchema, TrackOutlineSchema } from '@/lib/types';
-import { buildExerciseId, parseExerciseId } from './ids';
+import { buildExerciseId, parseExerciseId, trackExerciseIds } from './ids';
 import {
   ContentError,
   contentPath,
@@ -51,17 +49,7 @@ const UNEXPECTED =
 
 /** Every exercise file the id grammar allows, keyed by path → id. Frontier folders come from disk. */
 function knownExerciseFiles(frontierFolders: string[]): Map<string, string> {
-  const ids: string[] = [];
-  for (const track of TRACKS) {
-    for (const { id: realm } of REALMS) {
-      for (let chapter = 1; chapter <= CHAPTER_COUNT; chapter++) {
-        for (const step of CHAPTER_STEPS) {
-          ids.push(buildExerciseId({ area: 'chapter', track, realm, chapter, step }));
-        }
-      }
-      ids.push(buildExerciseId({ area: 'boss', track, realm }));
-    }
-  }
+  const ids: string[] = TRACKS.flatMap(trackExerciseIds);
   for (const { n } of MATH_FLOORS) {
     for (const step of SIDE_STEPS) ids.push(buildExerciseId({ area: MATH_AREA, floor: n, step }));
   }

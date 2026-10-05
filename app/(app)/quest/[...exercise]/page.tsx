@@ -5,7 +5,8 @@ import { Badge } from '@/components/badge';
 import { Panel } from '@/components/panel';
 import { PixelButton } from '@/components/pixel-button';
 import { AnswerForm } from '@/components/quest/answer-form';
-import { QUEST_BACK_HREF, QUEST_TEXT } from '@/lib/constants';
+import { QUEST_TEXT } from '@/lib/constants';
+import { questBackHref } from '@/lib/content/ids';
 import { getQuestPage } from '@/lib/data/quest';
 
 export const metadata: Metadata = { title: 'Quest · Sigmorai' };
@@ -22,21 +23,29 @@ const EXHIBIT_TITLE_ID = 'quest-exhibit-title';
  */
 export default async function QuestPage({ params }: PageProps<'/quest/[...exercise]'>) {
   const { exercise } = await params;
-  const page = await getQuestPage(exercise.join('/'));
+  const id = exercise.join('/');
+  const page = await getQuestPage(id);
+  const backHref = questBackHref(id);
 
   if (page.kind === 'not-found') notFound();
   if (page.kind === 'unavailable') {
-    return <QuestNotice message={QUEST_TEXT.notAvailable} hint={QUEST_TEXT.notAvailableHint} />;
+    return (
+      <QuestNotice
+        backHref={backHref}
+        message={QUEST_TEXT.notAvailable}
+        hint={QUEST_TEXT.notAvailableHint}
+      />
+    );
   }
   if (page.kind === 'locked') {
-    return <QuestNotice badge={QUEST_TEXT.locked} message={page.message} />;
+    return <QuestNotice backHref={backHref} badge={QUEST_TEXT.locked} message={page.message} />;
   }
 
   const { sheet, scenario, exhibit, tag, accent, viewer, nextHref } = page;
   return (
     <div className="flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
       <div className="quest-top">
-        <Link href={QUEST_BACK_HREF} className="quest-back">
+        <Link href={backHref} className="quest-back">
           <span aria-hidden="true">{QUEST_TEXT.backIcon}</span>
           {QUEST_TEXT.back}
         </Link>
@@ -72,7 +81,9 @@ export default async function QuestPage({ params }: PageProps<'/quest/[...exerci
 }
 
 /** Locked or not built yet: the reason as text (plus a LOCKED tag) and a way back. */
-function QuestNotice({ badge, message, hint }: { badge?: string; message: string; hint?: string }) {
+type NoticeProps = { backHref: string; badge?: string; message: string; hint?: string };
+
+function QuestNotice({ backHref, badge, message, hint }: NoticeProps) {
   return (
     <div className="max-w-reading mx-auto flex w-full flex-col gap-4 px-4 py-10">
       <h1 className="sr-only">{QUEST_TEXT.noticeHeading}</h1>
@@ -81,7 +92,7 @@ function QuestNotice({ badge, message, hint }: { badge?: string; message: string
         <p className="text-body leading-body m-0">{message}</p>
         {hint && <p className="text-small leading-body text-text-2 m-0">{hint}</p>}
         <PixelButton
-          href={QUEST_BACK_HREF}
+          href={backHref}
           variant="secondary"
           icon={<span aria-hidden="true">{QUEST_TEXT.backIcon}</span>}
         >

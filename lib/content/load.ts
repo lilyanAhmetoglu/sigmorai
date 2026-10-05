@@ -8,6 +8,7 @@ import {
   CONTENT_DIR,
   KB_SOURCES_NAME,
   LESSON_FILE,
+  OUTLINE_FILE,
   QUICK_CHECK_FILE,
 } from '@/lib/constants';
 import {
@@ -15,10 +16,13 @@ import {
   KbSourcesFileSchema,
   LessonFrontmatterSchema,
   QuickCheckSchema,
+  TrackOutlineSchema,
   type Case,
   type KbSource,
   type Lesson,
   type QuickCheck,
+  type Track,
+  type TrackOutline,
 } from '@/lib/types';
 import { parseExerciseId } from './ids';
 import { exerciseFile } from './paths';
@@ -174,4 +178,20 @@ export async function loadKbSources(root = CONTENT_DIR): Promise<KbSource[]> {
   const result = KbSourcesFileSchema.safeParse(raw);
   if (!result.success) throw new ContentError('invalid', at.file, z.prettifyError(result.error));
   return result.data.sources;
+}
+
+/** content/<track>/outline.json, validated: topic, lore and chapter titles per realm. */
+export async function loadTrackOutline(track: Track, root = CONTENT_DIR): Promise<TrackOutline> {
+  const abs = contentPath(root, `${track}/${OUTLINE_FILE}`);
+  const at = { abs, file: path.relative(process.cwd(), abs) };
+  const text = await readText(at);
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (err) {
+    throw new ContentError('invalid', at.file, `invalid JSON (${(err as Error).message})`);
+  }
+  const result = TrackOutlineSchema.safeParse(raw);
+  if (!result.success) throw new ContentError('invalid', at.file, z.prettifyError(result.error));
+  return result.data;
 }
