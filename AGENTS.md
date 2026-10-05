@@ -67,6 +67,7 @@ bun run test             # bun test
 bun run test:e2e         # playwright
 bun run format
 bun run hooks:test       # guardrail hook tests
+bun run content:check    # every content/ file vs its Zod schema
 ```
 
 Run typecheck, lint, test and build before calling anything done.

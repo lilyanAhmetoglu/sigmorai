@@ -3,12 +3,20 @@ import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
-import { CASE_FILE, CONTENT_DIR, LESSON_FILE, QUICK_CHECK_FILE } from '@/lib/constants';
+import {
+  CASE_FILE,
+  CONTENT_DIR,
+  KB_SOURCES_NAME,
+  LESSON_FILE,
+  QUICK_CHECK_FILE,
+} from '@/lib/constants';
 import {
   CaseSchema,
+  KbSourcesFileSchema,
   LessonFrontmatterSchema,
   QuickCheckSchema,
   type Case,
+  type KbSource,
   type Lesson,
   type QuickCheck,
 } from '@/lib/types';
@@ -51,7 +59,7 @@ type Located = { abs: string; file: string };
  * server route would ship the whole repo). content/** is still shipped with
  * every server route by outputFileTracingIncludes in next.config.ts.
  */
-const contentPath = (root: string, rel: string) =>
+export const contentPath = (root: string, rel: string) =>
   path.resolve(/*turbopackIgnore: true*/ process.cwd(), root, rel);
 
 /** Resolves an id to its file and checks it is the kind of file this loader reads. */
@@ -151,3 +159,19 @@ export const loadCase = (id: string, root = CONTENT_DIR): Promise<Case> =>
 
 export const loadQuickCheck = (id: string, root = CONTENT_DIR): Promise<QuickCheck> =>
   loadJson(id, QuickCheckSchema, QUICK_CHECK_FILE, root);
+
+/** content/sources.yaml, validated. The one loader for it (seed + content check). */
+export async function loadKbSources(root = CONTENT_DIR): Promise<KbSource[]> {
+  const abs = contentPath(root, KB_SOURCES_NAME);
+  const at = { abs, file: path.relative(process.cwd(), abs) };
+  const text = await readText(at);
+  let raw: unknown;
+  try {
+    raw = parseYaml(text);
+  } catch (err) {
+    throw new ContentError('invalid', at.file, `invalid YAML (${(err as Error).message})`);
+  }
+  const result = KbSourcesFileSchema.safeParse(raw);
+  if (!result.success) throw new ContentError('invalid', at.file, z.prettifyError(result.error));
+  return result.data.sources;
+}

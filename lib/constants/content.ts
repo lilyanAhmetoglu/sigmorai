@@ -34,3 +34,8 @@ export const CASE_OPTIONS = { min: 4, max: 4 } as const;
 
 /** `sourceHash` in lesson frontmatter: a lowercase hex SHA-256 of the cited pages. */
 export const SOURCE_HASH_PATTERN = /^[a-f0-9]{64}$/;
+
+/** Dated blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx (no schema until step 8). */
+export const BLOG_AREA = 'blog';
+/** Authoring notes inside content/; not content, skipped by the validator. */
+export const CONTENT_NOTES_FILE = 'CLAUDE.md';

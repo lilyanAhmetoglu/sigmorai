@@ -43,7 +43,7 @@ Implementation details (exact function names, internal helpers) belong in code. 
 | **db-architect**     | before any migration                | the data model                |
 | **voice-guardian**   | before merging NPC copy or a prompt | the two-voice rules           |
 | **eval**             | before push, if mentor-touching     | behaviour (`mentor-eval.md`)  |
-| **content-reviewer** | on every `new-level` PR             | lesson truth vs cited sources |
+| **content-reviewer** | any content or curriculum change    | lesson truth vs cited sources |
 | **cto** / `/review`  | before commit                       | the code                      |
 
 Scaffold a new spec with `/spec-new`.
