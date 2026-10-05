@@ -3,20 +3,12 @@ import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
-import {
-  CASE_FILE,
-  CHALLENGE_FILE,
-  CONTENT_DIR,
-  LESSON_FILE,
-  QUICK_CHECK_FILE,
-} from '@/lib/constants';
+import { CASE_FILE, CONTENT_DIR, LESSON_FILE, QUICK_CHECK_FILE } from '@/lib/constants';
 import {
   CaseSchema,
-  ChallengeSchema,
   LessonFrontmatterSchema,
   QuickCheckSchema,
   type Case,
-  type Challenge,
   type Lesson,
   type QuickCheck,
 } from '@/lib/types';
@@ -24,8 +16,8 @@ import { parseExerciseId } from './ids';
 import { exerciseFile } from './paths';
 
 /**
- * Server-only content loaders. They return the FULL objects (hidden tests,
- * solution, correct options, explanations). Hand a client component only the
+ * Server-only content loaders. They return the FULL objects (correct options,
+ * explanations). Hand a client component only the
  * result of lib/content/public.ts.
  *
  * `root` defaults to content/ under the project; tests pass a fixtures folder.
@@ -153,10 +145,7 @@ export async function hasContent(id: string, root = CONTENT_DIR): Promise<boolea
   }
 }
 
-/** A builder challenge. A strategist challenge id is a case: use loadCase. */
-export const loadChallenge = (id: string, root = CONTENT_DIR): Promise<Challenge> =>
-  loadJson(id, ChallengeSchema, CHALLENGE_FILE, root);
-
+/** A graded case: the `challenge` step (chapter or boss) on either track. */
 export const loadCase = (id: string, root = CONTENT_DIR): Promise<Case> =>
   loadJson(id, CaseSchema, CASE_FILE, root);
 

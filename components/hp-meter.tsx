@@ -7,8 +7,8 @@ type Props = ComponentProps<'span'> & { hp: HpValue };
 
 /**
  * `HP ■■□`: filled and empty squares plus "2 of 3" for screen readers, so HP
- * never relies on colour. Shown in the quest challenge panel (HP is per
- * challenge). Uses the HUD stat style (hud-bar.css).
+ * never relies on colour. Shown in the quest case panel (HP is per
+ * case). Uses the HUD stat style (hud-bar.css).
  */
 export function HpMeter({ hp, className, ...rest }: Props) {
   const max = Math.max(0, Math.floor(hp.max));

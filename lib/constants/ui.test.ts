@@ -10,7 +10,6 @@ import {
   PANEL_PADDINGS,
   PANEL_TONES,
   QUEST_STATUSES,
-  TEST_STATUSES,
 } from './ui';
 
 // Guards against drift: every option name in TS needs a CSS rule, and the
@@ -38,7 +37,6 @@ describe('option lists match their CSS', () => {
     ['level-node.css', 'status', without(LEVEL_STATUSES, 'open')],
     // "done" is PixelButton's secondary variant, not a quest-card rule
     ['quest-card.css', 'status', without(QUEST_STATUSES, 'done')],
-    ['test-result.css', 'status', without(TEST_STATUSES, 'pending')],
   ])('%s data-%s', async (file, attr, expected) => {
     expect(await cssNames(file, attr)).toEqual(expected);
   });

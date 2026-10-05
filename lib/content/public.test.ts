@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import type { PublicChallenge } from '@/lib/types';
-import { loadCase, loadChallenge, loadQuickCheck } from './load';
-import { toPublicCase, toPublicChallenge, toPublicQuickCheck } from './public';
+import type { PublicCase } from '@/lib/types';
+import { loadCase, loadQuickCheck } from './load';
+import { toPublicCase, toPublicQuickCheck } from './public';
 
 const VALID = `${import.meta.dir}/__fixtures__/valid`;
 
@@ -22,27 +22,19 @@ function keysOf(value: unknown): Set<string> {
 }
 
 describe('public views strip secrets', () => {
-  test('challenge: no hidden tests, no solution', async () => {
-    const full = await loadChallenge('builder/r0/c1/challenge', VALID);
-    const pub = toPublicChallenge(full);
-    const keys = keysOf(pub);
-    expect(keys.has('hiddenTests')).toBe(false);
-    expect(keys.has('solution')).toBe(false);
-    expect(JSON.stringify(pub)).not.toContain(full.hiddenTests[0].code);
-    expect(pub.visibleTests).toEqual(full.visibleTests);
-    expect(pub.starter).toBe(full.starter);
-  });
-
-  test('case: no correct flags, no explanations', async () => {
-    const full = await loadCase('strategist/r0/c1/challenge', VALID);
-    const pub = toPublicCase(full);
-    const keys = keysOf(pub);
-    expect(keys.has('correct')).toBe(false);
-    expect(keys.has('explanation')).toBe(false);
-    expect(pub.questions[0].options.map((o) => o.text)).toEqual(
-      full.questions[0].options.map((o) => o.text),
-    );
-  });
+  test.each(['strategist/r0/c1/challenge', 'builder/r0/c1/challenge'])(
+    'case %s: no correct flags, no explanations',
+    async (id) => {
+      const full = await loadCase(id, VALID);
+      const pub = toPublicCase(full);
+      const keys = keysOf(pub);
+      expect(keys.has('correct')).toBe(false);
+      expect(keys.has('explanation')).toBe(false);
+      expect(pub.questions[0].options.map((o) => o.text)).toEqual(
+        full.questions[0].options.map((o) => o.text),
+      );
+    },
+  );
 
   test('quick check: no correct flags, no explanations', async () => {
     const pub = toPublicQuickCheck(await loadQuickCheck('builder/r0/c1/quick-check', VALID));
@@ -53,9 +45,9 @@ describe('public views strip secrets', () => {
   });
 
   test('a full object does not type-check as a public one', async () => {
-    const full = await loadChallenge('builder/r0/c1/challenge', VALID);
-    // @ts-expect-error: only toPublicChallenge makes a PublicChallenge.
-    const leaked: PublicChallenge = full;
+    const full = await loadCase('builder/r0/c1/challenge', VALID);
+    // @ts-expect-error: only toPublicCase makes a PublicCase.
+    const leaked: PublicCase = full;
     expect(leaked).toBeDefined();
   });
 

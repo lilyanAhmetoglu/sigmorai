@@ -6,19 +6,20 @@ import type { KB_SOURCE_KINDS } from './kb';
 
 /** One file per step inside an exercise folder. */
 export const LESSON_FILE = 'lesson.mdx';
-/** A builder challenge (code + tests). Strategist challenges use CASE_FILE. */
-export const CHALLENGE_FILE = 'challenge.json';
+/** The graded `challenge` step (chapter and boss) on both tracks is a case. */
 export const CASE_FILE = 'case.json';
 export const QUICK_CHECK_FILE = 'quick-check.json';
 
-/** What a lesson may cite (a subset of the knowledge-base kinds). */
+/**
+ * What a lesson may cite (a subset of the knowledge-base kinds). `blog` means
+ * an official vendor engineering post only (e.g. anthropic.com/engineering,
+ * openai.com/index), never a personal or third-party blog.
+ */
 export const LESSON_SOURCE_KINDS = [
   'docs',
   'repo',
+  'blog',
 ] as const satisfies readonly (typeof KB_SOURCE_KINDS)[number][];
-
-/** Languages the sandbox runner grades. The design's quest editor is Python. */
-export const CHALLENGE_LANGUAGES = ['python'] as const;
 
 /** A quick check has exactly this many questions (curriculum-design-plan.md). */
 export const QUICK_CHECK_QUESTIONS = 3;

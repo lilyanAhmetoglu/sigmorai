@@ -54,11 +54,6 @@ export const CHOICE_STATES = ['correct', 'wrong'] as const;
 export const LEVEL_STATUSES = ['locked', 'open', 'current', 'done'] as const;
 /** Quest tile. "open" is the base style. */
 export const QUEST_STATUSES = ['open', 'done', 'locked'] as const;
-/** One test row in the challenge runner. "pending" is the base style. */
-export const TEST_STATUSES = ['pass', 'fail', 'pending', 'running'] as const;
 
 /** How long a toast stays before it closes by itself. It also has a Dismiss button. */
 export const TOAST_DURATION_MS = 8_000;
-
-/** Reset asks for a second press within this time before it throws the code away. */
-export const RESET_CONFIRM_MS = 4_000;

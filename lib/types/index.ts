@@ -5,6 +5,5 @@ export * from './xp';
 export * from './user';
 export * from './curriculum';
 export * from './hud';
-export * from './runner';
 export * from './content';
 export * from './quest';

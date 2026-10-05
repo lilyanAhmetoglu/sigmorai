@@ -7,15 +7,15 @@ import { utcDayStart } from '@/lib/xp/day';
 
 /** Where a learner stands on one exercise today. */
 export type AttemptState = {
-  /** A progress row exists: a Submit now is a replay. */
+  /** A progress row exists: a graded attempt now is a replay. */
   cleared: boolean;
-  /** HP spent today (pending + failed rows since 00:00 UTC). */
+  /** HP spent today (failed rows since 00:00 UTC). */
   spent: number;
 };
 
 /**
  * Reads the clear and today's HP-spending attempts. `exec` is the db (quest
- * page) or Submit's transaction, after it locked the user row. Served by the
+ * page) or the graded action's transaction, after it locked the user row. Served by the
  * progress primary key and submissions_user_exercise_idx.
  */
 export async function readAttempts(

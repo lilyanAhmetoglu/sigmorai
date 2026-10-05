@@ -7,22 +7,19 @@ const at = (iso: string) => new Date(iso);
 const attempt = (status: SubmissionStatus, iso: string) => ({ status, createdAt: at(iso) });
 
 describe('isHpSpent', () => {
-  test('pending and failed cost HP; passed and errored do not', () => {
-    expect(isHpSpent('pending')).toBe(true);
+  test('failed costs HP; passed does not', () => {
     expect(isHpSpent('failed')).toBe(true);
     expect(isHpSpent('passed')).toBe(false);
-    expect(isHpSpent('errored')).toBe(false);
   });
 });
 
 describe('hpSpentToday', () => {
   const now = at('2026-10-05T12:00:00Z');
 
-  test('counts failed + pending today; errored is refunded', () => {
+  test('counts failed rows today; passed is free', () => {
     const rows = [
       attempt('failed', '2026-10-05T01:00:00Z'),
-      attempt('pending', '2026-10-05T02:00:00Z'),
-      attempt('errored', '2026-10-05T03:00:00Z'),
+      attempt('failed', '2026-10-05T02:00:00Z'),
       attempt('passed', '2026-10-05T04:00:00Z'),
     ];
     expect(hpSpentToday(rows, now)).toBe(2);
