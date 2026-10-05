@@ -44,7 +44,6 @@ export const SHELL_TEXT = {
   skipLink: 'Skip to content',
   navLabel: 'Main',
   menu: 'Menu',
-  soon: 'Soon',
   footerLeft: 'SIGMORAI.COM',
   footerRight: 'LEARN · BUILD · ASCEND',
 } as const;
@@ -56,8 +55,6 @@ export const HUD_TEXT = {
   retry: 'Retry',
   notSetUp: 'Hero not set up',
   hp: 'HP',
-  hpEmpty: '—',
-  hpEmptyHint: 'HP shows inside a challenge',
   streak: 'STREAK',
   streakUnit: 'days',
 } as const;

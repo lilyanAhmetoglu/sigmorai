@@ -53,16 +53,9 @@ function StatsRow({ stats, hp }: { stats: HudStats; hp?: HpValue }) {
   );
 }
 
-/** Filled and empty squares, so HP never relies on colour. No value = an empty slot. */
+/** Filled and empty squares, so HP never relies on colour. Outside a challenge there is no HP, so no slot. */
 function HpStat({ hp }: { hp?: HpValue }) {
-  if (!hp) {
-    return (
-      <span className="hud-stat" data-empty>
-        {HUD_TEXT.hp} <span aria-hidden="true">{HUD_TEXT.hpEmpty}</span>
-        <span className="sr-only">{HUD_TEXT.hpEmptyHint}</span>
-      </span>
-    );
-  }
+  if (!hp) return null;
   const max = Math.max(0, Math.floor(hp.max));
   const value = Math.min(max, Math.max(0, Math.floor(hp.value)));
   return (
