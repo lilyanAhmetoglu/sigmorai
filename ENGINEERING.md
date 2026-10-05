@@ -57,7 +57,7 @@ See `docs/build-prompt.md` → Data model, plus the Auth.js adapter tables (`acc
 2. Auth + track picker + profile/avatar
 3. DB schema + seed + dashboard + realms catalog + realm detail
 4. Level map
-5. Quest page: builder (Monaco + runner) and strategist (case grading), plus XP/HP/streak logic
+5. Quest page: graded scenario cases on both tracks + quick checks, plus XP/HP/streak logic
 6. Leaderboard + Math Tower
 7. AI mentor (+ eval corpus)
 8. Docs-sync script + GitHub Action
