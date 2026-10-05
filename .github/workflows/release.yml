@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    branches: [main, canary]
+
+# Off until you want versioned releases: set the repo variable
+# RELEASE_ENABLED=true (Settings → Secrets and variables → Actions → Variables).
+# Without this gate, the first push would tag v1.0.0.
+#
+# Deploys are Vercel's job (Git integration): canary → preview, main → production.
+# This workflow only versions, writes the changelog and cuts the GitHub release.
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    if: vars.RELEASE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # Once branch protection is on, GITHUB_TOKEN can't push the release
+      # commit: swap in a GitHub App token with bypass.
+      - run: bunx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

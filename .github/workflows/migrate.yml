@@ -1,0 +1,26 @@
+name: Migrate
+
+on:
+  push:
+    branches: [main]
+    paths: ['drizzle/**']
+
+concurrency:
+  group: migrate
+  cancel-in-progress: false
+
+# Applies committed drizzle-kit migrations to production Neon.
+# Off until the Neon project exists: set the repo variable DB_ENABLED=true and
+# the secret DATABASE_URL (the direct, non-pooled connection string).
+
+jobs:
+  migrate:
+    if: vars.DB_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
