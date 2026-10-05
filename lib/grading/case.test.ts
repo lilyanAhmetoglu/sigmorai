@@ -1,22 +1,67 @@
 import { describe, expect, test } from 'bun:test';
 import { HP_PER_CHALLENGE, XP_REWARDS } from '@/lib/constants';
 import type { ExerciseRef } from '@/lib/types';
-import { clearReason, decideSubmitStart, hpAfterSubmit, nextCaseId, xpOutcome } from './case';
+import { parseExerciseId } from '@/lib/content/ids';
+import {
+  clearReason,
+  decideSubmitStart,
+  gradedKind,
+  hpAfterSubmit,
+  hpNow,
+  nextCaseId,
+  xpOutcome,
+} from './case';
 
 describe('HP on a graded case', () => {
   test('a first attempt with HP left starts; 0 HP is NO_HP', () => {
-    expect(decideSubmitStart(false, 0)).toEqual({ ok: true, replay: false });
-    expect(decideSubmitStart(false, HP_PER_CHALLENGE)).toMatchObject({ ok: false, code: 'NO_HP' });
+    expect(decideSubmitStart('case', false, 0)).toEqual({ ok: true, replay: false });
+    expect(decideSubmitStart('case', false, HP_PER_CHALLENGE)).toMatchObject({
+      ok: false,
+      code: 'NO_HP',
+    });
   });
 
   test('a fail costs exactly 1 HP', () => {
-    expect(hpAfterSubmit(0, 'failed', false)).toBe(HP_PER_CHALLENGE - 1);
-    expect(hpAfterSubmit(0, 'passed', false)).toBe(HP_PER_CHALLENGE);
+    expect(hpAfterSubmit('case', 0, 'failed', false)).toBe(HP_PER_CHALLENGE - 1);
+    expect(hpAfterSubmit('case', 0, 'passed', false)).toBe(HP_PER_CHALLENGE);
   });
 
   test('a replay costs no HP, even at 0 HP and even when it fails', () => {
-    expect(decideSubmitStart(true, HP_PER_CHALLENGE)).toEqual({ ok: true, replay: true });
-    expect(hpAfterSubmit(HP_PER_CHALLENGE, 'failed', true)).toBe(HP_PER_CHALLENGE);
+    expect(decideSubmitStart('case', true, HP_PER_CHALLENGE)).toEqual({ ok: true, replay: true });
+    expect(hpAfterSubmit('case', HP_PER_CHALLENGE, 'failed', true)).toBe(HP_PER_CHALLENGE);
+  });
+});
+
+describe('hpNow', () => {
+  test('a case: HP left today, floored at 0; full when cleared', () => {
+    expect(hpNow('case', false, 0)).toBe(HP_PER_CHALLENGE);
+    expect(hpNow('case', false, 1)).toBe(HP_PER_CHALLENGE - 1);
+    expect(hpNow('case', false, HP_PER_CHALLENGE + 2)).toBe(0);
+    expect(hpNow('case', true, HP_PER_CHALLENGE)).toBe(HP_PER_CHALLENGE);
+  });
+
+  test('a quick check has no HP', () => {
+    expect(hpNow('quick-check', false, 0)).toBeNull();
+  });
+});
+
+describe('HP on a quick check', () => {
+  test('costs nothing: never NO_HP, and no HP value', () => {
+    expect(decideSubmitStart('quick-check', false, HP_PER_CHALLENGE + 5)).toEqual({
+      ok: true,
+      replay: false,
+    });
+    expect(hpAfterSubmit('quick-check', 0, 'failed', false)).toBeNull();
+  });
+});
+
+describe('gradedKind', () => {
+  const kind = (id: string) => gradedKind(parseExerciseId(id)!);
+  test('chapter and boss challenges are cases; quick checks are quick checks', () => {
+    expect(kind('builder/r0/c1/challenge')).toBe('case');
+    expect(kind('strategist/r2/boss/challenge')).toBe('case');
+    expect(kind('strategist/r0/c1/quick-check')).toBe('quick-check');
+    expect(kind('builder/r0/c1/lesson')).toBeNull();
   });
 });
 

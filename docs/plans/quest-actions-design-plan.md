@@ -325,7 +325,7 @@ No model call. The mentor tab is step 7. Cost is the sandbox only.
 
 **Goal:** a strategist can clear a case, and every chapter's quick check works.
 
-**Files:** `lib/grading/shuffle.ts` + test (seeded shuffle, index mapping), `lib/actions/quest.ts` (`submitCase`, `submitQuickCheck`), `components/quest/case-*`.
+**Files:** `lib/grading/shuffle.ts` + test (seeded shuffle, index mapping), `lib/actions/quest.ts` (`submitCase`, `submitQuickCheck`), `components/quest/answer-*` + `use-answers.ts` (one form for cases and quick checks).
 
 **Verification:** `bun test` (same seed → same order; different seeds → different orders; a fail never returns the correct option; quick check costs no HP; cases never touch `submit_count`); Playwright strategist flow.
 

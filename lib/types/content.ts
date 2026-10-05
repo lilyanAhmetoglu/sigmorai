@@ -5,6 +5,8 @@
  */
 import { z } from 'zod';
 import {
+  CASE_OPTIONS,
+  CASE_QUESTIONS,
   LESSON_SOURCE_KINDS,
   QUESTION_OPTIONS,
   QUICK_CHECK_QUESTIONS,
@@ -56,36 +58,53 @@ const OptionSchema = z
   .object({ text: Text, explanation: Text, correct: z.boolean().default(false) })
   .strict();
 
-const QuestionSchema = z
-  .object({
-    prompt: Text,
-    options: z.array(OptionSchema).min(QUESTION_OPTIONS.min).max(QUESTION_OPTIONS.max),
-  })
-  .strict()
-  .refine((q) => q.options.filter((o) => o.correct).length === 1, {
-    message: 'exactly one option must be correct',
-    path: ['options'],
-  });
+/** A question with `options.min`–`options.max` options, exactly one correct. */
+const questionSchema = (options: { min: number; max: number }) =>
+  z
+    .object({
+      prompt: Text,
+      options: z.array(OptionSchema).min(options.min).max(options.max),
+    })
+    .strict()
+    .refine((q) => q.options.filter((o) => o.correct).length === 1, {
+      message: 'exactly one option must be correct',
+      path: ['options'],
+    });
 
-/** case.json: the graded `challenge` step (chapter and boss) on both tracks. */
+/**
+ * case.json: the graded `challenge` step (chapter and boss) on both tracks.
+ * 3–5 questions of exactly 4 options. `exhibit` is shown read-only in
+ * monospace: a trace, a tool schema, a prompt, a config.
+ */
 export const CaseSchema = z
   .object({
     id: idForStep('challenge'),
     title: Text,
     scenario: Text,
-    questions: z.array(QuestionSchema).min(1),
+    // Not trimmed: leading spaces in a trace or config are meaningful.
+    exhibit: z
+      .string()
+      .refine((v) => v.trim().length > 0, 'exhibit must not be blank')
+      .optional(),
+    questions: z
+      .array(questionSchema(CASE_OPTIONS))
+      .min(CASE_QUESTIONS.min)
+      .max(CASE_QUESTIONS.max),
   })
   .strict();
 export type Case = z.infer<typeof CaseSchema>;
 
-/** quick-check.json: the case question shape, a fixed number of questions. */
+/** quick-check.json: the case question shape (2–6 options), a fixed number of questions. */
 export const QuickCheckSchema = z
   .object({
     id: idForStep('quick-check'),
-    questions: z.array(QuestionSchema).length(QUICK_CHECK_QUESTIONS),
+    questions: z.array(questionSchema(QUESTION_OPTIONS)).length(QUICK_CHECK_QUESTIONS),
   })
   .strict();
 export type QuickCheck = z.infer<typeof QuickCheckSchema>;
+
+/** One full question (correct flags + explanations): server-only. */
+export type Question = Case['questions'][number];
 
 // ── Public views (safe for client components) ─────────────────────────────
 // Plain z.object strips unknown keys, so parsing a full object through these
@@ -102,6 +121,7 @@ export const PublicCaseSchema = z
     id: z.string(),
     title: z.string(),
     scenario: z.string(),
+    exhibit: z.string().optional(),
     questions: z.array(PublicQuestionSchema),
   })
   .brand<'PublicCase'>();
