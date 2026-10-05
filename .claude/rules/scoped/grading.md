@@ -7,6 +7,7 @@ paths:
   - 'app/api/run/**'
   - 'content/**/challenge.json'
   - 'content/**/case.json'
+  - 'content/**/quick-check.json'
 ---
 
 # Grading, runner and XP integrity
@@ -21,7 +22,7 @@ XP and the leaderboard are only worth something if nobody can fake them. These a
 
 ## XP is a ledger
 
-- Every XP change is one `xp_events` row. `users.xp` is updated in the **same transaction** (or derived). Amounts come from `lib/xp/` constants: +10 lesson, +150 challenge, +500 boss.
+- Every XP change is one `xp_events` row. `users.xp` is updated in the **same transaction** (or derived). Amounts come from `lib/constants` only (never from content frontmatter): +10 lesson, +150 challenge, +500 boss.
 - **Award once.** A unique key (user, exercise, reason) makes a replayed clear give 0 XP. Replays are allowed; farming is not.
 - `level = floor(sqrt(xp / 100))`, computed, never stored as truth.
 - **HP = 3 attempts per challenge, refills daily** (UTC day boundary, decided once in `lib/xp/`). Checked and decremented on the server before the runner is called, so a failed sandbox call can't be retried for free by the client.
