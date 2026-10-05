@@ -1,5 +1,13 @@
 import type { NavItem } from '@/lib/types';
 
+/** Onboarding: a signed-in player with no users row picks a track and a hero name here. */
+export const ONBOARDING_HREF = '/onboarding';
+export const PROFILE_HREF = '/profile';
+/** Where onboarding sends the player. The profile until the dashboard ships. */
+export const AFTER_ONBOARDING_HREF = PROFILE_HREF;
+// TODO: use AUTH_ROUTES from lib/constants/site.ts after PR #14
+export const SIGN_IN_HREF = '/sign-in';
+
 /**
  * The in-app nav, in the design's order (Sigmorai App.dc.html → navItems).
  * `live: false` until the route exists. Only live items show, so there are
@@ -12,7 +20,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'World map', href: '/map', live: false },
   { label: 'Leaderboard', href: '/leaderboard', live: false },
   { label: 'Math Tower', href: '/math', live: false },
-  { label: 'Profile', href: '/profile', live: false },
+  { label: 'Profile', href: PROFILE_HREF, live: true },
 ];
 
 /** The items the nav shows. Empty until the first page ships. */
