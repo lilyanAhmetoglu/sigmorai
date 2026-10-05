@@ -23,7 +23,6 @@ They don't overlap: engineering never makes aesthetic calls, design never makes 
 
 ```
 app/                Routes (App Router). Pages are thin: read via lib/data, render components.
-  api/run/          POST code → lib/runner (E2B). Server-side grading.
   api/mentor/       Streamed mentor replies → lib/mentor.
 components/         Design-system primitives, flat (pixel-button.tsx, panel.tsx, xp-bar.tsx, …).
   hud/ scenes/ map/ quest/ …   Area components. Never import the DB or a provider SDK.
@@ -31,10 +30,11 @@ lib/
   types/            Every shared type and Zod schema. Import from '@/lib/types'.
   constants/        Every constant: XP amounts, realms, flag positions, model ids.
   xp/  sprite/      Pure TS (level curve, HP, streak, avatar sprite). bun test covers these.
-  content/          MDX + challenge/case loaders, Zod frontmatter, public views.
+  utils/            Tiny shared helpers (cn). Pure TS.
+  content/          MDX + case/quick-check loaders, Zod frontmatter, public views.
   data/             server-only reads, scoped to auth()'s user.
   actions/          'use server' mutations: Zod → auth() → transaction → revalidatePath.
-  grading/ runner/  server-only. Runner is pluggable (E2B default, fake for dev/E2E).
+  grading/          server-only. Case and quick-check grading, award, open check.
   mentor/           server-only. Every Anthropic call.
 db/                 Drizzle schema + client (see db/CLAUDE.md).
 drizzle/            Generated migrations. Never hand-edit meta/.
@@ -47,9 +47,8 @@ e2e/                Playwright flows.
 ## Rules that are easy to break
 
 - **One place for each thing.** Shared types → `lib/types`. Constants → `lib/constants`. Search before adding.
-- **The browser never decides a grade or an XP amount.** It sends code or option indexes; the server grades.
-- **User code never runs on our server.** Only `lib/runner`.
-- **Hidden tests and correct answers stay server-only** (`import 'server-only'`).
+- **The browser never decides a grade or an XP amount.** It sends a seed and option indexes; the server grades.
+- **Correct answers and explanations stay server-only** (`import 'server-only'`).
 - **Tokens only.** Zero radius, hard shadows, no gradients, Atkinson for reading text.
 - **NPC lore only inside DialogBox.** Everything else is plain technical voice.
 - **Model output is parsed with Zod** before use.
@@ -68,6 +67,7 @@ bun run test             # bun test
 bun run test:e2e         # playwright
 bun run format
 bun run hooks:test       # guardrail hook tests
+bun run content:check    # every content/ file vs its Zod schema
 ```
 
 Run typecheck, lint, test and build before calling anything done.

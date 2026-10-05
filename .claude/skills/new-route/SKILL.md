@@ -11,7 +11,7 @@ Scaffolds a page that follows Sigmorai's conventions (AGENTS.md, DESIGN.md, `des
 
 - **Is the screen in the design reference?** Open `design/ui_kits/webapp/Sigmorai App.dc.html` and find it. Match its layout, copy and states exactly. A screen that isn't there needs the maintainer's OK first.
 - Search first: `ls app components lib`, and `grep -rn "<Thing>" app components lib`.
-- **Server by default.** `page.tsx` is a Server Component. Only the interactive leaf (a toggle, Monaco, a canvas scene) is a `'use client'` component in `components/`.
+- **Server by default.** `page.tsx` is a Server Component. Only the interactive leaf (a toggle, a case form, a canvas scene) is a `'use client'` component in `components/`.
 - **Types:** a component's own `Props` stay in its file. Shared shapes and Zod schemas go in `lib/types/` (or next to the schema that owns them).
 - **Mutations are server actions** (`lib/actions/`, see the `new-server-action` skill). A page never writes to the DB from the client and never trusts a client score.
 

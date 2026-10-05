@@ -1,6 +1,6 @@
 ---
 name: new-ui-primitive
-description: Scaffold a new Sigmorai design-system primitive in components/ (PixelButton, Panel, Badge, XPBar, TextField, Choice, LevelNode, QuestCard, DialogBox, TestResult, Toast, Tabs, TrackToggle…) with typed variants, Tailwind v4 token utilities only, zero radius, hard offset shadows (shadow-notch / shadow-drop / bevel / bevel-pressed), 2px press, 3px Spark focus ring, 44px targets. Use when adding a component more than one route will use. Not for canvas scenes.
+description: Scaffold a new Sigmorai design-system primitive in components/ (PixelButton, Panel, Badge, XPBar, TextField, Choice, LevelNode, QuestCard, DialogBox, TestResult, Toast, Tabs, TrackToggle…) with typed variants, Tailwind v4 token utilities only, zero radius, hard offset shadows (shadow-notch / shadow-drop / inset-shadow-bevel / inset-shadow-bevel-pressed), 2px press, global 3px Spark focus ring, 44px targets. Use when adding a component more than one route will use. Not for canvas scenes.
 ---
 
 # Skill: new-ui-primitive
@@ -19,22 +19,26 @@ Canvas scenes (`HeroScene`, `LevelMap`) live in `components/scenes/` and follow 
 ## What it produces
 
 ```
-components/<name-kebab>.tsx
-components/<name-kebab>.test.tsx   # only when it has logic (e.g. XPBar segment maths)
+lib/constants/ui.ts                 # option-name lists (as const)
+lib/types/ui.ts                     # derived unions
+app/styles/components/<file>.css    # all styles, [data-*] variants; imported in app/globals.css
+components/<name-kebab>.tsx         # one base class + data-* attributes, no class maps
+lib/constants/ui.test.ts            # one drift-check row per data-* option list
+lib/<area>/<logic>.test.ts          # only when it has logic (e.g. lib/xp/segments.ts for XPBar)
 ```
 
 File names are kebab-case; the export is the design-system PascalCase name (`pixel-button.tsx` → `PixelButton`).
 
-**Types:** the component's own `Props` stay in its file. A type another file also needs (a variant union, `Track`) goes in `lib/types/`.
+**Types:** the component's own `Props` stay in its file. Variant/size/tone sets go in `lib/constants/` as `as const` values; the derived union goes in `lib/types/`. **Styles never live in TSX.** Each primitive has `app/styles/components/<file>.css` (template: `primitive.css.template`), imported in `app/globals.css`; variants, sizes and tones are `[data-*]` selectors built with `@apply` and token utilities. The TSX sets one base class plus `data-*` attributes, with no class maps. Colour tints: set `data-accent="<Accent>"` and read `var(--tint)` in CSS (`accents.css`). Join a caller's `className` with `cn()` from `@/lib/utils`. Pure logic (segment maths, sprites) goes in `lib/` with a `bun test` file next to it, not in the component.
 
-## Visual contract (from `design/tokens/*.css`, mapped into `@theme`)
+## Visual contract (from `design/tokens/*.css`, mapped into `@theme` in `app/styles/theme.css`)
 
-- **No raw hex, no arbitrary values.** Only token utilities. Missing token → stop and ask; never invent a colour, font or radius.
+- **No raw hex, no arbitrary values.** Only token utilities: colours `bg-accent`, `text-text-on-accent`, `bg-surface-1/2/3`, `text-text-1/2/3`, `bg-xp`, `bg-success`, `bg-danger`, `bg-info`, `bg-math`, `bg-realm-0..8`, palette `bg-ember-500`…; fonts `font-display/hud/body/code`; sizes `text-hero`, `text-h1..h4`, `text-body-lg`, `text-body`, `text-small`, `text-hud`, `text-micro`; `tracking-hud`; one spacing step = 4px (`min-h-11` = 44px). Missing token → stop and ask; never invent a colour, font or radius.
 - **Zero radius** everywhere (it's global; never add `rounded-*`).
-- **Hard offset shadows only**: `shadow-notch`, `shadow-drop`, `bevel`, `bevel-pressed`. Never a blur shadow, never a gradient.
-- **Press = move 2px**: `active:translate-x-[2px] active:translate-y-[2px]` style via the token utility, and swap `bevel` → `bevel-pressed`.
-- **Focus ring**: 3px Spark, `focus-visible:outline-spark` with the global focus utility. Never remove outlines.
-- **Fonts**: Pixelify Sans (`font-display`) for headings, Silkscreen (`font-hud`) for HUD/buttons/labels, Atkinson Hyperlegible (`font-body`) for anything people read, JetBrains Mono (`font-mono`) for code. Ligatures are off globally.
+- **Hard offset shadows only**: `shadow-notch`, `shadow-drop-sm/drop/drop-lg`, `shadow-glow-xp`, plus the inset bevels `inset-shadow-bevel` / `inset-shadow-bevel-pressed` (they stack with a `shadow-*`). Never a blur shadow, never a gradient.
+- **Press = move 2px**: `enabled:active:translate-x-0.5 enabled:active:translate-y-0.5`, and swap `inset-shadow-bevel` → `inset-shadow-bevel-pressed`. Never scale. Transitions only behind `motion-safe:` (`motion-safe:duration-(--dur-1) motion-safe:ease-snap`).
+- **Focus ring**: 3px Spark, one global `:focus-visible` rule in `app/styles/base.css`. Add no focus classes per component, and never `outline-none` / `outline-hidden`.
+- **Fonts**: Pixelify Sans (`font-display`) for headings, Pixelify Sans (`font-display`, bold) for buttons, Silkscreen (`font-hud`) for HUD labels, Atkinson Hyperlegible (`font-body`) for anything people read, JetBrains Mono (`font-code`) for code. Ligatures are off globally.
 - **Targets ≥ 44px** on anything clickable, at every size (an `sm` button still has a 44px hit area).
 - **XPBar is segmented**, never a smooth fill.
 
@@ -49,7 +53,10 @@ File names are kebab-case; the export is the design-system PascalCase name (`pix
 
 ### 2. Scaffold
 
-Read `templates/primitive.tsx.template`, substitute `{{NAME}}` and the variant maps, write `components/<name-kebab>.tsx`.
+1. Add the option lists to `lib/constants/ui.ts` and the unions to `lib/types/ui.ts`.
+2. Copy `templates/primitive.css.template` to `app/styles/components/<file>.css` (substitute `{{NAME}}`, `{{FILE}}`) and import it in `app/globals.css`.
+3. Copy `templates/primitive.tsx.template` to `components/<name-kebab>.tsx`.
+4. Add a row per option list to `lib/constants/ui.test.ts`, so a name in TS without a CSS rule fails `bun test`.
 
 ### 3. Verify
 

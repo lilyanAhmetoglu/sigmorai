@@ -33,7 +33,7 @@ Match the visuals exactly. Don't invent new colors, fonts or radii.
 - **9 realms per track + Math Tower (side realm, 8 floors).** Realms 00–08: Bootstrap Village, Prompt Forest, Tool Forge, Context Library, Agent Citadel, MCP Bridgelands, Eval Arena, Swarm Spire, Production Peaks. Each realm has 6 chapters and 1 boss. Each chapter has 3 exercises: lesson, challenge, quick check.
 - **Gamification:**
   - XP: +10 per lesson, +150 per cleared challenge, +500 per boss
-  - Level = floor(sqrt(xp/100))
+  - Level = floor(sqrt(xp/100)) + 1, so a new player starts at LV 1 (0 XP = LV 1, 100 XP = LV 2, 400 XP = LV 3). Changed 2026-10-05 (SIG-33): was floor(sqrt(xp/100)), which started players at LV 0.
   - Daily streak
   - HP = 3 attempts per challenge; it refills daily
   - Leaderboard by week, month and all time

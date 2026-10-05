@@ -1,0 +1,358 @@
+# Sigmorai — Curriculum
+
+> What Sigmorai teaches, in what order, for whom, and what is open or locked. It fixes the realm map, the Math Tower floors, the beginner path, the tier lock and the first content cut. Read end-to-end before any code; each phase is gated by explicit approval.
+
+## Status
+
+**STATUS: Approved 2026-10-05, devil pass applied. Build step: cross-cutting (data in step 3, lock in step 5, Math Tower in step 6). Track: both.**
+
+## Amendments
+
+## Amendments locked 2026-10-05 (no-code pivot, vendor-neutral)
+
+- **Nobody writes code.** Builder ("tech") teaches how to design and run AI systems; strategist ("business") teaches how to use and leverage AI and harnesses at work. Both end every chapter and boss in a graded scenario case. Replaces: §Context row 1 ("code challenge, tests"), §Audiences "Needs code? Yes, basic" (now No for all), §Code execution (now N/A), §Content files "challenge" wording, §MVP cut "(lesson + challenge/case + quick check)" → "(lesson + case + quick check)", the realm-02 `get_weather` tool-challenge demo (dropped). Also supersedes the Phase 1 lines "Challenges are graded offline…" and "Realm 02 keeps the get_weather tool challenge".
+- **A case has 3–5 questions; each case question has exactly 4 options, one correct (exam style). Quick checks keep 2–6 options.**
+- **The architect-style guide's domains map onto existing realms:** agentic architecture → r4, r7; harness / coding-agent configuration (instruction files, hooks, permissions, subagents) → r4; prompts & structured output → r1; tool design & MCP → r2, r5; context management & reliability → r3, r6, r8. Security, scalability, multimedia and harness engineering (loops, graphs) get their places in the outline PR.
+- **Track ids stay `builder` / `strategist`.** Copy may say "tech" / "business" (voice-guardian pass, not a rename).
+- **Vendor-neutral.** No chapter title or `boss.task` names one vendor's feature; a concept that exists at more than one vendor cites at least two vendors; vendor docs remain valid sources. The Claude architect-style certification is a depth/style reference only.
+- **Docs first.** Lessons are built from the official Anthropic and OpenAI docs first, then other official sources.
+- **Source rule.** Each lesson's `sources` lists at least 1 Anthropic page and at least 1 OpenAI page where both document the concept (REQUIRED); Google and MCP spec pages are optional ("when they add something"). Every url must sit under a `trustTier: official` entry of `content/sources.yaml`. Community repos and community blogs (e.g. learn-harness-engineering) are examples only. Official vendor engineering posts (e.g. `anthropic.com/engineering`, `openai.com/index/harness-engineering`) count as official pages; they are the primary source for harness engineering. A claim with no official page is a blocker.
+- **Full coverage.** The map must cover RAG, embeddings/vectors, math (Math Tower), security, scalability, multimedia and harness engineering (loops, graphs). Where each lives is decided in the outline PR (PR 4), with the maintainer.
+- **Builder chapter titles and `boss.task` lines are rewritten in PR 4** (voice-guardian + maintainer approve). Known vendor-specific titles: realm 1 "XML tags", "Prefill"; realm 2 "Tool search"; realm 0 topic "your first API call". All nine `boss.task` lines are code-shaped today.
+- **Builder realm 0 is no longer "first API call".** Topic: "How a model reads and answers: tokens, messages, system prompts, limits, cost."
+- **§Candidate sources per realm** adds Gemini API docs, Hugging Face / open-model docs and one framework doc as candidates ("to verify").
+
+## Amendments locked 2026-10-05 (Phase 1 build)
+
+The Phase 1 build and its CTO review changed these parts. The maintainer approved them.
+
+- **Outline and frontmatter schemas live in `lib/types/`,** per AGENTS.md ("every shared type and Zod schema"). `lib/content/schema.ts` is dropped. Amended in the same branch: `content/CLAUDE.md`.
+- **The accent helper returns the `data-accent` value** (`realmAccent(3)` → `realm-3`). `accents.css` maps it to `--realm-3`. Why: components already pick a tint with `data-accent`.
+- **`CHAPTERS_PER_REALM` is the existing `CHAPTER_COUNT`.** No second constant.
+- **A Math outline floor is `{ n, covers, formulas: [{ math, text }] }`.** No `title` (the name is in `MATH_FLOORS`) and no single `formulaText`. Why: floor 1 has two formulas, and each needs its own plain-words line.
+- **The Math Tower has a constant row** (`MATH_TOWER`: name, NPC) and one art path (`MATH_ART` = `/levels/math`).
+
+## Amendments locked 2026-10-05 (devil pass on the Frontier)
+
+The `devil` reviewed PR #7. The team approved its full list (the maintainer delegated product calls). Each line replaces the matching part of the "frontier" block below. Sync-side detail: `knowledge-base-design-plan.md` → same-named block.
+
+- **The Frontier has no tier. All its chapters are open.** This replaces the per-chapter tier. So the body line "tier is a realm property, never a chapter property" stays true.
+- **`FRONTIER = { slug: 'frontier', name: 'The Frontier' }`.** No `defaultTier`. The accent reuses the `neutral` token (no new colour).
+- **No NPC and no DialogBox** in Frontier lessons. Plain product voice only.
+- **No outline file.** A chapter is a folder, `content/frontier/<YYYY-MM-DD>-<slug>/` (lesson MDX + `quick-check.json`, no challenge). Title and sources come from frontmatter.
+- **The Frontier page is a newest-first list**, not a side-scrolling level. No `/map/frontier`, no level art. It is a nav item + a dashboard shortcut, like the Math Tower, and ships in **step 6** with `/math`.
+- **Frontier progress is written under the active track.**
+- **db-architect is needed at step 3** (`level_announcements` must point at a Frontier chapter). This replaces "not needed" in §Content files.
+
+## Amendments locked 2026-10-05 (frontier)
+
+Maintainer decision. Full detail in `knowledge-base-design-plan.md` → "Amendments locked 2026-10-05 (frontier + blog)".
+
+- **New side realm: The Frontier** (working name; `voice-guardian` checks it). The sync job adds its chapters by PR. It is the only part of the map that grows. Why: the 9 × 6 main map is fixed, so new topics from the docs had no home.
+- **One exception to "tier is a realm property":** a Frontier chapter carries its own tier in `content/frontier/outline.json`. Default open; `advanced` only when triage marks it. Why: the Frontier mixes topics of every level.
+- **`fill-stub`** lets the sync job draft a "Coming soon" chapter of a main realm. It never adds a main-realm chapter; the 9 × 6 count stays.
+- **Blog:** owned by the KB spec now (no separate blog job). This spec still only depends on it.
+
+## Amendments locked 2026-10-05 (devil pass)
+
+The `devil` reviewed the first draft. The team approved its full list (the maintainer delegated product calls). Each line replaces the matching part of the first draft or of `design/`.
+
+- **All open-tier realms are open from day one.** Chapters inside a realm open in order. This overrides the design's realm-by-realm lock. Why: the product is free, and a builder should reach agents without clearing "Tokens" first.
+- **Outlines are 3 JSON files**, not 19 YAML files: `content/builder/outline.json`, `content/strategist/outline.json`, `content/math/outline.json`. Why: no YAML parser to add, one Zod schema, one file to read per track.
+- **Realm id is a number, 0–8.** One helper builds the content folder (`0N-<slug>`), the art path (`public/levels/realm-0N`) and the accent token (`--realm-N`). There is no `art` field. Why: three strings from one number can't drift.
+- **Boss name is the design's "Boss · <Realm>".** The first draft's one-liners become an optional `boss.task` in the outline.
+- **Math floors have no tier.** They open in order. Floor 1 keeps both formulas: dot product and cosine (a·b ⁄ ‖a‖‖b‖).
+- **Stub chapters have no route.** A realm page is indexed only when at least one of its chapters is live. Why: no thin pages, no dead links.
+- **`xp` leaves lesson frontmatter.** XP amounts live only in `lib/constants`. Amended in the same branch: `content/CLAUDE.md` (no `xp`) and `.claude/rules/scoped/grading.md` (amounts in `lib/constants`, not `lib/xp/`).
+- **Quick check = the `case.json` shape, 3 questions,** with its own XP reason.
+- **Challenges are graded offline.** No live model call runs inside the sandbox. Why: cost, speed and repeatable grades.
+- **`TIER_LOCKED` is defined in the step-5 actions spec,** not here. This spec only says when it must fire.
+- **Auth is Clerk now** (`users.id` = the Clerk user id). Lesson and realm routes are public routes in Clerk's middleware. Signing in is needed only to submit and earn XP.
+- **Sprint scope = the 3 outlines + P0** (realm 00, both tracks). P1–P3 come after the sprint. NIST, OWASP and mml-book are out of the MVP source list.
+- **Phase 1 adds `lib/constants/curriculum.ts` to the existing `lib/constants` barrel** (it exists on `feat/ui-primitives`). Phase 1 is data only.
+- **Maintainer to-do:** re-export the design in Claude Design with the new Math floors and the open-realm rule.
+
+## Amendments locked 2026-10-05
+
+Maintainer direction (dictated 2026-10-05), layered on the founding brief and `design/`. Each line says what changed and why.
+
+- **Sigmorai is free and open, end to end.** It covers LLM basics, prompting, tokens, embeddings, RAG, tool use, agents, harness engineering, evals and production. Beginner and intermediate tiers are free now.
+- **Advanced tier: visible but locked.** Realms 06, 07 and 08 (both tracks) are `advanced`. Learners see their pages and chapter lists, but cannot open lessons or earn XP there. A paywall comes later; this spec designs **only the lock**, no payment. New: the brief had no lock.
+- **Tier names come from the design, not from the dictation.** The maintainer said "easy / mid / advanced". `design/` already uses BEGINNER / INTERMEDIATE / ADVANCED (realms catalog filter, realms 00–02 / 03–05 / 06–08). Same meaning, so we keep the design labels. One set of names, not two.
+- **Three audiences, still two tracks.** No third track. A total beginner (for example a translation graduate who wants AI for daily work) starts on **strategist realm 00**. Why: strategist 00–01 is already "AI literacy" + "prompting for everyday work", with no code. A shared "start from zero" realm 00 was considered and dropped: the design already has two different realm-00 chapter lists, and builders would sit through non-code lessons.
+- **First content is realm 00, not realm 02.** The brief's seed said "realm 02 fully authored". Now realm 00 on both tracks is written first, because every learner starts there. Realm 02 stays a later priority (it keeps the design's `get_weather` tool challenge as a demo).
+- **Math Tower floors change (amends the design's mock data).** The maintainer asked for statistics, which the design's 8 floors miss. "Cosine similarity" (design floor 8) moves into floor 1, which frees a slot for **Statistics**. Floors are reordered easy → mid. The design export needs the same edit in Claude Design (code never edits `design/`).
+- **Realm and lesson pages are public and indexable** (SEO + accessibility). Reading a lesson needs no account. Signing in is needed only to submit, grade and earn XP.
+- **Content folder slug for realm 02 is `02-tool-forge`**, not the design's `02-tool-forge-caverns`. The realm name is "Tool Forge" everywhere else (art, brief, design labels).
+- **A blog is wanted.** A scheduled job pulls sources, clusters them and drafts posts as a PR (never auto-published). It belongs in `knowledge-base-design-plan.md`, not here. This spec only depends on it.
+
+---
+
+## Context
+
+Already locked, and kept:
+
+| Fact                                                                              | Where                                                                          |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Two tracks: `builder` (code challenge, tests) and `strategist` (graded case)      | `docs/build-prompt.md` → Product model                                         |
+| 9 realms per track (00–08) + Math Tower (8 floors), 6 chapters + 1 boss per realm | `docs/build-prompt.md`, `design/README.md`                                     |
+| A chapter = lesson + challenge (or case) + quick check                            | `docs/build-prompt.md`                                                         |
+| Realm names, NPC guides, per-track chapter titles, Math floors, tier labels       | `design/ui_kits/webapp/Sigmorai App.dc.html` (`REALMS`, `BIZ`, `FLOORS`, `LV`) |
+| Content is files: `content/<track>/<realm>/<chapter>/*.mdx`, Zod frontmatter      | `content/CLAUDE.md`                                                            |
+| Every lesson cites sources; content is never auto-published                       | `.claude/context/project.md`                                                   |
+| Source registry, sync job, mentor grounding                                       | `docs/plans/knowledge-base-design-plan.md`                                     |
+| Level art per realm: `public/levels/realm-00` … `realm-08`, `public/levels/math`  | `docs/plans/level-art-design-plan.md`                                          |
+
+On `canary`, `content/` holds only `CLAUDE.md`. `lib/constants` (barrel) exists on `feat/ui-primitives`. `content/sources.yaml` does not exist yet.
+
+## Purpose
+
+People want one free, game-style place to learn AI from zero to production. Today the plan has realms and chapter titles, but no rule for who starts where, what is open, or what gets written first. This spec fixes that, so content authors and the seed script build the same map.
+
+## Audiences → tracks
+
+| Audience                                  | Track        | Starts at                         | Needs code? |
+| ----------------------------------------- | ------------ | --------------------------------- | ----------- |
+| Total beginner (uses AI in daily work)    | `strategist` | Strategist realm 00, chapter 1    | No          |
+| Business people (workflows, decisions)    | `strategist` | Strategist realm 00 (or any open) | No          |
+| Tech people (builders, the main audience) | `builder`    | Builder realm 00 (or any open)    | Yes, basic  |
+
+A beginner can switch to builder later from the HUD toggle. Progress is per track (already locked), so nothing is lost.
+
+## Constants (`lib/constants/curriculum.ts`, exported from the barrel)
+
+No realm id, tier or track name is typed as a loose string anywhere else. Pages, loaders, seed and actions import these.
+
+| Constant             | Value                                                                                                           |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `TRACKS`             | `['builder', 'strategist']`                                                                                     |
+| `TIERS`              | `['beginner', 'intermediate', 'advanced']` (UI labels BEGINNER / INTERMEDIATE / ADVANCED)                       |
+| `OPEN_TIERS`         | `['beginner', 'intermediate']`                                                                                  |
+| `REALMS`             | 9 rows: `{ id, slug, name, npc, tier }` (table below). Shared by both tracks.                                   |
+| `MATH_FLOORS`        | 8 rows: `{ n, slug, name }` (table below). No tier.                                                             |
+| `CHAPTERS_PER_REALM` | `6` (matches the 6 flags in `design/assets/levels/layout.json`; node 7 is the boss)                             |
+| `FRONTIER`           | `{ slug: 'frontier', name: 'The Frontier' }`. Working name. No tier, no chapter count; accent reuses `neutral`. |
+
+`id` is a number, `0`–`8`. One helper turns it into the content folder (`00-bootstrap-village`), the art path (`public/levels/realm-00`) and the accent token (`--realm-0`). Nothing else builds these strings.
+
+## Realm map
+
+Realm names, NPCs and chapter titles are copied from `design/`. Each boss is named "Boss · <Realm>" (design). The `boss.task` column is an optional one-line task; it goes past `voice-guardian`.
+
+| id  | Realm (slug)                              | NPC               | Tier            | Topic (builder / strategist)                                        | Builder chapters (6)                                                                         | Strategist chapters (6)                                                                                   | `boss.task` (builder / strategist)                                                              |
+| --- | ----------------------------------------- | ----------------- | --------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 0   | Bootstrap Village (`bootstrap-village`)   | Elder Maren       | beginner        | LLM basics, first API call / AI literacy: limits, cost, risk        | Tokens · Messages · System prompt · Streaming · Models & limits · Costs                      | What an LLM is · Strengths & limits · Hallucinations · Tokens = cost · Choosing a model · Data & privacy  | A chat script that streams and reports its token cost / Pick a model and a first use for a team |
+| 1   | Prompt Forest (`prompt-forest`)           | Ranger Iso        | beginner        | Prompt engineering, structured output / Prompting for everyday work | Be specific · Examples · XML tags · Chain of thought · JSON output · Prefill                 | Write a brief · Give examples · Ask for structure · Review outputs · Prompt templates · Team playbooks    | A prompt that returns valid JSON every time / A team prompt playbook                            |
+| 2   | Tool Forge (`tool-forge`)                 | Smith Korren      | beginner        | Tool use, function calling / Use-case discovery                     | Messages recap · Tool results · Define a tool · The tool loop · Parallel calls · Tool search | Map the workflow · Spot repetition · Score a use case · Build vs buy · The business case · Pilot scope    | A two-tool assistant that finishes the loop / Choose and scope a pilot                          |
+| 3   | Context Library (`context-library`)       | Archivist Vela    | intermediate    | Embeddings, RAG, caching, context engineering / Knowledge & data    | Embeddings · Chunking · Retrieval · Prompt caching · Long context · Compaction               | Why context matters · Knowledge bases · Data readiness · Access & permissions · Freshness · Citations     | A RAG answerer that cites its chunks / A data-readiness plan                                    |
+| 4   | Agent Citadel (`agent-citadel`)           | Warden Tess       | intermediate    | Agent loops and **harness engineering** / Agents at work            | The loop · Stop conditions · Agent SDKs · Subagents · Memory · Permissions                   | What agents do · Autonomy levels · Human in the loop · No-code agents · Agent permissions · Failure modes | A small agent harness with a stop rule and permissions / Set an agent's autonomy level          |
+| 5   | MCP Bridgelands (`mcp-bridgelands`)       | Bridgekeeper Nal  | intermediate    | MCP servers and clients / Integrations                              | MCP basics · Your first server · Resources · Prompts · Remote servers · Auth                 | Integration basics · MCP in plain words · Vendor landscape · Security review · Total cost · Lock-in       | An MCP server with one tool and one resource / An integration decision                          |
+| 6   | Eval Arena (`eval-arena`)                 | Judge Arra        | **advanced**    | Evals, graders, guardrails / Measuring value                        | Test sets · Model graders · Regression · Guardrails · Red-teaming · Tracing                  | Define success · Quality evals · KPIs that matter · ROI models · A/B pilots · Reporting up                | An eval suite that catches a regression / A pilot scorecard                                     |
+| 7   | Swarm Spire (`swarm-spire`)               | The Conductor     | **advanced**    | Multi-agent orchestration / Org design and change                   | Orchestrators · Handoffs · Shared state · Parallel agents · Conflict · Cost control          | Team structures · Redesign workflows · Roles & skills · Change management · Adoption · Incentives         | An orchestrator with two workers and a budget / A workflow redesign                             |
+| 8   | Production Peaks (`production-peaks`)     | Summit Guide Pell | **advanced**    | Deploy, observe, secure, scale / Governance and rollout             | Rate limits · Batching · Observability · Security · Scaling · Launch                         | AI policy · Risk tiers · Compliance · Incident response · Rollout plan · The AI roadmap                   | A service that survives rate limits and logs traces / A rollout plan                            |
+| —   | The Frontier (`frontier`), **side realm** | none              | none (all open) | New tools and changes found by the sync job / same                  | Made by the sync job, newest first, no fixed count                                           | Same chapters (lesson + quick check)                                                                      | No boss                                                                                         |
+
+**Frontier rules:**
+
+- A chapter = one lesson + one quick check (3 questions, `case.json` shape) + its cited sources. No challenge. Folder: `content/frontier/<YYYY-MM-DD>-<slug>/`.
+- Shared by both tracks; progress goes under the active track. A newest-first list page (nav item + dashboard shortcut, like the Math Tower), no map. Chapters don't lock each other.
+- Only a merged sync PR adds a chapter. No NPC, no DialogBox.
+
+**Where each topic lives** (the maintainer's list → realm): LLM basics, tokens → 0 · prompting → 1 · tool use → 2 · embeddings, vectors, RAG → 3 (+ Math floor 1) · agents, harness engineering → 4 · MCP → 5 · evals → 6 · multi-agent → 7 · production → 8.
+
+**Advanced = exactly realms 6, 7, 8: all 6 chapters + boss, both tracks.** No single chapter inside realms 0–5 is advanced. Tier is a realm property, never a chapter property.
+
+## Math Tower floors
+
+NPC: Numerist Oru. One tower, shared by both tracks. No tier: all floors are easy to mid and free. Floors open in order.
+
+| n   | Floor (slug)                        | Covers                                                   | Formula                           |
+| --- | ----------------------------------- | -------------------------------------------------------- | --------------------------------- |
+| 1   | Vectors & similarity (`vectors`)    | vectors, dot product, cosine similarity (merged floor 8) | a·b = Σ aᵢbᵢ **and** a·b ⁄ ‖a‖‖b‖ |
+| 2   | Probability (`probability`)         | events, distributions, next-token prediction             | P(xₜ \| x₍<ₜ₎)                    |
+| 3   | Statistics (`statistics`) — **new** | mean, variance, sampling, "is this eval result real?"    | x̄ = Σ xᵢ ⁄ n                      |
+| 4   | Matrices (`matrices`)               | matrix multiply, a layer as y = Wx + b                   | y = Wx + b                        |
+| 5   | Softmax & temperature (`softmax`)   | logits to probabilities, what temperature changes        | eᶻⁱ/T ⁄ Σ eᶻʲ/T                   |
+| 6   | Gradients (`gradients`)             | slope, derivative, gradient descent                      | θ ← θ − η∇L                       |
+| 7   | Cross-entropy (`cross-entropy`)     | loss, why LLMs train on it                               | −Σ y log ŷ                        |
+| 8   | Attention (`attention`)             | queries, keys, values; the math of a transformer layer   | softmax(QKᵀ/√d)V                  |
+
+Every formula needs a plain-words text version next to it (screen readers read "Σ aᵢbᵢ" badly).
+
+## Beginner path (zero knowledge)
+
+1. A visitor lands on a public lesson or the landing page. They can **read** strategist realm 0, chapter 1 ("What an LLM is") with no account.
+2. At sign-up or first onboarding, the track picker (already in the design) shows one helper line under Strategist: _new to AI, or don't write code? Start here._ (Copy goes past `voice-guardian`.)
+3. Dashboard "Continue learning" points to **strategist 0 → chapter 1**.
+4. They clear strategist 0 (what AI is, limits, hallucinations, cost, privacy), then 1 (writing briefs, checking outputs). That is enough for daily work.
+5. After realm 1 they can go on to realms 2–5, or switch to builder from the HUD.
+
+All open-tier realms are open from day one. Inside a realm, chapters open one by one (a `progress` row for the previous chapter's challenge). So a builder can start at realm 4.
+
+_Note 2026-10-05: `progress` has no `status` column (it is one row per cleared exercise). The open rule is set in `quest-actions-design-plan.md`._
+
+## Lock rules (advanced tier)
+
+| Rule                      | Detail                                                                                                                                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Where tier lives          | `REALMS[].tier` in `lib/constants`. **Not** in lesson frontmatter: one realm-level value can't drift across 12 lesson files (6 per track).                                                       |
+| What "open" means         | `tier ∈ OPEN_TIERS`. One pure helper in `lib/` decides it; `bun test` covers it.                                                                                                                 |
+| What a locked realm shows | Realm page: name, NPC, topic, 6 chapter titles, boss name, "Built from" sources, an **ADVANCED · LOCKED** badge (text + icon, not colour only).                                                  |
+| What it never sends       | Lesson body, challenge starter, case questions, quick check. The content loader returns an outline only for locked realms.                                                                       |
+| Server checks             | Every read in `lib/data`, every action in `lib/actions` and `/api/run` re-checks the tier. Locked → the locked error (`TIER_LOCKED`, defined in the step-5 actions spec), no runner call, no XP. |
+| Two kinds of "locked"     | Chapter lock = "clear the previous chapter". Tier lock = "advanced, coming later". UI copy must make the two different.                                                                          |
+| Later paywall             | Swaps the helper's input for a per-user entitlement. Needs a schema change then (db-architect). Not now.                                                                                         |
+| Honest note               | If the GitHub repo is public, advanced MDX is readable there. The lock is a product gate, not a secret. Hidden tests stay server-only either way.                                                |
+
+## Content files this adds
+
+| File                                                              | Fields (one Zod schema per kind, in `lib/content/schema.ts`)                                       | Why                                                                           |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `content/builder/outline.json`, `content/strategist/outline.json` | `realms[9]{ id (0–8, must match `REALMS`), topic, lore, chapters[6]{ id, title }, boss{ task? } }` | Chapter titles and lore differ per track; they exist before lessons do.       |
+| `content/math/outline.json`                                       | `floors[8]{ n, title, covers, formulas[], formulaText }`                                           | Same, for the tower.                                                          |
+| `content/<track>/<realm>/<chapter>/quick-check.json`              | Same shape as `case.json`: exactly 3 questions, one correct index each, an explanation per option  | Quick check needs a graded format; reusing the case shape adds no new schema. |
+
+- **Lesson frontmatter loses `xp`** and gains nothing. XP amounts live only in `lib/constants`. Track, realm and chapter come from the path; tier comes from the realm.
+- **Quick check has its own XP reason** in `xp_events` (amount in `lib/constants`, set by the step-5 spec).
+- **Chapter status is derived:** a chapter folder with a lesson MDX is live. No folder = "Coming soon", with no route.
+- A `bun test` reads the outlines from disk and parses them with Zod. It fails if a track has ≠ 9 realms, a realm has ≠ 6 chapters, an id is unknown, or a chapter folder is not in its outline.
+- **`devil` review: done (this pass). `db-architect`: needed at step 3** — `level_announcements` must point at a Frontier chapter (devil pass on the Frontier). It is needed again when the paywall adds entitlements.
+
+## MVP content cut (48h sprint)
+
+| Priority     | What gets real lessons                                                                                                    | Count                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Sprint       | The 3 outline files                                                                                                       | 3 files                        |
+| Sprint (P0)  | Realm 0, **both tracks**: 6 chapters each (lesson + challenge/case + quick check)                                         | 12 chapters                    |
+| After sprint | P1 realm 1 · P2 realm 2 (builder keeps the design's `get_weather` challenge) + Math floor 1 · P3 realm 3, all both tracks | 36 chapters + 1 floor          |
+| Stub         | Everything else: in the outline only, shows "Coming soon", no route                                                       | Realms 4–8, bosses, floors 2–8 |
+
+Bosses ship after their realm's 6 chapters. The outlines ship in the sprint, so the full map and catalog exist from day one. Each priority is one content PR, checked by `content-reviewer` and `voice-guardian`.
+
+## Candidate sources per realm (all **to verify**)
+
+Not checked yet. Each URL must be opened and confirmed in `content/sources.yaml` review before a lesson cites it. No API shape is stated here on purpose.
+
+| Realm | Official docs (to verify)                                                                                                                                | Repos / other (to verify)                                                                                              |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 0     | docs.claude.com (intro, models overview, pricing, Messages API, streaming, reduce hallucinations); platform.openai.com/docs (text generation, tokenizer) | anthropics/claude-cookbooks                                                                                            |
+| 1     | docs.claude.com prompt-engineering overview; platform.openai.com/docs prompt engineering, structured outputs                                             | anthropics/prompt-eng-interactive-tutorial                                                                             |
+| 2     | docs.claude.com tool-use overview; platform.openai.com/docs function calling                                                                             | anthropics/claude-cookbooks (tool use)                                                                                 |
+| 3     | docs.claude.com embeddings, prompt caching, context windows; docs.voyageai.com; anthropic.com/engineering (contextual retrieval, context engineering)    | —                                                                                                                      |
+| 4     | docs.claude.com Agent SDK; openai.github.io/openai-agents-python; anthropic.com/engineering (building effective agents)                                  | **walkinglabs/learn-harness-engineering**, anthropics/claude-code, openai/openai-agents-python, huggingface/smolagents |
+| 5     | modelcontextprotocol.io (spec + docs); docs.claude.com MCP                                                                                               | modelcontextprotocol/servers, modelcontextprotocol/typescript-sdk                                                      |
+| 6     | docs.claude.com (define success, develop tests); platform.openai.com/docs evals                                                                          | openai/evals, promptfoo/promptfoo                                                                                      |
+| 7     | anthropic.com/engineering (multi-agent research system); OpenAI Agents SDK handoffs                                                                      | langchain-ai/langgraph, openai/openai-agents-python                                                                    |
+| 8     | docs.claude.com rate limits, batch processing; OpenTelemetry GenAI semantic conventions                                                                  | vercel/ai                                                                                                              |
+| Math  | d2l.ai                                                                                                                                                   | karpathy/nn-zero-to-hero, d2l-ai/d2l-en                                                                                |
+
+**Out of the MVP source list:** NIST AI RMF, OWASP Top 10 for LLM apps, mml-book. They are not vendor docs; revisit with realm 8 and the later Math floors.
+
+## SEO and accessibility
+
+- Realm and lesson routes are **public routes in Clerk's middleware**. They render on the server with no sign-in. Each has a unique title and description from the outline, and a canonical URL.
+- A realm page is indexed only when at least one of its chapters is live. Stub chapters have no route, so no thin pages. The sitemap lists only live lessons and indexed realm pages.
+- Advanced realm pages are `noindex` until they have a live chapter (same rule).
+- Lessons use real headings, alt text for diagrams, and a text version for every formula. All rules in `DESIGN.md` still apply (Atkinson for reading text, 44px targets, 360px reflow).
+
+## Fairness and integrity check
+
+- Tier is checked on the server for every read, action and run. The browser never decides "open".
+- Locked realms send no lesson, case or test data, so no XP can be earned there. The leaderboard stays comparable.
+- Quick-check correct indexes stay server-only, like `case.json`.
+- Nothing here changes grading rules or XP amounts.
+
+## Data model
+
+N/A. No schema change. Auth is Clerk (`users.id` = Clerk user id); this spec only reads that id.
+
+## API contract
+
+No new action. Existing actions and `/api/run` gain one tier check. The error code (`TIER_LOCKED`) is defined in the step-5 actions spec.
+
+## AI and cost
+
+N/A here. The blog and docs-sync drafting are in `knowledge-base-design-plan.md`. Locked realms cost nothing (no runner, no mentor).
+
+## Code execution
+
+Builder challenges in open realms use the existing runner. **Grading is offline:** no live model call runs inside the sandbox. A challenge that "calls a model" (for example the realm-0 streaming boss) is graded against recorded responses or a stub client, so a grade is cheap, fast and the same every time.
+
+## States and transitions
+
+| State                         | Shows                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------- |
+| Chapter live, open            | Enter                                                                         |
+| Chapter live, locked by order | "Clear chapter N first"                                                       |
+| Chapter stub                  | "Coming soon", no Enter button, no link                                       |
+| Realm advanced                | ADVANCED · LOCKED badge on catalog + realm page; Enter disabled with a reason |
+| Math floor, locked by order   | "Clear floor N first"                                                         |
+| Signed out                    | Lessons readable; submit/check buttons ask to sign in                         |
+
+## Phases
+
+### Phase 1 — Curriculum data
+
+**Goal:** data only. The full map exists as constants + outlines, and a test proves they agree.
+
+**Files**
+
+- `lib/constants/curriculum.ts` _(new, exported from the existing `lib/constants` barrel)_ — `TRACKS`, `TIERS`, `OPEN_TIERS`, `REALMS`, `MATH_FLOORS`, `CHAPTERS_PER_REALM`, the id → folder/art/accent helper, the tier helper
+- `lib/content/schema.ts` _(new)_ — outline schemas
+- `content/builder/outline.json`, `content/strategist/outline.json`, `content/math/outline.json` _(new)_
+- A `bun test` file next to the schema _(new)_ — reads the outlines from disk, parses with Zod
+
+**Verification:** `bun test`; `bun run typecheck`; `bun run build`.
+
+**Approval gate:** maintainer approves the outlines (`voice-guardian` on lore + `boss.task`).
+
+### Phase 2 — P0 content (realm 0, both tracks)
+
+**Goal:** 12 real chapters with sources, challenges/cases and quick checks.
+
+**Verification:** `content-reviewer` + `voice-guardian`; frontmatter passes Zod.
+
+**Approval gate:** maintainer reads two lessons end to end.
+
+### After the sprint — P1–P3 content and Math floor 1
+
+Same flow, one PR per priority.
+
+The lock itself is enforced when `lib/data`, `lib/actions` and `/api/run` are built (step 3 and step 5); their specs must point here.
+
+---
+
+## Acceptance criteria
+
+- [ ] No realm id, tier or track string literal in `app/**` or `lib/**`, except `lib/constants/**` and `*.test.ts` (grep).
+- [ ] The 3 outlines parse in `bun test`; a broken one fails the test.
+- [ ] Realms 6–8 show ADVANCED · LOCKED; their lessons, cases and tests never reach the browser (test on the loader's output).
+- [ ] An action or `/api/run` call for a locked realm returns the locked error and writes no `xp_events` row.
+- [ ] A signed-out visitor can read strategist 0 chapter 1.
+- [ ] Stub chapters show "Coming soon" and have no route (404).
+- [ ] A realm page with no live chapter is `noindex`.
+- [ ] Locked and stub states use text or an icon, not colour alone.
+
+## Out of scope
+
+- Payment, pricing, entitlements (only the lock).
+- The blog and the sync job (`knowledge-base-design-plan.md`).
+- Lesson writing beyond P0; boss format; exact public URL shapes (route specs).
+- The `TIER_LOCKED` code and the quick-check XP amount (step-5 actions spec).
+
+## Maintainer to-dos
+
+- Re-export the design in Claude Design with the new Math floors (Statistics added, cosine in floor 1) and the open-realm rule.
+- In the same re-export, add a Frontier nav item (newest-first list page) and a blog page.
+
+## Open questions — Calls I'm under 95% on
+
+1. **Beginner on strategist, no shared realm 0.** Lean: strategist 0. Why: it is already no-code AI literacy, and it keeps two clean tracks. Other option: a shared realm 0 for both tracks; downside: breaks the design's two chapter lists and slows builders.
+2. **Advanced = realms 6–8 (evals, multi-agent, production).** Lean: follow the design's labels. Other option: keep evals (6) free because "evals" is in the maintainer's core list; downside: moves the line the design drew and leaves only 2 locked realms.
+
+Settled by the devil pass: tier on the realm, Math floors, open realms, stub indexing, boss names, frontmatter `xp`.
+
+## Companion plans
+
+- `docs/plans/knowledge-base-design-plan.md` — sources, sync job, mentor grounding, and (to add) the blog job.
+- `docs/plans/level-art-design-plan.md` — `public/levels/realm-0N` art per realm.

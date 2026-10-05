@@ -35,7 +35,7 @@ Senior web UX reviewer for Sigmorai. Read `DESIGN.md`, `design/tokens/*.css` and
 - `[TOUCH TARGET]` < 44px.
 - `[MOBILE]` Layout that doesn't reflow (fixed widths, no flex-wrap/auto-fit), horizontal page scroll (only the level map may scroll sideways).
 - `[LOADING STATE]` / `[EMPTY STATE]` / `[ERROR STATE]` missing.
-- `[KEYBOARD]` Interactive element not reachable or operable by keyboard; Monaco traps focus with no escape hint.
+- `[KEYBOARD]` Interactive element not reachable or operable by keyboard.
 - `[COPY]` Interface copy that isn't plain, active, sentence case; a button whose word doesn't match its result.
 - `[PERFORMANCE]` Heavy client component in the initial bundle; canvas redraws when nothing changed.
 

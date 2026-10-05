@@ -1,0 +1,62 @@
+/*
+ * PixelButton: beveled, presses 2px, never scales. Every size keeps a 44px hit
+ * area (min-h-11). Defaults = variant "primary", size "md".
+ * Dropped from the design (no token): letter-spacing .02em.
+ */
+@layer components {
+  .pixel-button {
+    @apply font-display text-small inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-2 px-4.5 py-2.5 font-bold uppercase no-underline select-none;
+    @apply bg-accent text-text-on-accent shadow-notch inset-shadow-bevel;
+    @apply enabled:active:inset-shadow-bevel-pressed enabled:active:translate-x-0.5 enabled:active:translate-y-0.5;
+    @apply motion-safe:ease-snap motion-safe:transition-transform motion-safe:duration-(--dur-1);
+  }
+
+  .pixel-button[data-variant='xp'] {
+    @apply bg-xp;
+  }
+  .pixel-button[data-variant='success'] {
+    @apply bg-success;
+  }
+  .pixel-button[data-variant='secondary'] {
+    @apply bg-ink-600 text-ink-100;
+  }
+  .pixel-button[data-variant='danger'] {
+    @apply bg-danger;
+  }
+  .pixel-button[data-variant='ghost'] {
+    @apply text-ink-100 inset-ring-ink-500 bg-transparent shadow-none inset-shadow-none inset-ring-3;
+  }
+  /* The ghost keeps only its ring when pressed (no bevel) */
+  .pixel-button[data-variant='ghost']:enabled:active {
+    @apply inset-shadow-none;
+  }
+
+  /* Links (href) have no :enabled, so they press here */
+  a.pixel-button:active {
+    @apply inset-shadow-bevel-pressed translate-x-0.5 translate-y-0.5;
+  }
+  a.pixel-button[data-variant='ghost']:active {
+    @apply inset-shadow-none;
+  }
+
+  .pixel-button[data-size='sm'] {
+    @apply text-hud px-3 py-1.5;
+  }
+  .pixel-button[data-size='lg'] {
+    @apply text-body-lg px-6.5 py-3.5;
+  }
+
+  .pixel-button[data-full] {
+    @apply w-full;
+  }
+
+  /* Last, so it beats the variant colours. aria-disabled = busy but still
+     focusable (focus stays on the pressed button); it does not press either. */
+  .pixel-button:disabled,
+  .pixel-button[aria-disabled='true'] {
+    @apply bg-ink-700 text-ink-400 cursor-not-allowed;
+  }
+  .pixel-button[aria-disabled='true']:active {
+    @apply inset-shadow-bevel translate-x-0 translate-y-0;
+  }
+}

@@ -32,7 +32,7 @@ Run the `cto` agent (through `/review`, or `/commit`'s own step) on the working-
 
 **Skip only for:** docs typos, markdown reformatting, version bumps, obvious reverts, or when the user says "skip review".
 
-**Never skip when the diff touches:** `db/schema/**` · `drizzle/**` · `app/api/**` · `lib/actions/**` · `lib/grading/**` · `lib/runner/**` · `lib/mentor/**` · `scripts/sync-sources.ts` · `auth.ts` · `middleware.ts` · `next.config.ts` · `.github/workflows/**`.
+**Never skip when the diff touches:** `db/schema/**` · `drizzle/**` · `app/api/**` · `lib/actions/**` · `lib/grading/**` · `lib/mentor/**` · `scripts/sync-sources.ts` · `auth.ts` · `middleware.ts` · `next.config.ts` · `.github/workflows/**`.
 
 Lint and typecheck catch mechanical problems. The CTO review catches judgment problems. Both must pass.
 

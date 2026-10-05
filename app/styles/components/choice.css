@@ -1,0 +1,52 @@
+/*
+ * Choice: one answer row (native radio/checkbox) and ChoiceGroup (fieldset).
+ * The row ring, the box fill and the mark read --tint: grey → Spark when
+ * checked → Mint/Glitch once graded (data-state). The input itself is the
+ * 18px box, so the global focus ring lands on it. Base = ungraded.
+ * Added to the design: the graded mark (icon + word), so state is never colour only.
+ */
+@layer components {
+  .choice-group {
+    @apply flex flex-col gap-3;
+  }
+  .choice-group-legend {
+    @apply font-body text-body-lg text-text-1 mb-3;
+  }
+
+  .choice {
+    --tint: var(--border-subtle);
+    @apply bg-surface-2 text-text-1 font-body text-body flex min-h-11 w-full cursor-pointer items-center gap-3 px-3.5 py-3 text-left ring-3 ring-(--tint);
+  }
+  .choice:has(:checked) {
+    --tint: var(--xp);
+    @apply bg-surface-3;
+  }
+  .choice[data-state='correct'] {
+    --tint: var(--success);
+  }
+  .choice[data-state='wrong'] {
+    --tint: var(--danger);
+  }
+  .choice:has(:disabled) {
+    @apply cursor-not-allowed;
+  }
+
+  /* The box: 18px, inner square = --tint framed by a 4px (radio 5px) ink inset */
+  .choice-input {
+    @apply bg-ink-950 ring-ink-500 inset-ring-ink-950 m-0 size-4.5 flex-none cursor-pointer appearance-none ring-2 disabled:cursor-not-allowed;
+    @apply checked:bg-(--tint) checked:inset-ring-4;
+  }
+  .choice-input[type='radio'] {
+    @apply checked:inset-ring-5;
+  }
+
+  .choice-label {
+    @apply min-w-0 flex-1;
+  }
+  .choice-hint {
+    @apply font-body text-small leading-body text-text-2 mt-1 block;
+  }
+  .choice-mark {
+    @apply font-hud text-hud tracking-hud flex-none text-(--tint) uppercase;
+  }
+}

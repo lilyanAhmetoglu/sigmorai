@@ -3,10 +3,9 @@ import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
 import prettierConfig from 'eslint-config-prettier';
 
-// Every model call goes through lib/mentor, every code run through lib/runner,
-// and every database read/write through db/ + lib/actions (AGENTS.md → Layout).
+// Every model call goes through lib/mentor, and every database read/write through db/ + lib/actions (AGENTS.md → Layout).
 // UI and pure domain code never import a provider SDK or the DB client.
-const SERVER_ONLY = ['@anthropic-ai/sdk', 'e2b', '@e2b/code-interpreter', '@vercel/blob', '@/db'];
+const SERVER_ONLY = ['@clerk/nextjs/server', '@anthropic-ai/sdk', '@vercel/blob', '@/db'];
 
 export default defineConfig([
   ...nextVitals,
@@ -20,6 +19,7 @@ export default defineConfig([
     'drizzle/**',
     '.claude/skills/*/templates/**',
     'design/**',
+    '.claude/worktrees/**',
   ]),
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -35,6 +35,7 @@ export default defineConfig([
       'components/**',
       'lib/xp/**',
       'lib/sprite/**',
+      'lib/utils/**',
       'lib/types/**',
       'lib/constants/**',
       'app/**/page.tsx',
@@ -47,7 +48,7 @@ export default defineConfig([
           paths: SERVER_ONLY.map((name) => ({
             name,
             message:
-              'Go through lib/mentor, lib/runner, lib/actions or lib/data — never call a provider or the DB from UI or domain code.',
+              'Go through lib/mentor, lib/actions or lib/data — never call a provider or the DB from UI or domain code.',
           })),
         },
       ],

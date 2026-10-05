@@ -1,30 +1,27 @@
 ---
 paths:
   - 'lib/grading/**'
-  - 'lib/runner/**'
   - 'lib/actions/**'
   - 'lib/xp/**'
-  - 'app/api/run/**'
-  - 'content/**/challenge.json'
   - 'content/**/case.json'
+  - 'content/**/quick-check.json'
 ---
 
-# Grading, runner and XP integrity
+# Grading and XP integrity
 
 XP and the leaderboard are only worth something if nobody can fake them. These are invariants, not style.
 
 ## The server decides
 
-- **The browser never sends a score, a pass/fail, an XP amount or a level.** It sends code or chosen option indexes. The server grades.
-- **Hidden tests, correct indexes and explanations never leave the server before submit.** Content loaders return a public view (`toPublicChallenge`, `toPublicCase`) to client components; the full object stays in server-only modules (`import 'server-only'`).
-- **User code runs only in the sandbox** (`lib/runner/`, E2B by default, pluggable). Never `eval`, `new Function`, `vm`, `child_process` or `Bun.spawn` on user input anywhere in this repo. Every run has a wall-clock timeout and output size cap.
+- **The browser never sends a score, a pass/fail, an XP amount or a level.** It sends a seed and option indexes. The server grades.
+- **Correct indexes and explanations never leave the server before submit.** Content loaders return a public view (`toPublicCase`) to client components; the full object stays in server-only modules (`import 'server-only'`).
 
 ## XP is a ledger
 
-- Every XP change is one `xp_events` row. `users.xp` is updated in the **same transaction** (or derived). Amounts come from `lib/xp/` constants: +10 lesson, +150 challenge, +500 boss.
+- Every XP change is one `xp_events` row. `users.xp` is updated in the **same transaction** (or derived). Amounts come from `lib/constants` only (never from content frontmatter): +10 lesson, +150 case (reason `challenge`), +500 boss.
 - **Award once.** A unique key (user, exercise, reason) makes a replayed clear give 0 XP. Replays are allowed; farming is not.
-- `level = floor(sqrt(xp / 100))`, computed, never stored as truth.
-- **HP = 3 attempts per challenge, refills daily** (UTC day boundary, decided once in `lib/xp/`). Checked and decremented on the server before the runner is called, so a failed sandbox call can't be retried for free by the client.
+- `level = floor(sqrt(xp / 100)) + 1` (a new player is LV 1), computed, never stored as truth.
+- **HP = 3 attempts per case, refills at the UTC day boundary** (decided once in `lib/xp/`). Checked and decremented on the server inside the grading transaction.
 - **Streak** advances once per calendar day of a cleared exercise; computed from `lastActiveAt` on the server.
 
 ## Every Server Action
