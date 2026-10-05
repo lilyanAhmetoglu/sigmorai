@@ -21,3 +21,15 @@ export type ChoiceState = (typeof CHOICE_STATES)[number];
 export type LevelStatus = (typeof LEVEL_STATUSES)[number];
 export type QuestStatus = (typeof QUEST_STATUSES)[number];
 export type TestStatus = (typeof TEST_STATUSES)[number];
+
+/** One "who it is for" card on the landing page (lib/constants/landing-copy.ts). */
+export type Audience = {
+  id: string;
+  /** Tab on the card's top edge. */
+  label: string;
+  accent: Accent;
+  title: string;
+  body: string;
+  points: readonly string[];
+  forWho: string;
+};
