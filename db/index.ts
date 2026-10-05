@@ -16,3 +16,5 @@ pool.on('error', (err: Error) => console.error('db pool error', err));
 
 export const db = drizzle({ client: pool, schema, casing: 'snake_case' });
 export type Db = typeof db;
+/** A transaction handle, for helpers that run inside the caller's transaction. */
+export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];

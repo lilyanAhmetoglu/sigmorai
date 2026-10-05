@@ -1,4 +1,13 @@
-import type { ChoiceState, LevelStatus, QuestStatus, TestStatus, Track } from '@/lib/types';
+import type {
+  ChoiceState,
+  LevelStatus,
+  QuestErrorCode,
+  QuestStatus,
+  SandboxKind,
+  TestStatus,
+  Track,
+} from '@/lib/types';
+import { CHAPTER_COUNT } from './exercises';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
 /**
@@ -111,3 +120,28 @@ export const PROFILE_TEXT = {
   error: "Your profile didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;
+
+/**
+ * Why a quest press was refused (QuestErrorCode). Reset times are not in the
+ * text: the server sends `resetsAt` (UTC) and the browser shows local time.
+ */
+export const QUEST_ERROR_TEXT: Record<QuestErrorCode, string> = {
+  UNAUTHENTICATED: 'Sign in to run and submit.',
+  NOT_ONBOARDED: 'Set up your hero first.',
+  INVALID_INPUT: 'This exercise is not available.',
+  TIER_LOCKED: 'Advanced realms are locked. They come later.',
+  NOT_OPEN: 'Clear the chapter before this one first.',
+  NO_HP: 'No HP left for this challenge today.',
+  CAP_REACHED: 'You reached the daily limit.',
+  RUN_IN_PROGRESS: 'A run is already in progress. Wait for it to finish.',
+  // Run and Submit both use this; Submit's "no HP was used" note is UI copy (Phase B).
+  RUNNER_FAILED: 'The code runner failed. This is not your code. Try again.',
+};
+
+/** NOT_OPEN for chapter N: the chapter before it is not cleared. */
+export const notOpenText = (previousChapter: number) => `Clear chapter ${previousChapter} first.`;
+/** NOT_OPEN for a boss. */
+export const BOSS_NOT_OPEN_TEXT = `Clear all ${CHAPTER_COUNT} chapters first.`;
+/** CAP_REACHED: "You used 40 of 40 runs today." */
+export const capReachedText = (kind: SandboxKind, used: number, cap: number) =>
+  `You used ${used} of ${cap} ${kind === 'run' ? 'runs' : 'graded runs'} today.`;

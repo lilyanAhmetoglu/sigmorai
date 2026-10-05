@@ -1,22 +1,15 @@
 import { z } from 'zod';
-import { RUN_CODE_MAX_CHARS, RUNNER_KINDS, RUNNER_LANGUAGES } from '@/lib/constants';
+import { RUN_CODE_MAX_CHARS, RUNNER_KINDS } from '@/lib/constants';
+import type { ChallengeLanguage, ChallengeTest } from './content';
 import { ExerciseIdSchema } from './exercise';
 
 export type RunnerKind = (typeof RUNNER_KINDS)[number];
-export type RunnerLanguage = (typeof RUNNER_LANGUAGES)[number];
 
-/**
- * One test the runner executes after the learner's code. Same shape as a
- * challenge.json test ({ name, code }); lib/content will feed these in.
- */
-// Duplicate of the challenge test schema in PR #15 — delete this copy when both are on canary.
-export type RunnerTest = { name: string; code: string };
-
-/** What a runner gets. Built on the server only, never from a client body. */
+/** What a runner gets. Built on the server from challenge.json, never from a client body. */
 export type RunRequest = {
-  language: RunnerLanguage;
+  language: ChallengeLanguage;
   code: string;
-  tests: RunnerTest[];
+  tests: ChallengeTest[];
 };
 
 /** One test outcome. Maps onto the TestResult component (name / status / detail). */

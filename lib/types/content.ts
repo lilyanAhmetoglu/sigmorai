@@ -54,6 +54,9 @@ export type Lesson = { frontmatter: LessonFrontmatter; body: string };
 // ── Builder challenge ─────────────────────────────────────────────────────
 
 const ChallengeTestSchema = z.object({ name: Text, code: Text }).strict();
+/** One test: run after the learner's code, in the same namespace (lib/runner). */
+export type ChallengeTest = z.infer<typeof ChallengeTestSchema>;
+export type ChallengeLanguage = (typeof CHALLENGE_LANGUAGES)[number];
 
 /** challenge.json. `solution` and `hiddenTests` never reach the browser. */
 export const ChallengeSchema = z

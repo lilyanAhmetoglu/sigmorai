@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { check, date, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { HERO_NAME_MAX, HERO_NAME_MIN, TRACKS } from '@/lib/constants';
 import { oneOf } from './checks';
 
@@ -8,6 +8,9 @@ import { oneOf } from './checks';
  * Clerk owns identity. The track-picker action writes the row; no row means
  * not onboarded. xp is a cache of sum(xp_events.amount), written in the same
  * transaction as the event (db/CLAUDE.md invariant 3).
+ * sandbox_day / run_count / submit_count are the daily sandbox caps and
+ * sandbox_pending_at is the one-at-a-time lock (lib/grading/sandbox-gate.ts).
+ * The counts belong to sandbox_day (UTC); an older day reads as 0.
  */
 export const users = pgTable(
   'users',
@@ -19,6 +22,10 @@ export const users = pgTable(
     streak: integer().notNull().default(0),
     lastActiveAt: timestamp({ withTimezone: true }),
     avatarUrl: text(),
+    sandboxDay: date({ mode: 'string' }),
+    runCount: integer().notNull().default(0),
+    submitCount: integer().notNull().default(0),
+    sandboxPendingAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -29,6 +36,8 @@ export const users = pgTable(
     check('users_track_check', oneOf(t.track, TRACKS)),
     check('users_xp_check', sql`${t.xp} >= 0`),
     check('users_streak_check', sql`${t.streak} >= 0`),
+    check('users_run_count_check', sql`${t.runCount} >= 0`),
+    check('users_submit_count_check', sql`${t.submitCount} >= 0`),
     // Characters are checked by HeroNameSchema (lib/types); the DB holds the length line.
     check(
       'users_hero_name_length_check',

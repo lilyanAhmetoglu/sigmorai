@@ -11,7 +11,14 @@ import {
  *
  * harness.py (parent) runs each test in a fresh child process:
  *   child.py <i> = the learner's solution.py, then test i, in one namespace.
- *   exit 0 → pass; any exception (AssertionError, SyntaxError, SystemExit…) → fail.
+ *   Any exception (AssertionError, SyntaxError, SystemExit…) → fail.
+ * Child-pass token: the parent writes a fresh random token to the child's
+ * stdin; the child reads it and closes stdin BEFORE learner code runs, and
+ * prints it as the last stdout line only AFTER the test code finished.
+ * Pass = exit 0 AND that last line is the token. So `os._exit(0)` in learner
+ * code fails ("Exited before the test finished"). The parent strips the line
+ * before the output reaches the learner. Honest limit: learner code shares
+ * the child process, so frame or gc introspection could still find the token.
  * Each child gets min(RUN_TEST_TIMEOUT_S, time left in RUN_HARNESS_BUDGET_S)
  * and an RLIMIT_AS memory cap. Tests after the budget is spent are marked
  * "Not run: time limit" without starting, so slow learner code always gets
@@ -23,9 +30,12 @@ import {
 
 export const RUN_DIR = '/home/user/sigmorai-run';
 
-const CHILD_PY = `import json, sys
+const CHILD_PY = `import json, os, sys
 
 def main():
+    token = sys.stdin.readline().strip()
+    sys.stdin.close()
+    write = os.write  # saved before learner code can patch os
     index = int(sys.argv[1])
     with open('tests.json') as f:
         test = json.load(f)[index]
@@ -39,13 +49,17 @@ def main():
         message = str(error)
         print(type(error).__name__ + (': ' + message if message else ''), file=sys.stderr)
         sys.exit(1)
+        return  # sys.exit may be patched by learner code: still no token
+    sys.stdout.flush()
+    write(1, ('\\n' + token + '\\n').encode())
 
 main()
 `;
 
-const HARNESS_PY = `import json, os, resource, subprocess, sys, time
+const HARNESS_PY = `import json, os, resource, secrets, subprocess, sys, time
 
-RUN_DIR = ${JSON.stringify(RUN_DIR)}
+# The folder this file was uploaded to (RUN_DIR in E2B).
+RUN_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_TIMEOUT_S = ${RUN_TEST_TIMEOUT_S}
 BUDGET_S = ${RUN_HARNESS_BUDGET_S}
 MEMORY_BYTES = ${RUN_TEST_MEMORY_BYTES}
@@ -85,15 +99,25 @@ def main():
         if timeout <= 0:
             results.append({'name': test['name'], 'passed': False, 'detail': 'Not run: time limit'})
             continue
+        token = secrets.token_hex(16)
+        suffix = '\\n' + token + '\\n'
         try:
             proc = subprocess.run(
                 [sys.executable, '-I', os.path.join(RUN_DIR, 'child.py'), str(index)],
-                cwd=RUN_DIR, capture_output=True, text=True, timeout=timeout,
-                preexec_fn=limit_memory,
+                cwd=RUN_DIR, input=token + '\\n', capture_output=True, text=True,
+                timeout=timeout, preexec_fn=limit_memory,
             )
-            passed = proc.returncode == 0
-            detail = None if passed else (last_line(proc.stderr) or 'Exited with code %d' % proc.returncode)
-            stdout = proc.stdout
+            stdout = text(proc.stdout)
+            finished = stdout.endswith(suffix)
+            if finished:
+                stdout = stdout[:-len(suffix)]
+            passed = proc.returncode == 0 and finished
+            if passed:
+                detail = None
+            elif proc.returncode == 0:
+                detail = 'Exited before the test finished'
+            else:
+                detail = last_line(proc.stderr) or 'Exited with code %d' % proc.returncode
         except subprocess.TimeoutExpired as error:
             passed, detail, stdout = False, 'Timed out after %.1fs' % timeout, error.stdout
         result = {'name': test['name'], 'passed': passed}
@@ -109,13 +133,16 @@ main()
 `;
 
 /** Files to upload for one run. `solution` and test code go in as data, never as harness source. */
-export function harnessFiles(input: { code: string; tests: unknown; nonce: string }) {
+export function harnessFiles(
+  input: { code: string; tests: unknown; nonce: string },
+  dir: string = RUN_DIR,
+) {
   return [
-    { path: `${RUN_DIR}/harness.py`, data: HARNESS_PY },
-    { path: `${RUN_DIR}/child.py`, data: CHILD_PY },
-    { path: `${RUN_DIR}/solution.py`, data: input.code },
-    { path: `${RUN_DIR}/tests.json`, data: JSON.stringify(input.tests) },
-    { path: `${RUN_DIR}/nonce`, data: input.nonce },
+    { path: `${dir}/harness.py`, data: HARNESS_PY },
+    { path: `${dir}/child.py`, data: CHILD_PY },
+    { path: `${dir}/solution.py`, data: input.code },
+    { path: `${dir}/tests.json`, data: JSON.stringify(input.tests) },
+    { path: `${dir}/nonce`, data: input.nonce },
   ];
 }
 
