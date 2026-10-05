@@ -8,6 +8,14 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (no-code pivot, vendor-neutral)
+
+- **The drafter never writes a `challenge.json`.** `fill-stub` output is lesson + `case.json` + `quick-check.json` + blog post, on both tracks. The "Builder fill-stub opens as a draft PR until a human runs the challenge" row is dropped. `update-level` may touch the case, never a challenge.
+- **Source list is vendor-neutral by rule.** `docs` and `blog` kinds must include at least Anthropic, OpenAI, Google and one open-model/community source before P0 content merges.
+- **`case.json` may carry an optional `exhibit`** (a trace, a tool schema, a prompt, a config) that the drafter can fill.
+- **Docs first.** (a) The drafter writes lesson claims only from `docs` / `changelog` pages of `trustTier: official`; `repo` and `blog` pages feed examples and Frontier triage, never a claim. (b) Repos promoted by star discovery get `trustTier: community` and can never be a lesson's only source. (c) The store holds "official docs and changelogs first", not "latest tricks, tutorials". (d) The drafter prompt gets the chapter's mapped doc pages (both vendors) as its only grounding; the PR body lists them so the validator can diff claims vs pages.
+- **The product's own model stays Claude** (mentor, triage, drafting). Vendor-neutral is about what we teach, not what we run.
+
 ## Amendments locked 2026-10-05 (devil pass on the Frontier)
 
 The `devil` reviewed PR #7. The team approved its full list (the maintainer delegated product calls). Each line replaces the matching part of the "frontier + blog" block below.

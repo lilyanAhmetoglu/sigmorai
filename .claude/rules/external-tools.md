@@ -1,16 +1,16 @@
 # External tools: when to reach for what
 
-| You need…                                                                                         | Use                                                                                                 |
-| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Next.js (this repo runs Next 16)                                                                  | **`node_modules/next/dist/docs/`** first (see the block at the top of `AGENTS.md`), then nextjs.org |
-| Current docs for a library (Auth.js v5, Drizzle, Neon, Tailwind v4, E2B, Monaco, Playwright, Zod) | **context7** if connected (`resolve-library-id` → `query-docs`), else WebFetch the official docs    |
-| Anthropic SDK / Claude API                                                                        | the **`claude-api`** skill first, then `https://docs.claude.com`                                    |
-| A vendor REST API (E2B, Judge0, Resend, Vercel Blob)                                              | **WebFetch** the official docs                                                                      |
-| Model or sandbox pricing                                                                          | **WebFetch** the provider's live pricing page. Never trust memory.                                  |
-| The design reference                                                                              | `design/` in this repo (tokens, assets, `Sigmorai App.dc.html`). Never invent a token.              |
-| This codebase                                                                                     | **Read / Grep / Bash**. Never web-search for what is in the repo.                                   |
-| GitHub issues, PRs, releases                                                                      | **`gh` CLI**. Never WebFetch a GitHub URL when `gh` works.                                          |
-| News or anything else current                                                                     | **WebSearch**                                                                                       |
+| You need…                                                                            | Use                                                                                                 |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Next.js (this repo runs Next 16)                                                     | **`node_modules/next/dist/docs/`** first (see the block at the top of `AGENTS.md`), then nextjs.org |
+| Current docs for a library (Auth.js v5, Drizzle, Neon, Tailwind v4, Playwright, Zod) | **context7** if connected (`resolve-library-id` → `query-docs`), else WebFetch the official docs    |
+| Anthropic SDK / Claude API                                                           | the **`claude-api`** skill first, then `https://docs.claude.com`                                    |
+| A vendor REST API (Resend, Vercel Blob)                                              | **WebFetch** the official docs                                                                      |
+| Model pricing                                                                        | **WebFetch** the provider's live pricing page. Never trust memory.                                  |
+| The design reference                                                                 | `design/` in this repo (tokens, assets, `Sigmorai App.dc.html`). Never invent a token.              |
+| This codebase                                                                        | **Read / Grep / Bash**. Never web-search for what is in the repo.                                   |
+| GitHub issues, PRs, releases                                                         | **`gh` CLI**. Never WebFetch a GitHub URL when `gh` works.                                          |
+| News or anything else current                                                        | **WebSearch**                                                                                       |
 
 ## Why
 

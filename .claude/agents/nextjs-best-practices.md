@@ -11,8 +11,8 @@ Audit Sigmorai for Next.js / React issues. Report only, do NOT fix. **Verify aga
 
 **Server / client boundaries**
 
-- Server Components by default. `"use client"` only on the smallest leaf that needs state, effects, event handlers, canvas or Monaco. Flag a `"use client"` page or layout.
-- No server-only module (db, Auth.js `auth()`, Anthropic/E2B SDKs, secrets) imported into a client file. Server modules carry `import "server-only"`.
+- Server Components by default. `"use client"` only on the smallest leaf that needs state, effects, event handlers, or canvas. Flag a `"use client"` page or layout.
+- No server-only module (db, Auth.js `auth()`, the Anthropic SDK, secrets) imported into a client file. Server modules carry `import "server-only"`.
 - Props passed from server to client components are serialisable; no functions except Server Actions.
 - No `NEXT_PUBLIC_` on a server secret.
 
@@ -31,11 +31,10 @@ Audit Sigmorai for Next.js / React issues. Report only, do NOT fix. **Verify aga
 - Every action starts with `const session = await auth()` and fails closed.
 - Input parsed with Zod; user id from the session only.
 - Grading, XP, HP and streak changes happen in the action/handler, inside a DB transaction.
-- `/api/run` and `/api/mentor` set `runtime`/`maxDuration` deliberately and stream where the spec says so.
+- `/api/mentor` sets `runtime`/`maxDuration` deliberately and streams where the spec says so.
 
 **Heavy client code**
 
-- Monaco loaded with `next/dynamic` (`ssr: false`) only on the quest page.
 - Canvas scenes (`HeroScene`, `LevelMap`) are client components with rAF cleanup on unmount, IntersectionObserver pause, and a static frame under `prefers-reduced-motion`.
 - No large libraries pulled into the shared client bundle.
 

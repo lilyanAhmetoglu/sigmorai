@@ -32,7 +32,7 @@ Read `DESIGN.md` → voice and copy, and the copy in `design/ui_kits/webapp/Sigm
 ## What to read
 
 - Changed UI strings and components
-- `content/**` MDX, `challenge.json`, `case.json`
+- `content/**` MDX, `case.json`
 - Mentor and sync prompts (wherever they live, e.g. `lib/mentor/`, `scripts/`)
 - `git diff` for the change under review
 

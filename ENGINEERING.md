@@ -2,6 +2,13 @@
 
 How Sigmorai is built. Stack, architecture rules, data model, build order. The founding brief is `docs/build-prompt.md`; this file wins where they differ. Never makes aesthetic calls (that's `DESIGN.md`).
 
+## Amendments locked 2026-10-05 (no-code pivot)
+
+- **No code runner, no code editor.** The 2026-10-04 "Runner: E2B … fake runner" line is superseded. Stack rows "Editor: Monaco" and "Code runs: E2B via /api/run" are removed. `e2b` leaves package.json; `E2B_API_KEY` and `CODE_RUNNER` leave `.env.example`, `e2e.yml` and `eslint.config.mjs` (those code edits land in PR 2).
+- **Build order step 5:** "Quest page: graded scenario cases on both tracks + quick checks, plus XP/HP/streak logic."
+- **"UI never imports a provider"** keeps DB, Anthropic and Blob; E2B is removed from the list.
+- **Data model:** `users` loses the four sandbox columns (migration 0003); `submissions.payload` is always `{ seed, answers, order }`. **`submissions` is graded at insert.** `status` is `passed` | `failed` with no default; `graded_at` is dropped (it always equalled `created_at`) and `submissions_graded_check` goes with it; `results` becomes NOT NULL. HP spent today = `failed` rows since 00:00 UTC, served by the existing `submissions_user_exercise_idx`. Migration 0003 (db-architect approved 2026-10-05); 0002 is never edited.
+
 ## Amendments locked 2026-10-05
 
 - **Auth: Clerk, not Auth.js v5.** Decided by the maintainer: no home-made login. `@clerk/nextjs`, `proxy.ts` with `clerkMiddleware()` (Next 16 name), `await auth()` on the server. Proposed for the schema ticket (db-architect confirms): `users.id` = the Clerk user id (text), row created on first need (upsert), no webhook, no Auth.js adapter tables (`accounts`, `sessions`, `verification_tokens`). Free plan: 50k monthly retained users, up to 3 social logins, email links. The Auth.js lines below are superseded.

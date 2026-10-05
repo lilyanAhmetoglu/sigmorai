@@ -32,7 +32,7 @@ Say each thing once. If it's in AGENTS.md, CLAUDE.md links to it, and vice versa
 - New folder under `app/`, `components/`, `lib/`, `content/` or a new top-level folder
 - New env var or secret (also `.env.example`; anything `NEXT_PUBLIC_` is marked client-visible)
 - New table or migration, new route handler, new cron/workflow, new Blob store
-- New content schema field (MDX frontmatter, `challenge.json`, `case.json`, `sources.yaml`)
+- New content schema field (MDX frontmatter, `case.json`, `sources.yaml`)
 - New convention or pattern
 - Build deliverable completed (update "Where we are" in AGENTS.md)
 

@@ -15,18 +15,18 @@ const lastRealm = beginnerRealms[beginnerRealms.length - 1];
 export const LANDING_META = {
   title: `${SITE_NAME}: learn AI engineering as a pixel-art RPG`,
   description:
-    'Nine realms, from your first API call to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people and developers.',
+    'Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people and developers.',
 } as const;
 
 export const LANDING_TEXT = {
   navLabel: 'Account',
   eyebrow: 'AI ENGINEERING · PIXEL-ART RPG',
   title: 'Start your AI engineering adventure.',
-  lede: `Nine realms, from your first API call to multi-agent systems in production. Every lesson cites its sources. You clear a level by writing code that passes the tests, or by deciding a real business case.`,
+  lede: `Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work.`,
   audienceEyebrow: 'WHO IT IS FOR',
   audienceTitle: 'Pick the path that fits you',
   audienceIntro:
-    'Both paths cross the same nine realms. Builders write code to clear levels. Strategists clear them by making decisions about real cases.',
+    'Both paths cross the same nine realms. Builders clear levels by deciding how to design the system. Strategists clear them by deciding real business cases.',
 } as const;
 
 /** "Who it is for" cards, in the ticket's order: beginner, business, tech. */
@@ -62,11 +62,11 @@ export const AUDIENCES: readonly Audience[] = [
     label: 'BUILDER',
     accent: TRACK_ACCENTS.builder,
     title: 'For technical people',
-    body: 'Engineers and developers. Every level ends with a coding challenge checked by tests.',
+    body: 'Engineers and developers. Every level ends with a graded design case: agents, tools, MCP, RAG, prompts, harnesses.',
     points: [
       'APIs, tool use and agent SDKs',
       'MCP servers, evals and multi-agent systems',
-      'Pass levels by writing code that works',
+      'Pass levels by judging real design cases',
     ],
     forWho: 'DEVELOPERS · DATA SCIENTISTS · ML ENGINEERS',
   },
