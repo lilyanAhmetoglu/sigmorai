@@ -1,5 +1,4 @@
 import { Badge } from '@/components/badge';
-import { PixelAvatar } from '@/components/pixel-avatar';
 import { XPBar } from '@/components/xp-bar';
 import { HUD_TEXT, TRACK_ACCENTS } from '@/lib/constants';
 import type { HpValue, HudState, HudStats } from '@/lib/types';
@@ -13,8 +12,13 @@ type Props = {
 
 /** Top HUD: hero, level XP, HP, streak and the account controls. Presentational. Styles: hud-bar.css. */
 export function HudBar({ state, hp }: Props) {
+  const ready = state.status === 'ready';
   return (
-    <div className="hud-bar" role="group" aria-label={HUD_TEXT.label}>
+    <div
+      className="hud-bar"
+      role={ready ? 'group' : undefined}
+      aria-label={ready ? HUD_TEXT.label : undefined}
+    >
       {state.status === 'ready' && <StatsRow stats={state.stats} hp={hp} />}
       {state.status === 'onboarding' && <Badge accent="neutral">{HUD_TEXT.notSetUp}</Badge>}
       <AuthControls />
@@ -23,20 +27,15 @@ export function HudBar({ state, hp }: Props) {
 }
 
 function StatsRow({ stats, hp }: { stats: HudStats; hp?: HpValue }) {
-  const accent = TRACK_ACCENTS[stats.track];
   return (
     <>
-      <div className="hud-hero">
-        <PixelAvatar
-          seed={stats.heroName}
-          src={stats.avatarUrl ?? undefined}
-          size="sm"
-          accent={accent}
-        />
-        <div className="hud-hero-text">
-          <span className="hud-hero-name">{stats.heroName}</span>
-          <Badge accent={accent}>{stats.track}</Badge>
-        </div>
+      {/* No PixelAvatar here: Clerk's UserButton is the one "me" picture (it owns
+          sign-out). The hero avatar comes back as the link to /profile. */}
+      <div className="hud-hero-text">
+        <span className="hud-hero-name" title={stats.heroName}>
+          {stats.heroName}
+        </span>
+        <Badge accent={TRACK_ACCENTS[stats.track]}>{stats.track}</Badge>
       </div>
       <XPBar
         className="hud-xp"
@@ -58,7 +57,7 @@ function StatsRow({ stats, hp }: { stats: HudStats; hp?: HpValue }) {
 function HpStat({ hp }: { hp?: HpValue }) {
   if (!hp) {
     return (
-      <span className="hud-stat" data-empty title={HUD_TEXT.hpEmptyHint}>
+      <span className="hud-stat" data-empty>
         {HUD_TEXT.hp} <span aria-hidden="true">{HUD_TEXT.hpEmpty}</span>
         <span className="sr-only">{HUD_TEXT.hpEmptyHint}</span>
       </span>

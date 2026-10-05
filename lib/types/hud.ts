@@ -24,7 +24,6 @@ export type HpValue = { value: number; max: number };
 export type HudStats = LevelProgress & {
   heroName: string;
   track: Track;
-  avatarUrl: string | null;
   streak: number;
 };
 

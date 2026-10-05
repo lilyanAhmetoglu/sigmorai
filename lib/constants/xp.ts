@@ -21,10 +21,3 @@ export const XP_REWARDS = {
  * xp, never stored (db/CLAUDE.md invariant 5).
  */
 export const LEVEL_XP_STEP = 100;
-
-/**
- * HP = attempts per challenge, refilled daily (docs/build-prompt.md). It is
- * per challenge and computed from attempts + date, so the HUD only shows a
- * value when a page passes one (the quest page, SIG-16).
- */
-export const HP_MAX = 3;

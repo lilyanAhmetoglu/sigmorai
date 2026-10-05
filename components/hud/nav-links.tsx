@@ -28,7 +28,7 @@ export function NavLinks() {
               {item.label}
             </Link>
           ) : (
-            <span className="nav-link" aria-disabled="true">
+            <span className="nav-link" data-soon>
               {item.label}
               <span className="nav-soon">{SHELL_TEXT.soon}</span>
             </span>

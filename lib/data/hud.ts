@@ -23,7 +23,6 @@ export const getHudState = cache(async (): Promise<HudState> => {
       track: users.track,
       xp: users.xp,
       streak: users.streak,
-      avatarUrl: users.avatarUrl,
     })
     .from(users)
     .where(eq(users.id, userId))

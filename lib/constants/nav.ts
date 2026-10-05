@@ -1,4 +1,4 @@
-import type { Accent, NavItem, Track } from '@/lib/types';
+import type { NavItem } from '@/lib/types';
 
 /**
  * The in-app nav, in the design's order (Sigmorai App.dc.html → navItems).
@@ -14,12 +14,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Math Tower', href: '/math', live: false },
   { label: 'Profile', href: '/profile', live: false },
 ];
-
-/** Track chip colour, from the design's TR table (builder = ember, strategist = spark). */
-export const TRACK_ACCENTS: Record<Track, Accent> = {
-  builder: 'accent',
-  strategist: 'xp',
-};
 
 /** id of the <main> the skip link jumps to. */
 export const MAIN_CONTENT_ID = 'main';
