@@ -173,7 +173,9 @@ Every formula needs a plain-words text version next to it (screen readers read "
 4. They clear strategist 0 (what AI is, limits, hallucinations, cost, privacy), then 1 (writing briefs, checking outputs). That is enough for daily work.
 5. After realm 1 they can go on to realms 2–5, or switch to builder from the HUD.
 
-All open-tier realms are open from day one. Inside a realm, chapters open one by one (existing `progress.status`). So a builder can start at realm 4.
+All open-tier realms are open from day one. Inside a realm, chapters open one by one (a `progress` row for the previous chapter's challenge). So a builder can start at realm 4.
+
+_Note 2026-10-05: `progress` has no `status` column (it is one row per cleared exercise). The open rule is set in `quest-actions-design-plan.md`._
 
 ## Lock rules (advanced tier)
 
