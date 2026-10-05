@@ -6,7 +6,14 @@ import prettierConfig from 'eslint-config-prettier';
 // Every model call goes through lib/mentor, every code run through lib/runner,
 // and every database read/write through db/ + lib/actions (AGENTS.md → Layout).
 // UI and pure domain code never import a provider SDK or the DB client.
-const SERVER_ONLY = ['@anthropic-ai/sdk', 'e2b', '@e2b/code-interpreter', '@vercel/blob', '@/db'];
+const SERVER_ONLY = [
+  '@clerk/nextjs/server',
+  '@anthropic-ai/sdk',
+  'e2b',
+  '@e2b/code-interpreter',
+  '@vercel/blob',
+  '@/db',
+];
 
 export default defineConfig([
   ...nextVitals,
@@ -20,6 +27,7 @@ export default defineConfig([
     'drizzle/**',
     '.claude/skills/*/templates/**',
     'design/**',
+    '.claude/worktrees/**',
   ]),
   {
     files: ['**/*.ts', '**/*.tsx'],
@@ -35,6 +43,7 @@ export default defineConfig([
       'components/**',
       'lib/xp/**',
       'lib/sprite/**',
+      'lib/utils/**',
       'lib/types/**',
       'lib/constants/**',
       'app/**/page.tsx',

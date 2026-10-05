@@ -7,6 +7,21 @@ Layout: `content/<track>/<realm>/<chapter>/*.mdx` plus `challenge.json` (builder
 - Frontier chapters: `content/frontier/<YYYY-MM-DD>-<slug>/` with the lesson MDX + `quick-check.json`. No challenge, no outline file, no NPC.
 - Blog posts: `content/blog/<YYYY-MM-DD>-<slug>.mdx`, same date-slug and same `sources` as their lesson. Plain product voice.
 
+## Exercise ids
+
+Every exercise has one id. Helpers: `lib/content/ids.ts` (`buildExerciseId`, `parseExerciseId`); Zod: `ExerciseIdSchema` in `lib/types`.
+
+| Area             | Id                                                     |
+| ---------------- | ------------------------------------------------------ |
+| Realm chapter    | `builder/r0/c1/lesson` · `challenge` · `quick-check`   |
+| Realm boss       | `strategist/r3/boss/challenge`                         |
+| Math Tower floor | `math/f1/lesson` · `quick-check`                       |
+| Frontier level   | `frontier/2026-10-05-some-slug/lesson` · `quick-check` |
+
+Realms `r0`–`r8`, chapters `c1`–`c6`, floors `f1`–`f8` (counts in `lib/constants/exercises.ts`). Slugs are lowercase kebab-case.
+
+**Ids are forever.** They are stored in `progress`, `submissions` and `xp_events`. Renaming one loses players' progress and lets them earn the XP again. Fix a title, never an id.
+
 ## Rules
 
 - **Frontmatter is Zod-validated** (`lib/content/schema.ts`): `id, title, minutes, sources[{kind:'docs'|'repo', title, url}], sourceHash`. A file that fails the schema fails the build.

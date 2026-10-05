@@ -31,6 +31,7 @@ lib/
   types/            Every shared type and Zod schema. Import from '@/lib/types'.
   constants/        Every constant: XP amounts, realms, flag positions, model ids.
   xp/  sprite/      Pure TS (level curve, HP, streak, avatar sprite). bun test covers these.
+  utils/            Tiny shared helpers (cn). Pure TS.
   content/          MDX + challenge/case loaders, Zod frontmatter, public views.
   data/             server-only reads, scoped to auth()'s user.
   actions/          'use server' mutations: Zod → auth() → transaction → revalidatePath.
