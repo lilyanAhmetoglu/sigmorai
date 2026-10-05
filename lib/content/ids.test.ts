@@ -4,11 +4,19 @@ import {
   CHAPTER_STEPS,
   MATH_FLOOR_COUNT,
   REALM_COUNT,
+  REALMS,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
 import { ExerciseIdSchema, type ExerciseRef } from '@/lib/types';
-import { buildExerciseId, isExerciseId, parseExerciseId } from './ids';
+import {
+  buildExerciseId,
+  isExerciseId,
+  parseExerciseId,
+  questBackHref,
+  realmExerciseIds,
+  trackExerciseIds,
+} from './ids';
 
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
 
@@ -119,5 +127,38 @@ describe('bad ids are rejected', () => {
 
   test('the Zod schema accepts a valid id', () => {
     expect(ExerciseIdSchema.parse('math/f2/lesson')).toBe('math/f2/lesson');
+  });
+});
+
+describe('trackExerciseIds', () => {
+  test('every chapter step and boss of one track, in map order, all unique', () => {
+    const ids = trackExerciseIds('builder');
+    expect(ids).toHaveLength(REALM_COUNT * (CHAPTER_COUNT * CHAPTER_STEPS.length + 1));
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids[0]).toBe('builder/r0/c1/lesson');
+    expect(ids.at(-1)).toBe(`builder/r${REALM_COUNT - 1}/boss/challenge`);
+    expect(ids.every((id) => id.startsWith('builder/'))).toBe(true);
+  });
+});
+
+describe('realmExerciseIds', () => {
+  test('one realm: every chapter step, then the boss', () => {
+    const ids = realmExerciseIds('strategist', 3);
+    expect(ids).toHaveLength(CHAPTER_COUNT * CHAPTER_STEPS.length + 1);
+    expect(ids[0]).toBe('strategist/r3/c1/lesson');
+    expect(ids.at(-1)).toBe('strategist/r3/boss/challenge');
+  });
+});
+
+describe('questBackHref', () => {
+  test('a realm quest goes back to its realm on its track; anything else to the catalog', () => {
+    expect(questBackHref('builder/r1/c2/challenge')).toBe(
+      `/realms/${REALMS[1].slug}?track=builder`,
+    );
+    expect(questBackHref('strategist/r0/boss/challenge')).toBe(
+      `/realms/${REALMS[0].slug}?track=strategist`,
+    );
+    expect(questBackHref('math/f1/lesson')).toBe('/realms');
+    expect(questBackHref('nonsense')).toBe('/realms');
   });
 });

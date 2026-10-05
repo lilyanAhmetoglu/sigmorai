@@ -1,8 +1,17 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { AUTH_ROUTES } from '@/lib/constants';
 
-// Every route is public for now: lessons and realms must be readable signed out
-// (curriculum spec). Protect only the routes that write progress, when they exist.
-export default clerkMiddleware();
+// Lessons and realms stay readable signed out (curriculum spec). Only the
+// player's own pages need a session; protect() redirects here, before any
+// streaming, so the status is a real redirect.
+const isPrivate = createRouteMatcher(['/dashboard(.*)', '/profile(.*)']);
+
+export default clerkMiddleware(
+  async (auth, req) => {
+    if (isPrivate(req)) await auth.protect();
+  },
+  { signInUrl: AUTH_ROUTES.signIn },
+);
 
 export const config = {
   matcher: [

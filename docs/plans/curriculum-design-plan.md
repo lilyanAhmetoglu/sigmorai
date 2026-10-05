@@ -8,6 +8,15 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (dashboard + realm pages, SIG-14)
+
+- **`/dashboard`** (signed in; the proxy redirects signed-out visitors) shows the next open step, up to `DASHBOARD_REALM_LIMIT` (3) active realms, and a stats panel (day streak, levels cleared). Onboarding now lands here (`AFTER_ONBOARDING_HREF`).
+- **"Next step"** prefers realms in progress, then open realms, in map order. Lesson → case → quick check inside a chapter.
+- **`/realms` and `/realms/[realm]` are public.** `?track=builder|strategist` shows either track; the default is the player's track, or strategist for visitors. Unknown slugs return a real 404.
+- **Step states** come from the same `decideOpen` the Server Actions use. A step with no content file is "Coming soon" and is not a link. Advanced realms are visible but locked, with no unlock goal yet (paywall later).
+- **After a pass**, and on the quest back link, the player returns to the realm page, not the profile.
+- Not built yet: daily quest, Math Tower panel, tier filter, "View on map", "Built from" sources.
+
 ## Amendments locked 2026-10-05 (no-code pivot, vendor-neutral)
 
 - **Nobody writes code.** Builder ("tech") teaches how to design and run AI systems; strategist ("business") teaches how to use and leverage AI and harnesses at work. Both end every chapter and boss in a graded scenario case. Replaces: §Context row 1 ("code challenge, tests"), §Audiences "Needs code? Yes, basic" (now No for all), §Code execution (now N/A), §Content files "challenge" wording, §MVP cut "(lesson + challenge/case + quick check)" → "(lesson + case + quick check)", the realm-02 `get_weather` tool-challenge demo (dropped). Also supersedes the Phase 1 lines "Challenges are graded offline…" and "Realm 02 keeps the get_weather tool challenge".

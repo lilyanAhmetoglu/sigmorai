@@ -1,8 +1,10 @@
 import { PixelButton } from '@/components/pixel-button';
-import { AUTH_ROUTES, AUTH_TEXT, LANDING_TEXT } from '@/lib/constants';
-
-/** Back to front. Each name is a data-layer value in landing.css and a /public/art/hero-*.png file. */
-const ART_LAYERS = ['sky', 'far', 'mid', 'near'] as const;
+import {
+  AUTH_ROUTES,
+  AUTH_TEXT,
+  LANDING_TEXT,
+  LEVEL_ART_LAYERS as ART_LAYERS,
+} from '@/lib/constants';
 
 /**
  * Landing hero: static parallax art (CSS layers; the canvas scene comes later),

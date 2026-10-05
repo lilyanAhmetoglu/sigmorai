@@ -7,3 +7,4 @@ export * from './curriculum';
 export * from './hud';
 export * from './content';
 export * from './quest';
+export * from './realms';
