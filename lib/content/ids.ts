@@ -18,6 +18,7 @@ import {
   MATH_AREA,
   MATH_FLOOR_COUNT,
   REALM_COUNT,
+  SEGMENT_PREFIX,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
@@ -26,10 +27,14 @@ import type { ChapterStep, ExerciseRef, SideStep, Track } from '@/lib/types';
 const alt = (xs: readonly (string | number)[]) => `(?:${xs.join('|')})`;
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
 
+/** A numbered segment: `segment('chapter', 1)` → `c1`. */
+export const segment = (kind: keyof typeof SEGMENT_PREFIX, n: number | string) =>
+  `${SEGMENT_PREFIX[kind]}${n}`;
+
 const TRACK = alt(TRACKS);
-const REALM = `r${alt(range(0, REALM_COUNT))}`;
-const CHAPTER = `c${alt(range(1, CHAPTER_COUNT))}`;
-const FLOOR = `f${alt(range(1, MATH_FLOOR_COUNT))}`;
+const REALM = segment('realm', alt(range(0, REALM_COUNT)));
+const CHAPTER = segment('chapter', alt(range(1, CHAPTER_COUNT)));
+const FLOOR = segment('floor', alt(range(1, MATH_FLOOR_COUNT)));
 const DATE = String.raw`\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])`;
 const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*';
 /** Length of `YYYY-MM-DD` at the start of a Frontier segment. */
@@ -82,11 +87,16 @@ export const isExerciseId = (id: string): boolean => parseExerciseId(id) !== nul
 function format(ref: ExerciseRef): string {
   switch (ref.area) {
     case 'chapter':
-      return `${ref.track}/r${ref.realm}/c${ref.chapter}/${ref.step}`;
+      return [
+        ref.track,
+        segment('realm', ref.realm),
+        segment('chapter', ref.chapter),
+        ref.step,
+      ].join('/');
     case 'boss':
-      return `${ref.track}/r${ref.realm}/${BOSS_SEGMENT}/${BOSS_STEP}`;
+      return [ref.track, segment('realm', ref.realm), BOSS_SEGMENT, BOSS_STEP].join('/');
     case MATH_AREA:
-      return `${MATH_AREA}/f${ref.floor}/${ref.step}`;
+      return [MATH_AREA, segment('floor', ref.floor), ref.step].join('/');
     case FRONTIER_AREA:
       return `${FRONTIER_AREA}/${ref.date}-${ref.slug}/${ref.step}`;
   }

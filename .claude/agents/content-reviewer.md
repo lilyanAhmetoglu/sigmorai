@@ -14,6 +14,8 @@ Content auditor for Sigmorai. Report only, do NOT fix. **A wrong fact in a lesso
 - Every `content/<track>/<realm>/<chapter>/*.mdx` frontmatter passes the Zod schema: `id, title, xp, minutes, sources[{kind:'docs'|'repo', title, url}], sourceHash`. Run the validator (`bun run content:check` or the schema test) if present; otherwise check by hand.
 - `id`s unique across the track; chapter has its 3 exercises (lesson, challenge, quick check).
 - XP matches the rules (+10 lesson, +150 challenge, +500 boss).
+- Frontier chapters (`content/frontier/<YYYY-MM-DD>-<slug>/`) = lesson + `quick-check.json` only. A `challenge.json` there is a blocker.
+- Blog posts (`content/blog/<YYYY-MM-DD>-<slug>.mdx`) use plain product voice (no NPC lines) and cite the same sources as their lesson.
 
 **Sources**
 
