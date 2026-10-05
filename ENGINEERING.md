@@ -2,6 +2,11 @@
 
 How Sigmorai is built. Stack, architecture rules, data model, build order. The founding brief is `docs/build-prompt.md`; this file wins where they differ. Never makes aesthetic calls (that's `DESIGN.md`).
 
+## Amendments locked 2026-10-05
+
+- **Auth: Clerk, not Auth.js v5.** Decided by the maintainer: no home-made login. `@clerk/nextjs`, `proxy.ts` with `clerkMiddleware()` (Next 16 name), `await auth()` on the server. Proposed for the schema ticket (db-architect confirms): `users.id` = the Clerk user id (text), row created on first need (upsert), no webhook, no Auth.js adapter tables (`accounts`, `sessions`, `verification_tokens`). Free plan: 50k monthly retained users, up to 3 social logins, email links. The Auth.js lines below are superseded.
+- **Neon: work on the `dev` branch** (project `late-haze-29496360`). `production` is touched only by deploys. `neon.ts` is the CLI project marker (branch policy comes with the schema ticket); `neon link` writes `DATABASE_URL` into `.env.local`.
+
 ## Amendments locked 2026-10-04
 
 - **Next.js 16, not 15.** `bun create next-app` installs 16.x (current stable). App Router, RSC, Server Actions and async `params` are the same model; read `node_modules/next/dist/docs/` before using an API. Pinning 15 would start the project on an old major for no gain.
