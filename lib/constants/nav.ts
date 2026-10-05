@@ -3,6 +3,11 @@ import type { NavItem } from '@/lib/types';
 /** Onboarding: a signed-in player with no users row picks a track and a hero name here. */
 export const ONBOARDING_HREF = '/onboarding';
 export const PROFILE_HREF = '/profile';
+/** The quest page: `/quest/<exercise id>` (a catch-all, since ids contain `/`). */
+export const QUEST_HREF = '/quest';
+export const questHref = (exerciseId: string) => `${QUEST_HREF}/${exerciseId}`;
+/** The quest page's back link. The design says "◂ MAP"; the profile until the map route ships. */
+export const QUEST_BACK_HREF = PROFILE_HREF;
 /** Where onboarding sends the player. The profile until the dashboard ships. */
 export const AFTER_ONBOARDING_HREF = PROFILE_HREF;
 

@@ -138,6 +138,69 @@ export const QUEST_ERROR_TEXT: Record<QuestErrorCode, string> = {
   RUNNER_FAILED: 'The code runner failed. This is not your code. Try again.',
 };
 
+/**
+ * Quest page words (builder challenge). Product voice only: no lore outside a
+ * DialogBox. Times are not in the text: the page shows `resetsAt` in local time
+ * right after these lines, then `localTimeSuffix`.
+ */
+export const QUEST_TEXT = {
+  challengeTag: 'CHALLENGE',
+  bossTag: 'BOSS',
+  chapterTag: (n: number) => `CHAPTER ${n}`,
+  editorLabel: 'Your code',
+  editorHint: 'Tab moves to the next control. Indent with spaces.',
+  reset: 'Reset',
+  confirmReset: 'Confirm reset',
+  /** Decorative: rendered aria-hidden through PixelButton's `icon`. */
+  runIcon: '▸',
+  run: 'Run tests',
+  submit: 'Submit',
+  running: 'Running…',
+  continue: 'Continue',
+  signInToRun: 'Sign in to run',
+  signInToSubmit: 'Sign in to submit',
+  submitNote: 'Costs 1 HP if it fails.',
+  replayNote: 'Practice · no HP, no XP.',
+  hpFailNote: (hp: number, max: number) => `${hp} of ${max} HP left today. Run is still free.`,
+  noHp: 'No HP left for this challenge. HP refills at',
+  runCapResets: 'Runs reset at',
+  submitCapResets: 'They reset at',
+  localTimeSuffix: '(your time).',
+  runnerFailedNoHp: 'The runner failed. No HP was used. Try again.',
+  testsHeading: 'Tests',
+  noVisibleTests: 'All tests for this challenge are hidden. Submit to check them.',
+  hiddenFailedNote:
+    'Hidden tests check extra inputs. Their details stay hidden, so test your code against more cases than the visible tests.',
+  runSummary: (passed: number, total: number) => `Run: ${passed} of ${total} visible tests passed.`,
+  submitPassed: 'Submit: every test passed.',
+  submitFailed: (passed: number, total: number) => `Submit: ${passed} of ${total} tests passed.`,
+  replayPassed: 'Cleared again · XP already earned.',
+  hiddenTest: (n: number) => `Hidden test ${n}`,
+  console: 'Console',
+  consoleEmpty: 'Press Run tests to see your print output here.',
+  consoleSubmit: 'Submit shows no console output. Use Run tests to see it.',
+  cleared: (xp: number) => `LEVEL CLEARED · +${xp} XP`,
+  clearedBody: 'Added to your total. Press Continue to go on.',
+  xpToastTitle: (xp: number) => `+${xp} XP`,
+  xpToastText: (title: string) => `Quest cleared: ${title}`,
+  levelUpTitle: (level: number) => `Level ${level} reached`,
+  notifications: 'Notifications',
+  noticeHeading: 'Quest',
+  notAvailable: 'This step is not available yet.',
+  notAvailableHint: 'Only builder challenges work on this page for now.',
+  locked: 'LOCKED',
+  /** The back link until the world map ships (QUEST_BACK_HREF). */
+  backIcon: '◂',
+  back: 'Back to profile',
+  networkError: 'No reply from the server. Check your connection, reload the page, then try again.',
+  /** Submit may have finished (and spent HP) before the reply was lost. */
+  submitNoReply: 'No reply from the server. Reload the page to see your HP and result.',
+  notSaved: 'Your progress was not saved. Try again in a moment.',
+  loading: 'Loading the challenge',
+  loadError: "The challenge didn't load. Try again in a moment.",
+  retry: 'Retry',
+} as const;
+
 /** NOT_OPEN for chapter N: the chapter before it is not cleared. */
 export const notOpenText = (previousChapter: number) => `Clear chapter ${previousChapter} first.`;
 /** NOT_OPEN for a boss. */

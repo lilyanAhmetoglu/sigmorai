@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db, type Tx } from '@/db';
 import { users } from '@/db/schema';
 import { capReachedText, RUN_DAILY_CAP, RUN_STALE_MS, SUBMIT_DAILY_CAP } from '@/lib/constants';
-import type { QuestFailure, SandboxKind } from '@/lib/types';
+import type { CapReached, QuestFailure, SandboxKind } from '@/lib/types';
 import { nextUtcDayStart, utcDayKey } from '@/lib/xp/day';
 import { questFailure } from './failure';
 
@@ -35,28 +35,36 @@ type SandboxUpdate = {
 
 export type GateDecision = { ok: true; update: SandboxUpdate } | QuestFailure;
 
+/** Today's counts: a count from an older UTC day reads as 0. Pure. */
+function countsToday(state: SandboxState, now: Date) {
+  const sameDay = state.sandboxDay === utcDayKey(now);
+  return {
+    runCount: sameDay ? state.runCount : 0,
+    submitCount: sameDay ? state.submitCount : 0,
+  };
+}
+
+/** The cap this kind has hit today, or null. Pure (the quest page reads it too). */
+export function capReached(state: SandboxState, kind: SandboxKind, now: Date): CapReached | null {
+  const { runCount, submitCount } = countsToday(state, now);
+  const used = kind === 'run' ? runCount : submitCount;
+  const cap = CAPS[kind];
+  if (used < cap) return null;
+  return { kind, used, cap, resetsAt: nextUtcDayStart(now).toISOString() };
+}
+
 /** Pure: what to write, or why not. `now` is the lock time too. */
 export function decideGate(state: SandboxState, kind: SandboxKind, now: Date): GateDecision {
   const today = utcDayKey(now);
-  const sameDay = state.sandboxDay === today;
-  const runCount = sameDay ? state.runCount : 0;
-  const submitCount = sameDay ? state.submitCount : 0;
+  const { runCount, submitCount } = countsToday(state, now);
 
   const pending = state.sandboxPendingAt;
   if (pending && now.getTime() - pending.getTime() < RUN_STALE_MS) {
     return questFailure('RUN_IN_PROGRESS');
   }
 
-  const used = kind === 'run' ? runCount : submitCount;
-  const cap = CAPS[kind];
-  if (used >= cap) {
-    return questFailure('CAP_REACHED', capReachedText(kind, used, cap), {
-      kind,
-      used,
-      cap,
-      resetsAt: nextUtcDayStart(now).toISOString(),
-    });
-  }
+  const cap = capReached(state, kind, now);
+  if (cap) return questFailure('CAP_REACHED', capReachedText(kind, cap.used, cap.cap), cap);
 
   return {
     ok: true,
