@@ -46,3 +46,13 @@ export const ACCENTS = [
   'realm-8',
   'realm-math',
 ] as const;
+
+/** Graded answer marks on a Choice (design/components/forms). Ungraded = no state. */
+export const CHOICE_STATES = ['correct', 'wrong'] as const;
+
+/** World-map node (design/components/game). "open" is the base style. */
+export const LEVEL_STATUSES = ['locked', 'open', 'current', 'done'] as const;
+/** Quest tile. "open" is the base style. */
+export const QUEST_STATUSES = ['open', 'done', 'locked'] as const;
+/** One test row in the challenge runner. "pending" is the base style. */
+export const TEST_STATUSES = ['pass', 'fail', 'pending', 'running'] as const;
