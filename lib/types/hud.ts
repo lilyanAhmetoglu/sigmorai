@@ -24,6 +24,8 @@ export type HpValue = { value: number; max: number };
 export type HudStats = LevelProgress & {
   heroName: string;
   track: Track;
+  /** Total XP (users.xp, the ledger cache). */
+  xp: number;
   streak: number;
 };
 
