@@ -1,6 +1,7 @@
 import { Badge } from '@/components/badge';
+import { PixelButton } from '@/components/pixel-button';
 import { XPBar } from '@/components/xp-bar';
-import { HUD_TEXT, TRACK_ACCENTS } from '@/lib/constants';
+import { HUD_TEXT, ONBOARDING_HREF, TRACK_ACCENTS } from '@/lib/constants';
 import type { HpValue, HudState, HudStats } from '@/lib/types';
 import { AuthControls } from './auth-controls';
 
@@ -20,7 +21,13 @@ export function HudBar({ state, hp }: Props) {
       aria-label={ready ? HUD_TEXT.label : undefined}
     >
       {state.status === 'ready' && <StatsRow stats={state.stats} hp={hp} />}
-      {state.status === 'onboarding' && <Badge accent="neutral">{HUD_TEXT.notSetUp}</Badge>}
+      {/* A real link, not just a badge: it catches every way in that skipped the
+          sign-up redirect (hosted Clerk pages, an abandoned first visit). */}
+      {state.status === 'onboarding' && (
+        <PixelButton href={ONBOARDING_HREF} variant="xp" size="sm">
+          {HUD_TEXT.setUp}
+        </PixelButton>
+      )}
       <AuthControls />
     </div>
   );

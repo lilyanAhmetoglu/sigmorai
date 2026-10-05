@@ -1,4 +1,5 @@
-import type { ChoiceState, LevelStatus, QuestStatus, TestStatus } from '@/lib/types';
+import type { ChoiceState, LevelStatus, QuestStatus, TestStatus, Track } from '@/lib/types';
+import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
 /**
  * Fixed UI words the primitives render (product voice: short, plain). Keyed by
@@ -53,7 +54,7 @@ export const HUD_TEXT = {
   loading: 'Loading your stats',
   error: "Your stats didn't load.",
   retry: 'Retry',
-  notSetUp: 'Hero not set up',
+  setUp: 'Set up your hero',
   hp: 'HP',
   streak: 'STREAK',
   streakUnit: 'days',
@@ -61,3 +62,52 @@ export const HUD_TEXT = {
 
 export const DIALOG_NEXT_TEXT = '▸ NEXT';
 export const TOAST_DISMISS_TEXT = 'Dismiss';
+
+/** Track name and one-line summary (design TR table: label + short). */
+export const TRACK_TEXT: Record<Track, { label: string; short: string }> = {
+  builder: { label: 'BUILDER', short: 'You write small Python programs. APIs, tools, agents.' },
+  strategist: {
+    label: 'STRATEGIST',
+    short: 'No code. You judge real business cases: use cases, ROI, rules.',
+  },
+};
+
+const HERO_NAME_RULE = `${HERO_NAME_MIN}–${HERO_NAME_MAX} characters: letters, numbers, spaces and . ' _ -`;
+
+/** Onboarding (track picker) words. Field errors are fixed text, never Zod's messages. */
+export const ONBOARDING_TEXT = {
+  title: 'Create your hero',
+  panel: 'NEW HERO',
+  intro:
+    "Pick a hero name and a path. Your hero name shows on the leaderboard. You can't change your path yet.",
+  sprite: 'YOUR SPRITE',
+  spriteHint: 'Drawn from your hero name. Same name, same sprite.',
+  heroName: 'HERO NAME',
+  heroNameHint: HERO_NAME_RULE,
+  heroNameError: `Use ${HERO_NAME_RULE}`,
+  path: 'Choose your path',
+  beginnerHint: 'Not a coder? Pick strategist: no code.',
+  trackError: 'Pick a path.',
+  submitNote: "You can't change your path yet. Your hero name is public.",
+  submit: 'Start',
+  submitting: 'Saving…',
+  unauthorized: 'Your session ended. Sign in again.',
+  serverError: "Your hero wasn't saved. Try again in a moment.",
+  loading: 'Loading hero setup',
+  loadError: "Hero setup didn't load. Try again in a moment.",
+  retry: 'Retry',
+} as const;
+
+/** Profile page words. */
+export const PROFILE_TEXT = {
+  title: 'Profile',
+  panel: 'PLAYER',
+  pathSuffix: 'PATH',
+  avatarLabel: 'Sprite avatar for',
+  totalXp: 'TOTAL XP',
+  level: 'LEVEL',
+  noXp: 'No XP yet. You earn XP by clearing lessons.',
+  loading: 'Loading your profile',
+  error: "Your profile didn't load. Try again in a moment.",
+  retry: 'Retry',
+} as const;

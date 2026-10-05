@@ -30,6 +30,5 @@ export const getHudState = cache(async (): Promise<HudState> => {
 
   if (!row) return { status: 'onboarding' };
 
-  const { xp, ...rest } = row;
-  return { status: 'ready', stats: { ...rest, ...levelProgress(xp) } };
+  return { status: 'ready', stats: { ...row, ...levelProgress(row.xp) } };
 });
