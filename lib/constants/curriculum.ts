@@ -5,13 +5,15 @@
  * Per-track text (topic, lore, chapter titles) lives in content/<track>/outline.json.
  * Counts and track names are in ./exercises.ts.
  */
-import type { Tier } from '@/lib/types';
-import { FRONTIER_AREA } from './exercises';
+import { FRONTIER_AREA, MATH_AREA } from './exercises';
 
 /** UI labels are the upper-case form (BEGINNER / INTERMEDIATE / ADVANCED). */
 export const TIERS = ['beginner', 'intermediate', 'advanced'] as const;
 /** Tiers a learner can enter today. Advanced is visible but locked. */
-export const OPEN_TIERS = ['beginner', 'intermediate'] as const satisfies readonly Tier[];
+export const OPEN_TIERS = [
+  'beginner',
+  'intermediate',
+] as const satisfies readonly (typeof TIERS)[number][];
 
 /** Shared by both tracks. `id` is the realm number; helpers derive folder, art and accent. */
 export const REALMS = [
@@ -67,6 +69,9 @@ export const MATH_FLOORS = [
   { n: 7, slug: 'cross-entropy', name: 'Cross-entropy' },
   { n: 8, slug: 'attention', name: 'Attention' },
 ] as const;
+
+/** Side realm of free math floors. Floors are in MATH_FLOORS. */
+export const MATH_TOWER = { slug: MATH_AREA, name: 'Math Tower', npc: 'Numerist Oru' } as const;
 
 /** Side realm filled by the sync job. No tier (all open), no NPC, no outline. */
 export const FRONTIER = { slug: FRONTIER_AREA, name: 'The Frontier' } as const;

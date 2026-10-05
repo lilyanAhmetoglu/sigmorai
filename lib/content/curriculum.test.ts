@@ -1,14 +1,7 @@
 import { existsSync } from 'node:fs';
 import { describe, expect, test } from 'bun:test';
-import {
-  MATH_FLOOR_COUNT,
-  MATH_FLOORS,
-  OPEN_TIERS,
-  REALM_COUNT,
-  REALMS,
-  TIERS,
-} from '@/lib/constants';
-import { isRealmOpen, realmArt, realmFolder } from './curriculum';
+import { ACCENTS, MATH_FLOOR_COUNT, MATH_FLOORS, REALM_COUNT, REALMS } from '@/lib/constants';
+import { MATH_ART, isRealmOpen, realmAccent, realmArt, realmFolder } from './curriculum';
 
 const PUBLIC_DIR = `${import.meta.dir}/../../public`;
 
@@ -31,13 +24,6 @@ describe('curriculum constants', () => {
 });
 
 describe('isRealmOpen', () => {
-  test.each(TIERS.map((tier) => [tier, (OPEN_TIERS as readonly string[]).includes(tier)]))(
-    '%s → %p',
-    (tier, open) => {
-      expect(isRealmOpen(tier)).toBe(open);
-    },
-  );
-
   test('advanced is locked (spec: realms 6–8)', () => {
     expect(isRealmOpen('advanced')).toBe(false);
     expect(REALMS.filter((r) => !isRealmOpen(r.tier)).map((r) => r.id)).toEqual([6, 7, 8]);
@@ -50,6 +36,14 @@ describe('realm paths', () => {
     expect(realmFolder(8)).toBe('08-production-peaks');
     expect(realmArt(0)).toBe('/levels/realm-00');
     expect(realmArt(8)).toBe('/levels/realm-08');
+  });
+
+  test('every realm accent is a known accent', () => {
+    for (const r of REALMS) expect(ACCENTS).toContain(realmAccent(r.id));
+  });
+
+  test('Math Tower art folder exists in public/', () => {
+    expect(existsSync(`${PUBLIC_DIR}${MATH_ART}`)).toBe(true);
   });
 
   test.each(REALMS.map((r) => r.id))('art folder for realm %d exists in public/', (id) => {

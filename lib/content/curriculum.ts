@@ -2,8 +2,8 @@
  * Pure helpers over the curriculum map. A realm's folder and art path are
  * built only here, from its number, so they can't drift apart.
  */
-import { LEVEL_ART_BASE, OPEN_TIERS, REALMS } from '@/lib/constants';
-import type { RealmId, Tier } from '@/lib/types';
+import { LEVEL_ART_BASE, MATH_AREA, OPEN_TIERS, REALMS } from '@/lib/constants';
+import type { Accent, RealmId, Tier } from '@/lib/types';
 
 /** Whether a learner may open lessons and earn XP in a realm of this tier. */
 export const isRealmOpen = (tier: Tier): boolean => (OPEN_TIERS as readonly Tier[]).includes(tier);
@@ -16,3 +16,9 @@ export const realmFolder = (id: RealmId): string => `${pad(id)}-${REALMS[id].slu
 
 /** Public URL of a realm's art layers: `0` → `/levels/realm-00`. */
 export const realmArt = (id: RealmId): string => `${LEVEL_ART_BASE}/realm-${pad(id)}`;
+
+/** Accent of a realm, for `data-accent`: `3` → `realm-3`. */
+export const realmAccent = (id: RealmId): Accent => `realm-${id}`;
+
+/** Public URL of the Math Tower art layers: `/levels/math`. */
+export const MATH_ART = `${LEVEL_ART_BASE}/${MATH_AREA}`;

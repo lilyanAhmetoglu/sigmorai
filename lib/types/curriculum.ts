@@ -19,9 +19,12 @@ const Text = z.string().trim().min(1);
 /** A chapter's id is its folder name and the chapter segment of its exercise ids (`c1`). */
 const ChapterOutlineSchema = z.object({ id: Text, title: Text }).strict();
 
+/** A realm number from outside (route param, parsed id) → a known RealmId. */
+export const RealmIdSchema = z.literal(REALMS.map((r) => r.id));
+
 const RealmOutlineSchema = z
   .object({
-    id: z.literal(REALMS.map((r) => r.id)),
+    id: RealmIdSchema,
     topic: Text,
     lore: Text,
     chapters: z
