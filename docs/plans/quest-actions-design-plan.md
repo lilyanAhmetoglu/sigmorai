@@ -8,6 +8,26 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (no-code pivot)
+
+Maintainer decision, final: **no learner writes code, on either track.** Sigmorai teaches how to design and use AI systems. Every chapter and every boss ends in a graded scenario case (option indexes, server-graded). This block replaces every Run / Submit / sandbox / runner part of the body below; the case and quick-check parts stay.
+
+- **One graded step per chapter, both tracks: a case.** `submitCase` (chapter and boss) and `submitQuickCheck` are the only quest actions besides `completeLesson`. **`submitChallenge`, `POST /api/run`, the Run button and the Console tab are deleted.** Why: there is no code to run.
+- **Builder cases use the same `case.json` shape as strategist cases.** Same schema, same grading, same HP rule. The tech track differs only in what the scenario is about. Why: one schema, one loader, one grader, one page.
+- **`case.json` gets an optional `exhibit` (string, shown read-only in monospace): a trace, a tool schema, a prompt, a config.** Why: a design case nearly always shows something to judge; adding it before any content exists is free.
+- **The exercise id keeps the segment `challenge`** (`builder/r0/c1/challenge`, `strategist/r3/boss/challenge`) and the XP reason stays `challenge` (+150) / `boss` (+500). Why: ids are forever, and the open check, `CHAPTER_STEPS` and `XP_REASONS` already use them. The word "challenge" never appears in learner-facing copy: the UI says **Case**.
+- **No sandbox gate, no caps, no lock.** `users.sandbox_day`, `run_count`, `submit_count`, `sandbox_pending_at` are dropped (migration 0003, db-architect). `CAP_REACHED` and `RUN_IN_PROGRESS` are gone. Why: a case costs nothing to grade.
+- **`submissions` is graded at insert.** `status` is `passed` | `failed` with no default; `graded_at` is dropped (it always equalled `created_at`) and `submissions_graded_check` goes with it; `results` becomes NOT NULL. HP spent today = `failed` rows since 00:00 UTC, served by the existing `submissions_user_exercise_idx`. Migration 0003 (db-architect approved 2026-10-05); 0002 is never edited.
+- **Error codes: 7, not 9.** `UNAUTHENTICATED`, `NOT_ONBOARDED`, `INVALID_INPUT`, `TIER_LOCKED`, `NOT_OPEN`, `NO_HP`, plus **`SERVER_ERROR`** (replaces `RUNNER_FAILED`: "our side failed, nothing saved").
+- **HP stays for cases:** 3 per case per UTC day, a wrong answer set costs 1, quick checks cost 0, replays cost 0 and earn 0, refill at 00:00 UTC, shown in the quest panel.
+- **A case has 3–5 questions; each case question has exactly 4 options, one correct (exam style). Quick checks keep 2–6 options.**
+- **The seeded shuffle stays.**
+- **No `maxDuration` on the quest page.**
+- **Phases A and B are closed.** Their shipped code is removed in one PR. The only open phase is **Phase C, now "cases + quick checks, both tracks"**.
+- **Deleted from the body:** §Code execution, the child-pass token, the `[runner]` cost log, the E2B pricing to-do, the sandbox rows of §Fairness, the "Honest limit" note, `RUN_*` constants, the Run / Submit / cap rows of §States. The two-button "Design change" note is withdrawn: the case screen's one button, **Submit answers**, is the design.
+- **Cost section: "No model call, no sandbox. Cost is zero."**
+- **Acceptance list:** strike the bullets about hidden tests, `os._exit`, runner errors, caps, parallel calls and `[runner]` lines. Keep: no score or XP in any input; correct flags and explanations absent before submit; award once; a failed case costs 1 HP; `TIER_LOCKED` on every action; seed and order stored; a fail never shows the correct option; 360 px + keyboard; text + icon.
+
 ## Amendments locked 2026-10-05 (devil + db-architect pass)
 
 The `devil` and `db-architect` reviewed the first draft. The maintainer approved their list. The body below is already edited to match; each line says what the first draft said and why it changed.

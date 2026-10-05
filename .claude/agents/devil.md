@@ -28,10 +28,10 @@ Two values steer you:
 
 ## Sigmorai-specific things to check
 
-- **The build prompt, ENGINEERING.md, DESIGN.md and `design/` are the sources of truth.** A spec that quietly contradicts them (client-side grading, local eval of user code, auto-published synced content, new colours/fonts/radii, blur shadows, gradients) is `amend spec first`.
+- **The build prompt, ENGINEERING.md, DESIGN.md and `design/` are the sources of truth.** A spec that quietly contradicts them (client-side grading, auto-published synced content, new colours/fonts/radii, blur shadows, gradients) is `amend spec first`.
 - **Build order.** Deliverables 1–9 in order. A phase that needs the mentor or the sync job before the quest loop works is scope drift.
 - **Game integrity.** Does the phase add a path where XP, HP, streak or progress is written without a server-side check, or can be granted twice?
-- **Cost.** Does the phase add model or sandbox calls with no rate limit, no spend logging, or a cache-hostile prompt order?
+- **Cost.** Does the phase add model calls with no rate limit, no spend logging, or a cache-hostile prompt order?
 - **Voice.** Does it put story/NPC lines outside parchment DialogBoxes, or hype into the product UI?
 
 ## Procedure

@@ -24,7 +24,7 @@ Skip for pure code changes and seed-only changes.
 2. **Erasure is one delete.** Every user-owned row reaches `users(id)` through `on delete cascade`, directly or via a parent (`progress`, `submissions`, `xp_events`, `mentor_messages`, Auth.js `accounts`/`sessions`). Avatar blobs need a cleanup path too.
 3. **`xp_events` is the ledger.** The leaderboard (week / month / all time) aggregates from it. `users.xp` is a cache that must equal `sum(xp_events.amount)`; both are written in one transaction. A grant must be idempotent: a unique key (e.g. `(user_id, reason, exercise_id)` for first-clear rewards) so a replay or double-submit can't grant twice.
 4. **Progress is per track.** `progress` is keyed by `(user_id, track, realm_id, chapter_id, exercise_id)`. Switching track never overwrites the other track's progress.
-5. **Grading results are server-written.** `submissions.passed` and `results` come from the server/runner, never from the client.
+5. **Grading results are server-written.** `submissions.status` and `results` come from the server, never from the client.
 6. **Derived values are computed, not stored**, unless there is a measured reason: level = `floor(sqrt(xp/100)) + 1`; HP refill is computed from attempt timestamps and the date, not reset by a cron.
 7. **Content lives in the repo**, not the DB. The DB stores ids that point at `content/**` and `level_announcements` rows; it doesn't copy lesson bodies.
 

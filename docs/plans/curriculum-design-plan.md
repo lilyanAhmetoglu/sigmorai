@@ -8,6 +8,20 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (no-code pivot, vendor-neutral)
+
+- **Nobody writes code.** Builder ("tech") teaches how to design and run AI systems; strategist ("business") teaches how to use and leverage AI and harnesses at work. Both end every chapter and boss in a graded scenario case. Replaces: §Context row 1 ("code challenge, tests"), §Audiences "Needs code? Yes, basic" (now No for all), §Code execution (now N/A), §Content files "challenge" wording, §MVP cut "(lesson + challenge/case + quick check)" → "(lesson + case + quick check)", the realm-02 `get_weather` tool-challenge demo (dropped). Also supersedes the Phase 1 lines "Challenges are graded offline…" and "Realm 02 keeps the get_weather tool challenge".
+- **A case has 3–5 questions; each case question has exactly 4 options, one correct (exam style). Quick checks keep 2–6 options.**
+- **The architect-style guide's domains map onto existing realms:** agentic architecture → r4, r7; harness / coding-agent configuration (instruction files, hooks, permissions, subagents) → r4; prompts & structured output → r1; tool design & MCP → r2, r5; context management & reliability → r3, r6, r8. Security, scalability, multimedia and harness engineering (loops, graphs) get their places in the outline PR.
+- **Track ids stay `builder` / `strategist`.** Copy may say "tech" / "business" (voice-guardian pass, not a rename).
+- **Vendor-neutral.** No chapter title or `boss.task` names one vendor's feature; a concept that exists at more than one vendor cites at least two vendors; vendor docs remain valid sources. The Claude architect-style certification is a depth/style reference only.
+- **Docs first.** Lessons are built from the official Anthropic and OpenAI docs first, then other official sources.
+- **Source rule.** Each lesson's `sources` lists at least 1 Anthropic page and at least 1 OpenAI page where both document the concept (REQUIRED); Google and MCP spec pages are optional ("when they add something"). Every url must sit under a `trustTier: official` entry of `content/sources.yaml`. Community repos and community blogs (e.g. learn-harness-engineering) are examples only. Official vendor engineering posts (e.g. `anthropic.com/engineering`, `openai.com/index/harness-engineering`) count as official pages; they are the primary source for harness engineering. A claim with no official page is a blocker.
+- **Full coverage.** The map must cover RAG, embeddings/vectors, math (Math Tower), security, scalability, multimedia and harness engineering (loops, graphs). Where each lives is decided in the outline PR (PR 4), with the maintainer.
+- **Builder chapter titles and `boss.task` lines are rewritten in PR 4** (voice-guardian + maintainer approve). Known vendor-specific titles: realm 1 "XML tags", "Prefill"; realm 2 "Tool search"; realm 0 topic "your first API call". All nine `boss.task` lines are code-shaped today.
+- **Builder realm 0 is no longer "first API call".** Topic: "How a model reads and answers: tokens, messages, system prompts, limits, cost."
+- **§Candidate sources per realm** adds Gemini API docs, Hugging Face / open-model docs and one framework doc as candidates ("to verify").
+
 ## Amendments locked 2026-10-05 (Phase 1 build)
 
 The Phase 1 build and its CTO review changed these parts. The maintainer approved them.

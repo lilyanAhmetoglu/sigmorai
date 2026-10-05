@@ -59,7 +59,7 @@ Ask (or take from args):
 
 ## Fairness and integrity check
 
-<How this feature could let a learner fake progress (client-side XP, replaying a challenge for XP, leaking hidden tests or correct answers) and how the design stops it. "N/A" only if the feature touches no XP, grading or leaderboard.>
+<How this feature could let a learner fake progress (client-side XP, replaying a challenge for XP, leaking correct answers) and how the design stops it. "N/A" only if the feature touches no XP, grading or leaderboard.>
 
 ## Data model
 
@@ -72,10 +72,6 @@ Ask (or take from args):
 ## AI and cost
 
 <Mentor or docs-sync drafter usage: model, prompt file, grounding sources, cache-friendly prefix, expected tokens per learner per day, rate limits, what degrades near a cap — or "N/A">
-
-## Code execution
-
-<E2B sandbox usage: language, timeouts, memory, visible vs hidden tests, what the client sees — or "N/A">
 
 ## States and transitions
 

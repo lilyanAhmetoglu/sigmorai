@@ -42,7 +42,7 @@ If the diff touches NPC/story copy, the mentor system prompt (`lib/mentor/**`, `
 
 If the diff touches the mentor or the docs-sync drafter (`.claude/rules/scoped/mentor-eval.md`), confirm `bun run eval` was green on this branch. If not, say so before committing.
 
-Skip review only for genuinely trivial changes, or when the user says "skip review". **Never skip** when the diff touches: `db/schema/**` · `drizzle/**` · `app/api/**` · `lib/actions/**` · `lib/grading/**` · `lib/runner/**` · `lib/mentor/**` · `scripts/sync-sources.ts` · `auth.ts` · `middleware.ts` · `.github/workflows/**` · `next.config.ts`.
+Skip review only for genuinely trivial changes, or when the user says "skip review". **Never skip** when the diff touches: `db/schema/**` · `drizzle/**` · `app/api/**` · `lib/actions/**` · `lib/grading/**` · `lib/mentor/**` · `scripts/sync-sources.ts` · `auth.ts` · `middleware.ts` · `.github/workflows/**` · `next.config.ts`.
 
 ### 3. Group changes by intent
 
@@ -50,7 +50,7 @@ One conventional commit per coherent piece of work.
 
 - A route plus its components and server action for one feature → one `feat(<scope>):`
 - A Drizzle schema change plus its generated migration → its own commit (easy to revert)
-- Grading / runner / XP logic → its own commit (easy to bisect scoring bugs)
+- Grading / XP logic → its own commit (easy to bisect scoring bugs)
 - Mentor prompt changes → their own commit (easy to bisect behaviour)
 - New or changed lesson content (`content/**`) → its own `feat(content):` commit
 - Sprite, level SVG or art changes → their own commit

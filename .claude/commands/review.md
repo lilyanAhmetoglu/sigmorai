@@ -32,17 +32,17 @@ Agent tool, `subagent_type: cto`, with:
 Review the changes on branch <branch> against base branch canary.
 
 Changed files (<count>), grouped by area:
-<app/ (routes), app/api, components/, components/scenes (canvas), lib/actions, lib/grading, lib/runner, lib/mentor, lib/xp, db/schema, drizzle/, content/, scripts/, public/, .github, docs>
+<app/ (routes), app/api, components/, components/scenes (canvas), lib/actions, lib/grading, lib/mentor, lib/xp, db/schema, drizzle/, content/, scripts/, public/, .github, docs>
 
 Diff:
-<the diff; truncate per file to ~200 lines if huge; prioritise db/schema + drizzle, app/api, lib/actions, lib/grading, lib/runner, lib/mentor, auth.ts, middleware.ts, scripts/sync-sources.ts>
+<the diff; truncate per file to ~200 lines if huge; prioritise db/schema + drizzle, app/api, lib/actions, lib/grading, lib/mentor, auth.ts, middleware.ts, scripts/sync-sources.ts>
 
 Apply your checklist:
 - Spec alignment (which docs/plans/<feature>-design-plan.md does this touch?)
 - ENGINEERING.md architecture rules and DESIGN.md rules (tokens only, zero radius, hard shadows, Atkinson for reading text)
 - AGENTS.md "rules that are easy to break"
 - Server-only grading and XP: no client-trusted score, every server action re-validates with Zod and auth()
-- User code never evaluated on our server; it only goes to the E2B runner
+- Correct answers never reach the client before submit
 - .claude/rules/ (git-safety, package-manager) and scoped rules
 - Build-order scope (ENGINEERING.md → Build order)
 ```

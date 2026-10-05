@@ -8,7 +8,7 @@ Durable facts that don't change week to week.
 
 **Sigmorai** (sigmorai.com) is a 2D pixel-art RPG web app for learning AI engineering and agentic systems. Responsive web only, no native app.
 
-Two paths: **builder** (levels end in a code challenge checked by tests) and **strategist** (levels end in a graded decision case). 9 realms per track (00 Bootstrap Village → 08 Production Peaks) plus the Math Tower side realm (8 floors). Each realm: 6 chapters + 1 boss; each chapter: lesson, challenge, quick check.
+Two paths: **builder/tech** (how to design and run AI systems) and **strategist/business** (how to use AI at work). Every chapter ends in a graded scenario case. 9 realms per track (00 Bootstrap Village → 08 Production Peaks) plus the Math Tower side realm (8 floors). Each realm: 6 chapters + 1 boss; each chapter: lesson, case, quick check.
 
 Story: the Oracle of Latentia (the model) is clouded by the Hallucinant, a fog of confident falsehood. NPC guides speak only inside parchment DialogBoxes. Everywhere else the product voice is plain and technical.
 
@@ -23,7 +23,7 @@ Story: the Oracle of Latentia (the model) is clouded by the Hallucinant, a fog o
 | A specific feature's contract              | `docs/plans/<feature>-design-plan.md`        |
 | The original brief                         | `docs/build-prompt.md`                       |
 | Database conventions                       | `db/CLAUDE.md`                               |
-| Lesson/challenge authoring                 | `content/CLAUDE.md`                          |
+| Lesson/case authoring                      | `content/CLAUDE.md`                          |
 
 ## Who does what
 
@@ -32,11 +32,11 @@ Story: the Oracle of Latentia (the model) is clouded by the Hallucinant, a fog o
   │ Next.js (Vercel)│ ───────────────────────────────▶ │ Neon Postgres    │
   │ RSC pages + HUD │                                  │ Drizzle, xp_events│
   └──┬─────────┬────┘                                  └──────────────────┘
-     │ /api/run│ /api/mentor (stream)
-     ▼         ▼
-  ┌──────┐  ┌──────────────┐        GitHub Actions cron (daily)
-  │ E2B  │  │ Anthropic API│ ◀──── scripts/sync-sources.ts → PR `new-level`
-  └──────┘  └──────────────┘        (never auto-publishes)
+     │ /api/mentor (stream)
+     ▼
+  ┌──────────────┐        GitHub Actions cron (daily)
+  │ Anthropic API│ ◀──── scripts/sync-sources.ts → PR `new-level`
+  └──────────────┘        (never auto-publishes)
 ```
 
 ## Branch model
@@ -56,7 +56,8 @@ Major decisions go into `Amendments locked YYYY-MM-DD` blocks at the top of the 
 ## Hard product rules
 
 - **Grading and XP are server-only.** The leaderboard must be trustworthy.
-- **User code never runs on our servers.** Sandbox only.
+- **The curriculum is vendor-neutral.** It teaches AI systems for Claude, OpenAI, Gemini and open models alike; a concept cites more than one vendor where it can. Lessons are built from the official docs first.
+- **Lessons come from official Anthropic and OpenAI docs first, then other official sources.**
 - **Content is never auto-published.** Docs-sync opens a PR; a human merges it.
 - **Every lesson cites its sources.** No claim without a source; the mentor answers only from them.
 - **Two voices.** Plain technical product voice; lore only in DialogBoxes.

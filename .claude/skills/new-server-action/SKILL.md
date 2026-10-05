@@ -1,6 +1,6 @@
 ---
 name: new-server-action
-description: Scaffold a Sigmorai server mutation — a Next.js Server Action in lib/actions/ (Zod-validated input, auth() session check, server-side grading, XP written as xp_events in one transaction, revalidatePath) or, for streamed/long work (AI mentor, E2B runner), a route handler in app/api/. Use when adding anything that writes progress, XP, submissions, profile data, or calls a model or the code runner.
+description: Scaffold a Sigmorai server mutation — a Next.js Server Action in lib/actions/ (Zod-validated input, auth() session check, server-side grading, XP written as xp_events in one transaction, revalidatePath) or, for streamed/long work (AI mentor), a route handler in app/api/. Use when adding anything that writes progress, XP, submissions, profile data, or calls a model.
 ---
 
 # Skill: new-server-action
@@ -10,7 +10,7 @@ description: Scaffold a Sigmorai server mutation — a Next.js Server Action in 
 | Kind     | Use for                                                                                              | Template                    |
 | -------- | ---------------------------------------------------------------------------------------------------- | --------------------------- |
 | `action` | Form/button mutations: complete lesson, submit case answers, switch track, edit profile, claim quest | `server-action.ts.template` |
-| `route`  | Streams or long calls: `/api/mentor` (Anthropic stream), `/api/run` (E2B runner)                     | `route-handler.ts.template` |
+| `route`  | Streams or long calls: `/api/mentor` (Anthropic stream)                                              | `route-handler.ts.template` |
 
 Server Actions are public HTTP endpoints. Treat every argument as hostile.
 
@@ -18,8 +18,7 @@ Server Actions are public HTTP endpoints. Treat every argument as hostile.
 
 - **Zod-parse every input** at the top. Never trust a client-sent score, XP amount, `passed` flag, track or user id.
 - **`auth()` first.** No session → `{ ok: false, error: 'unauthorized' }`. The user id comes from the session only.
-- **Grading happens here.** Builder: run hidden tests through `lib/runner/` (E2B) and decide `passed` on the server. Strategist: compare answers to `case.json` on the server. The client never receives hidden tests or correct indexes before submitting.
-- **User code is never evaluated on our server.** It only goes to the runner.
+- **Grading happens here.** Compare answers to `case.json` on the server, on both tracks. The client never receives correct indexes or explanations before submitting.
 - **XP is an `xp_events` row**, written in the same `db.transaction` as the `progress`/`submissions` change, with an idempotency guard (one +150 per exercise per user, one +500 per boss). `users.xp` is derived/updated inside that transaction. Amounts come from `lib/xp/` constants, never literals.
 - **HP**: check and decrement attempts on the server; refill is computed from dates, not a cron.
 - **`revalidatePath`** every page that shows what changed (`/dashboard`, `/leaderboard`, `/realms/[realm]`, `/map/[realm]`).
@@ -30,10 +29,10 @@ Server Actions are public HTTP endpoints. Treat every argument as hostile.
 
 ### 1. Gather inputs
 
-- **Name**: verb-first camelCase (`completeLesson`, `submitChallenge`, `gradeCase`, `switchTrack`, `updateProfile`)
+- **Name**: verb-first camelCase (`completeLesson`, `submitCase`, `submitQuickCheck`, `switchTrack`, `updateProfile`)
 - **Kind**: `action` or `route`
 - **Touches XP / progress / submissions?** Then it's grading code: `lib/grading/` and the CTO review can't be skipped.
-- **Calls a model or the runner?** Then the scoped mentor-eval rule applies (model), or the runner timeout/limits section in ENGINEERING.md (E2B).
+- **Calls a model?** Then the scoped mentor-eval rule applies.
 
 ### 2. Validate
 
