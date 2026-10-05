@@ -13,6 +13,9 @@ export const CHAPTER_COUNT = 6;
 /** Math Tower floors f1..f8. */
 export const MATH_FLOOR_COUNT = 8;
 
+/** One-letter prefix of a numbered id segment: r0, c1, f1. */
+export const SEGMENT_PREFIX = { realm: 'r', chapter: 'c', floor: 'f' } as const;
+
 /** First id segment of the shared (track-free) areas. */
 export const MATH_AREA = 'math';
 export const FRONTIER_AREA = 'frontier';
