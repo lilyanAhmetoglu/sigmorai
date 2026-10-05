@@ -4,6 +4,9 @@
 
 Layout: `content/<track>/<realm>/<chapter>/*.mdx` plus `challenge.json` (builder) or `case.json` (strategist). Sources list: `content/sources.yaml`.
 
+- Frontier chapters: `content/frontier/<YYYY-MM-DD>-<slug>/` with the lesson MDX + `quick-check.json`. No challenge, no outline file, no NPC.
+- Blog posts: `content/blog/<YYYY-MM-DD>-<slug>.mdx`, same date-slug and same `sources` as their lesson. Plain product voice.
+
 ## Rules
 
 - **Frontmatter is Zod-validated** (`lib/content/schema.ts`): `id, title, minutes, sources[{kind:'docs'|'repo', title, url}], sourceHash`. A file that fails the schema fails the build.

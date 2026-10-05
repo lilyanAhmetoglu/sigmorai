@@ -8,6 +8,20 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (devil pass on the Frontier)
+
+The `devil` reviewed PR #7. The team approved its full list (the maintainer delegated product calls). Each line replaces the matching part of the "frontier + blog" block below.
+
+| Topic             | Decision                                                                                                                                                                                                                                                                                                 |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontier files    | A chapter is a folder: `content/frontier/<YYYY-MM-DD>-<slug>/` with the lesson MDX + `quick-check.json`. **No `outline.json`.** Title and sources come from the lesson frontmatter. **No builder challenge** in the drafter's output. Why: the folder list is the outline, so there is nothing to drift. |
+| One name          | The same `<YYYY-MM-DD>-<slug>` names the chapter folder, the blog file and the PR branch.                                                                                                                                                                                                                |
+| Flood guards      | Changed pages are grouped **per source per run**: one triage call per source. **5 or more open `new-level` PRs → draft nothing**; changes stay `pending`. Triage has its own cap (separate from the draft budget). The triage prompt lists the existing Frontier folders and the stub chapter titles.    |
+| Spend log         | Tokens + model id go into the job summary and into each PR body.                                                                                                                                                                                                                                         |
+| Builder fill-stub | A builder `fill-stub` PR opens as a **GitHub draft PR** until a human runs the challenge.                                                                                                                                                                                                                |
+| Blog              | Posts are **dated snapshots**; only lessons go stale. `/blog` reuses the lesson MDX renderer. Sitemap = Next's `app/sitemap.ts`. RSS = a small route handler. Blog pages ship in **step 8**.                                                                                                             |
+| Schema            | **No new table.** At step 3, **db-architect** reviews `kb_changes.triage` as `text` + a Zod enum, and `level_announcements` pointing at a Frontier chapter.                                                                                                                                              |
+
 ## Amendments locked 2026-10-05 (frontier + blog)
 
 Maintainer decision, 2026-10-05. Layered on top; the older lines below stay for history.
@@ -79,7 +93,7 @@ sources.yaml ─▶ fetch (ETag/If-Modified-Since, rate-limited, robots.txt)
 | `ignore`           | Typo, layout, nothing a learner needs                      | none                                                                                                         |
 | `update-level`     | A live lesson cites the changed doc and is now wrong       | the existing lesson MDX (+ its challenge/case/quick check if needed)                                         |
 | `fill-stub`        | The topic matches a stub chapter in a main realm's outline | `content/<track>/<realm>/<chapter>/` lesson + case/challenge + quick check; `content/blog/<date>-<slug>.mdx` |
-| `frontier-chapter` | A new topic with no main-realm slot                        | a Frontier chapter (lesson + quick check, builder challenge optional) + its `outline.json` entry; blog post  |
+| `frontier-chapter` | A new topic with no main-realm slot                        | `content/frontier/<YYYY-MM-DD>-<slug>/` lesson + `quick-check.json` (no challenge); blog post (devil pass)   |
 
 Triage only picks `fill-stub` for a chapter title already in an outline. It never adds a main-realm chapter.
 
@@ -147,8 +161,8 @@ We store documents for retrieval and change detection, not for republishing. Les
 ### Phase 3: Triage + drafting + PRs
 
 **Goal:** the daily Action triages each change into the four outcomes and opens one `new-level` PR per non-ignore change, with a `kb_changes` link. _(Amended 2026-10-05.)_
-**Drafts:** `update-level` → the stale lesson files. `fill-stub` → the main-realm chapter folder + blog post. `frontier-chapter` → the Frontier chapter folder + its `content/frontier/outline.json` entry + blog post.
-**Verification:** bun tests for the triage Zod schema; drafted files pass the lesson, quick-check, Frontier outline and blog Zod schemas; a run with budget 1 stops after one draft.
+**Drafts:** `update-level` → the stale lesson files. `fill-stub` → the main-realm chapter folder + blog post. `frontier-chapter` → `content/frontier/<YYYY-MM-DD>-<slug>/` (lesson + `quick-check.json`, no challenge) + blog post. _(Devil pass: no outline file.)_
+**Verification:** bun tests for the triage Zod schema; drafted files pass the lesson, quick-check and blog Zod schemas; a test checks each Frontier folder name matches `<YYYY-MM-DD>-<slug>` and holds a lesson MDX + `quick-check.json`; a run with budget 1 stops after one draft; with 5 open `new-level` PRs a run drafts nothing.
 **Approval gate:** db-architect on the triage enum; `voice-guardian` on the drafting prompt and the Frontier name.
 
 ### Phase 4: Discovery + stale flags + NEW LEVEL banner
@@ -178,7 +192,7 @@ We store documents for retrieval and change detection, not for republishing. Les
 1. **Embeddings provider:** lean Voyage AI. The alternative, OpenAI `text-embedding-3-small`, works too but adds a second vendor for a single job.
 2. **Seed list:** which repos besides the ones above? (Harness repos you care about most.)
 3. **Should step 3's schema include the KB tables now** (lean yes, so the seed script can load sources once)?
-4. **Frontier chapter folder** _(2026-10-05)_. Lean: `content/frontier/<slug>/` (lesson MDX + `quick-check.json`, optional `challenge.json`). Why: a slug is stable; a number would shift as the list grows. Other option: date-prefixed folders; downside: the date is already in the outline.
+4. ~~**Frontier chapter folder**~~ Settled by the devil pass: `content/frontier/<YYYY-MM-DD>-<slug>/`, no outline file.
 5. **One PR per change, not one per run** _(2026-10-05)_. Lean: per change. Why: a human can merge one and reject another. Other option: a daily batch PR; downside: one bad draft blocks the rest.
 
 ## Companion plans

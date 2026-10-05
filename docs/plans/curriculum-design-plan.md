@@ -8,6 +8,18 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (devil pass on the Frontier)
+
+The `devil` reviewed PR #7. The team approved its full list (the maintainer delegated product calls). Each line replaces the matching part of the "frontier" block below. Sync-side detail: `knowledge-base-design-plan.md` → same-named block.
+
+- **The Frontier has no tier. All its chapters are open.** This replaces the per-chapter tier. So the body line "tier is a realm property, never a chapter property" stays true.
+- **`FRONTIER = { slug: 'frontier', name: 'The Frontier' }`.** No `defaultTier`. The accent reuses the `neutral` token (no new colour).
+- **No NPC and no DialogBox** in Frontier lessons. Plain product voice only.
+- **No outline file.** A chapter is a folder, `content/frontier/<YYYY-MM-DD>-<slug>/` (lesson MDX + `quick-check.json`, no challenge). Title and sources come from frontmatter.
+- **The Frontier page is a newest-first list**, not a side-scrolling level. No `/map/frontier`, no level art. It is a nav item + a dashboard shortcut, like the Math Tower, and ships in **step 6** with `/math`.
+- **Frontier progress is written under the active track.**
+- **db-architect is needed at step 3** (`level_announcements` must point at a Frontier chapter). This replaces "not needed" in §Content files.
+
 ## Amendments locked 2026-10-05 (frontier)
 
 Maintainer decision. Full detail in `knowledge-base-design-plan.md` → "Amendments locked 2026-10-05 (frontier + blog)".
@@ -87,15 +99,15 @@ A beginner can switch to builder later from the HUD toggle. Progress is per trac
 
 No realm id, tier or track name is typed as a loose string anywhere else. Pages, loaders, seed and actions import these.
 
-| Constant             | Value                                                                                                            |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `TRACKS`             | `['builder', 'strategist']`                                                                                      |
-| `TIERS`              | `['beginner', 'intermediate', 'advanced']` (UI labels BEGINNER / INTERMEDIATE / ADVANCED)                        |
-| `OPEN_TIERS`         | `['beginner', 'intermediate']`                                                                                   |
-| `REALMS`             | 9 rows: `{ id, slug, name, npc, tier }` (table below). Shared by both tracks.                                    |
-| `MATH_FLOORS`        | 8 rows: `{ n, slug, name }` (table below). No tier.                                                              |
-| `CHAPTERS_PER_REALM` | `6` (matches the 6 flags in `design/assets/levels/layout.json`; node 7 is the boss)                              |
-| `FRONTIER`           | `{ slug: 'frontier', name: 'The Frontier', defaultTier: 'beginner' }`. Name is a working name. No chapter count. |
+| Constant             | Value                                                                                                           |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `TRACKS`             | `['builder', 'strategist']`                                                                                     |
+| `TIERS`              | `['beginner', 'intermediate', 'advanced']` (UI labels BEGINNER / INTERMEDIATE / ADVANCED)                       |
+| `OPEN_TIERS`         | `['beginner', 'intermediate']`                                                                                  |
+| `REALMS`             | 9 rows: `{ id, slug, name, npc, tier }` (table below). Shared by both tracks.                                   |
+| `MATH_FLOORS`        | 8 rows: `{ n, slug, name }` (table below). No tier.                                                             |
+| `CHAPTERS_PER_REALM` | `6` (matches the 6 flags in `design/assets/levels/layout.json`; node 7 is the boss)                             |
+| `FRONTIER`           | `{ slug: 'frontier', name: 'The Frontier' }`. Working name. No tier, no chapter count; accent reuses `neutral`. |
 
 `id` is a number, `0`–`8`. One helper turns it into the content folder (`00-bootstrap-village`), the art path (`public/levels/realm-00`) and the accent token (`--realm-0`). Nothing else builds these strings.
 
@@ -103,24 +115,24 @@ No realm id, tier or track name is typed as a loose string anywhere else. Pages,
 
 Realm names, NPCs and chapter titles are copied from `design/`. Each boss is named "Boss · <Realm>" (design). The `boss.task` column is an optional one-line task; it goes past `voice-guardian`.
 
-| id  | Realm (slug)                              | NPC                       | Tier                       | Topic (builder / strategist)                                        | Builder chapters (6)                                                                         | Strategist chapters (6)                                                                                   | `boss.task` (builder / strategist)                                                              |
-| --- | ----------------------------------------- | ------------------------- | -------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 0   | Bootstrap Village (`bootstrap-village`)   | Elder Maren               | beginner                   | LLM basics, first API call / AI literacy: limits, cost, risk        | Tokens · Messages · System prompt · Streaming · Models & limits · Costs                      | What an LLM is · Strengths & limits · Hallucinations · Tokens = cost · Choosing a model · Data & privacy  | A chat script that streams and reports its token cost / Pick a model and a first use for a team |
-| 1   | Prompt Forest (`prompt-forest`)           | Ranger Iso                | beginner                   | Prompt engineering, structured output / Prompting for everyday work | Be specific · Examples · XML tags · Chain of thought · JSON output · Prefill                 | Write a brief · Give examples · Ask for structure · Review outputs · Prompt templates · Team playbooks    | A prompt that returns valid JSON every time / A team prompt playbook                            |
-| 2   | Tool Forge (`tool-forge`)                 | Smith Korren              | beginner                   | Tool use, function calling / Use-case discovery                     | Messages recap · Tool results · Define a tool · The tool loop · Parallel calls · Tool search | Map the workflow · Spot repetition · Score a use case · Build vs buy · The business case · Pilot scope    | A two-tool assistant that finishes the loop / Choose and scope a pilot                          |
-| 3   | Context Library (`context-library`)       | Archivist Vela            | intermediate               | Embeddings, RAG, caching, context engineering / Knowledge & data    | Embeddings · Chunking · Retrieval · Prompt caching · Long context · Compaction               | Why context matters · Knowledge bases · Data readiness · Access & permissions · Freshness · Citations     | A RAG answerer that cites its chunks / A data-readiness plan                                    |
-| 4   | Agent Citadel (`agent-citadel`)           | Warden Tess               | intermediate               | Agent loops and **harness engineering** / Agents at work            | The loop · Stop conditions · Agent SDKs · Subagents · Memory · Permissions                   | What agents do · Autonomy levels · Human in the loop · No-code agents · Agent permissions · Failure modes | A small agent harness with a stop rule and permissions / Set an agent's autonomy level          |
-| 5   | MCP Bridgelands (`mcp-bridgelands`)       | Bridgekeeper Nal          | intermediate               | MCP servers and clients / Integrations                              | MCP basics · Your first server · Resources · Prompts · Remote servers · Auth                 | Integration basics · MCP in plain words · Vendor landscape · Security review · Total cost · Lock-in       | An MCP server with one tool and one resource / An integration decision                          |
-| 6   | Eval Arena (`eval-arena`)                 | Judge Arra                | **advanced**               | Evals, graders, guardrails / Measuring value                        | Test sets · Model graders · Regression · Guardrails · Red-teaming · Tracing                  | Define success · Quality evals · KPIs that matter · ROI models · A/B pilots · Reporting up                | An eval suite that catches a regression / A pilot scorecard                                     |
-| 7   | Swarm Spire (`swarm-spire`)               | The Conductor             | **advanced**               | Multi-agent orchestration / Org design and change                   | Orchestrators · Handoffs · Shared state · Parallel agents · Conflict · Cost control          | Team structures · Redesign workflows · Roles & skills · Change management · Adoption · Incentives         | An orchestrator with two workers and a budget / A workflow redesign                             |
-| 8   | Production Peaks (`production-peaks`)     | Summit Guide Pell         | **advanced**               | Deploy, observe, secure, scale / Governance and rollout             | Rate limits · Batching · Observability · Security · Scaling · Launch                         | AI policy · Risk tiers · Compliance · Incident response · Rollout plan · The AI roadmap                   | A service that survives rate limits and logs traces / A rollout plan                            |
-| —   | The Frontier (`frontier`), **side realm** | — (TBD, `voice-guardian`) | per chapter (default open) | New tools and changes found by the sync job / same                  | Made by the sync job, newest first, no fixed count                                           | Same chapters (lesson + quick check)                                                                      | No boss                                                                                         |
+| id  | Realm (slug)                              | NPC               | Tier            | Topic (builder / strategist)                                        | Builder chapters (6)                                                                         | Strategist chapters (6)                                                                                   | `boss.task` (builder / strategist)                                                              |
+| --- | ----------------------------------------- | ----------------- | --------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 0   | Bootstrap Village (`bootstrap-village`)   | Elder Maren       | beginner        | LLM basics, first API call / AI literacy: limits, cost, risk        | Tokens · Messages · System prompt · Streaming · Models & limits · Costs                      | What an LLM is · Strengths & limits · Hallucinations · Tokens = cost · Choosing a model · Data & privacy  | A chat script that streams and reports its token cost / Pick a model and a first use for a team |
+| 1   | Prompt Forest (`prompt-forest`)           | Ranger Iso        | beginner        | Prompt engineering, structured output / Prompting for everyday work | Be specific · Examples · XML tags · Chain of thought · JSON output · Prefill                 | Write a brief · Give examples · Ask for structure · Review outputs · Prompt templates · Team playbooks    | A prompt that returns valid JSON every time / A team prompt playbook                            |
+| 2   | Tool Forge (`tool-forge`)                 | Smith Korren      | beginner        | Tool use, function calling / Use-case discovery                     | Messages recap · Tool results · Define a tool · The tool loop · Parallel calls · Tool search | Map the workflow · Spot repetition · Score a use case · Build vs buy · The business case · Pilot scope    | A two-tool assistant that finishes the loop / Choose and scope a pilot                          |
+| 3   | Context Library (`context-library`)       | Archivist Vela    | intermediate    | Embeddings, RAG, caching, context engineering / Knowledge & data    | Embeddings · Chunking · Retrieval · Prompt caching · Long context · Compaction               | Why context matters · Knowledge bases · Data readiness · Access & permissions · Freshness · Citations     | A RAG answerer that cites its chunks / A data-readiness plan                                    |
+| 4   | Agent Citadel (`agent-citadel`)           | Warden Tess       | intermediate    | Agent loops and **harness engineering** / Agents at work            | The loop · Stop conditions · Agent SDKs · Subagents · Memory · Permissions                   | What agents do · Autonomy levels · Human in the loop · No-code agents · Agent permissions · Failure modes | A small agent harness with a stop rule and permissions / Set an agent's autonomy level          |
+| 5   | MCP Bridgelands (`mcp-bridgelands`)       | Bridgekeeper Nal  | intermediate    | MCP servers and clients / Integrations                              | MCP basics · Your first server · Resources · Prompts · Remote servers · Auth                 | Integration basics · MCP in plain words · Vendor landscape · Security review · Total cost · Lock-in       | An MCP server with one tool and one resource / An integration decision                          |
+| 6   | Eval Arena (`eval-arena`)                 | Judge Arra        | **advanced**    | Evals, graders, guardrails / Measuring value                        | Test sets · Model graders · Regression · Guardrails · Red-teaming · Tracing                  | Define success · Quality evals · KPIs that matter · ROI models · A/B pilots · Reporting up                | An eval suite that catches a regression / A pilot scorecard                                     |
+| 7   | Swarm Spire (`swarm-spire`)               | The Conductor     | **advanced**    | Multi-agent orchestration / Org design and change                   | Orchestrators · Handoffs · Shared state · Parallel agents · Conflict · Cost control          | Team structures · Redesign workflows · Roles & skills · Change management · Adoption · Incentives         | An orchestrator with two workers and a budget / A workflow redesign                             |
+| 8   | Production Peaks (`production-peaks`)     | Summit Guide Pell | **advanced**    | Deploy, observe, secure, scale / Governance and rollout             | Rate limits · Batching · Observability · Security · Scaling · Launch                         | AI policy · Risk tiers · Compliance · Incident response · Rollout plan · The AI roadmap                   | A service that survives rate limits and logs traces / A rollout plan                            |
+| —   | The Frontier (`frontier`), **side realm** | none              | none (all open) | New tools and changes found by the sync job / same                  | Made by the sync job, newest first, no fixed count                                           | Same chapters (lesson + quick check)                                                                      | No boss                                                                                         |
 
 **Frontier rules:**
 
-- A chapter = one lesson + one quick check (3 questions, `case.json` shape) + its cited sources. A builder challenge is optional.
-- Shared by both tracks, listed next to the Math Tower. Chapters don't lock each other by order.
-- Only a merged sync PR adds a chapter. A chapter marked `advanced` follows the same lock rules as realms 6–8.
+- A chapter = one lesson + one quick check (3 questions, `case.json` shape) + its cited sources. No challenge. Folder: `content/frontier/<YYYY-MM-DD>-<slug>/`.
+- Shared by both tracks; progress goes under the active track. A newest-first list page (nav item + dashboard shortcut, like the Math Tower), no map. Chapters don't lock each other.
+- Only a merged sync PR adds a chapter. No NPC, no DialogBox.
 
 **Where each topic lives** (the maintainer's list → realm): LLM basics, tokens → 0 · prompting → 1 · tool use → 2 · embeddings, vectors, RAG → 3 (+ Math floor 1) · agents, harness engineering → 4 · MCP → 5 · evals → 6 · multi-agent → 7 · production → 8.
 
@@ -172,14 +184,13 @@ All open-tier realms are open from day one. Inside a realm, chapters open one by
 | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `content/builder/outline.json`, `content/strategist/outline.json` | `realms[9]{ id (0–8, must match `REALMS`), topic, lore, chapters[6]{ id, title }, boss{ task? } }` | Chapter titles and lore differ per track; they exist before lessons do.       |
 | `content/math/outline.json`                                       | `floors[8]{ n, title, covers, formulas[], formulaText }`                                           | Same, for the tower.                                                          |
-| `content/frontier/outline.json`                                   | `chapters[]{ slug, title, addedAt, tier?, sources[] }`, any length, sorted newest first            | Same Zod approach; a list, because the sync job grows it.                     |
 | `content/<track>/<realm>/<chapter>/quick-check.json`              | Same shape as `case.json`: exactly 3 questions, one correct index each, an explanation per option  | Quick check needs a graded format; reusing the case shape adds no new schema. |
 
 - **Lesson frontmatter loses `xp`** and gains nothing. XP amounts live only in `lib/constants`. Track, realm and chapter come from the path; tier comes from the realm.
 - **Quick check has its own XP reason** in `xp_events` (amount in `lib/constants`, set by the step-5 spec).
 - **Chapter status is derived:** a chapter folder with a lesson MDX is live. No folder = "Coming soon", with no route.
 - A `bun test` reads the outlines from disk and parses them with Zod. It fails if a track has ≠ 9 realms, a realm has ≠ 6 chapters, an id is unknown, or a chapter folder is not in its outline.
-- **`devil` review: done (this pass). `db-architect`: not needed** — no table or column changes. It **will** be needed when the paywall adds entitlements.
+- **`devil` review: done (this pass). `db-architect`: needed at step 3** — `level_announcements` must point at a Frontier chapter (devil pass on the Frontier). It is needed again when the paywall adds entitlements.
 
 ## MVP content cut (48h sprint)
 
@@ -306,6 +317,7 @@ The lock itself is enforced when `lib/data`, `lib/actions` and `/api/run` are bu
 ## Maintainer to-dos
 
 - Re-export the design in Claude Design with the new Math floors (Statistics added, cosine in floor 1) and the open-realm rule.
+- In the same re-export, add a Frontier nav item (newest-first list page) and a blog page.
 
 ## Open questions — Calls I'm under 95% on
 
