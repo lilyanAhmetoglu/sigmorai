@@ -8,6 +8,16 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (PR 4: builder outline rewrite)
+
+- **Builder titles are vendor-neutral and no-code.** Replaces the builder column of §Realm map. Changed: r0c4 Streaming → Multimodal input · r1c3 XML tags → Structure the prompt · r1c5 JSON output → Structured output · r1c6 Prefill → Grounded answers · r2c1 Messages recap → Why tools · r2c2/c3 → Define a tool / Results & errors (c2 was Tool results, c3 was Define a tool) · r2c6 Tool search → Prompt injection · r4c3 Agent SDKs → The harness · r5c2 Your first server → Servers & tools · r5c6 Auth → Auth & trust · r6c6 Tracing → Evals in CI · r7c1 Orchestrators → Agent graphs · r8c4 Security → Secrets & data · r8c5 Scaling → Latency & scaling. Why: each old title named one vendor's feature or a coding task.
+- **Coverage homes:** multimedia r0c4 (+ strategist r1c5 "Images & voice", replacing "Prompt templates", which r1c6 already covers) · prompt injection r2c6 · harness engineering r4 c1–c3 (loop, stop conditions, the harness) · graphs r7c1 · secrets r8c4 · latency/scalability r8c5 · streaming folds into r0c5 and r8c5. Closes the "decided in the outline PR" line of the no-code amendment.
+- **All nine builder `boss.task` lines are scenario-shaped** ("Design / Plan / Configure X for Y"), graded by a case.
+- **Per-chapter topic lines stay in this spec, not in `outline.json`.** The chapter schema stays `{ id, title }`.
+- **Titles are safe to rename; ids are not.** Exercise ids are positional ("Ids are forever"); the r2 c2/c3 title swap is fine only because r2 has no content yet.
+- **Maintainer to-do:** re-export `design/` with the new titles and drop "pass it by writing code" from the landing copy. Add `openai.com/index`, the Codex docs base and a Gemini docs base to `content/sources.yaml` before r4 content.
+- **Lesson guards (content-reviewer):** r0c4 must say audio input differs by vendor and cite only vendors whose docs support it. r7c1 "graphs" cites OpenAI Agent Builder (nodes, edges) and Anthropic orchestrator-workers; a graph framework repo may be a secondary source. Titles stay ≤ 16 chars so they fit a map pin (voice-guardian).
+
 ## Amendments locked 2026-10-05 (no-code pivot, vendor-neutral)
 
 - **Nobody writes code.** Builder ("tech") teaches how to design and run AI systems; strategist ("business") teaches how to use and leverage AI and harnesses at work. Both end every chapter and boss in a graded scenario case. Replaces: §Context row 1 ("code challenge, tests"), §Audiences "Needs code? Yes, basic" (now No for all), §Code execution (now N/A), §Content files "challenge" wording, §MVP cut "(lesson + challenge/case + quick check)" → "(lesson + case + quick check)", the realm-02 `get_weather` tool-challenge demo (dropped). Also supersedes the Phase 1 lines "Challenges are graded offline…" and "Realm 02 keeps the get_weather tool challenge".
