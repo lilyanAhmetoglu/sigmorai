@@ -28,7 +28,7 @@ describe('valid files load', () => {
     const { frontmatter, body } = await loadLesson(LESSON, VALID);
     expect(frontmatter.id).toBe(LESSON);
     expect(frontmatter.sources).toHaveLength(1);
-    expect(body).toContain('# Fixture lesson');
+    expect(body).toContain('## Fixture lesson');
     expect(body).not.toContain('sourceHash');
   });
 

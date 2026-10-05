@@ -5,21 +5,42 @@ import { Badge } from '@/components/badge';
 import { Panel } from '@/components/panel';
 import { PixelButton } from '@/components/pixel-button';
 import { AnswerForm } from '@/components/quest/answer-form';
-import { QUEST_TEXT } from '@/lib/constants';
+import { LessonBody } from '@/components/quest/lesson-body';
+import { LessonDone } from '@/components/quest/lesson-done';
+import { SourceList } from '@/components/quest/source-list';
+import { Tabs } from '@/components/tabs';
+import { QUEST_TEXT, SITE_NAME } from '@/lib/constants';
 import { questBackHref } from '@/lib/content/ids';
-import { getQuestPage } from '@/lib/data/quest';
+import { getLessonMeta, getQuestPage, type QuestPage as QuestPageData } from '@/lib/data/quest';
 
-export const metadata: Metadata = { title: 'Quest · Sigmorai' };
+/**
+ * A lesson gets its own title, description (the realm's topic) and canonical;
+ * every other quest step keeps the plain title. Relative URLs resolve against
+ * metadataBase (app/layout.tsx). The sitemap is a later ticket.
+ */
+export async function generateMetadata({
+  params,
+}: PageProps<'/quest/[...exercise]'>): Promise<Metadata> {
+  const { exercise } = await params;
+  const meta = await getLessonMeta(exercise.join('/'));
+  if (!meta) return { title: `Quest · ${SITE_NAME}` };
+  return {
+    title: `${meta.title} · ${SITE_NAME}`,
+    description: meta.description,
+    alternates: { canonical: meta.canonical },
+  };
+}
 
 /** One exhibit per page, so a fixed id is safe. */
 const EXHIBIT_TITLE_ID = 'quest-exhibit-title';
 
 /**
  * The quest page (Sigmorai App.dc.html → isQuestBiz). A catch-all, because
- * exercise ids contain `/`: /quest/strategist/r0/c1/challenge. Cases (chapter
- * and boss) and quick checks, both tracks. The browser gets the public,
- * shuffled view only. Lessons (SIG-11) show a plain "not available yet".
- * Known gap: the design's NPC DialogBox comes with the lesson page (SIG-11).
+ * exercise ids contain `/`: /quest/strategist/r0/c1/challenge. Lessons, cases
+ * (chapter and boss) and quick checks, both tracks. For a case or quick check
+ * the browser gets the public, shuffled view only. Lessons are public; their
+ * NPC lines are the <DialogBox> blocks inside the lesson body. Math Tower and
+ * Frontier steps show a plain "not available yet".
  */
 export default async function QuestPage({ params }: PageProps<'/quest/[...exercise]'>) {
   const { exercise } = await params;
@@ -40,6 +61,7 @@ export default async function QuestPage({ params }: PageProps<'/quest/[...exerci
   if (page.kind === 'locked') {
     return <QuestNotice backHref={backHref} badge={QUEST_TEXT.locked} message={page.message} />;
   }
+  if (page.kind === 'lesson') return <LessonPage page={page} backHref={backHref} />;
 
   const { sheet, scenario, exhibit, tag, accent, viewer, nextHref } = page;
   return (
@@ -75,6 +97,55 @@ export default async function QuestPage({ params }: PageProps<'/quest/[...exerci
           )}
         </section>
         <AnswerForm key={sheet.exerciseId} sheet={sheet} viewer={viewer} nextHref={nextHref} />
+      </div>
+    </div>
+  );
+}
+
+type LessonPageProps = {
+  page: Extract<QuestPageData, { kind: 'lesson' }>;
+  backHref: string;
+};
+
+/**
+ * A lesson (Sigmorai App.dc.html → quest screen, tabLesson / tabSources): the
+ * title, LESSON | SOURCES tabs on the left, the "Lesson done" panel on the right.
+ */
+function LessonPage({ page, backHref }: LessonPageProps) {
+  const { exerciseId, lesson, tag, accent, npc, viewer, nextHref } = page;
+  const { title, minutes, sources } = lesson.frontmatter;
+  return (
+    <div className="flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="quest-top">
+        <Link href={backHref} className="quest-back">
+          <span aria-hidden="true">{QUEST_TEXT.backIcon}</span>
+          {QUEST_TEXT.back}
+        </Link>
+        <p className="quest-tag" data-accent={accent}>
+          {tag}
+        </p>
+      </div>
+      <div className="quest-layout">
+        <section className="flex min-w-0 flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <h1 className="quest-title">{title}</h1>
+            <p className="quest-note">{QUEST_TEXT.minutes(minutes)}</p>
+          </div>
+          <Tabs
+            label={QUEST_TEXT.lessonTabsLabel}
+            items={[
+              { label: QUEST_TEXT.lessonTab, content: <LessonBody body={lesson.body} npc={npc} /> },
+              { label: QUEST_TEXT.sourcesTab, content: <SourceList sources={sources} /> },
+            ]}
+          />
+        </section>
+        <LessonDone
+          key={exerciseId}
+          exerciseId={exerciseId}
+          title={title}
+          viewer={viewer}
+          nextHref={nextHref}
+        />
       </div>
     </div>
   );

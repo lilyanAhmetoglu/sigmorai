@@ -8,6 +8,17 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (lesson page, SIG-11)
+
+- A lesson renders on the quest route (/quest/<track>/rN/cN/lesson); the step ids, realm links and Continue already point there.
+- MDX is compiled at request time with @mdx-js/mdx evaluate in a server component, from the same disk loader. No @next/mdx (second pipeline), no next-mdx-remote (archived 2026-04). Content is trusted (git).
+- Only <DialogBox> is allowed in a lesson body, bound to the realm NPC. Bodies start at ##. No import/export. content:check compiles every body.
+- No PublicLesson view: Lesson = { frontmatter, body } has nothing to hide.
+- 'Lesson done' is one explicit button → completeLesson (already shipped): +10 XP once (XP_REWARDS.lesson), progress row, streak. No scroll or time tracking. After done, Continue goes to the same chapter's case.
+- The lock is unchanged: the case never needs the lesson first.
+- Layout follows the design quest screen: LESSON | SOURCES tabs left, done panel right.
+- Lessons are public. Per-page metadata + canonical; the sitemap is a later ticket.
+
 ## Amendments locked 2026-10-05 (no-code pivot)
 
 Maintainer decision, final: **no learner writes code, on either track.** Sigmorai teaches how to design and use AI systems. Every chapter and every boss ends in a graded scenario case (option indexes, server-graded). This block replaces every Run / Submit / sandbox / runner part of the body below; the case and quick-check parts stay.

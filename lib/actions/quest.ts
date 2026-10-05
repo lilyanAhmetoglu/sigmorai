@@ -145,9 +145,9 @@ async function submitAnswers(
 }
 
 /**
- * completeLesson: contract only (quest-actions spec). The "Lesson done"
- * button and the lesson page are SIG-11. Open check → progress + xp_events
- * (`lesson`, once) + streak, in one transaction.
+ * completeLesson: the lesson page's "Lesson done" button (quest-actions spec →
+ * SIG-11 block). Open check → progress + xp_events (`lesson`, once) + streak,
+ * in one transaction. A second press earns 0 XP.
  */
 export async function completeLesson(input: unknown): Promise<CompleteLessonResult> {
   const { userId } = await auth();

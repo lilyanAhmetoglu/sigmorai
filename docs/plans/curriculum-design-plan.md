@@ -26,6 +26,7 @@
 - **Step states** come from the same `decideOpen` the Server Actions use. A step with no content file is "Coming soon" and is not a link. Advanced realms are visible but locked, with no unlock goal yet (paywall later).
 - **After a pass**, and on the quest back link, the player returns to the realm page, not the profile.
 - Not built yet: daily quest, Math Tower panel, tier filter, "View on map", "Built from" sources.
+- Lesson rendering and the Lesson done button: see quest-actions-design-plan.md → SIG-11 block. §SEO sitemap: later ticket.
 
 ## Amendments locked 2026-10-05 (no-code pivot, vendor-neutral)
 
