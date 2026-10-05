@@ -4,6 +4,9 @@
 
 Layout: `content/<track>/<realm>/<chapter>/*.mdx` plus `challenge.json` (builder) or `case.json` (strategist). Sources list: `content/sources.yaml`.
 
+- Frontier chapters: `content/frontier/<YYYY-MM-DD>-<slug>/` with the lesson MDX + `quick-check.json`. No challenge, no outline file, no NPC.
+- Blog posts: `content/blog/<YYYY-MM-DD>-<slug>.mdx`, same date-slug and same `sources` as their lesson. Plain product voice.
+
 ## Exercise ids
 
 Every exercise has one id. Helpers: `lib/content/ids.ts` (`buildExerciseId`, `parseExerciseId`); Zod: `ExerciseIdSchema` in `lib/types`.
