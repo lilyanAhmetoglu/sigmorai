@@ -1,9 +1,10 @@
-import { RUN_TIMEOUT_MS } from '@/lib/constants';
+import { QUEST_ERROR_TEXT, RUN_TIMEOUT_MS } from '@/lib/constants';
 import { type CodeRunner, type RunRequest, type RunResult, RunResultSchema } from '@/lib/types';
 import { emptyResult } from './output';
 
 export const TIMEOUT_MESSAGE = `Stopped: the run took longer than ${RUN_TIMEOUT_MS / 1000} seconds.`;
-export const ERROR_MESSAGE = 'The code runner failed. This is not your code. Try again.';
+/** One string for one event: the runner broke (also the RUNNER_FAILED quest error). */
+export const ERROR_MESSAGE = QUEST_ERROR_TEXT.RUNNER_FAILED;
 
 /**
  * Runs `request` with a hard wall-clock limit. On timeout it aborts the

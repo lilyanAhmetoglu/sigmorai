@@ -29,6 +29,7 @@ Realms `r0`–`r8`, chapters `c1`–`c6`, floors `f1`–`f8` (counts in `lib/con
 - **Every claim traces to a source in `sources`.** If you can't cite it, cut it. API shapes are checked against the live doc, not memory.
 - **Lesson prose is plain technical voice.** Lore lines only in `<DialogBox>` blocks, said by the realm's NPC.
 - **`challenge.json`:** starter code must fail the visible tests; the reference solution (kept out of the client) must pass visible + hidden. Hidden tests test behaviour, not formatting.
+- **Hidden tests check the exact type before comparing values.** Write `assert type(result) is int` (or `is list`, `is dict`, …) and only then `assert result == 42`. Otherwise a solution can return an object whose `__eq__` always says `True` and pass. Save `type` / `isinstance` at the top of the test before calling learner code (`_type = type`). `content-reviewer` checks this.
 - **`case.json`:** exactly one correct index per question, an explanation for every option.
 - **`quick-check.json`:** the same question shape as `case.json` (`{id, questions[3]}`, no title/scenario), exactly 3 questions (see `docs/plans/curriculum-design-plan.md`).
 - **Never auto-publish.** The sync job opens a PR labelled `new-level`; run the `content-reviewer` agent on it.

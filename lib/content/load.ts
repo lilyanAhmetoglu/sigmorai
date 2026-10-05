@@ -1,5 +1,5 @@
 import 'server-only';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
@@ -51,12 +51,23 @@ const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 
 type Located = { abs: string; file: string };
 
+/**
+ * Absolute path of a file under the content root.
+ * The `turbopackIgnore` comment silences the `next build` warning "Dynamic
+ * filesystem access causes tracing of the whole project" (Turbopack suggests
+ * this exact comment for path.resolve in that warning; without it, every
+ * server route would ship the whole repo). content/** is still shipped with
+ * every server route by outputFileTracingIncludes in next.config.ts.
+ */
+const contentPath = (root: string, rel: string) =>
+  path.resolve(/*turbopackIgnore: true*/ process.cwd(), root, rel);
+
 /** Resolves an id to its file and checks it is the kind of file this loader reads. */
 function locate(id: string, expected: string, root: string): Located {
   const ref = parseExerciseId(id);
   if (!ref) throw new ContentError('invalid', id, 'not a valid exercise id');
   const rel = exerciseFile(ref);
-  const abs = path.resolve(process.cwd(), root, rel);
+  const abs = contentPath(root, rel);
   const file = path.relative(process.cwd(), abs);
   if (path.basename(rel) !== expected) {
     throw new ContentError(
@@ -128,6 +139,18 @@ export async function loadLesson(id: string, root = CONTENT_DIR): Promise<Lesson
   }
   const frontmatter = validate(LessonFrontmatterSchema, raw, id, at.file);
   return { frontmatter, body: text.slice(match[0].length) };
+}
+
+/** Whether an exercise has a content file. A stub chapter (outline only) has none. */
+export async function hasContent(id: string, root = CONTENT_DIR): Promise<boolean> {
+  const ref = parseExerciseId(id);
+  if (!ref) return false;
+  try {
+    await access(contentPath(root, exerciseFile(ref)));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** A builder challenge. A strategist challenge id is a case: use loadCase. */

@@ -7,13 +7,6 @@
 export const RUNNER_KINDS = ['fake', 'e2b'] as const;
 
 /**
- * Languages the runner can execute. Matches the content branch's
- * CHALLENGE_LANGUAGES (['python']); merge the two once lib/content lands.
- */
-// Duplicate of CHALLENGE_LANGUAGES in PR #15 — delete this copy when both are on canary.
-export const RUNNER_LANGUAGES = ['python'] as const;
-
-/**
  * Hard wall-clock limit for one run, sandbox start included. A safety net
  * only: the budgets below end a slow run first, with per-test results.
  */
@@ -28,6 +21,21 @@ export const RUN_TEST_TIMEOUT_S = 5;
 export const RUN_TEST_MEMORY_BYTES = 256 * 1024 * 1024;
 /** E2B kills the sandbox itself after this, even if our kill() call is lost. */
 export const RUN_SANDBOX_TTL_MS = RUN_TIMEOUT_MS + 15_000;
+/**
+ * A users.sandbox_pending_at lock older than this is ignored (the function
+ * that set it died). Past the sandbox TTL plus slack, so a live run is never
+ * overlapped by a second one.
+ */
+export const RUN_STALE_MS = RUN_SANDBOX_TTL_MS + 10_000;
+
+/** What a sandbox call is for: free practice (Run) or a graded attempt (Submit). */
+export const SANDBOX_KINDS = ['run', 'submit'] as const;
+/**
+ * Sandbox calls per user per UTC day (quest-actions spec). Check E2B's live
+ * pricing before launch. Cases and quick checks never count.
+ */
+export const RUN_DAILY_CAP = 40;
+export const SUBMIT_DAILY_CAP = 30;
 
 /** Learner stdout kept per run, and the longest error line kept per test. */
 export const RUN_OUTPUT_MAX_CHARS = 4_000;
