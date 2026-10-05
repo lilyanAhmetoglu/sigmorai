@@ -9,7 +9,7 @@ type Props = { state: HudState };
 
 /**
  * Top HUD: hero, level XP, streak and the account controls. Presentational.
- * No HP here: HP is per challenge and lives in the quest panel (quest-actions
+ * No HP here: HP is per case and lives in the quest panel (quest-actions
  * spec). Styles: hud-bar.css.
  */
 export function HudBar({ state }: Props) {

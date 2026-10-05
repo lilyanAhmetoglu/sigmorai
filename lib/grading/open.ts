@@ -10,10 +10,10 @@ import type { ExerciseRef, QuestFailure, RealmId, Track } from '@/lib/types';
 import { questFailure as fail } from './failure';
 
 /**
- * The open check (quest-actions spec → API contract). Run before any sandbox
- * call, HP change or XP write, on Run and on every action:
+ * The open check (quest-actions spec → API contract). Run before any HP
+ * change or XP write, on every action:
  *   parse the id → the content file exists → the realm's tier is open →
- *   chapter order (chapter N needs chapter N−1's challenge cleared; the boss
+ *   chapter order (chapter N needs chapter N−1's case cleared; the boss
  *   needs all of them), counted inside the exercise's own track.
  * Inside an open chapter, the lesson, challenge and quick check are all open.
  */
@@ -52,7 +52,7 @@ export function decideOpen(ref: ExerciseRef, cleared: ReadonlySet<string>): Open
 
 /**
  * The full check for the session user. `exec` is the db or the caller's
- * transaction (Submit runs it inside its user-row lock).
+ * transaction (a graded action runs it inside its user-row lock).
  */
 export async function checkOpen(
   exec: Db | Tx,

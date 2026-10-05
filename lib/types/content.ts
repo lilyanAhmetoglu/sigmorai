@@ -1,12 +1,10 @@
 /**
- * Content file schemas (content/CLAUDE.md). The full shapes hold hidden tests,
- * the reference solution, correct options and explanations: they stay on the
- * server (lib/content/load.ts). Client components only get the branded
+ * Content file schemas (content/CLAUDE.md). The full shapes hold correct
+ * options and explanations: they stay on the server (lib/content/load.ts). Client components only get the branded
  * `Public*` shapes, built by lib/content/public.ts.
  */
 import { z } from 'zod';
 import {
-  CHALLENGE_LANGUAGES,
   LESSON_SOURCE_KINDS,
   QUESTION_OPTIONS,
   QUICK_CHECK_QUESTIONS,
@@ -51,35 +49,6 @@ export type LessonFrontmatter = z.infer<typeof LessonFrontmatterSchema>;
 /** A loaded lesson: validated frontmatter + the raw MDX body. */
 export type Lesson = { frontmatter: LessonFrontmatter; body: string };
 
-// ── Builder challenge ─────────────────────────────────────────────────────
-
-const ChallengeTestSchema = z.object({ name: Text, code: Text }).strict();
-/** One test: run after the learner's code, in the same namespace (lib/runner). */
-export type ChallengeTest = z.infer<typeof ChallengeTestSchema>;
-export type ChallengeLanguage = (typeof CHALLENGE_LANGUAGES)[number];
-
-/** challenge.json. `solution` and `hiddenTests` never reach the browser. */
-export const ChallengeSchema = z
-  .object({
-    id: idForStep('challenge'),
-    title: Text,
-    prompt: Text,
-    language: z.enum(CHALLENGE_LANGUAGES),
-    starter: Text,
-    solution: Text,
-    visibleTests: z.array(ChallengeTestSchema).min(1),
-    hiddenTests: z.array(ChallengeTestSchema).min(1),
-  })
-  .strict()
-  .refine(
-    (c) => {
-      const names = [...c.visibleTests, ...c.hiddenTests].map((t) => t.name);
-      return new Set(names).size === names.length;
-    },
-    { message: 'test names must be unique', path: ['hiddenTests'] },
-  );
-export type Challenge = z.infer<typeof ChallengeSchema>;
-
 // ── Case + quick check ────────────────────────────────────────────────────
 
 /** `correct` defaults to false, so authors mark only the right one. */
@@ -98,7 +67,7 @@ const QuestionSchema = z
     path: ['options'],
   });
 
-/** case.json: the strategist's challenge step. */
+/** case.json: the graded `challenge` step (chapter and boss) on both tracks. */
 export const CaseSchema = z
   .object({
     id: idForStep('challenge'),
@@ -127,18 +96,6 @@ const PublicQuestionSchema = z.object({
   prompt: z.string(),
   options: z.array(z.object({ text: z.string() })),
 });
-
-export const PublicChallengeSchema = z
-  .object({
-    id: z.string(),
-    title: z.string(),
-    prompt: z.string(),
-    language: z.enum(CHALLENGE_LANGUAGES),
-    starter: z.string(),
-    visibleTests: z.array(z.object({ name: z.string(), code: z.string() })),
-  })
-  .brand<'PublicChallenge'>();
-export type PublicChallenge = z.output<typeof PublicChallengeSchema>;
 
 export const PublicCaseSchema = z
   .object({

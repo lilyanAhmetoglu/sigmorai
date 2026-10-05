@@ -5,11 +5,11 @@ import { progress, users, xpEvents } from '@/db/schema';
 import { XP_REWARDS } from '@/lib/constants';
 import type { XpOutcome, XpReason } from '@/lib/types';
 import { nextStreak } from '@/lib/xp/streak';
-import { xpOutcome } from './challenge';
+import { xpOutcome } from './case';
 
 /**
- * The writes of a pass, shared by every quest action (challenge, boss, lesson,
- * and in Phase C case + quick check). Runs inside the caller's transaction:
+ * The writes of a pass, shared by every quest action (case, boss, lesson and,
+ * in Phase C, quick check). Runs inside the caller's transaction:
  *   progress row (once) → xp_events row (award once) → users.xp += amount
  *   only if that row was new → streak + last_active_at (any pass, replays too).
  */

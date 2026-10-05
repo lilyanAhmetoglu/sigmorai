@@ -25,11 +25,8 @@ export const LEVEL_XP_STEP = 100;
 /** The level a new player (0 XP) starts at. */
 export const FIRST_LEVEL = 1;
 
-/** Failed graded attempts allowed per challenge per UTC day (lib/xp/hp.ts). */
+/** Failed graded attempts allowed per case per UTC day (lib/xp/hp.ts). */
 export const HP_PER_CHALLENGE = 3;
 
-/**
- * submissions.status. `pending` = written before the runner (counts as spent
- * HP, so a crash is no free retry); `errored` = our fault, HP refunded.
- */
-export const SUBMISSION_STATUSES = ['pending', 'passed', 'failed', 'errored'] as const;
+/** submissions.status. Every row is graded in its insert transaction: no pending state. */
+export const SUBMISSION_STATUSES = ['passed', 'failed'] as const;

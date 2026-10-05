@@ -1,12 +1,4 @@
-import type {
-  ChoiceState,
-  LevelStatus,
-  QuestErrorCode,
-  QuestStatus,
-  SandboxKind,
-  TestStatus,
-  Track,
-} from '@/lib/types';
+import type { ChoiceState, LevelStatus, QuestErrorCode, QuestStatus, Track } from '@/lib/types';
 import { CHAPTER_COUNT } from './exercises';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
@@ -41,14 +33,6 @@ export const QUEST_ACTION_TEXT: Record<QuestStatus, string> = {
   locked: 'Locked',
 };
 
-/** TestResult chip (visible, aria-hidden) and its spoken word. */
-export const TEST_STATUS_TEXT: Record<TestStatus, { tag: string; label: string }> = {
-  pass: { tag: 'PASS', label: 'Passed' },
-  fail: { tag: 'FAIL', label: 'Failed' },
-  pending: { tag: '····', label: 'Not run yet' },
-  running: { tag: 'RUN', label: 'Running' },
-};
-
 /** App shell and HudBar words. */
 export const SHELL_TEXT = {
   skipLink: 'Skip to content',
@@ -74,10 +58,10 @@ export const TOAST_DISMISS_TEXT = 'Dismiss';
 
 /** Track name and one-line summary (design TR table: label + short). */
 export const TRACK_TEXT: Record<Track, { label: string; short: string }> = {
-  builder: { label: 'BUILDER', short: 'You write small Python programs. APIs, tools, agents.' },
+  builder: { label: 'BUILDER', short: 'You judge real design cases: prompts, tools, agents, RAG.' },
   strategist: {
     label: 'STRATEGIST',
-    short: 'No code. You judge real business cases: use cases, ROI, rules.',
+    short: 'You judge real business cases: use cases, ROI, rules.',
   },
 };
 
@@ -95,7 +79,8 @@ export const ONBOARDING_TEXT = {
   heroNameHint: HERO_NAME_RULE,
   heroNameError: `Use ${HERO_NAME_RULE}`,
   path: 'Choose your path',
-  beginnerHint: 'Not a coder? Pick strategist: no code.',
+  beginnerHint:
+    'No code on either path. New to AI, or using it at work? Pick strategist. Want to design AI systems? Pick builder.',
   trackError: 'Pick a path.',
   submitNote: "You can't change your path yet. Your hero name is public.",
   submit: 'Start',
@@ -115,89 +100,44 @@ export const PROFILE_TEXT = {
   avatarLabel: 'Sprite avatar for',
   totalXp: 'TOTAL XP',
   level: 'LEVEL',
-  noXp: 'No XP yet. You earn XP by clearing lessons.',
+  noXp: 'No XP yet. You earn XP by clearing lessons, cases and quick checks.',
   loading: 'Loading your profile',
   error: "Your profile didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;
 
-/**
- * Why a quest press was refused (QuestErrorCode). Reset times are not in the
- * text: the server sends `resetsAt` (UTC) and the browser shows local time.
- */
+/** Why a quest press was refused (QuestErrorCode). */
 export const QUEST_ERROR_TEXT: Record<QuestErrorCode, string> = {
-  UNAUTHENTICATED: 'Sign in to run and submit.',
+  UNAUTHENTICATED: 'Sign in to save your progress.',
   NOT_ONBOARDED: 'Set up your hero first.',
-  INVALID_INPUT: 'This exercise is not available.',
+  INVALID_INPUT: 'This step is not available.',
   TIER_LOCKED: 'Advanced realms are locked. They come later.',
   NOT_OPEN: 'Clear the chapter before this one first.',
-  NO_HP: 'No HP left for this challenge today.',
-  CAP_REACHED: 'You reached the daily limit.',
-  RUN_IN_PROGRESS: 'A run is already in progress. Wait for it to finish.',
-  // Run and Submit both use this; Submit's "no HP was used" note is UI copy (Phase B).
-  RUNNER_FAILED: 'The code runner failed. This is not your code. Try again.',
+  NO_HP:
+    'No HP left for this case today. HP refills at 00:00 UTC. The lesson and quick check stay open.',
+  SERVER_ERROR: 'Something failed on our side. Nothing was saved. Try again in a moment.',
 };
 
 /**
- * Quest page words (builder challenge). Product voice only: no lore outside a
- * DialogBox. Times are not in the text: the page shows `resetsAt` in local time
- * right after these lines, then `localTimeSuffix`.
+ * Quest page words (lessons, cases, quick checks). Product voice only: no lore
+ * outside a DialogBox. The learner never sees the word "challenge": the step
+ * is a "Case". Times are not in the text: the page shows `resetsAt` in local
+ * time right after these lines, then `localTimeSuffix`.
  */
 export const QUEST_TEXT = {
-  challengeTag: 'CHALLENGE',
-  bossTag: 'BOSS',
-  chapterTag: (n: number) => `CHAPTER ${n}`,
-  editorLabel: 'Your code',
-  editorHint: 'Tab moves to the next control. Indent with spaces.',
-  reset: 'Reset',
-  confirmReset: 'Confirm reset',
-  /** Decorative: rendered aria-hidden through PixelButton's `icon`. */
-  runIcon: '▸',
-  run: 'Run tests',
-  submit: 'Submit',
-  running: 'Running…',
-  continue: 'Continue',
-  signInToRun: 'Sign in to run',
-  signInToSubmit: 'Sign in to submit',
-  submitNote: 'Costs 1 HP if it fails.',
-  replayNote: 'Practice · no HP, no XP.',
-  hpFailNote: (hp: number, max: number) => `${hp} of ${max} HP left today. Run is still free.`,
-  noHp: 'No HP left for this challenge. HP refills at',
-  runCapResets: 'Runs reset at',
-  submitCapResets: 'They reset at',
   localTimeSuffix: '(your time).',
-  runnerFailedNoHp: 'The runner failed. No HP was used. Try again.',
-  testsHeading: 'Tests',
-  noVisibleTests: 'All tests for this challenge are hidden. Submit to check them.',
-  hiddenFailedNote:
-    'Hidden tests check extra inputs. Their details stay hidden, so test your code against more cases than the visible tests.',
-  runSummary: (passed: number, total: number) => `Run: ${passed} of ${total} visible tests passed.`,
-  submitPassed: 'Submit: every test passed.',
-  submitFailed: (passed: number, total: number) => `Submit: ${passed} of ${total} tests passed.`,
-  replayPassed: 'Cleared again · XP already earned.',
-  hiddenTest: (n: number) => `Hidden test ${n}`,
-  console: 'Console',
-  consoleEmpty: 'Press Run tests to see your print output here.',
-  consoleSubmit: 'Submit shows no console output. Use Run tests to see it.',
   cleared: (xp: number) => `LEVEL CLEARED · +${xp} XP`,
   clearedBody: 'Added to your total. Press Continue to go on.',
-  xpToastTitle: (xp: number) => `+${xp} XP`,
-  xpToastText: (title: string) => `Quest cleared: ${title}`,
-  levelUpTitle: (level: number) => `Level ${level} reached`,
   notifications: 'Notifications',
   noticeHeading: 'Quest',
   notAvailable: 'This step is not available yet.',
-  notAvailableHint: 'Only builder challenges work on this page for now.',
+  notAvailableHint: 'Lessons, cases and quick checks are not built yet.',
   locked: 'LOCKED',
   /** The back link until the world map ships (QUEST_BACK_HREF). */
   backIcon: '◂',
   back: 'Back to profile',
-  networkError: 'No reply from the server. Check your connection, reload the page, then try again.',
-  /** Submit may have finished (and spent HP) before the reply was lost. */
-  submitNoReply: 'No reply from the server. Reload the page to see your HP and result.',
-  notSaved: 'Your progress was not saved. Try again in a moment.',
-  loading: 'Loading the challenge',
-  loadError: "The challenge didn't load. Try again in a moment.",
+  loading: 'Loading the quest',
+  loadError: "The quest didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;
 
@@ -205,6 +145,3 @@ export const QUEST_TEXT = {
 export const notOpenText = (previousChapter: number) => `Clear chapter ${previousChapter} first.`;
 /** NOT_OPEN for a boss. */
 export const BOSS_NOT_OPEN_TEXT = `Clear all ${CHAPTER_COUNT} chapters first.`;
-/** CAP_REACHED: "You used 40 of 40 runs today." */
-export const capReachedText = (kind: SandboxKind, used: number, cap: number) =>
-  `You used ${used} of ${cap} ${kind === 'run' ? 'runs' : 'graded runs'} today.`;

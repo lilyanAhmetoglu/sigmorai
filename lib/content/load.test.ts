@@ -1,17 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import {
-  CaseSchema,
-  ChallengeSchema,
-  LessonFrontmatterSchema,
-  QuickCheckSchema,
-} from '@/lib/types';
-import { ContentError, loadCase, loadChallenge, loadLesson, loadQuickCheck } from './load';
+import { CaseSchema, LessonFrontmatterSchema, QuickCheckSchema } from '@/lib/types';
+import { ContentError, loadCase, loadLesson, loadQuickCheck } from './load';
 
 const VALID = `${import.meta.dir}/__fixtures__/valid`;
 const BROKEN = `${import.meta.dir}/__fixtures__/broken`;
 
 const LESSON = 'builder/r0/c1/lesson';
-const CHALLENGE = 'builder/r0/c1/challenge';
+/** The graded `challenge` step is a case on both tracks. */
+const BUILDER_CASE = 'builder/r0/c1/challenge';
 const CASE = 'strategist/r0/c1/challenge';
 const QUICK_CHECK = 'builder/r0/c1/quick-check';
 
@@ -35,15 +31,15 @@ describe('valid files load', () => {
     expect(body).not.toContain('sourceHash');
   });
 
-  test('challenge keeps hidden tests and solution on the server', async () => {
-    const c = await loadChallenge(CHALLENGE, VALID);
-    expect(c.hiddenTests).toHaveLength(1);
-    expect(c.solution).toContain('return a + b');
-  });
-
   test('case: unmarked options default to not correct', async () => {
     const c = await loadCase(CASE, VALID);
     expect(c.questions[0].options.map((o) => o.correct)).toEqual([false, true]);
+  });
+
+  test('builder case: same schema, keeps the correct flags on the server', async () => {
+    const c = await loadCase(BUILDER_CASE, VALID);
+    expect(c.id).toBe(BUILDER_CASE);
+    expect(c.questions[0].options.map((o) => o.correct)).toEqual([true, false]);
   });
 
   test('quick check', async () => {
@@ -61,10 +57,10 @@ describe('bad files fail with the file name', () => {
     expect(err.message).toContain('xp');
   });
 
-  test('challenge with no hidden tests', async () => {
-    const err = await failure(loadChallenge(CHALLENGE, BROKEN));
-    expect(err.message).toContain('c1/challenge.json');
-    expect(err.message).toContain('hiddenTests');
+  test('builder case with no questions', async () => {
+    const err = await failure(loadCase(BUILDER_CASE, BROKEN));
+    expect(err.message).toContain('builder/00-bootstrap-village/c1/case.json');
+    expect(err.message).toContain('questions');
   });
 
   test('case with two correct options', async () => {
@@ -84,8 +80,8 @@ describe('bad files fail with the file name', () => {
   });
 
   test('the wrong loader for the id', async () => {
-    const err = await failure(loadChallenge(CASE, VALID));
-    expect(err.message).toContain('case.json, not challenge.json');
+    const err = await failure(loadQuickCheck(CASE, VALID));
+    expect(err.message).toContain('case.json, not quick-check.json');
   });
 
   test('a file whose id does not match its path', async () => {
@@ -132,14 +128,20 @@ describe('schemas', () => {
     expect(QuickCheckSchema.safeParse(q).success).toBe(false);
   });
 
-  test('a challenge id must end in /challenge', async () => {
-    const c = await loadChallenge(CHALLENGE, VALID);
-    expect(ChallengeSchema.safeParse({ ...c, id: LESSON }).success).toBe(false);
+  test('a case id must end in /challenge', async () => {
+    const c = await loadCase(BUILDER_CASE, VALID);
+    expect(CaseSchema.safeParse({ ...c, id: LESSON }).success).toBe(false);
   });
 
-  test('duplicate test names fail', async () => {
-    const c = await loadChallenge(CHALLENGE, VALID);
-    const hiddenTests = [{ ...c.hiddenTests[0], name: c.visibleTests[0].name }];
-    expect(ChallengeSchema.safeParse({ ...c, hiddenTests }).success).toBe(false);
+  test('a lesson may cite docs, repo and official blog posts; nothing else', async () => {
+    const { frontmatter } = await loadLesson(LESSON, VALID);
+    const cite = (kind: string) =>
+      LessonFrontmatterSchema.safeParse({
+        ...frontmatter,
+        sources: [{ ...frontmatter.sources[0], kind }],
+      }).success;
+    expect(['docs', 'repo', 'blog'].map(cite)).toEqual([true, true, true]);
+    expect(cite('changelog')).toBe(false);
+    expect(cite('tweet')).toBe(false);
   });
 });

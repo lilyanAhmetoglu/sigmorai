@@ -36,10 +36,10 @@ export const AUDIENCES: readonly Audience[] = [
     label: 'NEW TO AI',
     accent: 'success',
     title: 'For total beginners',
-    body: `No AI background needed. Realms ${firstRealm.id}–${lastRealm.id} are beginner level. Pick the strategist path when you sign up: no code, and you start with what a model is, what it can and can't do, and what it costs.`,
+    body: `No AI background needed. Realms ${firstRealm.id}–${lastRealm.id} are beginner level. Pick the strategist path when you sign up. You start with what a model is, what it can and can't do, and what it costs.`,
     points: [
       'One short lesson per chapter, then a case and a quick check',
-      'The strategist path needs no code',
+      'No code on either path',
       'The Math Tower explains the maths, floor by floor',
     ],
     forWho: 'STUDENTS · GRADUATES · ANYONE WHO USES AI AT WORK',

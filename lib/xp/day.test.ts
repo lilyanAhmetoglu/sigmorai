@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { nextUtcDayStart, utcDayKey, utcDayNumber, utcDayStart } from './day';
+import { nextUtcDayStart, utcDayNumber, utcDayStart } from './day';
 
 const at = (iso: string) => new Date(iso);
 
@@ -8,8 +8,6 @@ describe('UTC day helpers', () => {
     const before = at('2026-10-05T23:59:59.999Z');
     const after = at('2026-10-06T00:00:00.000Z');
     expect(utcDayNumber(after) - utcDayNumber(before)).toBe(1);
-    expect(utcDayKey(before)).toBe('2026-10-05');
-    expect(utcDayKey(after)).toBe('2026-10-06');
   });
 
   test('day start and next day start', () => {
