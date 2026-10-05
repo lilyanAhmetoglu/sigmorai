@@ -16,8 +16,11 @@ export const XP_REWARDS = {
 } as const satisfies Record<(typeof XP_REASONS)[number], number>;
 
 /**
- * Level = floor(sqrt(xp / LEVEL_XP_STEP)) (docs/build-prompt.md). Level n
- * starts at LEVEL_XP_STEP × n² XP, so a new player is level 0. Computed from
- * xp, never stored (db/CLAUDE.md invariant 5).
+ * Level = floor(sqrt(xp / LEVEL_XP_STEP)) + FIRST_LEVEL (docs/build-prompt.md).
+ * Level n starts at LEVEL_XP_STEP × (n − 1)² XP, so a new player is LV 1
+ * (SIG-33, 2026-10-05). Computed from xp, never stored (db/CLAUDE.md invariant 5).
  */
 export const LEVEL_XP_STEP = 100;
+
+/** The level a new player (0 XP) starts at. */
+export const FIRST_LEVEL = 1;
