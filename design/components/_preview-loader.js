@@ -1,0 +1,2 @@
+// Preview-only: loads component .jsx sources for specimen cards.
+window.loadSG=async function(paths){window.SG=window.SG||{};for(const p of paths){let src=await (await fetch(p)).text();src=src.replace(/^import .*$/mg,'').replace(/export function (\w+)/g,'window.SG.$1=function $1');const out=Babel.transform(src,{presets:['react']}).code;(0,eval)(out);}return window.SG;};

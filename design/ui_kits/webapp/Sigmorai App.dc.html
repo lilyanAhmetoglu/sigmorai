@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>Sigmorai — learn AI engineering as an adventure</title>
+<link rel="icon" href="../../assets/logo/favicon.svg">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+html,body{margin:0;background:#0A0913;color:#F2F1FA;font-variant-ligatures:none;}
+a{color:#40C4FF;}a:hover{color:#A3E2FF;}
+textarea:focus,input:focus{outline:none;}
+*{font-feature-settings:"liga" 0,"clig" 0;}
+@keyframes sgscroll{from{background-position:0 100%}to{background-position:-2731px 100%}}
+@keyframes sgrun{from{background-position:0 0}to{background-position:-128px 0}}
+@keyframes sgfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+@keyframes sgwalk{from{background-position:0 0}to{background-position:-96px 0}}
+@keyframes sgbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes sgpulse{0%,100%{box-shadow:0 0 0 4px #FFE08A}50%{box-shadow:0 0 0 8px #FFE08A}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:var(--bg-app);font-family:var(--font-body);color:var(--text-1);">
+
+<sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+  <header style="position:relative;min-height:640px;display:flex;flex-direction:column;overflow:hidden;">
+    {{ heroBg }}
+    <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,9,19,.88) 0 45%,rgba(10,9,19,.2) 75%);"></div>
+    <div style="position:absolute;inset:0;background:var(--scanlines);"></div>
+    <nav style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:20px clamp(16px,4vw,48px);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <img src="../../assets/logo/sigmorai-mark.svg" alt="" width="40" height="40">
+        <span style="font:700 24px var(--font-display);letter-spacing:.02em;">SIGMORAI</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button onClick="{{ goSignIn }}" style="background:transparent;color:var(--ink-100);border:0;padding:10px 14px;font:700 13px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:inset 0 0 0 3px var(--ink-500);">Sign in</button>
+        <button onClick="{{ goRegister }}" style="background:var(--ember-500);color:var(--ink-950);border:0;padding:10px 16px;font:700 13px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);box-shadow:var(--bevel-pressed),var(--notch-outline);">Start free</button>
+      </div>
+    </nav>
+    <div style="position:relative;flex:1;display:flex;flex-direction:column;justify-content:center;gap:24px;padding:40px clamp(16px,4vw,48px) 96px;max-width:860px;">
+      <span style="font:12px var(--font-hud);letter-spacing:.1em;color:var(--spark-500);">CHAPTER I · THE FOG OVER LATENTIA</span>
+      <h1 style="margin:0;font:700 clamp(40px,7vw,72px)/1.02 var(--font-display);text-wrap:balance;">Start your AI engineering adventure.</h1>
+      <p style="margin:0;font:19px/1.6 var(--font-body);color:var(--ink-200);max-width:56ch;text-wrap:pretty;">Nine realms, from your first API call to multi-agent systems in production. Every level is built from official docs and the best open-source harnesses — and you pass it by writing code that works.</p>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <button onClick="{{ goRegister }}" style="background:var(--ember-500);color:var(--ink-950);border:0;padding:16px 28px;font:700 18px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline),var(--shadow-drop-lg);" style-active="transform:translate(2px,2px);">Get started</button>
+        <button onClick="{{ goRealms }}" style="background:var(--ink-700);color:var(--ink-100);border:0;padding:16px 24px;font:700 18px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">Explore realms</button>
+      </div>
+    </div>
+  </header>
+
+  <section style="padding:72px clamp(16px,4vw,48px);max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:32px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <span style="font:12px var(--font-hud);letter-spacing:.1em;color:var(--text-3);">POPULAR REALMS</span>
+        <h2 style="margin:0;font:700 clamp(28px,4vw,40px)/1.1 var(--font-display);">Popular realms to explore</h2>
+        <p style="margin:0;font:16px/1.6 var(--font-body);color:var(--text-2);max-width:52ch;">Hands-on quests built from the official docs. When the docs change, the map grows.</p>
+      </div>
+      <button onClick="{{ goRealms }}" style="background:var(--ink-700);color:var(--ink-100);border:0;padding:12px 18px;font:700 14px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">Explore all realms ▸</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;">
+      <sc-for list="{{ popularRealms }}" as="r" hint-placeholder-count="6">
+        <div style="background:var(--surface-2);box-shadow:var(--notch-outline),var(--shadow-drop);margin:3px;display:flex;flex-direction:column;">
+          <img src="{{ r.scene }}" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;image-rendering:pixelated;">
+          <div style="padding:12px 14px;display:flex;flex-direction:column;gap:6px;">
+            <span style="font:10px var(--font-hud);letter-spacing:.08em;color:{{ r.color }};">{{ r.tag }}</span>
+            <span style="font:600 18px/1.2 var(--font-display);">{{ r.name }}</span>
+            <span style="font:14px/1.45 var(--font-body);color:var(--text-2);">{{ r.topic }}</span>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:0 clamp(16px,4vw,48px) 72px;max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:24px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <span style="font:12px var(--font-hud);letter-spacing:.1em;color:var(--text-3);">TWO PATHS · ONE WORLD</span>
+      <h2 style="margin:0;font:700 clamp(28px,4vw,40px)/1.1 var(--font-display);">Pick the path that fits your job</h2>
+      <p style="margin:0;font:16px/1.6 var(--font-body);color:var(--text-2);max-width:60ch;">Both paths cross the same nine realms. Builders write code to clear levels. Strategists clear them by making decisions about real cases. You can switch any time.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:24px;">
+      <sc-for list="{{ trackCards }}" as="t" hint-placeholder-count="2">
+        <div style="position:relative;background:var(--surface-2);padding:30px 24px 24px;box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;display:flex;flex-direction:column;gap:14px;">
+          <div style="position:absolute;top:-14px;left:16px;background:{{ t.color }};color:var(--ink-950);font:12px var(--font-hud);letter-spacing:.06em;padding:4px 10px;box-shadow:var(--notch-outline);">{{ t.label }}</div>
+          <span style="font:600 24px/1.2 var(--font-display);">{{ t.title }}</span>
+          <span style="font:16px/1.55 var(--font-body);color:var(--text-2);">{{ t.long }}</span>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <sc-for list="{{ t.points }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;gap:10px;align-items:baseline;"><span style="font:12px var(--font-hud);color:{{ t.color }};flex:none;">▸</span><span style="font:15px/1.5 var(--font-body);">{{ p }}</span></div>
+            </sc-for>
+          </div>
+          <span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ t.forWho }}</span>
+          <button onClick="{{ t.start }}" style="align-self:flex-start;background:{{ t.color }};color:var(--ink-950);border:0;padding:12px 18px;font:700 14px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);">{{ t.cta }}</button>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:0 clamp(16px,4vw,48px) 72px;max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:24px;">
+    <div style="background:var(--surface-story);color:var(--text-story);padding:28px;box-shadow:var(--notch-outline),var(--shadow-drop-lg),inset 0 0 0 3px var(--parchment-400);margin:3px;display:flex;flex-direction:column;gap:12px;">
+      <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--ember-700);">THE STORY</span>
+      <p style="margin:0;font:18px/1.6 var(--font-body);text-wrap:pretty;">The Oracle of Latentia knows almost everything — and believes the rest. A fog called the Hallucinant has crept into every realm. The Sigmorai are builders who bind the Oracle to tools, memory and truth. You are their newest apprentice.</p>
+    </div>
+    <div style="background:var(--surface-2);padding:28px;box-shadow:var(--notch-outline),var(--shadow-drop);margin:3px;display:flex;flex-direction:column;gap:16px;">
+      <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">HOW YOU PASS A LEVEL</span>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;gap:14px;align-items:baseline;"><span style="font:12px var(--font-hud);color:var(--spark-500);flex:none;">01</span><span style="font:16px/1.5 var(--font-body);">Read a short lesson sourced from the official docs.</span></div>
+        <div style="display:flex;gap:14px;align-items:baseline;"><span style="font:12px var(--font-hud);color:var(--spark-500);flex:none;">02</span><span style="font:16px/1.5 var(--font-body);">Solve the challenge in the in-browser editor.</span></div>
+        <div style="display:flex;gap:14px;align-items:baseline;"><span style="font:12px var(--font-hud);color:var(--spark-500);flex:none;">03</span><span style="font:16px/1.5 var(--font-body);">Pass every test to clear the level and unlock the next.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top:3px solid var(--ink-800);padding:24px clamp(16px,4vw,48px);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font:11px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">
+    <span>SIGMORAI.COM</span><span>LEARN · BUILD · ASCEND</span>
+  </footer>
+</sc-if>
+
+<sc-if value="{{ isAuth }}" hint-placeholder-val="{{ false }}">
+  <div style="position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 16px;overflow:hidden;">
+    <img src="../../assets/scenes/00-bootstrap-village.svg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;">
+    <div style="position:absolute;inset:0;background:var(--scanlines);"></div>
+    <div style="position:relative;width:100%;max-width:440px;display:flex;flex-direction:column;gap:20px;">
+      <button onClick="{{ goLanding }}" style="align-self:center;display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--ink-100);cursor:pointer;">
+        <img src="../../assets/logo/sigmorai-mark.svg" alt="" width="40" height="40">
+        <span style="font:700 26px var(--font-display);">SIGMORAI</span>
+      </button>
+      <div style="position:relative;background:var(--surface-2);padding:32px 24px 24px;box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;display:flex;flex-direction:column;gap:18px;">
+        <div style="position:absolute;top:-14px;left:16px;background:var(--ember-500);color:var(--ink-950);font:12px var(--font-hud);letter-spacing:.06em;padding:4px 10px;box-shadow:var(--notch-outline);">{{ authTitle }}</div>
+        <div style="display:flex;gap:6px;">
+          <button onClick="{{ setRegister }}" style="flex:1;background:{{ regTabBg }};color:{{ regTabFg }};border:0;padding:10px;font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;box-shadow:var(--notch-outline);">NEW HERO</button>
+          <button onClick="{{ setSignIn }}" style="flex:1;background:{{ signTabBg }};color:{{ signTabFg }};border:0;padding:10px;font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;box-shadow:var(--notch-outline);">RETURNING</button>
+        </div>
+        <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:16px;align-items:center;">
+            <div style="width:64px;height:64px;padding:4px;background:var(--ink-950);box-shadow:0 0 0 3px var(--ember-500);flex:none;display:grid;grid-template-columns:repeat(8,1fr);">
+              <sc-for list="{{ avatarCells }}" as="c" hint-placeholder-count="64"><div style="background:{{ c }};"></div></sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-2);">YOUR SPRITE</span>
+              <span style="font:14px/1.4 var(--font-body);color:var(--text-3);">Generated from your hero name. Upload a photo later in your profile.</span>
+            </div>
+          </div>
+          <label style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-2);">HERO NAME</span>
+            <input value="{{ heroName }}" onChange="{{ onHeroName }}" style="background:var(--ink-950);color:var(--text-1);border:0;padding:12px 14px;font:16px var(--font-body);box-shadow:inset 3px 3px 0 rgba(0,0,0,.5),0 0 0 3px var(--ink-600);" style-focus="box-shadow:inset 3px 3px 0 rgba(0,0,0,.5),0 0 0 3px var(--spark-500);">
+          </label>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-2);">CHOOSE YOUR PATH</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <sc-for list="{{ trackCards }}" as="t" hint-placeholder-count="2">
+                <button onClick="{{ t.go }}" style="text-align:left;background:{{ t.bg }};color:var(--text-1);border:0;padding:12px;cursor:pointer;box-shadow:0 0 0 3px {{ t.ring }};display:flex;flex-direction:column;gap:6px;">
+                  <span style="font:10px var(--font-hud);letter-spacing:.06em;color:{{ t.color }};">{{ t.label }}</span>
+                  <span style="font:13px/1.4 var(--font-body);color:var(--text-2);">{{ t.short }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-2);">EMAIL</span>
+          <input type="email" placeholder="you@example.com" style="background:var(--ink-950);color:var(--text-1);border:0;padding:12px 14px;font:16px var(--font-body);box-shadow:inset 3px 3px 0 rgba(0,0,0,.5),0 0 0 3px var(--ink-600);" style-focus="box-shadow:inset 3px 3px 0 rgba(0,0,0,.5),0 0 0 3px var(--spark-500);">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-2);">PASSWORD</span>
+          <input type="password" placeholder="••••••••" style="background:var(--ink-950);color:var(--text-1);border:0;padding:12px 14px;font:16px var(--font-body);box-shadow:inset 3px 3px 0 rgba(0,0,0,.5),0 0 0 3px var(--ink-600);" style-focus="box-shadow:inset 3px 3px 0 rgba(0,0,0,.5),0 0 0 3px var(--spark-500);">
+        </label>
+        <button onClick="{{ goDash }}" style="width:100%;background:var(--ember-500);color:var(--ink-950);border:0;padding:14px;font:700 16px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);box-shadow:var(--bevel-pressed),var(--notch-outline);">{{ authCta }}</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onClick="{{ goMap }}" style="flex:1;min-width:140px;background:var(--ink-600);color:var(--ink-100);border:0;padding:10px;font:700 13px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">GitHub</button>
+          <button onClick="{{ goMap }}" style="flex:1;min-width:140px;background:var(--ink-600);color:var(--ink-100);border:0;padding:10px;font:700 13px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">Google</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ inApp }}" hint-placeholder-val="{{ false }}">
+  <div style="position:sticky;top:0;z-index:5;background:var(--ink-900);border-bottom:3px solid var(--ink-950);box-shadow:0 3px 0 var(--ink-800);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px clamp(12px,3vw,32px);">
+    <button onClick="{{ goLanding }}" style="display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--ink-100);cursor:pointer;padding:0;">
+      <img src="../../assets/logo/sigmorai-mark.svg" alt="" width="32" height="32">
+      <span style="font:700 18px var(--font-display);">SIGMORAI</span>
+    </button>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;">
+      <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="4">
+        <button onClick="{{ n.go }}" style="background:{{ n.bg }};color:{{ n.fg }};border:0;padding:8px 12px;font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;">{{ n.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="display:flex;gap:2px;padding:3px;background:var(--ink-950);"><sc-for list="{{ trackTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.go }}" style="background:{{ t.bg }};color:{{ t.fg }};border:0;padding:6px 10px;font:10px var(--font-hud);letter-spacing:.06em;cursor:pointer;">{{ t.label }}</button></sc-for></div>
+      <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--spark-500);">XP {{ xpLabel }}</span>
+      <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--glitch-300);">STREAK 14</span>
+      <button onClick="{{ goProfile }}" style="width:36px;height:36px;padding:3px;background:var(--ink-950);border:0;box-shadow:0 0 0 2px var(--ember-500);cursor:pointer;display:grid;grid-template-columns:repeat(8,1fr);">
+        <sc-for list="{{ avatarCells }}" as="c" hint-placeholder-count="64"><div style="background:{{ c }};"></div></sc-for>
+      </button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isDash }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:1280px;margin:0 auto;padding:24px clamp(12px,3vw,32px) 64px;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+    <div style="flex:3 1 560px;min-width:0;display:flex;flex-direction:column;gap:24px;">
+      <section style="position:relative;min-height:200px;box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;overflow:hidden;display:flex;align-items:flex-end;">
+        <img src="../../assets/levels/realm-02.svg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;">
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,9,19,.85) 0 40%,rgba(10,9,19,.15) 80%);"></div>
+        <div style="position:absolute;inset:0;background:var(--scanlines);"></div>
+        <div style="position:relative;padding:24px;display:flex;flex-direction:column;gap:8px;">
+          <span style="font:11px var(--font-hud);letter-spacing:.08em;color:var(--spark-500);text-shadow:2px 2px 0 #0A0913;">WELCOME BACK</span>
+          <h1 style="margin:0;font:700 clamp(28px,4vw,40px)/1.05 var(--font-display);text-shadow:3px 3px 0 #0A0913;">Hi, {{ heroName }}</h1>
+          <span style="font:16px/1.5 var(--font-body);color:var(--ink-200);text-shadow:2px 2px 0 #0A0913;">The forge is still warm. One more quest unlocks The Tool Loop.</span>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px;">
+        <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">CONTINUE LEARNING</span>
+        <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;background:var(--surface-2);padding:18px;box-shadow:var(--notch-outline),var(--shadow-drop);margin:3px;">
+          <img src="../../assets/levels/realm-02.svg" alt="" style="width:180px;max-width:100%;aspect-ratio:16/9;object-fit:cover;image-rendering:pixelated;box-shadow:0 0 0 3px var(--ink-950);">
+          <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:8px;">
+            <span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--realm-2);">{{ cont.tag }}</span>
+            <span style="font:600 22px/1.2 var(--font-display);">{{ cont.title }}</span>
+            <div style="height:10px;background:var(--ink-950);padding:2px;"><div style="height:100%;width:33%;background:var(--realm-2);"></div></div>
+            <span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">2 / 6 QUESTS CLEARED</span>
+          </div>
+          <button onClick="{{ openQuest }}" style="background:var(--ember-500);color:var(--ink-950);border:0;padding:12px 18px;font:700 15px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);">Continue</button>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">YOUR REALMS</span>
+          <button onClick="{{ goRealms }}" style="background:none;border:0;color:var(--spark-500);font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;">BROWSE ALL ▸</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;">
+          <sc-for list="{{ enrolled }}" as="r" hint-placeholder-count="3">
+            <button onClick="{{ r.open }}" style="text-align:left;background:var(--surface-2);color:var(--text-1);border:0;padding:0;cursor:pointer;box-shadow:var(--notch-outline),var(--shadow-drop);margin:3px;display:flex;flex-direction:column;">
+              <img src="{{ r.scene }}" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;image-rendering:pixelated;">
+              <div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;width:100%;box-sizing:border-box;">
+                <span style="font:600 17px/1.2 var(--font-display);">{{ r.name }}</span>
+                <div style="height:8px;background:var(--ink-950);padding:2px;"><div style="height:100%;width:{{ r.pct }}%;background:{{ r.color }};"></div></div>
+                <span style="font:9px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ r.state }}</span>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+
+    <aside style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:22px;">
+      <div style="position:relative;background:var(--surface-2);padding:26px 18px 18px;box-shadow:var(--notch-outline),var(--shadow-drop);margin:3px;display:flex;flex-direction:column;gap:14px;">
+        <div style="position:absolute;top:-14px;left:16px;background:var(--ember-500);color:var(--ink-950);font:12px var(--font-hud);letter-spacing:.06em;padding:4px 10px;box-shadow:var(--notch-outline);">STATS</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <span style="font:700 24px var(--font-display);color:{{ s.color }};">{{ s.value }}</span>
+              <span style="font:9px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ s.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;background:var(--surface-story);color:var(--text-story);padding:18px;box-shadow:var(--notch-outline),var(--shadow-drop),inset 0 0 0 3px var(--parchment-400);margin:3px;">
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--ember-700);">DAILY QUEST</span>
+          <p style="margin:0;font:15px/1.5 var(--font-body);">Clear one level today to keep your 14-day streak burning.</p>
+        </div>
+      </div>
+      <div style="background:var(--surface-2);padding:18px;box-shadow:var(--notch-outline);margin:3px;display:flex;flex-direction:column;gap:10px;">
+        <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--rune-300);">MATH TOWER · FLOOR 4</span>
+        <span style="font:15px/1.5 var(--font-body);color:var(--text-2);">Softmax &amp; temperature is open.</span>
+        <button onClick="{{ goMath }}" style="align-self:flex-start;background:var(--rune-500);color:var(--ink-950);border:0;padding:8px 14px;font:700 12px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">Climb</button>
+      </div>
+    </aside>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isRealms }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:1280px;margin:0 auto;padding:24px clamp(12px,3vw,32px) 64px;display:flex;flex-direction:column;gap:22px;">
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">ALL REALMS</span>
+      <h1 style="margin:0;font:700 clamp(28px,4vw,40px)/1.1 var(--font-display);">Explore realms · {{ trackName }} path</h1>
+      <p style="margin:0;font:16px/1.6 var(--font-body);color:var(--text-2);max-width:60ch;">Every realm is a course: six quests and a boss, sourced from official docs and well-known open-source repos.</p>
+    </div>
+    <div style="display:flex;gap:2px;padding:3px;background:var(--ink-950);align-self:flex-start;"><sc-for list="{{ trackTabs }}" as="t" hint-placeholder-count="2"><button onClick="{{ t.go }}" style="background:{{ t.bg }};color:{{ t.fg }};border:0;padding:8px 14px;font:10px var(--font-hud);letter-spacing:.06em;cursor:pointer;">{{ t.label }}</button></sc-for></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <sc-for list="{{ levelFilters }}" as="f" hint-placeholder-count="4">
+        <button onClick="{{ f.go }}" style="background:{{ f.bg }};color:{{ f.fg }};border:0;padding:8px 14px;font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;box-shadow:var(--notch-outline);">{{ f.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px;">
+      <sc-for list="{{ catalog }}" as="r" hint-placeholder-count="6">
+        <div style="background:var(--surface-2);box-shadow:var(--notch-outline),var(--shadow-drop);margin:3px;display:flex;flex-direction:column;">
+          <img src="{{ r.scene }}" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;image-rendering:pixelated;">
+          <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1;">
+            <div style="display:flex;justify-content:space-between;gap:8px;"><span style="font:10px var(--font-hud);letter-spacing:.06em;color:{{ r.color }};">{{ r.tag }}</span><span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ r.level }}</span></div>
+            <span style="font:600 20px/1.2 var(--font-display);">{{ r.name }}</span>
+            <span style="font:14px/1.45 var(--font-body);color:var(--text-2);flex:1;">{{ r.topic }}</span>
+            <div style="display:flex;gap:12px;font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);"><span>7 QUESTS</span><span style="color:var(--spark-500);">{{ r.xp }} XP</span></div>
+            <button onClick="{{ r.open }}" style="align-self:flex-start;margin-top:4px;background:{{ r.btnBg }};color:{{ r.btnFg }};border:0;padding:8px 14px;font:700 12px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">{{ r.cta }}</button>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:1200px;margin:0 auto;padding:24px clamp(12px,3vw,32px) 64px;display:flex;flex-direction:column;gap:24px;">
+    <button onClick="{{ goRealms }}" style="align-self:flex-start;background:none;border:0;color:var(--text-2);font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;padding:0;">◂ ALL REALMS</button>
+    <section style="position:relative;min-height:260px;box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;overflow:hidden;display:flex;align-items:flex-end;">
+      <img src="{{ realm.scene }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;">
+      <div style="position:absolute;inset:0;background:var(--scanlines);"></div>
+      <div style="position:relative;padding:24px;display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end;justify-content:space-between;width:100%;box-sizing:border-box;">
+        <div style="display:flex;flex-direction:column;gap:8px;max-width:620px;">
+          <span style="font:11px var(--font-hud);letter-spacing:.08em;color:{{ realm.color }};text-shadow:2px 2px 0 #0A0913;">{{ realm.tag }} · {{ realm.level }}</span>
+          <h1 style="margin:0;font:700 clamp(28px,4vw,44px)/1.05 var(--font-display);text-shadow:3px 3px 0 #0A0913;">{{ realm.name }}</h1>
+          <span style="font:16px/1.5 var(--font-body);color:var(--ink-200);text-shadow:2px 2px 0 #0A0913;">{{ realm.topic }}</span>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;font:11px var(--font-hud);letter-spacing:.06em;color:var(--ink-100);text-shadow:2px 2px 0 #0A0913;"><span>7 QUESTS</span><span>~3 HOURS</span><span style="color:var(--spark-500);">{{ realm.xp }} XP</span></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onClick="{{ goMap }}" style="background:var(--ink-700);color:var(--ink-100);border:0;padding:12px 16px;font:700 14px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">View on map</button>
+          <button onClick="{{ openQuest }}" style="background:var(--ember-500);color:var(--ink-950);border:0;padding:12px 18px;font:700 14px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);">{{ realm.cta }}</button>
+        </div>
+      </div>
+    </section>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+      <section style="flex:2 1 520px;min-width:0;display:flex;flex-direction:column;gap:12px;">
+        <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">CHAPTERS</span>
+        <sc-for list="{{ chapters }}" as="c" hint-placeholder-count="7">
+          <div style="background:var(--surface-2);box-shadow:var(--notch-outline);margin:3px;display:flex;flex-direction:column;">
+            <button onClick="{{ c.toggle }}" style="display:flex;gap:14px;align-items:center;background:none;border:0;color:var(--text-1);padding:14px 16px;cursor:pointer;text-align:left;width:100%;">
+              <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;background:{{ c.bg }};color:{{ c.fg }};font:700 14px var(--font-display);box-shadow:var(--bevel),var(--notch-outline);">{{ c.glyph }}</span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;"><span style="font:600 17px/1.2 var(--font-display);">{{ c.name }}</span><span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ c.meta }}</span></span>
+              <span style="font:12px var(--font-hud);color:var(--text-3);">{{ c.chev }}</span>
+            </button>
+            <sc-if value="{{ c.open }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:0 16px 14px 62px;">
+                <sc-for list="{{ c.exercises }}" as="e" hint-placeholder-count="3">
+                  <button onClick="{{ e.go }}" style="display:flex;justify-content:space-between;gap:10px;background:var(--ink-950);color:{{ e.color }};border:0;padding:10px 12px;cursor:pointer;text-align:left;font:14px var(--font-body);">
+                    <span>{{ e.name }}</span><span style="font:10px var(--font-hud);letter-spacing:.06em;">{{ e.state }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </section>
+      <aside style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:20px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;background:var(--surface-story);color:var(--text-story);padding:18px;box-shadow:var(--notch-outline),var(--shadow-drop),inset 0 0 0 3px var(--parchment-400);margin:3px;">
+          <div style="display:flex;flex-direction:column;gap:6px;"><span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--ember-700);">{{ realm.npc }}</span><p style="margin:0;font:15px/1.55 var(--font-body);">{{ realm.lore }}</p></div>
+        </div>
+        <div style="background:var(--surface-2);padding:18px;box-shadow:var(--notch-outline);margin:3px;display:flex;flex-direction:column;gap:10px;">
+          <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">BUILT FROM</span>
+          <sc-for list="{{ sources }}" as="s" hint-placeholder-count="3">
+            <div style="display:flex;gap:10px;align-items:center;"><span style="background:{{ s.color }};color:var(--ink-950);font:9px/1 var(--font-hud);padding:4px 6px;">{{ s.kind }}</span><span style="font:14px var(--font-body);color:var(--text-2);">{{ s.url }}</span></div>
+          </sc-for>
+        </div>
+      </aside>
+    </div>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isBoard }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:900px;margin:0 auto;padding:24px clamp(12px,3vw,32px) 64px;display:flex;flex-direction:column;gap:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">HALL OF THE SIGMORAI</span>
+        <h1 style="margin:0;font:700 clamp(28px,4vw,40px)/1.1 var(--font-display);">Leaderboard</h1>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <sc-for list="{{ boardTabs }}" as="t" hint-placeholder-count="3">
+          <button onClick="{{ t.go }}" style="background:{{ t.bg }};color:{{ t.fg }};border:0;padding:8px 14px;font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;box-shadow:var(--notch-outline);">{{ t.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <sc-for list="{{ board }}" as="p" hint-placeholder-count="8">
+        <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;background:{{ p.bg }};box-shadow:var(--notch-outline){{ p.ring }};margin:3px;">
+          <span style="width:36px;font:700 20px var(--font-display);color:{{ p.rankColor }};">{{ p.rank }}</span>
+          <div style="width:40px;height:40px;padding:3px;background:var(--ink-950);flex:none;display:grid;grid-template-columns:repeat(8,1fr);">
+            <sc-for list="{{ p.cells }}" as="c" hint-placeholder-count="64"><div style="background:{{ c }};"></div></sc-for>
+          </div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+            <span style="font:600 17px var(--font-display);">{{ p.name }}</span>
+            <span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ p.realm }}</span>
+          </div>
+          <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--glitch-300);">{{ p.streak }}</span>
+          <span style="font:13px var(--font-hud);letter-spacing:.06em;color:var(--spark-500);min-width:96px;text-align:right;">{{ p.xp }} XP</span>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:1280px;margin:0 auto;padding:24px clamp(12px,3vw,32px) 64px;display:flex;flex-direction:column;gap:24px;">
+    <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--surface-2);padding:12px 16px;box-shadow:var(--notch-outline),inset 6px 0 0 var(--ember-500);margin:3px;">
+      <span style="background:var(--ember-500);color:var(--ink-950);font:11px/1 var(--font-hud);letter-spacing:.06em;padding:5px 8px;">NEW LEVEL</span>
+      <span style="font:15px/1.4 var(--font-body);flex:1;min-width:220px;">“Tool search” was added to Tool Forge — detected in the Anthropic docs changelog 2 days ago.</span>
+      <button onClick="{{ openQuest }}" style="background:none;border:0;color:var(--spark-500);font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;">PLAY ▸</button>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;">
+      <section style="flex:1 1 100%;min-width:0;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font:11px var(--font-hud);letter-spacing:.08em;color:{{ realm.color }};">{{ realm.tag }} · WORLD {{ realm.worldNo }}</span>
+            <h1 style="margin:0;font:700 clamp(28px,4vw,40px)/1.05 var(--font-display);">{{ realm.name }}</h1>
+            <span style="font:15px/1.4 var(--font-body);color:var(--text-2);">{{ realm.topic }}</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button onClick="{{ prevRealm }}" style="background:var(--ink-700);color:var(--ink-100);border:0;width:40px;height:40px;font:700 16px var(--font-display);cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">◂</button>
+            <span style="background:var(--ink-950);color:var(--ink-100);font:11px var(--font-hud);letter-spacing:.06em;padding:10px 12px;box-shadow:var(--notch-outline);">{{ realm.progressLabel }}</span>
+            <button onClick="{{ nextRealm }}" style="background:var(--ink-700);color:var(--ink-100);border:0;width:40px;height:40px;font:700 16px var(--font-display);cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">▸</button>
+          </div>
+        </div>
+        <div ref="{{ levelRef }}" style="position:relative;overflow-x:auto;overflow-y:hidden;box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;background:var(--ink-950);scrollbar-color:#57518C #0A0913;">
+          <div style="position:relative;width:2048px;height:480px;">
+            <img src="{{ realm.levelImg }}" alt="" style="position:absolute;inset:0;width:2048px;height:480px;image-rendering:pixelated;display:block;">
+            <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="7">
+              <button onClick="{{ n.go }}" aria-label="{{ n.label }}" style="position:absolute;left:{{ n.left }}px;top:{{ n.top }}px;width:{{ n.w }}px;height:{{ n.h }}px;background:none;border:0;padding:0;cursor:pointer;">
+                <span style="position:absolute;left:{{ n.flagX }}px;top:12px;width:48px;height:34px;background:{{ n.flagBg }};clip-path:polygon(0 0,100% 0,100% 12%,88% 12%,88% 24%,76% 24%,76% 36%,64% 36%,64% 64%,76% 64%,76% 76%,88% 76%,88% 88%,100% 88%,100% 100%,0 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.35);display:flex;align-items:center;padding-left:8px;box-sizing:border-box;font:700 16px var(--font-display);color:var(--ink-950);">{{ n.glyph }}</span>
+                <span style="position:absolute;left:50%;bottom:{{ n.labelBottom }}px;transform:translateX(-50%);white-space:nowrap;font:10px var(--font-hud);letter-spacing:.06em;color:{{ n.labelFg }};background:{{ n.labelBg }};padding:4px 7px;box-shadow:var(--notch-outline);">{{ n.label }}</span>
+              </button>
+            </sc-for>
+            {{ actors }}
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--surface-2);padding:14px 16px;box-shadow:var(--notch-outline),var(--shadow-drop),inset 6px 0 0 {{ sel.color }};margin:3px;">
+          <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:4px;padding-left:6px;">
+            <span style="font:10px var(--font-hud);letter-spacing:.06em;color:{{ sel.color }};">{{ sel.tag }}</span>
+            <span style="font:600 20px/1.2 var(--font-display);">{{ sel.name }}</span>
+            <span style="font:14px/1.4 var(--font-body);color:var(--text-2);">{{ sel.hint }}</span>
+          </div>
+          <button onClick="{{ sel.go }}" style="background:{{ sel.btnBg }};color:{{ sel.btnFg }};border:0;padding:12px 18px;font:700 15px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);">{{ sel.cta }}</button>
+        </div>
+      </section>
+
+      <aside style="flex:1 1 300px;display:flex;flex-direction:column;gap:22px;min-width:0;">
+        <div style="display:flex;gap:14px;align-items:flex-start;background:var(--surface-story);color:var(--text-story);padding:18px;box-shadow:var(--notch-outline),var(--shadow-drop-lg),inset 0 0 0 3px var(--parchment-400);margin:3px;">
+          <img src="../../assets/logo/sigmorai-glyph.svg" alt="" width="36" style="flex:none;margin-top:4px;">
+          <div style="display:flex;flex-direction:column;gap:8px;min-width:0;">
+            <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--ember-700);">{{ realm.npc }}</span>
+            <p style="margin:0;font:16px/1.55 var(--font-body);text-wrap:pretty;">{{ realm.lore }}</p>
+          </div>
+        </div>
+        <div style="position:relative;background:var(--surface-2);padding:26px 18px 18px;box-shadow:var(--notch-outline),var(--shadow-drop);margin:3px;display:flex;flex-direction:column;gap:14px;">
+          <div style="position:absolute;top:-14px;left:16px;background:var(--spark-500);color:var(--ink-950);font:12px var(--font-hud);letter-spacing:.06em;padding:4px 10px;box-shadow:var(--notch-outline);">NEXT QUEST</div>
+          <span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--realm-2);">{{ cont.tag }}</span>
+          <span style="font:600 22px/1.2 var(--font-display);">{{ cont.title }}</span>
+          <span style="font:14px/1.5 var(--font-body);color:var(--text-2);">{{ cont.desc }}</span>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);"><span style="color:var(--spark-500);">+150 XP</span><span>12 MIN</span><span>3 TESTS</span></div>
+          <button onClick="{{ openQuest }}" style="background:var(--ember-500);color:var(--ink-950);border:0;padding:12px;font:700 15px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);">Start quest</button>
+        </div>
+      </aside>
+    </div>
+
+    <section style="display:flex;flex-direction:column;gap:14px;">
+      <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">ALL REALMS</span>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;">
+        <sc-for list="{{ realmTiles }}" as="r" hint-placeholder-count="10">
+          <button onClick="{{ r.pick }}" style="text-align:left;background:var(--surface-2);color:var(--text-1);border:0;padding:0;cursor:pointer;box-shadow:var(--notch-outline){{ r.ring }};margin:3px;display:flex;flex-direction:column;opacity:{{ r.opacity }};">
+            <img src="{{ r.scene }}" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;display:block;image-rendering:pixelated;">
+            <div style="padding:10px;display:flex;flex-direction:column;gap:6px;width:100%;box-sizing:border-box;">
+              <span style="font:600 14px/1.2 var(--font-display);">{{ r.name }}</span>
+              <div style="height:8px;background:var(--ink-950);padding:2px;"><div style="height:100%;width:{{ r.pct }}%;background:{{ r.color }};"></div></div>
+              <span style="font:9px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ r.state }}</span>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isQuestTech }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:1320px;margin:0 auto;padding:20px clamp(12px,3vw,32px) 64px;display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button onClick="{{ goMap }}" style="background:none;border:0;color:var(--text-2);font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;padding:0;">◂ MAP</button>
+      <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--realm-2);">TOOL FORGE · LEVEL 03</span>
+      <span style="flex:1;"></span>
+      <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">SOURCES SYNCED 3 DAYS AGO</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px;align-items:start;">
+      <section style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+        <h1 style="margin:0;font:700 clamp(28px,4vw,40px)/1.1 var(--font-display);">De&zwnj;fine your &zwnj;first tool</h1>
+        <div style="display:flex;gap:14px;align-items:flex-start;background:var(--surface-story);color:var(--text-story);padding:16px 18px;box-shadow:var(--notch-outline),var(--shadow-drop),inset 0 0 0 3px var(--parchment-400);margin:3px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--ember-700);">SMITH KORREN</span>
+            <p style="margin:0;font:16px/1.55 var(--font-body);">A tool is a promise. Describe it truthfully, and the Oracle will reach for it at the right moment. Describe it badly, and the fog fills the gap.</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <sc-for list="{{ lessonTabs }}" as="t" hint-placeholder-count="2">
+            <button onClick="{{ t.go }}" style="background:{{ t.bg }};color:{{ t.fg }};border:0;padding:8px 14px;font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;box-shadow:var(--notch-outline);">{{ t.label }}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ tabLesson }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:16px;max-width:68ch;font:17px/1.65 var(--font-body);color:var(--ink-200);">
+            <p style="margin:0;text-wrap:pretty;">Models don’t run code. When you give one a tool, you’re giving it a <strong style="color:var(--ink-100);">name</strong>, a <strong style="color:var(--ink-100);">description</strong> and an <strong style="color:var(--ink-100);">input schema</strong>. If the model decides the tool helps, it replies with a request to call it — your code runs the function and sends the result back.</p>
+            <p style="margin:0;text-wrap:pretty;">The schema is plain JSON Schema. Mark the fields the model must always fill as <code style="font:15px var(--font-code);color:var(--spark-300);background:var(--ink-950);padding:2px 6px;">required</code>, or it may leave them out.</p>
+            <pre style="margin:0;background:var(--ink-950);box-shadow:0 0 0 3px var(--ink-700);padding:16px;font:14px/1.6 var(--font-code);color:var(--ink-200);overflow:auto;">tools = [{
+  "name": "get_stock_price",
+  "description": "Latest price for a ticker symbol.",
+  "input_schema": {
+    "type": "object",
+    "properties": { "ticker": { "type": "string" } },
+    "required": ["ticker"]
+  }
+}]</pre>
+            <p style="margin:0;text-wrap:pretty;">OpenAI calls the same idea <em>function calling</em> and names the field <code style="font:15px var(--font-code);color:var(--spark-300);background:var(--ink-950);padding:2px 6px;">parameters</code>. The shape is the same.</p>
+          </div>
+        </sc-if>
+        <sc-if value="{{ tabSources }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <sc-for list="{{ sources }}" as="s" hint-placeholder-count="3">
+              <div style="display:flex;gap:12px;align-items:center;background:var(--surface-2);padding:12px 14px;box-shadow:var(--notch-outline);margin:3px;flex-wrap:wrap;">
+                <span style="background:{{ s.color }};color:var(--ink-950);font:10px/1 var(--font-hud);letter-spacing:.06em;padding:5px 8px;">{{ s.kind }}</span>
+                <span style="font:15px var(--font-body);flex:1;min-width:180px;">{{ s.title }}</span>
+                <span style="font:12px var(--font-code);color:var(--text-3);">{{ s.url }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px;min-width:0;position:sticky;top:76px;">
+        <div style="position:relative;background:var(--surface-1);box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;display:flex;flex-direction:column;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:var(--ink-800);flex-wrap:wrap;">
+            <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-2);">CHALLENGE · weather_tool.py</span>
+            <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--glitch-300);">HP {{ hpLabel }}</span>
+          </div>
+          <p style="margin:0;padding:12px 14px 0;font:14px/1.5 var(--font-body);color:var(--text-2);">Define <code style="font:13px var(--font-code);color:var(--spark-300);">get_weather</code>. It takes a required <code style="font:13px var(--font-code);color:var(--spark-300);">location</code> string.</p>
+          <textarea value="{{ code }}" onChange="{{ onCode }}" spellcheck="false" style="margin:12px 14px;min-height:300px;resize:vertical;background:var(--ink-950);color:var(--ink-100);border:0;padding:14px;font:14px/1.6 var(--font-code);box-shadow:inset 3px 3px 0 rgba(0,0,0,.6),0 0 0 3px var(--ink-700);tab-size:2;"></textarea>
+          <div style="display:flex;gap:10px;padding:0 14px 14px;flex-wrap:wrap;">
+            <button onClick="{{ runTests }}" style="flex:1;min-width:140px;background:var(--mint-500);color:var(--ink-950);border:0;padding:12px;font:700 15px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);">▸ Run tests</button>
+            <button onClick="{{ resetCode }}" style="background:var(--ink-600);color:var(--ink-100);border:0;padding:12px 16px;font:700 13px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">Reset</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <sc-for list="{{ tests }}" as="t" hint-placeholder-count="3">
+            <div style="display:flex;gap:12px;align-items:baseline;padding:10px 12px;background:var(--ink-950);font:13px/1.5 var(--font-code);color:var(--ink-200);">
+              <span style="flex:none;background:{{ t.color }};color:var(--ink-950);font:10px/1 var(--font-hud);padding:4px 6px;">{{ t.badge }}</span>
+              <span style="display:flex;flex-direction:column;min-width:0;"><span>{{ t.name }}</span><span style="color:var(--glitch-300);">{{ t.detail }}</span></span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:var(--ink-950);box-shadow:0 0 0 3px var(--ink-700);margin:3px;display:flex;flex-direction:column;">
+          <div style="display:flex;gap:4px;padding:6px;background:var(--ink-800);">
+            <sc-for list="{{ outTabs }}" as="t" hint-placeholder-count="2">
+              <button onClick="{{ t.go }}" style="background:{{ t.bg }};color:{{ t.fg }};border:0;padding:6px 12px;font:10px var(--font-hud);letter-spacing:.06em;cursor:pointer;">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ outConsole }}" hint-placeholder-val="{{ true }}">
+            <pre style="margin:0;padding:12px 14px;min-height:72px;font:13px/1.6 var(--font-code);color:var(--ink-300);white-space:pre-wrap;">{{ consoleText }}</pre>
+          </sc-if>
+          <sc-if value="{{ outMentor }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ mentorMsgs }}" as="m" hint-placeholder-count="1">
+                <div style="display:flex;flex-direction:column;gap:4px;align-self:{{ m.align }};max-width:90%;background:{{ m.bg }};padding:10px 12px;">
+                  <span style="font:10px var(--font-hud);letter-spacing:.06em;color:{{ m.who_color }};">{{ m.who }}</span>
+                  <span style="font:14px/1.5 var(--font-body);color:var(--ink-100);">{{ m.text }}</span>
+                </div>
+              </sc-for>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <sc-for list="{{ mentorPrompts }}" as="p" hint-placeholder-count="3">
+                  <button onClick="{{ p.go }}" style="background:var(--surface-2);color:var(--byte-300);border:0;padding:6px 10px;font:13px var(--font-body);cursor:pointer;box-shadow:0 0 0 2px var(--ink-600);">{{ p.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+        <sc-if value="{{ cleared }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--surface-3);padding:14px 16px;box-shadow:var(--notch-outline),var(--shadow-drop),inset 6px 0 0 var(--spark-500);margin:3px;">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px;padding-left:6px;">
+              <span style="font:13px var(--font-hud);letter-spacing:.06em;color:var(--spark-500);">LEVEL CLEARED · +150 XP</span>
+              <span style="font:14px/1.4 var(--font-body);color:var(--text-2);">The forge glows brighter. Next: The tool loop.</span>
+            </div>
+            <button onClick="{{ claim }}" style="background:var(--spark-500);color:var(--ink-950);border:0;padding:10px 16px;font:700 14px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">Claim & continue</button>
+          </div>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isQuestBiz }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:1320px;margin:0 auto;padding:20px clamp(12px,3vw,32px) 64px;display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <button onClick="{{ goMap }}" style="background:none;border:0;color:var(--text-2);font:11px var(--font-hud);letter-spacing:.06em;cursor:pointer;padding:0;">◂ MAP</button>
+      <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--realm-2);">{{ cont.tag }}</span>
+      <span style="background:var(--spark-500);color:var(--ink-950);font:10px/1 var(--font-hud);letter-spacing:.06em;padding:4px 6px;">STRATEGIST</span>
+      <span style="flex:1;"></span>
+      <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">SOURCES SYNCED 3 DAYS AGO</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:24px;align-items:start;">
+      <section style="display:flex;flex-direction:column;gap:20px;min-width:0;">
+        <h1 style="margin:0;font:700 clamp(28px,4vw,40px)/1.1 var(--font-display);">{{ cont.title }}</h1>
+        <div style="display:flex;gap:14px;align-items:flex-start;background:var(--surface-story);color:var(--text-story);padding:16px 18px;box-shadow:var(--notch-outline),var(--shadow-drop),inset 0 0 0 3px var(--parchment-400);margin:3px;">
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--ember-700);">SMITH KORREN</span>
+            <p style="margin:0;font:16px/1.55 var(--font-body);">Not every ore is worth the fire. A good strategist picks the work where the Oracle is strong and a mistake is cheap.</p>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;max-width:68ch;font:17px/1.65 var(--font-body);color:var(--ink-200);">
+          <p style="margin:0;text-wrap:pretty;">A good first AI use case has three things: <strong style="color:var(--ink-100);">high volume</strong> (the work repeats often), <strong style="color:var(--ink-100);">clear success criteria</strong> (you can tell a good output from a bad one), and a <strong style="color:var(--ink-100);">low cost of error</strong> (a person reviews the output, or a mistake is easy to undo).</p>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;">
+            <div style="background:var(--surface-2);padding:12px;box-shadow:var(--notch-outline);margin:3px;display:flex;flex-direction:column;gap:4px;"><span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--mint-500);">VOLUME</span><span style="font:14px/1.4 var(--font-body);color:var(--text-2);">How often does it happen?</span></div>
+            <div style="background:var(--surface-2);padding:12px;box-shadow:var(--notch-outline);margin:3px;display:flex;flex-direction:column;gap:4px;"><span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--byte-500);">CLARITY</span><span style="font:14px/1.4 var(--font-body);color:var(--text-2);">Can you judge the output?</span></div>
+            <div style="background:var(--surface-2);padding:12px;box-shadow:var(--notch-outline);margin:3px;display:flex;flex-direction:column;gap:4px;"><span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--glitch-300);">RISK</span><span style="font:14px/1.4 var(--font-body);color:var(--text-2);">What does a mistake cost?</span></div>
+          </div>
+          <p style="margin:0;text-wrap:pretty;">Start with work that scores well on all three. Save high-risk, low-volume decisions for later, once you have evals and review steps in place.</p>
+        </div>
+      </section>
+
+      <section style="display:flex;flex-direction:column;gap:14px;min-width:0;">
+        <div style="background:var(--surface-1);box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;display:flex;flex-direction:column;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:var(--ink-800);flex-wrap:wrap;">
+            <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-2);">CASE FILE · NORTHWIND RETAIL</span>
+            <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--glitch-300);">HP {{ hpLabel }}</span>
+          </div>
+          <p style="margin:0;padding:14px 14px 4px;font:15px/1.55 var(--font-body);color:var(--text-2);">Northwind's support team handles 4,000 tickets a month. Leadership wants one AI pilot this quarter. Answer three questions to clear the level.</p>
+          <div style="display:flex;flex-direction:column;gap:18px;padding:14px;">
+            <sc-for list="{{ bizQs }}" as="q" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <span style="font:600 16px/1.35 var(--font-display);">{{ q.n }}. {{ q.text }}</span>
+                <sc-for list="{{ q.opts }}" as="o" hint-placeholder-count="3">
+                  <button onClick="{{ o.pick }}" style="display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:{{ o.bg }};color:var(--text-1);border:0;padding:11px 14px;cursor:pointer;font:15px/1.4 var(--font-body);box-shadow:0 0 0 3px {{ o.ring }};">
+                    <span style="width:16px;height:16px;flex:none;background:var(--ink-950);box-shadow:0 0 0 2px var(--ink-500);display:grid;place-items:center;"><span style="width:8px;height:8px;background:{{ o.dot }};"></span></span>{{ o.label }}
+                  </button>
+                </sc-for>
+                <sc-if value="{{ q.showWhy }}" hint-placeholder-val="{{ false }}">
+                  <span style="font:14px/1.5 var(--font-body);color:{{ q.whyColor }};">{{ q.why }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:10px;padding:0 14px 14px;flex-wrap:wrap;">
+            <button onClick="{{ checkBiz }}" style="flex:1;min-width:140px;background:var(--mint-500);color:var(--ink-950);border:0;padding:12px;font:700 15px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);" style-active="transform:translate(2px,2px);">▸ Submit answers</button>
+            <button onClick="{{ resetBiz }}" style="background:var(--ink-600);color:var(--ink-100);border:0;padding:12px 16px;font:700 13px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">Reset</button>
+          </div>
+        </div>
+        <sc-if value="{{ bizCleared }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--surface-3);padding:14px 16px;box-shadow:var(--notch-outline),var(--shadow-drop),inset 6px 0 0 var(--spark-500);margin:3px;">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px;padding-left:6px;">
+              <span style="font:13px var(--font-hud);letter-spacing:.06em;color:var(--spark-500);">LEVEL CLEARED · +150 XP</span>
+              <span style="font:14px/1.4 var(--font-body);color:var(--text-2);">Next: Build the business case.</span>
+            </div>
+            <button onClick="{{ claim }}" style="background:var(--spark-500);color:var(--ink-950);border:0;padding:10px 16px;font:700 14px var(--font-display);text-transform:uppercase;cursor:pointer;box-shadow:var(--bevel),var(--notch-outline);">Claim & continue</button>
+          </div>
+        </sc-if>
+      </section>
+    </div>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isMath }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:1200px;margin:0 auto;padding:24px clamp(12px,3vw,32px) 64px;display:flex;flex-direction:column;gap:24px;">
+    <section style="position:relative;min-height:280px;box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;overflow:hidden;display:flex;align-items:flex-end;">
+      <img src="../../assets/scenes/math-tower.svg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;">
+      <div style="position:absolute;inset:0;background:var(--scanlines);"></div>
+      <div style="position:relative;padding:24px;display:flex;flex-direction:column;gap:8px;max-width:620px;">
+        <span style="font:11px var(--font-hud);letter-spacing:.08em;color:var(--rune-300);text-shadow:2px 2px 0 #0A0913;">SIDE REALM · 8 FLOORS</span>
+        <h1 style="margin:0;font:700 clamp(28px,4vw,44px)/1.05 var(--font-display);text-shadow:3px 3px 0 #0A0913;">The Math Tower</h1>
+        <p style="margin:0;font:16px/1.55 var(--font-body);color:var(--ink-200);text-shadow:2px 2px 0 #0A0913;">The Numerist Oru keeps the math beneath the magic. Climb when you want to know why it works.</p>
+      </div>
+    </section>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+      <sc-for list="{{ floors }}" as="f" hint-placeholder-count="8">
+        <div style="background:var(--surface-2);padding:16px;box-shadow:var(--notch-outline),var(--shadow-drop);margin:3px;display:flex;flex-direction:column;gap:8px;opacity:{{ f.opacity }};">
+          <div style="display:flex;justify-content:space-between;gap:8px;"><span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--rune-300);">FLOOR {{ f.n }}</span><span style="font:10px var(--font-hud);letter-spacing:.06em;color:{{ f.stateColor }};">{{ f.state }}</span></div>
+          <span style="font:600 18px/1.2 var(--font-display);">{{ f.name }}</span>
+          <span style="font:14px/1.45 var(--font-body);color:var(--text-2);">{{ f.desc }}</span>
+          <span style="font:13px var(--font-code);color:var(--rune-300);">{{ f.formula }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+</sc-if>
+
+<sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+  <main style="max-width:1100px;margin:0 auto;padding:24px clamp(12px,3vw,32px) 64px;display:flex;flex-direction:column;gap:24px;">
+    <section style="position:relative;background:var(--surface-2);padding:28px 22px 22px;box-shadow:var(--notch-outline),var(--shadow-drop-lg);margin:3px;display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+      <div style="position:absolute;top:-14px;left:16px;background:var(--ember-500);color:var(--ink-950);font:12px var(--font-hud);letter-spacing:.06em;padding:4px 10px;box-shadow:var(--notch-outline);">PLAYER</div>
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+        <div style="position:relative;width:112px;height:112px;padding:6px;background:var(--ink-950);box-shadow:0 0 0 3px var(--ember-500);">
+          <sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}">
+            <img src="{{ photo }}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated;">
+          </sc-if>
+          <sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}">
+            <div style="width:100%;height:100%;display:grid;grid-template-columns:repeat(8,1fr);">
+              <sc-for list="{{ avatarCells }}" as="c" hint-placeholder-count="64"><div style="background:{{ c }};"></div></sc-for>
+            </div>
+          </sc-if>
+          <span style="position:absolute;right:-10px;bottom:-10px;background:var(--spark-500);color:var(--ink-950);font:11px/1 var(--font-hud);padding:5px 6px;box-shadow:var(--notch-outline);">LV7</span>
+        </div>
+        <label style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--byte-500);cursor:pointer;">UPLOAD PHOTO<input type="file" accept="image/*" onChange="{{ onPhoto }}" style="display:none;"></label>
+      </div>
+      <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <span style="font:700 32px/1.1 var(--font-display);">{{ heroName }}</span>
+          <span style="font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ pathTitle }} · JOINED MAR 2026</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;font:11px var(--font-hud);letter-spacing:.06em;color:var(--text-2);"><span>LV 7 → 8</span><span style="color:var(--spark-500);">{{ xpLabel }} / 14,000</span></div>
+          <div style="display:grid;grid-template-columns:repeat(20,1fr);gap:2px;padding:3px;background:var(--ink-950);height:16px;">
+            <sc-for list="{{ xpSegs }}" as="s" hint-placeholder-count="20"><div style="background:{{ s }};"></div></sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+        <div style="background:var(--surface-2);padding:16px;box-shadow:var(--notch-outline);margin:3px;display:flex;flex-direction:column;gap:6px;">
+          <span style="font:700 28px var(--font-display);color:{{ s.color }};">{{ s.value }}</span>
+          <span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);">{{ s.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <section style="display:flex;flex-direction:column;gap:12px;">
+      <span style="font:12px var(--font-hud);letter-spacing:.08em;color:var(--text-3);">REALM PROGRESS</span>
+      <sc-for list="{{ realmTiles }}" as="r" hint-placeholder-count="10">
+        <div style="display:grid;grid-template-columns:minmax(120px,200px) 1fr 90px;gap:14px;align-items:center;">
+          <span style="font:600 15px var(--font-display);">{{ r.name }}</span>
+          <div style="height:12px;background:var(--ink-950);padding:2px;"><div style="height:100%;width:{{ r.pct }}%;background:{{ r.color }};"></div></div>
+          <span style="font:10px var(--font-hud);letter-spacing:.06em;color:var(--text-3);text-align:right;">{{ r.state }}</span>
+        </div>
+      </sc-for>
+    </section>
+  </main>
+</sc-if>
+
+<sc-if value="{{ showToast }}" hint-placeholder-val="{{ false }}">
+  <div role="status" style="position:fixed;right:20px;bottom:20px;z-index:10;display:flex;flex-direction:column;gap:4px;background:var(--surface-3);padding:12px 16px 12px 22px;box-shadow:var(--notch-outline),var(--shadow-drop),inset 6px 0 0 var(--spark-500);max-width:320px;">
+    <span style="font:12px var(--font-hud);letter-spacing:.06em;color:var(--spark-500);">+150 XP</span>
+    <span style="font:14px/1.4 var(--font-body);color:var(--text-2);">Quest cleared: {{ cont.title }}</span>
+  </div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+const STARTER = `tools = [{
+  "name": "get_weather",
+  "description": "Current weather for a city.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "location": { "type": "string" }
+    }
+  }
+}]`;
+const BIZ = [
+  ['Bootstrap Village','AI literacy: what models can and can’t do, cost, and risk','00-bootstrap-village','--realm-0','ELDER MAREN','Before you lead the Sigmorai, learn what the Oracle truly is — and what it only pretends to be.',['What an LLM is','Strengths & limits','Hallucinations','Tokens = cost','Choosing a model','Data & privacy']],
+  ['Prompt Forest','Prompting for everyday work: briefs, examples, review','01-prompt-forest','--realm-1','RANGER ISO','A clear brief is a clear path. Write the Oracle a brief like you would a new hire.',['Write a brief','Give examples','Ask for structure','Review outputs','Prompt templates','Team playbooks']],
+  ['Tool Forge','Use-case discovery: find, score and pick AI opportunities','02-tool-forge-caverns','--realm-2','SMITH KORREN','Not every ore is worth the fire. Choose the work where the Oracle shines.',['Map the workflow','Spot repetition','Score a use case','Build vs buy','The business case','Pilot scope']],
+  ['Context Library','Knowledge & data: RAG for business, data readiness, access','03-context-library','--realm-3','ARCHIVIST VELA','The Oracle only knows what you let it read. Guard the library, and feed it well.',['Why context matters','Knowledge bases','Data readiness','Access & permissions','Freshness','Citations']],
+  ['Agent Citadel','Agents at work: autonomy levels, human review, no-code agents','04-agent-citadel','--realm-4','WARDEN TESS','An agent acts on your behalf. Decide how far it may walk before it must ask.',['What agents do','Autonomy levels','Human in the loop','No-code agents','Agent permissions','Failure modes']],
+  ['MCP Bridgelands','Integrations: connecting AI to your tools and vendors','05-mcp-bridgelands','--realm-5','BRIDGEKEEPER NAL','Bridges let the Oracle reach your systems. Choose which ones to build.',['Integration basics','MCP in plain words','Vendor landscape','Security review','Total cost','Lock-in']],
+  ['Eval Arena','Measuring value: quality evals, KPIs and ROI','06-eval-arena','--realm-6','JUDGE ARRA','Claims are cheap. In the Arena, every pilot must prove its worth.',['Define success','Quality evals','KPIs that matter','ROI models','A/B pilots','Reporting up']],
+  ['Swarm Spire','Org design: AI teams, workflow redesign, change management','07-swarm-spire','--realm-7','THE CONDUCTOR','Tools change fast. People change slowly. Conduct both.',['Team structures','Redesign workflows','Roles & skills','Change management','Adoption','Incentives']],
+  ['Production Peaks','Governance & scale: policy, risk, compliance, rollout','08-production-peaks','--realm-8','SUMMIT GUIDE PELL','At the summit, every choice is seen. Govern well, and scale safely.',['AI policy','Risk tiers','Compliance','Incident response','Rollout plan','The AI roadmap']],
+];
+const BIZQ=[
+  ['Which pilot should Northwind run first?',['Draft first replies to common tickets for agents to review','Let AI approve refunds on its own','Replace the whole support team with a chatbot'],0,'Right: high volume, easy to judge, and a person reviews every reply.','Not quite. Pick the option with high volume and a human reviewing each output.'],
+  ['What is the best success metric for the pilot?',['Number of prompts sent per day','Average handle time, with quality scores kept steady','How many employees used AI at least once'],1,'Right: it measures value without hiding a drop in quality.','Not quite. Usage numbers don’t show whether the work got better.'],
+  ['The AI sometimes invents a return policy. What do you do?',['Ignore it — it’s rare','Ground replies in the policy docs and keep human review','Turn the model’s temperature up'],1,'Right: give it the source documents and keep the review step.','Not quite. Grounding in real documents is what stops invented answers.'],
+];
+const REALMS = [
+  ['Bootstrap Village','LLM basics: tokens, messages, your first API call','00-bootstrap-village','--realm-0','ELDER MAREN','Every Sigmorai begins with a single message. Learn how the Oracle reads, and how it answers.',['Tokens','Messages','System prompt','Streaming','Models & limits','Costs']],
+  ['Prompt Forest','Prompt engineering, examples, structured output','01-prompt-forest','--realm-1','RANGER ISO','Vague words grow wild here. Clear instructions are the only path through.',['Be specific','Examples','XML tags','Chain of thought','JSON output','Prefill']],
+  ['Tool Forge','Tool use and function calling','02-tool-forge-caverns','--realm-2','SMITH KORREN','The Oracle can think, but it cannot act. Forge it tools, and it will reach into the world.',['Messages recap','Tool results','Define a tool','The tool loop','Parallel calls','Tool search']],
+  ['Context Library','Embeddings, RAG, caching, context engineering','03-context-library','--realm-3','ARCHIVIST VELA','The Hallucinant feeds on unanchored words. Give the Oracle the right pages, and it cannot be fooled.',['Embeddings','Chunking','Retrieval','Prompt caching','Long context','Compaction']],
+  ['Agent Citadel','Agent loops and harnesses: Claude Agent SDK, OpenAI Agents SDK','04-agent-citadel','--realm-4','WARDEN TESS','An agent is a model with tools, in a loop, with a goal. Here you build the loop.',['The loop','Stop conditions','Agent SDKs','Subagents','Memory','Permissions']],
+  ['MCP Bridgelands','Model Context Protocol servers and clients','05-mcp-bridgelands','--realm-5','BRIDGEKEEPER NAL','Every bridge speaks one protocol. Build one, and any agent can cross.',['MCP basics','Your first server','Resources','Prompts','Remote servers','Auth']],
+  ['Eval Arena','Evals, graders, guardrails, red-teaming','06-eval-arena','--realm-6','JUDGE ARRA','Belief is not proof. In the Arena, every claim is tested.',['Test sets','Model graders','Regression','Guardrails','Red-teaming','Tracing']],
+  ['Swarm Spire','Multi-agent orchestration and handoffs','07-swarm-spire','--realm-7','THE CONDUCTOR','One agent is strong. Many agents need a conductor.',['Orchestrators','Handoffs','Shared state','Parallel agents','Conflict','Cost control']],
+  ['Production Peaks','Deploy, observe, secure and scale','08-production-peaks','--realm-8','SUMMIT GUIDE PELL','The last climb. What works on your machine must work for everyone.',['Rate limits','Batching','Observability','Security','Scaling','Launch']],
+];
+const FLOORS = [
+  ['Vectors & dot products','How similarity search really works.','a·b = Σ aᵢbᵢ'],
+  ['Matrices','Layers are matrix multiplies.','y = Wx + b'],
+  ['Probability','Next-token prediction is a distribution.','P(xₜ | x₍<ₜ₎)'],
+  ['Softmax & temperature','From logits to choices.','eᶻⁱ/T ⁄ Σ eᶻʲ/T'],
+  ['Gradients','How models learn from error.','θ ← θ − η∇L'],
+  ['Cross-entropy','The loss behind every LLM.','−Σ y log ŷ'],
+  ['Attention','Queries, keys and values.','softmax(QKᵀ/√d)V'],
+  ['Cosine similarity','Ranking retrieved chunks.','a·b ⁄ ‖a‖‖b‖'],
+];
+const PAL=[['#FF6B35','#FFC53D'],['#3EE08F','#40C4FF'],['#A07BFF','#FF4F8B'],['#40C4FF','#FFE08A'],['#FF4F8B','#A07BFF']];
+function sprite(seed){let h=2166136261;for(const c of String(seed||'hero'))h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;const [a,b]=PAL[h%PAL.length];const g=[];let r=h;
+  for(let y=0;y<8;y++){const row=[];for(let x=0;x<4;x++){r=(Math.imul(r,1103515245)+12345)>>>0;const on=y>0&&y<7&&(r>>>16)%3!==0;row.push(on?((r>>>8)%4===0?b:a):'#1C1936');}g.push(...row,...row.slice().reverse());}return g;}
+
+class Component extends DCLogic {
+  state = { track:'tech', bizAns:{}, bizGraded:false, screen:'landing', auth:'register', realm:2, tab:'lesson', code:STARTER, results:null, hp:3, xp:12480, photo:null, heroName:'nora_builds', toast:false };
+  heroCanvas = React.createRef();
+  componentDidMount(){ this.startHero(); }
+  componentWillUnmount(){ this._hr=false; }
+  startHero(){
+    let cv=this.heroCanvas.current; if(!cv||this._hr) return; this._hr=true;
+    let ctx=cv.getContext('2d'); const H=160, GY=128; let W=320;
+    const im=s=>{const i=new Image();i.src=s;return i;};
+    const A={hero:im('../../assets/sprites/hero-sheet.svg'),ghost:im('../../assets/sprites/hallucinant.svg'),block:im('../../assets/sprites/sigma-block.svg'),coin:im('../../assets/sprites/token-coin.svg')};
+    const hs=(k,s)=>{let x=(k*374761393+s*668265263)>>>0;x=Math.imul(x^(x>>>13),1274126177)>>>0;return ((x^(x>>>16))>>>0)/4294967296;};
+    const WORDS=['TOKENS','PROMPTS','TOOLS','RAG','AGENTS','MCP','EVALS','MEMORY','ATTENTION','EMBEDDINGS','HANDOFFS','CONTEXT'];
+    const PAT=['book','block','bookHi','ghost','book','block','bookHi','block','ghost'];
+    const S={scroll:0,t:0,objs:[],parts:[],chips:[],bolts:[],next:60,pi:0,wi:0,xp:0,sig:0,hero:{y:GY,vy:0,ground:true,flash:0}};
+    const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const resize=()=>{const r=cv.getBoundingClientRect();if(!r.height)return;W=Math.max(200,Math.round(r.width/r.height*H));cv.width=W;cv.height=H;ctx.imageSmoothingEnabled=false;};
+    resize(); this._ro=new ResizeObserver(resize); this._ro.observe(cv);
+    const R=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),w,h);};
+    const heroX=()=>Math.round(W*(W<380?0.7:0.62));
+    const burst=(x,y,cols,n)=>{for(let i=0;i<n;i++)S.parts.push({x,y,vx:(Math.random()-.5)*90,vy:-Math.random()*90-10,life:.6+Math.random()*.4,c:cols[i%cols.length]});};
+    const chip=(text,x,y,c)=>S.chips.push({text,x,y,life:1.4,c});
+    const book=(x,y,c)=>{R(x,y,12,9,'#0A0913');R(x+1,y+1,10,7,c);R(x+1,y+6,10,1,'#FBF3DF');R(x+1,y+7,10,1,'#C9A86A');R(x+5,y+1,1,5,'#0A0913');R(x+2,y+2,2,1,'#F2F1FA');};
+    const spawn=()=>{const k=PAT[S.pi++%PAT.length];const wx=S.scroll+W+16;
+      if(k==='book')S.objs.push({k,wx,y:GY-14,c:['#A07BFF','#40C4FF','#3EE08F'][S.pi%3]});
+      if(k==='bookHi')S.objs.push({k,wx,y:GY-46,c:'#FF6B35'});
+      if(k==='block')S.objs.push({k,wx,y:GY-60});
+      if(k==='ghost')S.objs.push({k,wx,y:GY-30,ph:Math.random()*6});
+      S.next=S.scroll+W+16+80+Math.floor(hs(S.pi,3)*70);};
+    const L={sky:im('../../assets/art/hero-sky.png'),far:im('../../assets/art/hero-far.png'),mid:im('../../assets/art/hero-mid.png'),near:im('../../assets/art/hero-near.png')};
+    for(const k in L)L[k].onerror=()=>{L[k].bad=true;};
+    const ok=i=>i.complete&&!i.bad&&i.naturalWidth>0;
+    const tile=(i,speed,y,h)=>{const w=Math.round(i.naturalWidth*(h/i.naturalHeight));let x=-((S.scroll*speed)%w);for(;x<W;x+=w)ctx.drawImage(i,Math.round(x),y,w,h);};
+    const sky=['#3AA0E0','#4BB0EA','#5CBEF0','#74CAF2','#8CD5F4','#A3E0F6'];
+    const cliff=(x,top,w,c1,c2,c3)=>{R(x,top,w,GY-top,c1);for(let y=top+6;y<GY;y+=7){R(x,y,w,1,c3);for(let i=(y%2?0:5);i<w;i+=10)R(x+i,y-6,1,6,c3);}R(x,top,2,GY-top,c2);R(x+w-2,top,2,GY-top,c3);
+      R(x-2,top-3,w+4,4,'#2E9E4E');R(x-2,top-3,w+4,1,'#6BD67A');for(let i=0;i<w;i+=5)R(x+i,top+1,2,2+Math.floor(hs(i+x|0,4)*3),'#2E9E4E');};
+    const tree=(x,base,s,c1,c2,c3)=>{R(x-1,base-s,3,s,'#5A3A22');const r=Math.round(s*.55);for(const [ox,oy,rr] of [[0,-s,r],[-r*.6,-s+r*.4,r*.7],[r*.6,-s+r*.35,r*.7]]){for(let y=-rr;y<=rr;y++){const w=Math.round(Math.sqrt(rr*rr-y*y));R(x+ox-w,base+oy+y,w*2,1,y<-rr*.3?c2:y>rr*.4?c3:c1);}}};
+    const draw=()=>{
+      if(ok(L.sky))tile(L.sky,.02,0,H);else{const bh=Math.ceil(GY/sky.length);sky.forEach((c,i)=>R(0,i*bh,W,bh+1,c));
+        for(let k=0;k<5;k++){const cx=((hs(k,20)*W*1.6-S.scroll*.03)%(W+60)+W+60)%(W+60)-40,cy=14+hs(k,21)*30;R(cx,cy,26,4,'#FBE7C6');R(cx+4,cy-3,14,3,'#FFF6E6');R(cx+2,cy+4,22,2,'#F1C9A0');}}
+      if(ok(L.far))tile(L.far,.08,0,H);else{
+        const fo=S.scroll*.05;for(let x=0;x<W;x+=2){const wx=x+fo;const y=Math.round(52+Math.sin(wx*.012)*14+Math.sin(wx*.031)*8+Math.abs(Math.sin(wx*.007))*-10);R(x,y,2,GY-y,'#6FA9D6');R(x,y,2,2,'#8EC0E4');}
+        const ao=S.scroll*.09;for(let k=Math.floor(ao/150)-1;k<Math.floor((ao+W)/150)+2;k++){const x=k*150+40-ao;const top=GY-70;R(x,top,46,70,'#5A90C0');R(x+8,top-16,10,16,'#5A90C0');R(x+28,top-24,10,24,'#5A90C0');R(x+30,top-30,6,6,'#5A90C0');
+          for(let i=0;i<3;i++){R(x+6+i*13,top+14,6,10,'#3E72A4');R(x+7+i*13,top+12,4,2,'#3E72A4');}for(let i=0;i<3;i++)R(x+6+i*13,top+36,6,12,'#3E72A4');R(x+31,top-26,4,3,'#FFE08A');}
+        for(let x=0;x<W;x+=2){const wx=x+S.scroll*.14;const y=Math.round(88+Math.sin(wx*.02)*6+Math.sin(wx*.05)*3);R(x,y,2,GY-y,'#4C88B4');}}
+      if(ok(L.mid))tile(L.mid,.35,0,H);else{
+        const mo=S.scroll*.35;for(let k=Math.floor(mo/90)-1;k<Math.floor((mo+W)/90)+2;k++){const x=k*90+hs(k,22)*30-mo;const h=34+Math.floor(hs(k,23)*44);const w=26+Math.floor(hs(k,24)*20);
+          cliff(x,GY-h,w,'#A8643A','#C98E5A','#6B3A22');if(hs(k,25)>.4)tree(x+w/2,GY-h-2,18+Math.floor(hs(k,26)*8),'#2E9E4E','#5CC46A','#1F7A3E');
+          if(hs(k,27)>.55){const by=GY-h-30+Math.round(Math.sin(S.t*2+k)*3);R(x+w+6,by,10,7,'#0A0913');R(x+w+7,by+1,8,5,'#A07BFF');R(x+w+7,by+5,8,1,'#FBF3DF');R(x+w+11,by+1,1,4,'#0A0913');}}
+        for(let k=Math.floor(mo/40)-1;k<Math.floor((mo+W)/40)+2;k++){const x=k*40+hs(k,28)*16-mo;tree(x,GY,14+Math.floor(hs(k,29)*12),'#249048','#4FBE62','#17703A');}}
+      for(let i=0;i<10;i++){const x=((hs(i,11)*W*1.4-S.scroll*.5)%(W+20)+W+20)%(W+20)-10,y=60+hs(i,12)*50+Math.sin(S.t+i)*4;if(Math.sin(S.t*2.4+i*1.7)>0)R(x,y,1,1,'#FFF6C8');}
+      if(ok(L.near))tile(L.near,1,0,H);else{
+        const go=S.scroll%16;R(0,GY,W,H-GY,'#6B3A22');
+        for(let x=-go-16;x<W+16;x+=16){const ti=Math.floor((x+S.scroll)/16);R(x,GY,16,2,'#6BD67A');R(x,GY+2,16,3,'#2E9E4E');R(x+((ti*5)%12),GY+5,3,2,'#2E9E4E');
+          for(let r=0;r<3;r++){const yy=GY+8+r*8;const off=(r%2)*8;R(x,yy,16,7,'#A8643A');R(x+off,yy,1,7,'#6B3A22');R(x,yy+7,16,1,'#6B3A22');R(x+1,yy,6,1,'#C98E5A');}
+          if(hs(ti,13)>.72){R(x+4,GY-2,1,2,'#4FBE62');R(x+6,GY-3,1,3,'#6BD67A');R(x+8,GY-2,1,2,'#2E9E4E');}}}
+      // objects
+      for(const o of S.objs){const x=Math.round(o.wx-S.scroll);
+        if(o.k==='book'||o.k==='bookHi'){if(!o.got){const by=o.y+Math.round(Math.sin(S.t*4+o.wx)*2);book(x,by,o.c);if(Math.sin(S.t*6+o.wx)>.7)R(x+12,by-2,1,1,'#FFE08A');}}
+        if(o.k==='block'){if(o.hit){R(x,o.y,16,16,'#0A0913');R(x+1,o.y+1,14,14,'#6B4E22');R(x+1,o.y+1,14,1,'#C9A86A');}else if(A.block.complete)ctx.drawImage(A.block,x,o.y+(o.bump>0?-3:0),16,16);}
+        if(o.k==='ghost'&&!o.dead&&A.ghost.complete){ctx.globalAlpha=.85+.15*Math.sin(S.t*8);ctx.drawImage(A.ghost,x,o.y+Math.round(Math.sin(S.t*3+o.ph)*4),16,16);ctx.globalAlpha=1;}
+        if(o.coin&&o.coin.life>0&&A.coin.complete){ctx.drawImage(A.coin,x,Math.round(o.coin.y),16,16);}}
+      for(const b of S.bolts){R(b.x-6,b.y,6,1,'rgba(64,196,255,.5)');R(b.x,b.y-1,3,3,'#A3E2FF');R(b.x+1,b.y,1,1,'#FFFFFF');}
+      const hx=heroX(),h=S.hero;const fr=h.ground?(Math.floor(S.t*7)%2):0;
+      R(hx+2,GY,12,1,'rgba(10,9,19,.5)');
+      if(A.hero.complete)ctx.drawImage(A.hero,fr*16,0,16,16,hx,Math.round(h.y-16),16,16);
+      if(h.flash>0){R(hx+14,Math.round(h.y-10),3,3,'#A3E2FF');}
+      for(const p of S.parts){ctx.globalAlpha=Math.max(0,Math.min(1,p.life*1.6));R(p.x,p.y,2,2,p.c);}ctx.globalAlpha=1;
+      ctx.font='8px Silkscreen, monospace';ctx.textBaseline='top';
+      for(const c of S.chips){const a=Math.min(1,c.life*1.5);ctx.globalAlpha=a;const tw=Math.ceil(ctx.measureText(c.text).width)+6;R(c.x-tw/2,c.y-1,tw,10,'#0A0913');ctx.fillStyle=c.c;ctx.fillText(c.text,Math.round(c.x-tw/2+3),Math.round(c.y));}ctx.globalAlpha=1;
+      const hud='XP '+String(S.xp).padStart(5,'0')+'   \u03A3 '+S.sig;const tw=Math.ceil(ctx.measureText(hud).width)+10;R(W-tw-6,H-16,tw,12,'#0A0913');ctx.fillStyle='#FFC53D';ctx.fillText(hud,W-tw-1,H-14);
+    };
+    const step=dt=>{S.t+=dt;S.scroll+=dt*38;if(S.scroll>S.next)spawn();
+      const hx=heroX(),h=S.hero,hc=hx+8;
+      for(const o of S.objs){const x=o.wx-S.scroll,dx=x+8-hc;
+        if(o.k==='ghost'&&!o.dead){o.wx-=dt*10;if(dx<74&&!o.fired){o.fired=true;S.bolts.push({x:hx+14,y:h.y-9,t:o});h.flash=.15;}}
+        if(h.ground&&dx>0&&dx<15&&!o.jumped){if(o.k==='block'&&!o.hit){h.vy=-172;h.ground=false;o.jumped=true;}if(o.k==='bookHi'&&!o.got){h.vy=-150;h.ground=false;o.jumped=true;}}
+        if((o.k==='book'||o.k==='bookHi')&&!o.got&&Math.abs(dx)<10&&o.y+9>h.y-16&&o.y<h.y){o.got=true;S.xp+=10;burst(x+6,o.y+4,['#FFE08A','#F2F1FA',o.c],10);chip('+10 XP',x+6,o.y-10,'#FFC53D');}
+        if(o.k==='block'&&!o.hit&&Math.abs(dx)<12&&h.vy<0&&h.y-16<=o.y+16&&h.y-16>o.y){o.hit=true;o.bump=.12;h.vy=40;S.sig++;S.xp+=25;o.coin={y:o.y-14,vy:-90,life:.7};chip(WORDS[S.wi++%WORDS.length],x+8,o.y-26,'#A3E2FF');burst(x+8,o.y,['#FFC53D','#FFE08A'],6);}
+        if(o.bump>0)o.bump-=dt;if(o.coin&&o.coin.life>0){o.coin.y+=o.coin.vy*dt;o.coin.vy+=300*dt;o.coin.life-=dt;}}
+      for(const b of S.bolts){b.x+=dt*170;const o=b.t;if(!o.dead&&b.x>=o.wx-S.scroll+2){o.dead=true;b.done=true;S.xp+=50;burst(o.wx-S.scroll+8,o.y+8,['#FF4F8B','#FF9DBE','#F2F1FA','#40C4FF'],22);chip('FACT-CHECKED +50',o.wx-S.scroll+8,o.y-14,'#9DF2C4');}if(b.x>W)b.done=true;}
+      S.bolts=S.bolts.filter(b=>!b.done);
+      if(!h.ground){h.vy+=520*dt;h.y+=h.vy*dt;if(h.y>=GY){h.y=GY;h.vy=0;h.ground=true;}}
+      if(h.flash>0)h.flash-=dt;
+      for(const p of S.parts){p.x+=p.vx*dt-dt*38;p.y+=p.vy*dt;p.vy+=240*dt;p.life-=dt;}S.parts=S.parts.filter(p=>p.life>0);
+      for(const c of S.chips){c.y-=dt*14;c.life-=dt;c.x-=dt*38;}S.chips=S.chips.filter(c=>c.life>0);
+      S.objs=S.objs.filter(o=>o.wx-S.scroll>-40);};
+    let last=performance.now();
+    const loop=now=>{if(!this._hr)return;const cur=this.heroCanvas.current;if(!cur){this._hr=false;this._ro&&this._ro.disconnect();return;}
+      if(cur!==cv){cv=cur;ctx=cv.getContext('2d');this._ro&&this._ro.disconnect();this._ro=new ResizeObserver(resize);this._ro.observe(cv);resize();}
+      if(cv.width<10)resize();
+      const dt=Math.min(.05,(now-last)/1000);last=now;try{if(!reduce)step(dt);draw();}catch(e){if(!this._errLogged){console.error('hero canvas',e);this._errLogged=true;}}requestAnimationFrame(loop);};
+    requestAnimationFrame(loop);
+  }
+  levelRef = React.createRef();
+  walkTo = i => { const cur=this.state.sel==null?Math.min([6,6,2,0,0,0,0,0,0][this.state.realm],6):this.state.sel; if(i===cur)return;
+    this.setState({sel:i,walking:true,face:i<cur?-1:1}); clearTimeout(this._wt); this._wt=setTimeout(()=>this.setState({walking:false}),800);
+    const el=this.levelRef.current; if(el){const x=(i===6?1840:([4,11,19,27,35,44,58][i]*16+8)*2)-el.clientWidth/2; el.scrollTo({left:Math.max(0,x),behavior:'smooth'});} };
+  componentDidUpdate(pp,ps){ this.startHero(); if(this.state.screen==='map'&&(ps.screen!=='map'||ps.realm!==this.state.realm)){const el=this.levelRef.current;if(el){const p=[6,6,2,0,0,0,0,0,0][this.state.realm];const i=Math.min(p,6);el.scrollLeft=Math.max(0,(i===6?1840:([4,11,19,27,35,44,58][i]*16+8)*2)-el.clientWidth/2);}}}
+  go = s => () => { this.setState({screen:s}); window.scrollTo(0,0); };
+  run = () => {
+    const c=this.state.code;
+    const checks=[
+      ['tool has a name and description', /"name"\s*:\s*"get_weather"/.test(c)&&/"description"\s*:\s*"[^"]+"/.test(c), 'missing "name": "get_weather" or a description'],
+      ['input_schema is an object schema', /"input_schema"/.test(c)&&/"type"\s*:\s*"object"/.test(c), 'input_schema must have "type": "object"'],
+      ['location is required', /"required"\s*:\s*\[\s*"location"\s*\]/.test(c), 'model may omit "location" — add it to "required"'],
+    ];
+    const pass=checks.every(x=>x[1]);
+    this.setState(s=>({results:checks,hp:pass?s.hp:Math.max(0,s.hp-1)}));
+  };
+  renderVals() {
+    const s=this.state, R=s.realm;
+    const v=n=>`var(${n})`;
+    const SRC=s.track==='biz'?BIZ:REALMS;
+    const realms=SRC.map((r,i)=>({name:r[0],topic:r[1],scene:`../../assets/levels/realm-${String(i).padStart(2,'0')}.svg`,levelImg:`../../assets/levels/realm-${String(i).padStart(2,'0')}.svg`,color:v(r[3]),tag:`REALM ${String(i).padStart(2,'0')}`}));
+    const progress=i=>i<2?6:i===2?2:0;
+    const rr=SRC[R];
+    const realm={...realms[R],worldNo:R+1,npc:rr[4],lore:rr[5],progressLabel:`${progress(R)}/6 CLEARED`};
+    const NX=[4,11,19,27,35,44,58];
+    const rpN=progress(R);
+    const stOf=i=>i<rpN?'done':i===rpN?'current':'locked';
+    const sel=s.sel==null?Math.min(rpN,6):s.sel;
+    const cx=i=>i===6?1840:(NX[i]*16+8)*2;
+    const nodes=[...rr[6],'BOSS'].map((label,i)=>{const st=stOf(i),boss=i===6,on=i===sel;
+      return {label:boss?'BOSS · '+rr[0].toUpperCase():(i+1)+' · '+label.toUpperCase(),glyph:st==='done'?'✓':st==='locked'?'·':boss?'B':i+1,
+        left:cx(i)-(boss?60:40),top:boss?250:200,w:boss?120:80,h:boss?134:184,flagX:boss?-200:42,
+        flagBg:boss?'transparent':st==='done'?'var(--mint-500)':st==='current'?realm.color:'var(--ink-500)',
+        labelBottom:boss?-34:-30,labelBg:on?'var(--spark-500)':'rgba(10,9,19,.88)',labelFg:on?'var(--ink-950)':'var(--ink-100)',
+        go:()=>this.walkTo(i)};});
+    const selSt=stOf(sel);
+    const selNode={tag:(sel===6?'BOSS BATTLE':'LEVEL '+String(sel+1).padStart(2,'0'))+' · '+(selSt==='done'?'CLEARED':selSt==='current'?'IN PROGRESS':'LOCKED'),
+      name:sel===6?'Boss · '+rr[0]:rr[6][sel],color:selSt==='done'?'var(--mint-500)':selSt==='current'?realm.color:'var(--ink-500)',
+      hint:selSt==='locked'?'Clear the level before this one to unlock it.':selSt==='done'?'Replay for practice. XP is only earned once.':'3 exercises · +150 XP',
+      cta:selSt==='locked'?'Locked':selSt==='done'?'Replay':'Enter level',btnBg:selSt==='locked'?'var(--ink-700)':'var(--ember-500)',btnFg:selSt==='locked'?'var(--ink-400)':'var(--ink-950)',
+      go:selSt==='locked'?undefined:()=>{this.setState({screen:'quest'});window.scrollTo(0,0);}};
+    const hx=cx(sel)-(sel===6?24:60);
+    const ghost=(x,y,dl)=>React.createElement('img',{key:'g'+x,src:'../../assets/sprites/hallucinant.svg',alt:'',style:{position:'absolute',left:x,top:y,width:48,height:48,imageRendering:'pixelated',animation:`sgbob 1.6s steps(4) ${dl}s infinite`,pointerEvents:'none'}});
+    const actors=[ghost(1660,300,0),ghost(1180,150,.5),
+      React.createElement('div',{key:'hero',style:{position:'absolute',left:hx,top:336,width:48,height:48,backgroundImage:'url(../../assets/sprites/hero-sheet.svg)',backgroundSize:'96px 48px',imageRendering:'pixelated',
+        transition:'left 800ms steps(16)',transform:s.face<0?'scaleX(-1)':'none',animation:s.walking?'sgwalk .24s steps(2) infinite':'none',pointerEvents:'none',zIndex:2}})];
+    const realmTiles=realms.map((r,i)=>{const p=progress(i);return {...r,pct:Math.round(p/6*100),state:p===6?'CLEARED':p>0?`${p}/6 · IN PROGRESS`:i===3?'NEXT':'LOCKED',opacity:i>3?0.55:1,ring:i===R?',0 0 0 6px var(--spark-500)':'',pick:()=>this.setState({realm:i,sel:null})};});
+    const navItems=[['dash','DASHBOARD'],['realms','REALMS'],['map','WORLD MAP'],['board','LEADERBOARD'],['math','MATH TOWER'],['profile','PROFILE']].map(([k,l])=>({label:l,go:this.go(k),bg:s.screen===k?'var(--ink-100)':'transparent',fg:s.screen===k?'var(--ink-950)':'var(--text-2)'}));
+    const tests=s.results?s.results.map(t=>({name:t[0],badge:t[1]?'PASS':'FAIL',color:t[1]?'var(--mint-500)':'var(--glitch-500)',detail:t[1]?'':t[2]})):
+      ['tool has a name and description','input_schema is an object schema','location is required'].map(n=>({name:n,badge:'····',color:'var(--ink-500)',detail:''}));
+    const cleared=!!s.results&&s.results.every(t=>t[1]);
+    const xpFill=Math.round((s.xp-10000)/4000*20);
+    const LV=['BEGINNER','BEGINNER','BEGINNER','INTERMEDIATE','INTERMEDIATE','INTERMEDIATE','ADVANCED','ADVANCED','ADVANCED'];
+    const flt=s.filter||'ALL';
+    const catalog=realms.map((r,i)=>({...r,i,level:LV[i],xp:(i+1)*700,cta:progress(i)===6?'Replay':progress(i)>0?'Continue':'Start',
+      btnBg:progress(i)>0&&progress(i)<6?'var(--ember-500)':'var(--ink-600)',btnFg:progress(i)>0&&progress(i)<6?'var(--ink-950)':'var(--ink-100)',
+      open:()=>{this.setState({realm:i,screen:'detail',openCh:undefined});window.scrollTo(0,0);}})).filter(r=>flt==='ALL'||r.level===flt);
+    const rp=progress(R);
+    realm.level=LV[R]; realm.xp=(R+1)*700; realm.cta=rp===6?'Replay':rp>0?'Continue':'Start realm';
+    const open=s.openCh??rp;
+    const chapters=[...rr[6],'Boss battle'].map((name,i)=>{const st=i<rp?'done':i===rp?'current':'locked';
+      return {name:i===6?`Boss · ${rr[0]}`:name,meta:st==='done'?'CLEARED · 3/3':st==='current'?'IN PROGRESS · 0/3':'3 EXERCISES',glyph:st==='done'?'✓':i===6?'B':i+1,
+        bg:st==='done'?'var(--mint-500)':st==='current'?realm.color:'var(--ink-700)',fg:st==='locked'?'var(--ink-400)':'var(--ink-950)',
+        open:open===i,chev:open===i?'▾':'▸',toggle:()=>this.setState({openCh:open===i?-1:i}),
+        exercises:['Read the lesson','Code challenge','Quick check'].map((e,j)=>({name:e,state:st==='done'?'✓ DONE':st==='current'&&j===0?'▸ NEXT':'LOCKED',color:st==='locked'?'var(--text-3)':'var(--ink-100)',go:st==='locked'?undefined:()=>this.setState({screen:'quest'})}))};});
+    const PLAYERS=[['kai.dev',22840,41,'SWARM SPIRE'],['mira_ml',19310,30,'EVAL ARENA'],['zed',17020,12,'MCP BRIDGELANDS'],['ayo.builds',15400,25,'AGENT CITADEL'],[s.heroName,s.xp,14,'TOOL FORGE'],['lin',11980,8,'TOOL FORGE'],['pablo_ai',9870,5,'PROMPT FOREST'],['ren',8120,3,'PROMPT FOREST']];
+    const board=PLAYERS.map((p,i)=>{const me=i===4;return {rank:i+1,name:p[0],xp:p[1].toLocaleString('en-US'),streak:`${p[2]}D`,realm:p[3],cells:sprite(p[0]),
+      bg:me?'var(--surface-3)':'var(--surface-2)',ring:me?',0 0 0 6px var(--spark-500)':'',rankColor:i===0?'var(--spark-500)':i===1?'var(--ink-200)':i===2?'var(--ember-300)':'var(--text-3)'};});
+    const bt=s.boardTab||'WEEK';
+    const ot=s.outTab||'CONSOLE';
+    const MENTOR={'Why is location optional?':'Properties are optional by default in JSON Schema. List the ones the model must always send in a "required" array next to "properties".','Explain input_schema':'It is a JSON Schema object that describes the arguments. The model reads it to decide what to send.','Give me a hint':'Look at what the tests ask for, then compare it to the keys inside input_schema. One key is missing.'};
+    const msgs=[{who:'ORACLE MENTOR',text:'Stuck? Ask me about this challenge. I answer from the lesson’s sources, and hints don’t cost XP.',align:'flex-start',bg:'var(--surface-2)',who_color:'var(--byte-300)'}];
+    (s.asked||[]).forEach(q=>{msgs.push({who:'YOU',text:q,align:'flex-end',bg:'var(--ink-700)',who_color:'var(--spark-500)'});msgs.push({who:'ORACLE MENTOR',text:MENTOR[q],align:'flex-start',bg:'var(--surface-2)',who_color:'var(--byte-300)'});});
+    const consoleText=s.results?`$ run tests weather_tool.py\n${s.results.map(t=>(t[1]?'✓ ':'✗ ')+t[0]).join('\n')}\n${s.results.filter(t=>t[1]).length}/3 passed`:'$ waiting for run…';
+    const biz=s.track==='biz';
+    const ZW='\u200C';
+    const cont=biz?{tag:'TOOL FORGE · LEVEL 03',title:'Score a use case',desc:'Use volume, clarity and risk to pick the right first AI pilot for a real team.'}:{tag:'TOOL FORGE · LEVEL 03',title:'De'+ZW+'fine your '+ZW+'first tool',desc:'Describe a function with a JSON schema so the model knows when — and how — to call it.'};
+    const TR={tech:{label:'BUILDER',title:'For technical people',short:'Code your way through. APIs, tools, agents.',long:'Engineers and developers. Every level ends with a coding challenge checked by tests.',points:['APIs, tool use and agent SDKs','MCP servers, evals and multi-agent systems','Pass levels by writing code that works'],forWho:'DEVELOPERS · DATA SCIENTISTS · ML ENGINEERS',color:'var(--ember-500)',cta:'Start as a builder'},
+      biz:{label:'STRATEGIST',title:'For business people',short:'No code. Use cases, ROI, governance.',long:'Managers, founders and operators. Every level ends with a real business case to decide.',points:['What AI and agents can really do','Picking use cases and measuring ROI','Governance, risk and rolling out to teams'],forWho:'MANAGERS · FOUNDERS · PRODUCT · OPS',color:'var(--spark-500)',cta:'Start as a strategist'}};
+    const setTrack=k=>()=>this.setState({track:k,realm:Math.min(s.realm,8)});
+    const trackTabs=['tech','biz'].map(k=>({label:TR[k].label,go:setTrack(k),bg:s.track===k?TR[k].color:'transparent',fg:s.track===k?'var(--ink-950)':'var(--text-2)'}));
+    const trackCards=['tech','biz'].map(k=>({...TR[k],go:setTrack(k),start:()=>this.setState({track:k,screen:'auth',auth:'register'}),bg:s.track===k?'var(--surface-3)':'var(--surface-1)',ring:s.track===k?TR[k].color:'var(--ink-600)'}));
+    const bizQs=BIZQ.map((q,qi)=>{const a=s.bizAns[qi];const ok=a===q[2];return {n:qi+1,text:q[0],showWhy:s.bizGraded&&a!=null,why:ok?q[3]:q[4],whyColor:ok?'var(--mint-300)':'var(--glitch-300)',
+      opts:q[1].map((o,oi)=>{const sel=a===oi;const ring=s.bizGraded&&sel?(ok?'var(--mint-500)':'var(--glitch-500)'):sel?'var(--spark-500)':'var(--ink-600)';
+        return {label:o,bg:sel?'var(--surface-3)':'var(--surface-2)',ring,dot:sel?ring:'transparent',pick:()=>this.setState(st=>({bizAns:{...st.bizAns,[qi]:oi},bizGraded:false}))};})};});
+    const bizCleared=s.bizGraded&&BIZQ.every((q,qi)=>s.bizAns[qi]===q[2]);
+    const heroBg=React.createElement('canvas',{key:'hb',ref:this.heroCanvas,style:{position:'absolute',inset:0,width:'100%',height:'100%',imageRendering:'pixelated',display:'block'}});
+    return {
+      heroBg,
+      cont, trackTabs, trackCards, trackName:biz?'Strategist':'Builder', pathTitle:biz?'STRATEGIST OF THE FORGE':'BUILDER OF THE FORGE',
+      isQuestTech:s.screen==='quest'&&!biz, isQuestBiz:s.screen==='quest'&&biz, bizQs, bizCleared,
+      checkBiz:()=>{const pass=BIZQ.every((q,qi)=>s.bizAns[qi]===q[2]);this.setState(st=>({bizGraded:true,hp:pass?st.hp:Math.max(0,st.hp-1)}));},
+      resetBiz:()=>this.setState({bizAns:{},bizGraded:false}),
+      isDetail:s.screen==='detail', isBoard:s.screen==='board', chapters, board,
+      boardTabs:['WEEK','MONTH','ALL TIME'].map(l=>({label:l,go:()=>this.setState({boardTab:l}),bg:bt===l?'var(--ink-100)':'var(--surface-2)',fg:bt===l?'var(--ink-950)':'var(--text-2)'})),
+      outTabs:['CONSOLE','ASK MENTOR'].map(l=>({label:l,go:()=>this.setState({outTab:l}),bg:ot===l?'var(--ink-100)':'transparent',fg:ot===l?'var(--ink-950)':'var(--text-2)'})),
+      outConsole:ot==='CONSOLE', outMentor:ot==='ASK MENTOR', consoleText, mentorMsgs:msgs,
+      mentorPrompts:Object.keys(MENTOR).filter(q=>!(s.asked||[]).includes(q)).map(q=>({label:q,go:()=>this.setState(st=>({asked:[...(st.asked||[]),q]}))})),
+      isDash:s.screen==='dash', isRealms:s.screen==='realms', goDash:this.go('dash'), goRealms:this.go('realms'), goMath:this.go('math'),
+      popularRealms:realms.slice(0,6),
+      levelFilters:['ALL','BEGINNER','INTERMEDIATE','ADVANCED'].map(l=>({label:l,go:()=>this.setState({filter:l}),bg:flt===l?'var(--ink-100)':'var(--surface-2)',fg:flt===l?'var(--ink-950)':'var(--text-2)'})),
+      catalog,
+      enrolled:realmTiles.slice(0,3).map((r,i)=>({...r,open:()=>{this.setState({realm:i,screen:'map'});window.scrollTo(0,0);}})),
+      isLanding:s.screen==='landing', isAuth:s.screen==='auth', inApp:!['landing','auth'].includes(s.screen),
+      isMap:s.screen==='map', actors, sel:selNode, levelRef:this.levelRef, prevRealm:()=>this.setState(st=>({realm:(st.realm+8)%9,sel:null})), nextRealm:()=>this.setState(st=>({realm:(st.realm+1)%9,sel:null})), isQuest:s.screen==='quest', isMath:s.screen==='math', isProfile:s.screen==='profile',
+      goLanding:this.go('landing'), goMap:this.go('map'), goProfile:this.go('profile'),
+      goSignIn:()=>this.setState({screen:'auth',auth:'signin'}), goRegister:()=>this.setState({screen:'auth',auth:'register'}),
+      setRegister:()=>this.setState({auth:'register'}), setSignIn:()=>this.setState({auth:'signin'}),
+      isRegister:s.auth==='register', authTitle:s.auth==='register'?'CREATE YOUR HERO':'WELCOME BACK', authCta:s.auth==='register'?'Create hero':'Continue quest',
+      regTabBg:s.auth==='register'?'var(--ink-100)':'var(--ink-800)', regTabFg:s.auth==='register'?'var(--ink-950)':'var(--text-2)',
+      signTabBg:s.auth==='signin'?'var(--ink-100)':'var(--ink-800)', signTabFg:s.auth==='signin'?'var(--ink-950)':'var(--text-2)',
+      heroName:s.heroName, onHeroName:e=>this.setState({heroName:e.target.value}),
+      avatarCells:sprite(s.heroName), realms, realm, nodes, realmTiles, navItems,
+      xpLabel:s.xp.toLocaleString('en-US'),
+      openQuest:()=>this.setState({screen:'quest'}),
+      lessonTabs:[['lesson','LESSON'],['sources','SOURCES']].map(([k,l])=>({label:l,go:()=>this.setState({tab:k}),bg:s.tab===k?'var(--ink-100)':'var(--surface-2)',fg:s.tab===k?'var(--ink-950)':'var(--text-2)'})),
+      tabLesson:s.tab==='lesson', tabSources:s.tab==='sources',
+      sources:[{kind:'DOCS',color:'var(--ember-500)',title:'Anthropic — Tool use overview',url:'docs.claude.com'},{kind:'DOCS',color:'var(--mint-500)',title:'OpenAI — Function calling guide',url:'platform.openai.com'},{kind:'REPO',color:'var(--byte-500)',title:'Example agent harnesses (high-star GitHub repos)',url:'github.com'}],
+      code:s.code, onCode:e=>this.setState({code:e.target.value}), runTests:this.run, resetCode:()=>this.setState({code:STARTER,results:null}),
+      hpLabel:'■'.repeat(s.hp)+'□'.repeat(3-s.hp), tests, cleared,
+      claim:()=>{this.setState(st=>({xp:st.xp+150,toast:true,screen:'dash'}));setTimeout(()=>this.setState({toast:false}),2600);},
+      showToast:s.toast,
+      floors:FLOORS.map((f,i)=>({n:i+1,name:f[0],desc:f[1],formula:f[2],state:i<3?'CLEARED':i===3?'OPEN':'LOCKED',stateColor:i<3?'var(--mint-500)':i===3?'var(--spark-500)':'var(--text-3)',opacity:i>3?0.55:1})),
+      photo:s.photo, hasPhoto:!!s.photo, noPhoto:!s.photo,
+      onPhoto:e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>this.setState({photo:rd.result});rd.readAsDataURL(f);},
+      xpSegs:Array.from({length:20},(_,i)=>i<xpFill?'var(--spark-500)':'var(--ink-800)'),
+      stats:[{value:'14',label:'DAY STREAK',color:'var(--glitch-300)'},{value:'14',label:'LEVELS CLEARED',color:'var(--mint-500)'},{value:'3',label:'MATH FLOORS',color:'var(--rune-300)'},{value:'92%',label:'FIRST-TRY PASS',color:'var(--byte-300)'}],
+    };
+  }
+}
+</script>
+</body>
+</html>
