@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ContinueCard } from '@/components/dashboard/continue-card';
+import { DailyQuest } from '@/components/dashboard/daily-quest';
 import { DashboardStats } from '@/components/dashboard/dashboard-stats';
 import { RealmTile } from '@/components/dashboard/realm-tile';
 import { Panel } from '@/components/panel';
@@ -17,8 +18,8 @@ const REALMS_ID = 'dashboard-realms';
  * The player's home (Sigmorai App.dc.html → isDash): the next open step on
  * their track, their stats and their active realms. Every state is computed
  * on the server (lib/data/realms.ts).
- * Not built yet: the Math Tower and Frontier shortcuts (no routes yet, step 6),
- * the daily-quest note (streak rules are SIG-16) and the realm scene art.
+ * Not built yet: the Math Tower and Frontier shortcuts (no routes yet, step 6)
+ * and the realm scene art.
  */
 export default async function DashboardPage() {
   const page = await getDashboard();
@@ -70,6 +71,7 @@ export default async function DashboardPage() {
 
       <aside className="flex min-w-0 flex-[1_1_16rem] flex-col gap-4 pt-4">
         <DashboardStats streak={stats.streak} levelsCleared={levelsCleared} />
+        <DailyQuest streak={stats.streak} activeToday={stats.activeToday} />
       </aside>
     </div>
   );

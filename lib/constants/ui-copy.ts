@@ -114,8 +114,7 @@ export const QUEST_ERROR_TEXT: Record<QuestErrorCode, string> = {
   INVALID_INPUT: 'This step is not available.',
   TIER_LOCKED: 'Advanced realms are locked. They come later.',
   NOT_OPEN: 'Clear the chapter before this one first.',
-  NO_HP:
-    'No HP left for this case today. HP refills at 00:00 UTC. The lesson and quick check stay open.',
+  NO_HP: 'No HP left for this case today. The lesson and quick check stay open.',
   SERVER_ERROR: 'Something failed on our side. Nothing was saved. Try again in a moment.',
 };
 

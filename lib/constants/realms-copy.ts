@@ -91,6 +91,9 @@ export const REALMS_TEXT = {
   retry: 'Retry',
 } as const;
 
+/** "1 day", "14 days". */
+const streakDays = (n: number) => `${n.toLocaleString('en')} ${n === 1 ? 'day' : 'days'}`;
+
 /** Dashboard words. */
 export const DASHBOARD_TEXT = {
   title: 'Dashboard',
@@ -107,6 +110,23 @@ export const DASHBOARD_TEXT = {
   browseAll: 'Browse all',
   browseIcon: '▸',
   stats: 'STATS',
+  /**
+   * DAILY QUEST note (design: isDash aside), plain product voice. Never shame
+   * a broken streak, never fake urgency (DESIGN.md): no "lose", no "burning".
+   * The icon is decorative (aria-hidden); the sentence carries the state.
+   */
+  dailyQuest: {
+    heading: 'DAILY QUEST',
+    done: {
+      icon: '✓',
+      text: (streak: number) => `Today's step is done. Streak: ${streakDays(streak)}.`,
+    },
+    alive: {
+      icon: '▸',
+      text: (streak: number) => `Clear one step today. Streak: ${streakDays(streak)}.`,
+    },
+    none: { icon: '▸', text: () => 'Clear one step today to start a streak.' },
+  },
   loading: 'Loading your dashboard',
   error: "Your dashboard didn't load. Try again in a moment.",
   retry: 'Retry',
