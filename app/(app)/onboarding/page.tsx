@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { HeroForm } from '@/components/onboarding/hero-form';
 import { Panel } from '@/components/panel';
-import { AFTER_ONBOARDING_HREF, ONBOARDING_TEXT, SIGN_IN_HREF } from '@/lib/constants';
+import { AFTER_ONBOARDING_HREF, ONBOARDING_TEXT, AUTH_ROUTES } from '@/lib/constants';
 import { getHudState } from '@/lib/data/hud';
 
 export const metadata: Metadata = { title: `${ONBOARDING_TEXT.title} · Sigmorai` };
@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: `${ONBOARDING_TEXT.title} · Sigmorai
  */
 export default async function OnboardingPage() {
   const state = await getHudState();
-  if (state.status === 'signed-out') redirect(SIGN_IN_HREF);
+  if (state.status === 'signed-out') redirect(AUTH_ROUTES.signIn);
   if (state.status === 'ready') redirect(AFTER_ONBOARDING_HREF);
 
   return (

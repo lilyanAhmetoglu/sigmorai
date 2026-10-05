@@ -7,7 +7,7 @@ import {
   HUD_TEXT,
   ONBOARDING_HREF,
   PROFILE_TEXT,
-  SIGN_IN_HREF,
+  AUTH_ROUTES,
   TRACK_ACCENTS,
   TRACK_TEXT,
 } from '@/lib/constants';
@@ -22,7 +22,7 @@ export const metadata: Metadata = { title: `${PROFILE_TEXT.title} · Sigmorai` }
  */
 export default async function ProfilePage() {
   const state = await getHudState();
-  if (state.status === 'signed-out') redirect(SIGN_IN_HREF);
+  if (state.status === 'signed-out') redirect(AUTH_ROUTES.signIn);
   if (state.status === 'onboarding') redirect(ONBOARDING_HREF);
 
   const { heroName, track, xp: totalXp, level, into, span, streak } = state.stats;

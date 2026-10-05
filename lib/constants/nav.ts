@@ -5,8 +5,6 @@ export const ONBOARDING_HREF = '/onboarding';
 export const PROFILE_HREF = '/profile';
 /** Where onboarding sends the player. The profile until the dashboard ships. */
 export const AFTER_ONBOARDING_HREF = PROFILE_HREF;
-// TODO: use AUTH_ROUTES from lib/constants/site.ts after PR #14
-export const SIGN_IN_HREF = '/sign-in';
 
 /**
  * The in-app nav, in the design's order (Sigmorai App.dc.html → navItems).
