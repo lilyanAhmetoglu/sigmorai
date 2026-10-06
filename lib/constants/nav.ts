@@ -1,5 +1,6 @@
 import type { LeaderboardRange, NavItem, Track } from '@/lib/types';
 import { RANGE_PARAM } from './leaderboard';
+import { AUTH_ROUTES, CLERK_REDIRECT_PARAM } from './site';
 
 /** The public landing page. Where a deleted account lands. */
 export const HOME_HREF = '/';
@@ -21,6 +22,18 @@ export const DELETE_CONFIRM_VALUE = 'yes';
 
 /** Onboarding: a signed-in player with no users row picks a track and a hero name here. */
 export const ONBOARDING_HREF = '/onboarding';
+/** The search param that preselects a track in onboarding (`?path=creator`), set by the landing cards. */
+export const PATH_PARAM = 'path';
+/** Onboarding, plus `?path=` when a track is given. */
+export const onboardingHref = (track?: Track) =>
+  `${ONBOARDING_HREF}${track ? `?${PATH_PARAM}=${track}` : ''}`;
+/**
+ * Sign-up that ends in onboarding with `track` preselected. Clerk keeps
+ * `redirect_url` through its own steps (email code, OAuth); the sign-up page
+ * reads it back and accepts only an onboarding URL (lib/utils/path-param.ts).
+ */
+export const signUpHref = (track: Track) =>
+  `${AUTH_ROUTES.signUp}?${CLERK_REDIRECT_PARAM}=${encodeURIComponent(onboardingHref(track))}`;
 export const PROFILE_HREF = '/profile';
 export const DASHBOARD_HREF = '/dashboard';
 export const REALMS_HREF = '/realms';

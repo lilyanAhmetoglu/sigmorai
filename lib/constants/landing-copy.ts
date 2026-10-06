@@ -1,4 +1,4 @@
-import type { Audience } from '@/lib/types';
+import type { Audience, Track } from '@/lib/types';
 import { REALMS, TRACK_ACCENTS } from './curriculum';
 import { SITE_NAME } from './site';
 
@@ -28,7 +28,7 @@ export const LANDING_TEXT = {
   audienceEyebrow: 'WHO IT IS FOR',
   audienceTitle: 'Pick the path that fits you',
   audienceIntro:
-    'Every path crosses the same nine realms. Builders clear levels by deciding how to design the system. Strategists decide real business cases. Creators decide real media cases.',
+    'Pick the path that matches your job. The realms share names, but each path has its own lessons and cases: builders design systems, strategists decide business cases, creators decide media cases.',
 } as const;
 
 /**
@@ -54,6 +54,8 @@ export const SHARE_IMAGE = {
 export const AUDIENCES: readonly Audience[] = [
   {
     id: 'beginner',
+    track: 'strategist',
+    cta: 'Start as a beginner',
     label: 'NEW TO AI',
     accent: 'success',
     title: 'For total beginners',
@@ -67,6 +69,8 @@ export const AUDIENCES: readonly Audience[] = [
   },
   {
     id: 'strategist',
+    track: 'strategist',
+    cta: 'Start the strategist path',
     label: 'STRATEGIST',
     accent: TRACK_ACCENTS.strategist,
     title: 'For business people',
@@ -80,6 +84,8 @@ export const AUDIENCES: readonly Audience[] = [
   },
   {
     id: 'builder',
+    track: 'builder',
+    cta: 'Start the builder path',
     label: 'BUILDER',
     accent: TRACK_ACCENTS.builder,
     title: 'For technical people',
@@ -93,6 +99,8 @@ export const AUDIENCES: readonly Audience[] = [
   },
   {
     id: 'creator',
+    track: 'creator',
+    cta: 'Start the creator path',
     label: 'CREATOR',
     accent: TRACK_ACCENTS.creator,
     title: 'For designers and creators',
@@ -105,3 +113,10 @@ export const AUDIENCES: readonly Audience[] = [
     forWho: 'DESIGNERS · ART DIRECTORS · SOCIAL · MARKETING',
   },
 ];
+
+/** A track's own landing card (not the beginner one), for its "who it is for" line in onboarding. */
+export const audienceFor = (track: Track): Audience => {
+  const audience = AUDIENCES.find((a) => a.id === track);
+  if (!audience) throw new Error(`No landing card for track ${track}`);
+  return audience;
+};

@@ -118,6 +118,8 @@ export const ONBOARDING_TEXT = {
   beginnerHint:
     'No code on any path. New to AI, or using it at work? Pick strategist. Want to design AI systems? Pick builder. Make images, video or audio? Pick creator.',
   trackError: 'Pick a path.',
+  /** Under each path: what its first realm teaches. Realm names are shared; topics are not. */
+  firstTopic: (topic: string) => `Realm 0 teaches: ${topic}`,
   submitNote: 'You can change your path later on your profile. Your hero name is public.',
   submit: 'Start',
   submitting: 'Saving…',

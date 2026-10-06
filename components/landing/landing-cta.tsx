@@ -12,6 +12,8 @@ const noSubscribe = () => () => {};
 
 type Props = {
   size: ButtonSize;
+  /** Where a signed-in visitor goes. Default: the dashboard. */
+  signedInHref?: string;
   /** The signed-out CTAs. Server-rendered, so the static page ships them. */
   children: ReactNode;
 };
@@ -21,7 +23,7 @@ type Props = {
  * session, so / stays static. /dashboard sends a player who has not onboarded
  * on to /onboarding.
  */
-export function LandingCta({ size, children }: Props) {
+export function LandingCta({ size, signedInHref = DASHBOARD_HREF, children }: Props) {
   const { isLoaded, isSignedIn } = useAuth();
   const isClient = useSyncExternalStore(
     noSubscribe,
@@ -31,7 +33,7 @@ export function LandingCta({ size, children }: Props) {
 
   if (isLoaded && isSignedIn) {
     return (
-      <PixelButton href={DASHBOARD_HREF} size={size}>
+      <PixelButton href={signedInHref} size={size}>
         {LANDING_TEXT.continueQuest}
       </PixelButton>
     );
