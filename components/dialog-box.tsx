@@ -3,7 +3,7 @@ import { DIALOG_NEXT_TEXT } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 type Props = ComponentProps<'section'> & {
-  /** NPC name, e.g. "ARCHIVIST VELA". Also names the region. */
+  /** NPC name, normal case ("Archivist Vela"); CSS shows it in caps. Also names the region. */
   speaker?: string;
   /** Usually a decorative <PixelAvatar />. */
   portrait?: ReactNode;
