@@ -1,0 +1,106 @@
+---
+id: strategist/r1/c3/lesson
+title: Ask for structure
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Prompting best practices
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: docs
+    title: Claude docs · Structured outputs
+    url: https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+  - kind: docs
+    title: OpenAI docs · Prompt engineering
+    url: https://developers.openai.com/api/docs/guides/prompt-engineering
+  - kind: docs
+    title: OpenAI docs · Structured model outputs
+    url: https://developers.openai.com/api/docs/guides/structured-outputs
+  - kind: docs
+    title: Gemini API docs · Prompt design strategies
+    url: https://ai.google.dev/gemini-api/docs/prompting-strategies
+  - kind: docs
+    title: Gemini API docs · Structured outputs
+    url: https://ai.google.dev/gemini-api/docs/structured-output
+---
+
+## Why it matters
+
+If you don't say what shape you want, the model picks one. You get a long essay when you needed a table, or bullets when you needed one sentence. Structure works in two directions: a clear structure in your prompt, and a clear structure for the answer.
+
+## Structure your prompt
+
+A long prompt mixes many things: instructions, background, examples, a document. The model needs to see where each part starts and ends.
+
+All three vendors suggest marking the parts:
+
+- Anthropic's guide recommends **XML tags**, such as `<instructions>`, `<context>` and `<input>`. It says wrapping each type of content in its own tag reduces misinterpretation.
+- OpenAI's guide suggests **Markdown headings and lists** for sections, and XML tags to show where a piece of content begins and ends.
+- Gemini's guide suggests XML-style tags or Markdown headings, and says to pick one format and use it consistently within a prompt.
+
+You don't need to know XML. A tag is just a label in angle brackets, opened and closed:
+
+```
+<instructions>
+Compare the two supplier offers. Recommend one.
+</instructions>
+
+<offer_a>
+[paste offer A]
+</offer_a>
+
+<offer_b>
+[paste offer B]
+</offer_b>
+```
+
+Now the model can tell offer A from offer B, and both offers from your instructions.
+
+## Ask for the shape of the answer
+
+Gemini's guide lists formats you can ask for: a table, a bulleted list, an elevator pitch, keywords, a sentence or a paragraph. Be exact.
+
+Weak: "Compare these three laptops."
+Strong: "Compare these three laptops in a table. Columns: model, price, battery hours, weight. One row per laptop. Then one sentence: which one you recommend for sales staff who travel."
+
+Two tips from Anthropic's guide:
+
+- **Say what to do, not what not to do.** Instead of "Don't use bullet points", write "Write in short paragraphs of plain prose."
+- **Your prompt's style rubs off.** The formatting in your prompt may affect the formatting of the answer. The guide says removing Markdown from your prompt can reduce Markdown in the output.
+
+Gemini's guide adds a trick: start the format yourself and let the model finish it. For example, write the first line of an outline, and the model follows that pattern.
+
+## Use fixed answer lists
+
+When the answer must be one of a few options, list them. Gemini's guide shows a model that answered a category question in full sentences. When the prompt was turned into a multiple-choice question with listed options, the model answered with just the option.
+
+Example: "Classify this expense as one of: Travel, Software, Office, Other. Answer with the category name only."
+
+Fixed lists make results easy to count, sort and paste into a spreadsheet.
+
+## When the result goes into another system
+
+Sometimes the answer is not read by a person. It goes into a spreadsheet, a CRM or another tool. Then the format must be exact every time.
+
+For this, all three vendors offer **structured outputs**. Your technical team sets a schema: a fixed list of fields and their types, such as "name: text, amount: number". The model's answer then follows that schema.
+
+- Anthropic's docs say structured outputs give schema-compliant responses, so the JSON (a common data format) is valid, except in rare cases, such as when the model refuses or runs out of tokens.
+- OpenAI's docs say the model will always generate responses that follow your JSON Schema, so it won't omit a required key.
+- Gemini's docs list uses such as data extraction and classification into predefined categories.
+
+**A valid shape is not a correct answer.** OpenAI's docs say structured outputs can still contain mistakes. Gemini's docs say that while the output is syntactically correct JSON, you should always validate the values. Example: the invoice total lands neatly in the "amount" field, but it is the wrong number. Someone still checks.
+
+As a business user, your job is to say clearly which fields you need and what each one means. That list becomes the schema.
+
+## Break big tasks into steps
+
+One giant prompt that does five things is hard to control. Gemini's guide suggests **chaining**: each step is its own prompt, and the output of one step becomes the input of the next. Anthropic's guide says chaining is useful when you need to inspect the results in between.
+
+Example: step 1 extracts the key terms from a contract into a table. You check the table. Step 2 writes the summary email from the checked table.
+
+## Key points
+
+- Mark the parts of a long prompt with tags or headings.
+- Name the exact output shape: columns, length, number of bullets.
+- Say what to do, not what not to do.
+- Give fixed option lists when the answer is a category.
+- Structured outputs fix the shape, not the facts. Still check the values.

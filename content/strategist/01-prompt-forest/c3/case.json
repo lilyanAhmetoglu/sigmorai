@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r1/c3/challenge",
+  "title": "Invoices in every shape",
+  "scenario": "You work in finance operations at a mid-size company. The team uses an AI assistant to read supplier invoices and pull out the key data. A colleague then copies it into the accounts spreadsheet by hand. It is slow, and the copying goes wrong often, because every answer looks different.\n\nThe exhibit shows the prompt and three answers from the same week.",
+  "exhibit": "Prompt: Read this invoice and tell me the supplier, the amount and what kind of cost it is.\n\nAnswer 1: This invoice is from Nordlicht GmbH for EUR 1,200.00. It looks like a software subscription.\n\nAnswer 2:\n- Supplier: Brightdesk Ltd\n- Total: 450 (incl. VAT)\n- Type: SaaS\n\nAnswer 3: Supplier = Kemp & Sons, amount 3.200,00, category: office furniture / equipment",
+  "questions": [
+    {
+      "prompt": "The cost types come back as \"software subscription\", \"SaaS\" and \"office furniture / equipment\". The spreadsheet uses four categories: Software, Travel, Office, Other. What is the best change to the prompt?",
+      "options": [
+        {
+          "text": "Ask the model to \"use consistent, professional category names\" in every answer.",
+          "explanation": "The model can't know your four category names. \"Consistent\" is still a guess."
+        },
+        {
+          "text": "List the four categories and ask for exactly one of them, by name only.",
+          "explanation": "Right. A fixed list of options keeps the answer inside your categories. Gemini's guide shows how listed options stop the model from answering in free text.",
+          "correct": true
+        },
+        {
+          "text": "Let the colleague who copies the data rename each category by hand while copying.",
+          "explanation": "That keeps the slow, error-prone manual step you want to remove."
+        },
+        {
+          "text": "Ask the model to explain in a full paragraph why it chose each category for each invoice.",
+          "explanation": "An explanation makes the answer longer and harder to copy. It does not make the category names match your list."
+        }
+      ]
+    },
+    {
+      "prompt": "Next quarter, IT wants to send about 2,000 invoices a month straight into the finance system, with no copying by hand. What should you ask for?",
+      "options": [
+        {
+          "text": "A longer prompt that says \"ALWAYS use exactly the same format\" in capital letters, twice.",
+          "explanation": "Strong wording can help, but it gives no guarantee. OpenAI's docs say structured outputs mean you don't need strongly worded prompts for consistent formatting."
+        },
+        {
+          "text": "Three example answers in the prompt, so the model copies their format each time.",
+          "explanation": "Examples help with format, but they give no guarantee. Anthropic's docs say that even with careful prompting you may get missing fields. Gemini's guide recommends its structured output feature for more complex formats."
+        },
+        {
+          "text": "Structured outputs: IT sets a schema with the fields you define, and every answer follows it.",
+          "explanation": "Right. Anthropic, OpenAI and Google all offer structured outputs, where the answer must follow a set schema. Your part is to define the fields and what each one means.",
+          "correct": true
+        },
+        {
+          "text": "Ask the model to answer in a table, then have IT copy the table into the system each night.",
+          "explanation": "A table in plain text can still change shape between answers. A schema fixes the fields for the system."
+        }
+      ]
+    },
+    {
+      "prompt": "Structured outputs are live. Every row has the right fields. But finance finds that some amounts include VAT and some don't. What went wrong, and what is the fix?",
+      "options": [
+        {
+          "text": "Structured outputs are broken here, so turn them off and go back to the free-text answers.",
+          "explanation": "They did their job: the shape is right. Free text would bring back the copying problem without fixing the meaning of the field."
+        },
+        {
+          "text": "The model is careless with numbers, so finance should stop using AI to read invoices at all.",
+          "explanation": "The model was never told which amount you want. Fix the definition first, then measure again."
+        },
+        {
+          "text": "Nothing went wrong. A valid schema means the values are correct, so the finance team misread them.",
+          "explanation": "A valid shape does not mean correct values. OpenAI's docs say structured outputs can still contain mistakes."
+        },
+        {
+          "text": "A schema fixes the shape, not the meaning. Define it as \"amount excl. VAT\" and spot-check rows.",
+          "explanation": "Right. Gemini's docs say that while the output is valid JSON, you should always validate the values. A clear field definition plus checks fixes it.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "A colleague wants one big prompt that reads the invoice, picks the category, and writes an email to the supplier if anything looks wrong. What do you suggest?",
+      "options": [
+        {
+          "text": "Split it into steps: first extract the data, check it, then write any email from the checked data.",
+          "explanation": "Right. Gemini's guide describes chaining, where each step's output feeds the next. Anthropic's guide says chaining helps when you need to inspect results in between.",
+          "correct": true
+        },
+        {
+          "text": "Keep one prompt, because one model call is always cheaper and more accurate than several.",
+          "explanation": "The guides don't say one call is always better. For a task that sends emails to suppliers, a check in the middle matters more."
+        },
+        {
+          "text": "Keep one prompt but add \"be very careful\" at the end, so the model takes more care with each part.",
+          "explanation": "That adds no information and no check. A wrong extraction would still flow straight into a supplier email."
+        },
+        {
+          "text": "Let the model send supplier emails on its own, with no step for checking the data in between.",
+          "explanation": "Then nobody sees a mistake before it reaches the supplier. Split the task so the data can be checked first."
+        }
+      ]
+    }
+  ]
+}
