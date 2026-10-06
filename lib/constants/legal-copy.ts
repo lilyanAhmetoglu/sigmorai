@@ -13,6 +13,15 @@ import { SITE_NAME } from './site';
  * - Vercel: Functions default region iad1, Washington, D.C.
  *   (vercel.com/docs/functions/configuring-functions/region). The repo sets no region.
  * - Clerk: US-hosted, no regional data residency (clerk.com/security.md).
+ * - Vercel Web Analytics: no cookies; a visitor is a hash of the request,
+ *   dropped after 24 hours; data points not tied to a person or IP address;
+ *   fields: time, URL, route, referrer, filtered query params, geolocation
+ *   (country, region, city), OS, browser, device type
+ *   (vercel.com/docs/analytics/privacy-policy).
+ * - Vercel Speed Insights: anonymous; fields: route, URL, network speed,
+ *   browser, device type, OS, country, Web Vitals
+ *   (vercel.com/docs/speed-insights/privacy-policy). Neither page names a
+ *   storage region, so this page names none.
  *
  * MAINTAINER setup this page doesn't promise but the code supports:
  * - Clerk dashboard → Webhooks: add https://sigmorai.com/api/webhooks/clerk,
@@ -94,9 +103,18 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
       },
       {
         term: 'Vercel',
-        text: 'Hosting: it runs the app and serves every page. Vercel runs our server code in Washington, D.C., USA by default.',
+        text: 'Hosting: it runs the app and serves every page. Vercel runs our server code in Washington, D.C., USA by default. Vercel also runs our visit statistics (see below).',
         link: { label: "Vercel's privacy notice", href: VERCEL_PRIVACY_URL },
       },
+    ],
+  },
+  {
+    id: 'visit-statistics',
+    heading: 'Visit statistics',
+    paragraphs: [
+      'We use Vercel Web Analytics and Vercel Speed Insights. They count page views and measure how fast pages load. They work for every visitor, signed in or not, and they use no cookies.',
+      'For each page view they record: the page address, the site you came from, your country, region and city, your browser, your operating system, and your device type (phone, tablet or computer). Speed Insights also records how fast the page loaded and your network type (for example 4g).',
+      'Vercel does not link these records to you or to your IP address. To count unique visitors, it makes a one-way code (a hash) from your request and deletes it after 24 hours. We see totals only, never one person.',
     ],
   },
   {
@@ -126,7 +144,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
     id: 'cookies',
     heading: 'Cookies',
     paragraphs: [
-      'Only the cookies Clerk needs to keep you signed in. No analytics, no ad cookies, no tracking.',
+      'Only the cookies Clerk needs to keep you signed in. Our visit statistics use no cookies. No ad cookies, and no tracking across other websites.',
     ],
   },
   {

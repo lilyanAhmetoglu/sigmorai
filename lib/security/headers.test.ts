@@ -52,6 +52,16 @@ describe('contentSecurityPolicy', () => {
     ).toContain("'unsafe-eval'");
   });
 
+  test('Vercel analytics: same-origin in production, the debug host only in dev', () => {
+    const prod = contentSecurityPolicy({ fapi, dev: false, preview: false });
+    expect(directive(prod, 'script-src')).toContain("'self'");
+    expect(directive(prod, 'connect-src')).toContain("'self'");
+    expect(prod).not.toContain('va.vercel-scripts.com');
+    expect(
+      directive(contentSecurityPolicy({ fapi, dev: true, preview: false }), 'script-src'),
+    ).toContain('https://va.vercel-scripts.com');
+  });
+
   test('a Vercel preview allows the toolbar; production does not', () => {
     const preview = contentSecurityPolicy({ fapi, dev: false, preview: true });
     for (const name of ['script-src', 'connect-src', 'frame-src']) {

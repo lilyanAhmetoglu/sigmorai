@@ -27,7 +27,16 @@ const CLERK = {
 
 /** The Vercel toolbar on preview deployments only (vercel.live, realtime over Pusher). */
 const VERCEL_PREVIEW = { live: 'https://vercel.live', pusher: 'wss://*.pusher.com' } as const;
-// Adding @vercel/analytics or Speed Insights later needs https://va.vercel-scripts.com in script-src.
+
+/**
+ * Vercel Web Analytics + Speed Insights (SIG-39). On a deployment their
+ * scripts load from this site (`/_vercel/insights/script.js`,
+ * `/_vercel/speed-insights/script.js`, or a per-build path) and send to it,
+ * so 'self' covers script-src and connect-src. Only `next dev` loads the
+ * debug scripts from this host (getScriptSrc in @vercel/analytics 2.0.1 and
+ * @vercel/speed-insights 2.0.0). The debug scripts log; they send nothing.
+ */
+const VERCEL_SCRIPTS_DEV = 'https://va.vercel-scripts.com';
 
 const HOSTNAME = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 
@@ -49,7 +58,7 @@ export function clerkFapiOrigin(publishableKey: string | undefined): string | nu
   return HOSTNAME.test(host) ? `https://${host}` : null;
 }
 
-/** The Content-Security-Policy value. `dev` adds 'unsafe-eval' (Next needs it in `next dev`). */
+/** The Content-Security-Policy value. `dev` adds 'unsafe-eval' (Next needs it in `next dev`) and Vercel's debug scripts. */
 export type CspOptions = {
   fapi: string | null;
   dev: boolean;
@@ -65,7 +74,7 @@ export function contentSecurityPolicy({ fapi, dev, preview }: CspOptions): strin
     'script-src': [
       "'self'",
       "'unsafe-inline'",
-      ...(dev ? ["'unsafe-eval'"] : []),
+      ...(dev ? ["'unsafe-eval'", VERCEL_SCRIPTS_DEV] : []),
       ...clerkFapi,
       CLERK.challenges,
       CLERK.protect,
