@@ -96,11 +96,11 @@
       "prompt": "The Stop hook blocked three times because the test database was down. How should the hook change?",
       "options": [
         {
-          "text": "Keep blocking every time. Claude Code ends the turn after a set number of blocks anyway.",
+          "text": "Keep blocking every time. Claude Code ends the turn after a set number of blocks anyway, so the loop cannot run forever.",
           "explanation": "Here the cap may never fire: the count resets each time Claude calls a tool, and the agent reruns bun test after every block. The docs say to check stop_hook_active to avoid blocking on a condition that will never resolve."
         },
         {
-          "text": "Remove the hook, so the agent stops at once and the night job ends without waiting.",
+          "text": "Remove the hook, so the agent stops at once and the night job ends without waiting for a database that is down.",
           "explanation": "Without the hook, the agent can again declare a task done without tests passing. The hook should stay, with a way out."
         },
         {
@@ -109,7 +109,7 @@
           "correct": true
         },
         {
-          "text": "Raise max_turns to 200, so the agent has more time to fix the tests before the next stop.",
+          "text": "Raise max_turns to 200, so the agent has more time to fix the tests before the next stop and the database can come back.",
           "explanation": "More turns cannot start a service the agent has no access to. They only pay for more retries. OpenAI's Agents SDK works the same way: past max_turns it raises MaxTurnsExceeded. A cap ends the run; it does not fix the cause."
         }
       ]

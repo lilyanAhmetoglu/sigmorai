@@ -8,7 +8,7 @@
       "prompt": "The server returns the same five tools in a different order on each call. What does this cost, and what is the fix?",
       "options": [
         {
-          "text": "The tool descriptions are too long to be cached. Shorten them and keep only the first sentence.",
+          "text": "The tool descriptions are too long to be cached. Shorten them and keep only the first sentence of each one, then set a new cache point.",
           "explanation": "Reads were 9,800 per request before the rewrite, with the same descriptions. The order is what changed."
         },
         {
@@ -17,11 +17,11 @@
           "correct": true
         },
         {
-          "text": "MCP tools cannot be prompt cached, so remove the cache point and send the tools in every request.",
+          "text": "MCP tools cannot be prompt cached, so remove the cache point and send the tools in every request, as the host does with the system prompt.",
           "explanation": "The spec says a fixed order improves cache hit rates when tools are included in the model's context. Caching works when the list is the same."
         },
         {
-          "text": "Switch to the 1-hour cache lifetime, so that entries do not expire between the requests.",
+          "text": "Switch to the 1-hour cache lifetime, so that entries do not expire between the requests, and write the tools list again each hour.",
           "explanation": "Requests arrive every few seconds, so entries are not expiring. The prefix itself is different each time."
         }
       ]
@@ -96,7 +96,7 @@
       "prompt": "What is wrong with the auth setup, and what should the web app do instead?",
       "options": [
         {
-          "text": "Keep the token in the URL and mask it in the server logs and the load balancer logs.",
+          "text": "Keep the token in the URL and mask it in the server logs and the load balancer logs, and keep the URL short-lived.",
           "explanation": "The spec says access tokens MUST NOT be included in the URI query string. Masking one log does not change where the token travels."
         },
         {
@@ -105,11 +105,11 @@
           "correct": true
         },
         {
-          "text": "Leave the token out. The connector runs the OAuth login for each rep when they first connect.",
+          "text": "Leave the token out. The connector runs the OAuth login for each rep when they first connect, and stores the token for them.",
           "explanation": "The Claude docs say API consumers are expected to handle the OAuth flow and obtain the token before the call."
         },
         {
-          "text": "Pass the token in authorization_token and let the connector refresh it when it expires.",
+          "text": "Pass the token in authorization_token and let the connector refresh it when it expires, so no rep has to sign in twice.",
           "explanation": "The Claude docs say API consumers also refresh the token as needed. The connector does not do it."
         }
       ]

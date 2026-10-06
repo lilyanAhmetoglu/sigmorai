@@ -8,11 +8,11 @@
       "prompt": "Why does the same lookup fail three times, and what is the best fix?",
       "options": [
         {
-          "text": "Turn on strict mode. It makes every call use a valid order number from the shop's database.",
+          "text": "Turn on strict mode. It makes every call use a valid order number from the shop's database, so a wrong id can no longer be sent.",
           "explanation": "Strict mode makes inputs match the schema types. Both numbers are strings, so 'INV-88213' still passes the schema."
         },
         {
-          "text": "Retry the failed call up to 5 times, waiting a few seconds between tries, before giving up.",
+          "text": "Retry the failed call up to 5 times, waiting a few seconds between tries and doubling the wait each time, before giving up.",
           "explanation": "The model already sent the same input three times and got the same answer. More retries change nothing."
         },
         {
@@ -21,7 +21,7 @@
           "correct": true
         },
         {
-          "text": "Add a line to the system prompt: 'Always use the right number, and check it twice.'",
+          "text": "Add a line to the system prompt: 'Always use the right number, and check it twice before you call any tool or answer the customer.'",
           "explanation": "This does not say which number is right. The model has to guess again."
         }
       ]
@@ -30,15 +30,15 @@
       "prompt": "In trace 2 the model left out the amount and the backend filled it in. What should the code do?",
       "options": [
         {
-          "text": "Keep the default, so that every call works, the customer is never blocked and no retry is needed.",
+          "text": "Keep the default, so that every call works, the customer is never blocked, no retry is needed and the refund is always sent in the first round.",
           "explanation": "The default moved 40.00 when the customer asked for 12.50. Money moves on a guess."
         },
         {
-          "text": "Return the result 'invalid request' and nothing else, so the model does not see internal details.",
+          "text": "Return the result 'invalid request' and nothing else, so the model does not see internal details such as field names, limits or other rules.",
           "explanation": "Claude's docs say to write errors that say what went wrong and what to try next. A generic message gives the model nothing to fix."
         },
         {
-          "text": "Stop the chat and ask the customer to start again with the amount in the first message.",
+          "text": "Stop the chat and ask the customer to start again with the amount in the first message, and pass the refund request to a human agent.",
           "explanation": "A missing field is a problem the model can fix in the next round if the error names it."
         },
         {
@@ -57,15 +57,15 @@
           "correct": true
         },
         {
-          "text": "Show 'Something went wrong' and run the whole chat again from round 1 with a fresh history.",
+          "text": "Show 'Something went wrong' and run the whole chat again from round 1 with a fresh history, so the customer gets a clean answer.",
           "explanation": "The refund was already sent in round 2. A rerun can send it a second time."
         },
         {
-          "text": "Raise the limit to 20 and continue the same chat, so the model can finish its check.",
+          "text": "Raise the limit to 20 and continue the same chat, so the model can finish its check and then answer the customer.",
           "explanation": "The model was repeating one call. A higher limit only pays for more repeats. The limit is there to keep control."
         },
         {
-          "text": "Close the chat with no message to the customer. The team will read the logs the next day.",
+          "text": "Close the chat with no message to the customer. The team will read the logs the next day and write to the customer if needed.",
           "explanation": "The customer would not know that 12.50 was already refunded."
         }
       ]
@@ -74,7 +74,7 @@
       "prompt": "How should the code run the two issue_refund calls in trace 4?",
       "options": [
         {
-          "text": "Run both at the same time, to keep latency low, and check the total once after both finish.",
+          "text": "Run both at the same time, to keep latency low, and check the refunded total once after both have finished, before the customer sees a reply.",
           "explanation": "Each check would see 0.00 refunded and pass, so 50.00 could be paid on a 40.00 order. The Claude docs say tools with side effects or shared state are better run one after another."
         },
         {
@@ -83,11 +83,11 @@
           "correct": true
         },
         {
-          "text": "Run only the first call and send back a result for it alone, then wait for the model to ask again.",
+          "text": "Run only the first call and send back a result for it alone, then wait for the model to ask again for the second refund in a later round.",
           "explanation": "Every tool_use block needs a tool_result in the next user message. A missing result returns an error."
         },
         {
-          "text": "Add the two amounts and send one refund of 50.00, so the customer gets a single payment.",
+          "text": "Add the two amounts and send one refund of 50.00, so the customer gets a single payment and a single line on the card statement.",
           "explanation": "50.00 is more than the order total of 40.00, which the rules do not allow."
         }
       ]
