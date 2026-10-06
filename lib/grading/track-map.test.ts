@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { CHAPTER_COUNT, REALMS } from '@/lib/constants';
 import type { RealmView, TrackOutline } from '@/lib/types';
-import { activeRealms, bossTitle, buildTrackMap, clearedLevels } from './track-map';
+import {
+  activeRealms,
+  bossTitle,
+  buildTrackMap,
+  clearedLevels,
+  levelStatus,
+  playableStep,
+} from './track-map';
 
 const outline: TrackOutline = {
   realms: REALMS.map((r) => ({
@@ -141,6 +148,67 @@ describe('next step', () => {
     expect(map(NONE, NONE).next).toBeNull();
     const advancedOnly = new Set([caseId(ADVANCED, 1)]);
     expect(map(advancedOnly, NONE).next).toBeNull();
+  });
+});
+
+describe('levelStatus', () => {
+  test('maps chapter states to map node states', () => {
+    const cleared = new Set([caseId(0, 1)]);
+    const chapters = realm(map(ALL_LIVE, cleared).realms, 0).chapters;
+    expect(levelStatus(chapters[0], false)).toBe('done');
+    expect(levelStatus(chapters[1], false)).toBe('open');
+    expect(levelStatus(chapters[1], true)).toBe('current');
+    expect(levelStatus(chapters[2], false)).toBe('locked');
+  });
+
+  test('tier-locked and soon show as locked, even when current', () => {
+    const adv = realm(map(ALL_LIVE, NONE).realms, ADVANCED).chapters[0];
+    expect(levelStatus(adv, true)).toBe('locked');
+    const soon = realm(map(NONE, NONE).realms, 0).chapters[0];
+    expect(soon.status).toBe('soon');
+    expect(levelStatus(soon, true)).toBe('locked');
+  });
+
+  test('done wins over current', () => {
+    const c1 = realm(map(ALL_LIVE, new Set([caseId(0, 1)])).realms, 0).chapters[0];
+    expect(levelStatus(c1, true)).toBe('done');
+  });
+});
+
+describe('playableStep', () => {
+  test('an open chapter links to its first open step', () => {
+    const c1 = realm(map(ALL_LIVE, NONE).realms, 0).chapters[0];
+    expect(playableStep(c1)?.exerciseId).toBe('strategist/r0/c1/lesson');
+  });
+
+  test('skips cleared steps', () => {
+    const cleared = new Set(['strategist/r0/c1/lesson']);
+    const c1 = realm(map(ALL_LIVE, cleared).realms, 0).chapters[0];
+    expect(playableStep(c1)?.exerciseId).toBe(caseId(0, 1));
+  });
+
+  test('a done chapter with an open step left links to that step', () => {
+    const c1 = realm(map(ALL_LIVE, new Set([caseId(0, 1)])).realms, 0).chapters[0];
+    expect(playableStep(c1)?.exerciseId).toBe('strategist/r0/c1/lesson');
+  });
+
+  test('a fully done chapter replays its first step', () => {
+    const cleared = new Set(['strategist/r0/c1/lesson', caseId(0, 1), quickId(0, 1)]);
+    const c1 = realm(map(ALL_LIVE, cleared).realms, 0).chapters[0];
+    expect(playableStep(c1)?.exerciseId).toBe('strategist/r0/c1/lesson');
+  });
+
+  test('a locked, soon or tier-locked chapter is not playable', () => {
+    const { realms } = map(ALL_LIVE, NONE);
+    expect(playableStep(realm(realms, 0).chapters[1])).toBeNull();
+    expect(playableStep(realm(realms, ADVANCED).chapters[0])).toBeNull();
+    expect(playableStep(realm(map(NONE, NONE).realms, 0).chapters[0])).toBeNull();
+  });
+
+  test('the boss links to its one step once open', () => {
+    const cleared = new Set(Array.from({ length: CHAPTER_COUNT }, (_, i) => caseId(0, i + 1)));
+    const boss = realm(map(ALL_LIVE, cleared).realms, 0).chapters.at(-1)!;
+    expect(playableStep(boss)?.exerciseId).toBe(bossId(0));
   });
 });
 

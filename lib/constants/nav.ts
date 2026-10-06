@@ -12,6 +12,11 @@ export const realmHref = (slug: string, track?: Track) =>
   `${REALMS_HREF}/${slug}${track ? `?${TRACK_PARAM}=${track}` : ''}`;
 /** The realms catalog for one track. */
 export const realmsHref = (track: Track) => `${REALMS_HREF}?${TRACK_PARAM}=${track}`;
+/** The world map: `/map` sends the player to the realm they are in. */
+export const MAP_HREF = '/map';
+/** One realm's level map: `/map/<slug>`, plus `?track=` when a track is given. */
+export const mapHref = (slug: string, track?: Track) =>
+  `${MAP_HREF}/${slug}${track ? `?${TRACK_PARAM}=${track}` : ''}`;
 /** The quest page: `/quest/<exercise id>` (a catch-all, since ids contain `/`). */
 export const QUEST_HREF = '/quest';
 export const questHref = (exerciseId: string) => `${QUEST_HREF}/${exerciseId}`;
@@ -29,7 +34,7 @@ export const AFTER_ONBOARDING_HREF = DASHBOARD_HREF;
 export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Dashboard', href: DASHBOARD_HREF, live: true },
   { label: 'Realms', href: REALMS_HREF, live: true },
-  { label: 'World map', href: '/map', live: false },
+  { label: 'World map', href: MAP_HREF, live: true },
   { label: 'Leaderboard', href: '/leaderboard', live: false },
   { label: 'Math Tower', href: '/math', live: false },
   { label: 'Profile', href: PROFILE_HREF, live: true },

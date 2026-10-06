@@ -10,6 +10,8 @@ import { SignInNote } from '@/components/realms/sign-in-note';
 import { StatusBadge } from '@/components/realms/status-badge';
 import { TrackSwitch } from '@/components/realms/track-switch';
 import {
+  MAP_TEXT,
+  mapHref,
   questHref,
   REALM_ACTION_TEXT,
   REALM_STATUS_TEXT,
@@ -57,8 +59,7 @@ export async function generateMetadata({
  * boss with lesson / case / quick-check steps and their state, linking to the
  * quest page for what can be played. Public; a tier-locked realm still shows
  * its chapter titles but no step opens.
- * Not built yet: "View on map" (no map route) and the "Built from" sources
- * (they come with the lessons, SIG-11).
+ * Not built yet: the "Built from" sources (they come with the lessons, SIG-11).
  */
 export default async function RealmPage({ params, searchParams }: PageProps<'/realms/[realm]'>) {
   const [{ realm: slug }, query] = await Promise.all([params, searchParams]);
@@ -87,11 +88,16 @@ export default async function RealmPage({ params, searchParams }: PageProps<'/re
           <p className="realm-hero-topic">{realm.topic}</p>
           <StatusBadge text={REALM_STATUS_TEXT[realm.status]} />
           {locked && <p className="realm-hero-topic">{REALMS_TEXT.tierLocked}</p>}
-          {next && (
-            <PixelButton href={questHref(next.step.exerciseId)}>
-              {REALM_ACTION_TEXT[realm.status]}
+          <div className="flex flex-wrap gap-3">
+            {next && (
+              <PixelButton href={questHref(next.step.exerciseId)}>
+                {REALM_ACTION_TEXT[realm.status]}
+              </PixelButton>
+            )}
+            <PixelButton href={mapHref(realm.slug, track)} variant="secondary">
+              {MAP_TEXT.viewOnMap}
             </PixelButton>
-          )}
+          </div>
         </div>
       </header>
 

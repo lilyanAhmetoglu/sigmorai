@@ -36,6 +36,7 @@ export function RealmScene({ realm, sizes, preload = false, className }: Props) 
           preload={preload}
           loading={preload ? undefined : 'lazy'}
           className="realm-scene-layer pixel"
+          data-layer={layer}
         />
       ))}
     </div>

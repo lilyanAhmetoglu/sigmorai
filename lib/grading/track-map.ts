@@ -4,6 +4,7 @@ import { buildExerciseId } from '@/lib/content/ids';
 import type {
   ChapterView,
   ExerciseRef,
+  LevelStatus,
   NextStep,
   Realm,
   RealmStatus,
@@ -84,6 +85,27 @@ export function firstOpenStep(realms: RealmView[]): NextStep | null {
     }
   }
   return null;
+}
+
+/**
+ * A chapter's level-map node state. "current" is the chapter holding the
+ * player's next step (the caller decides that). Tier-locked and "soon" both
+ * show as locked: there is nothing to play yet.
+ */
+export function levelStatus(chapter: ChapterView, isCurrent: boolean): LevelStatus {
+  if (chapter.status === 'done') return 'done';
+  if (chapter.status === 'open') return isCurrent ? 'current' : 'open';
+  return 'locked';
+}
+
+/**
+ * Where a level-map node links: the chapter's first open step; for a done
+ * chapter with nothing open, its first step (replay). Else null (not playable).
+ */
+export function playableStep(chapter: ChapterView): StepView | null {
+  const open = chapter.steps.find((s) => s.status === 'open');
+  if (open) return open;
+  return chapter.status === 'done' ? (chapter.steps[0] ?? null) : null;
 }
 
 /** The dashboard's realms: in progress first, then open, in map order. Never cleared or tier-locked. */

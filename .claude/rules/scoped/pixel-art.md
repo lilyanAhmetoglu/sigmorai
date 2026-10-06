@@ -29,10 +29,11 @@ From the build prompt and `design/ui_kits/webapp/Sigmorai App.dc.html`. Port, do
 
 ## Level map (`components/map/`)
 
-- 2048×480 level from `/public/levels/realm-XX.svg`, horizontally scrollable on every screen size.
-- Flags at `x = [4,11,19,27,35,44] × 32 + 16`, boss castle at 1840. These numbers live in `lib/constants/`, not in the component.
-- Click a flag → hero walks there in 800ms with `steps(16)`, flipped when moving left, and the scroller follows. Reduced motion → jump, no walk.
-- Flags are real `<button>`s (≥44px hit area) with labels; the canvas/SVG art is decoration.
+- 2048×480 level from `/public/levels/realm-0N/{sky,far,mid,near}.png` at 2× via RealmScene, horizontally scrollable on every screen size.
+- Flags at `x = (n × 16 + 8) × 2`, nodes from `LEVEL_MAP` (`lib/constants/level-map.ts`), not in the component.
+- Flags are real links (or aria-disabled `<button>`s when locked, ≥44px hit area) with labels; the art is decoration.
+- Parallax is CSS scroll-driven (`level-map.css`), no rAF loop. Reduced motion or no support → 1:1 scroll.
+- Later (follow-up ticket): click a flag → hero walks there in 800ms with `steps(16)`, flipped when moving left, and the scroller follows. Reduced motion → jump, no walk.
 
 ## The UI is not pixel art
 

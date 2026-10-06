@@ -1,0 +1,134 @@
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { DialogBox } from '@/components/dialog-box';
+import { LevelMap } from '@/components/map/level-map';
+import { PixelButton } from '@/components/pixel-button';
+import { SignInNote } from '@/components/realms/sign-in-note';
+import { TrackSwitch } from '@/components/realms/track-switch';
+import {
+  MAP_TEXT,
+  mapHref,
+  questHref,
+  REALM_ACTION_TEXT,
+  realmHref,
+  REALMS,
+  REALMS_TEXT,
+  realmsHref,
+  TRACK_PARAM,
+} from '@/lib/constants';
+import { realmAccent, realmNumber } from '@/lib/content/curriculum';
+import { getRealmMeta, getRealmPage } from '@/lib/data/realms';
+
+/** Every realm slug is known up front; layout.tsx gives a bad slug its 404. */
+export const dynamicParams = false;
+export function generateStaticParams() {
+  return REALMS.map((realm) => ({ realm: realm.slug }));
+}
+
+/**
+ * The map repeats the realm page's content, so its canonical is the realm
+ * page (no noindex: that would send search engines a mixed signal).
+ * Relative URLs resolve against metadataBase.
+ */
+export async function generateMetadata({ params }: PageProps<'/map/[realm]'>): Promise<Metadata> {
+  const { realm: slug } = await params;
+  const meta = await getRealmMeta(slug);
+  if (!meta) return {};
+  return {
+    title: MAP_TEXT.title(meta.name),
+    description: MAP_TEXT.description(meta.name),
+    alternates: { canonical: realmHref(slug) },
+  };
+}
+
+/**
+ * One realm's level map (Sigmorai App.dc.html → isMap): header with the
+ * previous / next realm, the track switch, the Start / Continue button, the
+ * level strip and the realm's NPC. Public; a visitor sees no progress.
+ * Not built yet (follow-up ticket): hero walk and Hallucinant ghosts, the
+ * selected-level card, the NEW LEVEL banner, the ALL REALMS grid (/realms
+ * has it) and the Math Tower map.
+ */
+export default async function MapRealmPage({ params, searchParams }: PageProps<'/map/[realm]'>) {
+  const [{ realm: slug }, query] = await Promise.all([params, searchParams]);
+  const page = await getRealmPage(slug, query[TRACK_PARAM]);
+  if (!page) notFound();
+
+  const { viewer, realm, track, next } = page;
+  const prev = REALMS[realm.id - 1];
+  const after = REALMS[realm.id + 1];
+
+  return (
+    <div
+      className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6"
+      data-accent={realmAccent(realm.id)}
+    >
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-2">
+          <p className="realm-tag">{REALMS_TEXT.tag(realmNumber(realm.id), realm.tier)}</p>
+          <h1 className="page-title">{realm.name}</h1>
+          <p className="text-body leading-body text-text-2 m-0 text-pretty">{realm.topic}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="map-progress">{MAP_TEXT.progress(realm.cleared, realm.chapters.length)}</p>
+          <nav aria-label={MAP_TEXT.realmNav} className="map-realm-nav">
+            {prev ? (
+              <PixelButton
+                href={mapHref(prev.slug, track)}
+                variant="secondary"
+                aria-label={MAP_TEXT.prevRealm(prev.name)}
+              >
+                <span aria-hidden="true">{MAP_TEXT.prevIcon}</span>
+              </PixelButton>
+            ) : (
+              <span className="map-realm-slot" />
+            )}
+            {after ? (
+              <PixelButton
+                href={mapHref(after.slug, track)}
+                variant="secondary"
+                aria-label={MAP_TEXT.nextRealm(after.name)}
+              >
+                <span aria-hidden="true">{MAP_TEXT.nextIcon}</span>
+              </PixelButton>
+            ) : (
+              <span className="map-realm-slot" />
+            )}
+          </nav>
+        </div>
+      </header>
+
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <TrackSwitch current={track} hrefFor={(t) => mapHref(realm.slug, t)} />
+        {next && (
+          <PixelButton href={questHref(next.step.exerciseId)}>
+            {REALM_ACTION_TEXT[realm.status]}
+          </PixelButton>
+        )}
+        {viewer === 'signed-out' && <SignInNote />}
+      </div>
+      {realm.status === 'tier-locked' && (
+        <p className="text-body leading-body text-text-2 m-0">{REALMS_TEXT.tierLocked}</p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <LevelMap realm={realm} nextId={next?.step.exerciseId} />
+        <p className="map-hint">{MAP_TEXT.hint}</p>
+      </div>
+
+      <div className="flex flex-wrap items-start gap-6">
+        <div className="min-w-0 flex-[2_1_32rem]">
+          <DialogBox speaker={realm.npc}>{realm.lore}</DialogBox>
+        </div>
+        <div className="flex min-w-0 flex-[1_1_16rem] flex-wrap gap-3">
+          <PixelButton href={realmsHref(track)} variant="secondary">
+            {MAP_TEXT.allRealms}
+          </PixelButton>
+          <PixelButton href={realmHref(realm.slug, track)} variant="secondary">
+            {MAP_TEXT.chapterList}
+          </PixelButton>
+        </div>
+      </div>
+    </div>
+  );
+}
