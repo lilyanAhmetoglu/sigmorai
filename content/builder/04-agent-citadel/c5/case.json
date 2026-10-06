@@ -8,16 +8,16 @@
       "prompt": "How should the support agent's handler stop the 10-02 leak?",
       "options": [
         {
-          "text": "Tell Claude in the system prompt to stay inside its own folder.",
+          "text": "Tell Claude in the system prompt to stay inside its own folder and never use `../` paths.",
           "explanation": "A prompt asks; it does not enforce. A crafted path can still reach the handler, which must check it."
         },
         {
-          "text": "Resolve every path to its canonical form and reject it unless it stays in the allowed folder.",
+          "text": "Resolve every path to its canonical form and reject any that leaves the allowed folder.",
           "explanation": "Right. The memory tool docs say to validate every path in every command, resolve it to its canonical form and reject traversal sequences like `../`.",
           "correct": true
         },
         {
-          "text": "Rename the folders to random ids so they are hard to guess.",
+          "text": "Rename the folders to random ids so they are hard to guess, and hide the base path.",
           "explanation": "Hidden names do not fix the hole. Any path with `../` still escapes the folder once a name is known."
         },
         {
@@ -30,11 +30,11 @@
       "prompt": "On 10-03, a card number was written to memory. What do the memory tool docs recommend?",
       "options": [
         {
-          "text": "Nothing: Claude refuses to write sensitive data, so this cannot happen.",
+          "text": "Nothing: Claude refuses to write sensitive data, so this cannot happen in a real run.",
           "explanation": "The docs say Claude usually refuses. Usually is not always, and the log shows it happened."
         },
         {
-          "text": "Encrypt the folder, then keep storing card numbers in memory.",
+          "text": "Encrypt the folder, then keep storing card numbers in memory for later sessions.",
           "explanation": "Encryption protects storage at rest, but the card number would still be read back into the context later."
         },
         {
@@ -52,12 +52,12 @@
       "prompt": "The sales assistant loads 9,400 items each run. Which change fits the OpenAI Agents SDK docs?",
       "options": [
         {
-          "text": "Set `SessionSettings(limit=N)` so each run retrieves only the most recent N items.",
+          "text": "Set `SessionSettings(limit=N)` so each run retrieves only the latest N items.",
           "explanation": "Right. The default, `limit=None`, retrieves all session items. A limit caps retrieval without changing what the session stores.",
           "correct": true
         },
         {
-          "text": "Keep the session and also pass `previous_response_id` on each run.",
+          "text": "Keep the session and also pass `previous_response_id` on each run, to link the turns.",
           "explanation": "A session cannot be combined with `previous_response_id` in the same run, and mixing both can duplicate context."
         },
         {

@@ -13,7 +13,7 @@
           "correct": true
         },
         {
-          "text": "4,000. Word counts are exact for English text.",
+          "text": "4,000. Word counts are exact for English text, so the earlier estimate is right.",
           "explanation": "The 0.75-words rule is a rough guide. It also misses parts of a real request, such as tool definitions and the resent chat history."
         },
         {
@@ -30,12 +30,12 @@
       "prompt": "Input grows from 1,300 tokens on turn 1 to 4,700 on turn 8. A teammate proposes linking turns by response id (an OpenAI option) \"so the bill stops growing\". What is true?",
       "options": [
         {
-          "text": "The bill still grows. OpenAI bills all previous input tokens in the chain as input. Cap or summarise old turns instead.",
+          "text": "The bill still grows. OpenAI bills all earlier input tokens in the chain. Cap or summarise old turns.",
           "explanation": "Right. The growth comes from history, and linking by id changes what you send, not what you pay. Capping history length or summarising old turns cuts input tokens.",
           "correct": true
         },
         {
-          "text": "The bill stops growing, because the vendor stores the history and only the new message is billed.",
+          "text": "The bill stops growing, because the vendor stores the history and only the new message is billed as input.",
           "explanation": "OpenAI states that even with previous_response_id, all previous input tokens in the chain are billed as input tokens."
         },
         {
@@ -52,11 +52,11 @@
       "prompt": "A screenshot stays in the chat as a 4000x3000 base64 photo. Which change cuts the cost most without losing what the booking needs?",
       "options": [
         {
-          "text": "Convert each screenshot to a PDF first. A PDF page costs less than an image.",
+          "text": "Convert each screenshot to a PDF first. A PDF page costs much less than an image does.",
           "explanation": "A PDF page costs text tokens plus image tokens, so it is not cheaper than sending the image."
         },
         {
-          "text": "Resize it to the detail a booking needs, upload it once and reference it by file ID in later turns.",
+          "text": "Resize it to the detail a booking needs, upload it once and reference it by file ID.",
           "explanation": "Right. Image tokens are billed as input on every turn the image stays in the chat, so resizing to the detail you need cuts the cost. Claude and OpenAI both accept file IDs: they do not cut tokens, but they keep later requests small instead of resending the image bytes.",
           "correct": true
         },
@@ -74,7 +74,7 @@
       "prompt": "Replies are cut at max_tokens 150, and 429 errors appear at peak with retry-after: 8. Which fix fits both?",
       "options": [
         {
-          "text": "Set max_tokens to the full context window on every call, and retry each 429 at once.",
+          "text": "Set max_tokens to the full context window on every call, and retry each 429 at once with no delay at all.",
           "explanation": "On OpenAI the rate limit counts the larger of max_tokens and the estimated request size, so a huge cap on every call uses the limit up fast. Instant retries ignore retry-after."
         },
         {
@@ -82,7 +82,7 @@
           "explanation": "Streaming changes when the user sees the first words. The model still writes the same reply, and the output cap and rate limits still apply."
         },
         {
-          "text": "Raise max_tokens for long answers (or continue the reply), and on a 429 wait the retry-after time, then back off with jitter.",
+          "text": "Raise max_tokens for long answers (or continue), and on a 429 wait the retry-after time, then back off.",
           "explanation": "Right. stop_reason max_tokens means the cap cut the reply, so raise it or continue the reply. For a 429, Claude sends a retry-after header that says how long to wait, and OpenAI recommends exponential backoff with jitter and honouring Retry-After.",
           "correct": true
         },
