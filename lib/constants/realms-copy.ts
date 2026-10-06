@@ -1,5 +1,6 @@
 import type { Accent, ChapterStep, RealmStatus, StepStatus, Tier } from '@/lib/types';
-import { CHAPTER_COUNT } from './exercises';
+import { MATH_TOWER } from './curriculum';
+import { CHAPTER_COUNT, MATH_FLOOR_COUNT } from './exercises';
 import { QUEST_ERROR_TEXT } from './ui-copy';
 
 /**
@@ -155,5 +156,27 @@ export const MAP_TEXT = {
   viewOnMap: 'View on map',
   loading: 'Loading the map',
   error: "The map didn't load. Try again in a moment.",
+  retry: 'Retry',
+} as const;
+
+/**
+ * Math Tower page words (app/(app)/math). Plain product voice: the tower's
+ * NPC speaks only inside a DialogBox, and this page has none.
+ */
+export const MATH_TEXT = {
+  title: MATH_TOWER.name,
+  eyebrow: `SIDE REALM · ${MATH_FLOOR_COUNT} FLOORS`,
+  /** Meta description and the line under the title. */
+  description: `The maths behind AI systems, one floor at a time: vectors, probability, statistics and more. ${MATH_FLOOR_COUNT} free floors, each a short lesson and a quick check.`,
+  intro: `The maths behind AI systems, one floor at a time. Each floor is a short lesson and a quick check. Clear a floor's quick check to open the next floor. Every floor is free on both paths.`,
+  floorsHeading: 'FLOORS',
+  /** "FLOOR 3" */
+  floorLabel: (n: number) => `FLOOR ${n}`,
+  /** Visually hidden heading over a floor's formulas. */
+  formulas: 'Formulas',
+  backIcon: '◂',
+  back: 'All realms',
+  loading: 'Loading the Math Tower',
+  error: "The Math Tower didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;

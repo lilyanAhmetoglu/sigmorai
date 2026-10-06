@@ -4,8 +4,8 @@ import { and, eq, like } from 'drizzle-orm';
 import { cache } from 'react';
 import { db } from '@/db';
 import { progress } from '@/db/schema';
-import { DASHBOARD_REALM_LIMIT, DEFAULT_TRACK, REALMS, TRACKS } from '@/lib/constants';
-import { realmExerciseIds, trackExerciseIds } from '@/lib/content/ids';
+import { DASHBOARD_REALM_LIMIT, DEFAULT_TRACK, MATH_AREA, REALMS, TRACKS } from '@/lib/constants';
+import { mathExerciseIds, realmExerciseIds, trackExerciseIds } from '@/lib/content/ids';
 import { hasContent, loadTrackOutline } from '@/lib/content/load';
 import { activeRealms, buildTrackMap, clearedLevels, firstOpenStep } from '@/lib/grading/track-map';
 import {
@@ -27,12 +27,13 @@ import { getHudState } from './hud';
  */
 
 /** Who is looking. A visitor (signed out or not onboarded) has no progress. */
-type Viewer =
+export type Viewer =
   | { status: 'signed-out' }
   | { status: 'onboarding' }
   | { status: 'ready'; userId: string; stats: HudStats };
 
-const getViewer = cache(async (): Promise<Viewer> => {
+/** Shared with lib/data/math.ts: one viewer read per request. */
+export const getViewer = cache(async (): Promise<Viewer> => {
   const hud = await getHudState();
   if (hud.status !== 'ready') return hud;
   // getHudState is cached per request; auth() gives the same session's id.
@@ -40,35 +41,42 @@ const getViewer = cache(async (): Promise<Viewer> => {
   return userId ? { status: 'ready', userId, stats: hud.stats } : { status: 'signed-out' };
 });
 
-/** Ids of this track that have a content file. Stubs (outline only) have none. */
-async function scanLiveIds(track: Track): Promise<Set<string>> {
-  const ids = trackExerciseIds(track);
+/** What has its own set of live ids: a track, or the Math Tower. */
+type LiveArea = Track | typeof MATH_AREA;
+
+/** Ids of this track (or the tower) that have a content file. Stubs (outline only) have none. */
+async function scanLiveIds(area: LiveArea): Promise<Set<string>> {
+  const ids = area === MATH_AREA ? mathExerciseIds() : trackExerciseIds(area);
   const live = await Promise.all(ids.map((id) => hasContent(id)));
   return new Set(ids.filter((_, i) => live[i]));
 }
 
-/** Content ships with the deploy, so production scans each track once per server. */
-const liveIdsMemo = new Map<Track, Promise<Set<string>>>();
+/** Content ships with the deploy, so production scans each area once per server. */
+const liveIdsMemo = new Map<LiveArea, Promise<Set<string>>>();
 /** In dev, content files change while the server runs: scan once per request. */
 const liveIdsPerRequest = cache(scanLiveIds);
 
-function liveIds(track: Track): Promise<Set<string>> {
-  if (process.env.NODE_ENV !== 'production') return liveIdsPerRequest(track);
-  let ids = liveIdsMemo.get(track);
+/** Shared with lib/data/math.ts. */
+export function liveIds(area: LiveArea): Promise<Set<string>> {
+  if (process.env.NODE_ENV !== 'production') return liveIdsPerRequest(area);
+  let ids = liveIdsMemo.get(area);
   if (!ids) {
-    ids = scanLiveIds(track);
-    liveIdsMemo.set(track, ids);
-    ids.catch(() => liveIdsMemo.delete(track));
+    ids = scanLiveIds(area);
+    liveIdsMemo.set(area, ids);
+    ids.catch(() => liveIdsMemo.delete(area));
   }
   return ids;
 }
 
-/** Every exercise of this track the user cleared. The track is the id's first segment. */
-async function clearedIds(userId: string, track: Track): Promise<Set<string>> {
+/**
+ * Every exercise of this track (or the tower) the user cleared. The area is
+ * the id's first segment. Shared with lib/data/math.ts.
+ */
+export async function clearedIds(userId: string, area: LiveArea): Promise<Set<string>> {
   const rows = await db
     .select({ id: progress.exerciseId })
     .from(progress)
-    .where(and(eq(progress.userId, userId), like(progress.exerciseId, `${track}/%`)));
+    .where(and(eq(progress.userId, userId), like(progress.exerciseId, `${area}/%`)));
   return new Set(rows.map((r) => r.id));
 }
 

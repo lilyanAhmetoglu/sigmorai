@@ -1,4 +1,12 @@
-import { BOSS_STEP, CHAPTER_COUNT, CHAPTER_STEPS, REALMS } from '@/lib/constants';
+import {
+  BOSS_STEP,
+  CHAPTER_COUNT,
+  CHAPTER_STEPS,
+  MATH_AREA,
+  MATH_FLOORS,
+  REALMS,
+  SIDE_STEPS,
+} from '@/lib/constants';
 import { isRealmOpen } from '@/lib/content/curriculum';
 import { buildExerciseId } from '@/lib/content/ids';
 import type {
@@ -41,11 +49,14 @@ function stepStatus(ref: ExerciseRef, id: string, { live, cleared }: Sets): Step
 
 function stepView(ref: ExerciseRef, sets: Sets): StepView {
   const exerciseId = buildExerciseId(ref);
-  const step = ref.area === 'chapter' ? ref.step : BOSS_STEP;
+  const step = ref.area === 'boss' ? BOSS_STEP : ref.step;
   return { step, exerciseId, status: stepStatus(ref, exerciseId, sets) };
 }
 
-/** A chapter takes its case's state, except "soon" only when no step is live. */
+/**
+ * A chapter takes its case's state, except "soon" only when no step is live.
+ * A Math Tower floor passes its quick check as `caseStep`: it clears the floor.
+ */
 function chapterStatus(steps: StepView[], caseStep: StepView): StepStatus {
   if (caseStep.status === 'tier-locked' || caseStep.status === 'done') return caseStep.status;
   if (steps.every((s) => s.status === 'soon')) return 'soon';
@@ -148,4 +159,24 @@ export function buildTrackMap(
   });
   // Continue where the player already is: in-progress realms before fresh ones.
   return { track, realms, next: firstOpenStep(activeRealms(realms)) };
+}
+
+/**
+ * The Math Tower's floors, as chapter views (`chapter` = the floor number):
+ * lesson then quick check, and the quick check decides the floor's state.
+ * Same lock rule as the actions (decideOpen). Pure. What a floor covers
+ * comes from content/math/outline.json; the caller adds it.
+ */
+export function buildTowerMap(
+  live: ReadonlySet<string>,
+  cleared: ReadonlySet<string>,
+): ChapterView[] {
+  const sets = { live, cleared };
+  return MATH_FLOORS.map((floor): ChapterView => {
+    const steps = SIDE_STEPS.map((step) =>
+      stepView({ area: MATH_AREA, floor: floor.n, step }, sets),
+    );
+    const quickCheck = steps.find((s) => s.step === 'quick-check')!;
+    return { chapter: floor.n, title: floor.name, status: chapterStatus(steps, quickCheck), steps };
+  });
 }
