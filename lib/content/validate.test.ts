@@ -11,7 +11,9 @@ const FIXTURE_LESSON = `${import.meta.dir}/__fixtures__/valid/builder/00-bootstr
 const C1 = 'builder/00-bootstrap-village/c1';
 
 let tmp: string | undefined;
+const pubDirs: string[] = [];
 afterEach(async () => {
+  for (const d of pubDirs.splice(0)) await rm(d, { recursive: true, force: true });
   if (tmp) await rm(tmp, { recursive: true, force: true });
   tmp = undefined;
 });
@@ -145,7 +147,13 @@ describe('broken content is caught, with the file name', () => {
     const root = await copyOfContent();
     await Bun.write(`${root}/blog/2026-10-05-tokens.mdx`, post());
     await Bun.write(`${root}/blog/tokens.mdx`, post());
-    expect((await validateContent(root)).map((i) => i.file)).toEqual(['blog/tokens.mdx']);
+    const pub = await mkdtemp(path.join(tmpdir(), 'sigmorai-public-'));
+    pubDirs.push(pub);
+    await cp(path.resolve(import.meta.dir, '../../public/blog'), `${pub}/blog`, {
+      recursive: true,
+    });
+    await Bun.write(`${pub}/blog/covers/tokens.webp`, 'x');
+    expect((await validateContent(root, pub)).map((i) => i.file)).toEqual(['blog/tokens.mdx']);
   });
 });
 
@@ -155,6 +163,7 @@ function post(body = '## Summary\n\nPlain text.', fields: Record<string, string>
     title: 'A post',
     description: 'What it covers.',
     lesson: 'builder/r0/c1/lesson',
+    cover: '/blog/covers/tokens.webp',
     ...fields,
   };
   const yaml = Object.entries(front)
@@ -165,10 +174,18 @@ function post(body = '## Summary\n\nPlain text.', fields: Record<string, string>
 }
 
 describe('blog posts', () => {
-  async function postIssues(files: Record<string, string>) {
+  /** Validate the real content plus these posts, with a tiny public/ holding the named covers. */
+  async function postIssues(files: Record<string, string>, covers = ['tokens', 'other']) {
     const root = await copyOfContent();
     for (const [name, text] of Object.entries(files)) await Bun.write(`${root}/blog/${name}`, text);
-    return validateContent(root);
+    const pub = await mkdtemp(path.join(tmpdir(), 'sigmorai-public-'));
+    pubDirs.push(pub);
+    for (const c of covers) await Bun.write(`${pub}/blog/covers/${c}.webp`, 'x');
+    // The real posts' covers live in the real public/.
+    await cp(path.resolve(import.meta.dir, '../../public/blog'), `${pub}/blog`, {
+      recursive: true,
+    });
+    return validateContent(root, pub);
   }
 
   test('an empty post fails its schema (it used to pass)', async () => {
@@ -212,12 +229,56 @@ describe('blog posts', () => {
     expect(issues[0].message).toContain('has no lesson file');
   });
 
+  test('a cover that is not a file under public/ fails', async () => {
+    const issues = await postIssues(
+      { '2026-10-05-tokens.mdx': post() },
+      [], // no cover files at all
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('not a file under public/');
+  });
+
+  test('a missing cover fails its schema', async () => {
+    const issues = await postIssues({ '2026-10-05-tokens.mdx': post(undefined, { cover: '' }) });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('cover');
+  });
+
+  test('a cover path outside /blog/covers fails its schema', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(undefined, { cover: '/levels/realm-01/sky.png' }),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('cover');
+  });
+
+  test('a cover not named after the slug fails', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(undefined, { cover: '/blog/covers/other.webp' }),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('/blog/covers/tokens.webp');
+  });
+
+  test('two posts may not share a cover', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(),
+      '2026-10-06-other.mdx': post(), // cover is tokens.webp: shared, and not its slug
+    });
+    const shared = issues.filter((i) => i.message.includes('already used'));
+    expect(shared).toHaveLength(1);
+    expect(shared[0].file).toBe('blog/2026-10-06-other.mdx');
+  });
+
   test('two posts with the same slug fail on the second', async () => {
     const issues = await postIssues({
       '2026-10-05-tokens.mdx': post(),
       '2026-10-06-tokens.mdx': post(),
     });
-    expect(issues).toEqual([expect.objectContaining({ file: 'blog/2026-10-06-tokens.mdx' })]);
+    expect(issues.map((i) => i.file)).toEqual([
+      'blog/2026-10-06-tokens.mdx',
+      'blog/2026-10-06-tokens.mdx',
+    ]);
     expect(issues[0].message).toContain('already used');
   });
 });

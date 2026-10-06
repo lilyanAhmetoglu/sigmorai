@@ -23,7 +23,7 @@ export function PostCard({ post, variant = 'full', headingAs: Heading = 'h3' }: 
     <article className="post-card" data-variant={variant} data-accent={post.place.accent}>
       {full && (
         <PostScene
-          place={post.place}
+          cover={post.cover}
           sizes="(min-width: 768px) 360px, 100vw"
           className="post-card-scene"
         />

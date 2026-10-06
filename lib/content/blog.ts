@@ -59,6 +59,7 @@ export function toBlogCard(post: BlogPost): BlogCardView {
     date: post.date,
     minutes: readMinutes(post.body),
     place: blogPlace(post.frontmatter.lesson),
+    cover: post.frontmatter.cover,
   };
 }
 

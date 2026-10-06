@@ -1,5 +1,5 @@
 import 'server-only';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import {
@@ -113,16 +113,22 @@ async function officialBases(root: string, issues: ContentIssue[]): Promise<stri
   }
 }
 
+/** The site's static folder, where a post's `cover` path points. */
+const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
+
 /**
  * A blog post: frontmatter schema, a body with no components (no NPC
  * DialogBox), unique heading anchors (the "On this page" list), a linked
- * lesson that exists, and a slug no other post uses.
+ * lesson that exists, a slug no other post uses, and (when set) a cover
+ * file under public/ that no other post uses.
  */
 async function checkBlogPost(
   abs: string,
   rel: string,
   name: string,
   slugs: Map<string, string>,
+  covers: Map<string, string>,
+  publicDir: string,
   issues: ContentIssue[],
 ) {
   const { slug } = parseBlogFileName(name)!;
@@ -141,6 +147,27 @@ async function checkBlogPost(
       issues.push({ file: rel, message: `MDX body: ${(err as Error).message}` });
     }
     for (const message of headingProblems(body)) issues.push({ file: rel, message });
+    const { cover } = frontmatter;
+    if (cover !== `/blog/covers/${slug}.webp`) {
+      issues.push({
+        file: rel,
+        message: `cover must be /blog/covers/${slug}.webp (named after the slug), not ${cover}.`,
+      });
+    }
+    const used = covers.get(cover);
+    if (used) {
+      issues.push({
+        file: rel,
+        message: `cover ${cover} is already used by ${used}. Each post needs its own cover.`,
+      });
+    } else covers.set(cover, rel);
+    const isFile = await stat(path.join(publicDir, cover)).then(
+      (s) => s.isFile(),
+      () => false,
+    );
+    if (!isFile) {
+      issues.push({ file: rel, message: `cover ${cover} is not a file under public/.` });
+    }
     if (!(await hasContent(frontmatter.lesson, abs))) {
       issues.push({
         file: rel,
@@ -152,7 +179,10 @@ async function checkBlogPost(
   }
 }
 
-export async function validateContent(root: string = CONTENT_DIR): Promise<ContentIssue[]> {
+export async function validateContent(
+  root: string = CONTENT_DIR,
+  publicDir: string = PUBLIC_DIR,
+): Promise<ContentIssue[]> {
   const abs = contentPath(root, '.');
   const issues: ContentIssue[] = [];
   const files = await listFiles(abs);
@@ -165,6 +195,8 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
 
   /** slug → the first file that used it: two posts may not share a URL. */
   const blogSlugs = new Map<string, string>();
+  /** cover path → the first post that used it: a cover is never reused. */
+  const blogCovers = new Map<string, string>();
 
   for (const area of [...TRACKS, MATH_AREA]) {
     const rel = `${area}/${OUTLINE_FILE}`;
@@ -177,7 +209,7 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
     if (rel === KB_SOURCES_NAME || rel.endsWith(CONTENT_NOTES_FILE)) continue;
     const post = blogPostName(rel);
     if (post) {
-      await checkBlogPost(abs, rel, post, blogSlugs, issues);
+      await checkBlogPost(abs, rel, post, blogSlugs, blogCovers, publicDir, issues);
       continue;
     }
     if (rel === `${MATH_AREA}/${OUTLINE_FILE}`) {
