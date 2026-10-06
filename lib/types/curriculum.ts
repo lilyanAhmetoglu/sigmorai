@@ -9,7 +9,7 @@ import {
 } from '@/lib/constants';
 import { segment } from '@/lib/content/ids';
 import type { HudState } from './hud';
-import type { ChapterView } from './realms';
+import type { ChapterView, StepView } from './realms';
 
 export type Tier = (typeof TIERS)[number];
 export type Realm = (typeof REALMS)[number];
@@ -81,6 +81,19 @@ export type FloorState = Omit<ChapterView, 'chapter'> & { chapter: number };
 
 /** One floor card on /math: its state plus what it covers (content/math/outline.json). */
 export type FloorView = FloorState & Pick<MathOutline['floors'][number], 'covers' | 'formulas'>;
+
+/**
+ * The dashboard's Math Tower panel and MATH FLOORS stat (towerSummary).
+ * `open`: `next` is the first open floor and its playable step. `cleared`:
+ * every live floor is done. `soon`: nothing is playable yet (the next floor
+ * has no content). `cleared` / `live` count floors with content.
+ */
+export type TowerSummary = {
+  state: 'open' | 'cleared' | 'soon';
+  next: { floor: number; title: string; step: StepView } | null;
+  cleared: number;
+  live: number;
+};
 
 /** The /math page's read (lib/data/math.ts). A visitor has no progress. */
 export type MathPage = { viewer: HudState['status']; floors: FloorView[] };

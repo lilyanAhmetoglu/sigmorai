@@ -11,6 +11,7 @@ export const BUTTON_VARIANTS = [
   'secondary',
   'danger',
   'ghost',
+  'math',
 ] as const;
 export const BUTTON_SIZES = ['sm', 'md', 'lg'] as const;
 

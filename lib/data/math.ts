@@ -1,25 +1,23 @@
 import 'server-only';
 import { cache } from 'react';
-import { MATH_AREA } from '@/lib/constants';
 import { loadMathOutline } from '@/lib/content/load';
-import { buildTowerMap } from '@/lib/grading/track-map';
 import type { FloorView, MathPage } from '@/lib/types';
-import { clearedIds, getViewer, liveIds } from './realms';
+import { getTowerFloors, getViewer } from './realms';
 
 /**
  * The Math Tower page's read. Public: a visitor sees the floors with no
- * progress. Progress is scoped to auth()'s user only (getViewer). States come
- * from buildTowerMap, the same lock rule the Server Actions run.
+ * progress. Progress is scoped to auth()'s user only (getViewer). Floor
+ * states come from getTowerFloors (lib/data/realms.ts, also used by the
+ * dashboard), built by buildTowerMap, the same lock rule the Server Actions run.
  */
 
 export const getMathPage = cache(async (): Promise<MathPage> => {
   const viewer = await getViewer();
-  const [outline, live, cleared] = await Promise.all([
+  const [outline, states] = await Promise.all([
     loadMathOutline(),
-    liveIds(MATH_AREA),
-    viewer.status === 'ready' ? clearedIds(viewer.userId, MATH_AREA) : new Set<string>(),
+    getTowerFloors(viewer.status === 'ready' ? viewer.userId : null),
   ]);
-  const floors = buildTowerMap(live, cleared).map((view, i): FloorView => {
+  const floors = states.map((view, i): FloorView => {
     const { covers, formulas } = outline.floors[i];
     return { ...view, covers, formulas };
   });
