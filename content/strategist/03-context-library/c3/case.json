@@ -1,7 +1,7 @@
 {
   "id": "strategist/r3/c3/challenge",
   "title": "The insurer's library before go-live",
-  "scenario": "You are a project lead at a travel insurer. The call centre wants an assistant that answers agents' questions about policies, claims and prices. The plan is to load the company's documents into a hosted vector store next week.\n\nYou run a data readiness check first. The exhibit shows your inventory and one test chunk.",
+  "scenario": "You are a project lead at a travel insurer. The call centre wants an assistant that answers agents' questions about policies, claims and prices. The plan is to load the company's documents into an OpenAI vector store next week.\n\nYou run a data readiness check first. The exhibit shows your inventory and one test chunk.",
   "exhibit": "Knowledge base inventory (made-up example data)\n\nSource              Format  Size       Copies                Updated   Owner\nA Policy wordings   PDF     1,200 pp   3 versions            2025-04   Legal\n                                       (2023, 2024, 2025)\nB Claims FAQ        wiki    90 pp      1                     2026-09   Claims\nC Price tables      .xlsx   40 sheets  1                     2026-09   Pricing\nD Old intranet      .html   300 pp     unknown               2019      nobody\n\nTest chunk from source A (default chunking):\n  \"Medical cover: 2,000,000 EUR. Excess: 150 EUR. Cover ends\n   on the date of return.\"\n  (The country and plan name appear only in the page heading.)\n\nTest set: none yet",
   "questions": [
     {
@@ -21,20 +21,20 @@
           "correct": true
         },
         {
-          "text": "None of the versions, because policy wordings are too long to be split into chunks.",
-          "explanation": "Long documents are what chunking is for. OpenAI's guide accepts files up to 5,000,000 tokens."
+          "text": "Only the 2025 version, but keep the 2023 and 2024 copies in the same store with a \"draft\" label.",
+          "explanation": "A label doesn't stop search from returning the old chunks. Archive old copies outside the knowledge base, or at least filter them out as OpenAI's retrieval guide shows."
         }
       ]
     },
     {
-      "prompt": "What should the team do with source C, the price tables in .xlsx?",
+      "prompt": "What should the team do with source C, the price tables in .xlsx? (OpenAI's supported list, checked 2026-10-06.)",
       "options": [
         {
           "text": "Load them as they are, because the vector store converts every spreadsheet automatically on upload.",
           "explanation": "On 2026-10-06, OpenAI's retrieval guide did not list .xlsx as a supported file type. Check the list; don't assume."
         },
         {
-          "text": ".xlsx is not on OpenAI's list (2026-10-06): convert, check the result, or use another route.",
+          "text": "It isn't on the supported list: convert the tables, check the result, or answer prices another way.",
           "explanation": "Right. The supported list includes formats such as .pdf, .docx and .txt, but not .xlsx. Convert the tables and check them, or answer price questions another way.",
           "correct": true
         },
@@ -43,8 +43,8 @@
           "explanation": "That mixes prices into a different document and hides the numbers in images. It makes the data harder to keep current and to check."
         },
         {
-          "text": "Leave prices out of the project for good, since retrieval can't work with numbers.",
-          "explanation": "Retrieval can work with numbers in supported text. The problem here is the file format, not the numbers."
+          "text": "Export each sheet to PDF and load it without a check, since PDF is on the supported list.",
+          "explanation": "PDF is on the list, but a converted table can lose its rows and headings. Convert, then test it with a real price question before go-live."
         }
       ]
     },
