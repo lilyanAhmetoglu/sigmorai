@@ -1,5 +1,6 @@
 import type { ChoiceState, LevelStatus, QuestErrorCode, QuestStatus, Track } from '@/lib/types';
 import { QUICK_CHECK_QUESTIONS } from './content';
+import { FRONTIER, MATH_TOWER } from './curriculum';
 import { CHAPTER_COUNT } from './exercises';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
@@ -14,9 +15,11 @@ export const CHOICE_STATE_TEXT: Record<ChoiceState, string> = {
   wrong: '✗ Wrong',
 };
 
-/** LevelNode tile glyph. Open and current show the level number instead. */
+/**
+ * LevelNode tile glyph. Open and current show the level number instead;
+ * locked shows LockGlyph (the pixel fonts have no lock character).
+ */
 export const LEVEL_GLYPHS: Partial<Record<LevelStatus, string>> = {
-  locked: '·',
   done: '✓',
 };
 /** Screen-reader status for a LevelNode (the tile glyph is aria-hidden). */
@@ -131,7 +134,7 @@ export const QUEST_TEXT = {
   notifications: 'Notifications',
   noticeHeading: 'Quest',
   notAvailable: 'This step is not available yet.',
-  notAvailableHint: 'Math Tower and Frontier steps open later.',
+  notAvailableHint: `${MATH_TOWER.name} and ${FRONTIER.name} steps open later.`,
   // Tags: "BOOTSTRAP VILLAGE · CHAPTER 1 · CASE"
   chapterTag: (n: number) => `CHAPTER ${n}`,
   bossTag: 'BOSS',
@@ -144,8 +147,8 @@ export const QUEST_TEXT = {
   minutes: (n: number) => `${n} min`,
   lessonPanel: 'LESSON',
   lessonDone: 'Lesson done',
-  lessonDoneNote: (xp: number) => `Mark it read for +${xp} XP, once.`,
-  lessonDoneReplay: 'Already done · XP already earned.',
+  lessonDoneNote: (xp: number) => `Mark it read to earn +${xp} XP. You earn it once.`,
+  lessonDoneReplay: 'Done · XP earned once.',
   lessonCleared: (xp: number) => `+${xp} XP · LESSON DONE`,
   /** completeLesson's reply was lost. No HP is involved, so a retry is safe (award once). */
   lessonNoReply: 'No reply from the server. Reload the page and try again.',
@@ -187,7 +190,7 @@ export const QUEST_TEXT = {
   /** The action may have finished (and spent HP) before the reply was lost. */
   noReply: 'No reply from the server. Reload the page to see your HP and result.',
   locked: 'LOCKED',
-  /** The back link (questBackHref): the quest's realm page until the world map ships. */
+  /** The back link (questBackHref): the quest's realm page, which lists every step. */
   backIcon: '◂',
   back: 'Back to realm',
   loading: 'Loading the quest',

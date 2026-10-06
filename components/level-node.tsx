@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { LEVEL_GLYPHS, LEVEL_STATUS_TEXT } from '@/lib/constants';
 import type { Accent, LevelStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { LockGlyph } from './lock-glyph';
 
 type BaseProps = {
   /** Number shown on open and current tiles. */
@@ -48,7 +49,7 @@ export function LevelNode({
   const content = (
     <>
       <span className="level-node-tile" aria-hidden="true">
-        {LEVEL_GLYPHS[status] ?? index}
+        {locked ? <LockGlyph /> : (LEVEL_GLYPHS[status] ?? index)}
       </span>
       <span className="level-node-label">{label}</span>
       <span className="sr-only">, {LEVEL_STATUS_TEXT[status]}</span>

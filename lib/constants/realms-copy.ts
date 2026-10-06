@@ -131,3 +131,29 @@ export const DASHBOARD_TEXT = {
   error: "Your dashboard didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;
+
+/** World map words (Sigmorai App.dc.html → isMap). */
+export const MAP_TEXT = {
+  /** "Bootstrap Village · World map · Sigmorai" */
+  title: (realmName: string) => `${realmName} · World map · Sigmorai`,
+  description: (realmName: string) =>
+    `The ${realmName} level map: ${CHAPTER_COUNT} chapters and a boss, built from official docs.`,
+  realmNav: 'Other realms',
+  prevIcon: '◂',
+  nextIcon: '▸',
+  prevRealm: (name: string) => `Previous realm: ${name}`,
+  nextRealm: (name: string) => `Next realm: ${name}`,
+  /** "2/7 CLEARED": chapters + boss cleared in this realm. */
+  progress: (cleared: number, total: number) => `${cleared}/${total} CLEARED`,
+  /** Visually hidden heading over the node list. */
+  levels: 'Levels',
+  /** Under the strip: how a locked level opens. */
+  hint: "Clear a chapter's case to open the next one.",
+  allRealms: 'All realms',
+  chapterList: 'Chapter list',
+  /** The realm page's link to its map. */
+  viewOnMap: 'View on map',
+  loading: 'Loading the map',
+  error: "The map didn't load. Try again in a moment.",
+  retry: 'Retry',
+} as const;

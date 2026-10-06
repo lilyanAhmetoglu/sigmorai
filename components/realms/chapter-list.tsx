@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import {
   BOSS_NOT_OPEN_TEXT,
   LEVEL_GLYPHS,
@@ -9,6 +10,7 @@ import {
   STEP_TEXT,
 } from '@/lib/constants';
 import type { ChapterView, StepView } from '@/lib/types';
+import { LockGlyph } from '@/components/lock-glyph';
 import { StatusBadge } from './status-badge';
 
 type Props = {
@@ -17,10 +19,10 @@ type Props = {
   nextId?: string;
 };
 
-/** Tile glyph: ✓ when done, · when shut, else the chapter number or B for the boss. */
-function glyph(chapter: ChapterView): string {
+/** Tile glyph: ✓ when done, a padlock when shut, else the chapter number or B for the boss. */
+function glyph(chapter: ChapterView): ReactNode {
   if (chapter.status === 'done') return LEVEL_GLYPHS.done!;
-  if (chapter.status !== 'open') return LEVEL_GLYPHS.locked!;
+  if (chapter.status !== 'open') return <LockGlyph />;
   return chapter.chapter === null ? REALMS_TEXT.bossGlyph : String(chapter.chapter);
 }
 

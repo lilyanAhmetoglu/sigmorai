@@ -8,6 +8,14 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (level map, SIG-15)
+
+- The map is DOM, not canvas. /map/[realm] (and /map → redirect to the player's current realm) renders the four PNG layers via RealmScene in a 2048×480 horizontally scrolling box (exact 2×), with seven LevelNode links on top. Why: the design file already uses <img> + buttons; canvas would only remove accessibility.
+- A node is a chapter (6) or the boss (1), never a step. State = ChapterView.status; done→done, open→open (or current for the chapter holding next.step), locked|tier-locked|soon→locked. A playable node links to the chapter's first open step, else its lesson (replay). Steps stay on the realm page.
+- Node geometry comes from design/assets/levels/layout.json as one LEVEL_MAP constant (1024×240 grid, ground 192, nodes [4,11,19,27,35,44,58], scale 2). The boss sits at 1872 screen px; 'boss castle at 1840' is dropped (the castle lived in the old SVGs).
+- Parallax is scroll-linked and CSS only, gated by prefers-reduced-motion: no-preference; without support or with reduced motion the layers scroll 1:1. No rAF loop.
+- Deferred to a follow-up ticket: hero walk + Hallucinant ghosts, the selected-level card, the NEW LEVEL banner (sync, step 8), the ALL REALMS grid (/realms exists), the Math Tower map (step 6).
+
 ## Amendments locked 2026-10-05
 
 - **The pixelate pipeline stays outside the repo.** It is a Python script (numpy + Pillow), and this is a Bun repo. The maintainer decided not to ship it. It lives in the maintainer's local art folder with the raw Higgsfield renders. This replaces Pipeline step 2's "offline in `scripts/art/`". Only the finished PNGs are committed.
