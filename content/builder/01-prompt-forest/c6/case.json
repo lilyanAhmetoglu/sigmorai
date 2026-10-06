@@ -1,0 +1,96 @@
+{
+  "id": "builder/r1/c6/challenge",
+  "title": "Twelve weeks that never existed",
+  "scenario": "A company runs an HR assistant that answers staff questions from the employee handbook (about 40k tokens), sent with every request. A contractor asked about parental leave and was told 'Contractors get 12 weeks of paid leave.' The handbook only covers employees, and 12 weeks appears nowhere in it. Legal now wants every answer to be traceable to the handbook before staff see it. You review the prompt and the reply (exhibit).",
+  "exhibit": "SYSTEM\nYou are a helpful HR assistant. Always answer every question\nfully and confidently.\n<handbook>\n...40k tokens...\n</handbook>\n\nUSER\nHow much parental leave do contractors get?\n\nASSISTANT\nContractors get 12 weeks of paid leave.",
+  "questions": [
+    {
+      "prompt": "Which prompt change most directly targets this failure?",
+      "options": [
+        {
+          "text": "Make the rule stronger: 'Always answer every question fully, accurately and confidently.'",
+          "explanation": "This pushes harder in the wrong direction. The model needs a way out when the handbook has no answer, not more pressure to answer."
+        },
+        {
+          "text": "Use only the handbook; if it doesn't answer, reply 'The handbook does not cover this.'",
+          "explanation": "Right. The Claude docs say to give explicit permission to admit uncertainty and to restrict answers to the provided documents. Gemini says to state the information is not available.",
+          "correct": true
+        },
+        {
+          "text": "Switch to the largest available model, which hallucinates less.",
+          "explanation": "No source in this lesson says a bigger model fixes this. The prompt still demands an answer to every question. Fix the instruction first."
+        },
+        {
+          "text": "Add general HR articles from the web so the model has more to work from.",
+          "explanation": "That brings in text that is not your policy. OpenAI also warns that too much irrelevant context can cause hallucinations."
+        }
+      ]
+    },
+    {
+      "prompt": "Answers to long questions sometimes mix up sections of the 40k-token handbook. Which technique fits best?",
+      "options": [
+        {
+          "text": "Ask the model to answer first, then add a short summary of the handbook at the end.",
+          "explanation": "A summary does not tie the answer to the exact text. Quotes come before the answer, not after a summary."
+        },
+        {
+          "text": "Cut the handbook to its first 5k tokens so the model reads it faster.",
+          "explanation": "Most answers would then be missing. Relevant parts should stay; the model needs to focus on them."
+        },
+        {
+          "text": "Ask the model to be very careful and double-check its memory.",
+          "explanation": "The goal is to rely on the given text, not on the model's memory. 'Be careful' gives it no method."
+        },
+        {
+          "text": "Quote the relevant passages word for word, then answer only from those.",
+          "explanation": "Right. For documents over 20k tokens, the Claude docs suggest extracting word-for-word quotes before the task, with 'No relevant quotes found' as the fallback.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Legal wants every answer checked against the handbook before it is shown. Which design meets that?",
+      "options": [
+        {
+          "text": "Stable section IDs, required citations, and a code check of every ID before display.",
+          "explanation": "Right. OpenAI says to validate citations before they render: cite only blocks in the context, never invent IDs. Code can check every ID.",
+          "correct": true
+        },
+        {
+          "text": "Send 'Are you sure?' as a second message and show the answer only if the model says yes.",
+          "explanation": "The model's own confidence is not a check against the text. Verification needs a supporting quote or a valid citation."
+        },
+        {
+          "text": "Wrap the handbook in XML tags; tags make every answer grounded.",
+          "explanation": "Tags mark where the handbook is (chapter 3). They do not check that each claim comes from it."
+        },
+        {
+          "text": "Show answers at once and let staff report errors with a button.",
+          "explanation": "Feedback is useful, but Legal asked for checks before display. Wrong answers would still reach staff first."
+        }
+      ]
+    },
+    {
+      "prompt": "On Claude, the team wants built-in citations and a JSON reply via structured outputs in the same request. What happens?",
+      "options": [
+        {
+          "text": "It works; the citations appear inside the JSON fields.",
+          "explanation": "The Claude docs say citations cannot be used together with structured outputs."
+        },
+        {
+          "text": "It works, but citations are billed as extra output tokens.",
+          "explanation": "The request is rejected. And when citations are used, cited_text does not count toward output tokens."
+        },
+        {
+          "text": "The API returns a 400 error. The team must choose one feature for that request.",
+          "explanation": "Right. Citations interleave citation blocks with text, which is incompatible with strict JSON schema constraints.",
+          "correct": true
+        },
+        {
+          "text": "Structured outputs are silently ignored, and the reply comes back as cited text.",
+          "explanation": "Nothing is silently dropped. The docs say the API returns a 400 error."
+        }
+      ]
+    }
+  ]
+}

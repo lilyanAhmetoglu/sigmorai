@@ -1,0 +1,96 @@
+{
+  "id": "builder/r1/c1/challenge",
+  "title": "The summary nobody can use",
+  "scenario": "A helpdesk adds AI ticket summaries to its agent dashboard. Agents scan the summary in a few seconds before they open a ticket. The summaries are shown on a shared screen in the support room. After one week, agents complain: some summaries are one line, some are ten bullets, and some include the customer's email and phone number. You review the prompt and three outputs (exhibit).",
+  "exhibit": "PROMPT (developer instructions)\nYou are a helpful assistant. Summarise this ticket. Keep it short.\n\nOUTPUT A\nCustomer can't log in.\n\nOUTPUT B\n- Customer: Dana Ruiz (dana.ruiz@example.com, +1 555 0100)\n- Issue started Monday\n- Tried resetting password twice\n- Browser: Firefox\n- Also asked about invoices\n- ... (6 more bullets)\n\nOUTPUT C\nThe customer, who seems frustrated, reports that since the latest update they have been unable to ...",
+  "questions": [
+    {
+      "prompt": "What is the main cause of the inconsistent summaries?",
+      "options": [
+        {
+          "text": "The model's temperature is too high, so every reply comes out random and different.",
+          "explanation": "Nothing in the exhibit points to sampling settings. Even a fully stable model would still have to guess what 'short' means, because the prompt never says."
+        },
+        {
+          "text": "The prompt leaves reader, format and length open, so the model guesses.",
+          "explanation": "Right. 'Short' is ambiguous and nothing says bullets or prose. The Claude docs say to be specific about the desired output format and constraints.",
+          "correct": true
+        },
+        {
+          "text": "The model is too small to summarise support tickets.",
+          "explanation": "Output A shows the model can summarise. The problem is that each output answers a different, unstated brief."
+        },
+        {
+          "text": "The tickets are too long for the context window.",
+          "explanation": "A context-window overflow causes an error or a cut-off reply, not three different styles of summary."
+        }
+      ]
+    },
+    {
+      "prompt": "Which rewrite of the instruction best fixes the format problem?",
+      "options": [
+        {
+          "text": "\"Be VERY concise!!! Short summaries ONLY.\"",
+          "explanation": "Capitals add pressure but no information. 'Concise' is still undefined."
+        },
+        {
+          "text": "\"Do not write long summaries. Do not use too many bullet points. Do not add unnecessary detail or background.\"",
+          "explanation": "A list of don'ts leaves the target open. The Claude docs advise telling the model what to do instead of what not to do."
+        },
+        {
+          "text": "\"For an agent with 10 seconds: 3 bullets (problem, tried, wanted), max 15 words each.\"",
+          "explanation": "Right. It names the reader, the format, the length and the content, so every output can be checked against it.",
+          "correct": true
+        },
+        {
+          "text": "\"Summarise this ticket the way an expert support lead would.\"",
+          "explanation": "A role helps tone, but 'the way an expert would' still leaves format and length to the model's guess."
+        }
+      ]
+    },
+    {
+      "prompt": "Summaries must not show the customer's contact details. Which instruction follows the vendor guidance best?",
+      "options": [
+        {
+          "text": "\"NEVER include PII.\"",
+          "explanation": "A bare 'never' with an undefined term. The model must guess what counts as PII, and it gets no reason."
+        },
+        {
+          "text": "\"Call them 'the customer'. Omit emails and phone numbers: summaries show on a shared screen.\"",
+          "explanation": "Right. It says what to do instead, defines exactly what to leave out, and gives the reason.",
+          "correct": true
+        },
+        {
+          "text": "No prompt rule at all. Strip contact details from every summary later, with a pattern filter in the UI.",
+          "explanation": "A UI filter is a useful extra safety net, but the prompt should still state the rule. Leaving it out means the model keeps producing the data you then have to catch."
+        },
+        {
+          "text": "Ask agents not to read the contact details aloud.",
+          "explanation": "That moves your system's rule onto people. The prompt owns the output format."
+        }
+      ]
+    },
+    {
+      "prompt": "Next month the team may move the feature to a reasoning model. What should they plan?",
+      "options": [
+        {
+          "text": "Add 'think step by step' to the prompt, because reasoning models need it.",
+          "explanation": "OpenAI's reasoning guide says to avoid chain-of-thought prompts like 'think step by step' with reasoning models: they reason internally."
+        },
+        {
+          "text": "Delete the format rules, because reasoning models work out all the details on their own.",
+          "explanation": "Reasoning models need less method, not less goal. OpenAI still says to provide specific guidelines and be very specific about the end goal."
+        },
+        {
+          "text": "Change nothing. A prompt that works on one model works on all of them.",
+          "explanation": "OpenAI notes that reasoning and GPT models may need different prompting, and even snapshots in one family can differ."
+        },
+        {
+          "text": "Keep the goal and format rules; rerun the test tickets on the new model first.",
+          "explanation": "Right. The goal and constraints stay. OpenAI recommends test suites that measure prompt behaviour when you change or upgrade models.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
