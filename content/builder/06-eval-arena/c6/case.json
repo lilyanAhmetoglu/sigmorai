@@ -1,0 +1,118 @@
+{
+  "id": "builder/r6/c6/challenge",
+  "title": "Green on the fifth try",
+  "scenario": "A team wired its support-agent evals into GitHub Actions last month. Developers now complain that the gate blocks merges at random, yet a prompt change still broke old behavior last week. You review the workflow and the run history (exhibit).",
+  "exhibit": "(made-up example data)\n\nWORKFLOW: support-agent evals\n  trigger:      pull_request\n  runs:         full suite, 900 tasks, model graders, 1 trial per task\n  timeout:      none\n  api key:      written in the workflow file as a plain value\n  gate:         pass if overall score >= 85%\n  environment:  all trials share one scratch folder, never cleaned\n\nLAST 5 RUNS ON main (no code change between them)\n  overall score: 88%, 84%, 87%, 83%, 89%\n  runs that blocked: 2 of 5; developers re-run until green\n\nPR #412 (prompt change)\n  overall score: 86%  -> gate passes\n  regression suite (120 tasks): 3 tasks that passed for months now fail",
+  "questions": [
+    {
+      "prompt": "The score swings between 83% and 89% with no code change. What is the best fix?",
+      "options": [
+        {
+          "text": "Lower the gate to 80%, so noise can no longer block a merge.",
+          "explanation": "A lower bar hides real drops too. The noise would still be there, and so would the mystery."
+        },
+        {
+          "text": "Run several trials per task and compare with a stored baseline.",
+          "explanation": "Right. Outputs vary, so one trial per task is noisy. Anthropic runs multiple trials because a task that passed on one run might fail on the next. A stored baseline shows whether a change is real.",
+          "correct": true
+        },
+        {
+          "text": "Keep re-running a blocked build until it turns green.",
+          "explanation": "That is what the team does now. It means a real failure can also pass on a lucky run."
+        },
+        {
+          "text": "Replace every model grader with exact string matching.",
+          "explanation": "Exact match lacks nuance for open answers. Model graders add some noise too, but the main cause here is one trial per task."
+        }
+      ]
+    },
+    {
+      "prompt": "PR #412 scores 86% and passes the gate, but 3 old tasks now fail. What is wrong with the gate?",
+      "options": [
+        {
+          "text": "It should block on the regression suite, which must stay near 100%.",
+          "explanation": "Right. Anthropic says regression evals should have a nearly 100% pass rate. An overall average can hide broken tasks.",
+          "correct": true
+        },
+        {
+          "text": "Nothing. The overall score is above the bar, so the PR can merge.",
+          "explanation": "The average mixes new and old tasks. Three tasks that passed for months are now broken, which is the case a gate exists to stop."
+        },
+        {
+          "text": "It should wait for a human to read every transcript in the suite.",
+          "explanation": "Reading transcripts is useful, but it does not replace an automatic gate on every pull request."
+        },
+        {
+          "text": "It should drop the 3 tasks, since they started failing only now.",
+          "explanation": "Dropping failing tasks hides regressions. They failed because the change broke them."
+        }
+      ]
+    },
+    {
+      "prompt": "The API key is written in the workflow file as plain text. What do the Claude Code docs say?",
+      "options": [
+        {
+          "text": "It is fine if the repository is private and few people have access.",
+          "explanation": "The docs say never to commit keys to the repository, whoever can see it."
+        },
+        {
+          "text": "Move the key into the eval task files, which are read-only.",
+          "explanation": "Task files live in the repository too, so the key would still be committed."
+        },
+        {
+          "text": "Store it as a GitHub secret and give the workflow only needed permissions.",
+          "explanation": "Right. The docs say to store keys as secrets and reference them in the workflow, and to grant only the permissions needed.",
+          "correct": true
+        },
+        {
+          "text": "Encrypt the key in the workflow file and decrypt it in a step.",
+          "explanation": "The encrypted key and its decryption secret still end up in the repository. Store it as a GitHub secret."
+        }
+      ]
+    },
+    {
+      "prompt": "The full 900-task suite runs on every pull request, with no timeout. What fits best?",
+      "options": [
+        {
+          "text": "Run the full suite only after merging, so pull requests stay fast.",
+          "explanation": "Then regressions reach the main branch first. The point of CI is to stop a change before it ships."
+        },
+        {
+          "text": "Remove the grader calls on pull requests to save run time.",
+          "explanation": "Without graders there is nothing to gate on. Choose a smaller suite, not no scoring."
+        },
+        {
+          "text": "Add parallel runners without limit, so everything finishes quickly.",
+          "explanation": "Each run costs minutes and tokens. The docs advise limiting parallel runs."
+        },
+        {
+          "text": "Run a fast regression suite on PRs and the full suite on a schedule.",
+          "explanation": "Right. This is the split from the lesson (our plan). The Claude Code docs advise workflow timeouts and concurrency limits to stop runaway cost.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "All trials share one scratch folder that is never cleaned. What does Anthropic advise?",
+      "options": [
+        {
+          "text": "Start every trial from a clean environment.",
+          "explanation": "Right. Shared state, such as leftover files, can cause correlated failures or inflate scores. Anthropic saw Claude read git history from earlier trials.",
+          "correct": true
+        },
+        {
+          "text": "Keep the shared folder, since the same files make results comparable.",
+          "explanation": "Anthropic warns that shared state can inflate performance as well as cause failures."
+        },
+        {
+          "text": "Clean the folder only after a trial fails, to save time on passes.",
+          "explanation": "A pass can be inflated by shared state too, so clean-up cannot depend on the result."
+        },
+        {
+          "text": "Give each task its own folder but never clear it between runs.",
+          "explanation": "Files left from earlier runs of the same task can still change the next result."
+        }
+      ]
+    }
+  ]
+}

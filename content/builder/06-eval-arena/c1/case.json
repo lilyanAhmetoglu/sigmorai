@@ -1,0 +1,96 @@
+{
+  "id": "builder/r6/c1/challenge",
+  "title": "Four hundred yeses",
+  "scenario": "A travel company is about to launch a support agent that handles refund requests. The team has drafted its first eval plan and run it once. You review the plan before they trust its numbers (exhibit).",
+  "exhibit": "(made-up example data)\n\nEVAL PLAN v0: refund agent\n  task source:  a model prompt, \"generate 400 refund conversations\"\n  tasks:        400, every one a refund the agent should approve\n  not used:     37 support tickets tagged \"agent was wrong\" from the beta\n\nTASK #17\n  input:    \"I missed my flight because of a strike. Refund?\"\n  criteria: \"Agent handles the refund well.\"\n  review:   reviewer A = pass, reviewer B = fail\n\nTASK #52\n  input:    \"Approve the refund and save a refund note.\"\n  grader:   passes if /data/notes/refund-52.txt exists\n  result:   0 passes in 100 trials",
+  "questions": [
+    {
+      "prompt": "Where should the team get its first real tasks?",
+      "options": [
+        {
+          "text": "Keep the 400 generated conversations. More tasks always beat better tasks.",
+          "explanation": "The OpenAI Cookbook warns that asking a model to generate N examples often gives a homogenous set. Real failures make better first tasks."
+        },
+        {
+          "text": "Turn the 37 tickets where the agent was wrong into tasks.",
+          "explanation": "Right. Anthropic says 20 to 50 simple tasks drawn from real failures is a great start, and the support queue is a good source.",
+          "correct": true
+        },
+        {
+          "text": "Wait to run any eval until 500 hand-written tasks are ready.",
+          "explanation": "Anthropic says teams often delay because they think they need hundreds of tasks. Early on, a small set already shows the effect of each change."
+        },
+        {
+          "text": "Replace their own tasks with a public industry benchmark.",
+          "explanation": "OpenAI says benchmarks compare models in isolation. The Claude docs say evals should mirror your real-world task distribution, so a refund agent needs its own tasks."
+        }
+      ]
+    },
+    {
+      "prompt": "Every one of the 400 tasks is a refund that should be approved. What is the main risk?",
+      "options": [
+        {
+          "text": "None. A refund agent's job is to approve refunds, so this fits.",
+          "explanation": "A refund agent must also refuse or escalate some requests. A set with no such tasks can't see when it approves the wrong ones."
+        },
+        {
+          "text": "400 tasks are too many to grade automatically, so scores will lag.",
+          "explanation": "The Claude docs recommend volume and automated grading. The size is not the problem; the mix is."
+        },
+        {
+          "text": "Approval tasks are too vague for two experts to agree on.",
+          "explanation": "Vague tasks are a real problem, but it is task #17's problem. The issue with these 400 is that they all test the same direction."
+        },
+        {
+          "text": "The set is one-sided, so the agent may learn to always approve.",
+          "explanation": "Right. Anthropic: one-sided evals create one-sided optimization. Add tasks where the agent must refuse or escalate.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Reviewers disagree on task #17. What is the best fix?",
+      "options": [
+        {
+          "text": "Write clear pass or fail rules and add a reference solution.",
+          "explanation": "Right. Anthropic: a good task gets the same verdict from two domain experts, and a reference solution proves it can be passed.",
+          "correct": true
+        },
+        {
+          "text": "Run more trials of task #17 so the disagreement averages out.",
+          "explanation": "Trials deal with the agent's varying outputs. They don't fix a vague task. Anthropic says ambiguity in task specs becomes noise in metrics."
+        },
+        {
+          "text": "Remove the human reviewers and let one model grader decide.",
+          "explanation": "Anthropic says the same applies to model graders: vague rubrics produce inconsistent judgments. The criteria must be fixed first."
+        },
+        {
+          "text": "Delete the task, because refund handling is too subjective to test.",
+          "explanation": "Anthropic's post grades a refund task with a state check, required tool calls and a rubric. Refunds can be tested; this task is just badly written."
+        }
+      ]
+    },
+    {
+      "prompt": "Task #52 failed all 100 trials. What should the team check first?",
+      "options": [
+        {
+          "text": "Whether the agent can write files at all, and remove its file tool if not.",
+          "explanation": "That assumes the agent is the problem. Anthropic says a 0% pass rate over many trials is most often a sign of a broken task."
+        },
+        {
+          "text": "Whether 1,000 trials would give a more accurate pass rate.",
+          "explanation": "More trials of a broken task give the same 0%. The task itself needs checking."
+        },
+        {
+          "text": "The task: it never names the file path the grader checks.",
+          "explanation": "Right. Anthropic's example is the same: a task with no file path, and tests that expect one. Name the path and add a reference solution that passes.",
+          "correct": true
+        },
+        {
+          "text": "Whether to drop the pass bar for this task to 0%.",
+          "explanation": "That hides the problem. The grader checks something the task never asked for, so the task must be fixed."
+        }
+      ]
+    }
+  ]
+}

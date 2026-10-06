@@ -1,0 +1,98 @@
+---
+id: builder/r6/c3/lesson
+title: Regression
+minutes: 9
+sources:
+  - kind: blog
+    title: Demystifying evals for AI agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+  - kind: blog
+    title: A postmortem of three recent issues (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/a-postmortem-of-three-recent-issues
+  - kind: docs
+    title: Model IDs and versioning (Claude docs)
+    url: https://platform.claude.com/docs/en/about-claude/models/model-ids-and-versions
+  - kind: docs
+    title: Evaluation best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: docs
+    title: GPT-6 Astra model page (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/models/gpt-6-astra
+  - kind: docs
+    title: Models (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/models
+---
+
+A regression is something that used to work and now doesn't. In AI systems it is easy to cause one. You fix a prompt for one kind of question, and another kind gets worse. Anthropic describes life without evals this way: "wait for complaints, reproduce manually, fix the bug, and hope nothing else regressed." This chapter replaces the hope with a test.
+
+## Two kinds of eval suite
+
+Anthropic's evals post splits evals by the question they ask:
+
+- **Capability evals** ask "What can this agent do well?" They "should start at a low pass rate" and give the team "a hill to climb".
+- **Regression evals** ask "Does the agent still handle all the tasks it used to?" They "should have a nearly 100% pass rate". A drop means something is broken.
+
+The two work together. While you climb on capability evals, regression evals check that the climb didn't break anything else.
+
+Tasks move between them. Once a capability eval reaches a high pass rate, it can "graduate" to the regression suite. The question changes from "Can we do this at all?" to "Can we still do this reliably?"
+
+Example: your support agent learns to handle partial refunds. Those tasks start at 30% in the capability suite. Months later they pass reliably, so you move them to the regression suite. From now on, any change that breaks partial refunds fails the regression run.
+
+## What can cause a regression
+
+Some causes are your own changes: a new prompt, a new tool, different routing. OpenAI's advice is continuous evaluation: "run evals on every change", and grow the eval set over time.
+
+Other causes come from the model. Here, vendors give you a way to hold the model still:
+
+- **Anthropic:** each Claude model ID identifies a pinned version, and "the underlying model remains constant for the lifetime of that ID." Updates ship under a new ID. Older models also have short aliases, such as `claude-sonnet-4-5`, that are not pinned.
+- **OpenAI:** "Snapshots let you lock in a specific version of the model so that performance and behavior remain consistent."
+- **Gemini:** stable models "usually don't change", and "Most production apps should use a specific stable model." A `latest` alias is different: it "will get hot-swapped with every new release". Google promises a 2-week email notice before breaking changes, so you get a warning, not a freeze.
+
+So pin a version, and treat a model upgrade like any other change: run the suite first. Anthropic says teams with evals can test a new model and "upgrade in days", while teams without them "face weeks of testing".
+
+A pinned ID is not a full guarantee. The Claude docs say the serving infrastructure around a model can change, and this can "produce minor differences in observable behavior". Your regression suite is how you notice.
+
+## Baselines come free
+
+Anthropic: once evals exist, "you get baselines and regression tests for free". On a fixed bank of tasks you can track latency, token usage, cost per task and error rates. Our reading: a prompt change that keeps quality but doubles cost is also a regression worth catching, and only a baseline shows it.
+
+## Noise: one run is not enough
+
+Model outputs vary between runs. Anthropic: each task has its own success rate, "maybe 90% on one task, 50% on another", and a task that passed once may fail the next time. That is why a task gets several trials.
+
+Two metrics turn trials into a number:
+
+| Metric | Meaning                           | As k grows |
+| ------ | --------------------------------- | ---------- |
+| pass@k | At least one of k trials succeeds | Rises      |
+| pass^k | All k trials succeed              | Falls      |
+
+Anthropic's example: a 75% per-trial success rate over 3 trials gives a pass^3 of (0.75)³ ≈ 42%. The metric "especially matters for customer-facing agents where users expect reliable behavior every time." For a tool where one success is enough, pass@k fits better.
+
+Without enough trials, you can't tell a real regression from noise. Anthropic names that as a key problem for teams without evals: they "can't distinguish real regressions from noise".
+
+## A real case: Anthropic's postmortem
+
+In 2025, Anthropic published a postmortem of three infrastructure bugs that "intermittently degraded" Claude's responses for some users. It shows how regressions slip through.
+
+Before the incident, validation relied on benchmarks, safety evaluations, performance metrics, spot checks and small "canary" groups. Even so:
+
+- "The evaluations we ran simply didn't capture the degradation users were reporting", partly because Claude "often recovers well from isolated mistakes".
+- "we relied too heavily on noisy evaluations", and the team could not easily connect user reports to specific changes.
+
+What Anthropic changed:
+
+- **More sensitive evals** that "more reliably differentiate between working and broken implementations".
+- **Evals in more places:** run them "continuously on true production systems".
+- **User signal:** Anthropic asks users to keep sending feedback, for example with the `/bug` command in Claude Code or the "thumbs down" button in the Claude apps.
+
+The lessons carry over to any team. A regression suite must be sensitive enough to fail on a broken system. It must run where the change happens. And it needs a path from user reports back to new tasks.
+
+## Key points
+
+- Capability evals start low and give a hill to climb. Regression evals should pass at nearly 100%.
+- Tasks that pass reliably graduate from the capability suite to the regression suite.
+- Run the regression suite on every change, including a model upgrade.
+- Pin a model version: an ID, a snapshot or a stable model, not a `latest` alias.
+- Run several trials. Use pass^k when users need the agent to work every time.
+- An eval that can't tell working from broken is noise. Make it sensitive, and feed user reports back in.
