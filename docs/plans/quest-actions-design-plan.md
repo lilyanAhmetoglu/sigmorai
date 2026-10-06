@@ -8,6 +8,14 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-05 (SIG-27 security)
+
+- **A replay writes no `submissions` row.** A replay of a cleared case or quick check is graded in memory; it still costs 0 HP and earns 0 XP (a replay pass still moves the streak). Why: a replay changes nothing, so its row only let one account grow the table without limit.
+- **Quick checks get a daily cap: `QUICK_CHECK_DAILY_TRIES` (20) graded tries per quick check per UTC day**, counted from today's `submissions` rows (`submissions_user_exercise_idx`, no schema change). Over the cap the action returns the new code **`NO_TRIES`** (8 codes now); the page (also after a reload) disables Submit and shows "Tries reset at <local time> (your time)." Why: quick checks cost no HP, so nothing else bounded the writes.
+- **A first-time fail returns only "N of M correct"** (`right`, `total`; `questions: null`): no per-question correct flags, no explanations, not even for the picked option. This replaces "only the explanation of the option they picked appears" in §Strategist case step 4. Full feedback (every option, the correct one marked, every explanation) stays after a pass and on a replay. Same rule for cases and quick checks. Why: per-question flags let throwaway accounts farm the answer key, one question at a time.
+- **Known limit:** N of M correct still leaks one bit per try; with the 20-try cap a small quick check can be walked. Accepted: +5 XP, low value.
+- **After a fail, a "Read the lesson again" link** goes to the chapter's lesson when its file exists (none for a boss). Why: the learner gets a next step without the key.
+
 ## Amendments locked 2026-10-05 (SIG-16, streak display)
 
 - The level curve, HP and streak primitives in lib/xp/ shipped with SIG-33, SIG-18 and SIG-19. SIG-16 now covers only the items below.

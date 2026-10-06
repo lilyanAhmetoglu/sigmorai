@@ -16,7 +16,7 @@ import {
 } from '@/lib/content/load';
 import { toPublicCase, toPublicQuickCheck } from '@/lib/content/public';
 import { readAttempts } from '@/lib/grading/attempts';
-import { gradedKind, hpNow, nextCaseId } from '@/lib/grading/case';
+import { gradedKind, hpNow, nextCaseId, triesLeft } from '@/lib/grading/case';
 import { checkOpen } from '@/lib/grading/open';
 import { newSeed, shuffleQuestions } from '@/lib/grading/shuffle';
 import type {
@@ -55,6 +55,8 @@ export type QuestPage =
       viewer: AnswerViewer;
       /** Where Continue goes after a pass. */
       nextHref: string;
+      /** The chapter's lesson, linked after a fail; null for a boss or a stub lesson. */
+      lessonHref: string | null;
     }
   | {
       kind: 'lesson';
@@ -87,6 +89,13 @@ function tagFor(ref: RealmRef, step: keyof typeof STEP_TAG): string {
 async function nextHrefFor(ref: ExerciseRef, exerciseId: string): Promise<string> {
   const next = nextCaseId(ref);
   return next && (await hasContent(next)) ? questHref(next) : questBackHref(exerciseId);
+}
+
+/** "Read the lesson again" after a fail: the chapter's lesson if its file exists. */
+async function lessonHrefFor(ref: RealmRef): Promise<string | null> {
+  if (ref.area !== 'chapter') return null;
+  const lessonId = buildExerciseId({ ...ref, step: 'lesson' });
+  return (await hasContent(lessonId)) ? questHref(lessonId) : null;
 }
 
 /**
@@ -129,12 +138,13 @@ async function readyViewer(
   kind: GradedKind,
 ): Promise<AnswerViewer> {
   const now = new Date();
-  const { cleared, spent } = await readAttempts(db, userId, exerciseId, now);
+  const { cleared, spent, tries } = await readAttempts(db, userId, exerciseId, now);
   const value = hpNow(kind, cleared, spent);
   return {
     status: 'ready',
     cleared,
     hp: value === null ? null : { value, max: HP_PER_CHALLENGE },
+    triesLeft: kind === 'quick-check' ? triesLeft(tries) : null,
     hpResetsAt: nextUtcDayStart(now).toISOString(),
   };
 }
@@ -183,6 +193,7 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
     accent: realmAccent(ref.realm as RealmId),
     viewer,
     nextHref: await nextHrefFor(ref, exerciseId),
+    lessonHref: await lessonHrefFor(ref),
   };
 }
 

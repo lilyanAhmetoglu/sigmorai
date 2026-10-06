@@ -11,10 +11,12 @@ export type AttemptState = {
   cleared: boolean;
   /** HP spent today (failed rows since 00:00 UTC). */
   spent: number;
+  /** Graded rows written today (passed or failed): the quick-check daily cap. */
+  tries: number;
 };
 
 /**
- * Reads the clear and today's HP-spending attempts. `exec` is the db (quest
+ * Reads the clear, today's HP-spending attempts and today's tries. `exec` is the db (quest
  * page) or the graded action's transaction, after it locked the user row. Served by the
  * progress primary key and submissions_user_exercise_idx.
  */
@@ -39,5 +41,5 @@ export async function readAttempts(
         gte(submissions.createdAt, utcDayStart(now)),
       ),
     );
-  return { cleared: Boolean(clear), spent: hpSpentToday(today, now) };
+  return { cleared: Boolean(clear), spent: hpSpentToday(today, now), tries: today.length };
 }

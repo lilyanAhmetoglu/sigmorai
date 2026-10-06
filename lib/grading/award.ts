@@ -26,7 +26,7 @@ export async function recordClear(
     .where(eq(users.id, userId))
     .for('update');
   // The caller checked the row exists; a missing one now is a bug, so roll back.
-  if (!user) throw new Error(`recordClear: no users row for ${userId}`);
+  if (!user) throw new Error('recordClear: no users row for the locked user');
 
   await tx.insert(progress).values({ userId, exerciseId, completedAt: now }).onConflictDoNothing();
 

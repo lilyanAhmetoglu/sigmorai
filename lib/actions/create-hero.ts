@@ -15,6 +15,7 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { AFTER_ONBOARDING_HREF } from '@/lib/constants';
 import { OnboardingSchema, type OnboardingField, type OnboardingFormState } from '@/lib/types';
+import { dbErrorSummary } from '@/lib/utils';
 
 export async function createHero(
   _prev: OnboardingFormState,
@@ -42,7 +43,8 @@ export async function createHero(
       .values({ id: userId, heroName: parsed.data.heroName, track: parsed.data.track })
       .onConflictDoNothing({ target: users.id });
   } catch (err) {
-    console.error('[createHero]', err);
+    // Code + constraint only: the query error's message holds the row (id, hero name).
+    console.error('[createHero] insert failed', dbErrorSummary(err));
     return { error: 'server_error' };
   }
 

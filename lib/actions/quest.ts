@@ -14,10 +14,10 @@ import type { z } from 'zod';
 import { db, type Tx } from '@/db';
 import { submissions, users } from '@/db/schema';
 import { ContentError, loadCase, loadQuickCheck } from '@/lib/content/load';
-import { answerFeedback, gradeAnswers } from '@/lib/grading/answers';
+import { answerFeedback, gradeAnswers, rightCount } from '@/lib/grading/answers';
 import { readAttempts } from '@/lib/grading/attempts';
 import { recordClear } from '@/lib/grading/award';
-import { clearReason, decideSubmitStart, hpAfterSubmit } from '@/lib/grading/case';
+import { clearReason, decideSubmitStart, hpAfterSubmit, storesAttempt } from '@/lib/grading/case';
 import { toActionFailure as fail, questFailure } from '@/lib/grading/failure';
 import { checkOpen } from '@/lib/grading/open';
 import {
@@ -31,6 +31,17 @@ import {
   type SubmitAnswersInput,
   type SubmitAnswersResult,
 } from '@/lib/types';
+import { dbErrorSummary } from '@/lib/utils';
+
+/**
+ * A transaction error, safe to log: name + Postgres code/constraint only. A
+ * Drizzle query error's message holds its params (user id, answers), so the
+ * full error is logged only in `next dev`.
+ */
+function safeError(error: unknown) {
+  if (process.env.NODE_ENV === 'development') return error;
+  return { name: error instanceof Error ? error.name : typeof error, ...dbErrorSummary(error) };
+}
 
 /** Every page that shows XP, HP or a clear: the HUD is in the (app) layout. */
 const revalidateQuest = () => revalidatePath('/', 'layout');
@@ -48,13 +59,17 @@ async function lockUser(tx: Tx, userId: string): Promise<QuestFailure | null> {
 /**
  * submitCase: a chapter case or a boss (both tracks). The browser sends the
  * page's seed and one display index per question; the server grades. A wrong
- * answer set costs 1 HP (3 per case per UTC day); a replay costs 0 and earns 0.
+ * answer set costs 1 HP (3 per case per UTC day); a replay costs 0, earns 0
+ * and writes no submissions row. A first-time fail returns only "N of M correct".
  */
 export async function submitCase(input: unknown): Promise<SubmitAnswersResult> {
   return submitAnswers('case', SubmitCaseInputSchema, input);
 }
 
-/** submitQuickCheck: same flow as a case, +5 XP once, never costs HP. */
+/**
+ * submitQuickCheck: same flow as a case, +5 XP once, never costs HP. Capped at
+ * QUICK_CHECK_DAILY_TRIES graded tries per quick check per UTC day (NO_TRIES).
+ */
 export async function submitQuickCheck(input: unknown): Promise<SubmitAnswersResult> {
   return submitAnswers('quick-check', SubmitQuickCheckInputSchema, input);
 }
@@ -66,8 +81,9 @@ async function loadQuestions(kind: GradedKind, exerciseId: string): Promise<Ques
 }
 
 /**
- * One transaction: lock the user row → open check → HP (cases only) →
- * insert the graded submission with { seed, answers, order } → on any pass,
+ * One transaction: lock the user row → open check → HP (cases) or daily
+ * tries (quick checks) → insert the graded submission with { seed, answers,
+ * order } unless it is a replay → on any pass,
  * progress + xp_events (award once) + streak → revalidate after the commit.
  */
 async function submitAnswers(
@@ -105,19 +121,23 @@ async function submitAnswers(
       if (refused) return refused;
       const open = await checkOpen(tx, userId, exerciseId);
       if (!open.ok) return open;
-      const { cleared, spent } = await readAttempts(tx, userId, exerciseId, now);
-      const start = decideSubmitStart(kind, cleared, spent);
+      const { cleared, spent, tries } = await readAttempts(tx, userId, exerciseId, now);
+      const start = decideSubmitStart(kind, cleared, spent, tries);
       if (!start.ok) return start;
 
       const status = graded.passed ? 'passed' : 'failed';
-      await tx.insert(submissions).values({
-        userId,
-        exerciseId,
-        status,
-        payload: { seed, answers: graded.original, order: graded.order },
-        results: { questions: graded.correct.map((correct) => ({ correct })) },
-        createdAt: now,
-      });
+      // A replay is graded in memory only: no row, so replays can't grow the table (SIG-27).
+      if (storesAttempt(start.replay)) {
+        await tx.insert(submissions).values({
+          userId,
+          exerciseId,
+          status,
+          payload: { seed, answers: graded.original, order: graded.order },
+          results: { questions: graded.correct.map((correct) => ({ correct })) },
+          createdAt: now,
+        });
+      }
+      // A replay pass still keeps the streak; award-once makes its XP 0.
       const xp = graded.passed
         ? await recordClear(tx, userId, exerciseId, clearReason(open.ref), now)
         : null;
@@ -126,12 +146,13 @@ async function submitAnswers(
         passed: graded.passed,
         replay: start.replay,
         hpLeft: hpAfterSubmit(kind, spent, status, start.replay),
+        ...rightCount(graded),
         questions: answerFeedback(questions, graded, graded.passed || start.replay),
         xp,
       };
     });
   } catch (error) {
-    console.error(`[submit ${kind}] failed`, error);
+    console.error(`[submit ${kind}] failed`, safeError(error));
     return fail(questFailure('SERVER_ERROR'));
   }
   if (!outcome.ok) return fail(outcome);
@@ -168,7 +189,7 @@ export async function completeLesson(input: unknown): Promise<CompleteLessonResu
       return { ok: true as const, xp };
     });
   } catch (error) {
-    console.error('[completeLesson] failed', error);
+    console.error('[completeLesson] failed', safeError(error));
     return fail(questFailure('SERVER_ERROR'));
   }
   if (!outcome.ok) return fail(outcome);
