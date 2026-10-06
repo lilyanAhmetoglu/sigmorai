@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import type { RankedPlayer } from '@/lib/types';
-import { numberInOrder, parseLeaderboardRange, rangeCutoff, toLeaderboardRow } from './leaderboard';
+import {
+  movesLeaderboard,
+  numberInOrder,
+  parseLeaderboardRange,
+  rangeCutoff,
+  toLeaderboardRow,
+} from './leaderboard';
 
 const at = (iso: string) => new Date(iso);
 
@@ -98,5 +104,21 @@ describe('toLeaderboardRow', () => {
     expect(toLeaderboardRow(player, 'user_clerk_123').isViewer).toBe(true);
     expect(toLeaderboardRow(player, 'someone_else').isViewer).toBe(false);
     expect(toLeaderboardRow(player, null).isViewer).toBe(false);
+  });
+});
+
+describe('movesLeaderboard', () => {
+  const outcome = (awarded: number) => ({ awarded, total: 160, levelBefore: 1, levelAfter: 2 });
+
+  test('a fail (no XP outcome) does not move the board', () => {
+    expect(movesLeaderboard(null)).toBe(false);
+  });
+
+  test('a replay (0 XP, award once) does not move the board', () => {
+    expect(movesLeaderboard(outcome(0))).toBe(false);
+  });
+
+  test('a first clear with XP moves the board', () => {
+    expect(movesLeaderboard(outcome(150))).toBe(true);
   });
 });

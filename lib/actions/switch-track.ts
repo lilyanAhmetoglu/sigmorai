@@ -13,9 +13,10 @@
  */
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { updateTag } from 'next/cache';
 import { db } from '@/db';
 import { users } from '@/db/schema';
+import { LEADERBOARD_CACHE_TAG } from '@/lib/constants';
 import { SwitchTrackSchema, type SwitchTrackFormState } from '@/lib/types';
 import { dbErrorSummary } from '@/lib/utils';
 
@@ -45,7 +46,9 @@ export async function switchTrack(
   // No row = no hero yet. Onboarding creates it; this action never inserts.
   if (updated.length === 0) return { error: 'not_onboarded' };
 
-  // The HUD, dashboard, realms and leaderboard all read the track.
-  revalidatePath('/', 'layout');
+  // The leaderboard shows each hero's track: expire its cache. updateTag also
+  // re-renders this page and its HUD; the dashboard and realms are dynamic and
+  // read the new track on the next visit.
+  updateTag(LEADERBOARD_CACHE_TAG);
   return { done: true };
 }

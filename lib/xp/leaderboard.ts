@@ -3,7 +3,7 @@ import {
   LEADERBOARD_RANGES,
   LEADERBOARD_WINDOW_DAYS,
 } from '@/lib/constants';
-import type { LeaderboardRange, LeaderboardRow, RankedPlayer } from '@/lib/types';
+import type { LeaderboardRange, LeaderboardRow, RankedPlayer, XpOutcome } from '@/lib/types';
 import { utcDayStartDaysAgo } from './day';
 import { levelForXp } from './level';
 
@@ -46,4 +46,12 @@ export function toLeaderboardRow(player: RankedPlayer, viewerId: string | null):
     xp: player.xp,
     isViewer: viewerId !== null && player.id === viewerId,
   };
+}
+
+/**
+ * Does this clear change the leaderboard? Only when XP was really awarded: a
+ * fail (null) or a replay (0 XP, award once) leaves every range as it was.
+ */
+export function movesLeaderboard(xp: XpOutcome | null): boolean {
+  return xp !== null && xp.awarded > 0;
 }
