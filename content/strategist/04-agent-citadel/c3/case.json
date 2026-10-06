@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r4/c3/challenge",
+  "title": "Four seconds per approval",
+  "scenario": "You are the finance operations manager at a wholesale company. Six weeks ago an accounts-payable agent went live. It reads supplier invoices, matches them to orders, and prepares payments. A clerk must approve every step it takes.\n\nLast week one fake invoice was paid. The CFO wants a new approval design by Friday. The exhibit shows last week's approval log.",
+  "exhibit": "AP agent: approval log, last week (made-up example data)\n\nPrompt type                          Prompts   Approved   Avg time to approve\nOpen invoice PDF                      2,310     100%        2 s\nRead purchase order                   2,280     100%        2 s\nMatch invoice to order                2,150     99.8%       3 s\nPay supplier                            410     99.5%       4 s\nAdd new supplier bank account             6     100%        4 s\n\nTotal prompts: 7,156 (2 clerks)\n\nPrompt text shown to clerk (all types): \"Agent wants to continue. Approve?\"\nIf no answer in 10 minutes: the action runs anyway.\n\nIncident: a fake invoice changed a supplier's bank account,\nthen a €18,400 payment went to the new account. Both were approved.",
+  "questions": [
+    {
+      "prompt": "What does the log show is the main problem with the current approvals?",
+      "options": [
+        {
+          "text": "The clerks are careless and should be replaced with more senior staff.",
+          "explanation": "The design, not the people, creates 7,156 vague prompts a week. New staff would face the same flood."
+        },
+        {
+          "text": "The agent asks too rarely; it should ask before more of its steps.",
+          "explanation": "More prompts would make it worse. The clerks already approve almost everything in seconds."
+        },
+        {
+          "text": "Approval fatigue: thousands of vague prompts, approved in seconds, so the risky ones get no real attention.",
+          "explanation": "Right. Anthropic's sandboxing post describes approval fatigue, where constant prompts lead people to stop paying close attention.",
+          "correct": true
+        },
+        {
+          "text": "The model is too weak; a stronger model would not be fooled by a fake invoice.",
+          "explanation": "The fake invoice got through two human approvals. The control failed, whatever the model."
+        }
+      ]
+    },
+    {
+      "prompt": "Which actions should keep a human approval before they run?",
+      "options": [
+        {
+          "text": "Opening PDFs and reading orders, because they happen most often.",
+          "explanation": "Frequency is not risk. Reading can't move money; these prompts mostly create fatigue."
+        },
+        {
+          "text": "Paying a supplier and adding a new bank account: they move money and are hard to reverse.",
+          "explanation": "Right. OpenAI's computer use guide says to keep users in control of purchases, data transmission and actions that are hard to reverse. Anthropic's docs name financial transactions too.",
+          "correct": true
+        },
+        {
+          "text": "None: the agent should run alone, and a person reviews payments at the month end.",
+          "explanation": "A wrong payment can't easily be undone, so a month-end review is too late. These actions need a yes first."
+        },
+        {
+          "text": "All five, as now, but with two extra clerks to share the load.",
+          "explanation": "More people still face the same vague prompts. The fix is fewer, clearer prompts on the risky actions."
+        }
+      ]
+    },
+    {
+      "prompt": "What should change about the prompt text and the 10-minute rule?",
+      "options": [
+        {
+          "text": "Nothing: short prompts save time, and the timeout keeps payments on schedule.",
+          "explanation": "\"Agent wants to continue\" hides the amount and account. And the timeout let actions run with no approval at all."
+        },
+        {
+          "text": "Make the prompt text longer and more polite, and keep the timeout.",
+          "explanation": "Length and tone don't help. The clerk needs the exact action, and silence must not mean yes."
+        },
+        {
+          "text": "Remove the timeout and let the agent retry until somebody answers.",
+          "explanation": "Wrong because it keeps the vague prompt text, and retrying only adds more prompts. \"Stop\" means the action does not run without a yes. The request can wait in a queue until someone answers."
+        },
+        {
+          "text": "Show the exact action (amount, supplier, account), and stop the action if nobody answers.",
+          "explanation": "Right. The lesson's checklist: show the exact action, and fail closed (stop, not run) when review times out, as OpenAI's guide advises for authorized cybersecurity workflows. This course applies the same rule to payments (our own rule).",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The CFO worries: \"If a payment waits for approval overnight, will the agent have to redo all the matching work?\" Based on OpenAI's guide, what is the answer?",
+      "options": [
+        {
+          "text": "No: the run pauses with a saved state, and the same run continues after approval.",
+          "explanation": "Right. OpenAI's guide says the state can be stored and the run picked up later, without starting a new task.",
+          "correct": true
+        },
+        {
+          "text": "Yes: an approval always starts a new run, so the matching is done again.",
+          "explanation": "The guide says the same run continues from its saved state."
+        },
+        {
+          "text": "Yes, unless the clerk approves within 10 minutes, after which the run is lost.",
+          "explanation": "The guide describes storing the state and resuming later. It names no 10-minute limit."
+        },
+        {
+          "text": "No, because the agent pays first and asks for approval afterwards.",
+          "explanation": "That is not how an approval works. The tool doesn't run until someone approves."
+        }
+      ]
+    }
+  ]
+}

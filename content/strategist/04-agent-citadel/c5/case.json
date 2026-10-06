@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r4/c5/challenge",
+  "title": "The onboarding agent's keys",
+  "scenario": "You are the HR operations lead at an engineering firm with 1,100 staff. IT built a no-code onboarding agent. For each new hire it reads the offer letter, creates accounts, books training and sends a welcome pack. It will be shared with all 60 hiring managers.\n\nBefore launch, the CISO asks you to sign off the agent's permissions. The exhibit shows IT's draft.",
+  "exhibit": "Onboarding agent: permission draft (made-up example data)\n\nConnection       Account type          Actions allowed            Approval\nHR drive         agent-owned (HR admin) read, write, delete       none\nCalendar         end-user               read, create events        none\nEmail            end-user               send                       none\nIdentity system  agent-owned (IT admin) create, disable accounts   none\nWeb              open, any site         read                       -\n\nRules (draft)\n  allow: \"tidy up the HR drive\"\n  deny:  \"delete anything in /HR/Payroll\"\n\nIT note: \"We used the admin accounts because they never hit\na permission error.\"",
+  "questions": [
+    {
+      "prompt": "The HR drive uses an agent-owned HR admin account, and the agent is shared with 60 managers. What does that mean?",
+      "options": [
+        {
+          "text": "Each manager reaches only the HR files they could already open with their own login.",
+          "explanation": "That describes an end-user account. An agent-owned account gives everyone the account's full reach."
+        },
+        {
+          "text": "Nothing changes for privacy, because the agent only reads offer letters.",
+          "explanation": "The draft also allows write and delete on the whole drive, and the agent may use any access it has."
+        },
+        {
+          "text": "Through the agent, every manager can reach everything the HR admin account can reach.",
+          "explanation": "Right. OpenAI's cookbook says that with an agent-owned account, anyone the agent is shared with can access the resources that account can reach.",
+          "correct": true
+        },
+        {
+          "text": "Agent-owned accounts are read-only by design, so there is no risk.",
+          "explanation": "The account type doesn't limit actions. Here the draft allows read, write and delete."
+        }
+      ]
+    },
+    {
+      "prompt": "IT says the admin accounts \"never hit a permission error\". What is the best reply?",
+      "options": [
+        {
+          "text": "Good choice: permission errors would stop onboarding, so wide access is safer.",
+          "explanation": "Google's page warns that the agent may use any credential it has. Admin access turns one mistake into a large one."
+        },
+        {
+          "text": "Replace them with least-privilege accounts that hold only what onboarding needs.",
+          "explanation": "Right. Google's AI Studio page says to use least-privilege credentials and only give credentials whose full scope you are willing to grant.",
+          "correct": true
+        },
+        {
+          "text": "Keep the admin accounts, but tell the agent in its instructions to use them carefully.",
+          "explanation": "An instruction doesn't limit what an account can do. The agent may still use the full scope."
+        },
+        {
+          "text": "Keep the admin accounts, and change their passwords once a year.",
+          "explanation": "Rotation helps, but it doesn't shrink the scope. The problem is how much the account can do."
+        }
+      ]
+    },
+    {
+      "prompt": "Will the deny rule protect /HR/Payroll from the \"tidy up\" allow rule, if the rules work like Claude Code's?",
+      "options": [
+        {
+          "text": "No: the allow rule is listed first, so it wins.",
+          "explanation": "In Claude Code's docs, the order in the list doesn't matter. Deny is always checked first."
+        },
+        {
+          "text": "No: a narrower rule always beats a broader one.",
+          "explanation": "The docs say rule specificity doesn't change the order: deny, then ask, then allow."
+        },
+        {
+          "text": "Only if a manager approves each delete by hand.",
+          "explanation": "The deny rule blocks the delete without any approval step."
+        },
+        {
+          "text": "Yes: deny rules are checked first, so a matching deny blocks the delete.",
+          "explanation": "Right. Claude Code's docs say rules are evaluated deny, then ask, then allow, and the first match decides.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Which change to the draft fits the vendor guidance best?",
+      "options": [
+        {
+          "text": "Require approval for creating and disabling accounts, drop delete on the HR drive, and limit web access to an allowlist.",
+          "explanation": "Right. OpenAI's MCP guide says sensitive actions should need approval, Google advises read-only where possible, and Anthropic suggests an allowlist of domains.",
+          "correct": true
+        },
+        {
+          "text": "Remove all approvals, so new hires get their accounts faster on day one.",
+          "explanation": "Creating and disabling accounts is sensitive. OpenAI's guide says sensitive actions should require approval."
+        },
+        {
+          "text": "Give the agent the IT admin account for email too, so all connections match.",
+          "explanation": "That widens access for no task reason. Each connection should get only what it needs."
+        },
+        {
+          "text": "Keep the draft as it is, and review the permissions after a year of use.",
+          "explanation": "The draft gives admin reach, delete rights and open web access with no approvals. That needs fixing before launch."
+        }
+      ]
+    }
+  ]
+}
