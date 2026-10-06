@@ -35,27 +35,31 @@ export function gradeAnswers(
 }
 
 /**
- * What the learner sees per question. `reveal` (a pass, or a replay of a
- * cleared exercise) adds every option with its explanation, in display
- * order. Without it, only the picked option's explanation leaves the server.
+ * What the learner sees per question. Only with `reveal` (a pass, or a replay
+ * of a cleared exercise): every option with its explanation, in display
+ * order. A first-time fail gets null, so the action returns only "N of M
+ * right" and a throwaway account can't farm the key (SIG-27).
  */
 export function answerFeedback(
   questions: readonly Question[],
   graded: GradedAnswers,
   reveal: boolean,
-): QuestionFeedback[] {
+): QuestionFeedback[] | null {
+  if (!reveal) return null;
   return questions.map((question, q) => {
     const { text, explanation } = question.options[graded.original[q]];
-    const feedback: QuestionFeedback = {
+    return {
       correct: graded.correct[q],
       picked: { text, explanation },
-    };
-    if (reveal) {
-      feedback.options = graded.order[q].map((o) => {
+      options: graded.order[q].map((o) => {
         const option = question.options[o];
         return { text: option.text, explanation: option.explanation, correct: option.correct };
-      });
-    }
-    return feedback;
+      }),
+    };
   });
+}
+
+/** "N of M correct": the only per-attempt detail a first-time fail returns. */
+export function rightCount(graded: GradedAnswers): { right: number; total: number } {
+  return { right: graded.correct.filter(Boolean).length, total: graded.correct.length };
 }

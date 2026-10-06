@@ -30,3 +30,11 @@ export const HP_PER_CHALLENGE = 3;
 
 /** submissions.status. Every row is graded in its insert transaction: no pending state. */
 export const SUBMISSION_STATUSES = ['passed', 'failed'] as const;
+
+/**
+ * Graded tries per quick check per UTC day (SIG-27). Quick checks cost no HP,
+ * so this caps the submissions rows one learner can write. Counted from
+ * today's submissions rows (submissions_user_exercise_idx); replays of a
+ * cleared quick check write no row, so they never count.
+ */
+export const QUICK_CHECK_DAILY_TRIES = 20;

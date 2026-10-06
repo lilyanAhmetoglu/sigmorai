@@ -1,4 +1,4 @@
-import { CHAPTER_COUNT, XP_REWARDS } from '@/lib/constants';
+import { CHAPTER_COUNT, QUICK_CHECK_DAILY_TRIES, XP_REWARDS } from '@/lib/constants';
 import { buildExerciseId } from '@/lib/content/ids';
 import type {
   ExerciseRef,
@@ -35,18 +35,35 @@ export function hpNow(kind: GradedKind, cleared: boolean, spentToday: number): n
 }
 
 /**
- * Before grading: a cleared exercise is a replay (no HP cost, no XP);
- * otherwise a case needs HP left today. A quick check never costs HP.
+ * Before grading: a cleared exercise is a replay (no HP cost, no XP, no
+ * submissions row); otherwise a case needs HP left today and a quick check
+ * needs a try left today (QUICK_CHECK_DAILY_TRIES, SIG-27). `triesToday` =
+ * graded rows written today for this exercise.
  */
 export function decideSubmitStart(
   kind: GradedKind,
   cleared: boolean,
   spentToday: number,
+  triesToday: number,
 ): { ok: true; replay: boolean } | QuestFailure {
   if (cleared) return { ok: true, replay: true };
   if (hpNow(kind, false, spentToday) === 0) return questFailure('NO_HP');
+  if (kind === 'quick-check' && triesToday >= QUICK_CHECK_DAILY_TRIES) {
+    return questFailure('NO_TRIES');
+  }
   return { ok: true, replay: false };
 }
+
+/**
+ * Whether a graded attempt writes a submissions row. A replay of a cleared
+ * exercise is graded in memory only (SIG-27): it can't spend HP or earn XP,
+ * so storing it would only let one account grow the table without limit.
+ */
+export const storesAttempt = (replay: boolean): boolean => !replay;
+
+/** Quick-check tries left today, floored at 0. */
+export const triesLeft = (triesToday: number): number =>
+  Math.max(0, QUICK_CHECK_DAILY_TRIES - triesToday);
 
 /** HP after the graded attempt. Only a failed first-time case costs 1. */
 export function hpAfterSubmit(

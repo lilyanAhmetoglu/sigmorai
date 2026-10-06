@@ -138,6 +138,7 @@ export const QUEST_ERROR_TEXT: Record<QuestErrorCode, string> = {
   TIER_LOCKED: 'Advanced realms are locked. They come later.',
   NOT_OPEN: 'Clear the chapter before this one first.',
   NO_HP: 'No HP left for this case today. The lesson and quick check stay open.',
+  NO_TRIES: 'No tries left on this quick check today. The lesson stays open.',
   SERVER_ERROR: 'Something failed on our side. Nothing was saved. Try again in a moment.',
 };
 
@@ -199,8 +200,12 @@ export const QUEST_TEXT = {
   resultHeading: 'Result',
   passed: 'All answers correct.',
   passedReplay: 'Cleared again · XP already earned.',
-  failed: (right: number, total: number) =>
-    `${right} of ${total} correct. Each wrong answer has a note under it.`,
+  /** A first-time fail shows only the count (SIG-27): which answer was wrong stays hidden. */
+  failed: (right: number, total: number) => `${right} of ${total} correct.`,
+  /** After a fail on a chapter that has a lesson: a link back to it. */
+  rereadLesson: 'Read the lesson again',
+  /** NO_TRIES: the quick check's daily tries are used up. ResetNote adds the local time. */
+  noTries: 'No tries left on this quick check today. Tries reset at',
   /** Added to `failed` only when the Try again button shows. */
   failedRetry: 'Then try again.',
   hpLeft: (hp: number, max: number) => `${hp} of ${max} HP left today.`,

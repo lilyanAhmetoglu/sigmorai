@@ -63,7 +63,7 @@ export default async function QuestPage({ params }: PageProps<'/quest/[...exerci
   }
   if (page.kind === 'lesson') return <LessonPage page={page} backHref={backHref} />;
 
-  const { sheet, scenario, exhibit, tag, accent, viewer, nextHref } = page;
+  const { sheet, scenario, exhibit, tag, accent, viewer, nextHref, lessonHref } = page;
   return (
     <div className="flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
       <div className="quest-top">
@@ -96,7 +96,13 @@ export default async function QuestPage({ params }: PageProps<'/quest/[...exerci
             </figure>
           )}
         </section>
-        <AnswerForm key={sheet.exerciseId} sheet={sheet} viewer={viewer} nextHref={nextHref} />
+        <AnswerForm
+          key={sheet.exerciseId}
+          sheet={sheet}
+          viewer={viewer}
+          nextHref={nextHref}
+          lessonHref={lessonHref}
+        />
       </div>
     </div>
   );
