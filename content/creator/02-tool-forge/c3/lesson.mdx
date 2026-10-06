@@ -1,0 +1,98 @@
+---
+id: creator/r2/c3/lesson
+title: Async jobs
+minutes: 6
+sources:
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: OpenAI docs · Background mode
+    url: https://developers.openai.com/api/docs/guides/background
+  - kind: docs
+    title: OpenAI docs · Webhooks
+    url: https://developers.openai.com/api/docs/guides/webhooks
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: Runway API docs · Agent context primer
+    url: https://docs.dev.runwayml.com/ai-context.md
+---
+
+## Why it matters
+
+A photo from an image model can come back in seconds. A video can take minutes. Your studio tool cannot hold one phone line open for that long, so slow work is handled as a **job**. You hand in the order, get a ticket, and come back later.
+
+If you don't know this, you will misread a screen. A job that says "running" is not broken. A job that says "done" is not always a success. This lesson explains the ticket system, so you can plan delivery times and tell the client the truth.
+
+## The job ticket
+
+Slow jobs at the vendors follow the same four steps:
+
+1. **Submit** the request.
+2. **Get a ticket** (an id) back at once. No video yet.
+3. **Check** the ticket until the job is finished.
+4. **Pick up** the result.
+
+Here is how each vendor says it:
+
+- **Google (Veo).** "When you send a request to the API, it starts a long-running job and immediately returns an `operation` object. You must then poll until the video is ready, which is indicated by the `done` status being true."
+- **Runway.** With few exceptions, "you do not get output back from the request that starts the work." You get a task id, then you "poll `GET /v1/tasks/{id}` until `status` is terminal".
+- **OpenAI.** Its background mode is for long-running text and reasoning tasks, not video, but it follows the same pattern. It "kicks off these tasks asynchronously" and you "poll response objects to check status over time". You keep polling "while the request is in the queued or in_progress state".
+
+**Polling** means asking "is it done yet?" again and again. The vendors' sample code does this in a loop. Runway's guide says to poll "with backoff rather than a tight loop". That means asking less often as time passes, not every split second.
+
+## Reading the status
+
+Runway's task has six states: `PENDING`, `THROTTLED`, `RUNNING`, `SUCCEEDED`, `FAILED` and `CANCELLED`. Three facts matter:
+
+- Only `SUCCEEDED` carries the output. A `RUNNING` job has nothing to download yet.
+- `FAILED` carries two fields: `failure` (text for humans) and `failureCode` (for machines).
+- `THROTTLED` "is not an error". The job is queued behind your rate limit and "will proceed on its own".
+
+OpenAI says a background request that leaves `queued` or `in_progress` "has reached a final (terminal) state". Terminal means finished, good or bad. Check which final state it is.
+
+Example: a producer sees ten jobs and says "all done". Six say `SUCCEEDED`. Two say `FAILED`. Two say `CANCELLED`. All ten are finished. Only six have a video.
+
+## Poll or be told
+
+Polling is the simple way. The other way is a **webhook**: the vendor calls your system when the job finishes. OpenAI supports this. Its webhooks page lists events such as "when a batch completes, a background response is generated, or a fine-tuning job finishes".
+
+OpenAI also says what a good receiver does:
+
+- Answer fast with a success code. Do slow work later.
+- If you don't answer, OpenAI retries "for up to 72 hours with exponential backoff".
+- It "may deliver duplicate copies of the same webhook event". The `webhook-id` header can be used to remove duplicates.
+
+You will not write that receiver. But you may choose between a tool that polls and one that sends you a message. If you run 200 jobs overnight, being told is calmer than watching a screen.
+
+## How long is "a while"?
+
+Use the vendors' own numbers when you promise a date. Do not guess.
+
+| Job type                     | What the docs say                                         |
+| ---------------------------- | --------------------------------------------------------- |
+| Veo video                    | Latency from 11 seconds up to 6 minutes at peak hours     |
+| OpenAI image, complex prompt | "may take up to 2 minutes"                                |
+| Runway generation            | "anywhere from seconds to minutes", by model and duration |
+| Gemini image batch job       | "a turnaround of up to 24 hours", with higher rate limits |
+
+Google also says "the higher the resolution, the higher the latency will be."
+
+Example: a shot list has 30 Veo clips. Run one after another, at up to 6 minutes each, they can take up to 3 hours. A Gemini image batch can take up to a day, so it fits overnight work, not a same-afternoon deadline. Neither number is a delivery date until you add review time.
+
+## Stopping a job
+
+You can stop a job you no longer need. Runway: `DELETE /v1/tasks/{id}` "cancels an in-progress task". OpenAI lets you cancel an in-flight background response. The docs we read do not say whether a cancelled job is refunded. Ask the vendor before you cancel at scale.
+
+## What this means for your work
+
+- **Treat "submitted" as not done.** A ticket is a promise to work, not a file.
+- **Read the final state.** Finished can mean succeeded, failed or cancelled.
+- **Quote ranges, not guesses.** Use the vendor's numbers, then add your own review time.
+- **Pick up results on time.** Results are not kept for ever. Chapter 4 covers how long.
+- **Choose between polling and webhooks.** For big overnight runs, being told beats watching.

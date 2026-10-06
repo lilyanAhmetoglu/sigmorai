@@ -12,16 +12,16 @@
           "explanation": "HTTP POST is the Streamable HTTP transport. stdio uses one JSON-RPC message per line on the standard streams."
         },
         {
-          "text": "The client must restart the server before every message.",
+          "text": "The client must restart the server before every message it sends.",
           "explanation": "The client restarts a stdio server only if it exits unexpectedly, not before each message."
         },
         {
-          "text": "The start-up `print` writes a non-MCP line to `stdout`; logs belong on `stderr`.",
+          "text": "The start-up `print` writes non-MCP text to `stdout`; logs belong on `stderr`.",
           "explanation": "Right. The spec says a stdio server must not write anything to `stdout` that is not a valid MCP message, and may log to `stderr`.",
           "correct": true
         },
         {
-          "text": "stdio servers may not write anything at all during start-up.",
+          "text": "stdio servers may not write anything at all to stdout or stderr during start-up.",
           "explanation": "They may, on `stderr`. Only `stdout` is reserved for MCP messages."
         }
       ]
@@ -30,20 +30,20 @@
       "prompt": "Why does the Claude API reject the v2 request?",
       "options": [
         {
-          "text": "The connector needs a server publicly exposed over HTTP, with a `url` that starts with `https://`.",
+          "text": "The connector needs a public HTTP server whose `url` starts with `https://`.",
           "explanation": "Right. The Claude docs say the server must be publicly exposed through HTTP and the `url` must start with `https://`. A private `http://` address fails both.",
           "correct": true
         },
         {
-          "text": "The connector only accepts stdio servers.",
+          "text": "The connector only accepts stdio servers that run on the same machine as the client.",
           "explanation": "The opposite: the Claude docs say local stdio servers cannot be connected directly."
         },
         {
-          "text": "The `name` must match the server's tool names.",
+          "text": "The `name` must match the server's tool names, or the request is rejected.",
           "explanation": "The `name` must be referenced by exactly one `mcp_toolset`. It is not matched against tool names."
         },
         {
-          "text": "Port 8080 is not allowed; MCP must use port 443.",
+          "text": "Port 8080 is not allowed; MCP must use port 443 for every remote server it reaches.",
           "explanation": "The documented requirements are a public HTTP server and an `https://` URL. No port rule is documented."
         }
       ]
@@ -52,11 +52,11 @@
       "prompt": "Which change to the v2 HTTP server settings follows the Streamable HTTP spec?",
       "options": [
         {
-          "text": "Keep 0.0.0.0 and no auth, because the firewall protects the server.",
+          "text": "Keep 0.0.0.0 and no auth, because the firewall protects the server from outside callers.",
           "explanation": "The spec warns that without these protections, attackers could use DNS rebinding to reach local MCP servers from remote websites."
         },
         {
-          "text": "Switch to the HTTP+SSE transport, which has security built in.",
+          "text": "Switch to the older HTTP+SSE transport, which has security built in by default.",
           "explanation": "HTTP+SSE is deprecated, and new implementations should not adopt it. It adds no such protection."
         },
         {
@@ -64,7 +64,7 @@
           "explanation": "The response format is not the risk here. The gaps are the Origin check, the bind address and authentication."
         },
         {
-          "text": "Validate the `Origin` header, bind to 127.0.0.1 when running locally, and require authentication.",
+          "text": "Validate the `Origin` header, bind to 127.0.0.1 when local, and require authentication.",
           "explanation": "Right. These are the spec's three security rules for Streamable HTTP. An invalid `Origin` must get HTTP 403.",
           "correct": true
         }
@@ -74,11 +74,11 @@
       "prompt": "The security team allows no public endpoint. How can the OpenAI Responses API app still reach the warehouse server?",
       "options": [
         {
-          "text": "Paste the private IP into `server_url`; the API can reach private networks.",
+          "text": "Paste the private IP into `server_url`; the API can reach private networks directly.",
           "explanation": "OpenAI's guide describes remote servers as servers on the public Internet. Private servers use a different option."
         },
         {
-          "text": "Use Secure MCP Tunnel, which connects a private server without exposing it to the public internet.",
+          "text": "Use Secure MCP Tunnel, which connects a private server without public exposure.",
           "explanation": "Right. OpenAI's MCP guide offers Secure MCP Tunnel for private, on-premises or firewalled servers, referenced with `tunnel_id`.",
           "correct": true
         },
@@ -100,11 +100,11 @@
           "explanation": "The model needs the tool definitions to call tools. Caching keeps them without the extra call."
         },
         {
-          "text": "Switch the agent to the deprecated SSE transport, which is faster.",
+          "text": "Switch the agent to the deprecated SSE transport, which is faster at listing the tools.",
           "explanation": "The SDK docs say to keep SSE only for legacy servers. Transport is not the fix for list latency."
         },
         {
-          "text": "Set `cache_tools_list` to true, and call `invalidate_tools_cache()` when the tools change.",
+          "text": "Set `cache_tools_list` to true, and call `invalidate_tools_cache()` on tool changes.",
           "explanation": "Right. The SDK docs say to enable it only when tool definitions do not change often, and to invalidate the cache to force a fresh list.",
           "correct": true
         },

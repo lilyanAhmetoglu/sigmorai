@@ -16,6 +16,9 @@ export const AUTH_ROUTES = {
   signUp: '/sign-up',
 } as const;
 
+/** The query param Clerk's sign-in/sign-up keep through every step and redirect to at the end. */
+export const CLERK_REDIRECT_PARAM = 'redirect_url';
+
 /** Labels for the links to AUTH_ROUTES (HUD auth controls, landing nav and hero). */
 export const AUTH_TEXT = {
   signIn: 'Sign in',

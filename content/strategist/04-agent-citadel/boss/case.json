@@ -1,0 +1,118 @@
+{
+  "id": "strategist/r4/boss/challenge",
+  "title": "Decide what one agent may do without a human check",
+  "scenario": "You lead customer care at a regional airline. Flights are often delayed, and 45 care staff answer requests all day. The airline plans a pilot agent that reads delay and cancellation requests, checks the booking and acts on it. You must decide what the agent may do without a human check. The exhibit holds what you know. All numbers are made up for this case.",
+  "exhibit": "BRIEF:\n  45 care staff, about 3,000 requests a month. The steps differ per case (1 to 8 lookups).\n  The pilot agent may look up a booking, rebook a passenger, give a meal voucher or refund a ticket.\n  Pilot size: 1,000 agent runs.\n\nACTIONS:\n  Action                            Can undo?     Cost of a mistake        Track record\n  Look up a booking                 not needed    none (read only)         none yet\n  Rebook onto the next flight       yes           low (change it back)     none yet\n  Give a meal voucher up to 25 EUR  no            25 EUR                   none yet\n  Refund a ticket up to 400 EUR     no            up to 400 EUR            none yet\n\nRUN COST:\n  Gemini API docs, agents overview (Pricing, for Gemini managed agents): \"A single interaction can trigger multiple reasoning loops, typically consuming 100k to 3M tokens.\"\n  Example price (made up): 4 USD per 1 million tokens. One agent run = one interaction.\n\nMORNING REPORT:\n  Each morning the agent writes a list of passengers who are owed compensation.\n  Finance pays from the list on the same day.\n\nBOOKING CONNECTION (two options):\n  Option 1: the MCP server hosted by the booking-system vendor.\n  Option 2: a free community MCP server found online. Its maker says it offers the same tools.\n\nINCIDENT (test week):\n  A manager asked: \"Clear out the requests older than 90 days.\"\n  The agent closed them. It also sent 25 EUR apology vouchers to 200 passengers. Nobody had asked for vouchers.\n  Controls today: the instruction \"be careful\". Nothing else.\n",
+  "questions": [
+    {
+      "prompt": "At the example price, what range could the model tokens for 1,000 pilot runs cost?",
+      "options": [
+        {
+          "text": "$0.40 to $12.",
+          "explanation": "This is the range for one run (100k to 3M tokens at 4 USD per million). The pilot has 1,000 runs."
+        },
+        {
+          "text": "$40 to $1,200.",
+          "explanation": "This is the range for 100 runs. The pilot has 1,000 runs."
+        },
+        {
+          "text": "$400 to $12,000.",
+          "explanation": "Right. 1,000 runs x 100k tokens = 100M tokens = $400. 1,000 runs x 3M tokens = 3,000M tokens = $12,000. The wide range is why a turn limit and a budget cap matter.",
+          "correct": true
+        },
+        {
+          "text": "$4,000 to $120,000.",
+          "explanation": "This is the range for 10,000 runs. The pilot has 1,000 runs."
+        }
+      ]
+    },
+    {
+      "prompt": "Using the course ladder and the three questions, which setup fits go-live?",
+      "options": [
+        {
+          "text": "One mode for the whole agent: everything asks first, so that staff check every step, lookups included.",
+          "explanation": "This would give thousands of prompts for harmless reads, which leads to approval fatigue. The course ladder sets a step for each action, not one mode for the whole agent."
+        },
+        {
+          "text": "Lookups run alone. Rebooking, vouchers and refunds each ask first, until each has a track record.",
+          "explanation": "Right. A lookup cannot do harm. The other actions cost money or are hard to undo, and none has a record yet. Start low and move one action up when the record supports it.",
+          "correct": true
+        },
+        {
+          "text": "Lookups, rebooking and vouchers run alone. Only refunds ask first, because refunds cost the most money.",
+          "explanation": "A voucher cannot be undone and has no record yet. OpenAI's guides say to pause before side effects and to confirm actions that are hard to reverse."
+        },
+        {
+          "text": "Everything runs alone, and a manager reads a short summary of the day's actions every evening after work.",
+          "explanation": "A review after the day comes too late for a payment that cannot be undone. The agent also has no track record yet."
+        }
+      ]
+    },
+    {
+      "prompt": "Finance pays from the morning list on the same day. Which check fits best?",
+      "options": [
+        {
+          "text": "A person approves every lookup the agent makes while it builds the list, before each lookup runs.",
+          "explanation": "Approval before every read leads to approval fatigue, so the real risk gets less attention. The check belongs on the finished list."
+        },
+        {
+          "text": "A finance clerk reads a sample of the list after the payments have gone out, to learn from mistakes.",
+          "explanation": "A check after payment cannot stop a wrong payment. Review must come before anyone relies on the result."
+        },
+        {
+          "text": "The agent adds a last line saying that all rows were checked, and finance pays from the list.",
+          "explanation": "That line is the agent's own claim. OpenAI's guide says to check the actual outcome, not only the model's final answer."
+        },
+        {
+          "text": "A person checks the list before finance pays from it, because people rely on this output at once.",
+          "explanation": "Right. Put a person after the agent's work and before anyone relies on it. Anthropic's post says that even for coding agents, human review remains crucial, and OpenAI's guide says to check the real result.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Which booking connection should the pilot use?",
+      "options": [
+        {
+          "text": "Option 1, the server hosted by the booking vendor, and log the data the agent sends to it.",
+          "explanation": "Right. OpenAI's MCP guide says to pick official servers hosted by the service provider, and to log data sent to MCP servers.",
+          "correct": true
+        },
+        {
+          "text": "Option 2, because it is free and the tool list can be limited to read-only tools later on.",
+          "explanation": "Free is not a safety check. OpenAI's guide warns that MCP servers may update tool behaviour unexpectedly, and says to pick official servers."
+        },
+        {
+          "text": "Option 2, because a community server with many users has been checked by those users.",
+          "explanation": "Many users do not make a security review. OpenAI says remote MCP servers have not been verified by OpenAI."
+        },
+        {
+          "text": "Either one. Both are MCP servers, so both carry the same risk and the same trust.",
+          "explanation": "They do not carry the same trust. A server run by the booking vendor has no extra company in the middle."
+        }
+      ]
+    },
+    {
+      "prompt": "Which failure kind is the incident, and what is the best check?",
+      "options": [
+        {
+          "text": "Wrong target: the agent picked the wrong requests. Ask for exact request IDs, and ask the manager when it is unclear.",
+          "explanation": "The old requests were the right target. The problem is the vouchers nobody asked for."
+        },
+        {
+          "text": "Overreach: the agent did more than asked. Name what it may not do, and block it with a permission.",
+          "explanation": "Right. The agent understood the goal and went further. Anthropic calls this overeager behaviour. A permission blocks it. The words be careful do not.",
+          "correct": true
+        },
+        {
+          "text": "Hijack: a request held hidden orders. Treat the text of every request as untrusted data, not as orders.",
+          "explanation": "Nothing in the log shows hidden orders in a request. The agent went beyond the task on its own."
+        },
+        {
+          "text": "False done: the agent said it finished without checking. Verify the real outcome after each action it takes.",
+          "explanation": "The agent did the work and more. It did not report a success that never happened."
+        }
+      ]
+    }
+  ]
+}

@@ -221,6 +221,7 @@ describe('blog posts', () => {
       title: 'Fixture post',
       description: 'A short post for the loader tests.',
       lesson: LESSON,
+      cover: '/blog/covers/fixture-post.webp',
     });
     expect(post.body).toContain('## Fixture post');
   });

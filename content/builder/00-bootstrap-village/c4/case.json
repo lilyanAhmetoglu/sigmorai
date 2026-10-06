@@ -8,16 +8,16 @@
       "prompt": "Photos are 4000x3000 and resent as base64 on every turn. Which change cuts cost the most without losing what the claim needs?",
       "options": [
         {
-          "text": "Resize photos to the detail the task needs, upload once, and reference them by file ID in later turns.",
+          "text": "Resize photos to the detail the task needs, upload once, and reference them by file ID later.",
           "explanation": "Right. The Claude docs advise downsampling to control token cost, and say file IDs keep payloads small because base64 bytes are resent every turn. OpenAI also accepts file IDs.",
           "correct": true
         },
         {
-          "text": "Keep full resolution and base64; the vendor caches images for free.",
+          "text": "Keep full resolution and base64; the vendor caches repeated image bytes for free between turns.",
           "explanation": "Nothing in the docs says so. Base64 image bytes go in the payload on every turn."
         },
         {
-          "text": "Convert the photos to PDF first; PDFs are cheaper than images.",
+          "text": "Convert the photos to PDF first; PDFs are cheaper than images for the same picture.",
           "explanation": "A PDF page is also turned into an image, plus extracted text. It costs more, not less."
         },
         {
@@ -30,16 +30,16 @@
       "prompt": "Three claims were auto-approved with wrong dent counts. What is the right design change?",
       "options": [
         {
-          "text": "Treat counts from images as approximate and require human review before approval.",
+          "text": "Treat image counts as approximate and require human review before approval.",
           "explanation": "Right. Both vendors list counting as approximate, and the Claude docs warn against tasks needing perfect precision without human oversight.",
           "correct": true
         },
         {
-          "text": "Add 'count exactly' to the system prompt.",
+          "text": "Add 'count exactly' to the system prompt so the model counts every dent carefully.",
           "explanation": "A prompt cannot remove a documented limit. Counting stays approximate."
         },
         {
-          "text": "Send the photo twice so the model can double-check.",
+          "text": "Send the photo twice so the model can double-check its own count against the first.",
           "explanation": "That doubles image tokens and does not fix the limit. A person should confirm high-stakes counts."
         },
         {
@@ -52,7 +52,7 @@
       "prompt": "Product asks to 'just send the audio to the model'. The vendor is not final. What do you tell them?",
       "options": [
         {
-          "text": "Check each shortlisted vendor's docs; add a speech-to-text step if the model takes no audio.",
+          "text": "Check each shortlisted vendor's docs; add speech-to-text if the model takes no audio.",
           "explanation": "Right. Audio input differs by vendor. OpenAI documents audio inputs (transcription, audio in chat, Realtime). The Claude models and features overviews list text, image and PDF input and do not list audio. If the chosen model takes no audio, send a transcript instead.",
           "correct": true
         },
@@ -61,7 +61,7 @@
           "explanation": "Not true. Vendors document audio very differently, and some list no audio input at all."
         },
         {
-          "text": "Send the audio as a base64 content block; every vendor accepts it like an image.",
+          "text": "Send the audio as a base64 content block; every vendor accepts it just like an image.",
           "explanation": "Not every vendor documents audio input at all. Check the shortlisted vendor's docs first."
         },
         {
@@ -74,12 +74,12 @@
       "prompt": "Policy PDFs are 30 to 60 pages. How should you estimate their cost per claim?",
       "options": [
         {
-          "text": "Count extracted text tokens plus image tokens for every page, then check the vendors' size limits (and Claude's page limit).",
+          "text": "Count extracted text tokens plus image tokens for every page, then check size limits.",
           "explanation": "Right. Both vendors send PDF pages as extracted text plus a page image. The Claude docs estimate 1,500 to 3,000 text tokens per page, plus image cost.",
           "correct": true
         },
         {
-          "text": "A PDF costs the same as one image, whatever its length.",
+          "text": "A PDF costs the same as one image, whatever its length or page count, so one number is enough.",
           "explanation": "Each page is converted to an image and also has extracted text. Cost grows with pages."
         },
         {
@@ -87,7 +87,7 @@
           "explanation": "The Claude docs say image-based cost applies to each page image."
         },
         {
-          "text": "Only the first page is billed; the rest is cached.",
+          "text": "Only the first page is billed; the rest of the pages are cached by the vendor for free.",
           "explanation": "Every page is billed as text plus a page image. Nothing in the docs caches pages for free."
         }
       ]

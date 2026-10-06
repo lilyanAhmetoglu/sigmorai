@@ -1,0 +1,118 @@
+{
+  "id": "creator/r2/c6/challenge",
+  "title": "Brief to pipeline",
+  "scenario": "A juice brand wants a vertical ad. You are choosing how to build it. The brief, the recipe facts and a draft pipeline sheet are in the exhibit.\n\nThe brief and the draft sheet are made up for this case. The recipe facts are from Runway's docs.",
+  "exhibit": "Client brief (made up for this case)\n  Deliverable: 10-second vertical ad (9:16) for a juice bottle\n  Sound: none. The client adds its own music.\n  Inputs: 3 product photos. One photo has a stock-site watermark in the corner.\n  Also: the client's own chat assistant should make a banner whenever a\n        user asks for one, in the same conversation.\n\nRecipe facts (from Runway's docs)\n  Product Ad:        1-10 product images, up to 4 style images.\n                     Length 4-15 s, default 10. Audio default: false.\n                     Reference guidelines: avoid watermarks or overlaid\n                     text on product images.\n  Multi-Shot Video:  mode auto (one story prompt) or custom (3-5 shots,\n                     shot lengths must add up to the total).\n                     Total length 5, 10 or 15 s. Audio default: true.\n  Version:           use a dated version (for example 2026-06) to pin\n                     behavior, or unsafe-latest to track the newest stable.\n\nOpenAI (from the docs)\n  image_generation tool: when included in a request, the model can\n  decide when and how to generate images as part of the conversation.\n  The result comes back as a base64-encoded image.\n\nDraft pipeline sheet (made up for this case)\n  Step              Person checks        Saved where\n  1 Clean photos    designer             project folder\n  2 Make video      art director         project folder\n  3 Send to client  -                    email",
+  "questions": [
+    {
+      "prompt": "A teammate picks Multi-Shot Video and leaves the audio setting unset. What is the risk?",
+      "options": [
+        {
+          "text": "The video will be silent, because Runway never makes sound in its recipes.",
+          "explanation": "Runway's pages list an audio setting for recipes, and Multi-Shot Video defaults it to true."
+        },
+        {
+          "text": "The recipe will refuse to run until you give it an audio value, and return an error.",
+          "explanation": "The docs list audio as optional, with a default."
+        },
+        {
+          "text": "Audio defaults to true, so the video may have sound though the brief says none.",
+          "explanation": "Right. Runway's Multi-Shot Video page lists audio as true by default. Product Ad's default is false. Always check each recipe's defaults.",
+          "correct": true
+        },
+        {
+          "text": "The length will be cut to 5 seconds, because sound takes up some of the time.",
+          "explanation": "Audio does not change the length. The total length is its own setting."
+        }
+      ]
+    },
+    {
+      "prompt": "One product photo has a stock-site watermark. What is the best step?",
+      "options": [
+        {
+          "text": "Use it as a style image instead of a product image.",
+          "explanation": "Style images define lighting, palette and mood. A watermark does not become safe there."
+        },
+        {
+          "text": "Keep the photo and write in the prompt that the watermark should be ignored.",
+          "explanation": "Runway's guidelines say to avoid watermarks in the inputs. They do not suggest asking the model to ignore them."
+        },
+        {
+          "text": "Replace it with a clean photo, or remove the watermark, before submitting.",
+          "explanation": "Right. Runway's reference guidelines say to avoid watermarks or overlaid text on product images. It also lists such text as a cause of failed generations.",
+          "correct": true
+        },
+        {
+          "text": "Submit it as it is. The recipe will ignore the watermark.",
+          "explanation": "Runway's guidelines say to avoid watermarks. It does not say they are ignored."
+        }
+      ]
+    },
+    {
+      "prompt": "The client's chat assistant should make a banner when a user asks. Which prebuilt option fits best?",
+      "options": [
+        {
+          "text": "Add OpenAI's built-in image generation tool to the chat request. The model decides when.",
+          "explanation": "Right. The tool page says the model can decide when and how to generate images as part of the conversation. You do not build the image step.",
+          "correct": true
+        },
+        {
+          "text": "Use Runway's Product Ad recipe for each chat message, so every banner is one task.",
+          "explanation": "Product Ad turns product photos into a short video through one task. It is not a tool the chat model calls during a conversation."
+        },
+        {
+          "text": "Use Runway's Multi-Shot Video recipe, because the chat makes several images that can be joined into one video.",
+          "explanation": "Multi-Shot Video builds a video from shots. The request here is for images inside a chat."
+        },
+        {
+          "text": "Build a three-tool chain of your own first, with a step for each task in the flow.",
+          "explanation": "A chain of your own gives control but costs build time. A built-in tool already covers a single image step in a chat."
+        }
+      ]
+    },
+    {
+      "prompt": "Look at the draft pipeline sheet. What gap would you fix first?",
+      "options": [
+        {
+          "text": "Add a person check to step 3, before the client gets anything.",
+          "explanation": "Right. This is our rule: keep a person at every client-facing step. Step 3 sends the ad out with no check.",
+          "correct": true
+        },
+        {
+          "text": "Remove step 1, because recipes clean photos by themselves.",
+          "explanation": "Runway says strong references are the biggest lever on quality. It does not say recipes clean them."
+        },
+        {
+          "text": "Replace the \"saved where\" column with the vendor's task link.",
+          "explanation": "Runway's primer says output URLs are temporary. Saving the file in your own place is the safer record."
+        },
+        {
+          "text": "Add a fourth step to run the video twice for safety, then keep both files.",
+          "explanation": "A second run does not add a check. It adds cost and an extra file."
+        }
+      ]
+    },
+    {
+      "prompt": "Later the client asks for this flow: three still styles, an art director picks one, then a clip that starts from the chosen still and ends on a packshot. Which level fits?",
+      "options": [
+        {
+          "text": "Product Ad, because it is built for product videos and takes up to 10 images.",
+          "explanation": "Product Ad fits a plain product ad in one call. It does not offer a human pick in the middle."
+        },
+        {
+          "text": "A single call, because it is one video in the end and the client wants it fast.",
+          "explanation": "The flow has three stages and a person decision. A single call does not cover them."
+        },
+        {
+          "text": "A vendor recipe, because it picks the best of the three stills for the art director.",
+          "explanation": "A recipe runs its own set steps. Neither recipe in the exhibit lets an art director pick one still in the middle."
+        },
+        {
+          "text": "Your own chain, with the art director's pick as a person step. Veo allows first and last frames.",
+          "explanation": "Right. A recipe wraps its own steps. This flow has a human choice in the middle, so you chain the steps yourself. Google says Veo 3.1 can use first and last frames.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

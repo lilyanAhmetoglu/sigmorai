@@ -10,6 +10,8 @@ const headers = securityHeaders({
 const nextConfig: NextConfig = {
   // lib/content loaders read content/ from disk at runtime; ship it with every server route.
   outputFileTracingIncludes: { '/*': ['./content/**/*'] },
+  // The image optimizer serves only the blog covers. Everything else is `unoptimized` (pixel art must not blur).
+  images: { localPatterns: [{ pathname: '/blog/covers/**' }] },
   // No "X-Powered-By: Next.js": it only helps someone fingerprint the stack.
   poweredByHeader: false,
   // CSP, framing, sniffing, referrer and feature limits on every route (SIG-27).

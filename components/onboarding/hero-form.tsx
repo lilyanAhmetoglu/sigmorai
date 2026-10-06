@@ -7,11 +7,18 @@ import { PixelButton } from '@/components/pixel-button';
 import { TextField } from '@/components/text-field';
 import { createHero } from '@/lib/actions/create-hero';
 import { HERO_NAME_MAX, ONBOARDING_TEXT, TRACK_ACCENTS, TRACK_TEXT, TRACKS } from '@/lib/constants';
-import type { OnboardingFormState, Track } from '@/lib/types';
+import type { OnboardingFormState, Track, TrackIntro } from '@/lib/types';
 
 const FORM_ERROR: Partial<Record<NonNullable<OnboardingFormState>['error'], string>> = {
   unauthorized: ONBOARDING_TEXT.unauthorized,
   server_error: ONBOARDING_TEXT.serverError,
+};
+
+type Props = {
+  /** Preselected from `?path=` (a landing card). Still changeable. */
+  initialTrack?: Track;
+  /** Who each path is for and what its realm 0 teaches. */
+  intros: Record<Track, TrackIntro>;
 };
 
 /**
@@ -21,11 +28,11 @@ const FORM_ERROR: Partial<Record<NonNullable<OnboardingFormState>['error'], stri
  * holds the pick (seen after a failed submit). `action` stays for a submit
  * before hydration. The server re-validates everything (createHero).
  */
-export function HeroForm() {
+export function HeroForm({ initialTrack, intros }: Props) {
   const [state, formAction, pending] = useActionState(createHero, null);
   const trackHintId = useId();
   const [heroName, setHeroName] = useState('');
-  const [track, setTrack] = useState<Track | null>(null);
+  const [track, setTrack] = useState<Track | null>(initialTrack ?? null);
 
   const badFields = state?.fields ?? [];
   const formError = state ? FORM_ERROR[state.error] : undefined;
@@ -50,7 +57,7 @@ export function HeroForm() {
           <span className="font-hud text-hud tracking-hud text-text-2">
             {ONBOARDING_TEXT.sprite}
           </span>
-          <span className="text-small leading-body text-text-3">{ONBOARDING_TEXT.spriteHint}</span>
+          <span className="text-small leading-body text-text-2">{ONBOARDING_TEXT.spriteHint}</span>
         </div>
       </div>
 
@@ -85,14 +92,20 @@ export function HeroForm() {
             checked={track === t}
             onChange={() => setTrack(t)}
             label={
+              <span
+                className="font-hud text-hud tracking-hud text-(--tint)"
+                data-accent={TRACK_ACCENTS[t]}
+              >
+                {TRACK_TEXT[t].label}
+              </span>
+            }
+            hint={
               <span className="flex flex-col gap-1">
-                <span
-                  className="font-hud text-hud tracking-hud text-(--tint)"
-                  data-accent={TRACK_ACCENTS[t]}
-                >
-                  {TRACK_TEXT[t].label}
-                </span>
+                <span className="text-small leading-body text-text-1">{intros[t].audience}</span>
                 <span className="text-small leading-body text-text-2">{TRACK_TEXT[t].short}</span>
+                <span className="text-small leading-body text-text-2">
+                  {ONBOARDING_TEXT.firstTopic(intros[t].firstTopic)}
+                </span>
               </span>
             }
           />

@@ -8,20 +8,20 @@
       "prompt": "In the test log, search_tickets returned 200 for a token whose audience is the billing API. What does the MCP authorization spec require?",
       "options": [
         {
-          "text": "Accept it, because the same login service issued it.",
+          "text": "Accept it, because the same login service issued it and the user is signed in.",
           "explanation": "The spec requires the server to validate that the token was issued specifically for it as the audience. The issuer alone is not enough."
         },
         {
-          "text": "Reject it with HTTP 401, because tokens must be issued specifically for this server.",
+          "text": "Reject it with HTTP 401, because tokens must be issued for this server.",
           "explanation": "Right. The spec says servers must validate the intended audience, must only accept tokens valid for their own resources, and give invalid tokens a 401.",
           "correct": true
         },
         {
-          "text": "Accept it, but log a warning.",
+          "text": "Accept it, but log a warning for the security team.",
           "explanation": "The spec uses MUST NOT for accepting other tokens. A warning does not satisfy it."
         },
         {
-          "text": "Answer with HTTP 403, because the user lacks scopes.",
+          "text": "Answer with HTTP 403, because the user lacks scopes for the billing API.",
           "explanation": "403 is for insufficient scope or permissions. Here the token was not issued for this server at all, so the answer is 401."
         }
       ]
@@ -30,7 +30,7 @@
       "prompt": "Design note 1 sends no `resource` parameter. What does the spec say the client must do?",
       "options": [
         {
-          "text": "Include `resource` in both the authorization request and the token request, naming the MCP server.",
+          "text": "Include `resource` in both the authorization request and the token request.",
           "explanation": "Right. The spec says it must be in both requests and must identify the MCP server the token is for.",
           "correct": true
         },
@@ -43,7 +43,7 @@
           "explanation": "The spec says clients must send the parameter whether or not the authorization server supports it."
         },
         {
-          "text": "Put the server URL in the query string of every MCP call instead.",
+          "text": "Put the server URL in the query string of every MCP call instead of in the request.",
           "explanation": "That is wrong. The spec says access tokens must not go in the URI query string, and the resource parameter belongs in the OAuth requests."
         }
       ]
@@ -52,11 +52,11 @@
       "prompt": "Design note 3 forwards the client's token to the billing API. What is the right change?",
       "options": [
         {
-          "text": "Keep it, but encrypt the token before forwarding.",
+          "text": "Keep it, but encrypt the token before forwarding it to the billing API.",
           "explanation": "The problem is not encryption. The spec forbids accepting or passing on tokens that were not issued for this server."
         },
         {
-          "text": "Keep it, because it keeps the user's identity end to end.",
+          "text": "Keep it, because it keeps the user's identity end to end across every service.",
           "explanation": "The spec lists lost accountability as a risk: the downstream logs show a different source than the server that forwarded the token."
         },
         {
@@ -64,7 +64,7 @@
           "explanation": "Passthrough is the anti-pattern, whatever the call type. Limiting it to reads does not fix the audience problem."
         },
         {
-          "text": "Remove it. Accept only tokens issued for this server, and do not forward the client's token.",
+          "text": "Remove it. Accept only tokens issued for this server; do not pass them on.",
           "explanation": "Right. The spec calls token passthrough an anti-pattern and says servers must not accept any tokens not explicitly issued for them.",
           "correct": true
         }
@@ -74,12 +74,12 @@
       "prompt": "Ticket #4471 contains a fake \"SYSTEM NOTE\". Which response fits the MCP and OpenAI guidance?",
       "options": [
         {
-          "text": "Treat the tool result as untrusted data. Keep a human approval step for send_reply, and show the user the inputs first.",
+          "text": "Treat the tool result as untrusted data. Keep human approval for send_reply and show the inputs.",
           "explanation": "Right. MCP says there should be a human in the loop who can deny tool calls, and that clients should show tool inputs. OpenAI warns about hidden instructions and tells you to require approval for sensitive actions.",
           "correct": true
         },
         {
-          "text": "Follow the note, because it came from the tool the agent chose to call.",
+          "text": "Follow the note, because it came from the tool the agent chose to call, and so it is trusted by the agent.",
           "explanation": "The text was written by a customer. OpenAI warns that hidden instructions in server content can make models behave unexpectedly."
         },
         {
@@ -87,7 +87,7 @@
           "explanation": "OAuth identifies the caller. It does not make the content of a ticket safe."
         },
         {
-          "text": "Remove the word SYSTEM from tool results and continue.",
+          "text": "Remove the word SYSTEM from tool results and continue as normal.",
           "explanation": "Filtering one word does not make content safe. The note could be worded in any way, so approvals and limits are needed."
         }
       ]
@@ -104,7 +104,7 @@
           "explanation": "Tool descriptions are untrusted and are not access control. The spec says servers must implement proper access controls."
         },
         {
-          "text": "Use a minimal starting scope. Challenge for more with 403 `insufficient_scope` when a risky tool is first used.",
+          "text": "Use a minimal starting scope. Challenge for more with 403 `insufficient_scope` on first risky use.",
           "explanation": "Right. The spec recommends least privilege with step-up through targeted `WWW-Authenticate` scope challenges.",
           "correct": true
         },

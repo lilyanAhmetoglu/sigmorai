@@ -21,7 +21,7 @@
           "explanation": "The SDK reads the options you pass. The list did work: it just doesn't limit what this mode approves."
         },
         {
-          "text": "`allowed_tools` is not enough: the bot also needed `disallowedTools` for Bash.",
+          "text": "`allowed_tools` is not enough: the bot also needed `disallowedTools` for Bash in its options.",
           "explanation": "Unlisted tools are not blocked by default. They fall to the permission mode, and here `bypassPermissions` approved them. A deny rule would help, but the cause is the mode, so the fix is the mode."
         }
       ]
@@ -30,7 +30,7 @@
       "prompt": "What is the right fix for the bot, per the Claude Agent SDK docs?",
       "options": [
         {
-          "text": "Keep `bypassPermissions` and add \"never use Bash\" to the system prompt.",
+          "text": "Keep `bypassPermissions` and add \"never use Bash\" to the system prompt of the bot.",
           "explanation": "A prompt line is a request. The mode would still approve any Bash call the model makes."
         },
         {
@@ -38,12 +38,12 @@
           "explanation": "`acceptEdits` auto-approves file edits and filesystem commands like `rm`, and a headless bot has no one to answer other prompts."
         },
         {
-          "text": "Use `dontAsk` with the same `allowedTools`, so anything that would prompt is denied.",
+          "text": "Use `dontAsk` with the same `allowedTools`; anything that would prompt is denied.",
           "explanation": "Right. The docs pair `allowedTools` with `dontAsk` for a locked-down agent: listed tools run, and a call that would prompt is denied. A bare `Bash` in `disallowedTools` would remove the tool too.",
           "correct": true
         },
         {
-          "text": "Switch to `plan` mode so the bot can only look and never change anything.",
+          "text": "Switch to `plan` mode so the bot can only look at the files and never change anything.",
           "explanation": "`plan` mode explores and plans, and edits are never auto-approved. It is for review with a person. A headless job that must finish needs `dontAsk` with `allowedTools`."
         }
       ]
@@ -52,7 +52,7 @@
       "prompt": "Team 2 asks why `git push origin feature/login` is blocked. What is the answer?",
       "options": [
         {
-          "text": "The more specific allow rule should win; this is a bug.",
+          "text": "The more specific allow rule should win over the broad deny; this is a bug.",
           "explanation": "The docs say rule specificity doesn't change the order. It is the documented behavior."
         },
         {
@@ -78,12 +78,12 @@
           "explanation": "Input guardrails run only for the first agent in the chain. The hidden text arrived later, as a tool result inside the specialist's work."
         },
         {
-          "text": "Set `needs_approval` on `issue_refund`, then resume the paused run from `state` after review.",
+          "text": "Set `needs_approval` on `issue_refund`, then resume the paused run from `state`.",
           "explanation": "Right. The run pauses with an interruption instead of executing the tool, and OpenAI says to put validation next to the tool that creates the side effect.",
           "correct": true
         },
         {
-          "text": "Ask the specialist in its prompt to double-check large refunds.",
+          "text": "Ask the specialist in its prompt to double-check large refunds before it calls the tool.",
           "explanation": "The prompt is what the hidden instruction already overrode. The check must sit in code at the tool."
         },
         {

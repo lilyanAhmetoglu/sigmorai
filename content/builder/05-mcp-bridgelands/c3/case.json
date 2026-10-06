@@ -8,15 +8,15 @@
       "prompt": "Listing 40,000 contracts on every `resources/list` is slow. Which design fits the MCP spec best?",
       "options": [
         {
-          "text": "Return the full text of every contract in one `resources/read`.",
+          "text": "Return the full text of every contract in one big `resources/read` call for the client.",
           "explanation": "That makes the problem bigger: the client still gets everything, now with all the content."
         },
         {
-          "text": "Remove `resources/list` and let the model guess contract URIs.",
+          "text": "Remove `resources/list` and let the model guess contract URIs by itself.",
           "explanation": "Guessed URIs fail or hit the wrong contract. The spec gives a standard way to describe parameterized resources."
         },
         {
-          "text": "Publish a resource template such as `contract://{id}` and let the client fill in the id.",
+          "text": "Publish a resource template like `contract://{id}`; the client fills in the id.",
           "explanation": "Right. Resource templates expose parameterized resources with URI templates, so the server does not have to list every item.",
           "correct": true
         },
@@ -52,7 +52,7 @@
       "prompt": "The URIs use `https://contracts.internal/...`, which only the server can reach. What does the spec advise?",
       "options": [
         {
-          "text": "Keep `https://`, because the contracts travel over HTTPS.",
+          "text": "Keep `https://`, because the contracts travel over HTTPS and look like web pages.",
           "explanation": "The scheme is not about the network. The spec reserves `https://` for resources the client can fetch from the web on its own."
         },
         {
@@ -64,7 +64,7 @@
           "explanation": "Each resource is identified by a URI. A bare number is not one."
         },
         {
-          "text": "Use another scheme or a custom one, since the client cannot fetch these URLs itself.",
+          "text": "Use another or a custom scheme, since the client cannot fetch these URLs itself.",
           "explanation": "Right. The spec says to use `https://` only when the client can load the resource directly, and to prefer another or a custom scheme otherwise.",
           "correct": true
         }
@@ -74,15 +74,15 @@
       "prompt": "The security scan read `file:///contracts/../secrets/api-keys.txt`. What must the server do?",
       "options": [
         {
-          "text": "Nothing; the client should never send such a URI.",
+          "text": "Nothing; the client should never send such a URI, so the server can safely trust it.",
           "explanation": "The server cannot rely on its clients. The spec puts URI validation on the server."
         },
         {
-          "text": "Mark the secrets file with `audience: [\"user\"]`.",
+          "text": "Mark the secrets file with `audience: [\"user\"]` so models do not see it.",
           "explanation": "Annotations are hints for display and context choice. They do not stop a read."
         },
         {
-          "text": "Validate every resource URI and sanitize file paths to block directory traversal.",
+          "text": "Validate every resource URI and sanitize paths to block directory traversal.",
           "explanation": "Right. The spec says servers must validate all resource URIs and must sanitize file paths to prevent directory traversal on `file://` resources.",
           "correct": true
         },
@@ -96,11 +96,11 @@
       "prompt": "The team expects Claude, through the Claude API MCP connector, to read contract resources. What do the Claude docs say?",
       "options": [
         {
-          "text": "The connector reads resources automatically when the server lists them.",
+          "text": "The connector reads resources automatically, as soon as the server lists them in its catalog.",
           "explanation": "The docs list a limitation: of the MCP feature set, only tool calls are supported."
         },
         {
-          "text": "The connector supports only tool calls; for resources, run your own MCP client and use the SDK helpers.",
+          "text": "The connector supports only tool calls; for resources, run your own MCP client.",
           "explanation": "Right. The docs point to client-side helpers that turn an MCP resource into a content block or a file when you manage your own client.",
           "correct": true
         },
