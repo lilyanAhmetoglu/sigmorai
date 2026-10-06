@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r6/c2/challenge",
+  "title": "The judge that liked going first",
+  "scenario": "You lead e-commerce content at a home-goods retailer. An AI tool writes product descriptions. The team wrote a new prompt (B) and wants to know if it beats the current one (A).\n\nA colleague set up a model judge and a small test. He says: \"The judge picked A in run 1 and B in run 2. It's a tie, so let's keep A.\" The exhibit shows his notes.",
+  "exhibit": "Product descriptions: prompt A vs prompt B (made-up example data)\n\nJudge: a model reads two descriptions side by side and picks the better one\nRubric: \"Pick the better description.\"\nTest set: 12 best-selling products, chosen by the marketing lead\n\nRun 1  order A then B    judge picks A in 10 of 12\nRun 2  order B then A    judge picks B in  9 of 12\n\nAverage length          A: 140 words    B: 95 words\nHuman editor, 12 pairs  prefers B in 8 of 12\n\nBrand rules (from the style guide)\n  - 100 words or fewer\n  - must include the product code, e.g. \"HG-2291\"\n\nLast quarter: 41 customer complaints about descriptions\n  (wrong size, wrong material, missing care advice)",
+  "questions": [
+    {
+      "prompt": "What do runs 1 and 2 show about the judge?",
+      "options": [
+        {
+          "text": "The two prompts are equally good, so the team can safely keep prompt A.",
+          "explanation": "The result flipped when only the order changed. That says more about the judge than about the prompts."
+        },
+        {
+          "text": "The judge works well, because it gave a clear winner in each of the two runs.",
+          "explanation": "A clear winner that changes with the order is a warning sign, not a sign of a good judge."
+        },
+        {
+          "text": "The judge mostly picks whichever description it reads first: position bias.",
+          "explanation": "Right. OpenAI's evaluation guide names position bias (response order) as a known problem with model judges.",
+          "correct": true
+        },
+        {
+          "text": "The model is too small to judge text, so only human grading can work here.",
+          "explanation": "The guides treat model judges as valid once they are calibrated. The fix is the judge setup, not dropping judges."
+        }
+      ]
+    },
+    {
+      "prompt": "What should happen before the team trusts this judge on thousands of descriptions?",
+      "options": [
+        {
+          "text": "Write a detailed rubric, control for length, and scale only once it agrees with human editors.",
+          "explanation": "Right. OpenAI's guide says to use clear rubrics, control for length, and scale up only when the judge consistently agrees with human labels.",
+          "correct": true
+        },
+        {
+          "text": "Run the same judge 10 more times in the A-then-B order and average the results.",
+          "explanation": "Repeating the same biased setup repeats the bias. The order and the rubric are the problem."
+        },
+        {
+          "text": "Ask the judge to give longer explanations, so its choices look more convincing to the team.",
+          "explanation": "Longer explanations don't fix the bias. Its choices still need to be checked against human editors."
+        },
+        {
+          "text": "Replace the judge with the human editor for every description, from now on.",
+          "explanation": "Anthropic's guide calls human grading slow and expensive. Use people to calibrate the judge, not to replace it."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the two brand rules be checked?",
+      "options": [
+        {
+          "text": "By the model judge, added to its rubric next to tone and style.",
+          "explanation": "A judge can do it, but it is slower and less reliable than a simple rule for a clear-cut check."
+        },
+        {
+          "text": "By the human editor, who reads every description before it goes live.",
+          "explanation": "Word counts and codes don't need human judgment. Save the editor's time for nuance."
+        },
+        {
+          "text": "By customers, who can report a wrong product code through the website.",
+          "explanation": "That catches errors only after they reach customers. These rules can be checked before."
+        },
+        {
+          "text": "By a code check: count the words and look for the product code.",
+          "explanation": "Right. Anthropic's guide calls code-based grading the fastest and most reliable method. It suits clear rules like these.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What is the best change to the test set?",
+      "options": [
+        {
+          "text": "Keep the 12 best-sellers, because they matter most for revenue.",
+          "explanation": "Twelve hand-picked easy cases miss the real failures. The complaints show where the tool breaks."
+        },
+        {
+          "text": "Build 20–50 tasks from the 41 complaints, each with a clear pass or fail rule.",
+          "explanation": "Right. Anthropic's post says 20 to 50 simple tasks drawn from real failures is a great start, and two experts should agree on each verdict.",
+          "correct": true
+        },
+        {
+          "text": "Ask the AI tool to write 1,000 test products, so that the set is large.",
+          "explanation": "Generated tasks can help, but they don't replace the real failures you already have."
+        },
+        {
+          "text": "Remove the hard products from the set, so the scores look stable.",
+          "explanation": "Hard and failed cases are what the test is for. Removing them hides the problems."
+        }
+      ]
+    }
+  ]
+}
