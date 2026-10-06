@@ -2,7 +2,7 @@
   "id": "builder/r2/c4/challenge",
   "title": "The loop that ran all night",
   "scenario": "An internal research assistant answers staff questions using two tools: `search_wiki` and `read_page`. A teammate wrote the tool loop by hand (exhibit). Overnight, one question ran for 212 rounds and the bill for that night was the highest of the month. The trace also shows the model calling `search_wiki` with the same query again and again, and one run that crashed when the reply stopped halfway through a tool call.",
-  "exhibit": "messages = [user_question]\nwhile True:\n    r = call_model(messages, tools)\n    if r.stop_reason == \"end_turn\":\n        show(r)\n        break\n    call   = r.tool_calls[0]\n    result = run_tool(call)\n    messages = [user_question, r, result]   # rebuilt every round\n\nTRACE (question 'What is our travel budget policy?')\nround 1   search_wiki(\"travel budget policy\")\nround 2   search_wiki(\"travel budget policy\")\nround 3   search_wiki(\"travel budget policy\")\n...\nround 212 search_wiki(\"travel budget policy\")",
+  "exhibit": "messages = [user_question]\nwhile True:\n    r = call_model(messages, tools)\n    if r.stop_reason == \"end_turn\":\n        show(r)\n        break\n    call   = r.tool_calls[0]\n    result = run_tool(call)\n    messages = [user_question]   # history reset every round; results never kept\n\nTRACE (question 'What is our travel budget policy?')\nround 1   search_wiki(\"travel budget policy\")\nround 2   search_wiki(\"travel budget policy\")\nround 3   search_wiki(\"travel budget policy\")\n...\nround 212 search_wiki(\"travel budget policy\")",
   "questions": [
     {
       "prompt": "What stops a run like this from going 212 rounds again, whatever the model does?",
@@ -34,7 +34,7 @@
           "explanation": "The trace gives no sign of empty results. And the loop would still throw away whatever came back."
         },
         {
-          "text": "The loop rebuilds `messages` every round, so earlier results are lost.",
+          "text": "The loop resets `messages` every round, so earlier results are lost.",
           "explanation": "Right. The Claude tutorial says to keep a running list and append to it, so every turn sees the full prior context.",
           "correct": true
         },
@@ -71,7 +71,7 @@
       ]
     },
     {
-      "prompt": "The team wants the model to search the wiki before answering. Their Claude model returns a 400 error for `tool_choice` `any`. What should they do?",
+      "prompt": "The team wants the model to search the wiki before answering. Their model, Claude Opus 5.5, returns a 400 error for `tool_choice` `any`. What should they do?",
       "options": [
         {
           "text": "Keep `auto` and add a system prompt line such as \"Use the tools to investigate before responding.\"",

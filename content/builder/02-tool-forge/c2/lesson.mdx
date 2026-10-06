@@ -22,13 +22,13 @@ sources:
 
 The Claude docs say the model never sees your implementation: it only sees the schema you provided and the result you returned. So the definition is a prompt, and everything from realm 1 applies: be specific, give the reason, remove guesses.
 
-## Three parts, every vendor
+## Three core parts
 
-Claude, OpenAI and Gemini all use the same three core parts:
+Claude, OpenAI and Gemini all use three core parts:
 
 - a **name**, such as `get_order_status`;
 - a **description** of what the tool does and when to use it;
-- a **schema** for the inputs, written in JSON Schema (Claude calls it `input_schema`, OpenAI and Gemini call it `parameters`).
+- a **schema** for the inputs. It is written in JSON Schema on Claude and OpenAI (`input_schema` / `parameters`). Gemini's `parameters` uses a subset of the OpenAPI schema.
 
 Example:
 
@@ -74,7 +74,7 @@ Example: a `priority` field typed as a free string will get "urgent", "HIGH" and
 
 ## Strict mode
 
-Without extra help, a model follows your schema on a best-effort basis. Both Anthropic and OpenAI offer a strict mode that enforces it.
+Without strict mode, the model can send inputs that break your schema. Claude: it "might return incompatible types". OpenAI calls non-strict calls "best effort". OpenAI's Responses API tries strict mode by default when the schema allows it. Both Anthropic and OpenAI offer a strict mode that enforces the schema.
 
 - Claude: setting `strict: true` "guarantees Claude's tool inputs match your JSON Schema". The docs' example: a booking tool needs `passengers` as an integer. Without strict mode, Claude might send `"two"` or `"2"`. With it, the input is always `2`.
 - OpenAI: strict mode makes calls "reliably adhere to the function schema, instead of being best effort. We recommend always enabling strict mode." It has two rules: `additionalProperties` must be `false`, and every field must be listed as required. To make a field optional, allow `null` as one of its types.
@@ -100,7 +100,7 @@ Anthropic's engineering post gives an example of the same idea: instead of a `li
 
 ## Key points
 
-- Every definition has a name, a description and a JSON Schema for inputs.
+- Every definition has a name, a description and a schema for inputs.
 - The description matters most: what, when, when not, each parameter, caveats.
 - Use enums and clear types to make invalid calls impossible.
 - Turn on strict mode where your schema fits the supported subset.

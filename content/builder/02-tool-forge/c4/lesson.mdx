@@ -4,6 +4,9 @@ title: The tool loop
 minutes: 10
 sources:
   - kind: docs
+    title: Tool use with Claude (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+  - kind: docs
     title: How tool use works (Claude docs)
     url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works
   - kind: docs
@@ -80,7 +83,7 @@ Example rule: at most 8 rounds per user message. On round 8, stop, log the trace
 Not every stop is a finished answer.
 
 - `max_tokens`: the reply hit your output limit. The Claude docs warn that if this cuts off a tool call halfway, you must retry with a higher `max_tokens` to get the full call.
-- `refusal`: the model declined. Show a clear message; don't loop again.
+- `refusal`: the model declined. Don't continue the tool loop. Read `stop_details`, which names the policy category. The Claude docs say a refusal on some newer models (such as Claude Opus 5.5) can usually be served by retrying on another Claude model. Otherwise, show a clear message.
 - `end_turn`: the normal finish.
 
 Example: a loop that treats every non-tool stop as success will show a half-written reply as if it were final.
@@ -95,7 +98,7 @@ By default the model decides. All three vendors let you change that with a tool 
 
 Example: a support bot must check the order system before it answers any order question. On a model that supports it, `any` or `required` makes a tool call happen; `auto` leaves it to the model.
 
-Forcing is not supported everywhere. The Claude docs list models where `any` and `tool` return a 400 error, and suggest `auto` with strict tool use instead. Prompting also steers the choice: the Claude docs say a line like "Use the tools to investigate before responding." increases tool use.
+Forcing is not supported everywhere. The Claude docs say that on Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.1 and Claude Mythos 5.1, `any` and `tool` return a 400 error, and suggest `auto` with strict tool use instead. Prompting also steers the choice: the Claude docs say a line like "Use the tools to investigate before responding." increases tool use.
 
 ## Key points
 
