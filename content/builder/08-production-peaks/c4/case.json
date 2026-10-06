@@ -1,0 +1,96 @@
+{
+  "id": "builder/r8/c4/challenge",
+  "title": "Four weeks until Dana leaves",
+  "scenario": "A startup is moving its support assistant from prototype to production on the Claude API. The company has a zero data retention (ZDR) arrangement with Anthropic. A reviewer lists four findings (exhibit). You decide the fix for each.",
+  "exhibit": "(made-up example data)\n\nPRODUCTION REVIEW, support assistant\n\n  1. KEYS      Production uses a personal API key created by Dana.\n               Dana leaves the company in 4 weeks.\n\n  2. BROWSER   The web app calls the Claude API directly.\n               The key is inside the front-end JavaScript bundle.\n\n  3. LEAK      A test script printed a key in a public CI log:\n               sk-ant-EXAMPLE-not-a-real-key\n               The key is still active.\n\n  4. DATA      Legal rule: no customer content stored at the vendor\n               after the response.\n               Plan: a nightly summary job on the Message Batches API.",
+  "questions": [
+    {
+      "prompt": "Finding 1: what happens when Dana leaves, and what is the fix?",
+      "options": [
+        {
+          "text": "Nothing. API keys belong to the organization, so they keep working.",
+          "explanation": "A personal key acts as one user. Claude archives personal keys when that user is removed from the organization."
+        },
+        {
+          "text": "Ask Dana to set the key's expiry to Never just before leaving.",
+          "explanation": "Expiry is not the issue. The key stops when its owner is removed, whatever its expiry says."
+        },
+        {
+          "text": "It stops working. Use a service account key from a secrets manager.",
+          "explanation": "Right. Claude says shared or production workloads should use a service account, which has its own identity.",
+          "correct": true
+        },
+        {
+          "text": "Copy the key into a shared .env file in the repo so it stays.",
+          "explanation": "That puts a secret in version control, which is the opposite of the docs' advice to use a secrets manager."
+        }
+      ]
+    },
+    {
+      "prompt": "Finding 3: a live key is in a public CI log. What should the team do now?",
+      "options": [
+        {
+          "text": "Disable or delete the key, deploy a replacement, check usage.",
+          "explanation": "Right. A leaked key must be dead before anything else. Claude's Usage API can filter by API key to look for misuse.",
+          "correct": true
+        },
+        {
+          "text": "Edit the CI log to remove the key, and keep using the same key.",
+          "explanation": "The key was already public, and others may have copied it. Editing the log does not make it safe."
+        },
+        {
+          "text": "Give the key a 3-hour expiry so it ends by itself later today.",
+          "explanation": "Claude sets an expiry only when a key is created. It cannot be changed afterward."
+        },
+        {
+          "text": "Watch usage for a day and revoke only if something looks odd.",
+          "explanation": "OpenAI says to revoke a compromised key promptly. Waiting leaves a public key open to anyone."
+        }
+      ]
+    },
+    {
+      "prompt": "Finding 4: can the nightly job run on the Message Batches API under the legal rule?",
+      "options": [
+        {
+          "text": "Yes, because the API blocks any feature that would break ZDR.",
+          "explanation": "Claude says that under ZDR the API does not block features marked No. Using one steps outside ZDR."
+        },
+        {
+          "text": "No. Batch is not ZDR eligible, so use the standard Messages API.",
+          "explanation": "Right. Claude lists Batch as not ZDR eligible, with 29-day retention. The nightly job should run on the standard API, within rate limits.",
+          "correct": true
+        },
+        {
+          "text": "Yes, because ZDR covers only Claude Code and not API calls.",
+          "explanation": "ZDR covers the Messages and Token Counting APIs for eligible features. Batch is the exception here."
+        },
+        {
+          "text": "Yes, because batch data is deleted after 24 hours on both vendors.",
+          "explanation": "Claude keeps batch data for up to 29 days after creation. OpenAI also marks its batch endpoint as not ZDR eligible."
+        }
+      ]
+    },
+    {
+      "prompt": "Finding 2: the browser calls the API with the key in the bundle. What is the fix?",
+      "options": [
+        {
+          "text": "Minify the bundle so the key is hard to read.",
+          "explanation": "Anyone can read network requests in the browser. A hidden key is still public."
+        },
+        {
+          "text": "Give every user their own key in the browser.",
+          "explanation": "That puts many secrets in many browsers and makes limits and cost harder to control."
+        },
+        {
+          "text": "Rotate the key every day and leave it in the bundle.",
+          "explanation": "Rotation shortens the exposure, but the key is still public to every visitor in the meantime."
+        },
+        {
+          "text": "Call your own server, which holds the key.",
+          "explanation": "Right. The server keeps the key, authenticates the user, applies a per-user limit and can send a hashed user id (OpenAI calls this safety_identifier).",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

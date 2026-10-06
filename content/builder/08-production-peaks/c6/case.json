@@ -1,0 +1,96 @@
+{
+  "id": "builder/r8/c6/challenge",
+  "title": "Launch plan, version one",
+  "scenario": "A company will launch its support assistant on the OpenAI API next Tuesday. The first launch plan is below (exhibit). You review it and fix four risks before the launch email goes out.",
+  "exhibit": "(made-up example data)\n\nLAUNCH PLAN v1, support assistant\n\n  MODEL      Primary model: a model whose name ends in \"-preview\".\n             Chosen because it scored best on the eval set.\n\n  FALLBACK   On ANY error, resend the same request to a cheaper model.\n             No eval has been run on the cheaper model.\n\n  TRAFFIC    Today: 1,000,000 input tokens per minute.\n             Expected peak after the launch email: 3,000,000.\n\n  BUDGET     Monthly budget: $5,000.\n             Hard spend limit: $5,000. Spend alerts: none.",
+  "questions": [
+    {
+      "prompt": "The primary model is a preview model. What is the risk, and what should the team do?",
+      "options": [
+        {
+          "text": "No risk. A model that scores best stays available for at least 6 months.",
+          "explanation": "The 6-month minimum is for generally available models. Preview models are not covered by it."
+        },
+        {
+          "text": "No risk. Preview models get the same notice as generally available ones.",
+          "explanation": "OpenAI says preview models may be retired with much shorter notice, such as 2 weeks."
+        },
+        {
+          "text": "It may retire in 2 weeks. Move to a generally available model.",
+          "explanation": "Right. OpenAI says preview models may be retired with much shorter notice, such as 2 weeks. It does not recommend them for business-critical production unless you can migrate quickly.",
+          "correct": true
+        },
+        {
+          "text": "OpenAI moves calls to a newer model for you when a model retires.",
+          "explanation": "The docs describe email notice and a shutdown date. You must migrate and test the replacement yourself."
+        }
+      ]
+    },
+    {
+      "prompt": "The fallback fires on any error. How should the team change it?",
+      "options": [
+        {
+          "text": "Fall back only on capacity errors, and eval the fallback first.",
+          "explanation": "Right. A 429 limit, a 503 overload or a timeout may clear on another model. The fallback must pass your eval on its own. Claude's fast mode docs show the same idea: retry without speed: \"fast\" on a 429.",
+          "correct": true
+        },
+        {
+          "text": "Keep it. A bad request is likely to work on a cheaper model.",
+          "explanation": "A 400 means the request itself is wrong. It will fail again on any model."
+        },
+        {
+          "text": "Fall back on every error, and hide which model answered.",
+          "explanation": "Hiding it is the mistake. Log which model answered and alert when fallbacks rise."
+        },
+        {
+          "text": "Fall back only on 400 errors, since those mean the model refused.",
+          "explanation": "A 400 is an invalid request, not a capacity problem. A different model does not fix a bad request."
+        }
+      ]
+    },
+    {
+      "prompt": "Traffic is 1,000,000 input tokens per minute today, and the peak is 3,000,000. Using OpenAI's rule of thumb, about how long should the ramp take?",
+      "options": [
+        {
+          "text": "About 15 minutes.",
+          "explanation": "One 50% step gives 1.5 million. That is only half of the way to 3 million."
+        },
+        {
+          "text": "About 30 minutes.",
+          "explanation": "Two steps give 2.25 million. That is still below the 3 million peak."
+        },
+        {
+          "text": "About 75 minutes.",
+          "explanation": "That is five steps, and it would reach more than 7 million. Three steps are enough."
+        },
+        {
+          "text": "About 45 minutes.",
+          "explanation": "Right. Raising by 50% every 15 minutes gives 1.5, 2.25 and then 3.375 million. That is three steps.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The hard limit equals the monthly budget, and there are no alerts. What should the team change?",
+      "options": [
+        {
+          "text": "Nothing. At $5,000 the limit only sends an email and traffic continues.",
+          "explanation": "That describes a spend alert. A hard limit makes affected requests return 429."
+        },
+        {
+          "text": "Add alerts below the cap, and plan what the app does at the stop.",
+          "explanation": "Right. Alerts warn early. A hard limit stops traffic, so the app needs a plan for that moment.",
+          "correct": true
+        },
+        {
+          "text": "Delete the hard limit, since alerts alone will stop traffic at $5,000.",
+          "explanation": "An alert only sends a notification. Without a hard limit, nothing stops the spending."
+        },
+        {
+          "text": "Move the hard limit to $50,000 so live chat can never be cut off.",
+          "explanation": "That removes the protection. Alerts and a planned stop keep both the budget and the chat safe."
+        }
+      ]
+    }
+  ]
+}
