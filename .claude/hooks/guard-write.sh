@@ -78,6 +78,8 @@ esac
 # let a real key through whenever the word "example" appears anywhere.
 # (here-strings, not `printf | grep -q`: see the SIGPIPE note in guard-bash.sh)
 key_lines=$(grep -E '(sk-[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{10,}|pk_live_[A-Za-z0-9]{10,}|rk_live_[A-Za-z0-9]{10,}|whsec_[A-Za-z0-9]{10,}|sk-ant-[A-Za-z0-9_-]{20,}|e2b_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|vercel_blob_rw_[A-Za-z0-9_]{10,}|npg_[A-Za-z0-9]{10,})' <<<"$content")
+# The -n test is load-bearing: <<<"" feeds grep one EMPTY line, which -v counts
+# as a non-allow-listed line, so without it every keyless write would be denied.
 if [ -n "$key_lines" ] && grep -qviE '(example|placeholder|dummy|fake|xxx|your[-_]?key|test_)' <<<"$key_lines"; then
   deny "BLOCKED: this write contains what looks like a live API key. Secrets never go in the repo — use Vercel env vars ('bunx vercel env add') and .env.local, and document the name in .env.example."
 fi

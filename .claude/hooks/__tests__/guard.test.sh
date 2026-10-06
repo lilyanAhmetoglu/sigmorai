@@ -97,7 +97,10 @@ big_tail=$(yes 'echo padding-padding-padding-padding' | head -4000 | tr '\n' ';'
 assert deny guard-bash.sh "$(bash_cmd "yarn install; ${big_tail}")"  "yarn install ahead of a huge command"
 assert deny guard-bash.sh "$(bash_cmd "git add .; ${big_tail}")"     "git add . ahead of a huge command"
 big_file=$(yes 'const padding = 1;' | head -20000)
-assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'const k = "sk_live_abcdefghijklmno"\n%s' "$big_file")")"        "live key on line 1 of a huge file"
+# Allow-listed key lines ("example"): the 2nd grep in guard-write.sh exits at the
+# first real key on line 1 while the 1st grep is still writing these.
+big_keys=$(yes 'const example = "sk_live_abcdefghijklmno"' | head -20000)
+assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'const k = "sk_live_abcdefghijklmno"\n%s' "$big_keys")")"        "live key on line 1, then many allow-listed key lines"
 assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'NEXT_PUBLIC_ANTHROPIC_API_KEY=abc\n%s' "$big_file")")"           "NEXT_PUBLIC_ secret on line 1 of a huge file"
 
 echo "guard-write.sh — must DENY"
@@ -152,7 +155,9 @@ echo "lint-file.sh — must RUN eslint"
 assert_exit 0 "$(edit_file "$ROOT/app/page.tsx")" "clean file → no wake"
 
 # The probe has a DELIBERATE lint error. Three defences against leaving it
-# behind: remove any stale copy first, an EXIT trap, and a .gitignore entry.
+# behind: sweep probes older than 5 min (left by killed runs; never a live
+# parallel run's), an EXIT trap, and a .gitignore entry.
+find "$ROOT/app" -maxdepth 1 -name '__lint_hook_probe_*.ts' -mmin +5 -delete 2>/dev/null
 PROBE="$ROOT/app/__lint_hook_probe_$$.ts"
 cleanup_probe() { rm -f "$PROBE"; }
 cleanup_probe
@@ -189,7 +194,9 @@ echo "content-check.sh — must RUN the check"
 assert_content 0 "$(edit_file "$ROOT/content/builder/outline.json")" "valid content → no wake"
 assert_content 0 "$(edit_file 'lib/constants/curriculum.ts')"         "curriculum map (relative path) → no wake"
 
-# A stray file the validator rejects. Removed by a trap; gitignored too.
+# A stray file the validator rejects. Removed by a trap; gitignored too. Stale
+# probes (>5 min, from killed runs) are swept first.
+find "$ROOT/content" -maxdepth 1 -name '__content_hook_probe_*.json' -mmin +5 -delete 2>/dev/null
 CPROBE="$ROOT/content/__content_hook_probe_$$.json"
 cleanup_cprobe() { rm -f "$CPROBE"; }
 cleanup_cprobe
