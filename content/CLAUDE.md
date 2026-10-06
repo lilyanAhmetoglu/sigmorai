@@ -6,7 +6,7 @@ Layout: `content/<track>/<realm>/<chapter>/lesson.mdx` (exactly that name; a bos
 
 - Math Tower floors: `content/math/f<n>/` with `lesson.mdx` + `quick-check.json`.
 - Frontier chapters: `content/frontier/<YYYY-MM-DD>-<slug>/` with the lesson MDX + `quick-check.json`. No case, no outline file, no NPC.
-- Blog posts: `content/blog/<YYYY-MM-DD>-<slug>.mdx`. The date and slug come from the file name; the page is `/blog/<slug>`, so a slug is used once. Frontmatter is `title, description, lesson` (a live `…/lesson` id). No `sources`: a post cites via `lesson:`, and its page lists that lesson's sources. Body: plain Markdown, plain product voice, **no `<DialogBox>`** (no lore on the blog). Short: a summary + why it matters. Every claim must be in the linked lesson.
+- Blog posts: `content/blog/<YYYY-MM-DD>-<slug>.mdx`. The date and slug come from the file name; the page is `/blog/<slug>`, so a slug is used once. Frontmatter is `title, description, lesson` (a live `…/lesson` id). No `sources`: a post cites via `lesson:`, and its page lists that lesson's sources. Body: plain Markdown, plain product voice, no `<DialogBox>`. Answer the title's question on the page in about 1,000 words or less, with a worked example and a checklist, and end with one line that points to the lesson. Every claim must be in the linked lesson or a page it cites. Never reuse the lesson's graded case scenario.
 
 ## Exercise ids
 
