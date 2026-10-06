@@ -1,0 +1,96 @@
+{
+  "id": "builder/r4/c2/challenge",
+  "title": "The $41 night shift",
+  "scenario": "A company runs two agents. Agent A updates dependencies every night on the Claude Agent SDK. Agent B triages support tickets on the OpenAI Agents SDK. Both had a bad week. You read the configs and the incident notes (exhibit).",
+  "exhibit": "AGENT A  deps-updater  (Claude Agent SDK, nightly CI job)\n  options:  no max_turns, no max_budget_usd\n  app code: on each ResultMessage -> post message.result to Slack\n\n  2026-09-30  subtype: success\n              result: \"All dependencies updated.\"\n              next morning: 3 test files fail on main\n  2026-10-03  ran 3 h 12 min, total_cost_usd: 41.80\n\nAGENT B  triage  (OpenAI Agents SDK)\n  Runner.run(triage_agent, ticket_text, max_turns=6)\n\n  2026-10-02  MaxTurnsExceeded raised\n              -> customer saw: HTTP 500 Internal Server Error",
+  "questions": [
+    {
+      "prompt": "Which change puts a hard cap on what one run of Agent A can spend?",
+      "options": [
+        {
+          "text": "Set `effort` to `\"low\"` for the whole session.",
+          "explanation": "Lower effort uses fewer tokens per turn, so it reduces cost. It does not stop a run at any amount."
+        },
+        {
+          "text": "Set `max_budget_usd`, for example to 5.00.",
+          "explanation": "Right. When spend reaches the cap, the SDK stops and returns subtype `error_max_budget_usd`. Subagent spend counts too.",
+          "correct": true
+        },
+        {
+          "text": "Add \"keep the cost under $5\" to the prompt.",
+          "explanation": "A prompt line asks the model; it does not stop the run. The SDK option stops the run at the cap."
+        },
+        {
+          "text": "Rely on automatic compaction to keep the context small.",
+          "explanation": "Compaction keeps a long run going. It does not end the run, so it is not a spend cap."
+        }
+      ]
+    },
+    {
+      "prompt": "After adding the budget, some nights the Slack post is empty or the job crashes. Why?",
+      "options": [
+        {
+          "text": "The budget cap deletes the session, so no message is sent.",
+          "explanation": "Every result subtype still carries cost, usage and the session id. Only the `result` text is missing."
+        },
+        {
+          "text": "The SDK raises an exception at the budget cap, so the app never gets a `ResultMessage`.",
+          "explanation": "At the cap the SDK returns a normal `ResultMessage` with subtype `error_max_budget_usd`. It does not raise. The message arrives, but without a `result` field."
+        },
+        {
+          "text": "`result` exists only on `success`; the app must check `subtype` first.",
+          "explanation": "Right. On `error_max_budget_usd` there is no `result` field. The Claude docs say to always check the subtype before reading it.",
+          "correct": true
+        },
+        {
+          "text": "A budget stop returns subtype `success` with an empty result.",
+          "explanation": "A budget stop has its own subtype, `error_max_budget_usd`. That is how the app can tell it apart."
+        }
+      ]
+    },
+    {
+      "prompt": "For Agent B, the team wants a polite fallback reply instead of an HTTP 500 when the turn limit hits. What fits the OpenAI Agents SDK docs?",
+      "options": [
+        {
+          "text": "Pass `error_handlers` with a `\"max_turns\"` handler that returns a fallback output.",
+          "explanation": "Right. The runner accepts `error_handlers` keyed by error kind, so it can return a controlled final output instead of ending with the error.",
+          "correct": true
+        },
+        {
+          "text": "Set `max_turns=None` so the exception can never happen.",
+          "explanation": "That removes the safety stop. A ticket that sends the agent in circles would then run with no turn limit."
+        },
+        {
+          "text": "Catch the exception and run the same input again with the same limit.",
+          "explanation": "The same input with the same limit can hit the same limit again, and the customer still waits for nothing."
+        },
+        {
+          "text": "Set `tool_use_behavior` to `\"stop_on_first_tool\"`.",
+          "explanation": "That changes when every run ends: the first tool output becomes the answer. It is not a fallback for the turn limit."
+        }
+      ]
+    },
+    {
+      "prompt": "On 2026-09-30, Agent A said it was done, but tests failed. Which change targets that failure?",
+      "options": [
+        {
+          "text": "Raise `max_budget_usd` so the agent has more room to finish.",
+          "explanation": "That run ended with `success`, not at a limit. More budget does not make it check its work."
+        },
+        {
+          "text": "Lower `max_turns` so the agent spends less time on each night.",
+          "explanation": "A lower limit stops runs sooner. The problem was a run that stopped too soon already."
+        },
+        {
+          "text": "Set `stop_hook_active` to false in the options.",
+          "explanation": "`stop_hook_active` is an input that a Stop hook receives, not an option you set. It is true when Claude is already continuing because of a stop hook."
+        },
+        {
+          "text": "Add a `Stop` hook that returns `decision: \"block\"` until the tests pass.",
+          "explanation": "Right. A Stop hook block prevents Claude from stopping and gives it the reason, such as: run the test suite before finishing.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
