@@ -57,6 +57,10 @@ export const BlogFrontmatterSchema = z
     title: Text,
     description: Text,
     lesson: idForStep('lesson'),
+    /** The post's own cover: `/blog/covers/<slug>.webp` (content:check checks the name). Decoration only. */
+    cover: z
+      .string()
+      .regex(/^\/blog\/covers\/[a-z0-9-]+\.webp$/, 'cover is /blog/covers/<slug>.webp'),
   })
   .strict();
 export type BlogFrontmatter = z.infer<typeof BlogFrontmatterSchema>;

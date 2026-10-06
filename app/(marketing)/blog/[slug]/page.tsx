@@ -123,7 +123,7 @@ export default async function BlogPostPage({ params }: PageProps<'/blog/[slug]'>
         </header>
 
         <PostScene
-          place={place}
+          cover={card.cover}
           sizes="(min-width: 1200px) 1104px, 100vw"
           preload
           className="post-hero"

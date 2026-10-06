@@ -86,6 +86,7 @@ describe('headings', () => {
 });
 
 const card = (slug: string, topic: BlogTopic | null): BlogCardView => ({
+  cover: '/blog/covers/x.webp',
   slug,
   title: slug,
   description: '',

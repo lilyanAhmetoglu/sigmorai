@@ -17,7 +17,7 @@ export function FeaturedPost({ post }: { post: BlogCardView }) {
       aria-labelledby="featured-title"
     >
       <PostScene
-        place={post.place}
+        cover={post.cover}
         sizes="(min-width: 1024px) 600px, 100vw"
         preload
         className="featured-post-scene"

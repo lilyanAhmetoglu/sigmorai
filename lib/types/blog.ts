@@ -31,6 +31,8 @@ export type BlogCardView = {
   date: string;
   minutes: number;
   place: BlogPlace;
+  /** The post's own cover (public path). */
+  cover: string;
 };
 
 /** One `##` heading of a post body, for the "On this page" list. */
