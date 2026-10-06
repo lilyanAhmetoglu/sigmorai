@@ -1,0 +1,274 @@
+/*
+ * Blog list + post (Sigmorai Blog.dc.html → isIndex, isPost) and the
+ * DISPATCH FROM LATENTIA box. Realm colour from data-accent (accents.css).
+ * Tokens only.
+ * Dropped from the design (no token): the clamp() heading sizes (use the
+ * h1–h4 steps), 15/19/26/28/36px text (nearest step), 18/14px paddings (use
+ * the 16/12px steps), the input's rgba inset shadow (the parchment ring stays),
+ * 88px sticky offset (top-24).
+ */
+@layer components {
+  .blog-main {
+    @apply max-w-app mx-auto flex w-full min-w-0 flex-1 flex-col gap-10 px-4 pt-12 pb-18 sm:px-12;
+  }
+  .blog-main[data-page='post'] {
+    @apply gap-7 pt-8;
+  }
+  .blog-header {
+    @apply flex flex-col gap-3;
+  }
+  .blog-eyebrow {
+    @apply font-hud text-hud tracking-hud text-spark-500 m-0;
+  }
+  .blog-title {
+    @apply font-display text-h2 sm:text-hero m-0 leading-tight font-bold text-balance break-words;
+  }
+  .blog-intro {
+    @apply font-body text-body-lg leading-body text-text-2 max-w-reading m-0 text-pretty;
+  }
+  .blog-feed {
+    @apply font-body text-body inline-flex min-h-11 items-center self-start;
+  }
+
+  /* Shared bits of every post card */
+  .post-tag {
+    @apply font-hud text-micro tracking-hud m-0 text-(--tint) uppercase;
+  }
+  .post-meta {
+    @apply font-hud text-micro tracking-hud text-text-3 m-0 uppercase;
+  }
+
+  /* Featured post: scene beside the text (stacks under 420px of room) */
+  .featured-post {
+    @apply bg-surface-2 shadow-panel m-0.75 grid grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))];
+  }
+  .featured-post-scene {
+    @apply bg-ink-900 min-h-60 w-full;
+  }
+  .featured-post-body {
+    @apply flex flex-col justify-center gap-4 p-5 sm:p-9;
+  }
+  .featured-post-tags {
+    @apply m-0 flex flex-wrap items-center gap-2;
+  }
+  .featured-post-title {
+    @apply font-display text-h3 sm:text-h2 m-0 leading-tight font-bold text-balance break-words;
+  }
+  .featured-post-summary {
+    @apply font-body text-body leading-body text-text-2 m-0 text-pretty;
+  }
+
+  /* Latest posts: heading + topic chips, then the grid */
+  .post-list {
+    @apply flex flex-col gap-5;
+  }
+  .post-list-head {
+    @apply flex flex-wrap items-center justify-between gap-4;
+  }
+  .post-list-title {
+    @apply font-display text-h3 sm:text-h2 m-0 leading-tight font-bold;
+  }
+  .post-filters {
+    @apply flex flex-wrap gap-2;
+  }
+  .post-filter {
+    @apply font-hud text-micro tracking-hud bg-ink-800 text-text-2 shadow-notch m-0.75 inline-flex min-h-11 cursor-pointer items-center px-3;
+  }
+  .post-filter:hover {
+    @apply text-text-1;
+  }
+  .post-filter[aria-pressed='true'] {
+    @apply bg-spark-500 text-ink-950;
+  }
+  .post-filters-empty {
+    @apply font-body text-body text-text-2 m-0;
+  }
+  .post-grid {
+    @apply m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-5 p-0;
+  }
+
+  /* Post card: the title link stretches over the whole card (one big target). */
+  .post-card {
+    @apply bg-surface-2 shadow-card relative m-0.75 flex h-full flex-col;
+  }
+  .post-card:hover {
+    @apply bg-surface-3;
+  }
+  .post-card-scene {
+    @apply aspect-video w-full;
+  }
+  .post-card-body {
+    @apply flex flex-1 flex-col gap-2 p-4;
+  }
+  .post-card-title {
+    @apply font-display text-h4 m-0 leading-snug font-semibold text-balance break-words;
+  }
+  .post-card-link {
+    @apply text-text-1 no-underline;
+  }
+  .post-card-link::after {
+    @apply absolute inset-0;
+    content: '';
+  }
+  .post-card:hover .post-card-link {
+    @apply text-spark-300;
+  }
+  .post-card-summary {
+    @apply font-body text-body leading-body text-text-2 m-0 flex-1;
+  }
+  .post-card[data-variant='compact'] .post-card-title {
+    @apply text-body-lg;
+  }
+
+  /* Post page: breadcrumb */
+  .post-breadcrumb {
+    @apply font-hud text-micro tracking-hud text-text-3 m-0 flex list-none flex-wrap items-center gap-2 p-0 uppercase;
+  }
+  .post-breadcrumb a {
+    @apply text-link inline-flex min-h-11 items-center no-underline;
+  }
+  .post-breadcrumb a:hover {
+    @apply text-link-hover;
+  }
+  .post-breadcrumb [data-realm] {
+    @apply text-(--tint);
+  }
+  .post-breadcrumb [aria-current] {
+    @apply wrap-anywhere;
+  }
+
+  /* Post page: header and author line */
+  .post-header {
+    @apply flex max-w-205 flex-col gap-4;
+  }
+  .post-title {
+    @apply font-display text-h2 sm:text-h1 m-0 leading-tight font-bold text-balance break-words;
+  }
+  .post-summary {
+    @apply font-body text-body-lg leading-body text-text-2 m-0 text-pretty;
+  }
+  .post-author {
+    @apply flex flex-wrap items-center gap-3;
+  }
+  .post-author-mark {
+    @apply bg-ink-800 ring-ember-500 size-10 flex-none ring-2;
+  }
+  .post-author-name {
+    @apply font-body text-body m-0 font-bold;
+  }
+  .post-author-text {
+    @apply flex flex-col gap-1;
+  }
+  .post-hero {
+    @apply shadow-panel m-0.75 aspect-video w-auto sm:aspect-[21/8];
+  }
+
+  /* Post page: body beside the aside (TOC + quest); the aside drops below on a phone */
+  .post-layout {
+    @apply flex flex-wrap items-start gap-10 max-lg:flex-col max-lg:items-stretch;
+  }
+  .post-article {
+    @apply max-w-reading flex min-w-0 flex-[3_1_32rem] flex-col gap-5;
+  }
+  .post-article .lesson-body h2 {
+    @apply scroll-mt-24;
+  }
+  .post-sources {
+    @apply flex scroll-mt-24 flex-col gap-3;
+  }
+  .post-sources-title {
+    @apply font-display text-h3 text-text-1 m-0 mt-4 leading-tight;
+  }
+  /* Under lg the aside "dissolves": its TOC goes above the article, the quest box stays below. */
+  .post-aside {
+    @apply flex min-w-0 flex-[1_1_16rem] flex-col gap-6 max-lg:contents lg:sticky lg:top-24;
+  }
+
+  .post-toc {
+    @apply bg-surface-2 shadow-card m-0.75 flex flex-col gap-1 p-4 max-lg:-order-1;
+  }
+  .post-toc-title {
+    @apply font-hud text-micro tracking-hud text-text-3 m-0;
+  }
+  .post-toc-list {
+    @apply m-0 flex list-none flex-col p-0;
+  }
+  .post-toc-link {
+    @apply font-body text-body flex min-h-11 items-center leading-snug;
+  }
+
+  /* TRY THE QUEST: tab in the realm colour on the top edge */
+  .quest-box {
+    @apply bg-surface-2 shadow-panel relative m-0.75 flex flex-col gap-3 px-4 pt-7 pb-4;
+  }
+  .quest-box-tag {
+    @apply font-hud text-hud tracking-hud text-ink-950 shadow-notch absolute -top-3 left-4 m-0 bg-(--tint) px-2 py-1;
+  }
+  .quest-box-title {
+    @apply font-display text-h4 m-0 leading-snug font-semibold;
+  }
+  .quest-box-text {
+    @apply font-body text-body leading-body text-text-2 m-0;
+  }
+
+  .post-related {
+    @apply border-ink-800 flex flex-col gap-4 border-t-3 pt-8;
+  }
+  .post-related-title {
+    @apply font-display text-h3 m-0 leading-tight font-bold;
+  }
+
+  /* DISPATCH FROM LATENTIA: parchment box, form on the right on a wide screen */
+  .newsletter-box {
+    @apply bg-surface-story text-text-story shadow-panel inset-ring-parchment-400 m-0.75 flex flex-wrap items-center justify-between gap-5 p-5 inset-ring-3 sm:p-8;
+  }
+  .newsletter-box-copy {
+    @apply max-w-reading flex flex-col gap-2;
+  }
+  .newsletter-box-eyebrow {
+    @apply font-hud text-hud tracking-hud text-ember-700 m-0;
+  }
+  .newsletter-box-title {
+    @apply font-display text-h3 m-0 leading-tight font-bold;
+  }
+  .newsletter-box-intro {
+    @apply font-body text-body leading-body m-0;
+  }
+  .newsletter-box-side {
+    @apply flex max-w-110 min-w-0 flex-[1_1_16rem] flex-col gap-2;
+  }
+  .newsletter-box-done {
+    @apply font-body text-body-lg m-0 font-bold;
+  }
+  .newsletter-form {
+    @apply flex flex-col gap-2;
+  }
+  .newsletter-form-row {
+    @apply flex flex-wrap gap-2;
+  }
+  .newsletter-input {
+    @apply bg-parchment-200 text-parchment-900 font-body text-body ring-parchment-700 m-0.75 min-h-11 min-w-0 flex-[1_1_11rem] px-3 py-3 ring-3;
+  }
+  .newsletter-input:focus-visible {
+    outline-offset: 3px;
+  }
+  .newsletter-input::placeholder {
+    @apply text-parchment-700;
+  }
+  .newsletter-input[aria-invalid='true'] {
+    @apply ring-ember-700;
+  }
+  .newsletter-error {
+    @apply font-body text-small text-ember-700 m-0 font-bold;
+  }
+  .newsletter-note {
+    @apply font-body text-small leading-body m-0;
+  }
+  .newsletter-note-link {
+    @apply text-parchment-900 inline-flex min-h-11 items-center underline;
+  }
+  /* Honeypot: off-screen for people; bots still fill it. */
+  .newsletter-honeypot {
+    @apply sr-only;
+  }
+}

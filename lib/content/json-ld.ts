@@ -1,10 +1,11 @@
 /**
  * schema.org structured data (JSON-LD) for search engines and AI search.
  * Pure: the pages pass the site URL and the post; <JsonLd> renders it.
- * Only two shapes (SIG-39): WebSite + Organization on the landing page, and
- * BlogPosting (a kind of Article) on each blog post. No Course schema.
+ * Three shapes: WebSite + Organization on the landing page (SIG-39), Blog
+ * on the blog list (SIG-44), and BlogPosting (a kind of Article) on each
+ * blog post. No Course schema.
  */
-import { blogHref, SITE_DESCRIPTION, SITE_NAME } from '@/lib/constants';
+import { BLOG_HREF, BLOG_META, blogHref, SITE_DESCRIPTION, SITE_NAME } from '@/lib/constants';
 import type { BlogPost } from '@/lib/types';
 import { absoluteUrl } from '@/lib/utils';
 
@@ -52,6 +53,26 @@ export function articleJsonLd(post: ArticlePost, siteUrl: string): JsonLdObject 
     inLanguage: 'en',
     author: site,
     publisher: site,
+  };
+}
+
+/** The blog list: the Blog, its publisher, and each post (title, date, URL). */
+export function blogJsonLd(posts: readonly ArticlePost[], siteUrl: string): JsonLdObject {
+  return {
+    '@context': CONTEXT,
+    '@type': 'Blog',
+    name: BLOG_META.jsonLdName,
+    description: BLOG_META.description,
+    url: absoluteUrl(siteUrl, BLOG_HREF),
+    inLanguage: 'en',
+    publisher: { '@type': 'Organization', '@id': organizationId(siteUrl), name: SITE_NAME },
+    blogPost: posts.map((post) => ({
+      '@type': 'BlogPosting',
+      headline: post.frontmatter.title,
+      description: post.frontmatter.description,
+      datePublished: post.date,
+      url: absoluteUrl(siteUrl, blogHref(post.slug)),
+    })),
   };
 }
 
