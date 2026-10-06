@@ -42,7 +42,7 @@ status=$?
 
 # The check prints "content:check: N problem(s)" on real problems. Anything
 # else (a crash, a missing script) is a toolchain issue, not Claude's to fix.
-printf '%s' "$out" | grep -q 'content:check: [0-9]* problem' || exit 0
+grep -q 'content:check: [0-9]* problem' <<<"$out" || exit 0
 
 printf 'Content check failed after your edit to %s:\n\n%s\n\nFix the file before continuing.\n' "$rel" "$out"
 exit 2
