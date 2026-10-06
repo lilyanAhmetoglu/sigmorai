@@ -8,6 +8,8 @@ import {
   type TIERS,
 } from '@/lib/constants';
 import { segment } from '@/lib/content/ids';
+import type { HudState } from './hud';
+import type { ChapterView } from './realms';
 
 export type Tier = (typeof TIERS)[number];
 export type Realm = (typeof REALMS)[number];
@@ -73,3 +75,12 @@ export const MathOutlineSchema = z
   })
   .strict();
 export type MathOutline = z.infer<typeof MathOutlineSchema>;
+
+/** A Math Tower floor's state and steps (buildTowerMap). `chapter` is the floor number. */
+export type FloorState = Omit<ChapterView, 'chapter'> & { chapter: number };
+
+/** One floor card on /math: its state plus what it covers (content/math/outline.json). */
+export type FloorView = FloorState & Pick<MathOutline['floors'][number], 'covers' | 'formulas'>;
+
+/** The /math page's read (lib/data/math.ts). A visitor has no progress. */
+export type MathPage = { viewer: HudState['status']; floors: FloorView[] };

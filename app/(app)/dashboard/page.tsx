@@ -18,8 +18,8 @@ const REALMS_ID = 'dashboard-realms';
  * The player's home (Sigmorai App.dc.html → isDash): the next open step on
  * their track, their stats and their active realms. Every state is computed
  * on the server (lib/data/realms.ts).
- * Not built yet: the Math Tower and Frontier shortcuts (no routes yet, step 6)
- * and the realm scene art.
+ * Not built yet: the Math Tower panel and MATH FLOORS stat (the tower page,
+ * /math, is in the nav), the Frontier shortcut, and the realm scene art.
  */
 export default async function DashboardPage() {
   const page = await getDashboard();

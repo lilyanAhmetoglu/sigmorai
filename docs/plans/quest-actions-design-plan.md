@@ -233,6 +233,8 @@ Server Actions return `{ ok: false, code, message, resetsAt? }`, never a raw thr
 
 **Open check (one server-only helper, `bun test` covered).** In order: parse the id → the content file exists → `isRealmOpen(REALMS[realm].tier)` else `TIER_LOCKED` → chapter 1 is open; chapter N is open when chapter N−1's challenge has a `progress` row (same track); the boss opens after all 6 challenges. Inside an open chapter, the lesson, challenge and quick check are all open. Order is checked inside the exercise's own track, not against `users.track`. Math and Frontier ids join in step 6.
 
+> **Amended 2026-10-06 (step 6):** Math Tower floors now join the open check (floor N needs floor N−1's quick check; no tier check). Frontier ids still return `INVALID_INPUT`. See `curriculum-design-plan.md` → "Amendments locked 2026-10-06 (Math Tower playable, step 6)".
+
 ### ~~`POST /api/run` (exists; this spec finishes it)~~ (removed by the no-code pivot)
 
 ~~Input stays `RunBodySchema` `{ exerciseId, code }`. Steps: auth → onboarded → body → open check → sandbox gate (`kind: 'run'`) → `runCode` with `visibleTests` → clear the lock → log line → return `RunResult`. `RunResult` is unchanged: `{ status, tests, output, truncated }`. No HP, no XP, no `submissions` row. This closes the four `load-tests.ts` checklist items.~~ (removed by the no-code pivot)

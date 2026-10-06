@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {
   CASE_FILE,
   CONTENT_DIR,
+  MATH_AREA,
   KB_SOURCES_NAME,
   LESSON_FILE,
   OUTLINE_FILE,
@@ -15,11 +16,13 @@ import {
   CaseSchema,
   KbSourcesFileSchema,
   LessonFrontmatterSchema,
+  MathOutlineSchema,
   QuickCheckSchema,
   TrackOutlineSchema,
   type Case,
   type KbSource,
   type Lesson,
+  type MathOutline,
   type QuickCheck,
   type Track,
   type TrackOutline,
@@ -180,9 +183,13 @@ export async function loadKbSources(root = CONTENT_DIR): Promise<KbSource[]> {
   return result.data.sources;
 }
 
-/** content/<track>/outline.json, validated: topic, lore and chapter titles per realm. */
-export async function loadTrackOutline(track: Track, root = CONTENT_DIR): Promise<TrackOutline> {
-  const abs = contentPath(root, `${track}/${OUTLINE_FILE}`);
+/** Reads an outline.json under the content root and parses it with its schema. */
+async function loadOutline<S extends z.ZodType>(
+  folder: string,
+  schema: S,
+  root: string,
+): Promise<z.output<S>> {
+  const abs = contentPath(root, `${folder}/${OUTLINE_FILE}`);
   const at = { abs, file: path.relative(process.cwd(), abs) };
   const text = await readText(at);
   let raw: unknown;
@@ -191,7 +198,15 @@ export async function loadTrackOutline(track: Track, root = CONTENT_DIR): Promis
   } catch (err) {
     throw new ContentError('invalid', at.file, `invalid JSON (${(err as Error).message})`);
   }
-  const result = TrackOutlineSchema.safeParse(raw);
+  const result = schema.safeParse(raw);
   if (!result.success) throw new ContentError('invalid', at.file, z.prettifyError(result.error));
   return result.data;
 }
+
+/** content/<track>/outline.json, validated: topic, lore and chapter titles per realm. */
+export const loadTrackOutline = (track: Track, root = CONTENT_DIR): Promise<TrackOutline> =>
+  loadOutline(track, TrackOutlineSchema, root);
+
+/** content/math/outline.json, validated: what each floor covers and its formulas. */
+export const loadMathOutline = (root = CONTENT_DIR): Promise<MathOutline> =>
+  loadOutline(MATH_AREA, MathOutlineSchema, root);

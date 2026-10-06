@@ -8,6 +8,19 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (Math Tower playable, step 6)
+
+- **A floor is cleared by its quick check.** Floor 1 is open. Floor N opens when `math/f(N−1)/quick-check` has a `progress` row. The lesson alone does not open the next floor.
+- **No tier gate and no realm gate** for the Math Tower. Every floor is free on both paths. The Frontier still returns `INVALID_INPUT` from the open check.
+- **New lock text:** `floorNotOpenText(n)` = "Clear floor n first." (`lib/constants/ui-copy.ts`, next to `notOpenText`).
+- **No new quest page kind.** A floor lesson and quick check use the realm views with: tag "MATH TOWER · FLOOR n · LESSON | QUICK CHECK", accent `math`, NPC `MATH_TOWER.npc`. Lesson Continue → the floor's quick check. Quick-check Continue → the next floor's lesson if it has content, else `/math`. Back link → `/math`, labelled "Back to tower".
+- **`/math` is public.** It shows 8 floor cards. A floor with no content files shows COMING SOON and is not a link. Visitors see a sign-in note.
+- **XP once across paths needs no code.** Math ids have no track, so `xp_events_award_once_idx` and the `progress` primary key already award a floor once per user.
+- **No schema change.**
+- **The §Content files outline field list is superseded** by the 2026-10-05 amendment: a floor is `{ n, covers, formulas[{ math, text }] }`.
+- **Not in this ticket:** the Frontier list page and open rule, a Math level map, the dashboard Math panel and MATH FLOORS stat, any Oru DialogBox line.
+- **The design's FLOORS order and its Oru line outside a DialogBox are stale.** `MATH_FLOORS` and the two-voice rule win.
+
 ## Amendments locked 2026-10-06 (SIG-36, path switch)
 
 - **The switch lives on `/profile`** ("YOUR PATH" panel), not in the HUD. The HUD track stays a read-only Badge.

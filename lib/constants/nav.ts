@@ -24,6 +24,8 @@ export const realmHref = (slug: string, track?: Track) =>
   `${REALMS_HREF}/${slug}${track ? `?${TRACK_PARAM}=${track}` : ''}`;
 /** The realms catalog for one track. */
 export const realmsHref = (track: Track) => `${REALMS_HREF}?${TRACK_PARAM}=${track}`;
+/** The Math Tower: the side realm's 8 floors (app/(app)/math). */
+export const MATH_HREF = '/math';
 /** The world map: `/map` sends the player to the realm they are in. */
 export const MAP_HREF = '/map';
 /** One realm's level map: `/map/<slug>`, plus `?track=` when a track is given. */
@@ -48,7 +50,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Realms', href: REALMS_HREF, live: true },
   { label: 'World map', href: MAP_HREF, live: true },
   { label: 'Leaderboard', href: '/leaderboard', live: false },
-  { label: 'Math Tower', href: '/math', live: false },
+  { label: 'Math Tower', href: MATH_HREF, live: true },
   { label: 'Profile', href: PROFILE_HREF, live: true },
 ];
 

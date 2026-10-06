@@ -111,6 +111,12 @@ describe('gradedKind', () => {
     expect(kind('strategist/r0/c1/quick-check')).toBe('quick-check');
     expect(kind('builder/r0/c1/lesson')).toBeNull();
   });
+
+  test('a Math Tower quick check is a quick check; its lesson is not graded', () => {
+    expect(kind('math/f1/quick-check')).toBe('quick-check');
+    expect(kind('math/f8/quick-check')).toBe('quick-check');
+    expect(kind('math/f1/lesson')).toBeNull();
+  });
 });
 
 describe('XP', () => {
@@ -141,6 +147,11 @@ describe('XP', () => {
     expect(clearReason(chapter('lesson'))).toBe('lesson');
     expect(clearReason(chapter('quick-check'))).toBe('quick-check');
   });
+
+  test('a Math Tower lesson and quick check map to lesson and quick-check', () => {
+    expect(clearReason({ area: 'math', floor: 2, step: 'lesson' })).toBe('lesson');
+    expect(clearReason({ area: 'math', floor: 2, step: 'quick-check' })).toBe('quick-check');
+  });
 });
 
 describe('nextCaseId', () => {
@@ -155,5 +166,9 @@ describe('nextCaseId', () => {
     expect(nextCaseId(c(1))).toBe('strategist/r2/c2/challenge');
     expect(nextCaseId(c(6))).toBe('strategist/r2/boss/challenge');
     expect(nextCaseId({ area: 'boss', track: 'strategist', realm: 2 })).toBeNull();
+  });
+
+  test('a Math Tower floor opens no case', () => {
+    expect(nextCaseId({ area: 'math', floor: 1, step: 'quick-check' })).toBeNull();
   });
 });

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
  * computed on the server; the track comes from `?track=`, else the player's
  * own track, else the beginner path.
  * Not built yet: the tier filter row, realm scene art, and the Math Tower and
- * Frontier entries (no routes or content yet, step 6).
+ * Frontier entries (the tower has its own page, /math; the Frontier comes later).
  */
 export default async function RealmsPage({ searchParams }: PageProps<'/realms'>) {
   const params = await searchParams;
