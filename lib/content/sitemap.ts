@@ -1,7 +1,8 @@
 /**
  * The sitemap's entries (app/sitemap.ts). Pure: the route reads the indexable
  * realms, the live ids and the posts; this only turns them into absolute URLs.
- * Listed (curriculum spec → SEO): the public pages, indexable realm pages,
+ * Listed (curriculum spec → SEO): the public pages (the leaderboard's
+ * all-time view only, no range param), indexable realm pages,
  * live lessons (both tracks and the Math Tower) and every blog post. Never
  * listed: level maps, cases, quick checks and private pages.
  */
@@ -11,6 +12,7 @@ import {
   blogHref,
   FRONTIER_AREA,
   HOME_HREF,
+  LEADERBOARD_HREF,
   MATH_HREF,
   PRIVACY_HREF,
   questHref,
@@ -22,7 +24,14 @@ import { absoluteUrl, utcMidnight } from '@/lib/utils';
 import { parseExerciseId } from './ids';
 
 /** The public pages that are always there. */
-const STATIC_HREFS = [HOME_HREF, REALMS_HREF, MATH_HREF, BLOG_HREF, PRIVACY_HREF] as const;
+const STATIC_HREFS = [
+  HOME_HREF,
+  REALMS_HREF,
+  MATH_HREF,
+  LEADERBOARD_HREF,
+  BLOG_HREF,
+  PRIVACY_HREF,
+] as const;
 
 /** A realm or Math Tower lesson: the only quest step a crawler should find. */
 function isLessonId(id: string): boolean {

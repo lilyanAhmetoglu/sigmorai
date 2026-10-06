@@ -25,6 +25,7 @@ describe('sitemapEntries', () => {
       `${SITE}/`,
       `${SITE}/realms`,
       `${SITE}/math`,
+      `${SITE}/leaderboard`,
       `${SITE}/blog`,
       `${SITE}/privacy`,
       `${SITE}/realms/bootstrap-village`,
