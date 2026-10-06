@@ -3,6 +3,7 @@ import { HERO_NAME_MAX, HERO_NAME_MIN } from '@/lib/constants';
 import {
   HeroNameSchema,
   OnboardingSchema,
+  RenameHeroSchema,
   SwitchTrackSchema,
   heroNameKey,
   isSingleScript,
@@ -90,6 +91,9 @@ describe('HeroNameSchema: reserved', () => {
     'Hallucinant',
     'Ａｄｍｉｎ',
     'm.o.d',
+    'Deleted',
+    'anonymous',
+    'null',
   ])('rejects %p', (n) => {
     expect(HeroNameSchema.safeParse(n).success).toBe(false);
   });
@@ -152,5 +156,25 @@ describe('SwitchTrackSchema', () => {
   test('drops extra fields the client sends (heroName, xp, id)', () => {
     const parsed = SwitchTrackSchema.parse({ track: 'builder', heroName: 'X', xp: 9999, id: 'x' });
     expect(parsed).toEqual({ track: 'builder' });
+  });
+});
+
+describe('RenameHeroSchema', () => {
+  test('uses the onboarding name rules (trim + NFKC)', () => {
+    expect(RenameHeroSchema.parse({ heroName: '  Ｎｏｒａ ' })).toEqual({ heroName: 'Nora' });
+  });
+
+  test.each(['admin', 'p\u0430ypal', '<b>', 'a', null, undefined, 42])('rejects %p', (heroName) => {
+    expect(RenameHeroSchema.safeParse({ heroName }).success).toBe(false);
+  });
+
+  test('drops extra fields the client sends (track, xp, id)', () => {
+    const parsed = RenameHeroSchema.parse({
+      heroName: 'Nora',
+      track: 'builder',
+      xp: 9999,
+      id: 'x',
+    });
+    expect(parsed).toEqual({ heroName: 'Nora' });
   });
 });
