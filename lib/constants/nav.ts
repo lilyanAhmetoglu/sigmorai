@@ -50,7 +50,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Realms', href: REALMS_HREF, live: true },
   { label: 'World map', href: MAP_HREF, live: true },
   { label: 'Leaderboard', href: '/leaderboard', live: false },
-  { label: 'Math Tower', href: MATH_HREF, live: false },
+  { label: 'Math Tower', href: MATH_HREF, live: true },
   { label: 'Profile', href: PROFILE_HREF, live: true },
 ];
 
