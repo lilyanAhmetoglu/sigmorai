@@ -1,0 +1,94 @@
+---
+id: creator/r4/c5/lesson
+title: Human sign-off
+minutes: 6
+sources:
+  - kind: blog
+    title: Anthropic · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: Claude docs · Managed Agents · Permission policies (beta)
+    url: https://platform.claude.com/docs/en/managed-agents/permission-policies
+  - kind: docs
+    title: OpenAI docs · Guardrails and human review
+    url: https://developers.openai.com/api/docs/guides/agents/guardrails-approvals
+  - kind: repo
+    title: OpenAI Agents SDK (Python) · Human-in-the-loop
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/human_in_the_loop.md
+  - kind: docs
+    title: Gemini API docs · Agents overview
+    url: https://ai.google.dev/gemini-api/docs/agents
+---
+
+## Why it matters
+
+An agent can check its own work, as Chapter 3 showed. A checker is not a signature. When an ad goes to a client, or onto a brand's social page, a named person must say yes.
+
+In Tool Forge you learned which kinds of tool need a person. This lesson is about the sign-off itself: where it sits in the chain, what the person sees, and what happens while they are away.
+
+## Where sign-off sits
+
+Anthropic's description of agents says they can "pause for human feedback at checkpoints or when encountering blockers". For a creative chain, three places stand out. This list is ours.
+
+1. **Before the spend.** The storyboard, before any clip is rendered (Chapter 2).
+2. **At a stop.** When a stop rule ends the loop without a pass (Chapter 4).
+3. **Before the send.** The final file, before it is posted or emailed.
+
+OpenAI's guide puts the last one in general terms. Human review fits "before side effects like cancellations, edits, shell commands, or sensitive MCP actions". For you, a post to a live account is the side effect.
+
+Google's agents page gives the same advice in plain words: "Always verify outputs … before deploying them, especially for tasks that modify data or interact with external systems." It also lists managed agents as a Public Preview, and asks you to review the agent's actions and outputs before relying on them in sensitive work.
+
+## What the person must see
+
+A sign-off is only as good as the page the person signs. This part is ours.
+
+A weak card: "The ad is ready. Approve?" The person has to trust the agent's word.
+
+A strong card shows:
+
+- the actual file, to watch, not a description of it
+- the rubric result, line by line, from the last round
+- the exact caption and the account it will post to
+- cost so far, against the budget
+- the rounds used, and any stop rule that fired
+
+If the card cannot show the file, the person is not signing the file.
+
+## How the pause works
+
+Both vendors treat an approval as a pause that can last.
+
+**OpenAI Agents SDK.** When a tool needs approval, the run records an interruption instead of running the tool. Your app approves or rejects, then resumes "the same run" from saved state. The docs add: "If the review might take time, serialize `state`, store it, and resume later. That's still the same run."
+
+**Claude Managed Agents (beta).** A tool set to `always_ask` makes the session pause and wait for approval. The session "waits indefinitely for a response". Your app answers allow or deny for each blocked call.
+
+So a producer who is away overnight does not break anything. The agent waits. A pause is also not a time limit. Decide how long a waiting job may sit, and who gets a reminder.
+
+## Say why when you reject
+
+Both vendors let you attach a reason to a rejection.
+
+- OpenAI: by default a rejected call returns standard rejection text to the run. You can give your own message for one call.
+- Claude: a `deny_message` explains a denial. The agent gets a tool result saying the call was rejected, with your message. The docs' example: "Don't create issues in the production project. Use the staging project."
+
+For a studio, write the reason as an instruction: "Do not post. Line 3 failed. Fix the lid colour, and ask again."
+
+## Put the check at the tool
+
+OpenAI's guide warns that agent-level guardrails do not run everywhere. Input guardrails run only for the first agent in a chain. Output guardrails run only for the agent that produces the final output. If you need checks around every custom tool call in a manager-style workflow, "put validation next to the tool that creates the side effect."
+
+Example: a manager agent hands the job to a poster agent. A check on the manager's input never sees the poster agent's call. The approval must sit on the posting tool itself.
+
+Claude's defaults point the same way. For Managed Agents, MCP toolsets default to `always_ask`, "to ensure that new tools added to an MCP server do not execute in your application without approval". The built-in agent toolset defaults to `always_allow`. Tools your own app runs are "controlled by you" and are not covered by these policies, so your app must do the asking.
+
+## A reviewer is not an approver
+
+A review agent passing 4 of 4 rubric lines is evidence. It is not authority. The sign-off belongs to a person who can answer to the client. That is our rule, and Google's advice to verify outputs before deploying supports it.
+
+## What this means for your work
+
+- **Pick three sign-off points:** before the spend, at a stop, before the send.
+- **Show the person the file, the rubric results and the cost.**
+- **Let approvals wait.** Store the paused job and resume it later.
+- **Write rejections as instructions.**
+- **Attach the approval to the tool that causes the side effect.**

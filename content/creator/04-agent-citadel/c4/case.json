@@ -1,0 +1,118 @@
+{
+  "id": "creator/r4/c4/challenge",
+  "title": "When the loop must stop",
+  "scenario": "A studio runs a make-and-review loop for a 30-second tea ad. The ad did not pass. You decide what the stop rules should have been. The settings, the log and the notes are made up for this case.",
+  "exhibit": "SETTINGS (ours, made up for this case)\n  Pass:     all 4 rubric lines pass.\n  Tries:    Claude outcome, max_iterations = 3.\n  Budget:   $40 per ad. One round (new clips + review) costs about $12.\n  Deadline: client call, Friday 15:00.\n\nREVIEW LOG (made up for this case)\n  Round 1  line 3 FAIL (lid is brown in shot 4)   round cost $12   total $12\n  Round 2  line 3 FAIL (lid is brown in shot 4)   round cost $12   total $24\n  Round 3  line 3 FAIL (lid is brown in shot 4)   round cost $12   total $36\n           result: max_iterations_reached\n\nTEAM NOTES (made up)\n  Dev:  \"Raise max_iterations to 50 so the ad always passes.\"\n  Ops:  \"The OpenAI version of this agent uses max_turns = 3, the same as\n         Claude's 3, so the limits are the same.\"\n  OpenAI run (other job): hit max_turns and raised MaxTurnsExceeded.",
+  "questions": [
+    {
+      "prompt": "The log ends with max_iterations_reached. What does it mean for the ad?",
+      "options": [
+        {
+          "text": "The ad passed every line, and the agent stopped because there was nothing left to fix",
+          "explanation": "If the rubric had passed, the result would be satisfied. Line 3 failed in every round."
+        },
+        {
+          "text": "The loop ran out of tries, so the ad is not approved and a person must look at it",
+          "explanation": "Right. Claude's docs say one final turn follows and no further evaluation runs. Out of tries does not mean passed.",
+          "correct": true
+        },
+        {
+          "text": "The grader failed because the rubric did not fit the ad, so the rubric must be thrown out",
+          "explanation": "That is the failed result. Here the grader worked, and the same line failed each time."
+        },
+        {
+          "text": "The agent will keep trying quietly in the background, until the money for the job is gone",
+          "explanation": "The docs say no further evaluation runs after this result. The session goes idle."
+        }
+      ]
+    },
+    {
+      "prompt": "Line 3 failed with the same reason in all three rounds. Which stop rule would have saved money?",
+      "options": [
+        {
+          "text": "A no-progress rule: if the same line fails twice in a row, stop and hand over to a person",
+          "explanation": "Right. This rule is ours, not a vendor's. After two identical failures, round 3 was likely wasted, and it cost $12.",
+          "correct": true
+        },
+        {
+          "text": "A rule that doubles the number of tries after each failure, to give the agent more chances",
+          "explanation": "More tries after a repeated failure only spend more. The maker was not learning from the notes."
+        },
+        {
+          "text": "A rule to lower the pass bar after round 2, so that the ad passes without line 3",
+          "explanation": "Dropping a rubric line to get a pass hides the fault. The lid would still be brown."
+        },
+        {
+          "text": "A rule to ask the grader to be more polite, so that the maker takes the feedback better",
+          "explanation": "The grader's tone is not the problem. The maker did not change the lid."
+        }
+      ]
+    },
+    {
+      "prompt": "The cap is $40 and a round costs about $12. How many rounds may start before the budget rule stops the agent?",
+      "options": [
+        {
+          "text": "Four, because three rounds cost $36 and the fourth is allowed to use up the rest of it",
+          "explanation": "A fourth round would bring the total to $48, which is over the $40 cap."
+        },
+        {
+          "text": "Two, because the agent must always keep half of its budget unspent for the hand-over",
+          "explanation": "Nothing in the exhibit asks for half of the budget to be kept back. Three rounds fit in $40."
+        },
+        {
+          "text": "As many as the tries setting allows, because the budget is only a hint for the producer",
+          "explanation": "A budget rule is a stop rule. It ends the loop even if tries are left."
+        },
+        {
+          "text": "Three: they cost $36 in total, and a fourth round would reach $48, which is over the cap",
+          "explanation": "Right. The rule stops before a round that would break the cap. The numbers are made up for this case.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The dev wants max_iterations = 50 \"so the ad always passes.\" What is wrong with this?",
+      "options": [
+        {
+          "text": "Nothing is wrong, since more rounds always lead to a better ad, up to 50 rounds in total",
+          "explanation": "More rounds do not fix a failure that repeats, and each one adds cost."
+        },
+        {
+          "text": "Nothing is wrong with fifty, because max_iterations counts dollars, so it sets a $50 budget cap",
+          "explanation": "max_iterations counts grade-and-revise rounds, not money. Its maximum is 20. For money you need your own budget rule."
+        },
+        {
+          "text": "Claude's default is 3 and its maximum is 20, so 50 is not allowed, and more rounds cost more",
+          "explanation": "Right. Claude's docs say max_iterations is optional, with default 3 and maximum 20. Extra rounds also add cost.",
+          "correct": true
+        },
+        {
+          "text": "The setting only works for text outputs, so it cannot be used for a video ad at all here",
+          "explanation": "The docs show the setting for any outcome. It is not limited to text."
+        }
+      ]
+    },
+    {
+      "prompt": "Ops says OpenAI's max_turns = 3 is \"the same\" as Claude's 3. What do you say?",
+      "options": [
+        {
+          "text": "They differ: OpenAI counts model calls, and Claude counts grade-and-revise rounds",
+          "explanation": "Right. OpenAI's docs describe a turn as an agent-loop turn, meaning an LLM call. Claude's iteration is a round of evaluation and revision.",
+          "correct": true
+        },
+        {
+          "text": "They are the same, because both vendors count the number of times a person approves",
+          "explanation": "Neither count is about person approvals."
+        },
+        {
+          "text": "They differ only in name, because both count the dollars spent in each loop round",
+          "explanation": "Neither limit counts money. For money you need your own budget rule."
+        },
+        {
+          "text": "They are the same, because all vendors use the same unit for every limit they offer",
+          "explanation": "Vendors count different things. Check what a limit counts before copying a number."
+        }
+      ]
+    }
+  ]
+}
