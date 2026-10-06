@@ -1,0 +1,83 @@
+---
+id: creator/r4/c3/lesson
+title: Review loops
+minutes: 6
+sources:
+  - kind: blog
+    title: Anthropic · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: Claude docs · Managed Agents · Define outcomes (beta)
+    url: https://platform.claude.com/docs/en/managed-agents/define-outcomes
+  - kind: docs
+    title: OpenAI docs · Guardrails and human review
+    url: https://developers.openai.com/api/docs/guides/agents/guardrails-approvals
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+---
+
+## Why it matters
+
+When a person makes ten ad drafts, they look at each one and say what to change. An agent can do the same with a second model as the reviewer. Draft, review, fix, review again. That is a **review loop**.
+
+A loop like this can save hours. It can also repeat the same mistake ten times, or say "looks great" about a broken ad. What it does depends on how you write the review. This lesson shows how.
+
+Prompt Forest, chapter 6, covered what a vision model gets wrong when it looks at an image. Here the question is the loop around it.
+
+## The pattern has a name
+
+Anthropic calls this the evaluator-optimizer workflow: "one LLM call generates a response while another provides evaluation and feedback in a loop." It says the pattern fits when you have "clear evaluation criteria" and when "iterative refinement provides measurable value". It names two signs of a good fit. First, the output can be "demonstrably improved" when a human gives feedback. Second, the model can give that kind of feedback.
+
+Both signs matter for you. "Make the logo bigger" is feedback a model can act on. "Make it more magical" is not feedback anyone can test.
+
+## Write a rubric, not a mood
+
+Claude's Managed Agents docs describe a feature called outcomes. It is in beta, so details may change. You give the agent a target and a **rubric**. A separate grader checks the work against the rubric, and its notes go back to the agent for the next round. Three details are worth copying, even if you use another vendor's tools:
+
+- **Explicit, gradeable criteria.** The docs give an example: "The CSV contains a price column with numeric values" rather than "The data looks good." They say the grader scores each criterion independently, "so vague criteria produce noisy evaluations".
+- **A separate context window.** The grader runs in its own context "to avoid being influenced by the main agent's implementation choices". In other words, the reviewer should not read the maker's excuses.
+- **An explanation with the verdict.** The grader returns a summary of "which criteria passed or failed". That summary goes back to the agent.
+
+For an ad, a vague rubric reads "premium, on brand, high quality". A gradeable one reads:
+
+1. The logo is readable in the last 2 seconds.
+2. The only words on screen are the approved tagline.
+3. The tea box has the same green lid in every shot where it appears.
+4. No face is visible.
+
+Each line has a yes or no answer. Two people would agree on it.
+
+## Send back what failed, in the maker's language
+
+A verdict of "fail, try again" teaches nothing. The reviewer should say which line failed and what to change: "Line 3 failed. The lid is brown in shot 4. Keep everything else, and change the lid to green."
+
+That shape matches how Google describes working with its image model. The Gemini image guide calls multi-turn conversation "the recommended way to iterate on images". It suggests follow-ups like "Keep everything the same, but change the character's expression to be more serious." A good review message is a follow-up of that kind.
+
+## Three kinds of check
+
+This split is ours, not a vendor's.
+
+- **Mechanical checks.** Is the file there? Is it 9:16? Do the lengths add up? A script does these the same way every time. Anthropic describes such programmatic checks as gates on a step.
+- **Model checks.** Is the logo readable? Is the lid green? A second model can look and answer, with a rubric line to guide it.
+- **Person checks.** Is it good? Does it say what the client meant? A person decides.
+
+Put cheap, sure checks first. A model should not spend time on what a script can do.
+
+## Check the file that ships
+
+OpenAI's guide lists output guardrails for when you need to "validate or redact the final output before it leaves the system". It also says output guardrails run only for the agent that produces the final output. The lesson for a studio: the review that counts is the review of the final file. If the agent changes shot 3 after the reviewer passed shot 3, the pass no longer describes the file.
+
+So run the check on the exact file that will be delivered, last.
+
+## When a loop is not worth it
+
+If nobody can write the criteria, a loop has nothing to aim at. "Which of these two ads is more beautiful?" is for a person. Anthropic's two signs are a good test: can you write the criteria, and can a model give feedback you could act on?
+
+## What this means for your work
+
+- **Write the rubric before the first run.** Four to six yes-or-no lines.
+- **Use a separate reviewer.** Claude's grader runs in its own context window, and for a good reason.
+- **Make the reviewer name the failed line and the fix.**
+- **Do the mechanical checks with a script, then use a model for what a script cannot see.**
+- **Review the final file, after the last change.**

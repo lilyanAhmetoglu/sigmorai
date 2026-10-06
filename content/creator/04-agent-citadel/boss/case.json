@@ -1,0 +1,118 @@
+{
+  "id": "creator/r4/boss/challenge",
+  "title": "Set review steps and stop rules for an agent that makes a 30-second ad",
+  "scenario": "An agent will make a 30-second vertical ad for a tea brand. You set the plan, the review and the stop rules before it runs. Use the exhibit. The draft, the log, the rules and the numbers are made up for this case. The vendor lines are copied from the docs.",
+  "exhibit": "BRIEF:\n  Kettle & Leaf tea. One 30-second vertical (9:16) ad on Veo 3.1, made by an\n  agent. Due Friday 12:00. Approved inputs: the tagline \"Steep slowly.\", a\n  packshot photo, the logo.\n\nSTORYBOARD (agent draft, made up for this case):\n  Shot 1  Steam rises over a kettle in one slow take       22 s\n  Shot 2  Packshot and logo, first frame = approved photo   8 s\n  Total: 30 s.\n\nRUBRIC (studio, made up for this case):\n  1 The logo is readable in the last 2 seconds.\n  2 The only words on screen are the tagline \"Steep slowly.\"\n  3 The tea box has the same green lid in every shot where it appears.\n  4 No face is visible.\n\nREVIEW LOG (made up for this case):\n  Round 1  line 3 FAIL (the lid is brown in shot 2)   round cost $15   total $15\n  Round 2  line 3 FAIL (the lid is brown in shot 2)   round cost $15   total $30\n\nSTOP RULES (ours, made up for this case):\n  Tries:       5 rounds (Claude outcome, max_iterations = 5).\n  Budget:      $50. Stop before a round that would break the cap.\n  Time:        a round takes 3 hours. The deadline is 24 hours away.\n  No progress: stop if the same line fails twice in a row.\n\nTOOLS AND CHAIN (made up for this case):\n  post_to_social is a custom tool that the studio's own app runs, inside a\n  Claude Managed Agent (beta).\n  The chain has 4 steps: storyboard, clips, review, post. Each step is right\n  95 times out of 100.\n\nVENDOR LINES (copied from the docs):\n  Google, Veo 3.1: extension adds 7 seconds, up to 20 times, at 720p only.\n  Claude, permission policies: \"Custom tools are executed by your application\n  and controlled by you, so they are not governed by permission policies.\" ",
+  "questions": [
+    {
+      "prompt": "The storyboard is ready. What should happen before the first clip is rendered?",
+      "options": [
+        {
+          "text": "The agent renders shot 1 first, so that the person can judge the whole plan from a real clip",
+          "explanation": "A render is the expensive step. The plan is cheap to fix on paper."
+        },
+        {
+          "text": "The agent confirms its own 30-second total, and the render queue starts straight after that",
+          "explanation": "A total the agent wrote is a claim, not a sum. Add it yourself."
+        },
+        {
+          "text": "A script checks each length and input against the Veo lines, then a person approves the plan",
+          "explanation": "Right. A mechanical check, then a person's check, before the spend (Chapter 2: outline, then gate).",
+          "correct": true
+        },
+        {
+          "text": "The reviewer agent scores the storyboard on the four rubric lines that are meant for the final ad",
+          "explanation": "The rubric is for the finished ad. It cannot check lengths or inputs."
+        }
+      ]
+    },
+    {
+      "prompt": "Which review set-up is best for this ad?",
+      "options": [
+        {
+          "text": "A separate reviewer scores the four rubric lines yes or no, and reviews the final file last",
+          "explanation": "Right. Separate context, gradeable lines, and a check on the file that ships (Chapter 3).",
+          "correct": true
+        },
+        {
+          "text": "The agent that made the ad also reviews it, asked whether the ad feels premium and on brand",
+          "explanation": "This is the same context as the maker, with vague criteria."
+        },
+        {
+          "text": "A separate reviewer gives the ad a score from 1 to 10, and a score of 8 or more passes",
+          "explanation": "A score without named failed lines gives the maker nothing to fix."
+        },
+        {
+          "text": "The reviewer checks the storyboard only, because the clips come from the storyboard anyway",
+          "explanation": "The final file can differ from the plan. The file that ships must be checked."
+        }
+      ]
+    },
+    {
+      "prompt": "Using the stop rules and the log, what should happen now?",
+      "options": [
+        {
+          "text": "Run round 3, because the budget of $50 allows a third round at $15 and tries are left",
+          "explanation": "The budget would allow it, but the no-progress rule already says to stop."
+        },
+        {
+          "text": "Stop now. The same line failed twice, so hand over to a person with the best version.",
+          "explanation": "Right. The no-progress rule fires after round 2. The other rules (tries, budget, time) would still allow round 3.",
+          "correct": true
+        },
+        {
+          "text": "Run until round 5, because the tries rule is the only one that is allowed to end a loop",
+          "explanation": "Tries is one stop rule among several. The first rule that fires ends the loop."
+        },
+        {
+          "text": "Run until the deadline, because eight rounds fit in 24 hours and time is the last rule",
+          "explanation": "Time would allow it, but the loop should stop earlier, on the no-progress rule."
+        }
+      ]
+    },
+    {
+      "prompt": "Who must ask a person for approval before post_to_social runs?",
+      "options": [
+        {
+          "text": "Claude's always_ask policy asks automatically, because every tool in a Managed Agent has a policy",
+          "explanation": "The docs say custom tools are not governed by permission policies."
+        },
+        {
+          "text": "The reviewer agent asks, because it has already checked that all the rubric lines passed",
+          "explanation": "A reviewer agent is a check. It does not replace a person's sign-off."
+        },
+        {
+          "text": "Nobody needs to ask, because the built-in agent toolset allows every tool by default",
+          "explanation": "That default is for the built-in toolset. This is a custom tool, run by the studio."
+        },
+        {
+          "text": "The studio's own app must ask, because Claude's policies do not cover custom tools it runs",
+          "explanation": "Right. The docs say custom tools are executed by your application and controlled by you.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "About how often will all 4 chain steps be right, with each step right 95 times out of 100?",
+      "options": [
+        {
+          "text": "About 95 times out of 100, because the steps are each right 95 times out of 100",
+          "explanation": "The chance that all four are right is lower. The errors add up."
+        },
+        {
+          "text": "About 90 times out of 100, because every extra step takes away exactly one percent",
+          "explanation": "There is no rule that takes one percent per step. Multiply the chances."
+        },
+        {
+          "text": "About 81 times out of 100, which is 0.95 multiplied by itself four times in a row",
+          "explanation": "Right. 0.95 x 0.95 x 0.95 x 0.95 is about 0.81. The numbers are made up for this case.",
+          "correct": true
+        },
+        {
+          "text": "About 75 times out of 100, because every extra step takes away exactly five percent",
+          "explanation": "The chance falls by multiplying, not by taking away five points for each step."
+        }
+      ]
+    }
+  ]
+}

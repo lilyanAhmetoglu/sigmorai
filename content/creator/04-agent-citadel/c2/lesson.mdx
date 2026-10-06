@@ -1,0 +1,85 @@
+---
+id: creator/r4/c2/lesson
+title: Storyboards
+minutes: 6
+sources:
+  - kind: blog
+    title: Anthropic · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: OpenAI docs · Orchestration and handoffs
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: Runway API docs · Multi-Shot Video recipe
+    url: https://docs.dev.runwayml.com/recipes/multi-shot-video
+---
+
+## Why it matters
+
+A video agent that goes straight from a brief to rendered clips is expensive when it is wrong. Every clip takes time and credits. A bad idea in shot 1 spoils the clips after it.
+
+A **storyboard** is a cheap plan in shots, written before any clip exists. If an agent drafts it, you get a page you can read in two minutes. You can fix it for free. This lesson shows what a storyboard row must hold, and how to check a draft before the agent spends anything.
+
+Prompt wording for one shot was covered in Prompt Forest. Clip limits were covered in the Bootstrap Village. Here, the storyboard is the plan that holds those pieces together.
+
+## A plan first, with a gate
+
+Anthropic describes a pattern called prompt chaining. Each model call handles the output of the one before. You can add programmatic checks, which it calls a "gate", on any step "to ensure that the process is still on track". One of its examples fits video well: "writing an outline of a document, checking that the outline meets certain criteria, then writing the document based on the outline."
+
+Swap in your work. The outline is the storyboard. The document is the video. The check sits between them.
+
+Example: a 30-second tea ad. The agent first writes a shot list. A check runs on the list. Only then does the agent start making clips.
+
+## What goes in a storyboard row
+
+This table is our own template, not a vendor format. It is what a check needs.
+
+| Column      | What it holds                                             | Why                                    |
+| ----------- | --------------------------------------------------------- | -------------------------------------- |
+| Shot number | The order                                                 | The edit follows it                    |
+| One idea    | One scene in one sentence                                 | A shot with three ideas is three shots |
+| Length      | Seconds, in a size the model allows                       | Only the listed lengths exist          |
+| Inputs      | Text only, first frame, reference images or a source clip | These change what settings are allowed |
+| Must match  | Product, colours, logo, anything fixed                    | The reviewer checks this later         |
+| Settings    | Ratio and resolution                                      | One setting can block another          |
+
+Runway's Multi-Shot Video recipe gives similar advice: "write one clear idea per shot", and reuse the same product or style language across shots. Its docs also say that in custom mode you order the shots the way you want them to play.
+
+## The model sets the limits of the plan
+
+A storyboard that ignores model limits will fail at render time. Google's Veo 3.1 page lists these rules:
+
+- Clip length is 4, 6 or 8 seconds.
+- The length must be 8 seconds when you use reference images, or when you ask for 1080p or 4k.
+- Up to three reference images can guide a video.
+- You can extend a Veo video by 7 seconds, up to 20 times. Extension works at 720p only, for Veo-generated videos only, and is not available on Veo 3.1 Lite.
+
+Google lists the Veo 3.1 model ids as preview versions at the time of writing, so check the page before you plan a job.
+
+Example: a draft says "shot 2, 6 seconds, with three reference images". Those two do not go together. Reference images need 8 seconds. A check that knows the rules catches this on paper, before a render.
+
+Example: a draft says "shot 3, 15 seconds, extend at 1080p". Extension works only at 720p. So either the shot is rendered at 720p, or it becomes two shots.
+
+## Who checks the storyboard
+
+Two kinds of check fit here.
+
+- **A mechanical check.** Add up the lengths. Compare each length with the allowed list. Compare each shot's inputs with its settings. A short script or a careful person does this the same way every time. Do not ask the agent to vouch for its own sums. Add the rows yourself.
+- **A person's check.** Does the story say what the client asked? Is the product shown at the right moment? This is judgment. It is cheap now, and expensive after rendering.
+
+Only when both pass does the agent start making clips.
+
+## One agent or many
+
+You may meet systems where a manager agent calls helper agents, such as a writer, a drawer and a video maker. OpenAI's orchestration guide describes "agents as tools": the manager keeps control and calls specialists as "bounded capabilities". It says to give each specialist "a narrow job", and to "start with one agent whenever you can". Chapter 6 comes back to this.
+
+## What this means for your work
+
+- **Ask for the storyboard first.** No clips before a plan exists.
+- **Give every row a length, inputs and a must-match line.** Missing columns are where renders fail.
+- **Check the plan against the model's limits.** Lengths, inputs and settings must agree.
+- **Add the lengths yourself.** A total the agent wrote is a claim, not a sum.
+- **Approve the plan before the spend.** The cheapest fix is on paper.

@@ -1,0 +1,84 @@
+---
+id: creator/r4/c1/lesson
+title: Creative agents
+minutes: 6
+sources:
+  - kind: blog
+    title: Anthropic · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: OpenAI docs · Agents
+    url: https://developers.openai.com/api/docs/guides/agents
+  - kind: repo
+    title: OpenAI Agents SDK (Python) · Running agents
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md
+  - kind: docs
+    title: Gemini API docs · Agents overview
+    url: https://ai.google.dev/gemini-api/docs/agents
+---
+
+## Why it matters
+
+In Tool Forge you gave a chat assistant a few tools, and a person asked for each step. An **agent** goes one step further. You give it a goal, and it chooses the steps itself: draft a plan, make an image, look at the result, try again.
+
+You will be asked whether a job needs an agent. Often the honest answer is no. This lesson gives you a way to decide, and a way to see what an agent costs you.
+
+## Two kinds of chain
+
+Anthropic splits "agentic systems" into two kinds:
+
+- **Workflows** are systems where models and tools are "orchestrated through predefined code paths". The steps are fixed. Someone decided them in advance.
+- **Agents** are systems where the model "dynamically" directs "its own processes and tool usage". The model decides the next step.
+
+Example: "Every Monday, export the approved hero ad as 9:16, 1:1 and 16:9." The steps never change, so this is a workflow. Example: "Find three creative directions for a new snack brand, try them, and drop the weak ones." Nobody can list the steps in advance, so this needs an agent, if it needs any chain at all.
+
+Anthropic's post is from December 2024. It says much of the tooling it describes has changed since then. The two definitions are the part to keep.
+
+## What an agent does, step by step
+
+OpenAI describes an agent as something that can "plan and complete tasks using tools, work with other agents, and maintain context across steps". Its Agents SDK runs a loop:
+
+1. Call the model with the current input.
+2. If the model asks for a tool, run the tool, add the result, and go round again.
+3. If the model gives a final answer with no more tool work, stop.
+
+For a creative agent, a loop could look like this. The model asks for an image. Your app runs the image tool. The image comes back. The model looks at it and asks for another version. That is three trips round the loop for one picture.
+
+Two things follow:
+
+- **Each trip costs time and money.** Every trip is a model call, and the tool call can cost too.
+- **The model decides how many trips.** You do not know the count when you start.
+
+Google's managed agents show the size of this. Its page says one interaction "can trigger multiple reasoning loops, typically consuming 100k to 3M tokens". Google lists managed agents as a Public Preview, so details may change. The spread is the point: one interaction can use thirty times more tokens than another.
+
+## The simplest thing that works
+
+Anthropic's advice is: "find the simplest solution possible, and only increase complexity when needed. This might mean not building agentic systems at all." It adds that agentic systems often trade latency and cost for better task performance. You should ask if that trade makes sense for the job.
+
+Use a ladder:
+
+1. **One call.** One prompt, one image. Many jobs end here.
+2. **A workflow.** Fixed steps, in a fixed order. You can predict the cost and the result.
+3. **An agent.** The model picks the steps. Use it when the work is open-ended and you cannot predict the steps.
+
+Anthropic says agents suit "open-ended problems" where you cannot predict the number of steps or hardcode a path. It also says "the autonomous nature of agents means higher costs, and the potential for compounding errors". It recommends extensive testing in sandboxed environments and the right guardrails.
+
+## Questions to ask before you pick an agent
+
+This checklist is ours, not a vendor's.
+
+| Question                                                        | If the answer is yes          |
+| --------------------------------------------------------------- | ----------------------------- |
+| Can I write the steps on one page before the job starts?        | A workflow is enough          |
+| Is it one asset from one prompt?                                | One call is enough            |
+| Do I need the model to try, look and change plan on its own?    | An agent may fit              |
+| Can I live with an unknown number of tries and an unknown bill? | An agent may fit, with limits |
+
+The last row matters most. If nobody can accept an unknown bill, the job needs limits before it needs an agent. Chapter 4 is about those limits.
+
+## What this means for your work
+
+- **Name the job in one sentence.** If you can list the steps, build a workflow.
+- **Start at the bottom of the ladder.** Move up only when the lower step fails.
+- **Expect an unknown count of tries.** Ask for a cap before you start.
+- **Treat an agent as a junior teammate on a trial.** It can do real work. It also needs a brief, a checklist and a person who looks at the result. The next chapters add those.
