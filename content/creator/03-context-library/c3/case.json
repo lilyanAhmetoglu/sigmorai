@@ -1,0 +1,96 @@
+{
+  "id": "creator/r3/c3/challenge",
+  "title": "The warm dusk search",
+  "scenario": "Your studio keeps about 2,000 assets for Marlow Outdoor, a tent brand. A search tool sits between the library and the model. The art director sends a brief and you decide how the search should work.\n\nThe catalogue lines and the search log in the exhibit are made up for this case.",
+  "exhibit": "Brief\n  \"A warm dusk photo of a tent, like A-231. Approved assets only, licensed\n  through at least 2027.\"\n\nCatalogue sample (made up)\n  id     caption                                         approved  licence_until\n  A-231  Warm lantern light on a canvas tent at dusk     yes       2028-06-30\n  A-232  Orange tent on a hill at sunrise, clear sky      yes       2026-12-31\n  A-233  Draft: tent at dusk, rough edit                  no        2028-06-30\n\nSearch log (made up)\n  query: \"cosy evening\"\n  result 1: A-231   (no word is shared with the query)",
+  "questions": [
+    {
+      "prompt": "Which search design fits the brief best?",
+      "options": [
+        {
+          "text": "Rank all 2,000 assets by closeness, then have the art director cross out any that are not approved.",
+          "explanation": "Rules checked by hand are easy to miss. Approval and licence dates are exact facts and belong in a filter."
+        },
+        {
+          "text": "Search the captions for the words \"approved\" and \"2027\", and take the top three matches.",
+          "explanation": "Captions describe what an image shows. Approval and licence dates are separate facts, so a word search would miss them."
+        },
+        {
+          "text": "Filter on approved and licence date first, then rank what is left by closeness to the warm dusk look.",
+          "explanation": "Right. Both OpenAI (attributes and attribute filters) and Google (metadata filters) let you filter on facts. Rules go in filters, closeness goes in ranking.",
+          "correct": true
+        },
+        {
+          "text": "Give the model all 2,000 images and ask which ones it likes best for a warm dusk tent photo.",
+          "explanation": "This skips every rule and pays to read the whole library. The model should read only what search returns."
+        }
+      ]
+    },
+    {
+      "prompt": "The query \"cosy evening\" returns A-231 first, and no word is shared. Why?",
+      "options": [
+        {
+          "text": "Semantic search matches meaning. \"Warm lantern light at dusk\" is close to \"cosy evening\".",
+          "explanation": "Right. OpenAI says semantic search surfaces relevant results even when they match few or no keywords.",
+          "correct": true
+        },
+        {
+          "text": "The tool added a hidden \"cosy\" tag to A-231 when it was uploaded, and then matched on the tag.",
+          "explanation": "Nothing in the docs says tags are added. The match comes from the meaning of the caption."
+        },
+        {
+          "text": "It is a bug. Search must always require at least one shared word before it can return a result.",
+          "explanation": "That describes keyword search. Semantic search is built to find results with few or no shared words."
+        },
+        {
+          "text": "A-231 ranks first because it was the most recent file added to the library, and not for its meaning.",
+          "explanation": "Recency is not part of how semantic search ranks. The ranking comes from how close the meanings are."
+        }
+      ]
+    },
+    {
+      "prompt": "The team uses OpenAI file search and wants to find assets by look. They plan to upload 1,500 JPG files. What is your advice?",
+      "options": [
+        {
+          "text": "Upload the JPG files. File search reads the pictures and ranks them by how they look to the model.",
+          "explanation": "The supported-files table lists text and document formats, and no image types."
+        },
+        {
+          "text": "Rename the JPG files to .txt, so that the file search accepts them as text documents and indexes them.",
+          "explanation": "A renamed picture is not text. The tool would index nothing useful from it."
+        },
+        {
+          "text": "Search only on file names, and keep each file name as short as possible for the search tool to use.",
+          "explanation": "Short names carry little meaning. Captions hold the subject, look and mood that search needs."
+        },
+        {
+          "text": "Write a caption for each asset in a text file, with the asset id in each entry, and index that file.",
+          "explanation": "Right. OpenAI's file search lists text and document formats, so the captions carry the meaning and the id leads back to the image.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "How do you check the search before the next campaign?",
+      "options": [
+        {
+          "text": "Run one query for \"tent\" and confirm that the first result has a tent in it, then call it done.",
+          "explanation": "One easy query proves little. It will not show how the search handles real briefs."
+        },
+        {
+          "text": "Take ten past briefs, run them, and compare the top three results with what the art director chose.",
+          "explanation": "Right. This is our habit: real briefs and a known good answer show where captions and filters need work.",
+          "correct": true
+        },
+        {
+          "text": "Set the score threshold high. A high threshold proves that every result is allowed for use.",
+          "explanation": "A score measures relevance to the query. It does not know about approval or licence."
+        },
+        {
+          "text": "Ask the model if the results look good. Its answer is the test, so no other check is needed.",
+          "explanation": "A model can read what it is shown and miss what it was not shown. The art director's picks are the better test."
+        }
+      ]
+    }
+  ]
+}
