@@ -20,6 +20,7 @@ import {
   TRACKS,
 } from '@/lib/constants';
 import { MathOutlineSchema, TrackOutlineSchema } from '@/lib/types';
+import { headingProblems } from './blog';
 import { buildExerciseId, parseBlogFileName, parseExerciseId, trackExerciseIds } from './ids';
 import {
   ContentError,
@@ -114,7 +115,8 @@ async function officialBases(root: string, issues: ContentIssue[]): Promise<stri
 
 /**
  * A blog post: frontmatter schema, a body with no components (no NPC
- * DialogBox), a linked lesson that exists, and a slug no other post uses.
+ * DialogBox), unique heading anchors (the "On this page" list), a linked
+ * lesson that exists, and a slug no other post uses.
  */
 async function checkBlogPost(
   abs: string,
@@ -138,6 +140,7 @@ async function checkBlogPost(
     } catch (err) {
       issues.push({ file: rel, message: `MDX body: ${(err as Error).message}` });
     }
+    for (const message of headingProblems(body)) issues.push({ file: rel, message });
     if (!(await hasContent(frontmatter.lesson, abs))) {
       issues.push({
         file: rel,

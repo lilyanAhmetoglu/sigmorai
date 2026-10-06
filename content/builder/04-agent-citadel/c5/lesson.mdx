@@ -1,0 +1,97 @@
+---
+id: builder/r4/c5/lesson
+title: Memory
+minutes: 10
+sources:
+  - kind: docs
+    title: How Claude remembers your project (Claude Code docs)
+    url: https://code.claude.com/docs/en/memory
+  - kind: docs
+    title: Memory tool (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool
+  - kind: blog
+    title: Effective context engineering for AI agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+  - kind: docs
+    title: Running agents (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/running-agents
+  - kind: repo
+    title: Sessions (openai/openai-agents-python)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/sessions/index.md
+  - kind: docs
+    title: Sandbox Agents (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/sandboxes
+---
+
+Context does not carry over on its own. The Claude Code docs put it plainly: "Each Claude Code session begins with a fresh context window." Anything an agent remembers later is text that something saved and loaded back. So memory is a harness question: what do you save, where, and what do you load next time?
+
+## Three kinds of memory
+
+It helps to split memory by how long it lives. This split is ours, but each vendor has a tool for each kind.
+
+| Kind            | Lives for          | Example                                |
+| --------------- | ------------------ | -------------------------------------- |
+| Working context | One run or session | The tool results of the last 10 turns  |
+| Session history | One conversation   | A chat the user comes back to tomorrow |
+| Long-term notes | Across sessions    | "This repo uses Bun, not npm"          |
+
+Working context is the context window from chapter 1. The other two need storage outside the model.
+
+## Session history
+
+Session history lets the next turn continue the same conversation.
+
+**OpenAI Agents SDK.** The guide calls sessions "the best default when you want durable memory, resumable approval flows, or storage that your application controls." The `openai-agents-python` sessions docs add that, with a session, the runner gets the conversation history "before each run" and stores all new items "after each run". Other options keep the state on OpenAI's side, with `conversation_id` or `previous_response_id`. OpenAI's advice: "pick one strategy per conversation", because mixing local and server-managed state "can duplicate context".
+
+History grows forever unless you cap it. `SessionSettings(limit=N)` retrieves "only the most recent `N` items". The default, `limit=None`, retrieves everything.
+
+**Claude Code.** A new session does not carry the old one's conversation. Two other mechanisms carry knowledge across sessions: instruction files and auto memory. Both are below.
+
+## Long-term notes the human writes
+
+For rules that must be there every session, both ecosystems use an instruction file in the repo.
+
+Claude Code reads `CLAUDE.md` files at the start of every session. It can also read a repository's `AGENTS.md`, a file other coding agents use, on its own or alongside `CLAUDE.md`. OpenAI's sandbox guide also says to put repo-local instructions in workspace files "such as `repo/task.md` or `AGENTS.md`".
+
+The Claude Code docs give clear rules for writing one:
+
+- Make each line verifiable: "Use 2-space indentation" instead of "Format code properly".
+- Keep each file under 200 lines. "Longer files consume more context and reduce adherence."
+- Remove conflicts: "if two instructions contradict each other, Claude may pick one arbitrarily."
+
+They also say when to add a line: when Claude "makes the same mistake a second time", or when a review catches something Claude should have known.
+
+## Long-term notes the agent writes
+
+The other direction is memory the agent writes for itself. Anthropic's context engineering post calls it structured note-taking: "the agent regularly writes notes persisted to memory outside of the context window. These notes get pulled back into the context window at later times." Its examples are Claude Code's to-do list and "a NOTES.md file".
+
+Three versions of this from the docs:
+
+- **Claude Code auto memory:** notes Claude writes from your corrections and preferences. `MEMORY.md` is an index of the memory files. Its first 200 lines or 25KB, whichever comes first, load at the start of every conversation. Detailed notes go into separate topic files that Claude reads during the session.
+- **Claude memory tool:** Claude reads and writes files under `/memories`. The tool is client-side: "Claude requests file operations, and your application executes them." With it on, Claude "automatically checks its memory directory before starting a task."
+- **OpenAI sandbox memory:** distills "useful lessons from prior workspace runs into files the agent can read later". It is "separate from SDK-managed conversational `Session` memory". At the start of a run the SDK injects `memory_summary.md`, and the agent searches `MEMORY.md` when prior work looks relevant.
+
+Note the pattern on both sides: a short summary is always loaded, and the details are read only when needed.
+
+## Memory is context, not configuration
+
+Loaded memory is still just text the model reads. The Claude Code docs: Claude "treats them as context, not enforced configuration. To block an action regardless of what Claude decides, use a PreToolUse hook instead." Chapter 3 said the same about instruction files.
+
+## Memory is also an attack surface
+
+A memory store is files that a model asks your code to read and write. The memory tool docs list what your handler must do:
+
+- **Path traversal:** "A malicious path such as `/memories/../../secrets.env` can reach files outside the `/memories` directory." Validate every path, resolve it to its canonical form and reject `../` sequences.
+- **Sensitive data:** Claude "usually refuses" to write it, but "For stronger guarantees, add validation that strips sensitive data" before writing.
+- **Size and age:** cap file sizes and delete files that haven't been accessed in a long time.
+
+Example: a support agent stores one memory folder per customer. If the handler does not check paths, a crafted path can read another customer's folder.
+
+## Key points
+
+- Context does not carry over by itself. The harness decides what to save and what to load.
+- Session history continues one conversation. OpenAI sessions load it before a run and save after; cap it with `SessionSettings(limit=N)`.
+- Instruction files (`CLAUDE.md`, `AGENTS.md`) hold rules a human writes. Keep them short, verifiable and free of conflicts.
+- Agent-written notes: Claude Code auto memory, the Claude memory tool, OpenAI sandbox memory.
+- Loaded memory is context, not enforcement.
+- Treat memory files as untrusted input and output: validate paths, strip secrets, cap size.

@@ -23,6 +23,12 @@ import { SITE_NAME } from './site';
  *   (vercel.com/docs/speed-insights/privacy-policy). Neither page names a
  *   storage region, so this page names none. Its doc does not say "no
  *   cookies", so the page claims that for Web Analytics only.
+ * - Resend (newsletter, SIG-46): contacts are stored and processed in the
+ *   USA (resend.com/legal/privacy-policy: "we transfer the data ... to the
+ *   United States and process it there"). Unsubscribe marks the contact
+ *   "Unsubscribed" globally, but does not delete it
+ *   (resend.com/docs/dashboard/contacts/managing-unsubscribe-list). We send
+ *   only the email address (lib/newsletter/resend.ts).
  * - To check on the first deploy: DevTools → Application → Cookies on
  *   sigmorai.com shows no cookie from either script.
  *
@@ -32,6 +38,10 @@ import { SITE_NAME } from './site';
  *   the app (a silent safety net).
  * - Vercel → Environment Variables: CLERK_WEBHOOK_SIGNING_SECRET (server-only)
  *   from that endpoint. Without it the webhook answers 400.
+ * - Newsletter: every Broadcast must carry Resend's unsubscribe link
+ *   placeholder, or the "Each email has an unsubscribe link" line is false.
+ *   Turn off Broadcast open and click tracking in Resend: this page
+ *   promises no tracking pixels.
  */
 
 export const PRIVACY_META = {
@@ -49,6 +59,7 @@ export const PRIVACY_TEXT = {
 
 const CLERK_PRIVACY_URL = 'https://clerk.com/legal/privacy';
 const VERCEL_PRIVACY_URL = 'https://vercel.com/legal/privacy-notice';
+const RESEND_PRIVACY_URL = 'https://resend.com/legal/privacy-policy';
 
 export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
   {
@@ -93,7 +104,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
   {
     id: 'processors',
     heading: 'Who processes it',
-    paragraphs: ['Three services process your data for us:'],
+    paragraphs: ['Four services process your data for us:'],
     items: [
       {
         term: 'Clerk',
@@ -109,6 +120,20 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
         text: 'Hosting: it runs the app and serves every page. Vercel runs our server code in Washington, D.C., USA by default. Vercel also runs our visit statistics (see below).',
         link: { label: "Vercel's privacy notice", href: VERCEL_PRIVACY_URL },
       },
+      {
+        term: 'Resend',
+        text: 'Sends the newsletter, only if you sign up for it. Resend stores and processes your email in the USA.',
+        link: { label: "Resend's privacy policy", href: RESEND_PRIVACY_URL },
+      },
+    ],
+  },
+  {
+    id: 'newsletter',
+    heading: 'Newsletter',
+    paragraphs: [
+      'The newsletter box on the blog is optional, and you do not need an account to use it. When you sign up, we send your email address to Resend and nothing else. Resend keeps it on our contact list so it can send you the newsletter. Our own database does not store it.',
+      'Each email has an unsubscribe link. Use it to stop all our emails; Resend then marks your address as unsubscribed. To have your address deleted from Resend too, reply to any newsletter email and ask; we delete it.',
+      'The newsletter emails have no tracking pixels: we do not record whether you open them or click a link.',
     ],
   },
   {

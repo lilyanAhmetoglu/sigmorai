@@ -1,0 +1,88 @@
+---
+id: math/f7/lesson
+title: Cross-entropy
+minutes: 10
+sources:
+  - kind: docs
+    title: Glossary (Claude docs)
+    url: https://platform.claude.com/docs/en/about-claude/glossary
+  - kind: docs
+    title: Using logprobs (OpenAI Developer Cookbook)
+    url: https://developers.openai.com/cookbook/examples/using_logprobs
+  - kind: docs
+    title: Supervised fine-tuning (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/supervised-fine-tuning
+---
+
+Floor 6 lowered a loss with gradient descent. But a language model needs a loss that fits its job: predicting the next token. That loss is cross-entropy. This floor builds it from floor 2's probabilities and logs, then connects it to perplexity, a number the OpenAI cookbook teaches you to compute from logprobs.
+
+## A loss is one number for "how wrong"
+
+A loss turns the model's output and the right answer into one number. Lower is better. Training (floor 6) changes the parameters to push this number down.
+
+The Claude glossary says that during pretraining, language models "are pretrained to predict the next word, given the previous context of text in the document." So the loss must answer one question: how much probability did the model give to the token that really came next?
+
+## The loss for one token
+
+The cross-entropy loss for one prediction is minus the ln of the probability the model gave to the right token:
+
+`loss = −ln p(right token)`
+
+Use floor 2's table for `The sky is`: ` blue` 0.60, ` clear` 0.20, ` dark` 0.15.
+
+| The real next token was | p    | Loss `−ln p` |
+| ----------------------- | ---- | ------------ |
+| ` blue`                 | 0.60 | 0.511        |
+| ` clear`                | 0.20 | 1.609        |
+| ` dark`                 | 0.15 | 1.897        |
+
+The less probability the model gave the right token, the bigger the loss. Two edges, as math:
+
+- `p = 1` gives `−ln 1 = 0`. A perfect, sure answer costs nothing.
+- A small p costs a lot. `p = 0.01` gives `−ln 0.01 ≈ 4.605`. Being confident and wrong is punished hard.
+
+## The full formula
+
+The general form sums over every possible answer:
+
+`−Σ y log ŷ`: cross-entropy is minus the sum, over every class, of the true probability y times the log of the predicted probability y-hat.
+
+Here a class is one token. `ŷ` (y-hat) is what the model predicted for that token. `y` is the truth: 1 for the token that really came next, 0 for every other token.
+
+So every term with `y = 0` drops out, and one term is left. If the next token was ` blue`:
+
+`−(1 × ln 0.60 + 0 × ln 0.20 + 0 × ln 0.15 + …) = −ln 0.60 ≈ 0.511`
+
+That is the same number as the table. The formula and the one-token rule are the same thing.
+
+## A whole text: take the mean
+
+A text has many tokens, so you average the loss over them. Say the model gave the right tokens of a 3-token text the probabilities 0.6, 0.5 and 0.9:
+
+- losses: `−ln 0.6 ≈ 0.511`, `−ln 0.5 ≈ 0.693`, `−ln 0.9 ≈ 0.105`
+- sum: `1.309`
+- mean: `1.309 / 3 ≈ 0.436`
+
+Floor 2 showed that adding logprobs is the same as multiplying probabilities. So a low mean loss means the model gave the whole real text a high probability. In math terms, training a model to predict the next word well and lowering its mean cross-entropy on real text are the same goal.
+
+## Perplexity: the loss as a count
+
+The OpenAI cookbook shows how to score a text from its logprobs: "Perplexity can be calculated by exponentiating the negative of the average of the logprobs." It adds: "Generally, a higher perplexity indicates a more uncertain result, and a lower perplexity indicates a more confident result."
+
+A logprob is `ln p`, so "the negative of the average of the logprobs" is the mean cross-entropy from above. Perplexity is just e to the power of it. For the 3-token example: `e^0.436 ≈ 1.547`.
+
+One way to read it, as math: if a model spread its probability evenly over k tokens, each would get `1/k`, the loss would be `−ln(1/k) = ln k`, and the perplexity would be exactly k. So a perplexity of 1.547 means the model was, on average, about as unsure as choosing between 1.5 equal options. A perplexity of 1 means it was sure and right every time.
+
+## Loss in a real training job
+
+When you fine-tune a model, the job reports loss so you can watch training. In OpenAI's fine-tuning docs, each saved checkpoint has a `metrics` object; the example shows `"full_valid_loss": 0.134` next to `"full_valid_mean_token_accuracy": 0.874`. A job takes a `training_file` and can also take a `validation_file`; the name `full_valid_loss` points to that validation data.
+
+That page does not give the formula behind `full_valid_loss`, so don't assume it is exactly the cross-entropy on this floor. Read it alongside the accuracy number, and compare runs with each other.
+
+## Key points
+
+- A loss is one number for how wrong the model is. Training pushes it down.
+- Cross-entropy for one token: `−ln p(right token)`. `p = 0.6` gives about 0.511; `p = 0.01` gives about 4.6.
+- The full formula `−Σ y log ŷ` keeps only the right token's term, because y is 0 for all others.
+- For a text, take the mean loss per token. Lower mean loss means a higher probability for the real text.
+- Perplexity is e to the mean cross-entropy, the same as the OpenAI cookbook's rule. Lower means more confident.
