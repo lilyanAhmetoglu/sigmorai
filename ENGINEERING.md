@@ -2,6 +2,14 @@
 
 How Sigmorai is built. Stack, architecture rules, data model, build order. The founding brief is `docs/build-prompt.md`; this file wins where they differ. Never makes aesthetic calls (that's `DESIGN.md`).
 
+## Amendments locked 2026-10-06 (leaderboard)
+
+- **Public `/leaderboard` (SIG-20).** RSC page with loading, error and empty states. The range is a link (`?range=week|month|all`), not client Tabs; anything else means `all`. Top 25 per range, cached 60 s (`unstable_cache`: `cacheComponents` is off, and `'use cache'` needs it). The viewer's own rank is read fresh and never cached.
+- **All time reads `users.xp`; week/month aggregate `xp_events`.** This replaces "the leaderboard aggregates from the ledger for all three ranges". `users.xp` must equal the ledger sum (`bun run db:check`). Week/month are rolling UTC-day windows: cutoff = `utcDayStart(now)` − 6 / − 29 days (`lib/xp/leaderboard.ts`), passed to SQL as a parameter.
+- **Tie order everywhere:** xp desc, `users.created_at` asc, `users.id` asc. No shared ranks. All-time rank = 1 + count(xp > mine) + count(xp = mine and (created_at, id) < mine). Week/month: one CTE with `row_number()` over the window totals, `where rank <= 25 or id = me`. No XP in the range → "no XP" text instead of a rank.
+- **Rows carry only rank, hero name, track, level (computed) and XP.** Never the Clerk id, `avatar_url` or `last_active_at`. The viewer's row is marked with text ("YOU"), not colour only.
+- **Schema (migration 0004_leaderboard):** `users_xp_idx` → `users_leaderboard_idx (xp desc, created_at, id)`; new unique `users_hero_name_lower_idx` on `lower(hero_name)`. Hero names are trimmed + NFKC-normalised before the checks, use one script group, and can't be a reserved word (`RESERVED_HERO_NAMES`). A name clash returns `name_taken` from `createHero`.
+
 ## Amendments locked 2026-10-05 (no-code pivot)
 
 - **No code runner, no code editor.** The 2026-10-04 "Runner: E2B … fake runner" line is superseded. Stack rows "Editor: Monaco" and "Code runs: E2B via /api/run" are removed. `e2b` leaves package.json; `E2B_API_KEY` and `CODE_RUNNER` leave `.env.example`, `e2e.yml` and `eslint.config.mjs` (those code edits land in PR 2).
