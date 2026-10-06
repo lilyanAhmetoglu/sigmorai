@@ -1,0 +1,111 @@
+---
+id: math/f1/lesson
+title: Vectors & similarity
+minutes: 9
+sources:
+  - kind: docs
+    title: Vector embeddings (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/embeddings
+  - kind: docs
+    title: Embeddings (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/embeddings
+---
+
+Similarity search turns every text into a list of numbers, then ranks the lists by how close they are to the question. This floor covers the three tools behind that ranking: the vector, the dot product and cosine similarity. You only need adding, multiplying and one square root.
+
+## A vector is a list of numbers
+
+A vector is an ordered list of numbers. `(3, 4)` is a vector with 2 numbers. Each number is one position, or dimension.
+
+An embedding is the same thing, only longer. The OpenAI docs: "An embedding is a vector (list) of floating point numbers." Floating point means numbers with decimals, like 0.37. By default, `text-embedding-3-small` returns 1536 numbers per text. Most Voyage AI models in the Claude docs, such as `voyage-4`, return 1024 numbers by default.
+
+You can't draw 1536 dimensions. The math is the same as in 2, so this floor uses 2-number vectors that you can check by hand.
+
+## Length of a vector
+
+The length of a vector `a` is written `‖a‖`. Square every number, add the squares, and take the square root.
+
+Example: `‖(3, 4)‖ = √(3² + 4²) = √(9 + 16) = √25 = 5`.
+
+This is the distance from the start point `(0, 0)` to the point `(3, 4)`.
+
+## The dot product
+
+The dot product multiplies the two vectors position by position, then adds the results.
+
+`a·b = Σ aᵢbᵢ`: the sum of a-i times b-i, over every position i.
+
+Example with `a = (1, 2, 3)` and `b = (4, 5, 6)`:
+
+- position 1: `1 × 4 = 4`
+- position 2: `2 × 5 = 10`
+- position 3: `3 × 6 = 18`
+- dot product: `4 + 10 + 18 = 32`
+
+The result is one number, not a vector. It is large when both vectors have big numbers in the same positions.
+
+## Why the dot product alone is not enough
+
+The dot product grows when a vector gets longer, even if it points the same way. Take a query `q = (3, 4)` and two documents:
+
+| Document     | Dot product with q         |
+| ------------ | -------------------------- |
+| A = `(4, 3)` | `3×4 + 4×3 = 12 + 12 = 24` |
+| C = `(6, 8)` | `3×6 + 4×8 = 18 + 32 = 50` |
+
+C wins, but C is just `q` made twice as long: same direction, bigger numbers. If length is not part of the meaning you want to compare, you need a score that ignores it.
+
+## Cosine similarity
+
+Cosine similarity divides the dot product by the two lengths:
+
+`cos(a, b) = a·b ⁄ ‖a‖‖b‖`
+
+That takes the length out, so only the direction counts. For any two non-zero vectors, the result is between −1 and 1:
+
+- `1`: same direction
+- `0`: at a right angle (nothing in common)
+- `−1`: opposite directions
+
+Same query `q = (3, 4)`, length 5:
+
+| Document      | Dot product    | Lengths       | Cosine           |
+| ------------- | -------------- | ------------- | ---------------- |
+| A = `(4, 3)`  | 24             | `5 × 5 = 25`  | `24 ⁄ 25 = 0.96` |
+| B = `(−4, 3)` | `−12 + 12 = 0` | `5 × 5 = 25`  | `0 ⁄ 25 = 0`     |
+| C = `(6, 8)`  | 50             | `5 × 10 = 50` | `50 ⁄ 50 = 1`    |
+
+Now C scores 1 because it points exactly the same way as `q`. A is close behind at 0.96. B scores 0, so it ranks last.
+
+The 3-number example from above: `‖(1, 2, 3)‖ = √14 ≈ 3.742` and `‖(4, 5, 6)‖ = √77 ≈ 8.775`, so the cosine is `32 ⁄ (3.742 × 8.775) ≈ 0.975`.
+
+## How search uses this
+
+The OpenAI docs say: "The distance between two vectors measures their relatedness. Small distances suggest high relatedness and large distances suggest low relatedness." On the choice of score, OpenAI writes: "We recommend cosine similarity. The choice of distance function typically doesn't matter much."
+
+A search ranks chunks in three steps:
+
+1. Embed the question into a vector.
+2. Score every chunk vector against it.
+3. Return the chunks with the highest scores.
+
+## Length 1 makes it cheaper
+
+A vector with length 1 is called normalized. If both vectors have length 1, the bottom of the cosine formula is `1 × 1 = 1`, so cosine similarity is just the dot product.
+
+Check it by hand. Divide `q = (3, 4)` and `A = (4, 3)` by their length 5: you get `(0.6, 0.8)` and `(0.8, 0.6)`. Their dot product is `0.48 + 0.48 = 0.96`, the same as the cosine above.
+
+Two vendors state this for their own embeddings:
+
+- **OpenAI:** "OpenAI embeddings are normalized to length 1", so cosine similarity "can be computed slightly faster using just a dot product", and cosine similarity and Euclidean distance "will result in the identical rankings". (Euclidean distance is the straight-line distance between the two points, the same rule as the length formula above.)
+- **Voyage AI** (in the Claude docs): embeddings are "normalized to length 1", so cosine similarity is equivalent to dot-product similarity, "while the latter can be computed more quickly". The Claude docs' search example ranks documents with NumPy's `np.dot` (a dot-product function) for this reason.
+
+This holds only for vectors of length 1. If you cut a stored vector shorter, the Claude docs say to normalize it again.
+
+## Key points
+
+- A vector is a list of numbers. An embedding is a long vector.
+- Length: `‖a‖ = √(sum of squares)`. `‖(3, 4)‖ = 5`.
+- Dot product: multiply position by position, then add. It grows with length.
+- Cosine similarity divides by both lengths, so only direction counts. It goes from −1 to 1.
+- For vectors of length 1, cosine similarity equals the dot product, which is faster to compute.
