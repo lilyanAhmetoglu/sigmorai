@@ -1,0 +1,109 @@
+---
+id: builder/r2/c4/lesson
+title: The tool loop
+minutes: 10
+sources:
+  - kind: docs
+    title: Tool use with Claude (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+  - kind: docs
+    title: How tool use works (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works
+  - kind: docs
+    title: Handling stop reasons (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons
+  - kind: docs
+    title: Define tools (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools
+  - kind: docs
+    title: 'Tutorial: Build a tool-using agent (Claude docs)'
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent
+  - kind: blog
+    title: Building effective agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: Function calling (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/function-calling
+  - kind: docs
+    title: Running agents (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/running-agents
+  - kind: docs
+    title: Function calling (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+One tool call is a round trip. Real tasks often need several: look up the customer, then their order, then the refund rule. The code that keeps those round trips going is the tool loop. It is small, but it decides when your system stops.
+
+## One round trip
+
+OpenAI describes the flow in five steps:
+
+1. Make a request to the model with tools it could call.
+2. Receive a tool call from the model.
+3. Execute code on the application side with input from the tool call.
+4. Make a second request to the model with the tool output.
+5. Receive a final response from the model (or more tool calls).
+
+The last step is the key: "or more tool calls". The Gemini docs say the same process "can be repeated over multiple turns".
+
+## The loop
+
+The Claude docs give the shape: a `while` loop keyed on the stop reason. While the response's `stop_reason` is `"tool_use"`, run the tools, send the results, and ask again. The loop exits on any other stop reason: `"end_turn"`, `"max_tokens"`, `"stop_sequence"` or `"refusal"`.
+
+OpenAI's Agents SDK runs the same loop for you: call the model, inspect the output, run any tool calls and continue, and return a result when there is a final answer "with no more tool work".
+
+```text
+messages = [user question]
+loop:
+    response = call model(messages, tools)
+    add response to messages
+    if response has no tool calls: stop
+    run each tool call
+    add every result to messages
+```
+
+## Keep the whole history
+
+Each request must carry what happened before. The Claude tutorial says to keep "a running list and append to it" instead of rebuilding the messages each time, so "Every turn sees the complete prior context."
+
+OpenAI says the same: you send back the tool definitions, the original prompt, the model's tool call and the tool output. For reasoning models, it adds that "any reasoning items returned in model responses with tool calls must also be passed back with tool call outputs."
+
+Example: the model looked up order 4417 in round 1. If round 2 drops that result, the model has to look it up again or guess.
+
+## Add your own stop rule
+
+A loop that only stops when the model is done has no upper bound. Anthropic's post on building agents says the model "will potentially operate for many turns", and: "it's also common to include stopping conditions (such as a maximum number of iterations) to maintain control." The same post warns that agents bring "higher costs, and the potential for compounding errors."
+
+OpenAI's Agents SDK lists "max-turn limits" among the failures your code must handle. Anthropic does the same for its own server-run tools: that loop has an iteration limit, and when it is hit the response stops with `"pause_turn"`.
+
+Example rule: at most 8 rounds per user message. On round 8, stop, log the trace, and tell the user what was done and what was not. The number is yours to choose; the point is that there is one.
+
+## Handle every way the loop can end
+
+Not every stop is a finished answer.
+
+- `max_tokens`: the reply hit your output limit. The Claude docs warn that if this cuts off a tool call halfway, you must retry with a higher `max_tokens` to get the full call.
+- `refusal`: the model declined. Don't continue the tool loop. Read `stop_details`, which names the policy category. The Claude docs say a refusal on some newer models (such as Claude Opus 5.5) can usually be served by retrying on another Claude model. Otherwise, show a clear message.
+- `end_turn`: the normal finish.
+
+Example: a loop that treats every non-tool stop as success will show a half-written reply as if it were final.
+
+## Who decides to call a tool
+
+By default the model decides. All three vendors let you change that with a tool choice setting:
+
+- **Claude**: `auto` (the default when you send tools), `any` (must use some tool), `tool` (must use one named tool), `none`.
+- **OpenAI**: `auto` (the default), `required` (one or more calls), one forced function, `allowed_tools` (limit to a subset), `none`.
+- **Gemini**: `auto` (the default), `any` (always predict a function call), `none`, `validated` (the model ensures schema adherence).
+
+Example: a support bot must check the order system before it answers any order question. On a model that supports it, `any` or `required` makes a tool call happen; `auto` leaves it to the model.
+
+Forcing is not supported everywhere. The Claude docs say that on Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.1 and Claude Mythos 5.1, `any` and `tool` return a 400 error, and suggest `auto` with strict tool use instead. Prompting also steers the choice: the Claude docs say a line like "Use the tools to investigate before responding." increases tool use.
+
+## Key points
+
+- The loop: call the model, run the tool calls, send the results, repeat until there are no more calls.
+- Keep the full message history, including tool calls and results (and reasoning items on OpenAI reasoning models).
+- Always add your own limit, such as a maximum number of rounds.
+- Handle each stop reason. `max_tokens` can cut a tool call in half.
+- Tool choice can force, allow or forbid tool calls, but check which models support forcing.

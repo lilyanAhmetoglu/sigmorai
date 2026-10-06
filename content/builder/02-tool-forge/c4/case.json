@@ -1,0 +1,96 @@
+{
+  "id": "builder/r2/c4/challenge",
+  "title": "The loop that ran all night",
+  "scenario": "An internal research assistant answers staff questions using two tools: `search_wiki` and `read_page`. A teammate wrote the tool loop by hand (exhibit). Overnight, one question ran for 212 rounds and the bill for that night was the highest of the month. The trace also shows the model calling `search_wiki` with the same query again and again, and one run that crashed when the reply stopped halfway through a tool call.",
+  "exhibit": "messages = [user_question]\nwhile True:\n    r = call_model(messages, tools)\n    if r.stop_reason == \"end_turn\":\n        show(r)\n        break\n    call   = r.tool_calls[0]\n    result = run_tool(call)\n    messages = [user_question]   # history reset every round; results never kept\n\nTRACE (question 'What is our travel budget policy?')\nround 1   search_wiki(\"travel budget policy\")\nround 2   search_wiki(\"travel budget policy\")\nround 3   search_wiki(\"travel budget policy\")\n...\nround 212 search_wiki(\"travel budget policy\")",
+  "questions": [
+    {
+      "prompt": "What stops a run like this from going 212 rounds again, whatever the model does?",
+      "options": [
+        {
+          "text": "A system prompt line: \"Do not call tools more than necessary, and stop when you have enough.\"",
+          "explanation": "That is a request to the model, not a limit. The loop still has no upper bound if the model keeps calling tools."
+        },
+        {
+          "text": "A cheaper model, so each round costs less.",
+          "explanation": "It lowers the cost per round but still allows endless rounds. The missing piece is a stop rule."
+        },
+        {
+          "text": "Fewer tools, so the model has less to call.",
+          "explanation": "With one tool, the model can still call it forever. The trace shows one tool called 212 times."
+        },
+        {
+          "text": "A maximum number of rounds, with a clear message to the user when it is hit.",
+          "explanation": "Right. Anthropic's post on agents says it is common to add stopping conditions such as a maximum number of iterations.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Why does the model repeat the same `search_wiki` call every round?",
+      "options": [
+        {
+          "text": "The wiki search is broken and returns nothing, so the model keeps trying the same query.",
+          "explanation": "The trace gives no sign of empty results. And the loop would still throw away whatever came back."
+        },
+        {
+          "text": "The loop resets `messages` every round, so earlier results are lost.",
+          "explanation": "Right. The Claude tutorial says to keep a running list and append to it, so every turn sees the full prior context.",
+          "correct": true
+        },
+        {
+          "text": "The model's temperature is too high.",
+          "explanation": "Nothing in the exhibit points to sampling settings. The model gets the same reset history every round, so it makes the same first move every round."
+        },
+        {
+          "text": "The tool description is too long.",
+          "explanation": "A long description does not explain identical repeated calls. The history keeps resetting."
+        }
+      ]
+    },
+    {
+      "prompt": "One reply stopped with `max_tokens` halfway through a tool call, and the loop crashed. What is the right handling?",
+      "options": [
+        {
+          "text": "Treat it as the final answer and show it to the user.",
+          "explanation": "A cut-off tool call is not an answer. The user would see a broken reply."
+        },
+        {
+          "text": "Run the tool with whatever arguments arrived.",
+          "explanation": "The arguments are incomplete. Running them could act on the wrong input."
+        },
+        {
+          "text": "Retry the request with a higher `max_tokens` so the full tool call can come back.",
+          "explanation": "Right. The Claude docs say an incomplete tool use block after `max_tokens` needs a retry with a higher limit.",
+          "correct": true
+        },
+        {
+          "text": "Lower `max_tokens` so replies are shorter and the model learns to write smaller tool calls.",
+          "explanation": "That makes the cut-off more likely, not less."
+        }
+      ]
+    },
+    {
+      "prompt": "The team wants the model to search the wiki before answering. Their model, Claude Opus 5.5, returns a 400 error for `tool_choice` `any`. What should they do?",
+      "options": [
+        {
+          "text": "Keep `auto` and add a system prompt line such as \"Use the tools to investigate before responding.\"",
+          "explanation": "Right. The Claude docs say this kind of line increases tool use, and that `auto` (with strict tool use for valid inputs) is the path on models that reject forcing.",
+          "correct": true
+        },
+        {
+          "text": "Keep sending `any` and retry until it works.",
+          "explanation": "The docs list this as a model restriction. Retrying the same request will get the same error."
+        },
+        {
+          "text": "Set `tool_choice` to `none` so the model answers faster.",
+          "explanation": "`none` prevents tool calls. That is the opposite of what the team wants."
+        },
+        {
+          "text": "Remove the tools and paste the whole wiki into the prompt.",
+          "explanation": "That replaces search with a huge prompt on every request. The goal is to make the model use the tool, not drop it."
+        }
+      ]
+    }
+  ]
+}

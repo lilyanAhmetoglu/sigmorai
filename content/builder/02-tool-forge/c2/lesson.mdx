@@ -1,0 +1,108 @@
+---
+id: builder/r2/c2/lesson
+title: Define a tool
+minutes: 10
+sources:
+  - kind: docs
+    title: Define tools (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools
+  - kind: docs
+    title: Strict tool use (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use
+  - kind: blog
+    title: Writing effective tools for agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/writing-tools-for-agents
+  - kind: docs
+    title: Function calling (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/function-calling
+  - kind: docs
+    title: Function calling (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+The Claude docs say the model never sees your implementation: it only sees the schema you provided and the result you returned. So the definition is a prompt, and everything from realm 1 applies: be specific, give the reason, remove guesses.
+
+## Three core parts
+
+Claude, OpenAI and Gemini all use three core parts:
+
+- a **name**, such as `get_order_status`;
+- a **description** of what the tool does and when to use it;
+- a **schema** for the inputs. It is written in JSON Schema on Claude and OpenAI (`input_schema` / `parameters`). Gemini's `parameters` uses a subset of the OpenAPI schema.
+
+Example:
+
+```json
+{
+  "name": "get_order_status",
+  "description": "Returns the shipping status of one order placed in our web shop. Use it when the customer asks where an order is or when it will arrive. Do not use it for returns or refunds. Returns the carrier, the status and the expected delivery date. It does not return the items in the order.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "order_id": {
+        "type": "string",
+        "description": "The order number printed on the receipt, for example 4417."
+      }
+    },
+    "required": ["order_id"]
+  }
+}
+```
+
+The Claude docs also allow optional `input_examples`: sample inputs that must match the schema. They help most for complex or format-sensitive inputs, and they add tokens to the prompt.
+
+## The description does most of the work
+
+The Claude docs are direct: "Provide extremely detailed descriptions. This is by far the most important factor in tool performance." A good description says:
+
+- what the tool does;
+- when to use it, and when not to;
+- what each parameter means;
+- caveats, such as what the tool does not return.
+
+They suggest "at least 3–4 sentences for each tool description". The example above follows that list.
+
+OpenAI says the same: "Explicitly describe the purpose of the function and each parameter (and its format), and what the output represents." It adds a test you can run in your head. "Pass the intern test": could a person use the function correctly with nothing but what you gave the model? If not, add the answers to their questions.
+
+Anthropic's engineering post on writing tools adds one more habit: name parameters so they can't be misread. Instead of a parameter named `user`, use `user_id`.
+
+## Make wrong calls hard
+
+A good schema blocks mistakes before they happen. OpenAI: "Use enums and object structure to prevent invalid states." Its example: `toggle_light(on: bool, off: bool)` allows a call where both are true. One `state` field with the values `"on"` and `"off"` cannot be wrong that way. The Gemini best practices agree: use specific types such as integer, string and enum.
+
+Example: a `priority` field typed as a free string will get "urgent", "HIGH" and "p1". An enum of `low`, `normal`, `high` gets one of three.
+
+## Strict mode
+
+Without strict mode, the model can send inputs that break your schema. Claude: it "might return incompatible types". OpenAI calls non-strict calls "best effort". OpenAI's Responses API tries strict mode by default when the schema allows it. Both Anthropic and OpenAI offer a strict mode that enforces the schema.
+
+- Claude: setting `strict: true` "guarantees Claude's tool inputs match your JSON Schema". The docs' example: a booking tool needs `passengers` as an integer. Without strict mode, Claude might send `"two"` or `"2"`. With it, the input is always `2`.
+- OpenAI: strict mode makes calls "reliably adhere to the function schema, instead of being best effort. We recommend always enabling strict mode." It has two rules: `additionalProperties` must be `false`, and every field must be listed as required. To make a field optional, allow `null` as one of its types.
+
+Both vendors support only part of JSON Schema in strict mode, so check the limits on their pages.
+
+## Don't ask for what you already know
+
+OpenAI: "Don't make the model fill arguments you already know." Its example: if your app already has the `order_id`, define `submit_refund()` with no parameters and pass the id in your own code.
+
+Example: a support chat where the user is logged in. The customer id comes from the session. Leave `customer_id` out of the schema and add it in your code. OpenAI's heading for this advice is "Offload the burden from the model and use code where possible."
+
+## Fewer, clearer tools
+
+OpenAI says to keep the number of tools available at the start small "for higher accuracy". The Claude docs say fewer tools "reduce selection ambiguity".
+
+- OpenAI: "Aim for fewer than 20 functions available at the start of a turn", and calls this a soft suggestion. Gemini: "Keep active set to 10-20 tools maximum."
+- Claude: "Consolidate related operations into fewer tools." Instead of `create_pr`, `review_pr` and `merge_pr`, use one tool with an `action` parameter.
+- Claude and OpenAI both suggest grouping by service. Claude uses name prefixes such as `github_list_prs` and `slack_send_message`. OpenAI has namespaces such as `crm` and `billing`.
+- OpenAI: "Combine functions that are always called in sequence."
+
+Anthropic's engineering post gives an example of the same idea: instead of a `list_contacts` tool that returns everyone, build `search_contacts`, so the model does not read the whole address book.
+
+## Key points
+
+- Every definition has a name, a description and a schema for inputs.
+- The description matters most: what, when, when not, each parameter, caveats.
+- Use enums and clear types to make invalid calls impossible.
+- Turn on strict mode where your schema fits the supported subset.
+- Don't make the model fill values your code already knows.
+- Keep the tool list short; merge related or always-chained operations.
