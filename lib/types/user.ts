@@ -19,6 +19,22 @@ export const OnboardingSchema = z.object({
 });
 export type OnboardingInput = z.infer<typeof OnboardingSchema>;
 
+/**
+ * The path-switch form on /profile (lib/actions/switch-track.ts). The client
+ * sends a track, nothing else. The user id comes from the session.
+ */
+export const SwitchTrackSchema = OnboardingSchema.pick({ track: true });
+export type SwitchTrackInput = z.infer<typeof SwitchTrackSchema>;
+
+/**
+ * What switchTrack returns to useActionState. null = nothing submitted yet.
+ * not_onboarded = no users row to update (no hero yet).
+ */
+export type SwitchTrackFormState =
+  | { done: true; error?: undefined }
+  | { done?: undefined; error: 'invalid_input' | 'unauthorized' | 'not_onboarded' | 'server_error' }
+  | null;
+
 /** Which onboarding field failed. The form maps it to fixed copy (ONBOARDING_TEXT). */
 export type OnboardingField = keyof OnboardingInput;
 

@@ -8,6 +8,17 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (SIG-36, path switch)
+
+- **The switch lives on `/profile`** ("YOUR PATH" panel), not in the HUD. The HUD track stays a read-only Badge.
+- **The design reference plans a HUD TrackToggle** (`design/BUILD_PROMPT_NEXTJS_BUN.md:29`). The profile panel replaces it for now.
+- **One Server Action, `switchTrack`** (`lib/actions/switch-track.ts`), updates `users.track` only. The user id comes from the session; the form sends one track.
+- **No schema change.** Progress is already per track through the exercise id (`db/CLAUDE.md` invariant 4), so the old path's progress stays and shows again on a switch back.
+- **XP, level and streak are one ledger**, shared by both paths. Math Tower (and Frontier) progress is shared too: those ids have no track.
+- **No confirm box, no rate limit.** A switch loses nothing and grants nothing. Saving the same path is a no-op success.
+- **When the leaderboard is built (step 6):** it shows the player's current path next to their total level. Its 60 s cache may show the old path for up to a minute.
+- **Onboarding copy changed:** "You can't change your path yet" → "You can change your path later on your profile."
+
 ## Amendments locked 2026-10-05 (PR 4: builder outline rewrite)
 
 - **Builder titles are vendor-neutral and no-code.** Replaces the builder column of §Realm map. Changed: r0c4 Streaming → Multimodal input · r1c3 XML tags → Structure the prompt · r1c5 JSON output → Structured output · r1c6 Prefill → Grounded answers · r2c1 Messages recap → Why tools · r2c2/c3 → Define a tool / Results & errors (c2 was Tool results, c3 was Define a tool) · r2c6 Tool search → Prompt injection · r4c3 Agent SDKs → The harness · r5c2 Your first server → Servers & tools · r5c6 Auth → Auth & trust · r6c6 Tracing → Evals in CI · r7c1 Orchestrators → Agent graphs · r8c4 Security → Secrets & data · r8c5 Scaling → Latency & scaling. Why: each old title named one vendor's feature or a coding task.
