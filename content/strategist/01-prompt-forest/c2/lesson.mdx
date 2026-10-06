@@ -1,0 +1,92 @@
+---
+id: strategist/r1/c2/lesson
+title: Give examples
+minutes: 6
+sources:
+  - kind: docs
+    title: Claude docs · Prompting best practices
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: docs
+    title: OpenAI docs · Prompt engineering
+    url: https://developers.openai.com/api/docs/guides/prompt-engineering
+  - kind: docs
+    title: OpenAI docs · Prompting
+    url: https://developers.openai.com/api/docs/guides/prompting
+  - kind: docs
+    title: Gemini API docs · Prompt design strategies
+    url: https://ai.google.dev/gemini-api/docs/prompting-strategies
+---
+
+## Why it matters
+
+Some things are hard to describe but easy to show: your team's tone, the shape of a good answer, how you label a ticket. An example shows the model what "good" looks like at your company.
+
+## Show, don't only tell
+
+A prompt with a few examples is called a **few-shot** prompt. A prompt with no examples is **zero-shot**. Gemini's guide uses these names.
+
+Anthropic's guide calls examples one of the most reliable ways to steer the format, tone and structure of the output. OpenAI's guide says the model picks up the pattern from a handful of input and output examples, and applies it to the new input. You don't need to retrain the model.
+
+Example: you want short, friendly replies to customer reviews. Instead of explaining your tone in a paragraph, you paste two real replies your team liked. The model copies their length and style.
+
+## How many examples?
+
+Start with a few, then test.
+
+- Anthropic's guide suggests 3–5 examples for best results.
+- Gemini's guide says models can often pick up a pattern from a few examples, but you may need to experiment with the number.
+- Gemini's guide also warns: with too many examples, the model may start to overfit. That means it copies the examples too closely instead of following the general pattern.
+
+Gemini's guide goes further and recommends always including few-shot examples. It says clear examples can even replace some of your instructions.
+
+## What makes a good example
+
+The three guides agree on three rules.
+
+**1. Relevant.** Anthropic's guide says examples should mirror your actual use case closely. Use real work, not toy cases.
+
+Example: for an HR assistant that answers leave questions, use real (anonymized) leave questions, not questions about the weather.
+
+**2. Varied.** Anthropic's guide says examples should cover edge cases and vary enough that the model doesn't pick up unintended patterns. OpenAI's guide says to show a diverse range of possible inputs. Gemini's guide asks for specific and varied examples.
+
+Example: if all three sample replies are to happy customers, the model may sound cheerful to an angry one too. Add one reply to a complaint.
+
+**3. Consistent.** Gemini's guide says all examples should share the same structure and formatting. If one example has a heading and the next does not, the model gets mixed signals.
+
+## Keep examples apart from the task
+
+The model must know where the examples stop and the real task starts. Anthropic's guide suggests wrapping examples in tags, such as `<example>`, so the model can tell them apart from your instructions. OpenAI's prompting page suggests keeping examples in a short, bulleted block that your team can scan and update.
+
+A simple layout you can type in any chat:
+
+```
+Task: label each customer ticket as Billing, Delivery or Product.
+
+<examples>
+Ticket: "I was charged twice this month." → Billing
+Ticket: "The box arrived crushed." → Delivery
+Ticket: "The app crashes when I log in." → Product
+</examples>
+
+Now label this ticket: "My parcel is three days late."
+```
+
+## Watch out for hidden patterns
+
+The model looks for patterns in your examples, including ones you did not mean to teach.
+
+- **Length.** Gemini's guide shows a case where two short example answers led the model to prefer the shorter answer. That is useful when you want short replies, and a problem when you don't.
+- **Labels.** Anthropic's guide warns about unintended patterns. If every example is labelled Billing, that is a pattern too. Mix the labels.
+- **Errors.** Check examples as carefully as your final output. They are the pattern the model will follow.
+
+## Where examples come from
+
+Use real past work that your team already approved: the best customer replies, a model report, a correctly labelled ticket. Remove names and private details first. Anthropic's guide also says you can ask the model to check your examples for relevance and variety, or to draft more examples from your first set. Review any example the model writes before you use it.
+
+## Key points
+
+- Examples show the model your format, tone and structure.
+- Start with about 3–5, then test. Too many can make the model copy them too closely.
+- Make them relevant, varied and consistent.
+- Mark where the examples start and end.
+- The model follows patterns in your examples, including ones you did not mean to teach.

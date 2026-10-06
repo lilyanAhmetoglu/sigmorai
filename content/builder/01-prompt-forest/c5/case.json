@@ -1,0 +1,96 @@
+{
+  "id": "builder/r1/c5/challenge",
+  "title": "Leads that break the CRM",
+  "scenario": "A sales team extracts leads from inbound emails into its CRM: name, email, company, phone and plan. Today the prompt says 'Return JSON with these fields' and the code runs JSON.parse on the reply. About 3% of replies fail to parse. Some leads have phone numbers that appear nowhere in the email. The dashboard counts 'Enterprise', 'enterprise' and 'Enterprise Plan' as three different plans. You review a sample (exhibit).",
+  "exhibit": "PROMPT\nExtract the lead from this email. Return JSON with name, email,\ncompany, phone, plan.\n\nREPLY 1 (parse error)\nSure! Here is the JSON:\n{\"name\": \"Ana Silva\", \"email\": \"ana@example.com\", ...}\n\nREPLY 2 (email has no phone number)\n{\"name\": \"Tom Berg\", \"email\": \"tom@example.com\",\n \"company\": \"Nordic Freight\", \"phone\": \"+46 555 0199\",\n \"plan\": \"Enterprise Plan\"}",
+  "questions": [
+    {
+      "prompt": "What is the best fix for the parse errors?",
+      "options": [
+        {
+          "text": "Use the vendor's structured outputs feature with a JSON Schema for the lead.",
+          "explanation": "Right. Structured outputs constrain the reply to the schema: Claude's output_config.format or OpenAI's text.format with strict: true.",
+          "correct": true
+        },
+        {
+          "text": "Turn on JSON mode, which guarantees the fields you need.",
+          "explanation": "JSON mode gives valid JSON but does not guarantee any specific schema. OpenAI recommends Structured Outputs over JSON mode when possible."
+        },
+        {
+          "text": "Retry each failed call in a loop until JSON.parse succeeds, with no limit on attempts.",
+          "explanation": "Unlimited retries waste money and hide the cause. Structured outputs remove this class of error."
+        },
+        {
+          "text": "Strip everything before the first brace with a regular expression.",
+          "explanation": "A patch for one symptom. It does not fix missing fields or wrong types."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the schema and prompt handle the phone number?",
+      "options": [
+        {
+          "text": "Keep phone as a required string, so that every single lead has a phone number.",
+          "explanation": "That is the bug. A required string forces the model to fill the field, even when the email has no number."
+        },
+        {
+          "text": "Allow string or null, say 'null if no phone given', and check it in code.",
+          "explanation": "Right. OpenAI emulates optional fields with a union with null and advises saying what to return when the input does not fit. Gemini says to validate values.",
+          "correct": true
+        },
+        {
+          "text": "Add more examples in the prompt that all include a phone number.",
+          "explanation": "Examples that always have a phone teach the model that a phone is always there. That makes invention more likely."
+        },
+        {
+          "text": "Remove the phone field from the CRM.",
+          "explanation": "The business needs phone numbers when they exist. Fix the schema, not the product."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the plan field be designed?",
+      "options": [
+        {
+          "text": "A free-text string, cleaned up by the sales team each month.",
+          "explanation": "Free text is how the three spellings appeared. Manual cleanup does not scale."
+        },
+        {
+          "text": "Two fields, plan and plan_name, so the model can choose either.",
+          "explanation": "Two overlapping fields create more variants, not fewer."
+        },
+        {
+          "text": "An enum (starter, team, enterprise), compared case-insensitively in code.",
+          "explanation": "Right. Enums fix the set of values. Claude may vary capitalization, so its docs say to compare enum values case-insensitively.",
+          "correct": true
+        },
+        {
+          "text": "An enum, and trust the exact casing, because structured outputs guarantee it.",
+          "explanation": "The Claude docs say structured outputs don't guarantee the capitalization of enum values."
+        }
+      ]
+    },
+    {
+      "prompt": "After the switch, a few replies still don't match the schema. What should the code check first?",
+      "options": [
+        {
+          "text": "Whether the model needs a larger context window for these requests.",
+          "explanation": "The context window is not the usual reason for a schema mismatch. Check the stop reason first."
+        },
+        {
+          "text": "Whether the JSON Schema has a syntax error.",
+          "explanation": "A bad schema causes an API error on every call, not a few mismatched replies."
+        },
+        {
+          "text": "Whether to switch back to plain prompting.",
+          "explanation": "Plain prompting has no enforcement at all. The known edge cases can be detected and handled."
+        },
+        {
+          "text": "The stop reason: a refusal, or a reply cut off by the token limit.",
+          "explanation": "Right. Both vendors list refusals and hitting the max tokens limit as cases where output may not match the schema.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

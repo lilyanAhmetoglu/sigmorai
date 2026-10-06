@@ -1,0 +1,88 @@
+---
+id: builder/r3/c2/lesson
+title: Chunking
+minutes: 9
+sources:
+  - kind: blog
+    title: Introducing Contextual Retrieval (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/contextual-retrieval
+  - kind: docs
+    title: Embeddings (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/embeddings
+  - kind: docs
+    title: Retrieval (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/retrieval
+  - kind: docs
+    title: File Search (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/file-search
+---
+
+Chapter 1 turned text into vectors. But you don't embed a 300-page manual as one vector. You cut it into pieces first. Those pieces are called chunks, and how you cut them decides what search can find later.
+
+## Where chunking fits
+
+Anthropic's Contextual Retrieval post describes the basic RAG preparation in three steps:
+
+1. Break the knowledge base into "smaller chunks of text, usually no more than a few hundred tokens".
+2. Use an embedding model to turn each chunk into a vector.
+3. Store the vectors in a vector database that can search by meaning.
+
+At question time, the system finds the chunks closest to the question and adds them to the prompt. So the chunk is the unit you retrieve. If the answer is split badly, no search setting can put it back together.
+
+## Three choices: size, boundary, overlap
+
+The same post names the three choices: "The choice of chunk size, chunk boundary, and chunk overlap can affect retrieval performance."
+
+- **Size:** how many tokens go in each chunk.
+- **Boundary:** where a cut is allowed to fall.
+- **Overlap:** how many tokens two neighbouring chunks share. Overlap can keep text near a cut whole in one chunk, if the text is no longer than the overlap.
+
+Example: a refund rule starts at the end of one chunk and finishes at the start of the next. With no overlap, neither chunk holds the whole rule. With overlap at least as long as the rule, one chunk can hold all of it.
+
+## What the managed tools do
+
+You don't always write a chunker yourself. OpenAI and Gemini both chunk files for you when you add them to their managed stores.
+
+**OpenAI vector stores.** When you add a file, it is "automatically chunked, embedded, and indexed". By default, files are split into 800-token chunks, with 400-token overlap between consecutive chunks. So if chunk 1 covers tokens 1 to 800, chunk 2 starts at token 401. You can change this with `chunking_strategy`:
+
+- `max_chunk_size_tokens` must be between 100 and 4096 inclusive.
+- `chunk_overlap_tokens` must be non-negative and "should not exceed `max_chunk_size_tokens / 2`".
+
+**Gemini File Search.** Imported files are "automatically broken down into chunks, embedded, indexed". For more control, a `chunking_config` sets a maximum number of tokens per chunk and a maximum number of overlapping tokens. The docs' example uses `white_space_config` with `max_tokens_per_chunk: 200` and `max_overlap_tokens: 20`.
+
+Treat the defaults as a starting point. For its own settings, such as how many chunks to retrieve, Anthropic's post advises experimenting on your use case.
+
+## The lost-context problem
+
+A chunk is cut out of its document, so it can lose its surroundings. Anthropic's example, from a set of company filings: a chunk says "The company's revenue grew by 3% over the previous quarter."
+
+The question is: "What was the revenue growth for ACME Corp in Q2 2023?" The chunk holds the answer, but it never names the company or the quarter. In Anthropic's words, it "doesn't specify which company it's referring to or the relevant time period". Search may miss it, and the model may not know it is the right one.
+
+## Fix 1: add context to each chunk
+
+Anthropic's answer is Contextual Retrieval: "prepending chunk-specific explanatory context to each chunk before embedding". The chunk above becomes:
+
+"This chunk is from an SEC filing on ACME corp's performance in Q2 2023; the previous quarter's revenue was $314 million. The company's revenue grew by 3% over the previous quarter."
+
+Anthropic does not write these by hand; it says that would be far too much work. A model reads the whole document plus one chunk and writes a short context, "usually 50-100 tokens". The same text is added before embedding and before building the keyword index.
+
+The cost stays low because the document is the same for every chunk. With prompt caching (chapter 4), Anthropic loads the document into the cache once. With its stated assumptions (800-token chunks, 8k-token documents, 50 tokens of instructions and 100 tokens of context per chunk), it estimates a one-time cost of $1.02 per million document tokens.
+
+In Anthropic's tests, contextual embeddings cut the top-20 retrieval failure rate by 35% (5.7% to 3.7%). The post also notes what did not help much: adding generic document summaries to chunks gave "very limited gains".
+
+## Fix 2: an embedding model that sees the document
+
+Some embedding models handle context themselves. The Claude docs list Voyage AI's contextualized chunk models, such as `voyage-context-4`. They "produce chunk-level vectors that capture full document context without manual metadata augmentation." You call them with `contextualized_embed()` instead of `embed()`.
+
+## Labels for filtering
+
+Chunks can also carry labels that are not part of the text. OpenAI lets each file in a vector store have `attributes`, at most 16 keys, which search can filter on. Gemini File Search lets you add `custom_metadata` key-value pairs to files. Example: label each handbook with its country, so a question from Spain only searches Spanish policies.
+
+## Key points
+
+- Chunks are the unit you retrieve. Anthropic: usually no more than a few hundred tokens.
+- Size, boundary and overlap all affect retrieval. Overlap can keep text near a cut whole in one chunk, if the text is no longer than the overlap.
+- OpenAI's default is 800-token chunks with 400-token overlap; size 100 to 4096, overlap at most half. Gemini File Search takes a `chunking_config`.
+- A chunk can lose the facts that make it findable, such as the company name or the date.
+- Contextual Retrieval adds 50 to 100 tokens of model-written context to each chunk. Prompt caching keeps that cheap.
+- Contextualized embedding models such as `voyage-context-4` capture document context without that extra step.

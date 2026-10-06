@@ -1,0 +1,96 @@
+{
+  "id": "builder/r2/c5/challenge",
+  "title": "Three calls, one answer",
+  "scenario": "A travel assistant built on Claude has two tools: `search_flights` (read-only) and `book_flight` (charges the customer's card). A user asks: \"Find Friday flights from Berlin to Rome and to Madrid, and book the cheaper one.\" The model's reply contains three tool calls (exhibit). The team's loop crashed on this request. Later, after a refactor, they also notice the model has stopped making parallel calls at all.",
+  "exhibit": "ASSISTANT (one reply, stop_reason: tool_use)\n  [toolu_a1] search_flights(from=\"BER\", to=\"FCO\", date=\"Fri\")\n  [toolu_a2] search_flights(from=\"BER\", to=\"MAD\", date=\"Fri\")\n  [toolu_a3] book_flight(flight_id=\"cheapest\")\n\nYOUR CODE\n  ran toolu_a1 only\n  sent: user message [tool_result toolu_a1]\n\nAPI ERROR 400\n  tool_use ids were found without tool_result blocks immediately after: toolu_a2, toolu_a3\n\nAFTER REFACTOR (different request)\n  user message [tool_result toolu_b1]\n  user message [tool_result toolu_b2]",
+  "questions": [
+    {
+      "prompt": "Why did the API return the 400 error?",
+      "options": [
+        {
+          "text": "The model is not allowed to call the same tool twice in one reply.",
+          "explanation": "Several calls in one reply are normal, even to the same tool: OpenAI's sample response calls `get_weather` twice. The error names missing results, not duplicate calls."
+        },
+        {
+          "text": "`book_flight` was called with an invalid flight id.",
+          "explanation": "An invalid id would be your tool's problem to report in its result. The API error is about results that were never sent."
+        },
+        {
+          "text": "The code ran only the first call, so two calls had no result.",
+          "explanation": "Right. The Claude docs say to return one `tool_result` for each `tool_use` block, all in the next user message.",
+          "correct": true
+        },
+        {
+          "text": "The results were sent too slowly, after the request timed out.",
+          "explanation": "The error message lists ids with no result. It is about what was sent, not when."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the code run the two `search_flights` calls?",
+      "options": [
+        {
+          "text": "Run only one of them and ask the model to repeat the other next round.",
+          "explanation": "Each call still needs a result now. Skipping one without an error result breaks the format and wastes a round."
+        },
+        {
+          "text": "Merge them into one search for both cities and return one combined result.",
+          "explanation": "Each call has its own id and expects its own result. Merging them breaks the one-result-per-call rule."
+        },
+        {
+          "text": "Always run them one after the other, because parallel execution is never safe.",
+          "explanation": "The Claude docs say independent, read-only operations are usually safe to run in parallel."
+        },
+        {
+          "text": "Run them at the same time: they are independent and read-only.",
+          "explanation": "Right. The Claude docs say independent, read-only operations are usually safe to run in parallel for lower latency.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "`book_flight` needs the search results first, but it arrived in the same batch. What should the code do with it?",
+      "options": [
+        {
+          "text": "Don't run it. Return an error result saying it needs a flight id from the search.",
+          "explanation": "Right. The Claude docs say a skipped call still gets an `is_error: true` result. They also suggest the prompt line \"Only batch tool calls that are independent of each other.\"",
+          "correct": true
+        },
+        {
+          "text": "Run it right away with flight id \"cheapest\" and let the booking system work it out.",
+          "explanation": "This tool charges a card. Running it on a placeholder id is an action with side effects on guessed input."
+        },
+        {
+          "text": "Drop the call silently and send results only for the two searches.",
+          "explanation": "Every call needs a result. A missing one causes the same 400 error as before."
+        },
+        {
+          "text": "Wait for the searches, pick the cheaper flight in your code, and book it without telling the model.",
+          "explanation": "Your code would make the booking decision behind the model's back, and the model's call would still have no result."
+        }
+      ]
+    },
+    {
+      "prompt": "After the refactor, the model stopped making parallel calls. What is the likely cause?",
+      "options": [
+        {
+          "text": "Parallel calls are only available on request, and the refactor removed the setting.",
+          "explanation": "The Claude docs say parallel tool use is on by default. You turn it off, not on."
+        },
+        {
+          "text": "Results are now sent as one user message per result.",
+          "explanation": "Right. The Claude docs call this the most common issue: it \"teaches\" Claude to avoid parallel calls. Send all results in one user message.",
+          "correct": true
+        },
+        {
+          "text": "The tools are now too fast, so the model sees no reason to batch.",
+          "explanation": "Tool speed is not a cause the docs list. The exhibit shows the change that matters: one user message per result."
+        },
+        {
+          "text": "The system prompt is too long for parallel calls to fit.",
+          "explanation": "Prompt length is not a listed cause. The exhibit shows the formatting change."
+        }
+      ]
+    }
+  ]
+}

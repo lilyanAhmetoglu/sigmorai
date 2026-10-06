@@ -1,0 +1,96 @@
+{
+  "id": "builder/r1/c2/challenge",
+  "title": "The classifier that loves software",
+  "scenario": "A finance team uses a model to label expense lines as travel, software, office or other. The labels feed a monthly report that a script parses. In production, far too many lines are labelled software, the label 'other' almost never appears, and about one reply in five starts with 'Category:' and breaks the script. You review the examples in the prompt (exhibit).",
+  "exhibit": "Label the expense line as travel, software, office, or other.\n\n<examples>\n<example>\nInput: Annual licence, design tool\nOutput: software\n</example>\n<example>\nInput: Cloud storage plan, 12 months\nOutput: software\n</example>\n<example>\nInput: Flight to Berlin, sales visit\nOutput: travel\n</example>\n<example>\nInput: Code editor subscription\nOutput: Category: software\n</example>\n</examples>\n\nInput: {expense_line}\nOutput:",
+  "questions": [
+    {
+      "prompt": "Why does the model over-use 'software' and almost never answer 'other'?",
+      "options": [
+        {
+          "text": "Most examples are software and none show office or other, so the model copies that skew.",
+          "explanation": "Right. The examples are not diverse. The Claude docs say to cover edge cases and vary examples so the model doesn't pick up unintended patterns.",
+          "correct": true
+        },
+        {
+          "text": "Models are trained to prefer whichever label is listed first or most often in the instruction.",
+          "explanation": "'travel' is listed first, yet 'software' dominates. The pattern matches the examples, not the label order."
+        },
+        {
+          "text": "The word 'other' is too vague for the model to ever choose it.",
+          "explanation": "A vague label can be harder, but the bigger signal is that no example ever shows 'other' being used."
+        },
+        {
+          "text": "The prompt is too short. Longer prompts always classify more evenly.",
+          "explanation": "Length is not the issue. Four skewed examples would stay skewed inside a longer prompt."
+        }
+      ]
+    },
+    {
+      "prompt": "What is the best change to the example set?",
+      "options": [
+        {
+          "text": "Add 40 more software and travel examples so the model sees more data.",
+          "explanation": "That keeps the skew and adds cost. Gemini also warns that too many examples can cause overfitting."
+        },
+        {
+          "text": "Delete all examples and add 'Use all four labels evenly'.",
+          "explanation": "Real expenses are not evenly spread, so 'evenly' is the wrong goal. Removing examples also loses the format signal."
+        },
+        {
+          "text": "Fine-tune a model on last year's labelled expenses first.",
+          "explanation": "OpenAI presents few-shot prompting as a way to steer a model without fine-tuning. Fix the examples first; fine-tuning is a bigger, slower step."
+        },
+        {
+          "text": "Use 4–5 examples: one per label, a hard 'other' case, one format.",
+          "explanation": "Right. Relevant, diverse and consistent, in the 3–5 range the Claude docs suggest.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Why do some replies start with 'Category:'?",
+      "options": [
+        {
+          "text": "The model adds labels when it is unsure of the answer.",
+          "explanation": "The prefix is a format choice, and the exhibit shows where it came from."
+        },
+        {
+          "text": "One example's output says 'Category: software', so the examples show two formats.",
+          "explanation": "Right. Gemini's docs say examples must share the same structure and formatting to avoid undesired formats.",
+          "correct": true
+        },
+        {
+          "text": "The script reads the output in the wrong text encoding.",
+          "explanation": "The model really writes the prefix. The fourth example taught it to."
+        },
+        {
+          "text": "The instruction line is missing the word 'only', so the model feels free to add text.",
+          "explanation": "'Output only the label' would help a little, but the examples would still contradict it. Fix the example first."
+        }
+      ]
+    },
+    {
+      "prompt": "The team plans to try an OpenAI reasoning model for this task. What does OpenAI's reasoning guide suggest?",
+      "options": [
+        {
+          "text": "Double the number of examples, since reasoning models need more data.",
+          "explanation": "The guide says the opposite: reasoning models often don't need few-shot examples."
+        },
+        {
+          "text": "Remove the label list from the instructions, since the examples already show it.",
+          "explanation": "The guide asks for examples that match the instructions, not examples that replace them."
+        },
+        {
+          "text": "Try zero-shot first; if examples return, keep them closely matched to the instructions.",
+          "explanation": "Right. 'Try zero shot first, then few shot if needed', and discrepancies between examples and instructions may produce poor results.",
+          "correct": true
+        },
+        {
+          "text": "Move the examples into the user message so the model treats them as real customer inputs.",
+          "explanation": "OpenAI places examples in the developer message. Examples in the user message blur demo and real input."
+        }
+      ]
+    }
+  ]
+}

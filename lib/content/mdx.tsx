@@ -11,7 +11,8 @@ import * as runtime from 'react/jsx-runtime';
  * `content:check`:
  *   - it starts at `##` (the page owns the one h1, the lesson title);
  *   - no import / export and no `{…}` expressions (no JavaScript at all);
- *   - the only component is <DialogBox>;
+ *   - the only component is <DialogBox> (a blog post: none at all, see
+ *     `allowedComponents`);
  *   - a lowercase tag must be on ALLOWED_TAGS (text and table tags only: no
  *     <script>, <style>, <iframe>, <img>, <form>…), with only SAFE_ATTRIBUTES;
  *   - every link is https:, relative or #anchor (no javascript:, data:, http:);
@@ -24,7 +25,11 @@ export const LESSON_COMPONENTS = ['DialogBox'] as const;
 export type LessonComponents = Record<(typeof LESSON_COMPONENTS)[number], MDXComponents[string]> &
   MDXComponents;
 
-const ALLOWED_COMPONENTS: ReadonlySet<string> = new Set(LESSON_COMPONENTS);
+/** A blog post body: plain Markdown only, so no NPC <DialogBox>. */
+export const NO_COMPONENTS = [] as const;
+
+/** Which components a body may use. Defaults to the lesson's. */
+export type BodyOptions = { allowedComponents?: readonly string[] };
 /**
  * The only lowercase tags a body may write as JSX (SIG-27: an allowlist, not
  * a blocklist). Markdown itself only makes these. Anything else, such as
@@ -92,7 +97,14 @@ type BodyNode = {
 };
 
 /** Every broken body rule, with its line in the body. Pure. */
-export function lessonBodyProblems(tree: BodyNode): string[] {
+export function lessonBodyProblems(
+  tree: BodyNode,
+  { allowedComponents = LESSON_COMPONENTS }: BodyOptions = {},
+): string[] {
+  const allowed = new Set(allowedComponents);
+  const only = allowedComponents.length
+    ? `Only ${allowedComponents.map((c) => `<${c}>`).join(', ')} ${allowedComponents.length > 1 ? 'are' : 'is'}.`
+    : 'No components are.';
   const problems: string[] = [];
   const walk = (node: BodyNode, line?: number) => {
     const at = `body line ${node.position?.start.line ?? line ?? '?'}`;
@@ -133,8 +145,8 @@ export function lessonBodyProblems(tree: BodyNode): string[] {
         if (node.name == null) break;
         const name = node.name;
         if (/^[A-Z]/.test(name)) {
-          if (!ALLOWED_COMPONENTS.has(name)) {
-            problems.push(`${at}: <${name}> is not allowed. Only <DialogBox> is.`);
+          if (!allowed.has(name)) {
+            problems.push(`${at}: <${name}> is not allowed. ${only}`);
           }
         } else if (!ALLOWED_TAGS.has(name)) {
           problems.push(`${at}: <${name}> is not allowed in a lesson body.`);
@@ -172,31 +184,46 @@ function tagAttributeProblems(node: BodyNode, at: string): string[] {
 }
 
 /** Remark plugin: fails the compile when a body rule is broken. */
-function lessonRules() {
-  return (tree: BodyNode) => {
-    const problems = lessonBodyProblems(tree);
+function lessonRules(options: BodyOptions) {
+  return () => (tree: BodyNode) => {
+    const problems = lessonBodyProblems(tree, options);
     if (problems.length) throw new Error(problems.join('\n'));
   };
 }
 
 /** For `content:check`: throws (bad MDX or a broken body rule) or resolves. */
-export async function compileLesson(body: string): Promise<void> {
-  await compile(body, { remarkPlugins: [lessonRules] });
+export async function compileLesson(body: string, options: BodyOptions = {}): Promise<void> {
+  await compile(body, { remarkPlugins: [lessonRules(options)] });
 }
 
-/** One compile per body per request (generateMetadata and the page may both ask). */
-const evaluateLesson = cache(async (body: string): Promise<MDXContent> => {
+/**
+ * One compile per body per request (generateMetadata and the page may both
+ * ask). `allowed` is a joined string so the cache key is a value, not an array.
+ */
+const evaluateLesson = cache(async (body: string, allowed: string): Promise<MDXContent> => {
+  const allowedComponents = allowed ? allowed.split(',') : [];
   const mod = await evaluate(body, {
     ...runtime,
     development: false,
     baseUrl: import.meta.url,
-    remarkPlugins: [lessonRules],
+    remarkPlugins: [lessonRules({ allowedComponents })],
   });
   return mod.default;
 });
 
-/** The rendered body, with the caller's components (DialogBox at least). */
-export async function renderLesson(body: string, components: LessonComponents): Promise<ReactNode> {
-  const Content = await evaluateLesson(body);
+/** A lesson body, with the caller's components (DialogBox at least). */
+export async function renderLesson(body: string, components: LessonComponents): Promise<ReactNode>;
+/** Any body with its own component allowlist (a blog post: NO_COMPONENTS). */
+export async function renderLesson(
+  body: string,
+  components: MDXComponents,
+  options: Required<BodyOptions>,
+): Promise<ReactNode>;
+export async function renderLesson(
+  body: string,
+  components: MDXComponents,
+  { allowedComponents = LESSON_COMPONENTS }: BodyOptions = {},
+): Promise<ReactNode> {
+  const Content = await evaluateLesson(body, allowedComponents.join(','));
   return <Content components={components} />;
 }

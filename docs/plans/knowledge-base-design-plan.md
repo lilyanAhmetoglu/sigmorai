@@ -8,6 +8,21 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (blog pages, SIG-22)
+
+Devil-reviewed plan for SIG-22. Layered on top; the Blog table below stays for history. No DB change.
+
+| Topic         | Decision                                                                                                                                                                                                                                           | Replaces                                        |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Frontmatter   | `title, description, lesson` (`BlogFrontmatterSchema`; `lesson` is a `…/lesson` id). The date and slug come from the file name. The page is `/blog/<slug>`, so a slug is used once.                                                                | —                                               |
+| Sources       | A post has no `sources` field. It cites via `lesson:`; the post page lists that lesson's sources. Why: one list, no drift between lesson and post.                                                                                                 | "same date-slug and same sources as the lesson" |
+| Body          | Plain Markdown, plain product voice. **No `<DialogBox>`** in a post: the renderer and `content:check` allow no components.                                                                                                                         | —                                               |
+| Validation    | `bun run content:check` validates every post: schema, MDX body with no components, the linked lesson has a file, no duplicate slug.                                                                                                                | posts skipped by the validator                  |
+| Pages         | In the `(marketing)` group, prerendered at build time: `/blog` (list), `/blog/<slug>` (`generateStaticParams`, `dynamicParams = false`). RSS 2.0 at `/blog/feed.xml` from a pure builder (`lib/content/feed.ts`, no feed package), `force-static`. | "Static, public, indexed. RSS feed + sitemap"   |
+| Not in SIG-22 | No tags (revisit past ~10 posts). Sitemap, OG images and robots move to SIG-24 / SIG-34; SIG-22 exports `listBlogPosts()` for them.                                                                                                                | sitemap entries in this ticket                  |
+| Entry point   | A BLOG link in the site footer only (footer nav label "Legal" → "Footer").                                                                                                                                                                         | —                                               |
+| Seed          | One hand-written seed post for a merged realm-01 lesson (`builder/r1/c1/lesson`).                                                                                                                                                                  | —                                               |
+
 ## Amendments locked 2026-10-05 (content validator)
 
 Layered on top; nothing below is rewritten except the docs-host name in the source-kinds table.

@@ -1,7 +1,14 @@
-import type { ChoiceState, LevelStatus, QuestErrorCode, QuestStatus, Track } from '@/lib/types';
+import type {
+  ChoiceState,
+  ExerciseRef,
+  LevelStatus,
+  QuestErrorCode,
+  QuestStatus,
+  Track,
+} from '@/lib/types';
 import { QUICK_CHECK_QUESTIONS } from './content';
-import { FRONTIER, MATH_TOWER } from './curriculum';
-import { CHAPTER_COUNT } from './exercises';
+import { FRONTIER } from './curriculum';
+import { CHAPTER_COUNT, MATH_AREA } from './exercises';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
 /**
@@ -44,6 +51,9 @@ export const SHELL_TEXT = {
   menu: 'Menu',
   footerLeft: 'SIGMORAI.COM',
   footerRight: 'LEARN · BUILD · ASCEND',
+  footerBlog: 'BLOG',
+  footerPrivacy: 'PRIVACY',
+  footerNavLabel: 'Footer',
 } as const;
 
 export const HUD_TEXT = {
@@ -75,8 +85,7 @@ const HERO_NAME_RULE = `${HERO_NAME_MIN}–${HERO_NAME_MAX} characters: letters,
 export const ONBOARDING_TEXT = {
   title: 'Create your hero',
   panel: 'NEW HERO',
-  intro:
-    "Pick a hero name and a path. Your hero name shows on the leaderboard. You can't change your path yet.",
+  intro: 'Pick a hero name and a path. Your hero name shows on the leaderboard.',
   sprite: 'YOUR SPRITE',
   spriteHint: 'Drawn from your hero name. Same name, same sprite.',
   heroName: 'HERO NAME',
@@ -87,7 +96,7 @@ export const ONBOARDING_TEXT = {
   beginnerHint:
     'No code on either path. New to AI, or using it at work? Pick strategist. Want to design AI systems? Pick builder.',
   trackError: 'Pick a path.',
-  submitNote: "You can't change your path yet. Your hero name is public.",
+  submitNote: 'You can change your path later on your profile. Your hero name is public.',
   submit: 'Start',
   submitting: 'Saving…',
   unauthorized: 'Your session ended. Sign in again.',
@@ -106,6 +115,36 @@ export const PROFILE_TEXT = {
   totalXp: 'TOTAL XP',
   level: 'LEVEL',
   noXp: 'No XP yet. You earn XP by clearing lessons, cases and quick checks.',
+  pathPanel: 'YOUR PATH',
+  pathLegend: 'Choose your path',
+  pathNote: 'Your progress on each path is kept. XP, level and streak are shared.',
+  pathSave: 'Save path',
+  pathSaving: 'Saving…',
+  pathSaved: 'Path saved.',
+  pathCurrent: 'Current path',
+  pathUnsaved: 'Not saved yet.',
+  pathInvalid: 'Pick a path.',
+  pathUnauthorized: 'Your session ended. Sign in again.',
+  pathNotOnboarded: 'Set up your hero first.',
+  pathServerError: "Your path wasn't saved. Try again in a moment.",
+  dataPanel: 'YOUR DATA',
+  dataIntro:
+    'Download a copy of everything we store about you, or delete your account. What we store, and why, is on the',
+  privacyLink: 'privacy page',
+  downloadHeading: 'Download',
+  download: 'Download my data',
+  downloadNote: 'A JSON file: your hero, progress, graded answers and XP history.',
+  deleteHeading: 'Delete account',
+  deleteBody:
+    "This deletes your hero, progress, graded answers, XP and your sign-in account. Your name leaves the leaderboard. This can't be undone.",
+  deleteConfirm: "I understand this can't be undone.",
+  deleteSubmit: 'Delete my account',
+  deleting: 'Deleting…',
+  deleteNotConfirmed: 'Tick the box first.',
+  deleteUnauthorized: 'Your session ended. Sign in again.',
+  deleteServerError: 'Nothing was deleted. Try again in a moment.',
+  deleteClerkError:
+    'Your game data is deleted, but your sign-in account is not. Tick the box and press delete again to finish.',
   loading: 'Loading your profile',
   error: "Your profile didn't load. Try again in a moment.",
   retry: 'Retry',
@@ -136,9 +175,11 @@ export const QUEST_TEXT = {
   notifications: 'Notifications',
   noticeHeading: 'Quest',
   notAvailable: 'This step is not available yet.',
-  notAvailableHint: `${MATH_TOWER.name} and ${FRONTIER.name} steps open later.`,
+  notAvailableHint: `${FRONTIER.name} steps open later.`,
   // Tags: "BOOTSTRAP VILLAGE · CHAPTER 1 · CASE"
   chapterTag: (n: number) => `CHAPTER ${n}`,
+  // "MATH TOWER · FLOOR 2 · QUICK CHECK"
+  floorTag: (n: number) => `FLOOR ${n}`,
   bossTag: 'BOSS',
   lessonTag: 'LESSON',
   // Lesson page: LESSON | SOURCES tabs, then the "Lesson done" panel.
@@ -162,7 +203,7 @@ export const QUEST_TEXT = {
   caseTag: 'CASE',
   quickCheckTag: 'QUICK CHECK',
   quickCheckTitle: 'Quick check',
-  quickCheckIntro: `${QUICK_CHECK_QUESTIONS} questions on this chapter. Get them all right for XP. It costs no HP.`,
+  quickCheckIntro: `${QUICK_CHECK_QUESTIONS} questions on the lesson. Get them all right for XP. It costs no HP.`,
   caseFile: 'CASE FILE',
   exhibit: 'EXHIBIT',
   questionsLabel: 'Questions',
@@ -196,9 +237,10 @@ export const QUEST_TEXT = {
   /** The action may have finished (and spent HP) before the reply was lost. */
   noReply: 'No reply from the server. Reload the page to see your HP and result.',
   locked: 'LOCKED',
-  /** The back link (questBackHref): the quest's realm page, which lists every step. */
+  /** The back link (questBackHref): the realm page, or the tower page for a Math Tower floor. */
   backIcon: '◂',
-  back: 'Back to realm',
+  back: (area: ExerciseRef['area'] | undefined) =>
+    area === MATH_AREA ? 'Back to tower' : 'Back to realm',
   loading: 'Loading the quest',
   loadError: "The quest didn't load. Try again in a moment.",
   retry: 'Retry',
@@ -206,5 +248,7 @@ export const QUEST_TEXT = {
 
 /** NOT_OPEN for chapter N: the chapter before it is not cleared. */
 export const notOpenText = (previousChapter: number) => `Clear chapter ${previousChapter} first.`;
+/** NOT_OPEN for Math Tower floor N: floor N−1's quick check is not cleared. */
+export const floorNotOpenText = (previousFloor: number) => `Clear floor ${previousFloor} first.`;
 /** NOT_OPEN for a boss. */
 export const BOSS_NOT_OPEN_TEXT = `Clear all ${CHAPTER_COUNT} chapters first.`;

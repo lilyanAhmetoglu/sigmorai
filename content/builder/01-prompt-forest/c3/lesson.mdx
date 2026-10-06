@@ -1,0 +1,119 @@
+---
+id: builder/r1/c3/lesson
+title: Structure the prompt
+minutes: 9
+sources:
+  - kind: docs
+    title: Prompting best practices (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: docs
+    title: Prompt engineering (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/prompt-engineering
+  - kind: docs
+    title: Reasoning best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/reasoning-best-practices
+  - kind: docs
+    title: Prompt design strategies (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/prompting-strategies
+---
+
+A real production prompt is not one sentence. It mixes a role, rules, examples, documents and the user's question. To the model, it is all one stream of tokens. Structure tells it where each part starts and ends.
+
+## Two tools: tags and Markdown
+
+All three vendors recommend XML-style tags. OpenAI and Gemini also recommend Markdown headings.
+
+- **XML-style tags.** The Claude docs: tags "help Claude parse complex prompts unambiguously, especially when your prompt mixes instructions, context, examples, and variable inputs". OpenAI: tags "can help delineate where one piece of content (like a supporting document used for reference) begins and ends".
+- **Markdown headings and lists.** OpenAI: they "can be helpful to mark distinct sections of a prompt, and to communicate hierarchy to the model".
+
+Gemini names both: "XML-style tags (e.g., `<context>`, `<task>`) or Markdown headings are effective." It adds a rule worth keeping: "Choose one format and use it consistently within a single prompt."
+
+OpenAI's reasoning guide gives the same advice for reasoning models: "Use delimiters like markdown, XML tags, and section titles".
+
+Example: a prompt that uses Markdown headings for its sections and tags only around data.
+
+```text
+# Identity
+You are a contract-review assistant for a legal team.
+
+# Instructions
+1. Answer only from the contract.
+2. Name the clause number for each point.
+
+# Context
+<contract>
+...60 pages of contract text...
+</contract>
+```
+
+## A common section order
+
+OpenAI suggests that a developer message usually has these sections, "usually in this order (though the exact optimal content and order may vary by which model you are using)":
+
+1. **Identity**: purpose, style, goals.
+2. **Instructions**: the rules, what to do and never do.
+3. **Examples**: inputs with the desired outputs.
+4. **Context**: extra data for this request, "usually best positioned near the end of your prompt, as you may include different context for different generation requests".
+
+Gemini's template follows a similar idea: role, instructions, constraints and output format in the system instruction, then the context, then the task.
+
+## Static first, changing parts last
+
+OpenAI links order to cost: keep content "you expect to use over and over in your API requests at the beginning of your prompt" to get the most from prompt caching. Realm 0 showed why: caching works on a repeated prefix.
+
+Example: the identity, rules and examples are the same for every request. Put them first. The user's question changes every time. Put it last.
+
+## Long documents: put the question after them
+
+With big inputs, both Anthropic and Google say the documents go first and the question goes at the end.
+
+- Claude docs, for inputs of 20k+ tokens: "Place your long documents and inputs near the top of your prompt, above your query, instructions, and examples." They add: "Queries at the end can improve response quality by up to 30 percent in tests, especially with complex, multidocument inputs."
+- Gemini docs: "supply all the context first. Place your specific instructions or questions at the very _end_ of the prompt." Gemini also suggests a bridge phrase after the data, such as "Based on the information above...".
+
+The vendors differ here. Claude puts long documents above the instructions. OpenAI's general order puts context after the instructions; its guide has no separate rule for long documents. Both keep the variable data apart from the rules. If your prompt has long documents, test both orders on your model.
+
+## Label every document
+
+When there is more than one document, give each one its own wrapper and metadata. The Claude docs suggest wrapping each document "in `<document>` tags with `<document_content>` and `<source>` (and other metadata) subtags", and nesting them inside `documents`.
+
+```xml
+<documents>
+  <document index="1">
+    <source>contract_acme_2025.pdf</source>
+    <document_content>...</document_content>
+  </document>
+  <document index="2">
+    <source>contract_globex_2024.pdf</source>
+    <document_content>...</document_content>
+  </document>
+</documents>
+```
+
+Now the model, and your code, can say which document a fact came from. Chapter 6 builds on this for citations.
+
+## Names and nesting
+
+The Claude docs give two habits:
+
+- "Use consistent, descriptive tag names across your prompts."
+- "Nest tags when content has a natural hierarchy".
+
+Example: do not call the same thing `doc` in one prompt, `contract` in another and `file` in a third. Pick `contract` and use it everywhere, including in the instructions ("Answer only from the text in the contract tags").
+
+## Your prompt's style leaks into the output
+
+The Claude docs: "The formatting style used in your prompt may influence Claude's response style." Their example: "removing markdown from your prompt can reduce the volume of markdown in the output."
+
+OpenAI notes a related default: reasoning models in the API avoid Markdown in replies unless the developer message's first line includes `Formatting re-enabled`.
+
+Example: a voice assistant must reply in plain sentences. A prompt full of bullet lists and bold text pulls the replies toward lists too.
+
+## Key points
+
+- Structure tells the model where each part starts and ends.
+- Use XML-style tags, Markdown headings, or both, but consistently.
+- A common order: identity, instructions, examples, context.
+- Static parts first (good for caching); the changing parts last.
+- Long documents: put them before the question. Claude and Gemini both say so.
+- Wrap each document with its source. Use consistent, descriptive tag names.
+- The format of the prompt can shape the format of the reply.

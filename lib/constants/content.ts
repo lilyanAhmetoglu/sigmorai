@@ -43,7 +43,13 @@ export const CASE_OPTIONS = { min: 4, max: 4 } as const;
 /** `sourceHash` in lesson frontmatter: a lowercase hex SHA-256 of the cited pages. */
 export const SOURCE_HASH_PATTERN = /^[a-f0-9]{64}$/;
 
-/** Dated blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx (no schema until step 8). */
+/**
+ * Dated blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx. Frontmatter is
+ * BlogFrontmatterSchema (lib/types/content.ts); loaded by lib/content/load.ts
+ * and checked by `content:check` like a lesson.
+ */
 export const BLOG_AREA = 'blog';
+/** A blog post's file extension. */
+export const BLOG_POST_EXT = '.mdx';
 /** Authoring notes inside content/; not content, skipped by the validator. */
 export const CONTENT_NOTES_FILE = 'CLAUDE.md';

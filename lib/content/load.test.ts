@@ -1,7 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 import { REALM_COUNT, TRACKS } from '@/lib/constants';
 import { CaseSchema, LessonFrontmatterSchema, QuickCheckSchema } from '@/lib/types';
-import { ContentError, loadCase, loadLesson, loadQuickCheck, loadTrackOutline } from './load';
+import {
+  ContentError,
+  listBlogPosts,
+  loadBlogPost,
+  loadCase,
+  loadLesson,
+  loadQuickCheck,
+  loadTrackOutline,
+  parseMdx,
+} from './load';
 
 const VALID = `${import.meta.dir}/__fixtures__/valid`;
 const BROKEN = `${import.meta.dir}/__fixtures__/broken`;
@@ -178,5 +187,63 @@ describe('loadTrackOutline', () => {
 
   test('a missing outline is a "missing" ContentError', async () => {
     expect((await failure(loadTrackOutline('builder', VALID))).code).toBe('missing');
+  });
+});
+
+describe('parseMdx', () => {
+  test('splits frontmatter YAML from the body', () => {
+    const { raw, body } = parseMdx('---\ntitle: A\n---\n## Body\n', 'x.mdx');
+    expect(raw).toEqual({ title: 'A' });
+    expect(body).toBe('## Body\n');
+  });
+
+  test('no frontmatter block, or bad YAML, is an invalid ContentError with the file', () => {
+    for (const text of ['## Body', '---\ntitle: [\n---\n']) {
+      let err: unknown;
+      try {
+        parseMdx(text, 'x.mdx');
+      } catch (e) {
+        err = e;
+      }
+      expect(err).toBeInstanceOf(ContentError);
+      expect((err as ContentError).code).toBe('invalid');
+      expect((err as ContentError).message).toStartWith('x.mdx: ');
+    }
+  });
+});
+
+describe('blog posts', () => {
+  test('loadBlogPost: date and slug come from the file name', async () => {
+    const post = await loadBlogPost('fixture-post', VALID);
+    expect(post.date).toBe('2026-10-06');
+    expect(post.slug).toBe('fixture-post');
+    expect(post.frontmatter).toEqual({
+      title: 'Fixture post',
+      description: 'A short post for the loader tests.',
+      lesson: LESSON,
+    });
+    expect(post.body).toContain('## Fixture post');
+  });
+
+  test('an unknown slug is "missing"', async () => {
+    expect((await failure(loadBlogPost('nope', VALID))).code).toBe('missing');
+  });
+
+  test('listBlogPosts: newest first', async () => {
+    const posts = await listBlogPosts(VALID);
+    expect(posts.map((p) => p.slug)).toEqual(['fixture-post', 'older-post']);
+  });
+
+  test('no blog folder is an empty list, not an error', async () => {
+    expect(await listBlogPosts(`${VALID}/builder`)).toEqual([]);
+  });
+
+  test('a bad post fails with the file name and each problem', async () => {
+    const err = await failure(loadBlogPost('fixture-post', BROKEN));
+    expect(err.code).toBe('invalid');
+    expect(err.message).toContain('blog/2026-10-06-fixture-post.mdx');
+    expect(err.message).toContain('description');
+    expect(err.message).toContain('/lesson');
+    expect(err.message).toContain('sources');
   });
 });

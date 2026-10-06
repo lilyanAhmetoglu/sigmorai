@@ -1,0 +1,100 @@
+---
+id: builder/r1/c1/lesson
+title: Be specific
+minutes: 8
+sources:
+  - kind: docs
+    title: Prompting best practices (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: docs
+    title: Prompt engineering (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/prompt-engineering
+  - kind: docs
+    title: Reasoning best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/reasoning-best-practices
+  - kind: docs
+    title: Prompt design strategies (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/prompting-strategies
+---
+
+Realm 0 showed where your instructions go. This realm is about what to write in them. The first rule is simple: a vague prompt makes the model guess. Each guess is a place where the output can drift from what your system needs.
+
+## The new-employee test
+
+The Claude docs give a useful picture: think of the model "as a brilliant but new employee who lacks context on your norms and workflows". It is smart, but it does not know your product, your users or your rules unless you tell it.
+
+The same page gives a "golden rule": "Show your prompt to a colleague with minimal context on the task and ask them to follow it. If they'd be confused, Claude will be too."
+
+Example: "Summarise this support ticket." A new colleague would ask: for whom? How long? Bullets or prose? Should I include the customer's details? Every open question is a guess the model makes for you.
+
+## Say what a good output looks like
+
+The Claude docs say to "be specific about the desired output format and constraints". The Gemini docs say the same in other words: you can specify constraints and the response format, and they advise you to "explicitly explain any ambiguous terms or parameters".
+
+Words like "short", "simple" or "professional" are ambiguous. Replace them with something you can check.
+
+Less specific:
+
+```text
+Summarise this ticket. Keep it short.
+```
+
+More specific:
+
+```text
+Summarise this ticket for a support agent who will read it in 10 seconds.
+Write exactly 3 bullet points: the problem, what the customer already tried,
+and what the customer wants now. Each bullet is at most 15 words.
+```
+
+The second prompt defines the reader, the format, the length and the content. You can now test every output against it.
+
+## Ask for what you want, not what you don't want
+
+The Claude docs list this as a way to steer format: "Tell Claude what to do instead of what not to do". Their example:
+
+- Instead of: "Do not use markdown in your response"
+- Try: "Your response should be composed of smoothly flowing prose paragraphs."
+
+A "don't" removes one option but leaves the model to guess among all the others. A "do" names the target.
+
+Example: instead of "Don't include personal data", write "Refer to the person as 'the customer'. Leave out email addresses and phone numbers, because summaries are shown on a shared screen." This also gives the reason, which realm 0 showed helps the model understand your goal.
+
+## Use steps when order matters
+
+The Claude docs advise giving "instructions as sequential steps using numbered lists or bullet points when the order or completeness of steps matters".
+
+Example: a triage prompt that must first detect the language, then classify the issue, then pick a team. Write it as steps 1, 2 and 3. A paragraph that mentions all three in passing makes it easy for one step to be skipped.
+
+## How much detail depends on the model type
+
+OpenAI describes two model families and how specific to be with each:
+
+- GPT models "benefit from more explicit instructions around how to accomplish tasks". OpenAI compares them to "a junior coworker".
+- Reasoning models are like "a senior co-worker. You can give them a goal to achieve and trust them to work out the details."
+
+Specific does not mean long, though. OpenAI's reasoning guide still says to "provide specific guidelines" (their example: "propose a solution with a budget under $500") and to "be very specific about your end goal". Chapter 4 covers reasoning models in depth.
+
+So for any model, be precise about the goal, the constraints and the output. With a reasoning model, you can leave out the step-by-step method.
+
+## Specific prompts are testable prompts
+
+A specific prompt gives you a clear pass or fail for each output. That is what makes it possible to improve.
+
+OpenAI recommends two habits for production prompts:
+
+- "Pinning your production applications to specific model snapshots" to keep behaviour consistent.
+- "Building tests and evaluation suites that measure prompt behavior", so you can see the effect of a prompt change or a model upgrade.
+
+The Gemini docs add: "Prompt engineering is iterative."
+
+Example: you keep 30 real tickets with the summary you expect for each. Every prompt change runs against those 30 before it ships. Realm 6 builds full evals on this idea.
+
+## Key points
+
+- The model is a smart new employee with no context. Apply the colleague test.
+- Replace vague words ("short", "simple") with checkable rules: reader, format, length, content.
+- Say what to do, not only what not to do. Give the reason.
+- Use numbered steps when order or completeness matters.
+- GPT-style models need more explicit method; reasoning models need a precise goal and constraints.
+- Specific prompts can be tested. Pin the model snapshot and keep a test set.

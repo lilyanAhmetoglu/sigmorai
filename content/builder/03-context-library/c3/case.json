@@ -1,0 +1,96 @@
+{
+  "id": "builder/r3/c3/challenge",
+  "title": "Error E-42",
+  "scenario": "A router company runs a support bot. It searches the knowledge base with embeddings only, takes the top 5 chunks and passes them to the model. A customer reports an error code, and the bot answers with general advice instead of the fix. You review the retrieval trace (exhibit).",
+  "exhibit": "RETRIEVAL TRACE\nquery:  My X200 shows error E-42 after the update\nsearch: embeddings only, top 5\n\n#  score  source\n1  0.62   kb://error-codes-overview\n2  0.60   kb://x200-firmware-update-guide\n3  0.58   kb://x200-faq\n4  0.57   kb://x100-error-list\n5  0.55   kb://warranty-terms\n\nNOT RETRIEVED\nkb://x200-error-e42\n  E-42: firmware checksum failed. Hold RESET\n  for 10 seconds, then reinstall the update.",
+  "questions": [
+    {
+      "prompt": "Why did search miss the chunk about E-42?",
+      "options": [
+        {
+          "text": "The E-42 chunk is too short, so embedding models skip it.",
+          "explanation": "Short chunks still get a vector. The issue is what the vector captures: general meaning, not the exact code."
+        },
+        {
+          "text": "Embeddings matched the general topic but missed the exact code.",
+          "explanation": "Right. Anthropic's TS-999 example: an embedding model may find content about error codes in general but miss the exact match.",
+          "correct": true
+        },
+        {
+          "text": "The query mixes a model name and an error code in one sentence.",
+          "explanation": "That is a normal support question. Keyword search would match both terms; embeddings alone blur them."
+        },
+        {
+          "text": "The vector store is out of date because the update is new.",
+          "explanation": "The E-42 chunk is in the store, listed under NOT RETRIEVED. It exists but ranks too low."
+        }
+      ]
+    },
+    {
+      "prompt": "The team uses the OpenAI Retrieval API. Which change gives exact words like E-42 more weight?",
+      "options": [
+        {
+          "text": "Set `rewrite_query=true` so OpenAI rewrites the question.",
+          "explanation": "Query rewriting tidies a chatty question into a search string. It does not change how keyword and meaning matches are balanced."
+        },
+        {
+          "text": "Raise `score_threshold` to 0.9 to keep only strong matches.",
+          "explanation": "A threshold only removes low-scoring chunks. The E-42 chunk already scores too low, so it would still be missing."
+        },
+        {
+          "text": "Set `max_num_results` to 50 so more chunks come back.",
+          "explanation": "More results might include it by luck, but they also add tokens and noise. The ranking itself still ignores the exact code."
+        },
+        {
+          "text": "Use `hybrid_search` in `ranking_options` and raise `text_weight`.",
+          "explanation": "Right. OpenAI says a higher `text_weight` emphasizes textual overlap in the reciprocal rank fusion.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Hybrid search now returns 150 candidates. The team wants to send the model only the best 20. What does Anthropic's post do?",
+      "options": [
+        {
+          "text": "Score the 150 with a reranking model and keep the top 20.",
+          "explanation": "Right. Anthropic retrieved the top 150, reranked them against the query and passed the top 20 to the model.",
+          "correct": true
+        },
+        {
+          "text": "Send all 150 chunks, since more context always helps.",
+          "explanation": "Anthropic warns that more information can be distracting for models. Reranking also reduces cost and latency."
+        },
+        {
+          "text": "Keep the 20 chunks with the shortest text to save tokens.",
+          "explanation": "Length says nothing about relevance. The short chunks could all be off-topic."
+        },
+        {
+          "text": "Keep the first 20 in the order the database returned them.",
+          "explanation": "That is the rough first ranking the team wants to improve. A reranker re-scores each chunk against the query."
+        }
+      ]
+    },
+    {
+      "prompt": "The bot runs on Claude. The team wants every answer to cite the article it used. What should they send?",
+      "options": [
+        {
+          "text": "The chunks as plain text, with an instruction to add links at the end.",
+          "explanation": "Then the model writes links as free text, which nothing checks. Search result blocks give structured citations instead."
+        },
+        {
+          "text": "A list of all article URLs in the system prompt, before the chunks.",
+          "explanation": "A list of URLs does not tie any sentence to its source. Citations need the content and its source together."
+        },
+        {
+          "text": "Each chunk as a `search_result` block, with citations enabled.",
+          "explanation": "Right. Each block carries a `source` such as `kb://x200-error-e42`, a title and the text, and Claude cites them.",
+          "correct": true
+        },
+        {
+          "text": "Only the top chunk, so the answer can only come from one place.",
+          "explanation": "That still gives no citation the user can see, and it drops other chunks that may be needed."
+        }
+      ]
+    }
+  ]
+}

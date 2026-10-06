@@ -1,0 +1,104 @@
+---
+id: builder/r1/c5/lesson
+title: Structured output
+minutes: 10
+sources:
+  - kind: docs
+    title: Structured outputs (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/structured-outputs
+  - kind: docs
+    title: Prompting best practices (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: docs
+    title: Structured model outputs (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/structured-outputs
+  - kind: docs
+    title: Structured output (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/structured-output
+---
+
+People read prose. Software reads data. When a model's reply feeds a database, a dashboard or another step, it must arrive in a fixed shape. This chapter shows how to get that shape reliably, and what can still go wrong.
+
+## Three levels of control
+
+1. **Ask in the prompt.** "Return JSON with these fields", plus examples (chapter 2). This often works, but nothing enforces it. The Claude docs list what can go wrong: "Parsing errors from invalid JSON syntax", "Missing required fields", "Inconsistent data types".
+2. **JSON mode** (OpenAI). It makes sure the output is valid JSON, but "JSON mode will not guarantee the output matches any specific schema". It also needs the word "JSON" in the context, or the API throws an error.
+3. **Structured outputs.** You send a JSON Schema and the API constrains the reply to it. OpenAI: "only Structured Outputs ensure schema adherence", and it recommends "always using Structured Outputs instead of JSON mode when possible". Claude describes the method as "constrained decoding".
+
+For data that code consumes, use level 3 where your model supports it.
+
+## Same idea, different fields
+
+All three vendors take a JSON Schema. The request field differs:
+
+- **Claude**: `output_config.format` with `type: "json_schema"`.
+- **OpenAI** (Responses API): `text.format` with `type: "json_schema"` and `strict: true`.
+- **Gemini** (Interactions API): `response_format` with `type: "text"`, `mime_type: "application/json"` and a `schema`.
+
+A schema from the Claude docs' own example, for extracting a sales lead from an email:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "email": { "type": "string" },
+    "plan_interest": { "type": "string" },
+    "demo_requested": { "type": "boolean" }
+  },
+  "required": ["name", "email", "plan_interest", "demo_requested"],
+  "additionalProperties": false
+}
+```
+
+Keep the schema in one place in your code and map it to each vendor's field in an adapter, like the system prompt in realm 0.
+
+## Design the schema
+
+Tips from the vendors:
+
+- **Clear names and descriptions.** OpenAI: "Name keys clearly and intuitively" and "Create clear titles and descriptions for important keys". Gemini: "Use the `description` field to guide the model."
+- **Strong types.** Gemini: "Use specific types (`integer`, `string`, `enum`)." An `enum` limits a field to a fixed list, such as `["low", "medium", "high"]`.
+- **Required fields and optional values.** OpenAI's strict mode needs every field listed as required, but you can "emulate an optional parameter by using a union type with `null`". It also requires `additionalProperties: false` in objects.
+- **Key order.** OpenAI keeps the schema's key order. Claude keeps it too, with one caveat: "required properties appear first, followed by optional properties".
+- **Size limits.** Both vendors cap schema complexity. Example: Claude allows at most 24 optional parameters across the schemas in one request; OpenAI allows up to 10 levels of nesting. Check the live limits for your model.
+
+## Valid shape is not correct content
+
+A schema checks the form, not the facts.
+
+- Gemini: "While output is syntactically correct JSON, always validate values in your application." Plan for "schema-compliant but semantically incorrect outputs".
+- OpenAI: "Structured Outputs can still contain mistakes."
+- OpenAI also warns that the model "will always try to adhere to the provided schema, which can result in hallucinations if the input is completely unrelated to the schema". Its advice: tell the model what to return when the input does not fit, such as empty values.
+
+Example: the schema has a required string `phone`. An email has no phone number. The model must fill the field, so it may invent one. Fix: make `phone` accept `null`, say "use null when the email has no phone number", and check the value in your code.
+
+## When the reply does not match
+
+Structured outputs can still break in known cases. Check them before you parse:
+
+- **Refusal.** Claude: `stop_reason` is `refusal`, you get a 200 status, you are billed, and "the output may not match your schema". OpenAI adds a separate `refusal` field, so refusals are "programmatically detectable".
+- **Cut off.** Claude: `stop_reason` `max_tokens`, and "the output may be incomplete and not match your schema". OpenAI lists hitting a max tokens limit as another case where the response may not match the schema.
+- **Enum casing (Claude).** Claude "may return a value that differs from your schema only in capitalization". The docs say to "compare enum values case-insensitively, and avoid enum values that differ only in capitalization."
+
+Example: your parser runs only when the stop reason is a normal end. A refusal goes to a "could not process" path; a cut-off retries with a higher cap.
+
+## A few more details
+
+- **First call is slower.** Claude compiles the schema; compiled grammars are cached "for 24 hours from last use". OpenAI: "the first request you make with any schema will have additional latency".
+- **Extra tokens.** Claude adds a system prompt about the format, so "your input token count is slightly higher".
+- **No reasoning fields.** The Claude docs warn that a property asking for the model's step-by-step reasoning "may lead to a `reasoning_extraction` refusal. Ask for a short explanation instead."
+- **Answer vs action.** Use structured output to format the final answer. When the model needs your system to do something (query a database, send an email), use tool calling. Gemini's docs: structured outputs are for "Formatting the final response"; function calling is for "Taking action during conversation". Realm 2 covers tools.
+
+## Older trick: prefill
+
+Some older guides force JSON by starting the assistant's reply with a `{`. On Claude this "prefill" is no longer supported on the last assistant turn for Claude 4.6 models and later; such requests "return a 400 error". The Claude docs point to structured outputs instead.
+
+## Key points
+
+- Prompting asks for a shape. JSON mode gives valid JSON. Structured outputs enforce a schema. Use the strongest one available.
+- Claude: `output_config.format`. OpenAI: `text.format` with `strict: true`. Gemini: `response_format` with a schema.
+- Design: clear names, descriptions, enums, `null` for "not present", no extra properties.
+- A valid shape can still hold wrong values. Validate in your code.
+- Before parsing, check for refusals and cut-off replies. Compare Claude enum values case-insensitively.
+- Structured output formats the answer; tool calling takes actions.

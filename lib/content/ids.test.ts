@@ -12,7 +12,9 @@ import { ExerciseIdSchema, type ExerciseRef } from '@/lib/types';
 import {
   buildExerciseId,
   isExerciseId,
+  parseBlogFileName,
   parseExerciseId,
+  mathExerciseIds,
   questBackHref,
   realmExerciseIds,
   trackExerciseIds,
@@ -151,14 +153,46 @@ describe('realmExerciseIds', () => {
 });
 
 describe('questBackHref', () => {
-  test('a realm quest goes back to its realm on its track; anything else to the catalog', () => {
+  test('a realm quest goes back to its realm, a floor to the tower, anything else to the catalog', () => {
     expect(questBackHref('builder/r1/c2/challenge')).toBe(
       `/realms/${REALMS[1].slug}?track=builder`,
     );
     expect(questBackHref('strategist/r0/boss/challenge')).toBe(
       `/realms/${REALMS[0].slug}?track=strategist`,
     );
-    expect(questBackHref('math/f1/lesson')).toBe('/realms');
+    expect(questBackHref('math/f1/lesson')).toBe('/math');
+    expect(questBackHref('frontier/2026-10-05-some-slug/lesson')).toBe('/realms');
     expect(questBackHref('nonsense')).toBe('/realms');
+  });
+});
+
+describe('mathExerciseIds', () => {
+  test('lesson then quick check on every floor, in order', () => {
+    const ids = mathExerciseIds();
+    expect(ids).toHaveLength(MATH_FLOOR_COUNT * SIDE_STEPS.length);
+    expect(ids.slice(0, 3)).toEqual(['math/f1/lesson', 'math/f1/quick-check', 'math/f2/lesson']);
+  });
+});
+
+describe('parseBlogFileName', () => {
+  test('date and slug from <YYYY-MM-DD>-<slug>.mdx', () => {
+    expect(parseBlogFileName('2026-10-06-be-specific.mdx')).toEqual({
+      date: '2026-10-06',
+      slug: 'be-specific',
+    });
+  });
+
+  test('anything else is null', () => {
+    for (const name of [
+      'be-specific.mdx',
+      '2026-10-06-be-specific.md',
+      '2026-10-06-Be-Specific.mdx',
+      '2026-02-30-impossible.mdx',
+      '2026-10-06-.mdx',
+      '2026-10-06-x.mdx.bak',
+      '2026-10-06-xmdx',
+    ]) {
+      expect(parseBlogFileName(name)).toBeNull();
+    }
   });
 });

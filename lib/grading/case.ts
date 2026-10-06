@@ -17,11 +17,16 @@ import { questFailure } from './failure';
  * Server Action does the DB around it.
  */
 
-/** Which kind of answer set an exercise takes: a case (chapter or boss) or a quick check. */
+/**
+ * Which kind of answer set an exercise takes: a case (chapter or boss) or a
+ * quick check (chapter or Math Tower floor). The Frontier is not graded yet.
+ */
 export function gradedKind(ref: ExerciseRef): GradedKind | null {
   if (ref.area === 'boss') return 'case';
   if (ref.area === 'chapter' && ref.step === 'challenge') return 'case';
-  if (ref.area === 'chapter' && ref.step === 'quick-check') return 'quick-check';
+  if ((ref.area === 'chapter' || ref.area === 'math') && ref.step === 'quick-check') {
+    return 'quick-check';
+  }
   return null;
 }
 
@@ -80,7 +85,8 @@ export function hpAfterSubmit(
 export function clearReason(ref: ExerciseRef): keyof typeof XP_REWARDS {
   if (ref.area === 'boss') return 'boss';
   if (ref.area === 'chapter' && ref.step === 'challenge') return 'challenge';
-  if (ref.area === 'chapter' && ref.step === 'lesson') return 'lesson';
+  // A chapter or Math Tower lesson (any area but the boss has a step).
+  if (ref.step === 'lesson') return 'lesson';
   return 'quick-check';
 }
 
@@ -93,6 +99,7 @@ export function xpOutcome(xpBefore: number, awarded: number): XpOutcome {
 /**
  * The case a clear opens next: the next chapter's case, the boss after the
  * last chapter, and nothing after the boss. Ids keep the `challenge` segment.
+ * Null for the Math Tower and the Frontier (they have no cases).
  */
 export function nextCaseId(ref: ExerciseRef): string | null {
   if (ref.area !== 'chapter') return null;

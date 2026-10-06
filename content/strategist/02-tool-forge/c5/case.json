@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r2/c5/challenge",
+  "title": "The billing emails that lost money",
+  "scenario": "You are a business analyst at an energy supplier. The customer team gets about 20,000 billing questions by email each month. A two-week pilot let an AI assistant answer a sample of them directly.\n\nThe pilot team says: \"76% of answers were correct. That's a great result, let's roll it out.\" The finance director asks you to check the business case before she signs. The exhibit shows the value model and the pilot results.",
+  "exhibit": "Billing emails: value model and pilot (made-up example data)\n\nValue per email\n  AI answers correctly       saves 5 EUR of agent time\n  AI answers wrongly         customer calls back, complaint work:\n                             costs 20 EUR\n  AI hands off to an agent   costs 1 EUR (agent reads the AI note)\n\nPilot result (1,000 emails, no hand-off rule)\n  Correct   760\n  Wrong     240\n\nDraft business case, running cost line:\n  \"Model cost: tiny, not worth estimating.\"",
+  "questions": [
+    {
+      "prompt": "Using the value model, what does the pilot result mean?",
+      "options": [
+        {
+          "text": "The pilot is a clear success, because 76% correct is well above half of all emails.",
+          "explanation": "\"Above half\" is not the test. The test is whether savings beat the cost of failures, and here they don't."
+        },
+        {
+          "text": "The result can't be judged at all until the system has run for a full year.",
+          "explanation": "The value model already lets you judge it: you can compare savings with the cost of failures now."
+        },
+        {
+          "text": "The design loses money: 760 × 5 EUR is less than 240 × 20 EUR, and break-even is 80%.",
+          "explanation": "Right. 3,800 EUR saved against 4,800 EUR in failure costs. As in OpenAI's guide, the break-even accuracy is the number that decides.",
+          "correct": true
+        },
+        {
+          "text": "The design saves money, because each correct answer saves time and most answers are correct.",
+          "explanation": "Each wrong answer costs four times what a correct one saves. Most correct is not enough at these values."
+        }
+      ]
+    },
+    {
+      "prompt": "What is wrong with the running-cost line in the draft?",
+      "options": [
+        {
+          "text": "Nothing. Model costs are always too small to matter in a business case for email.",
+          "explanation": "At 20,000 emails a month, cost depends on volume and prices. You can't know it is small without estimating it."
+        },
+        {
+          "text": "It should list the most expensive model's price, so that the case is safe in any situation.",
+          "explanation": "A worst-case guess is not an estimate. Use the model you plan to run and its real token use."
+        },
+        {
+          "text": "It should be replaced with the vendor's marketing claim about how much AI usually saves.",
+          "explanation": "A general claim doesn't describe your volume, your tokens or your prices."
+        },
+        {
+          "text": "It needs tokens × price per token, with the price page and date, plus people costs.",
+          "explanation": "Right. OpenAI's production guide frames cost as tokens times cost per token. Name the price page and the date so others can check it, and add review and maintenance time.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The pilot team never measured the current process. Which baseline matters most for this case?",
+      "options": [
+        {
+          "text": "Today's handling time, cost per email and share of correct answers by agents.",
+          "explanation": "Right. Anthropic's ticket routing guide lists criteria like these that apply with or without an LLM. Without them, you can't show a gain.",
+          "correct": true
+        },
+        {
+          "text": "The number of AI tools the competitors use for their billing emails.",
+          "explanation": "That says nothing about your own process, so it can't show whether you gained anything."
+        },
+        {
+          "text": "The total number of emails the company has received over the last ten years.",
+          "explanation": "Old volume doesn't tell you today's time, cost or quality per email."
+        },
+        {
+          "text": "How many staff members said they liked the AI during the two-week pilot.",
+          "explanation": "Staff opinion is useful, but it is not a baseline for time, cost or correct answers."
+        }
+      ]
+    },
+    {
+      "prompt": "How could the design change so that the case becomes positive?",
+      "options": [
+        {
+          "text": "Answer every email with AI, so that the volume of savings grows large enough to cover the losses.",
+          "explanation": "At 76% correct, each email loses money on average. More volume makes the loss bigger, not smaller."
+        },
+        {
+          "text": "Hand off to an agent when the model isn't sure, so many costly wrong answers become 1 EUR hand-offs.",
+          "explanation": "Right. OpenAI's guide lists handing off to a person when the intent is unclear. A hand-off costs 1 EUR here; a wrong answer costs 20 EUR.",
+          "correct": true
+        },
+        {
+          "text": "Remove the cost of wrong answers from the model, since complaints are handled by another team anyway.",
+          "explanation": "The cost is real even if another budget pays it. Hiding it makes the case look better on paper only."
+        },
+        {
+          "text": "Report 76% as the success rate and leave out the failure costs, since finance only asks for accuracy.",
+          "explanation": "The finance director asked for the business case. Leaving out failure costs gives her the wrong answer."
+        }
+      ]
+    }
+  ]
+}

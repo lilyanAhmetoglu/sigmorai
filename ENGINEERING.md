@@ -10,6 +10,13 @@ How Sigmorai is built. Stack, architecture rules, data model, build order. The f
 - **Rows carry only rank, hero name, track, level (computed) and XP.** Never the Clerk id, `avatar_url` or `last_active_at`. The viewer's row is marked with text ("YOU"), not colour only.
 - **Schema (migration 0004_leaderboard):** `users_xp_idx` → `users_leaderboard_idx (xp desc, created_at, id)`; new unique `users_hero_name_lower_idx` on `lower(hero_name)`. Hero names are trimmed + NFKC-normalised before the checks, use one script group, and can't be a reserved word (`RESERVED_HERO_NAMES`). A name clash returns `name_taken` from `createHero`.
 
+## Amendments locked 2026-10-05 (account privacy)
+
+- One Clerk webhook, for erasure only. POST /api/webhooks/clerk verifies with verifyWebhook (CLERK_WEBHOOK_SIGNING_SECRET) and on user.deleted deletes the users row (cascade). 'No webhook' still holds for row creation: rows are created by onboarding, never by a webhook.
+- In-app delete is the primary path. deleteAccount (Server Action): DB row first, then clerkClient().users.deleteUser, so a failure never leaves an orphan row. Both paths are idempotent.
+- Export is a GET route handler (/api/account/export, JSON attachment), because a download needs headers a Server Action can't set.
+- No Terms page yet; the privacy page lists Clerk, Neon, Vercel. Anthropic is added in the mentor PR. Regions are read from the dashboards, never written from memory.
+
 ## Amendments locked 2026-10-05 (no-code pivot)
 
 - **No code runner, no code editor.** The 2026-10-04 "Runner: E2B … fake runner" line is superseded. Stack rows "Editor: Monaco" and "Code runs: E2B via /api/run" are removed. `e2b` leaves package.json; `E2B_API_KEY` and `CODE_RUNNER` leave `.env.example`, `e2e.yml` and `eslint.config.mjs` (those code edits land in PR 2).

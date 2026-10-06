@@ -1,0 +1,96 @@
+{
+  "id": "builder/r2/c2/challenge",
+  "title": "The thermostat that guessed",
+  "scenario": "A smart-home app lets logged-in users control their heating by chat. The model has 34 tools. The logs show three repeating failures: the model calls the vague `update` tool for almost every request, it sends heating calls with both `on` and `off` set to true, and it sends temperatures like \"warm\". You review two of the tool definitions (exhibit). The user's household id is always known from the login session.",
+  "exhibit": "TOOL 1\nname: update\ndescription: Updates stuff.\nparameters:\n  user:  string\n  mode:  string\n  value: string\n\nTOOL 2\nname: set_heating\ndescription: Sets heating.\nparameters:\n  household_id: string   (required)\n  on:           boolean  (required)\n  off:          boolean  (required)\n  temp:         string   (required)\n\nLOG SAMPLE\nset_heating(household_id=\"H-2207\", on=true, off=true, temp=\"warm\")",
+  "questions": [
+    {
+      "prompt": "The model keeps picking `update` for heating requests. What change would help most?",
+      "options": [
+        {
+          "text": "Rename `update` to `UPDATE_ANYTHING` so the model notices it is generic.",
+          "explanation": "A louder name still says nothing about when to use it. The model needs to know what the tool does and when not to use it."
+        },
+        {
+          "text": "Rewrite the descriptions: what each tool does, when to use it and when not.",
+          "explanation": "Right. The Claude docs call detailed descriptions by far the most important factor in tool performance, and suggest at least 3–4 sentences.",
+          "correct": true
+        },
+        {
+          "text": "Add a line to the system prompt: \"Choose tools carefully.\"",
+          "explanation": "That gives no new information. The model still cannot tell the two tools apart from \"Updates stuff\" and \"Sets heating\"."
+        },
+        {
+          "text": "Move `update` to the end of the tools list so the model reads the specific tools first and prefers them.",
+          "explanation": "Moving it does not touch the real problem: \"Updates stuff\" tells the model nothing about when to use the tool."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the `on` and `off` fields be fixed?",
+      "options": [
+        {
+          "text": "Keep both and tell the model in the description that they must never both be true.",
+          "explanation": "That asks the model to avoid a state the schema still allows. OpenAI's advice is to change the schema so the state cannot exist."
+        },
+        {
+          "text": "Keep both and reject the call in your backend when both are true.",
+          "explanation": "Gemini does advise validating calls before you run them, but the schema still invites the mistake. Fix the schema too."
+        },
+        {
+          "text": "Make both fields optional so the model can leave one out.",
+          "explanation": "Then the model can send neither, or still send both. The invalid states remain."
+        },
+        {
+          "text": "Replace them with one `state` field, an enum of \"on\" and \"off\".",
+          "explanation": "Right. OpenAI says to use enums and object structure to prevent invalid states, and uses this same light-switch example.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What should happen to `household_id`?",
+      "options": [
+        {
+          "text": "Remove it from the schema and add it in your code from the login session.",
+          "explanation": "Right. OpenAI says not to make the model fill arguments you already know, and to pass them in your own code.",
+          "correct": true
+        },
+        {
+          "text": "Keep it, and add an example id to the description so the model always uses the right format.",
+          "explanation": "A clear format does not remove the problem: the model is still asked for a value your app already has."
+        },
+        {
+          "text": "Keep it, but make it optional so the model can skip it.",
+          "explanation": "The value is still in the model's hands whenever it fills it in. Your code knows it, so your code should set it."
+        },
+        {
+          "text": "Rename it to `user` so it matches the `update` tool.",
+          "explanation": "Anthropic's engineering post advises the opposite direction: specific names like `user_id`, not vague ones like `user`."
+        }
+      ]
+    },
+    {
+      "prompt": "Temperatures arrive as \"warm\" and \"21C\". What fix fits the vendor guidance?",
+      "options": [
+        {
+          "text": "Parse every string with a regex in the backend and guess the closest number when parsing fails.",
+          "explanation": "Guessing in code hides the problem. The schema should only allow the shape you can use."
+        },
+        {
+          "text": "Ask the model in the system prompt to always use numbers.",
+          "explanation": "A prompt rule helps but is still best effort. A typed schema with strict mode enforces it."
+        },
+        {
+          "text": "Type `temp` as an integer, describe the unit and range, and turn on strict mode.",
+          "explanation": "Right. Gemini advises specific types like integer. Claude's strict mode guarantees inputs match the schema, as in its \"2\" vs 2 example.",
+          "correct": true
+        },
+        {
+          "text": "Remove `temp` and always set the heating to 20 degrees.",
+          "explanation": "That drops a feature users need. The fix is a precise input type, not a smaller product."
+        }
+      ]
+    }
+  ]
+}

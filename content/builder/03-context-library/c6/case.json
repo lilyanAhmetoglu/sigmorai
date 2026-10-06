@@ -1,0 +1,96 @@
+{
+  "id": "builder/r3/c6/challenge",
+  "title": "The agent that forgot Postgres",
+  "scenario": "A team runs a long coding agent on Claude. They wrote their own summarizer: when the context reaches 600,000 tokens, it replaces the whole history with a summary. After one compaction, the agent undoes an earlier decision. You review the run log (exhibit).",
+  "exhibit": "AGENT RUN (Claude, own summarizer, trigger at 600k tokens)\n\nTURN 140  decision: use Postgres, not SQLite\n          (the report job needs row locking)\nTURN 212  context at 600k -> compaction runs\n\nSUMMARY PROMPT\n  Summarize the conversation in 5 short bullet points.\n\nSUMMARY\n  - Migrated the user table\n  - Added login tests\n  - Fixed 3 failing tests\n  - Updated the README\n  - Next: build the report job\n\nTURN 231  agent: I'll store report rows in SQLite\n          to keep things simple.\n\nCONTEXT JUST BEFORE COMPACTION\n  tool results (file reads, test logs)   71%\n  messages and reasoning                  29%",
+  "questions": [
+    {
+      "prompt": "Why did the agent switch back to SQLite?",
+      "options": [
+        {
+          "text": "SQLite is the better fit for a report job, so the agent corrected itself.",
+          "explanation": "The log says the report job needs row locking, which is why the team chose Postgres. The agent did not weigh that; it no longer knew it."
+        },
+        {
+          "text": "Context rot: 600,000 tokens was too many for the model to read.",
+          "explanation": "After compaction the context was small. The decision was missing from it, not hidden in it."
+        },
+        {
+          "text": "The summary dropped the Postgres decision, so the agent lost it.",
+          "explanation": "Right. Anthropic warns that overly aggressive compaction can lose subtle but critical context whose importance only shows up later.",
+          "correct": true
+        },
+        {
+          "text": "Compaction always deletes decisions, so long agents cannot keep them.",
+          "explanation": "Anthropic's own example keeps architectural decisions in the summary. What gets kept depends on the summary prompt."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the team improve their summary prompt, following Anthropic's advice?",
+      "options": [
+        {
+          "text": "Tune it on complex traces: maximize recall first, then trim for precision.",
+          "explanation": "Right. Capture every relevant piece first (decisions, open bugs, implementation details), then remove extra content.",
+          "correct": true
+        },
+        {
+          "text": "Make it stricter: ask for 3 bullet points so the summary stays small.",
+          "explanation": "A tighter limit drops even more. Anthropic's advice is to maximize recall first, not to shrink the summary further."
+        },
+        {
+          "text": "Ask only for the next step, since the past is already done.",
+          "explanation": "Past decisions shape the next steps. Anthropic's summary keeps architectural decisions and unresolved bugs for that reason."
+        },
+        {
+          "text": "Ask for the summary as JSON so the agent can parse it more easily.",
+          "explanation": "The format is not the gap. The 5-bullet limit left no room for the Postgres decision in any format."
+        }
+      ]
+    },
+    {
+      "prompt": "71% of the context was old tool results. Which lighter step could delay compaction?",
+      "options": [
+        {
+          "text": "Raise the trigger to 900,000 tokens so compaction runs less often.",
+          "explanation": "That keeps more stale results around. The Claude docs note that response quality degrades as a conversation grows."
+        },
+        {
+          "text": "Delete the user's earlier messages and keep all the tool results.",
+          "explanation": "The messages hold decisions like the Postgres choice. The old tool results are the part Anthropic calls safe to clear."
+        },
+        {
+          "text": "Move the tool results into the system prompt, where they cost less.",
+          "explanation": "Moving them does not make them smaller, so the context is just as full as before."
+        },
+        {
+          "text": "Clear the oldest tool results with Claude's context editing.",
+          "explanation": "Right. The `clear_tool_uses_20250919` strategy replaces old results with placeholder text. Anthropic calls tool result clearing one of the safest, lightest forms of compaction.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Another team runs the same agent on OpenAI and calls `/responses/compact`. What should their code do with the response?",
+      "options": [
+        {
+          "text": "Read the compaction item and show it to users as a progress report.",
+          "explanation": "OpenAI says the compaction item is opaque and not intended to be human-interpretable."
+        },
+        {
+          "text": "Pass the returned window into the next request unchanged.",
+          "explanation": "Right. OpenAI says not to prune the compact endpoint's output: the returned window is the canonical next context window.",
+          "correct": true
+        },
+        {
+          "text": "Keep only the compaction item and drop the other returned items.",
+          "explanation": "The returned window can include retained items from the previous window. OpenAI says to pass the returned window as-is and not to prune it."
+        },
+        {
+          "text": "Summarize the compaction item again with their own prompt.",
+          "explanation": "The item is opaque, so there is nothing readable to summarize. The window goes into the next call as returned."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+---
+id: strategist/r3/c1/lesson
+title: Why context matters
+minutes: 7
+sources:
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+  - kind: docs
+    title: OpenAI docs · GPT-5.5 model
+    url: https://developers.openai.com/api/docs/models/gpt-5.5
+  - kind: docs
+    title: Claude docs · Models overview
+    url: https://platform.claude.com/docs/en/models/overview
+  - kind: docs
+    title: Claude docs · Reduce hallucinations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations
+  - kind: blog
+    title: Anthropic Engineering · Introducing Contextual Retrieval
+    url: https://www.anthropic.com/engineering/contextual-retrieval
+  - kind: blog
+    title: Anthropic Engineering · Effective context engineering for AI agents
+    url: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+---
+
+## Why it matters
+
+A model learns from a large amount of text before you ever use it. It does not learn your price list, your refund rules or last week's policy change. Anthropic's Contextual Retrieval post gives an example: customer support chatbots need knowledge about the specific business they are used for.
+
+**Context** is the text you send the model with each request: instructions, documents and data. This realm is about giving the model the right business knowledge, at the right time, to the right person.
+
+## Three gaps that context fills
+
+OpenAI's accuracy guide says you need to work on context when:
+
+1. the model lacks the knowledge because it wasn't in its training data,
+2. its knowledge is out of date, or
+3. the task needs proprietary (private company) information.
+
+Example: a regional bus company wants an assistant for its call centre. "What is the difference between a single and a return ticket?" is general knowledge. "What does a monthly pass cost since the October price change?" needs recent facts. "Which depot covers route 14 on Sundays?" needs private facts. Only the first question has a chance without company context.
+
+## Vendors publish a knowledge cutoff for each model
+
+Vendors publish how recent a model's knowledge is. Anthropic's models overview lists a "reliable knowledge cutoff": the date through which the model's knowledge is most extensive and reliable. It is Jun 2026 for Claude Opus 5.5 and Feb 2025 for Claude Haiku 4.5. OpenAI's GPT-5.5 page lists a knowledge cutoff of Dec 01, 2025. (Both pages checked on 2026-10-06.)
+
+A newer model moves that date forward. It does not add your private documents, and it can't know about a change you made yesterday. So "wait for a better model" doesn't close a context gap.
+
+## Two kinds of memory
+
+OpenAI's guide compares it to an exam. You can attend class for six months and see many examples: that is **learned memory**, which the guide links to fine-tuning. Or you can bring the textbook and look things up: that is **in-context memory**. You give it in the prompt, or at larger scale with retrieval-augmented generation (RAG). The guide says the two are additive, not exclusive.
+
+Use this to read failures. The guide puts the wrong tone or style under model behaviour. Missing or out-of-date knowledge is a context problem. Example: the bus assistant answers in a jokey style you don't want. That is behaviour. It quotes last year's fare for a monthly pass. That is missing context: it doesn't have the textbook. The guide's method: evaluate, find out what went wrong, then take the step that fixes that problem.
+
+## More context is not always better
+
+Anthropic's context engineering post describes **context rot**: as the number of tokens in the context window grows, the model's ability to recall information from that context goes down. The post calls context a finite resource. Its advice is to find the smallest possible set of high-signal tokens.
+
+OpenAI's guide gives a similar warning. Models can struggle to keep attention across very large prompts, so pair long context with evaluation at different context sizes.
+
+Example: the bus company should not paste every timetable since 2015 into each request. It should send the current fares and the routes the caller asks about.
+
+## Let the model say "I don't know"
+
+Anthropic's guide to reducing hallucinations lists simple steps that fit here:
+
+- Give the model explicit permission to say "I don't know".
+- Tell it to use only the information in the provided documents, not its general knowledge.
+- For long documents, ask it to pull out word-for-word quotes first, then work from those quotes.
+
+The guide also says these techniques reduce hallucinations but don't remove them. It tells you to always check critical information, especially for high-stakes decisions.
+
+## Ask four questions first
+
+This checklist is a tool for this course. Before any knowledge project, ask:
+
+1. **What does the assistant need to know** that a general model can't? (private, recent or specialist facts)
+2. **Where does it live today?** (a wiki, a shared drive, a CRM, one expert's inbox)
+3. **How often does it change?** (a yearly policy, weekly prices)
+4. **Who may see it?** (everyone, one team, one customer)
+
+The next chapters take these one at a time: knowledge bases, data readiness, access, freshness and citations.
+
+## Key points
+
+- Models don't know your private or recent facts; context supplies them.
+- Vendors publish a knowledge cutoff for each model; a newer model doesn't add your documents.
+- Wrong facts point to missing context; wrong tone or style points to behaviour.
+- More context is not always better; send the smallest set of useful information.
+- Allow "I don't know" and limit answers to the provided documents, then still check.

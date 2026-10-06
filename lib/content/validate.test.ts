@@ -143,9 +143,82 @@ describe('broken content is caught, with the file name', () => {
 
   test('a blog post must be named <date>-<slug>.mdx', async () => {
     const root = await copyOfContent();
-    await Bun.write(`${root}/blog/2026-10-05-tokens.mdx`, '---\n---\n');
-    await Bun.write(`${root}/blog/tokens.mdx`, '---\n---\n');
+    await Bun.write(`${root}/blog/2026-10-05-tokens.mdx`, post());
+    await Bun.write(`${root}/blog/tokens.mdx`, post());
     expect((await validateContent(root)).map((i) => i.file)).toEqual(['blog/tokens.mdx']);
+  });
+});
+
+/** A blog post file: valid by default; `fields` overrides frontmatter lines. */
+function post(body = '## Summary\n\nPlain text.', fields: Record<string, string> = {}) {
+  const front = {
+    title: 'A post',
+    description: 'What it covers.',
+    lesson: 'builder/r0/c1/lesson',
+    ...fields,
+  };
+  const yaml = Object.entries(front)
+    .filter(([, v]) => v !== '')
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
+  return `---\n${yaml}\n---\n\n${body}\n`;
+}
+
+describe('blog posts', () => {
+  async function postIssues(files: Record<string, string>) {
+    const root = await copyOfContent();
+    for (const [name, text] of Object.entries(files)) await Bun.write(`${root}/blog/${name}`, text);
+    return validateContent(root);
+  }
+
+  test('an empty post fails its schema (it used to pass)', async () => {
+    const issues = await postIssues({ '2026-10-05-tokens.mdx': '---\n---\n' });
+    expect(issues.map((i) => i.file)).toEqual(['blog/2026-10-05-tokens.mdx']);
+  });
+
+  test('a missing description and a non-lesson id fail', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(undefined, {
+        description: '',
+        lesson: 'builder/r0/c1/challenge',
+      }),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('description');
+    expect(issues[0].message).toContain('/lesson');
+  });
+
+  test('a stray sources field fails: sources come from the lesson', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(undefined, { sources: '[]' }),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('sources');
+  });
+
+  test('a <DialogBox> in a post fails: no NPC lore on the blog', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post('## Summary\n\n<DialogBox>Hello.</DialogBox>'),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('<DialogBox> is not allowed. No components are.');
+  });
+
+  test('a lesson with no file (a stub chapter) fails', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(undefined, { lesson: 'strategist/r8/c6/lesson' }),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('has no lesson file');
+  });
+
+  test('two posts with the same slug fail on the second', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(),
+      '2026-10-06-tokens.mdx': post(),
+    });
+    expect(issues).toEqual([expect.objectContaining({ file: 'blog/2026-10-06-tokens.mdx' })]);
+    expect(issues[0].message).toContain('already used');
   });
 });
 

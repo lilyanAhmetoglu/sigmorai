@@ -21,7 +21,11 @@ const atkinson = Atkinson_Hyperlegible({
   style: ['normal', 'italic'],
 });
 
-const jetbrainsMono = JetBrains_Mono({ variable: '--font-jetbrains-mono', subsets: ['latin'] });
+// Greek too: the Math Tower formulas use Σ, θ, η.
+const jetbrainsMono = JetBrains_Mono({
+  variable: '--font-jetbrains-mono',
+  subsets: ['latin', 'greek'],
+});
 
 export const metadata: Metadata = {
   // Lets every route use relative canonical / Open Graph URLs.

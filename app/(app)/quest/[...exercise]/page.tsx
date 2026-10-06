@@ -10,7 +10,7 @@ import { LessonDone } from '@/components/quest/lesson-done';
 import { SourceList } from '@/components/quest/source-list';
 import { Tabs } from '@/components/tabs';
 import { QUEST_TEXT, SITE_NAME } from '@/lib/constants';
-import { questBackHref } from '@/lib/content/ids';
+import { parseExerciseId, questBackHref } from '@/lib/content/ids';
 import { getLessonMeta, getQuestPage, type QuestPage as QuestPageData } from '@/lib/data/quest';
 
 /**
@@ -39,37 +39,38 @@ const EXHIBIT_TITLE_ID = 'quest-exhibit-title';
  * exercise ids contain `/`: /quest/strategist/r0/c1/challenge. Lessons, cases
  * (chapter and boss) and quick checks, both tracks. For a case or quick check
  * the browser gets the public, shuffled view only. Lessons are public; their
- * NPC lines are the <DialogBox> blocks inside the lesson body. Math Tower and
+ * NPC lines are the <DialogBox> blocks inside the lesson body. Math Tower
+ * floors (lesson + quick check) use the same views and go back to the tower.
  * Frontier steps show a plain "not available yet".
  */
 export default async function QuestPage({ params }: PageProps<'/quest/[...exercise]'>) {
   const { exercise } = await params;
   const id = exercise.join('/');
   const page = await getQuestPage(id);
-  const backHref = questBackHref(id);
+  const back = { href: questBackHref(id), label: QUEST_TEXT.back(parseExerciseId(id)?.area) };
 
   if (page.kind === 'not-found') notFound();
   if (page.kind === 'unavailable') {
     return (
       <QuestNotice
-        backHref={backHref}
+        back={back}
         message={QUEST_TEXT.notAvailable}
         hint={QUEST_TEXT.notAvailableHint}
       />
     );
   }
   if (page.kind === 'locked') {
-    return <QuestNotice backHref={backHref} badge={QUEST_TEXT.locked} message={page.message} />;
+    return <QuestNotice back={back} badge={QUEST_TEXT.locked} message={page.message} />;
   }
-  if (page.kind === 'lesson') return <LessonPage page={page} backHref={backHref} />;
+  if (page.kind === 'lesson') return <LessonPage page={page} back={back} />;
 
   const { sheet, scenario, exhibit, tag, accent, viewer, nextHref, lessonHref } = page;
   return (
     <div className="flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
       <div className="quest-top">
-        <Link href={backHref} className="quest-back">
+        <Link href={back.href} className="quest-back">
           <span aria-hidden="true">{QUEST_TEXT.backIcon}</span>
-          {QUEST_TEXT.back}
+          {back.label}
         </Link>
         <p className="quest-tag" data-accent={accent}>
           {tag}
@@ -108,24 +109,27 @@ export default async function QuestPage({ params }: PageProps<'/quest/[...exerci
   );
 }
 
+/** The back link: the realm page, or the tower page for a Math Tower floor. */
+type BackLink = { href: string; label: string };
+
 type LessonPageProps = {
   page: Extract<QuestPageData, { kind: 'lesson' }>;
-  backHref: string;
+  back: BackLink;
 };
 
 /**
  * A lesson (Sigmorai App.dc.html → quest screen, tabLesson / tabSources): the
  * title, LESSON | SOURCES tabs on the left, the "Lesson done" panel on the right.
  */
-function LessonPage({ page, backHref }: LessonPageProps) {
+function LessonPage({ page, back }: LessonPageProps) {
   const { exerciseId, lesson, tag, accent, npc, viewer, nextHref } = page;
   const { title, minutes, sources } = lesson.frontmatter;
   return (
     <div className="flex w-full flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
       <div className="quest-top">
-        <Link href={backHref} className="quest-back">
+        <Link href={back.href} className="quest-back">
           <span aria-hidden="true">{QUEST_TEXT.backIcon}</span>
-          {QUEST_TEXT.back}
+          {back.label}
         </Link>
         <p className="quest-tag" data-accent={accent}>
           {tag}
@@ -158,9 +162,9 @@ function LessonPage({ page, backHref }: LessonPageProps) {
 }
 
 /** Locked or not built yet: the reason as text (plus a LOCKED tag) and a way back. */
-type NoticeProps = { backHref: string; badge?: string; message: string; hint?: string };
+type NoticeProps = { back: BackLink; badge?: string; message: string; hint?: string };
 
-function QuestNotice({ backHref, badge, message, hint }: NoticeProps) {
+function QuestNotice({ back, badge, message, hint }: NoticeProps) {
   return (
     <div className="max-w-reading mx-auto flex w-full flex-col gap-4 px-4 py-10">
       <h1 className="sr-only">{QUEST_TEXT.noticeHeading}</h1>
@@ -169,11 +173,11 @@ function QuestNotice({ backHref, badge, message, hint }: NoticeProps) {
         <p className="text-body leading-body m-0">{message}</p>
         {hint && <p className="text-small leading-body text-text-2 m-0">{hint}</p>}
         <PixelButton
-          href={backHref}
+          href={back.href}
           variant="secondary"
           icon={<span aria-hidden="true">{QUEST_TEXT.backIcon}</span>}
         >
-          {QUEST_TEXT.back}
+          {back.label}
         </PixelButton>
       </Panel>
     </div>

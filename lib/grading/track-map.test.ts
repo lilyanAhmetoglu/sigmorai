@@ -4,6 +4,7 @@ import type { RealmView, TrackOutline } from '@/lib/types';
 import {
   activeRealms,
   bossTitle,
+  buildTowerMap,
   buildTrackMap,
   clearedLevels,
   levelStatus,
@@ -217,5 +218,33 @@ describe('clearedLevels', () => {
     const cleared = new Set([caseId(0, 1), caseId(0, 2), quickId(0, 3), caseId(2, 1)]);
     expect(clearedLevels(map(ALL_LIVE, cleared).realms)).toBe(3);
     expect(clearedLevels(map(ALL_LIVE, NONE).realms)).toBe(0);
+  });
+});
+
+describe('buildTowerMap', () => {
+  const floorIds = (n: number) => [`math/f${n}/lesson`, `math/f${n}/quick-check`];
+  /** Floors 1–3 have files, like content/math today. */
+  const LIVE = new Set([1, 2, 3].flatMap(floorIds));
+  const status = (floors: ReturnType<typeof buildTowerMap>) => floors.map((f) => f.status);
+
+  test('8 floors; a visitor sees floor 1 open, 2–3 locked, the rest coming soon', () => {
+    const floors = buildTowerMap(LIVE, NONE);
+    expect(floors.map((f) => f.chapter)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(status(floors)).toEqual(['open', 'locked', 'locked', ...Array(5).fill('soon')]);
+    expect(floors[0].steps.map((s) => s.step)).toEqual(['lesson', 'quick-check']);
+    expect(playableStep(floors[0])?.exerciseId).toBe('math/f1/lesson');
+    expect(playableStep(floors[1])).toBeNull();
+  });
+
+  test('the floor 1 quick check clears floor 1 and opens floor 2', () => {
+    const floors = buildTowerMap(LIVE, new Set(floorIds(1)));
+    expect(status(floors).slice(0, 3)).toEqual(['done', 'open', 'locked']);
+    expect(playableStep(floors[0])?.exerciseId).toBe('math/f1/lesson');
+  });
+
+  test('the lesson alone does not clear a floor', () => {
+    const floors = buildTowerMap(LIVE, new Set(['math/f1/lesson']));
+    expect(status(floors).slice(0, 2)).toEqual(['open', 'locked']);
+    expect(playableStep(floors[0])?.exerciseId).toBe('math/f1/quick-check');
   });
 });

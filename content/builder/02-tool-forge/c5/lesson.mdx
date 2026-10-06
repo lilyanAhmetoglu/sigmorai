@@ -1,0 +1,85 @@
+---
+id: builder/r2/c5/lesson
+title: Parallel calls
+minutes: 8
+sources:
+  - kind: docs
+    title: Parallel tool use (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/parallel-tool-use
+  - kind: docs
+    title: 'Tutorial: Build a tool-using agent (Claude docs)'
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent
+  - kind: docs
+    title: Troubleshooting tool use (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/troubleshooting-tool-use
+  - kind: docs
+    title: Function calling (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/function-calling
+  - kind: docs
+    title: Function calling (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+A user asks: "What's the weather in Paris and in Tokyo?" That needs two lookups, and neither depends on the other. Instead of one call per round, the model can ask for both at once. This chapter covers how to handle that safely.
+
+## One reply, several calls
+
+All three vendors document it:
+
+- Claude: "By default, Claude may call multiple tools in a single response."
+- OpenAI: "The model may choose to call multiple functions in a single turn."
+- Gemini: you can "Call multiple functions at once when they are independent".
+
+OpenAI turns this into a rule for your code: "Since model responses can include zero, one, or multiple calls, it is best practice to assume there are several."
+
+The Claude tutorial makes the same point for the loop from chapter 4: "Iterate over every tool_use block in response.content, not just the first." A loop that reads only the first call silently skips the rest.
+
+## Send every result back together
+
+Every call needs a result, and the format matters.
+
+The Claude docs: "return one `tool_result` for each `tool_use` block, all together in the next user message." Match each result to its call by id, and put all the results before any text.
+
+They also name the most common mistake: sending a separate user message for each result. They say this "teaches" Claude to avoid parallel calls. On OpenAI, you append one `function_call_output` per call, each with its own `call_id`.
+
+Example: the model asked for Paris and Tokyo. You send back one message with two results, each tagged with the id of its own call.
+
+## You choose how to run them
+
+Parallel calls from the model do not mean your code must run them at the same time. The Claude docs: "The API doesn't prescribe an execution order". You can run them concurrently, one by one in order, or a mix.
+
+Their rule of thumb:
+
+- "Independent, read-only operations are usually safe to run in parallel for lower latency."
+- "Tools with side effects, shared state, or ordering requirements might be better run sequentially."
+
+Example: `get_weather("Paris")` and `get_weather("Tokyo")` are read-only, so run them together. `reserve_seat` and `charge_card` touch the same booking, so run them in order.
+
+If you decide not to run a call, it still needs a result. The Claude docs: "still return a `tool_result` for it with `is_error: true` and a brief explanation." Example: you ran the batch in order, `reserve_seat` failed, so you skip `charge_card` and report that it was not run because the seat was not reserved.
+
+## Independent vs dependent calls
+
+Some steps need the answer of an earlier step. Gemini calls this compositional function calling: chaining calls, "e.g., get location first, then get weather for that location". These calls belong in separate rounds, not in one batch.
+
+Sometimes the model puts dependent calls in the same batch anyway. The Claude docs give two fixes:
+
+- Add to your system prompt: "Only batch tool calls that are independent of each other."
+- If a call fails because its prerequisite had not finished, return `is_error: true` with the natural error message. "Claude will reissue the call on the next turn."
+
+## Turning it off
+
+Sometimes you want one call at a time, for example when every tool has side effects.
+
+- Claude: set `disable_parallel_tool_use: true` inside the `tool_choice` object. With `auto`, Claude then calls at most one tool per response.
+- OpenAI: set `parallel_tool_calls` to `false`, "which ensures exactly zero or one tool is called."
+
+OpenAI notes two edge cases. First: "if you are using a fine tuned model and the model calls multiple functions in one turn then strict mode will be disabled for those calls." Second, the `gpt-4.1-nano-2025-04-14` snapshot "can sometimes include multiple tool calls for the same tool if parallel tool calls are enabled", and OpenAI recommends disabling parallel calls with that snapshot.
+
+## Key points
+
+- One model reply can contain several tool calls. Always handle all of them.
+- Return one result per call, matched by id. On Claude, send them all in one user message.
+- You choose the order: run read-only calls together, run side effects in sequence.
+- A call you skip still gets an error result that says why.
+- Dependent steps go in separate rounds. Tell the model to batch only independent calls.
+- You can turn parallel calls off: `disable_parallel_tool_use` (Claude), `parallel_tool_calls: false` (OpenAI).

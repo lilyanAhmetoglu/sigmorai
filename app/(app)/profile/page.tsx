@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { Panel } from '@/components/panel';
 import { PixelAvatar } from '@/components/pixel-avatar';
+import { DataPanel } from '@/components/profile/data-panel';
+import { PathPanel } from '@/components/profile/path-panel';
 import { StatTiles } from '@/components/stat-tiles';
 import { XPBar } from '@/components/xp-bar';
 import {
@@ -18,6 +20,8 @@ export const metadata: Metadata = { title: `${PROFILE_TEXT.title} · Sigmorai` }
 /**
  * The player's profile (Sigmorai App.dc.html → profile screen): sprite, hero
  * name, track, level and XP. Reads the same cached query as the HUD.
+ * Then "Your path" (switch builder ↔ strategist) and "Your data":
+ * download and delete (GDPR).
  * Not built yet: photo upload (sprite only for now) and realm progress.
  */
 export default async function ProfilePage() {
@@ -53,6 +57,10 @@ export default async function ProfilePage() {
       </Panel>
 
       <StatTiles stats={state.stats} />
+
+      <PathPanel current={track} />
+
+      <DataPanel />
     </div>
   );
 }

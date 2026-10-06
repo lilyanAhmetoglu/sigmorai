@@ -8,6 +8,30 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (Math Tower playable, step 6)
+
+- **A floor is cleared by its quick check.** Floor 1 is open. Floor N opens when `math/f(N−1)/quick-check` has a `progress` row. The lesson alone does not open the next floor.
+- **No tier gate and no realm gate** for the Math Tower. Every floor is free on both paths. The Frontier still returns `INVALID_INPUT` from the open check.
+- **New lock text:** `floorNotOpenText(n)` = "Clear floor n first." (`lib/constants/ui-copy.ts`, next to `notOpenText`).
+- **No new quest page kind.** A floor lesson and quick check use the realm views with: tag "MATH TOWER · FLOOR n · LESSON | QUICK CHECK", accent `math`, NPC `MATH_TOWER.npc`. Lesson Continue → the floor's quick check. Quick-check Continue → the next floor's lesson if it has content, else `/math`. Back link → `/math`, labelled "Back to tower".
+- **`/math` is public.** It shows 8 floor cards. A floor with no content files shows COMING SOON and is not a link. Visitors see a sign-in note.
+- **XP once across paths needs no code.** Math ids have no track, so `xp_events_award_once_idx` and the `progress` primary key already award a floor once per user.
+- **No schema change.**
+- **The §Content files outline field list is superseded** by the 2026-10-05 amendment: a floor is `{ n, covers, formulas[{ math, text }] }`.
+- **Not in this ticket:** the Frontier list page and open rule, a Math level map, the dashboard Math panel and MATH FLOORS stat, any Oru DialogBox line.
+- **The design's FLOORS order and its Oru line outside a DialogBox are stale.** `MATH_FLOORS` and the two-voice rule win.
+
+## Amendments locked 2026-10-06 (SIG-36, path switch)
+
+- **The switch lives on `/profile`** ("YOUR PATH" panel), not in the HUD. The HUD track stays a read-only Badge.
+- **The design reference plans a HUD TrackToggle** (`design/BUILD_PROMPT_NEXTJS_BUN.md:29`). The profile panel replaces it for now.
+- **One Server Action, `switchTrack`** (`lib/actions/switch-track.ts`), updates `users.track` only. The user id comes from the session; the form sends one track.
+- **No schema change.** Progress is already per track through the exercise id (`db/CLAUDE.md` invariant 4), so the old path's progress stays and shows again on a switch back.
+- **XP, level and streak are one ledger**, shared by both paths. Math Tower (and Frontier) progress is shared too: those ids have no track.
+- **No confirm box, no rate limit.** A switch loses nothing and grants nothing. Saving the same path is a no-op success.
+- **When the leaderboard is built (step 6):** it shows the player's current path next to their total level. Its 60 s cache may show the old path for up to a minute.
+- **Onboarding copy changed:** "You can't change your path yet" → "You can change your path later on your profile."
+
 ## Amendments locked 2026-10-05 (PR 4: builder outline rewrite)
 
 - **Builder titles are vendor-neutral and no-code.** Replaces the builder column of §Realm map. Changed: r0c4 Streaming → Multimodal input · r1c3 XML tags → Structure the prompt · r1c5 JSON output → Structured output · r1c6 Prefill → Grounded answers · r2c1 Messages recap → Why tools · r2c2/c3 → Define a tool / Results & errors (c2 was Tool results, c3 was Define a tool) · r2c6 Tool search → Prompt injection · r4c3 Agent SDKs → The harness · r5c2 Your first server → Servers & tools · r5c6 Auth → Auth & trust · r6c6 Tracing → Evals in CI · r7c1 Orchestrators → Agent graphs · r8c4 Security → Secrets & data · r8c5 Scaling → Latency & scaling. Why: each old title named one vendor's feature or a coding task.

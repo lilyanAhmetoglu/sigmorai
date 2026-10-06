@@ -1,0 +1,96 @@
+{
+  "id": "builder/r2/c1/challenge",
+  "title": "The flight that never left",
+  "scenario": "A small airline launches a chat assistant. It has no tools: the prompt holds the airline's policies, and the model answers from that and from its training. A customer asks about today's flight and gets a confident, wrong answer. The team also added a refund feature: the model writes 'REFUND: yes' or 'REFUND: no' at the end of its reply, and a regex in the backend reads it. You review one transcript (exhibit).",
+  "exhibit": "SYSTEM\nYou are SkyHop's assistant. Policies: refunds within 24h of booking...\n\nUSER\nIs flight SH204 to Lisbon on time today? If it's cancelled I want my money back.\n\nASSISTANT\nSH204 usually departs on time at 09:40, so you should be fine!\nREFUND: no\n\n--- ops log, same morning ---\nSH204  09:40  CANCELLED (crew)",
+  "questions": [
+    {
+      "prompt": "Why did the assistant give a wrong flight status?",
+      "options": [
+        {
+          "text": "The system prompt was too long, so the model ignored the policy section.",
+          "explanation": "The policy text is not the issue. Today's status is not in the prompt at all, so no prompt length change could make the answer right."
+        },
+        {
+          "text": "The model's temperature was too high, so it picked a random departure time.",
+          "explanation": "The model gave the usual time, not a random one. It had no way to see today's cancellation, whatever the sampling settings."
+        },
+        {
+          "text": "It had no tool for live flight data, so it answered from memory.",
+          "explanation": "Right. Fresh or external data is a core reason to use a tool. Today's status lives in the ops system, not in the model.",
+          "correct": true
+        },
+        {
+          "text": "The user asked two questions in one message, which confused the model.",
+          "explanation": "Two questions in one message are normal. Even a single question about today's status needs live data."
+        }
+      ]
+    },
+    {
+      "prompt": "The team adds a `get_flight_status` tool. What happens when the model decides to use it?",
+      "options": [
+        {
+          "text": "It returns a structured call; your backend runs the lookup and sends back the result.",
+          "explanation": "Right. The Claude docs say the model never executes anything on its own: it emits a structured request and your code runs it.",
+          "correct": true
+        },
+        {
+          "text": "The model connects to the airline's ops system by itself, reads the live status and then answers.",
+          "explanation": "The model does not run your function. The Gemini docs say the model doesn't execute the function itself; your application does."
+        },
+        {
+          "text": "The API provider runs the function for you, using the code you uploaded.",
+          "explanation": "The Claude docs say the model never sees your implementation, only the schema and the result. Your own code runs the call."
+        },
+        {
+          "text": "Nothing changes until the model is fine-tuned on the airline's flight data.",
+          "explanation": "Tools need no fine-tuning. You declare them in the tools parameter of the request, and the model can call them in that request."
+        }
+      ]
+    },
+    {
+      "prompt": "What should replace the 'REFUND: yes/no' line and the regex?",
+      "options": [
+        {
+          "text": "Keep the regex, but make it case-insensitive so it also catches 'Refund: Yes'.",
+          "explanation": "That patches one failure of parsing free text. The decision is still buried in prose that can change shape."
+        },
+        {
+          "text": "Ask the model to put the word REFUND in capital letters on its own line so the regex finds it more easily.",
+          "explanation": "Louder text is still free text. The structure belongs in a schema, not in a formatting habit."
+        },
+        {
+          "text": "Remove refunds from the assistant and tell customers to call the support line.",
+          "explanation": "That avoids the problem by dropping the feature. OpenAI lists issuing refunds as a typical example of a tool."
+        },
+        {
+          "text": "A refund tool with typed inputs that your backend runs after its own checks.",
+          "explanation": "Right. The Claude docs say that if you use a regex to extract a decision from model output, that decision should have been a tool call.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Which planned feature does NOT need a tool?",
+      "options": [
+        {
+          "text": "Showing how many seats are left on tomorrow's flight to Porto.",
+          "explanation": "Seat counts change all the time and live in your booking system. That is fresh, external data."
+        },
+        {
+          "text": "Translating the baggage policy page into Spanish for a customer.",
+          "explanation": "Right. The Claude docs list translation as a task the model can do from training alone, with nothing to execute.",
+          "correct": true
+        },
+        {
+          "text": "Changing a customer's seat from 14C to 3A.",
+          "explanation": "That is an action with a side effect in your system. Only a tool can perform it."
+        },
+        {
+          "text": "Checking whether this customer's booking is still inside the 24-hour refund window.",
+          "explanation": "The booking time is private data in your database. The model needs a tool to read it."
+        }
+      ]
+    }
+  ]
+}
