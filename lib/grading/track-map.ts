@@ -22,6 +22,7 @@ import type {
   StepView,
   Track,
   TrackMap,
+  TowerSummary,
   TrackOutline,
 } from '@/lib/types';
 import { decideOpen } from './open';
@@ -180,4 +181,27 @@ export function buildTowerMap(
     const quickCheck = steps.find((s) => s.step === 'quick-check')!;
     return { chapter: floor.n, title: floor.name, status: chapterStatus(steps, quickCheck), steps };
   });
+}
+
+/**
+ * The dashboard's Math Tower panel and MATH FLOORS stat. A live floor has a
+ * content file ("soon" means none); a cleared floor had its quick check passed.
+ * The next floor is the first open one, linked to its playable step.
+ */
+export function towerSummary(floors: FloorState[]): TowerSummary {
+  const live = floors.filter((f) => f.status !== 'soon').length;
+  const cleared = floors.filter((f) => f.status === 'done').length;
+  for (const floor of floors) {
+    const step = floor.status === 'open' ? playableStep(floor) : null;
+    if (step) {
+      return {
+        state: 'open',
+        next: { floor: floor.chapter, title: floor.title, step },
+        cleared,
+        live,
+      };
+    }
+  }
+  const state = live > 0 && cleared === live ? 'cleared' : 'soon';
+  return { state, next: null, cleared, live };
 }

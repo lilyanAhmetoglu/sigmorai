@@ -5,8 +5,10 @@ import { ContinueCard } from '@/components/dashboard/continue-card';
 import { DailyQuest } from '@/components/dashboard/daily-quest';
 import { DashboardStats } from '@/components/dashboard/dashboard-stats';
 import { RealmTile } from '@/components/dashboard/realm-tile';
+import { TowerPanel } from '@/components/dashboard/tower-panel';
 import { Panel } from '@/components/panel';
 import { AUTH_ROUTES, DASHBOARD_TEXT, ONBOARDING_HREF, REALMS_HREF } from '@/lib/constants';
+import { getTowerSummary } from '@/lib/data/math';
 import { getDashboard } from '@/lib/data/realms';
 
 export const metadata: Metadata = { title: `${DASHBOARD_TEXT.title} · Sigmorai` };
@@ -18,11 +20,11 @@ const REALMS_ID = 'dashboard-realms';
  * The player's home (Sigmorai App.dc.html → isDash): the next open step on
  * their track, their stats and their active realms. Every state is computed
  * on the server (lib/data/realms.ts).
- * Not built yet: the Math Tower panel and MATH FLOORS stat (the tower page,
- * /math, is in the nav), the Frontier shortcut, and the realm scene art.
+ * The Math Tower panel and MATH FLOORS stat read the tower (lib/data/math.ts).
+ * Not built yet: the Frontier shortcut.
  */
 export default async function DashboardPage() {
-  const page = await getDashboard();
+  const [page, tower] = await Promise.all([getDashboard(), getTowerSummary()]);
   if (page.status === 'signed-out') redirect(AUTH_ROUTES.signIn);
   if (page.status === 'onboarding') redirect(ONBOARDING_HREF);
 
@@ -70,8 +72,13 @@ export default async function DashboardPage() {
       </div>
 
       <aside className="flex min-w-0 flex-[1_1_16rem] flex-col gap-4 pt-4">
-        <DashboardStats streak={stats.streak} levelsCleared={levelsCleared} />
+        <DashboardStats
+          streak={stats.streak}
+          levelsCleared={levelsCleared}
+          tower={tower ?? { cleared: 0, live: 0 }}
+        />
         <DailyQuest streak={stats.streak} activeToday={stats.activeToday} />
+        {tower && <TowerPanel tower={tower} />}
       </aside>
     </div>
   );

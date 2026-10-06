@@ -108,6 +108,26 @@ export const DASHBOARD_TEXT = {
   /** Stat labels (design: isDash STATS). Only stats with real data. */
   streak: 'DAY STREAK',
   levelsCleared: 'LEVELS CLEARED',
+  mathFloors: 'MATH FLOORS',
+  /** "1 / 3": cleared live floors / live floors. */
+  mathFloorsValue: (cleared: number, live: number) => `${cleared} / ${live}`,
+  /**
+   * The MATH TOWER panel (design: isDash aside), plain product voice: no
+   * Numerist Oru line here. The sentence carries the state, not the colour.
+   */
+  tower: {
+    heading: MATH_TOWER.name.toUpperCase(),
+    /** "FLOOR 2 · Probability" */
+    floor: (n: number, name: string) => `FLOOR ${n} · ${name}`,
+    open: (name: string) => `${name} is open.`,
+    climb: 'Climb',
+    /** Screen-reader end of the Climb button's name. */
+    climbTarget: (n: number) => ` to floor ${n}`,
+    cleared: 'All live floors cleared.',
+    clearedHint: 'New floors come soon. You can replay any floor.',
+    soon: 'The next floor is not built yet. It comes soon.',
+    viewTower: 'View the tower',
+  },
   browseAll: 'Browse all',
   browseIcon: '▸',
   stats: 'STATS',
