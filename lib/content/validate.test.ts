@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { CONTENT_DIR } from '@/lib/constants';
 import { isSafeLessonUrl } from './mdx';
-import { validateContent } from './validate';
+import { lengthGiveaways, validateContent } from './validate';
 
 const REAL = path.resolve(import.meta.dir, '../..', CONTENT_DIR);
 const FIXTURE_LESSON = `${import.meta.dir}/__fixtures__/valid/builder/00-bootstrap-village/c1/lesson.mdx`;
@@ -381,5 +381,34 @@ describe('isSafeLessonUrl', () => {
       '/\\evil.example',
     ];
     for (const url of bad) expect(isSafeLessonUrl(url)).toBe(false);
+  });
+});
+
+describe('answer length guard', () => {
+  const q = (right: string, ...wrong: string[]) => ({
+    options: [{ text: right, correct: true }, ...wrong.map((text) => ({ text, correct: false }))],
+  });
+
+  test('a clearly longest right answer fails, with file and question number', () => {
+    const issues = lengthGiveaways(
+      [q('aaaa', 'bbbb'), q('x'.repeat(40), 'y'.repeat(20), 'z')],
+      'f/case.json',
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].file).toBe('f/case.json');
+    expect(issues[0].message).toContain('question 2');
+    expect(issues[0].message).toContain('40 chars vs 20');
+  });
+
+  test('a similar-length right answer passes', () => {
+    expect(lengthGiveaways([q('x'.repeat(22), 'y'.repeat(20), 'z'.repeat(30))], 'f')).toEqual([]);
+  });
+
+  test('a tie for longest passes', () => {
+    expect(lengthGiveaways([q('x'.repeat(40), 'y'.repeat(40), 'z')], 'f')).toEqual([]);
+  });
+
+  test('a small gap passes even when the ratio is high', () => {
+    expect(lengthGiveaways([q('x'.repeat(10), 'y'.repeat(4))], 'f')).toEqual([]);
   });
 });
