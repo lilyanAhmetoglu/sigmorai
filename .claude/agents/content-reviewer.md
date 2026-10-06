@@ -15,11 +15,11 @@ There is no code in this product (no-code pivot, 2026-10-05). Both tracks end ea
 
 **Schema** (`bun run content:check`: the app's own Zod loaders)
 
-- Lesson frontmatter: `id, title, minutes, sources[{kind:'docs'|'repo'|'blog', title, url}]`, optional `sourceHash`. No `xp` field: XP amounts live in `lib/constants`.
+- Lesson frontmatter: `id, title, minutes, sources[{kind:'docs'|'repo'|'blog', title, url}]`. No `xp` field: XP amounts live in `lib/constants`.
 - Each id matches its path. Ids never change: a renamed id is a blocker (it loses learners' progress).
 - A chapter has up to three files: `lesson.mdx`, `case.json`, `quick-check.json`. A boss is one `case.json`.
 - Frontier chapters (`content/frontier/<YYYY-MM-DD>-<slug>/`) = lesson + `quick-check.json` only. A `case.json` there is a blocker.
-- Blog posts (`content/blog/<YYYY-MM-DD>-<slug>.mdx`) use plain product voice (no NPC lines) and cite the same sources as their lesson.
+- Blog posts (`content/blog/<YYYY-MM-DD>-<slug>.mdx`): frontmatter `title, description, lesson` (no `sources`); a post cites via `lesson:`, so check every claim against that lesson and its sources. Plain product voice, no `<DialogBox>` (content:check fails one).
 
 **Curriculum** (`content/<track>/outline.json`, `content/math/outline.json`, `lib/constants/curriculum.ts`)
 
@@ -29,7 +29,6 @@ There is no code in this product (no-code pivot, 2026-10-05). Both tracks end ea
 
 - Every source URL is real and official, under a `trustTier: official` entry of `content/sources.yaml` (the check enforces the prefix; you WebFetch each one).
 - **Source rule:** at least 1 Anthropic page and at least 1 OpenAI page where both document the concept. Missing one of them is a **blocker**. Google and MCP spec pages are optional. Community repos and community blogs are examples only, never the only source of a claim. Official vendor engineering posts (e.g. pages under `anthropic.com/engineering` or `openai.com/index`) count as official. A claim with no official page is a blocker.
-- `sourceHash`, when present, matches what the sync job recorded for that page.
 - The content only claims what the sources say. Flag any API name, parameter, model id, default, limit or behaviour you can't find in the cited page. Quote the line.
 
 **Case (`case.json`, both tracks)**

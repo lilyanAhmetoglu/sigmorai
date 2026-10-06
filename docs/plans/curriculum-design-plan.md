@@ -8,6 +8,75 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (SIG-39, analytics + AI search readiness)
+
+- **Analytics are Vercel Web Analytics and Speed Insights**, in `app/layout.tsx` (`@vercel/analytics/next`, `@vercel/speed-insights/next`). Cookieless, so there is no consent banner. No custom events.
+- **CSP:** on a deployment both scripts load from the site itself (`/_vercel/…` or a per-build path) and send to it, so `'self'` covers them. Only `next dev` adds `https://va.vercel-scripts.com` to `script-src` (the debug scripts). The landing page stays static (○).
+- **Privacy page** gets a "Visit statistics" section (what Vercel records, no cookies, the 24-hour visitor hash) and a new cookies line. Facts and sources sit in the header of `lib/constants/legal-copy.ts`. Needs a voice-guardian pass.
+- **`/llms.txt`** (`app/llms.txt/route.ts` → `lib/content/llms.ts`) is static Markdown in the llmstxt.org shape: name, summary, then links to `/realms`, `/math`, `/blog` and each post, with `/leaderboard`, the sitemap, the RSS feed and `/privacy` under "Optional". Every line comes from existing page meta.
+- **Robots: AI search yes, training no** (maintainer, 2026-10-06). `AI_SEARCH_AGENTS` (OAI-SearchBot, ChatGPT-User, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User) get the same allow and disallow list as `*`, so AI search can cite lessons. `AI_TRAINING_AGENTS` (GPTBot, ClaudeBot, CCBot, Google-Extended, Applebot-Extended) are disallowed from `/`. Both lists live in `lib/constants/site.ts`. Google-Extended and Applebot-Extended are control tokens, not crawlers; the user-fetch agents may ignore robots.txt, per their vendors.
+- **JSON-LD** (`lib/content/json-ld.ts`, `components/json-ld.tsx`): WebSite + Organization on `/`, BlogPosting on each post. No Course schema, no logo or image yet.
+- **Waits on the maintainer:** (1) Vercel → project → Analytics and Speed Insights → Enable, then redeploy (until then the scripts 404). (2) Google Search Console: add a Domain property for `sigmorai.com`, put the TXT record it gives in DNS, verify, then submit `https://sigmorai.com/sitemap.xml`. No meta verification tag in the code. (3) After Enable + redeploy, check DevTools on sigmorai.com: no CSP violations, 2xx on `/<path>/view` and `/vitals`, and no cookie from either script. If Speed Insights loads from `va.vercel-scripts.com`, add it to the production `script-src`.
+
+## Amendments locked 2026-10-06 (SIG-24, SEO + accessibility pass)
+
+- **Per-page metadata is already done** (realm pages, lessons, blog, catalog). No change here.
+- **Case and quick-check pages are `noindex`.** The quest page's non-lesson metadata returns `robots: { index: false }`.
+- **Sitemap (`app/sitemap.ts`, built by `lib/content/sitemap.ts`)** is static and lists, as absolute URLs on `SITE_URL`: `/`, `/realms`, `/math`, `/blog`, `/privacy`; every indexable realm page (`getRealmMeta(slug).indexable`); every live lesson on both tracks and every live Math Tower floor lesson; every blog post (`lastModified` = post date). Not listed: `/map/*`, cases, quick checks, private pages. The leaderboard joins when it ships. Supersedes the §SEO and accessibility sitemap line and closes the three "sitemap: later ticket" notes (this spec, quest-actions, knowledge-base).
+- **Robots (`app/robots.ts`)** allows `/`, disallows `/dashboard`, `/profile`, `/onboarding`, `/api/`, and points to `/sitemap.xml`. No per-environment branch: Vercel sends `X-Robots-Tag: noindex` on preview deployments (but not on a custom domain assigned to a preview branch).
+- **The proxy matcher skips `.txt` and `.xml`**, so the crawler files (robots, sitemap, llms.txt, RSS feed) never run Clerk middleware.
+- **After the leaderboard merged (#47):** the sitemap also lists `/leaderboard` (all-time view only, no range param), and robots also disallows Clerk's `/sign-in` and `/sign-up`. Supersedes "the leaderboard joins when it ships" above.
+- **Not in this ticket:** structured data, OG image, `llms.txt`, analytics (SIG-34, SIG-39), a title-template refactor.
+- **The SIG-34 share image lives in `app/(marketing)/opengraph-image.tsx`, not `app/`.** At the root, the landing page's own `openGraph` object replaces it and `og:image` is lost; a file in the page's own segment wins. The route group adds a suffix to the URL (`/opengraph-image-<hash>`).
+- **One static share image for all public pages** (landing, blog, privacy, realms), made at build time. Twitter falls back to it; the landing card is `summary_large_image`.
+- **Per-post (blog) and per-realm share images are deferred** to a later ticket.
+- **The accessibility pass is a verify step:** Lighthouse (accessibility + SEO) on the main public routes and a keyboard walk at 360px; real findings fixed in the same branch. No Playwright/axe test and no CI job (SIG-26 owns that). Fixed: realm Start/Continue links carry the realm name in screen-reader text (`RealmActionLabel`); the landing Sign in ghost button gets a solid ink fill (it was 3.6:1 on the sky); the skip link is 44px tall.
+
+## Amendments locked 2026-10-06 (Math Tower playable, step 6)
+
+- **A floor is cleared by its quick check.** Floor 1 is open. Floor N opens when `math/f(N−1)/quick-check` has a `progress` row. The lesson alone does not open the next floor.
+- **No tier gate and no realm gate** for the Math Tower. Every floor is free on both paths. The Frontier still returns `INVALID_INPUT` from the open check.
+- **New lock text:** `floorNotOpenText(n)` = "Clear floor n first." (`lib/constants/ui-copy.ts`, next to `notOpenText`).
+- **No new quest page kind.** A floor lesson and quick check use the realm views with: tag "MATH TOWER · FLOOR n · LESSON | QUICK CHECK", accent `math`, NPC `MATH_TOWER.npc`. Lesson Continue → the floor's quick check. Quick-check Continue → the next floor's lesson if it has content, else `/math`. Back link → `/math`, labelled "Back to tower".
+- **`/math` is public.** It shows 8 floor cards. A floor with no content files shows COMING SOON and is not a link. Visitors see a sign-in note.
+- **XP once across paths needs no code.** Math ids have no track, so `xp_events_award_once_idx` and the `progress` primary key already award a floor once per user.
+- **No schema change.**
+- **The §Content files outline field list is superseded** by the 2026-10-05 amendment: a floor is `{ n, covers, formulas[{ math, text }] }`.
+- **Not in this ticket:** the Frontier list page and open rule, a Math level map, the dashboard Math panel and MATH FLOORS stat, any Oru DialogBox line.
+- **The design's FLOORS order and its Oru line outside a DialogBox are stale.** `MATH_FLOORS` and the two-voice rule win.
+- **Later (dashboard follow-up): the dashboard Math panel and MATH FLOORS stat ship.** The MATH TOWER panel shows the first open floor ("FLOOR n", one sentence "<name> is open.", a Climb button to its playable step). When every live floor is cleared, or the next floor is not built, it shows one sentence and a "View the tower" link to `/math`. MATH FLOORS = cleared live floors / live floors, hidden while no floor has content. Plain product voice, no Oru line. This supersedes the "Not in this ticket" line above and the dashboard's earlier "Not built yet" note for these two items.
+
+## Amendments locked 2026-10-06 (SIG-36, path switch)
+
+- **The switch lives on `/profile`** ("YOUR PATH" panel), not in the HUD. The HUD track stays a read-only Badge.
+- **The design reference plans a HUD TrackToggle** (`design/BUILD_PROMPT_NEXTJS_BUN.md:29`). The profile panel replaces it for now.
+- **One Server Action, `switchTrack`** (`lib/actions/switch-track.ts`), updates `users.track` only. The user id comes from the session; the form sends one track.
+- **No schema change.** Progress is already per track through the exercise id (`db/CLAUDE.md` invariant 4), so the old path's progress stays and shows again on a switch back.
+- **XP, level and streak are one ledger**, shared by both paths. Math Tower (and Frontier) progress is shared too: those ids have no track.
+- **No confirm box, no rate limit.** A switch loses nothing and grants nothing. Saving the same path is a no-op success.
+- **When the leaderboard is built (step 6):** it shows the player's current path next to their total level. Its 60 s cache may show the old path for up to a minute.
+- **Onboarding copy changed:** "You can't change your path yet" → "You can change your path later on your profile."
+
+## Amendments locked 2026-10-05 (PR 4: builder outline rewrite)
+
+- **Builder titles are vendor-neutral and no-code.** Replaces the builder column of §Realm map. Changed: r0c4 Streaming → Multimodal input · r1c3 XML tags → Structure the prompt · r1c5 JSON output → Structured output · r1c6 Prefill → Grounded answers · r2c1 Messages recap → Why tools · r2c2/c3 → Define a tool / Results & errors (c2 was Tool results, c3 was Define a tool) · r2c6 Tool search → Prompt injection · r4c3 Agent SDKs → The harness · r5c2 Your first server → Servers & tools · r5c6 Auth → Auth & trust · r6c6 Tracing → Evals in CI · r7c1 Orchestrators → Agent graphs · r8c4 Security → Secrets & data · r8c5 Scaling → Latency & scaling. Why: each old title named one vendor's feature or a coding task.
+- **Coverage homes:** multimedia r0c4 (+ strategist r1c5 "Images & voice", replacing "Prompt templates", which r1c6 already covers) · prompt injection r2c6 · harness engineering r4 c1–c3 (loop, stop conditions, the harness) · graphs r7c1 · secrets r8c4 · latency/scalability r8c5 · streaming folds into r0c5 and r8c5. Closes the "decided in the outline PR" line of the no-code amendment.
+- **All nine builder `boss.task` lines are scenario-shaped** ("Design / Plan / Configure X for Y"), graded by a case.
+- **Per-chapter topic lines stay in this spec, not in `outline.json`.** The chapter schema stays `{ id, title }`.
+- **Titles are safe to rename; ids are not.** Exercise ids are positional ("Ids are forever"); the r2 c2/c3 title swap is fine only because r2 has no content yet.
+- **Maintainer to-do:** re-export `design/` with the new titles and drop "pass it by writing code" from the landing copy. Add `openai.com/index`, the Codex docs base and a Gemini docs base to `content/sources.yaml` before r4 content.
+- **Lesson guards (content-reviewer):** r0c4 must say audio input differs by vendor and cite only vendors whose docs support it. r7c1 "graphs" cites OpenAI Agent Builder (nodes, edges) and Anthropic orchestrator-workers; a graph framework repo may be a secondary source. Titles stay ≤ 16 chars so they fit a map pin (voice-guardian).
+
+## Amendments locked 2026-10-05 (dashboard + realm pages, SIG-14)
+
+- **`/dashboard`** (signed in; the proxy redirects signed-out visitors) shows the next open step, up to `DASHBOARD_REALM_LIMIT` (3) active realms, and a stats panel (day streak, levels cleared). Onboarding now lands here (`AFTER_ONBOARDING_HREF`).
+- **"Next step"** prefers realms in progress, then open realms, in map order. Lesson → case → quick check inside a chapter.
+- **`/realms` and `/realms/[realm]` are public.** `?track=builder|strategist` shows either track; the default is the player's track, or strategist for visitors. Unknown slugs return a real 404.
+- **Step states** come from the same `decideOpen` the Server Actions use. A step with no content file is "Coming soon" and is not a link. Advanced realms are visible but locked, with no unlock goal yet (paywall later).
+- **After a pass**, and on the quest back link, the player returns to the realm page, not the profile.
+- Not built yet: daily quest, Math Tower panel, tier filter, "View on map", "Built from" sources.
+- Lesson rendering and the Lesson done button: see quest-actions-design-plan.md → SIG-11 block. §SEO sitemap: later ticket.
+
 ## Amendments locked 2026-10-05 (no-code pivot, vendor-neutral)
 
 - **Nobody writes code.** Builder ("tech") teaches how to design and run AI systems; strategist ("business") teaches how to use and leverage AI and harnesses at work. Both end every chapter and boss in a graded scenario case. Replaces: §Context row 1 ("code challenge, tests"), §Audiences "Needs code? Yes, basic" (now No for all), §Code execution (now N/A), §Content files "challenge" wording, §MVP cut "(lesson + challenge/case + quick check)" → "(lesson + case + quick check)", the realm-02 `get_weather` tool-challenge demo (dropped). Also supersedes the Phase 1 lines "Challenges are graded offline…" and "Realm 02 keeps the get_weather tool challenge".

@@ -1,0 +1,103 @@
+---
+id: builder/r0/c4/lesson
+title: Multimodal input
+minutes: 9
+sources:
+  - kind: docs
+    title: Vision (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/vision
+  - kind: docs
+    title: PDF support (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/pdf-support
+  - kind: docs
+    title: Features overview (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/overview
+  - kind: docs
+    title: Models overview (Claude docs)
+    url: https://platform.claude.com/docs/en/models/overview
+  - kind: docs
+    title: Images and vision (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/images-vision
+  - kind: docs
+    title: File inputs (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/file-inputs
+  - kind: docs
+    title: Audio and speech (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/audio
+---
+
+Real users do not only type. They send screenshots, photos of receipts, PDF contracts and voice notes. "Multimodal input" means the model takes more than text. This chapter shows how images, documents and audio enter a system, what they cost, and where vendors differ.
+
+## Images go inside a message
+
+An image is one more **content block** in a user message, next to text blocks (chapter 2). A Claude user message with an image looks like this (trimmed):
+
+```json
+{
+  "role": "user",
+  "content": [
+    { "type": "image", "source": { "type": "url", "url": "https://example.com/receipt.jpg" } },
+    { "type": "text", "text": "What is the total on this receipt?" }
+  ]
+}
+```
+
+Both vendors accept an image in three ways:
+
+- **Anthropic**: base64 data in the request, a URL, or a `file_id` from the Files API.
+- **OpenAI**: a URL, a Base64-encoded data URL, or a file ID from the Files API.
+
+Order can matter. The Claude docs say "Claude works best when images come before text", though other orders "still perform well".
+
+## Images cost tokens
+
+An image is turned into tokens, and you pay for them as input.
+
+- **Anthropic** cuts an image into 28×28-pixel patches. Cost in tokens is about `⌈width / 28⌉ × ⌈height / 28⌉`. Very large images are downscaled first, which caps the cost.
+- **OpenAI** also converts images into billable tokens from patches, and a `detail` setting (`low`, `high`, `original` or `auto`, depending on the model) controls image preprocessing. OpenAI notes that "image tokens also count toward your tokens per minute (TPM) limits".
+
+Example (Claude formula): a 1000×1000 image is ⌈1000/28⌉ × ⌈1000/28⌉ = 36 × 36 = **1,296 tokens**. That is about as much as a 970-word English text.
+
+Design rule: **resize before you send.** The Claude docs advise that if you do not need extra detail, you should "downsample images before sending to control token costs". A 4K phone photo of a receipt rarely needs 4K.
+
+## Images in long conversations
+
+The API is stateless, so every turn resends the history (chapter 2), including old images. The Claude docs warn that with base64 images "the full image bytes are included in the payload on every turn". Uploading once with a Files API and sending the `file_id` "keeps request payloads small". OpenAI also accepts file IDs.
+
+Example: a support chat where the user sent three screenshots in turn 1. By turn 20, base64 would resend those three screenshots 20 times. With file IDs, each later request only carries short references instead of the image bytes.
+
+## What vision is bad at
+
+Both vendors list limits. They overlap:
+
+- **Counting**: Claude "can give approximate counts"; OpenAI says the model "may give approximate counts for objects in images".
+- **Spatial reasoning**: Claude's location outputs "are approximate"; OpenAI lists spatial reasoning as a weak spot.
+- **Small or low-quality images**: Claude "might hallucinate or make mistakes" on low-quality, rotated or very small images. OpenAI notes that small text works better when enlarged.
+
+Design rule: do not build a system where an exact answer depends on these. The Claude docs say: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight." Example: an app that reads damage photos can draft a claim, but a person approves it.
+
+## PDFs: text plus page images
+
+Both vendors read a PDF the same broad way:
+
+- Claude: "The system converts each page of the document into an image" and "the text from each page is extracted and provided alongside each page's image."
+- OpenAI: on vision models, "the API extracts both text and page images and sends both to the model."
+
+So a PDF page costs **text tokens plus image tokens**. The Claude docs estimate 1,500–3,000 text tokens per page, plus the image cost for each page. Example: a 40-page contract could use 60,000–120,000 text tokens before you count the page images. Both vendors set request size limits, and Claude also caps pages per request; check the current numbers in their docs before you design a bulk-upload feature.
+
+## Audio: vendors differ
+
+Audio support is **not** the same across vendors. Check each vendor's docs before you design a voice feature.
+
+- **OpenAI** documents several audio inputs: a transcription endpoint for "a transcript of an audio file", audio input in Chat Completions, and a Realtime API for speech-to-speech agents.
+- **Anthropic**: the Claude features overview lists vision and PDF support as inputs, and the models overview says current models support "text and image input". Neither page lists audio input.
+
+Design consequence: if the model you chose takes no audio, your system needs a speech-to-text step first, then sends the transcript as text. Example: a voice-note feature records audio, sends it to a transcription service, then passes the transcript to the model of your choice.
+
+## Key points
+
+- Images and PDFs enter as content blocks inside a user message.
+- Images and PDF pages cost input tokens. Resize images before sending.
+- Use file IDs instead of base64 when images stay in a long conversation.
+- Vision is approximate for counting, location and tiny details. Keep a human on high-stakes calls.
+- Audio input differs by vendor. Read the docs, then design the pipeline.

@@ -1,0 +1,293 @@
+/*
+ * Realm scene, catalog card, dashboard realm tile, realm hero, chapter list,
+ * track switch, the dashboard's Continue card and STATS panel, the Math
+ * Tower floor cards
+ * (Sigmorai App.dc.html → isRealms, isDetail, isDash). Realm colour from
+ * data-accent (accents.css). Tokens only.
+ * Dropped from the design (no token): the 9–10px HUD sizes (use text-micro),
+ * the 14px/18px paddings (use the 12/16px steps), the hero text-shadow (the
+ * legibility fade does that job).
+ */
+@layer components {
+  /* Level art: four layers stacked, bottom-aligned. ink-950 behind any gap. */
+  .realm-scene {
+    @apply bg-ink-950 relative overflow-hidden;
+  }
+  .realm-scene-layer {
+    @apply object-cover object-bottom;
+  }
+
+  /* Catalog card: scene on top, then the text. */
+  .realm-card {
+    @apply bg-surface-2 shadow-card m-0.75 flex h-full flex-col;
+  }
+  .realm-card-scene {
+    @apply aspect-video w-full;
+  }
+  .realm-card-body {
+    @apply flex flex-1 flex-col items-start gap-2 p-4;
+  }
+  .realm-card-head {
+    @apply font-hud text-micro tracking-hud text-text-3 m-0 flex flex-wrap justify-between gap-2 self-stretch;
+  }
+  .realm-card-tag {
+    @apply text-(--tint);
+  }
+  .realm-card-name {
+    @apply font-display text-h4 text-text-1 m-0 leading-tight font-semibold;
+  }
+  .realm-card-topic {
+    @apply font-body text-small text-text-2 leading-body m-0 flex-1 text-pretty;
+  }
+  .realm-card-meta {
+    @apply font-hud text-micro tracking-hud text-text-3 m-0;
+  }
+  .realm-card-note {
+    @apply font-body text-small text-text-2 leading-body m-0;
+  }
+  .realm-card-body > .xp-bar {
+    @apply self-stretch;
+  }
+  .realm-card-action {
+    @apply mt-1;
+  }
+  .realm-card[data-status='tier-locked'] .realm-card-name {
+    @apply text-text-3;
+  }
+
+  /* Dashboard realm tile: the whole tile is one link. */
+  .realm-tile {
+    @apply bg-surface-2 text-text-1 shadow-card m-0.75 flex h-full flex-col no-underline;
+  }
+  a.realm-tile:hover {
+    @apply bg-surface-3 text-text-1;
+  }
+  .realm-tile-scene {
+    @apply aspect-video w-full;
+  }
+  .realm-tile-body {
+    @apply flex flex-col gap-2 px-4 py-3;
+  }
+  .realm-tile-name {
+    @apply font-display text-h4 leading-tight font-semibold;
+  }
+
+  /* Realm page header */
+  .realm-back {
+    @apply font-hud text-hud tracking-hud text-text-2 inline-flex min-h-11 items-center gap-2 self-start uppercase no-underline;
+  }
+  a.realm-back:hover {
+    @apply text-text-1;
+  }
+  .realm-tag {
+    @apply font-hud text-hud tracking-hud m-0 text-(--tint);
+  }
+  .realm-hero {
+    @apply shadow-panel relative isolate m-0.75 flex min-h-65 items-end overflow-hidden;
+  }
+  .realm-hero > .realm-scene {
+    @apply absolute inset-0 -z-10;
+  }
+  /* The one allowed gradient: the text-legibility fade over the scene. */
+  .realm-hero > .realm-scene::after {
+    @apply absolute inset-0;
+    content: '';
+    background:
+      var(--scanlines),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--ink-950) 88%, transparent) 0 70%,
+        color-mix(in srgb, var(--ink-950) 20%, transparent) 100%
+      );
+    @variant md {
+      background:
+        var(--scanlines),
+        linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--ink-950) 88%, transparent) 0 45%,
+          color-mix(in srgb, var(--ink-950) 20%, transparent) 75%
+        );
+    }
+  }
+  .realm-hero-copy {
+    @apply max-w-reading flex flex-col items-start gap-3 p-6;
+  }
+  .realm-hero-topic {
+    @apply text-body-lg leading-body text-ink-200 m-0 text-pretty;
+  }
+
+  /* Chapter list: one <details> per chapter and the boss. */
+  .chapter-list {
+    @apply m-0 flex list-none flex-col gap-3 p-0;
+  }
+  .chapter {
+    @apply bg-surface-2 shadow-notch m-0.75;
+  }
+  .chapter-summary {
+    @apply flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-3 px-4 py-3;
+  }
+  .chapter-summary::-webkit-details-marker {
+    @apply hidden;
+  }
+  .chapter-glyph {
+    @apply text-text-on-accent font-display text-h4 shadow-notch inset-shadow-bevel grid size-8 flex-none place-items-center font-bold;
+    @apply bg-(--tint);
+  }
+  .chapter-glyph[data-status='done'] {
+    @apply bg-success;
+  }
+  .chapter-glyph:not([data-status='open'], [data-status='done']) {
+    @apply bg-ink-700 text-ink-400;
+  }
+  .chapter-name {
+    @apply font-display text-h4 text-text-1 flex min-w-0 flex-[1_1_10rem] flex-col leading-tight font-semibold break-words;
+  }
+  .chapter-number {
+    @apply font-hud text-micro tracking-hud text-text-3 font-normal;
+  }
+  /* Chevron follows [open]; both glyphs are in the markup, CSS shows one. */
+  .chapter-chevron {
+    @apply font-hud text-hud text-text-3 flex-none;
+  }
+  .chapter[open] .chapter-chevron[data-when='closed'],
+  .chapter:not([open]) .chapter-chevron[data-when='open'] {
+    @apply hidden;
+  }
+  /* Indent ≈ glyph 32px + gap 12px (on the 4px scale): hint and steps sit under the name. */
+  .chapter-hint {
+    @apply font-body text-small text-text-2 leading-body basis-full pl-12;
+  }
+  .chapter-steps {
+    @apply m-0 flex list-none flex-col gap-0.5 pt-0 pr-4 pb-3 pl-16;
+  }
+  .chapter-step {
+    @apply bg-ink-950 font-body text-body text-text-1 flex min-h-11 flex-wrap items-center justify-between gap-2 px-3 py-2 no-underline;
+  }
+  a.chapter-step:hover {
+    @apply bg-ink-800 text-text-1;
+  }
+  .chapter-step:not([data-status='open'], [data-status='done']) {
+    @apply text-text-3;
+  }
+  /* The current step: a left bar and the word NEXT. Never outline, which is the focus ring's. */
+  .chapter-step[aria-current='step'] {
+    @apply border-l-4 border-(--tint);
+  }
+  .chapter-step[aria-current='step'] .chapter-step-state {
+    @apply text-(--tint);
+  }
+  .chapter-step-state {
+    @apply font-hud text-micro tracking-hud;
+  }
+
+  /* Builder / strategist switch (design: trackTabs). Active = the track colour. */
+  .track-switch {
+    @apply bg-ink-950 m-0 inline-flex list-none gap-0.5 p-0.75;
+  }
+  .track-switch-link {
+    @apply font-hud text-hud tracking-hud text-text-2 inline-flex min-h-11 items-center px-4 uppercase no-underline;
+  }
+  a.track-switch-link:hover {
+    @apply text-text-1;
+  }
+  a.track-switch-link[aria-current='page'] {
+    @apply text-ink-950 bg-(--tint);
+  }
+
+  /* Dashboard: Continue learning */
+  .continue-card {
+    @apply flex flex-wrap items-center gap-4;
+  }
+  .continue-card-scene {
+    @apply shadow-notch aspect-video w-45 max-w-full flex-none;
+  }
+  .continue-card-body {
+    @apply flex min-w-0 flex-[1_1_14rem] flex-col gap-2;
+  }
+  .continue-card-tag {
+    @apply font-hud text-micro tracking-hud m-0 text-(--tint) uppercase;
+  }
+  .continue-card-title {
+    @apply font-display text-h3 m-0 leading-tight font-semibold break-words;
+  }
+
+  /* Dashboard STATS panel: 2 per row, value above label (design: isDash). */
+  .dash-stats {
+    @apply m-0 grid grid-cols-2 gap-4;
+  }
+  .dash-stat {
+    @apply flex flex-col-reverse gap-1;
+  }
+  .dash-stat-label {
+    @apply font-hud text-micro tracking-hud text-text-3;
+  }
+  .dash-stat-value {
+    @apply font-display text-h3 m-0 leading-tight font-bold;
+  }
+  .dash-stat-value[data-tone='streak'] {
+    @apply text-glitch-300;
+  }
+  .dash-stat-value[data-tone='cleared'] {
+    @apply text-mint-500;
+  }
+  .dash-stat-value[data-tone='math'] {
+    @apply text-rune-300;
+  }
+
+  /* Dashboard DAILY QUEST note: icon + sentence (the sentence carries the state). */
+  .daily-quest {
+    @apply text-body leading-body m-0 flex items-start gap-2;
+  }
+  .daily-quest-icon {
+    @apply font-hud text-accent flex-none;
+  }
+  .daily-quest[data-state='done'] .daily-quest-icon {
+    @apply text-mint-500;
+  }
+
+  /* Dashboard MATH TOWER panel: floor tag, one sentence, Climb. */
+  .tower-panel {
+    @apply flex flex-col items-start gap-2.5;
+  }
+  .tower-panel-tag {
+    @apply font-hud text-hud tracking-hud text-rune-300 m-0 wrap-anywhere;
+  }
+  .tower-panel-text {
+    @apply font-body text-body leading-body text-text-2 m-0 text-pretty wrap-anywhere;
+  }
+  .tower-panel-hint {
+    @apply font-body text-small leading-body text-text-3 m-0;
+  }
+
+  /* Math Tower floor card: one link when playable, a plain box otherwise. */
+  .floor-card {
+    @apply bg-surface-2 text-text-1 shadow-card m-0.75 flex h-full flex-col items-start gap-2 p-4 no-underline;
+  }
+  a.floor-card:hover {
+    @apply bg-surface-3 text-text-1;
+  }
+  .floor-card-head {
+    @apply m-0 flex flex-wrap items-center justify-between gap-2 self-stretch;
+  }
+  .floor-card-tag {
+    @apply font-hud text-micro tracking-hud text-(--tint);
+  }
+  .floor-card-name {
+    @apply font-display text-h4 m-0 leading-tight font-semibold;
+  }
+  .floor-card-covers {
+    @apply font-body text-small text-text-2 leading-body m-0 text-pretty;
+  }
+  .floor-card-formulas {
+    @apply m-0 flex list-none flex-wrap gap-2 p-0;
+  }
+  .floor-card-formulas code {
+    @apply font-code text-small text-rune-300 bg-ink-950 px-1.5 py-0.5 wrap-anywhere;
+  }
+  .floor-card-hint {
+    @apply font-body text-small text-text-2 leading-body m-0;
+  }
+  .floor-card:not([data-status='open'], [data-status='done']) .floor-card-name {
+    @apply text-text-3;
+  }
+}

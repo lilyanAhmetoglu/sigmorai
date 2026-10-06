@@ -14,7 +14,7 @@ Deterministic guardrails. A rule in markdown is a **request**; a hook is a **gua
 
 ### `guard-bash.sh` denies
 
-`gh pr merge` / `gh pr close` / `gh release delete` · `git push --force` / `-f` · `git reset --hard` · `git clean -f` · `git commit --amend` · `--no-verify` / `--no-gpg-sign` · `git add .` / `-A` · staging a secret-shaped path (`.env*` except `.env.example`, `*.pem`, `*.key`, `*credentials*`, `*secret*`) · direct push to `main` or `canary` in any form (`HEAD:main`, `+main`) · `npm` / `pnpm` / `yarn` / `npx` (no exceptions in this repo).
+`gh pr close` / `gh release delete` · `git push --force` / `-f` · `git reset --hard` · `git clean -f` · `git commit --amend` · `--no-verify` / `--no-gpg-sign` · `git add .` / `-A` · staging a secret-shaped path (`.env*` except `.env.example`, `*.pem`, `*.key`, `*credentials*`, `*secret*`) · direct push to `main` or `canary` in any form (`HEAD:main`, `+main`) · `npm` / `pnpm` / `yarn` / `npx` (no exceptions in this repo).
 
 A segment must **start** with the binary to count, and heredoc bodies are dropped as data. So a commit message that names a blocked command is fine, while `echo hi && git add .` still trips.
 
@@ -35,6 +35,10 @@ Runs `bun run content:check` (Zod loaders over every file in `content/`, no mode
 **`PreToolUse` guards** read JSON on stdin and write a `permissionDecision` JSON to stdout. **They always exit 0.** The denial rides in the JSON, so a malformed payload can never wedge a session. Every deny names the escape hatch: the maintainer types `! <command>` to run it in their own shell.
 
 **`lint-file.sh`** and **`content-check.sh`** run after the write, so the exit code is the only channel: `0` = clean/skipped/toolchain broken (silent), `2` = real lint errors (stdout goes to Claude).
+
+## Requirements
+
+`jq` must be installed (`brew install jq`). `guard-bash.sh` and `guard-write.sh` fail closed (deny) without it.
 
 ## Tests: run after ANY hook change
 

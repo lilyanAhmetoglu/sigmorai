@@ -1,0 +1,113 @@
+/*
+ * Level map (Sigmorai App.dc.html → isMap): a strip that scrolls sideways,
+ * holding the 2048×480 stage (art at exactly 2×) and the level nodes on the
+ * ground line. Only this strip scrolls sideways; the page never does.
+ * Stage size and ground come from LEVEL_MAP (level-map.tsx sets --map-*).
+ * Tokens only. --level-px is one art pixel on screen (2×), local to the map,
+ * not a design token.
+ *
+ * Parallax: CSS scroll-driven animations, no rAF loop. The near layer and the
+ * nodes scroll 1:1 (no transform). The layers behind lag: each is pushed right
+ * by --lag × the scroll offset, so it moves at (1 - lag) speed. Sky 0, far
+ * 0.3, mid 0.6. The push is rounded down to whole art pixels so the art stays
+ * sharp. Only with support and prefers-reduced-motion: no-preference; else
+ * every layer scrolls 1:1 (plain scroll).
+ */
+@layer components {
+  .level-map {
+    @apply bg-ink-950 shadow-panel m-0.75 overflow-x-auto overflow-y-hidden;
+    container-type: inline-size;
+    scroll-timeline: --level-map x;
+    scrollbar-color: var(--ink-500) var(--ink-950);
+  }
+
+  .level-map-stage {
+    @apply relative;
+    --level-px: 2px;
+    width: var(--map-w);
+    height: var(--map-h);
+  }
+  .level-map-stage > .realm-scene {
+    @apply absolute inset-0;
+  }
+
+  .level-map-nodes {
+    @apply absolute inset-0 m-0 list-none p-0;
+  }
+  /* Centred on its x; the tile stands on the ground line, the label below it. */
+  .level-map-node {
+    @apply absolute -translate-x-1/2;
+    left: var(--node-x);
+    top: calc(var(--map-ground) - --spacing(12));
+  }
+  .level-map-node[data-boss] {
+    top: calc(var(--map-ground) - --spacing(16));
+  }
+  /* Labels sit on busy art: give them a dark plate like the design. Nodes are
+     ≥ 224px apart, so a label may be wider than the primitive's 96px. */
+  .level-map .level-node-label {
+    @apply bg-ink-950 shadow-notch max-w-48 px-2 py-1;
+  }
+  /* The boss sits alone near the end: one line reads better than two. */
+  .level-map-node[data-boss] .level-node-label {
+    @apply max-w-none whitespace-nowrap;
+  }
+
+  /* Header: "2/7 CLEARED" between the realm arrows (design: progressLabel). */
+  .map-progress {
+    @apply bg-ink-950 text-ink-100 font-hud text-micro tracking-hud shadow-notch m-0 px-3 py-2.5;
+  }
+  /* Square 44px arrows, and an empty slot of the same size when there is no
+     previous or next realm, so the row never shifts. */
+  .map-realm-nav {
+    @apply flex items-center gap-2;
+  }
+  .map-realm-nav > .pixel-button,
+  .map-realm-nav > .map-realm-slot {
+    @apply size-11 flex-none px-0;
+  }
+  .map-hint {
+    @apply text-small leading-body text-text-2 m-0;
+  }
+
+  .level-map .realm-scene-layer[data-layer='sky'] {
+    --lag: 1;
+  }
+  .level-map .realm-scene-layer[data-layer='far'] {
+    --lag: 0.7;
+  }
+  .level-map .realm-scene-layer[data-layer='mid'] {
+    --lag: 0.4;
+  }
+
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .level-map .realm-scene-layer:not([data-layer='near']) {
+        /* The duration is ignored: the scroll position drives progress.
+           animation-timeline must come after the animation shorthand. */
+        animation: level-map-parallax 1ms linear both;
+        animation-timeline: --level-map;
+        /* 100cqw = the strip's visible width, so the max(…) is the scroll range. */
+        translate: round(
+            down,
+            calc(var(--level-shift) * var(--lag) * max(0px, var(--map-w) - 100cqw)),
+            var(--level-px)
+          )
+          0;
+      }
+    }
+  }
+}
+
+/* Scroll progress 0 → 1, as a number the layers can multiply. */
+@property --level-shift {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes level-map-parallax {
+  to {
+    --level-shift: 1;
+  }
+}

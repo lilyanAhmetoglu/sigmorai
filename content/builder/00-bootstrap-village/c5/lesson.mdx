@@ -1,0 +1,119 @@
+---
+id: builder/r0/c5/lesson
+title: Models & limits
+minutes: 10
+sources:
+  - kind: docs
+    title: Models overview (Claude docs)
+    url: https://platform.claude.com/docs/en/models/overview
+  - kind: docs
+    title: Context windows (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/context-windows
+  - kind: docs
+    title: Rate limits (Claude docs)
+    url: https://platform.claude.com/docs/en/api/rate-limits
+  - kind: docs
+    title: Streaming messages (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/streaming
+  - kind: docs
+    title: Stop reasons and fallback (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons
+  - kind: docs
+    title: Models (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/models
+  - kind: docs
+    title: Conversation state (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/conversation-state
+  - kind: docs
+    title: Rate limits (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/rate-limits
+  - kind: docs
+    title: Streaming API responses (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/streaming-responses
+  - kind: docs
+    title: Reasoning models (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/reasoning
+---
+
+Every model has limits: how much it can read, how much it can write, how many calls you can make per minute, and how fast it answers. A good design picks a model and then fits the system inside these limits. This chapter teaches how to find the limits and design around them, not to memorise numbers. Numbers change; the reading skill does not.
+
+## Choosing a model
+
+Vendors sell a family of models, from large and slow to small and fast. You trade capability, speed and price.
+
+- The Claude models overview compares models by "Comparative latency", pricing, context window, max output and knowledge cutoff.
+- The OpenAI models page also shows "Context window" and "Max output" for each model, and suggests a flagship model if you are not sure where to start, or a smaller one "for cost-sensitive, high-volume workloads".
+
+A practical method: start with a strong model to prove the task works. Then try a smaller, cheaper one on the same test cases. Keep the smallest model that still passes.
+
+Example: a ticket-tagging job runs 50,000 times a day. If a small model tags as well as a large one on your test set, the small one wins on cost and speed.
+
+## Read limits from the source, not from memory
+
+Model names and numbers change often. Build systems that read them.
+
+- The Claude models API returns `max_input_tokens`, `max_tokens` and a `capabilities` object for each model.
+- The Claude docs also state that "every Claude model ID is a pinned snapshot". A pinned ID keeps pointing at the same model snapshot, so changing models is a deliberate code change.
+
+Example: instead of hard-coding "context = 200k" in ten places, load the limit for the configured model once at startup.
+
+## The context window
+
+The context window is the model's working space for one request. The Claude docs: it "refers to all the text a language model can reference when generating a response, including the response itself". OpenAI: "the maximum number of tokens that can be used in a single request", which "includes input, output, and reasoning tokens".
+
+So input and output share one budget. Everything counts: system prompt, history, tool definitions, images, documents, and the reply.
+
+What happens when you go over differs by vendor:
+
+- Claude returns a 400 `invalid_request_error` ("prompt is too long") if the input alone is too big.
+- OpenAI notes that "tokens generated in excess of the context window limit may be truncated in API responses".
+
+Bigger is not always better. The Claude docs: "more context isn't automatically better. As token count grows, accuracy and recall degrade", which they call context rot. Send what the task needs, not everything you have.
+
+Example: a model has a 200k-token window. You plan a 150k-token document, 30k tokens of history and a 25k-token reply. That is 205k, so it does not fit. Cut the document to the relevant parts, or summarise the history.
+
+## Max output
+
+Each request sets a cap on output length: `max_tokens` on Claude, `max_output_tokens` on OpenAI. When the cap is hit:
+
+- Claude: `stop_reason` is `max_tokens`. The docs suggest raising the cap or continuing the response.
+- OpenAI: the response has `status` `incomplete`, with `incomplete_details.reason` set to `max_output_tokens`.
+
+Hidden reasoning also uses this budget. OpenAI says reasoning tokens "still occupy space in the model's context window and are billed as output tokens". Example: a reasoning model with a tight output cap can spend the whole budget thinking and return an incomplete answer.
+
+## Rate limits
+
+Rate limits cap how much you can send per period. Both vendors measure requests and tokens per minute:
+
+- Claude: requests per minute (RPM), input tokens per minute (ITPM) and output tokens per minute (OTPM), per model, by usage tier, at the organization level.
+- OpenAI: RPM, RPD, TPM, TPD and IPM, set "at the organization level and at the project level", varying by model and tier.
+
+When you go over, both return HTTP 429. Claude adds a `retry-after` header that says how long to wait. OpenAI recommends exponential backoff with jitter and honouring `Retry-After`.
+
+Two vendor differences that change a design:
+
+- **`max_tokens` and limits.** OpenAI: "Your rate limit is calculated as the maximum of `max_tokens` and the estimated number of tokens" of your request. Claude: "The `max_tokens` parameter does not factor into OTPM rate limit calculations". On OpenAI, a huge cap on every call can use up your limit early.
+- **Cached tokens.** Claude: "For most Claude models, only uncached input tokens count toward your ITPM rate limits." Caching (chapter 6) can raise your real throughput.
+
+Also plan for bursts. The Claude docs note that 60 RPM "might be enforced as 1 request per second", so a burst can fail even when the minute total is fine.
+
+## Streaming
+
+A long answer can take many seconds. With streaming, the user sees text as it is written.
+
+- Both vendors use `stream: true` and server-sent events (SSE).
+- OpenAI: streaming "lets you start printing or processing the beginning of the model's output while it continues generating the full response."
+- A Claude stream starts with a `message_start` event, and errors can arrive inside the stream (for example `overloaded_error`).
+
+Streaming changes when the user sees the first words; the model still writes the whole reply. It has costs: OpenAI notes it "makes it more difficult to moderate the content of the completions, as partial completions may be more difficult to evaluate". Your client must also handle an error that arrives halfway through.
+
+Example: a chat UI streams replies so the first words appear quickly. A nightly batch job does not stream, because nobody is watching.
+
+## Key points
+
+- Pick the smallest model that passes your tests. Read limits from the vendor's model data.
+- The context window holds input and output together. More context is not always better.
+- Set an output cap and check the stop signal.
+- Rate limits cap requests and tokens per minute. Handle 429 with backoff and retry-after.
+- `max_tokens` affects rate limits on OpenAI but not Claude OTPM. Know your vendor.
+- Stream for user-facing replies; handle mid-stream errors.

@@ -4,13 +4,27 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState, useTransition } from 'react';
 import { submitCase, submitQuickCheck } from '@/lib/actions/quest';
 import { QUEST_TEXT } from '@/lib/constants';
-import type { AnswerSheet, AnswerViewer, QuestionFeedback, XpOutcome } from '@/lib/types';
+import type {
+  AnswerSheet,
+  AnswerViewer,
+  QuestErrorCode,
+  QuestionFeedback,
+  XpOutcome,
+} from '@/lib/types';
 import type { ToastItem } from './quest-toasts';
 
 /** The last press. The server decides every grade, HP and XP value here. */
 export type AnswerOutcome =
-  | { kind: 'graded'; passed: boolean; replay: boolean; questions: QuestionFeedback[] }
-  | { kind: 'error'; message: string };
+  | {
+      kind: 'graded';
+      passed: boolean;
+      replay: boolean;
+      right: number;
+      total: number;
+      /** Null on a first-time fail: only "N of M correct" leaves the server. */
+      questions: QuestionFeedback[] | null;
+    }
+  | { kind: 'error'; code?: QuestErrorCode; message: string };
 
 type View = { sheet: AnswerSheet; viewer: AnswerViewer };
 
@@ -81,11 +95,11 @@ export function useAnswers(props: View) {
       });
       if (!result.ok) {
         if (result.code === 'NO_HP' && hp) setHp({ ...hp, value: 0 });
-        return setOutcome({ kind: 'error', message: result.message });
+        return setOutcome({ kind: 'error', code: result.code, message: result.message });
       }
-      const { passed, replay, questions, xp } = result;
+      const { passed, replay, right, total, questions, xp } = result;
       if (hp && result.hpLeft !== null) setHp({ ...hp, value: result.hpLeft });
-      setOutcome({ kind: 'graded', passed, replay, questions });
+      setOutcome({ kind: 'graded', passed, replay, right, total, questions });
       if (passed && !replay && xp && xp.awarded > 0) {
         setClearedNow(xp);
         pushToast({
@@ -129,6 +143,10 @@ export function useAnswers(props: View) {
     hp,
     outcome,
     graded,
+    /** The quick check's daily tries are used up: Submit stays off until the reset. */
+    noTries:
+      (outcome?.kind === 'error' && outcome.code === 'NO_TRIES') ||
+      (viewer.status === 'ready' && !viewer.cleared && viewer.triesLeft === 0),
     clearedNow,
     /** Cleared before this attempt: Submit is practice. */
     replay: viewer.status === 'ready' && viewer.cleared,

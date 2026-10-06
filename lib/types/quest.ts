@@ -21,6 +21,8 @@ export const QuestErrorCodeSchema = z.enum([
   'TIER_LOCKED',
   'NOT_OPEN',
   'NO_HP',
+  /** A quick check's daily tries are used up (QUICK_CHECK_DAILY_TRIES). */
+  'NO_TRIES',
   /** Our side failed (DB down, broken content file). Nothing was saved. */
   'SERVER_ERROR',
 ]);
@@ -46,7 +48,7 @@ export type XpOutcome = {
   levelAfter: number;
 };
 
-/** completeLesson input (contract only; the "Lesson done" button is SIG-11). */
+/** completeLesson input: the lesson page's "Lesson done" button (SIG-11). */
 export const CompleteLessonInputSchema = z
   .object({
     exerciseId: ExerciseIdSchema.refine((id) => id.endsWith('/lesson'), {
@@ -57,6 +59,16 @@ export const CompleteLessonInputSchema = z
 export type CompleteLessonInput = z.infer<typeof CompleteLessonInputSchema>;
 
 export type CompleteLessonResult = { ok: true; xp: XpOutcome } | QuestActionFailure;
+
+/**
+ * Who is reading a lesson. Scoped to auth()'s user. `not-open`: the chapter
+ * before is not cleared, so "Lesson done" would be refused (the text says why).
+ */
+export type LessonViewer =
+  | { status: 'signed-out' }
+  | { status: 'onboarding' }
+  | { status: 'not-open'; message: string }
+  | { status: 'ready'; cleared: boolean };
 
 // ── Cases and quick checks ────────────────────────────────────────────────
 
@@ -89,14 +101,14 @@ export type SubmitAnswersInput = z.infer<typeof SubmitCaseInputSchema>;
 export type GradedOption = { text: string; explanation: string; correct: boolean };
 
 /**
- * One question after submit. `picked` is the learner's own option, with its
- * explanation only. `options` (display order) comes only after a pass or on
- * a replay: a fail never shows the correct option.
+ * One question after a pass or a replay: whether the pick was right, the
+ * pick, and every option (display order) with its explanation. A first-time
+ * fail gets none of this, only a count (SIG-27: no key farming).
  */
 export type QuestionFeedback = {
   correct: boolean;
   picked: { text: string; explanation: string };
-  options?: GradedOption[];
+  options: GradedOption[];
 };
 
 export type SubmitAnswersResult =
@@ -107,7 +119,11 @@ export type SubmitAnswersResult =
       replay: boolean;
       /** HP left on this case today; null for a quick check (no HP). */
       hpLeft: number | null;
-      questions: QuestionFeedback[];
+      /** How many questions were right, and how many there were. Always set. */
+      right: number;
+      total: number;
+      /** Per question, only after a pass or on a replay. Null on a first-time fail. */
+      questions: QuestionFeedback[] | null;
       /** Set on every pass; `awarded` is 0 on a replay. Null on a fail. */
       xp: XpOutcome | null;
     }
@@ -136,6 +152,8 @@ export type AnswerViewer =
       cleared: boolean;
       /** Null for a quick check (no HP). */
       hp: HpValue | null;
-      /** UTC instant HP refills (00:00 UTC tomorrow). */
+      /** Quick check: graded tries left today (QUICK_CHECK_DAILY_TRIES); null for a case. */
+      triesLeft: number | null;
+      /** UTC instant HP and quick-check tries refill (00:00 UTC tomorrow). */
       hpResetsAt: string;
     };

@@ -1,0 +1,89 @@
+---
+id: builder/r3/c6/lesson
+title: Compaction
+minutes: 9
+sources:
+  - kind: docs
+    title: Compaction overview (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/compaction
+  - kind: docs
+    title: Context editing (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/context-editing
+  - kind: blog
+    title: Effective context engineering for AI agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+  - kind: docs
+    title: Compaction (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/compaction
+  - kind: docs
+    title: Prompt caching (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/prompt-caching
+---
+
+An agent that works for hours keeps adding to its context: every tool call, every result, every reply. Even a 1M-token window can fill up. Compaction is how a long task keeps going.
+
+## What compaction is
+
+Anthropic defines it as "taking a conversation nearing the context window limit, summarizing its contents, and reinitiating a new context window with the summary." It calls compaction "the first lever in context engineering to drive better long-term coherence."
+
+The Claude docs give two reasons to do it. It keeps a long task inside the context window. And it keeps the active context small, "because response quality degrades as a conversation grows."
+
+Example: a coding agent has used 700,000 tokens over three hours, mostly old file reads and test logs. Compaction replaces those turns with a short summary of what matters, and the agent continues from there.
+
+## Compaction on Claude
+
+The Claude docs offer three ways, by who decides when:
+
+- **Compaction on demand:** you decide, by sending a request. Your code runs a loop that asks for the summary and swaps it in. The docs say to use this "wherever it is available".
+- **Compaction at a token threshold:** the API decides, "when input tokens reach the trigger you set". It is one parameter on your normal requests.
+- **Your own summarizer:** you write the summarization call, its prompt and the history rewrite yourself.
+
+In each case, the summary replaces the older turns. On-demand and threshold compaction are in beta, and Claude writes the summary on the server, "so you need no summarization code of your own". Two options matter in practice: you can keep the most recent turns word for word, and if the default summary drops something a later turn needs, you can write your own summarization prompt.
+
+## Compaction on OpenAI
+
+OpenAI offers two ways in the Responses API:
+
+- **Server-side:** set `context_management` with `compact_threshold`. "When the rendered token count crosses the configured threshold, the server runs server-side compaction."
+- **Standalone endpoint:** call `/responses/compact` with the full context window, and pass the returned window to your next request. OpenAI: "do not prune `/responses/compact` output."
+
+One detail matters for your code: OpenAI's compaction item is "opaque and not intended to be human-interpretable." Your code passes it along; it does not read it.
+
+## What to keep
+
+The hard part is choosing what survives. Anthropic describes how Claude Code does it: the model keeps "architectural decisions, unresolved bugs, and implementation details while discarding redundant tool outputs or messages", and the agent continues with the summary plus the five most recently accessed files.
+
+The risk is cutting too much: "overly aggressive compaction can result in the loss of subtle but critical context whose importance only becomes apparent later." Anthropic's advice for your own compaction prompt: tune it on complex agent traces. First maximize recall, so it captures every relevant piece. Then improve precision by removing extra content.
+
+Example: a summary says "migrated the user table", but drops "we chose Postgres, not SQLite, because of row locking". Twenty turns later, the agent suggests SQLite again. That decision should have been in the summary.
+
+## A lighter step: clear old tool results
+
+Sometimes you don't need a summary at all. Anthropic calls tool result clearing "one of the safest lightest touch forms of compaction": once a tool result is deep in the history, the agent rarely needs the raw text again.
+
+On Claude, context editing does this with the `clear_tool_uses_20250919` strategy. When context grows past your threshold, the API clears the oldest tool results first and puts placeholder text in their place. It is in beta, behind the `context-management-2025-06-27` header.
+
+## Compaction and caching
+
+Compaction rewrites the earlier part of the prompt, so it works against prompt caching (chapter 4).
+
+- **OpenAI:** compaction "can change the prefix, so the first request after compaction may reuse less of the previous cache". Compare total input cost before and after: "fewer input tokens can still save money even when the cache-hit rate falls."
+- **Claude:** clearing tool results "Invalidates cached prompt prefixes". Use `clear_at_least` so each clear removes enough tokens to be worth the new cache write.
+
+## Other tools for long tasks
+
+Anthropic names two more techniques beside compaction:
+
+- **Structured note-taking:** the agent writes notes outside the context window, such as a `NOTES.md` file, and reads them back later.
+- **Sub-agents:** a sub-agent explores in its own clean context and returns only "a condensed, distilled summary of its work (often 1,000-2,000 tokens)".
+
+Its guide to choosing: compaction for long back-and-forth, notes for step-by-step work with clear milestones, and multiple agents for research that benefits from parallel exploration.
+
+## Key points
+
+- Compaction summarizes old turns and continues with the summary, so long tasks fit and quality holds up.
+- Claude: on demand, at a token threshold, or your own summarizer. OpenAI: `compact_threshold`, or the `/responses/compact` endpoint.
+- OpenAI's compaction item is opaque. Pass it on; don't parse it or prune the compact endpoint's output.
+- Keep decisions, open bugs and key details. Tune the summary prompt for recall first, then precision.
+- Clearing old tool results is a lighter first step.
+- Compaction resets part of the cache. Judge it by total cost, not by cache-hit rate alone.

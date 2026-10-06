@@ -1,0 +1,96 @@
+{
+  "id": "builder/r2/c3/challenge",
+  "title": "The warehouse that answered too much",
+  "scenario": "A parts supplier gives its sales team a chat assistant with two tools: `find_stock` (looks up parts in the warehouse database) and `send_quote_email` (emails a price quote). Sales reps report three problems: answers about stock are slow and sometimes miss the part they asked for, the whole chat crashes when the supplier API is down, and after sending a quote the assistant says it is not sure the email went out. You pull one trace (exhibit).",
+  "exhibit": "CALL  find_stock(query=\"M8 hex bolt\")\nRESULT (2,812 rows, 41 columns each)\n  row_uuid=9f3c.., sku_internal=0x00A3.., bin=..., created_at=..., ...\n  ...\n\nCALL  find_stock(query=\"M8 hex bolt\", warehouse=\"north\")\nRESULT  <Python traceback: TimeoutError at supplier_api.py line 88>\n  -> chat session crashed, user saw \"Something went wrong\"\n\nCALL  send_quote_email(customer=\"Kade Ltd\", quote_id=\"Q-5531\")\nRESULT  (empty)\nASSISTANT  I tried to send the quote, but I'm not sure it went through.",
+  "questions": [
+    {
+      "prompt": "What is the best fix for the first `find_stock` result?",
+      "options": [
+        {
+          "text": "Return only the needed fields, cap the rows, and add filter or page parameters.",
+          "explanation": "Right. The Claude docs say to return only high-signal information, and Anthropic's tool guide suggests pagination, filtering or truncation with sensible defaults.",
+          "correct": true
+        },
+        {
+          "text": "Keep the full result, but move to a model with a bigger context window so all the rows fit.",
+          "explanation": "A bigger window fits more noise, but the Claude docs warn that bloated responses waste context. The fix is a smaller, focused result."
+        },
+        {
+          "text": "Return the rows as one compressed string with no column names.",
+          "explanation": "Shorter but harder to read. The model would have to guess which value is the stock level."
+        },
+        {
+          "text": "Ask the user to type the exact internal SKU so the result has one row.",
+          "explanation": "That moves the tool's job onto the user. The tool should do the filtering and return what matters."
+        }
+      ]
+    },
+    {
+      "prompt": "The supplier API timed out and the whole chat crashed. What should the code do instead?",
+      "options": [
+        {
+          "text": "Retry the API call in a loop until the supplier answers, however long that takes.",
+          "explanation": "An unbounded retry can hang the chat. The model should hear about the failure so it can tell the user or try something else."
+        },
+        {
+          "text": "Return an empty result, so the model thinks there is simply no stock.",
+          "explanation": "That turns an outage into a false answer: the rep would hear the part is out of stock."
+        },
+        {
+          "text": "Catch it and return it as an error result (on Claude, `is_error: true`).",
+          "explanation": "Right. The Claude tutorial says to send the error back instead of crashing; the model can retry, ask the user, or explain the limitation.",
+          "correct": true
+        },
+        {
+          "text": "Remove the `warehouse` parameter, since the call that used it failed.",
+          "explanation": "The parameter did not cause a timeout. The supplier API was down, which can happen on any call."
+        }
+      ]
+    },
+    {
+      "prompt": "Which error text should the tool return for the timeout?",
+      "options": [
+        {
+          "text": "\"ERR_TIMEOUT\"",
+          "explanation": "An opaque code. Anthropic's tool guide says to give specific, actionable messages rather than opaque error codes."
+        },
+        {
+          "text": "\"Supplier API timed out. Stock is unknown right now. Tell the user and suggest retrying in a few minutes.\"",
+          "explanation": "Right. It says what went wrong and what to do next, as the Claude docs advise.",
+          "correct": true
+        },
+        {
+          "text": "The full Python traceback with file names and line numbers, so the model has every detail it might need.",
+          "explanation": "Anthropic's tool guide names tracebacks as what to avoid. They cost tokens and say nothing about the next step."
+        },
+        {
+          "text": "\"failed\"",
+          "explanation": "The Claude docs use \"failed\" as the example of a generic error to avoid."
+        }
+      ]
+    },
+    {
+      "prompt": "After `send_quote_email`, the assistant is not sure the email was sent. What fixes this?",
+      "options": [
+        {
+          "text": "Tell the model in the system prompt to always say the email was sent.",
+          "explanation": "That makes it claim success even when sending fails. The result should report what actually happened."
+        },
+        {
+          "text": "Remove the tool result, since the email tool has nothing to return.",
+          "explanation": "Every call needs a result. On Claude, a call without a matching `tool_result` returns an error."
+        },
+        {
+          "text": "Make the model call `send_quote_email` twice, to be safe.",
+          "explanation": "That can send the customer two emails. The real gap is that the result says nothing."
+        },
+        {
+          "text": "Return a short status string, such as \"sent to orders@kade.example, quote Q-5531\" or the failure reason.",
+          "explanation": "Right. OpenAI says a function with no return value should return a string that indicates success or failure.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

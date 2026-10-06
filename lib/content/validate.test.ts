@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { CONTENT_DIR } from '@/lib/constants';
+import { isSafeLessonUrl } from './mdx';
 import { validateContent } from './validate';
 
 const REAL = path.resolve(import.meta.dir, '../..', CONTENT_DIR);
@@ -85,6 +86,53 @@ describe('broken content is caught, with the file name', () => {
     expect(await validateContent(root)).toEqual([]);
   });
 
+  test('a lesson body that is not valid MDX', async () => {
+    const root = await copyOfContent();
+    const lesson = (await Bun.file(FIXTURE_LESSON).text()) + '\n<DialogBox>never closed\n';
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    const [issue] = await validateContent(root);
+    expect(issue.file).toBe(`${C1}/lesson.mdx`);
+    expect(issue.message).toContain('MDX body');
+  });
+
+  test('a lesson body with an h1, an import or an unknown component', async () => {
+    const root = await copyOfContent();
+    const lesson = (await Bun.file(FIXTURE_LESSON).text()).replace(
+      '## Fixture lesson',
+      "import x from 'y'\n\n# Fixture lesson\n\n<Quiz />",
+    );
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    const issues = await validateContent(root);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('Start at "##"');
+    expect(issues[0].message).toContain('import/export');
+    expect(issues[0].message).toContain('<Quiz>');
+  });
+
+  test('a lesson body with a {…} expression or a <script>', async () => {
+    const root = await copyOfContent();
+    const lesson =
+      (await Bun.file(FIXTURE_LESSON).text()) +
+      '\n{process.env.HOME}\n\nHome is {1 + 1}.\n\n<DialogBox {...x}>a</DialogBox>\n\n' +
+      '<DialogBox title={y}>b</DialogBox>\n\n<script>alert(1)</script>\n\n<iframe src="https://x.example" />\n';
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    const issues = await validateContent(root);
+    expect(issues).toHaveLength(1);
+    const lines = issues[0].message.split('\n');
+    expect(lines.filter((l) => l.includes('no {…} expressions'))).toHaveLength(4);
+    expect(issues[0].message).toContain('<script> is not allowed');
+    expect(issues[0].message).toContain('<iframe> is not allowed');
+  });
+
+  test('a "#" comment inside a code block is not an h1', async () => {
+    const root = await copyOfContent();
+    const lesson =
+      (await Bun.file(FIXTURE_LESSON).text()) +
+      '\n```bash\n# install\n```\n\n<DialogBox>Hello.</DialogBox>\n';
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    expect(await validateContent(root)).toEqual([]);
+  });
+
   test('a missing sources.yaml is an issue, not a silent skip', async () => {
     const root = await copyOfContent();
     await rm(`${root}/sources.yaml`);
@@ -95,8 +143,182 @@ describe('broken content is caught, with the file name', () => {
 
   test('a blog post must be named <date>-<slug>.mdx', async () => {
     const root = await copyOfContent();
-    await Bun.write(`${root}/blog/2026-10-05-tokens.mdx`, '---\n---\n');
-    await Bun.write(`${root}/blog/tokens.mdx`, '---\n---\n');
+    await Bun.write(`${root}/blog/2026-10-05-tokens.mdx`, post());
+    await Bun.write(`${root}/blog/tokens.mdx`, post());
     expect((await validateContent(root)).map((i) => i.file)).toEqual(['blog/tokens.mdx']);
+  });
+});
+
+/** A blog post file: valid by default; `fields` overrides frontmatter lines. */
+function post(body = '## Summary\n\nPlain text.', fields: Record<string, string> = {}) {
+  const front = {
+    title: 'A post',
+    description: 'What it covers.',
+    lesson: 'builder/r0/c1/lesson',
+    ...fields,
+  };
+  const yaml = Object.entries(front)
+    .filter(([, v]) => v !== '')
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('\n');
+  return `---\n${yaml}\n---\n\n${body}\n`;
+}
+
+describe('blog posts', () => {
+  async function postIssues(files: Record<string, string>) {
+    const root = await copyOfContent();
+    for (const [name, text] of Object.entries(files)) await Bun.write(`${root}/blog/${name}`, text);
+    return validateContent(root);
+  }
+
+  test('an empty post fails its schema (it used to pass)', async () => {
+    const issues = await postIssues({ '2026-10-05-tokens.mdx': '---\n---\n' });
+    expect(issues.map((i) => i.file)).toEqual(['blog/2026-10-05-tokens.mdx']);
+  });
+
+  test('a missing description and a non-lesson id fail', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(undefined, {
+        description: '',
+        lesson: 'builder/r0/c1/challenge',
+      }),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('description');
+    expect(issues[0].message).toContain('/lesson');
+  });
+
+  test('a stray sources field fails: sources come from the lesson', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(undefined, { sources: '[]' }),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('sources');
+  });
+
+  test('a <DialogBox> in a post fails: no NPC lore on the blog', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post('## Summary\n\n<DialogBox>Hello.</DialogBox>'),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('<DialogBox> is not allowed. No components are.');
+  });
+
+  test('a lesson with no file (a stub chapter) fails', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(undefined, { lesson: 'strategist/r8/c6/lesson' }),
+    });
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('has no lesson file');
+  });
+
+  test('two posts with the same slug fail on the second', async () => {
+    const issues = await postIssues({
+      '2026-10-05-tokens.mdx': post(),
+      '2026-10-06-tokens.mdx': post(),
+    });
+    expect(issues).toEqual([expect.objectContaining({ file: 'blog/2026-10-06-tokens.mdx' })]);
+    expect(issues[0].message).toContain('already used');
+  });
+});
+
+describe('lesson body allowlist (SIG-27)', () => {
+  /** The fixture lesson with `extra` appended to its body. */
+  async function lessonIssues(extra: string) {
+    const root = await copyOfContent();
+    const lesson = (await Bun.file(FIXTURE_LESSON).text()) + `\n${extra}\n`;
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    return validateContent(root);
+  }
+
+  test('markdown and allowed tags with safe links pass', async () => {
+    const body = [
+      '### Part',
+      '- a [doc](https://platform.claude.com/docs), a [page](/realms) and an [anchor](#part)',
+      '1. **bold** and _em_ and `code`',
+      '> a quote',
+      '---',
+      '<p>Text with <a href="https://ai.google.dev" title="Gemini">a link</a>.<br /></p>',
+      '<table><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td colSpan="1">1</td></tr></tbody></table>',
+      '<DialogBox>Hello.</DialogBox>',
+    ].join('\n\n');
+    expect(await lessonIssues(body)).toEqual([]);
+  });
+
+  test('a tag off the allowlist fails, even a harmless-looking one', async () => {
+    const issues = await lessonIssues(
+      '<img src="https://x.example/a.png" />\n\n<form action="https://x.example"><button>Go</button></form>\n\n<object data="x" />\n\n<svg><a href="https://x.example">x</a></svg>',
+    );
+    expect(issues).toHaveLength(1);
+    for (const tag of ['img', 'form', 'button', 'object', 'svg']) {
+      expect(issues[0].message).toContain(`<${tag}> is not allowed`);
+    }
+  });
+
+  test('unsafe links fail: javascript:, data:, http:, //host, also in raw <a>', async () => {
+    const issues = await lessonIssues(
+      [
+        '[a](javascript:alert(1))',
+        '[b](data:text/html,hi)',
+        '[c](http://example.com)',
+        '[d][ref]',
+        '[ref]: //evil.example',
+        '<a href="JaVaScRiPt:alert(1)">e</a>',
+        '<a href="java&#10;script:alert(1)">f</a>',
+      ].join('\n\n'),
+    );
+    expect(issues).toHaveLength(1);
+    const lines = issues[0].message.split('\n');
+    // Six: the [d][ref] use is reported once, at its `[ref]:` definition.
+    expect(lines.filter((l) => l.includes('is not allowed. Use https:'))).toHaveLength(6);
+  });
+
+  test('event handlers, style, id and src attributes fail on allowed tags', async () => {
+    const issues = await lessonIssues(
+      '<p onClick="alert(1)" style="color:red" id="x">a</p>\n\n<a src="x" href="#ok">b</a>',
+    );
+    expect(issues).toHaveLength(1);
+    for (const name of ['onClick', 'style', 'id', 'src']) {
+      expect(issues[0].message).toContain(`the attribute "${name}"`);
+    }
+  });
+
+  test('markdown images fail: no lesson needs one', async () => {
+    const issues = await lessonIssues('![alt](https://x.example/a.png)');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('images are not allowed');
+  });
+});
+
+describe('isSafeLessonUrl', () => {
+  test('https, relative paths and anchors are safe', () => {
+    for (const url of [
+      'https://a.example/x',
+      'HTTPS://a.example',
+      '/realms',
+      'page',
+      './x',
+      '#top',
+      '?q=1',
+    ]) {
+      expect(isSafeLessonUrl(url)).toBe(true);
+    }
+  });
+
+  test('other schemes, protocol-relative and control-character tricks are not', () => {
+    const bad = [
+      'javascript:alert(1)',
+      ' javascript:alert(1)',
+      'java\tscript:alert(1)',
+      'java\nscript:alert(1)',
+      'data:text/html,x',
+      'vbscript:x',
+      'http://a.example',
+      'mailto:a@b.example',
+      '//evil.example',
+      '\\\\evil.example',
+      '/\\evil.example',
+    ];
+    for (const url of bad) expect(isSafeLessonUrl(url)).toBe(false);
   });
 });

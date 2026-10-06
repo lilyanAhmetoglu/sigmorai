@@ -10,7 +10,6 @@ import {
   LESSON_SOURCE_KINDS,
   QUESTION_OPTIONS,
   QUICK_CHECK_QUESTIONS,
-  SOURCE_HASH_PATTERN,
 } from '@/lib/constants';
 import { ExerciseIdSchema } from './exercise';
 
@@ -39,17 +38,38 @@ export const LessonFrontmatterSchema = z
     title: Text,
     minutes: z.number().int().positive(),
     sources: z.array(LessonSourceSchema).min(1, 'a lesson cites at least one source'),
-    // Required once scripts/sync-sources.ts writes it (step 8).
-    sourceHash: z
-      .string()
-      .regex(SOURCE_HASH_PATTERN, 'sourceHash must be a hex SHA-256')
-      .optional(),
   })
   .strict();
 export type LessonFrontmatter = z.infer<typeof LessonFrontmatterSchema>;
 
 /** A loaded lesson: validated frontmatter + the raw MDX body. */
 export type Lesson = { frontmatter: LessonFrontmatter; body: string };
+
+// ── Blog post ─────────────────────────────────────────────────────────────
+
+/**
+ * Frontmatter of content/blog/<YYYY-MM-DD>-<slug>.mdx. The date and slug come
+ * from the file name. `lesson` is the post's level: its sources are the
+ * post's sources, and the page links to it.
+ */
+export const BlogFrontmatterSchema = z
+  .object({
+    title: Text,
+    description: Text,
+    lesson: idForStep('lesson'),
+  })
+  .strict();
+export type BlogFrontmatter = z.infer<typeof BlogFrontmatterSchema>;
+
+/** A loaded post: validated frontmatter, the raw MDX body, and the file name's date + slug. */
+export type BlogPost = {
+  frontmatter: BlogFrontmatter;
+  body: string;
+  /** `YYYY-MM-DD`, a real calendar date. */
+  date: string;
+  /** The URL segment: `/blog/<slug>`. */
+  slug: string;
+};
 
 // ── Case + quick check ────────────────────────────────────────────────────
 

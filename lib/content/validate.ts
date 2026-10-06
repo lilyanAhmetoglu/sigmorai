@@ -7,7 +7,6 @@ import {
   BOSS_SEGMENT,
   CASE_FILE,
   CHAPTER_COUNT,
-  CHAPTER_STEPS,
   CONTENT_DIR,
   CONTENT_NOTES_FILE,
   FRONTIER_AREA,
@@ -17,27 +16,30 @@ import {
   MATH_FLOORS,
   OUTLINE_FILE,
   QUICK_CHECK_FILE,
-  REALMS,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
 import { MathOutlineSchema, TrackOutlineSchema } from '@/lib/types';
-import { buildExerciseId, parseExerciseId } from './ids';
+import { buildExerciseId, parseBlogFileName, parseExerciseId, trackExerciseIds } from './ids';
 import {
   ContentError,
   contentPath,
+  hasContent,
+  loadBlogFile,
   loadCase,
   loadKbSources,
   loadLesson,
   loadQuickCheck,
 } from './load';
+import { compileLesson, NO_COMPONENTS } from './mdx';
 import { exerciseFile } from './paths';
 import { isUnderBase } from './source-urls';
 
 /**
  * The deterministic content check (`bun run content:check`, the content-check
  * hook, CI). Walks every file under the content root and validates it with the
- * same loaders and schemas the app uses. It checks shape, not truth: facts are
+ * same loaders and schemas the app uses, and compiles every lesson body with
+ * the page's own MDX rules. It checks shape, not truth: facts are
  * the content-reviewer agent's job (.claude/skills/validate-content).
  */
 
@@ -51,17 +53,7 @@ const UNEXPECTED =
 
 /** Every exercise file the id grammar allows, keyed by path → id. Frontier folders come from disk. */
 function knownExerciseFiles(frontierFolders: string[]): Map<string, string> {
-  const ids: string[] = [];
-  for (const track of TRACKS) {
-    for (const { id: realm } of REALMS) {
-      for (let chapter = 1; chapter <= CHAPTER_COUNT; chapter++) {
-        for (const step of CHAPTER_STEPS) {
-          ids.push(buildExerciseId({ area: 'chapter', track, realm, chapter, step }));
-        }
-      }
-      ids.push(buildExerciseId({ area: 'boss', track, realm }));
-    }
-  }
+  const ids: string[] = TRACKS.flatMap(trackExerciseIds);
   for (const { n } of MATH_FLOORS) {
     for (const step of SIDE_STEPS) ids.push(buildExerciseId({ area: MATH_AREA, floor: n, step }));
   }
@@ -74,12 +66,10 @@ function knownExerciseFiles(frontierFolders: string[]): Map<string, string> {
   return new Map(ids.map((id) => [exerciseFile(parseExerciseId(id)!), id]));
 }
 
-/** A blog post is named like a Frontier folder: <YYYY-MM-DD>-<slug>.mdx. */
-const isBlogPost = (rel: string) => {
+/** The post's file name when `rel` is a well-named blog post (blog/<YYYY-MM-DD>-<slug>.mdx). */
+const blogPostName = (rel: string): string | null => {
   const [area, name, ...rest] = rel.split('/');
-  if (area !== BLOG_AREA || rest.length > 0 || !name?.endsWith('.mdx')) return false;
-  // Reuse the Frontier id grammar for the date + slug rule (calendar-checked).
-  return parseExerciseId(`${FRONTIER_AREA}/${name.slice(0, -'.mdx'.length)}/lesson`) !== null;
+  return area === BLOG_AREA && rest.length === 0 && name && parseBlogFileName(name) ? name : null;
 };
 
 /** All files under root, relative, `/`-separated. Dotfiles (.DS_Store) are skipped. */
@@ -122,6 +112,43 @@ async function officialBases(root: string, issues: ContentIssue[]): Promise<stri
   }
 }
 
+/**
+ * A blog post: frontmatter schema, a body with no components (no NPC
+ * DialogBox), a linked lesson that exists, and a slug no other post uses.
+ */
+async function checkBlogPost(
+  abs: string,
+  rel: string,
+  name: string,
+  slugs: Map<string, string>,
+  issues: ContentIssue[],
+) {
+  const { slug } = parseBlogFileName(name)!;
+  const first = slugs.get(slug);
+  if (first) {
+    issues.push({
+      file: rel,
+      message: `slug "${slug}" is already used by ${first}. Each post needs its own slug (/blog/<slug>).`,
+    });
+  } else slugs.set(slug, rel);
+  try {
+    const { frontmatter, body } = await loadBlogFile(name, abs);
+    try {
+      await compileLesson(body, { allowedComponents: NO_COMPONENTS });
+    } catch (err) {
+      issues.push({ file: rel, message: `MDX body: ${(err as Error).message}` });
+    }
+    if (!(await hasContent(frontmatter.lesson, abs))) {
+      issues.push({
+        file: rel,
+        message: `lesson ${frontmatter.lesson} has no lesson file. A post links to a live lesson.`,
+      });
+    }
+  } catch (err) {
+    issues.push({ file: rel, message: detail(err) });
+  }
+}
+
 export async function validateContent(root: string = CONTENT_DIR): Promise<ContentIssue[]> {
   const abs = contentPath(root, '.');
   const issues: ContentIssue[] = [];
@@ -133,6 +160,9 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
     .map((f) => f.split('/')[1]);
   const exercises = knownExerciseFiles([...new Set(frontier)]);
 
+  /** slug → the first file that used it: two posts may not share a URL. */
+  const blogSlugs = new Map<string, string>();
+
   for (const area of [...TRACKS, MATH_AREA]) {
     const rel = `${area}/${OUTLINE_FILE}`;
     if (!files.includes(rel)) {
@@ -141,7 +171,12 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
   }
 
   for (const rel of files) {
-    if (rel === KB_SOURCES_NAME || rel.endsWith(CONTENT_NOTES_FILE) || isBlogPost(rel)) continue;
+    if (rel === KB_SOURCES_NAME || rel.endsWith(CONTENT_NOTES_FILE)) continue;
+    const post = blogPostName(rel);
+    if (post) {
+      await checkBlogPost(abs, rel, post, blogSlugs, issues);
+      continue;
+    }
     if (rel === `${MATH_AREA}/${OUTLINE_FILE}`) {
       await checkOutline(abs, rel, MathOutlineSchema, issues);
       continue;
@@ -157,7 +192,12 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
     }
     try {
       if (rel.endsWith(LESSON_FILE)) {
-        const { frontmatter } = await loadLesson(id, abs);
+        const { frontmatter, body } = await loadLesson(id, abs);
+        try {
+          await compileLesson(body);
+        } catch (err) {
+          issues.push({ file: rel, message: `MDX body: ${(err as Error).message}` });
+        }
         for (const { url } of frontmatter.sources) {
           if (official && !isUnderBase(url, official)) {
             issues.push({

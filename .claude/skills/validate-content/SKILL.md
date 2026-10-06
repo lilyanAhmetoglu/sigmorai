@@ -67,7 +67,7 @@ Never fill a gap from memory. If the page can't be fetched, mark it **not found 
 - No trick questions that hinge on wording.
 - Ids never change (`content/CLAUDE.md`). A renamed id is a blocker.
 - Frontier folder: lesson + quick check only. A `case.json` there is a blocker.
-- Blog post: plain product voice, same `sources` as its lesson.
+- Blog post: plain product voice, no `<DialogBox>`. It cites via `lesson:` (no `sources` of its own): every claim must be in that lesson and its cited pages.
 
 ## Step 5: one short report per file
 

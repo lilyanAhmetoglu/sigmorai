@@ -1,0 +1,109 @@
+---
+id: strategist/r2/c6/lesson
+title: Pilot scope
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Define success criteria and build evaluations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests
+  - kind: docs
+    title: Claude docs · Ticket routing
+    url: https://platform.claude.com/docs/en/about-claude/use-case-guides/ticket-routing
+  - kind: blog
+    title: Anthropic Engineering · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: OpenAI docs · Evaluation best practices
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+  - kind: docs
+    title: OpenAI docs · Production best practices
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+  - kind: docs
+    title: OpenAI Cookbook · Building workspace agents in ChatGPT
+    url: https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep
+---
+
+## Why it matters
+
+A pilot is a small, real test that answers one question: should we go further? A pilot that is too big takes months and teaches little. A pilot with no clear target ends with "it seems fine" and no decision.
+
+Good scope means one task, clear numbers and a decision rule, all agreed before you start.
+
+## One task, one group, one time box
+
+Anthropic's "Building effective agents" post says to start with simple solutions and add complexity only when it demonstrably improves outcomes. The same applies to a pilot.
+
+Weak scope: "Use AI in customer support."
+
+Strong scope: "Label the topic of incoming emails for the Spanish-language team, for six weeks. Agents still check each label."
+
+Small scope also makes results easier to read. If ten things change at once, you can't tell which one helped.
+
+## Write success criteria before day one
+
+Anthropic's guide on success criteria says good criteria are specific, measurable, achievable and relevant. Its example of a good one: an F1 score of at least 0.85 on a held-out test set of 10,000 posts, which is a 5% improvement over the current baseline. (The page lists F1 as a task-specific quality score; the point is that the target is a number.) The guide adds that most use cases need several criteria, such as accuracy, response time and the share of serious errors.
+
+OpenAI's evaluation guide names the opposite as an anti-pattern: **vibe-based evals**, meaning "it seems like it's working", or waiting until you ship before you test at all.
+
+Example criteria for the email pilot:
+
+```
+- Topic label correct on 92% or more of emails
+- Rerouting rate falls from 18% to under 10%
+- No customer data leaves the approved system
+- Cost per email under the budget in the business case
+```
+
+## Test on past work first
+
+Before anyone sees a live result, test on real past cases with known answers.
+
+- Anthropic's guide says to design tests that mirror the real mix of tasks, including edge cases. Its edge case examples include missing or irrelevant input, very long input, and unclear cases where even humans would find it hard to agree.
+- OpenAI's evaluation guide says test data should include typical cases, edge cases and adversarial cases.
+- OpenAI's workspace agents cookbook suggests a simple version: ask the agent to prepare a brief for a meeting you already had last week, and compare it with the brief a person wrote.
+
+Then move to live work. Anthropic's ticket routing guide says it is hard to know how well a prompt works without deploying it in a test production setting and running evaluations.
+
+## Keep people in charge and set limits
+
+OpenAI's accuracy guide describes a team that ran a few pilots to get clear data before making decisions. Where a failure was very costly, the team chose to let a human lead and the AI assist.
+
+Set practical limits too:
+
+- **Who sees it.** The cookbook notes that a new workspace agent is, by default, available only to the person who made it. Share it with the pilot group only.
+- **Separate test from live.** OpenAI's production guide suggests separate projects for staging and production, with their own rate and spend limits.
+- **Cap the spend.** The same guide describes spend alerts, and hard spend limits that stop API traffic when spend reaches the limit.
+
+## Decide the next step in advance
+
+Write the decision rule before the pilot starts:
+
+- **Go**: all criteria met. Expand to the next team.
+- **Change**: close to target. Fix one thing, such as a hand-off rule, and run again.
+- **Stop**: far from target, or the business case doesn't hold. Write down why.
+
+A "stop" is a good result if it saves a bigger mistake.
+
+After a "go", testing doesn't end. OpenAI's evaluation guide recommends continuous evaluation: run your tests on every change, watch the live system and grow the test set over time.
+
+## The pilot on one page
+
+1. **Question**: what decision will this pilot inform?
+2. **Scope**: one task, one group, the dates.
+3. **Criteria**: numbers, agreed in advance.
+4. **Baseline**: today's numbers from the business case.
+5. **Test set**: past cases with known answers, including edge cases.
+6. **People**: who checks outputs, who owns the result.
+7. **Limits**: who has access, spend cap.
+8. **Decision rule**: go, change or stop.
+
+## Key points
+
+- Scope a pilot to one task, one group and a fixed time.
+- Agree specific, measurable criteria before day one. "It seems to work" is not a result.
+- Test on past cases with known answers, including edge cases, before going live.
+- Keep a person in charge where mistakes are costly; limit access and spend.
+- Decide go, change or stop in advance; keep testing after rollout.

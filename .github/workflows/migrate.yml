@@ -14,13 +14,17 @@ concurrency:
 # the secret DATABASE_URL_UNPOOLED (the direct, non-pooled connection string;
 # drizzle.config.ts reads this name).
 
+# Read-only token: the job only checks out; the DB URL is a secret, not the token.
+permissions:
+  contents: read
+
 jobs:
   migrate:
     if: vars.DB_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - run: bun install --frozen-lockfile
       - run: bun run db:migrate
         env:

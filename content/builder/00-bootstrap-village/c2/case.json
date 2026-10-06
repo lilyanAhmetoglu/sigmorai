@@ -1,0 +1,96 @@
+{
+  "id": "builder/r0/c2/challenge",
+  "title": "The bot that forgets",
+  "scenario": "A startup shipped a support chat in a hurry. Users complain that the bot forgets what they said a minute ago. Finance also asks why long chats cost far more than short ones. You get the request log of one conversation (exhibit). Decide how the chat should handle messages.",
+  "exhibit": "conversation c-7781 (request log, input only)\n\nturn 1  messages: [user \"Hi, I'm Dana, order 5521 is late\"]\n         -> reply ok, stop_reason: end_turn\nturn 2  messages: [user \"Can you check it?\"]\n         -> reply: \"Which order do you mean?\"\nturn 3  messages: [user \"5521, I told you\"]\n         -> reply cut mid-sentence, stop_reason: max_tokens\n\nmax_tokens setting: 60",
+  "questions": [
+    {
+      "prompt": "In turn 2 the bot asks which order the user means. What is the root cause?",
+      "options": [
+        {
+          "text": "Each request sends only the newest user message.",
+          "explanation": "Right. The API is stateless, so the app must send the earlier turns too. The Claude docs say the Messages API is stateless and you always send the full history; OpenAI says each request is independent and stateless.",
+          "correct": true
+        },
+        {
+          "text": "The model's memory is full and needs a reset.",
+          "explanation": "The model keeps no memory between calls at all. Only what you send in the request exists for it."
+        },
+        {
+          "text": "The model forgot because the temperature is too high.",
+          "explanation": "Sampling settings do not create or erase memory. Turn 1 was never sent again, so the model never saw it."
+        },
+        {
+          "text": "The user should repeat the order number in every message.",
+          "explanation": "That pushes your system's job onto the user. The app should store and resend the conversation."
+        }
+      ]
+    },
+    {
+      "prompt": "Turn 3 ends mid-sentence with stop_reason max_tokens. What should the app do?",
+      "options": [
+        {
+          "text": "Treat the reply as cut off: raise max_tokens for this kind of answer, or continue the response in another request.",
+          "explanation": "Right. The Claude docs say max_tokens means the response reached your limit, and list two fixes: raise max_tokens or continue the response.",
+          "correct": true
+        },
+        {
+          "text": "Show the reply as is. The model chose to stop there.",
+          "explanation": "end_turn is a natural stop; max_tokens is not. The model was cut off by your limit."
+        },
+        {
+          "text": "Retry the same request with the same settings until it ends normally.",
+          "explanation": "The same 60-token cap will cut the answer again. Change the cap or continue the reply."
+        },
+        {
+          "text": "Ignore stop_reason. Only the text matters.",
+          "explanation": "stop_reason is how you know whether the text is complete. Skipping it ships broken answers."
+        }
+      ]
+    },
+    {
+      "prompt": "The team moves to OpenAI and plans to use previous_response_id 'so old turns are free'. Is that right?",
+      "options": [
+        {
+          "text": "No. With previous_response_id, all previous input tokens in the chain are still billed as input.",
+          "explanation": "Right. The OpenAI conversation state guide says this in so many words. Linking by id saves resending, not paying.",
+          "correct": true
+        },
+        {
+          "text": "Yes. The vendor stores the history, so only the new message is billed.",
+          "explanation": "The OpenAI docs say the opposite: previous input tokens in the chain are billed as input."
+        },
+        {
+          "text": "Yes, but only for the first 10 turns.",
+          "explanation": "There is no such rule in the docs. The full chain is billed as input."
+        },
+        {
+          "text": "No, because previous_response_id is not a real parameter.",
+          "explanation": "It is a documented way to share context across responses. The issue is the billing, not the parameter."
+        }
+      ]
+    },
+    {
+      "prompt": "Finance asks why turn 40 of a chat costs much more than turn 2, even for a short question. Which answer is correct?",
+      "options": [
+        {
+          "text": "Every turn resends the history, so input tokens grow with the length of the conversation.",
+          "explanation": "Right. A stateless API needs the full history each call, so later turns carry more input tokens.",
+          "correct": true
+        },
+        {
+          "text": "Vendors charge more per token late in a conversation.",
+          "explanation": "The price per token does not depend on the turn number. The number of tokens grows."
+        },
+        {
+          "text": "Late turns use a bigger model under the hood, so they cost more.",
+          "explanation": "The model does not change by turn. The input grows because the history is resent."
+        },
+        {
+          "text": "Short questions cost more because they need more thinking.",
+          "explanation": "Question length is not the driver here. The resent history is."
+        }
+      ]
+    }
+  ]
+}

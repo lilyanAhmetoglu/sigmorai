@@ -1,20 +1,21 @@
 /*
  * LevelNode: a stop on the world map. Tile colour from data-accent (accents.css);
- * locked goes grey, done goes Mint, current gets a Spark ring outside the notch.
+ * locked goes grey, done goes Mint, current gets a pixel arrow above the tile
+ * (not a ring: the 3px Spark ring means focus only).
  * Base = status "open". Boss tiles are 64px, the rest 48px (≥ 44px target).
  * Dropped from the design (no token): 18px/22px numbers (use text-h4/text-h3),
- * the "pulsing" current ring (no pulse keyframe token; the ring is static).
+ * the "pulsing" current ring (no pulse keyframe token; an arrow marks it instead).
  */
 @layer components {
   .level-node {
-    @apply flex cursor-pointer flex-col items-center gap-2 bg-transparent p-0;
+    @apply flex cursor-pointer flex-col items-center gap-2 bg-transparent p-0 no-underline;
   }
   .level-node[aria-disabled='true'] {
     @apply cursor-not-allowed;
   }
 
   .level-node-tile {
-    @apply text-text-on-accent font-display text-h4 shadow-notch inset-shadow-bevel grid size-12 place-items-center font-bold;
+    @apply text-text-on-accent font-display text-h4 shadow-notch inset-shadow-bevel relative grid size-12 place-items-center font-bold;
     @apply bg-(--tint);
   }
   .level-node[data-boss] .level-node-tile {
@@ -26,8 +27,24 @@
   .level-node[data-status='done'] .level-node-tile {
     @apply bg-success;
   }
-  .level-node[data-status='current'] .level-node-tile {
-    @apply outline-spark-300 outline-4 outline-offset-3;
+  /* "You are here": a stepped pixel arrow in the tile colour, above the tile. */
+  .level-node[data-status='current'] .level-node-tile::before {
+    @apply absolute -top-5 left-1/2 h-3 w-6 -translate-x-1/2 bg-(--tint);
+    content: '';
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% 33.33%,
+      83.33% 33.33%,
+      83.33% 66.67%,
+      66.67% 66.67%,
+      66.67% 100%,
+      33.33% 100%,
+      33.33% 66.67%,
+      16.67% 66.67%,
+      16.67% 33.33%,
+      0 33.33%
+    );
   }
 
   .level-node-label {

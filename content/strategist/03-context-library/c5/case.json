@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r3/c5/challenge",
+  "title": "The price list that went stale",
+  "scenario": "You are an e-commerce manager at an electronics retailer. A customer chat assistant answers questions from a knowledge base in a hosted vector store. Complaints about prices are rising.\n\nThe head of customer service asks you to find the cause and to review a plan for a new feature. The exhibit shows your freshness review.",
+  "exhibit": "Customer chat assistant: freshness review (made-up example data)\n\nSource           Changes          Synced to knowledge base   Owner\nPrice list       every Monday     1st of each month          nobody named\nReturns policy   about yearly     on change                  Legal\nProduct manuals  at each launch   on change                  Product\n\nComplaint log, September 2026\n  41  assistant quoted an old price\n   3  other\n\nReturns policy update, 1 Oct 2026\n  09:00  new file added, old file removed\n  09:05  test question still returned a passage from the old file\n  09:40  test question returned only the new file\n\nNew feature plan: compare our prices with competitors' public\n  prices, about 3,000 web searches a month",
+  "questions": [
+    {
+      "prompt": "What is the main cause of the 41 price complaints?",
+      "options": [
+        {
+          "text": "The model's knowledge cutoff is too old for it to know this year's prices.",
+          "explanation": "The prices come from the knowledge base, not from training. Any model would get the same old price from a stale file."
+        },
+        {
+          "text": "Prices change weekly but sync monthly, and nobody owns the update.",
+          "explanation": "Right. The library clock is behind for most of the month, and no one is responsible for moving it.",
+          "correct": true
+        },
+        {
+          "text": "The chunks are too large, so the price lines get lost in long passages.",
+          "explanation": "Nothing in the review points to chunking. The complaints match the gap between weekly changes and monthly syncs."
+        },
+        {
+          "text": "Customers ask about prices in vague words that the search can't match.",
+          "explanation": "The assistant did find a price; it was the old one. That points to stale data, not to search."
+        }
+      ]
+    },
+    {
+      "prompt": "Which fix should you recommend?",
+      "options": [
+        {
+          "text": "Switch to the model with the newest knowledge cutoff, and keep the monthly sync.",
+          "explanation": "The model clock doesn't hold your prices. The library clock is the problem."
+        },
+        {
+          "text": "Add \"prices may be out of date\" to every answer, and keep the monthly sync.",
+          "explanation": "A warning doesn't make the price right. Customers still get old prices for most of the month."
+        },
+        {
+          "text": "Remove prices from the knowledge base, and let the model estimate them instead.",
+          "explanation": "An estimated price is a guess. The assistant would quote prices with no source at all."
+        },
+        {
+          "text": "Sync the price list after each Monday change, and name an owner who checks it.",
+          "explanation": "Right. The update speed now matches the change speed, and the owner runs a test question after each sync.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "At 09:05 on 1 October, the old returns policy still appeared. What does this mean?",
+      "options": [
+        {
+          "text": "A vendor bug: a removed file should vanish instantly, so open a support ticket.",
+          "explanation": "OpenAI's retrieval guide says removal is eventually consistent, so a short delay is expected."
+        },
+        {
+          "text": "Expected: removal is eventually consistent, so re-test before you announce the change.",
+          "explanation": "Right. OpenAI's retrieval guide says results may include a removed file for a short period. By 09:40 only the new file appeared.",
+          "correct": true
+        },
+        {
+          "text": "The old file was never removed, so upload the new file a second time to replace it.",
+          "explanation": "By 09:40 the old file no longer appeared, so the removal worked. A second upload would add a duplicate."
+        },
+        {
+          "text": "Vector stores can't be updated in place, so the whole store must be rebuilt for every change.",
+          "explanation": "The store did update within 40 minutes. A full rebuild for each change is not needed."
+        }
+      ]
+    },
+    {
+      "prompt": "What will the competitor price feature cost in search fees? (Prices checked 2026-10-06.)",
+      "options": [
+        {
+          "text": "About $30 a month on either vendor, plus the tokens for the search results.",
+          "explanation": "Right. 3,000 ÷ 1,000 × $10 = $30. Both vendors bill the search content as tokens on top (for OpenAI: the web search tool, not the preview tool).",
+          "correct": true
+        },
+        {
+          "text": "About $30 a month in total, because reading the search results costs nothing extra.",
+          "explanation": "Both vendors bill search results as tokens, on top of the $10 per 1,000 searches (for OpenAI: the web search tool, not the preview tool)."
+        },
+        {
+          "text": "About $300 a month, because each single search costs $0.10.",
+          "explanation": "$10 per 1,000 searches is $0.01 per search, so 3,000 searches cost $30."
+        },
+        {
+          "text": "Nothing extra, because web search is included in the model's token price.",
+          "explanation": "Both vendors charge $10 per 1,000 searches, separate from token prices (for OpenAI: the web search tool, not the preview tool)."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+---
+id: builder/r1/c2/lesson
+title: Examples
+minutes: 8
+sources:
+  - kind: docs
+    title: Prompting best practices (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: docs
+    title: Prompt engineering (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/prompt-engineering
+  - kind: docs
+    title: Reasoning best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/reasoning-best-practices
+  - kind: docs
+    title: Prompt design strategies (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/prompting-strategies
+---
+
+Chapter 1 described the output in words. Often it is faster to show it. A few input/output pairs in the prompt can fix format, tone and labels better than a long paragraph of rules.
+
+## Zero-shot and few-shot
+
+A prompt with no examples is **zero-shot**. A prompt with a few examples is **few-shot** (Anthropic also says "multishot").
+
+OpenAI describes few-shot learning as including "a handful of input/output examples in the prompt, rather than fine-tuning the model". The model "implicitly 'picks up' the pattern from those examples and applies it".
+
+The Claude docs call examples "one of the most reliable ways to steer Claude's output format, tone, and structure".
+
+## A small example
+
+This is the shape of OpenAI's own review-labelling example, shortened. The instructions name the labels; the examples show them in use.
+
+```text
+# Instructions
+Label each product review as Positive, Negative, or Neutral.
+Output only the label.
+
+# Examples
+<product_review id="example-1">
+I absolutely love these headphones — sound quality is amazing!
+</product_review>
+<assistant_response id="example-1">
+Positive
+</assistant_response>
+
+<product_review id="example-2">
+Battery life is okay, but the ear pads feel cheap.
+</product_review>
+<assistant_response id="example-2">
+Neutral
+</assistant_response>
+```
+
+Notice the second example. It is the hard case: mixed feelings. Examples earn the most where the rule is unclear.
+
+## What good examples look like
+
+The Claude docs list three properties:
+
+- **Relevant**: "Mirror your actual use case closely."
+- **Diverse**: "Cover edge cases and vary enough that Claude doesn't pick up unintended patterns."
+- **Structured**: wrap examples in tags (`example` inside `examples`) so the model "can distinguish them from instructions".
+
+OpenAI says the same about range: "try to show a diverse range of possible inputs with the desired outputs."
+
+The Gemini docs add **consistent formatting**: "Make sure that the structure and formatting of few-shot examples are the same to avoid responses with undesired formats."
+
+## Examples teach patterns you did not intend
+
+The model copies everything the examples share, not only the part you meant.
+
+Example: all four examples in a ticket classifier are about billing, and all are one sentence long. In production, the model labels too many tickets "billing" and struggles with long tickets. Nobody wrote "prefer billing", but the examples said it.
+
+Another example: three examples answer with only the label, and one answers "Label: Positive". Now the output format is a coin toss. That is why Gemini insists on consistent formatting.
+
+## How many examples
+
+- The Claude docs suggest: "Include 3–5 examples for best results."
+- The Gemini docs warn: "if you include too many examples, the model may start to overfit the response to the examples."
+
+More is not always better. Each example also costs input tokens on every call (realm 0, chapter 6).
+
+## Vendors differ on the default
+
+The guidance is not the same everywhere, so test on your model:
+
+- **Gemini**: "We recommend to always include few-shot examples in your prompts." It even says you can sometimes remove instructions if the examples are clear enough.
+- **OpenAI, reasoning models**: "Try zero shot first, then few shot if needed." If you add examples, "ensure that the examples align very closely with your prompt instructions, as discrepancies between the two may produce poor results."
+- **Claude, with thinking on**: "Multishot examples work with thinking." The docs suggest presenting each example as a problem, the method to apply, and the expected answer.
+
+A practical rule: start with the vendor's default for your model type, then measure both versions on the same test set.
+
+## Where examples go
+
+The vendors keep examples apart from the rest of the prompt in different ways:
+
+- OpenAI: "Typically, you will provide examples as part of a `developer` message."
+- Claude: examples sit in `example` tags, separate from the instructions.
+
+Example: your support prompt has an Instructions section, then an Examples section with three tagged pairs, then the live ticket. The model can tell which text is a demo and which is the real job.
+
+## Key points
+
+- Few-shot = a few input/output pairs in the prompt. It steers format, tone and labels.
+- Good examples are relevant, diverse (cover edge cases) and consistently formatted.
+- The model copies every shared feature of the examples, including ones you did not intend.
+- Claude suggests 3–5 examples. Gemini warns too many can cause overfitting.
+- Defaults differ: Gemini says always use examples; OpenAI says try zero-shot first on reasoning models. Measure.
+- Put examples in the developer part of the prompt, clearly marked.

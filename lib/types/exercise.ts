@@ -1,8 +1,16 @@
 import { z } from 'zod';
-import type { CHAPTER_STEPS, FRONTIER_AREA, MATH_AREA, SIDE_STEPS, TRACKS } from '@/lib/constants';
+import {
+  type CHAPTER_STEPS,
+  type FRONTIER_AREA,
+  type MATH_AREA,
+  type SIDE_STEPS,
+  TRACKS,
+} from '@/lib/constants';
 import { isExerciseId } from '@/lib/content/ids';
 
 export type Track = (typeof TRACKS)[number];
+/** A track from outside (a `?track=` search param). */
+export const TrackSchema = z.enum(TRACKS);
 export type ChapterStep = (typeof CHAPTER_STEPS)[number];
 export type SideStep = (typeof SIDE_STEPS)[number];
 

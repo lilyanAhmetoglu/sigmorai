@@ -1,0 +1,59 @@
+{
+  "id": "builder/r2/c5/quick-check",
+  "questions": [
+    {
+      "prompt": "How many tool calls should your code expect in one model reply?",
+      "options": [
+        {
+          "text": "Exactly one",
+          "explanation": "Claude, OpenAI and Gemini all document several calls in one reply."
+        },
+        {
+          "text": "Zero, one or several",
+          "explanation": "Right. OpenAI says it is best practice to assume there are several.",
+          "correct": true
+        },
+        {
+          "text": "One, unless you turn on a parallel setting first",
+          "explanation": "The Claude docs say parallel tool use is on by default, and OpenAI's sample reply has three calls."
+        }
+      ]
+    },
+    {
+      "prompt": "Which pair of calls is better run in sequence than in parallel?",
+      "options": [
+        {
+          "text": "`get_weather(\"Paris\")` and `get_weather(\"Tokyo\")`",
+          "explanation": "Both are independent and read-only, so running them together is usually safe."
+        },
+        {
+          "text": "`search_docs(\"refunds\")` and `search_docs(\"shipping\")` in the same help center",
+          "explanation": "Two independent reads. These are fine to run together."
+        },
+        {
+          "text": "`reserve_seat(...)` and `charge_card(...)` on the same booking",
+          "explanation": "Right. The Claude docs say tools with side effects, shared state or ordering needs might be better run sequentially.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "How do you limit OpenAI to zero or one tool call per turn?",
+      "options": [
+        {
+          "text": "Set `parallel_tool_calls` to `false`.",
+          "explanation": "Right. On Claude, the matching setting is `disable_parallel_tool_use: true` inside `tool_choice`.",
+          "correct": true
+        },
+        {
+          "text": "Set `tool_choice` to `required`.",
+          "explanation": "`required` means one or more calls, so it does not cap the number."
+        },
+        {
+          "text": "Send only one tool definition in the request.",
+          "explanation": "One tool can still be called several times in a turn. OpenAI's sample reply calls `get_weather` twice."
+        }
+      ]
+    }
+  ]
+}

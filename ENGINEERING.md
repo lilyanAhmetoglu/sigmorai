@@ -2,6 +2,30 @@
 
 How Sigmorai is built. Stack, architecture rules, data model, build order. The founding brief is `docs/build-prompt.md`; this file wins where they differ. Never makes aesthetic calls (that's `DESIGN.md`).
 
+## Amendments locked 2026-10-06 (E2E, SIG-26)
+
+- **Scope:** one Chromium flow on every PR (sign in → onboarding → lesson → case fail then pass → quick check → leaderboard) plus axe (WCAG 2.0/2.1 A + AA) on 6 routes: `/`, `/leaderboard`, the c1 lesson and case (signed out), and `/onboarding` + `/dashboard` (signed in, inside the flow). No nightly run, no other browsers, no retries (the setup resets the test user once per run; traces are kept on failure).
+- **Auth:** programmatic Clerk sign-in (`@clerk/testing`, `clerk.signIn({ emailAddress })`) with one dev-instance test user, `e2e+clerk_test@sigmorai.com`, created on first run. Its hero name is "E2E Hero" + the last 4 characters of its Clerk id, so it never clashes with a real player. The setup refuses non-`sk_test_`/`pk_test_` keys. Clerk's own sign-in form is not tested. The 2026-10-04 `CODE_RUNNER=fake` line is dead (no runner since the no-code pivot).
+- **Database:** one shared Neon branch `e2e` (child of `dev`), migrated and seeded on each run. Runs queue (`concurrency: e2e`, no cancel). The setup deletes only the test user's `users` row (cascade), so onboarding starts fresh. It refuses `NEON_BRANCH=production`.
+- **Answers:** the test reads `case.json` / `quick-check.json` in Node and picks options by their text. The `correct` flag never goes to the browser.
+- **CI settings:** var `E2E_ENABLED=true`, var `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (`pk_test_`), secrets `CLERK_SECRET_KEY` (`sk_test_`), `E2E_DATABASE_URL`, `E2E_DATABASE_URL_UNPOOLED`. Production Clerk keys never go into CI.
+
+## Amendments locked 2026-10-06 (leaderboard)
+
+- **Public `/leaderboard` (SIG-20).** RSC page with loading, error and empty states. The range is a link (`?range=week|month|all`), not client Tabs; anything else means `all`. Top 25 per range, cached 60 s (`unstable_cache`: `cacheComponents` is off, and `'use cache'` needs it). The viewer's own rank is read fresh and never cached.
+- **All time reads `users.xp`; week/month aggregate `xp_events`.** This replaces "the leaderboard aggregates from the ledger for all three ranges". `users.xp` must equal the ledger sum (`bun run db:check`). Week/month are rolling UTC-day windows: cutoff = `utcDayStart(now)` − 6 / − 29 days (`lib/xp/leaderboard.ts`), passed to SQL as a parameter.
+- **Leaderboard cache tag (2026-10-06).** The top list is tagged `LEADERBOARD_CACHE_TAG`. Only actions that change what the board shows (XP award, rename, track switch, account delete) expire it: `updateTag` in Server Actions, `revalidateTag(tag, { expire: 0 })` in the Clerk webhook. Everything else uses `refresh()`; never `revalidatePath('/', 'layout')` (it also clears the board's cache through implicit tags). Only `createHero` keeps it, for its redirect.
+- **Tie order everywhere:** xp desc, `users.created_at` asc, `users.id` asc. No shared ranks. All-time rank = 1 + count(xp > mine) + count(xp = mine and (created_at, id) < mine). Week/month: one CTE with `row_number()` over the window totals, `where rank <= 25 or id = me`. No XP in the range → "no XP" text instead of a rank.
+- **Rows carry only rank, hero name, track, level (computed) and XP.** Never the Clerk id, `avatar_url` or `last_active_at`. The viewer's row is marked with text ("YOU"), not colour only.
+- **Schema (migration 0004_leaderboard):** `users_xp_idx` → `users_leaderboard_idx (xp desc, created_at, id)`; new unique `users_hero_name_lower_idx` on `lower(hero_name)`. Hero names are trimmed + NFKC-normalised before the checks, use one script group, and can't be a reserved word (`RESERVED_HERO_NAMES`). A name clash returns `name_taken` from `createHero`.
+
+## Amendments locked 2026-10-05 (account privacy)
+
+- One Clerk webhook, for erasure only. POST /api/webhooks/clerk verifies with verifyWebhook (CLERK_WEBHOOK_SIGNING_SECRET) and on user.deleted deletes the users row (cascade). 'No webhook' still holds for row creation: rows are created by onboarding, never by a webhook.
+- In-app delete is the primary path. deleteAccount (Server Action): DB row first, then clerkClient().users.deleteUser, so a failure never leaves an orphan row. Both paths are idempotent.
+- Export is a GET route handler (/api/account/export, JSON attachment), because a download needs headers a Server Action can't set.
+- No Terms page yet; the privacy page lists Clerk, Neon, Vercel. Anthropic is added in the mentor PR. Regions are read from the dashboards, never written from memory.
+
 ## Amendments locked 2026-10-05 (no-code pivot)
 
 - **No code runner, no code editor.** The 2026-10-04 "Runner: E2B … fake runner" line is superseded. Stack rows "Editor: Monaco" and "Code runs: E2B via /api/run" are removed. `e2b` leaves package.json; `E2B_API_KEY` and `CODE_RUNNER` leave `.env.example`, `e2e.yml` and `eslint.config.mjs` (those code edits land in PR 2).
@@ -57,10 +81,10 @@ See `docs/build-prompt.md` → Data model, plus the Auth.js adapter tables (`acc
 2. Auth + track picker + profile/avatar
 3. DB schema + seed + dashboard + realms catalog + realm detail
 4. Level map
-5. Quest page: builder (Monaco + runner) and strategist (case grading), plus XP/HP/streak logic
+5. Quest page: graded scenario cases on both tracks + quick checks, plus XP/HP/streak logic
 6. Leaderboard + Math Tower
 7. AI mentor (+ eval corpus)
-8. Docs-sync script + GitHub Action
+8. Docs-watch (daily GitHub Action: hash cited pages, open one `docs-changed` issue) + the knowledge-sync Claude Code routine (drafts `new-level` PRs). No DB, no API key. See `docs/plans/knowledge-base-design-plan.md`, amendment 2026-10-06.
 9. Playwright: sign up → pick track → clear a level → see XP on the leaderboard
 
 `bun run build` must pass after every step.

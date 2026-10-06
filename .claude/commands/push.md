@@ -52,11 +52,11 @@ Wait for `push`, `yes push` or `go ahead and push`.
 - Branch pushed and remote URL
 - Existing PR URL (`gh pr view --json url`), if any
 - The Vercel preview deploy for the branch appears on the PR once it exists
-- Next step: open a PR with `gh pr create --base canary` if none exists. Ask first. Never merge it.
+- Next step: open a PR with `gh pr create --base canary` if none exists. Ask first. Merging follows git-safety.md rule 3 (green, reviewed PRs into canary only).
 
 ## Don'ts
 
 - No push without the explicit go-word.
 - Never push to `main` or `canary` directly.
-- Don't auto-create a PR, and never merge one.
+- Don't auto-create a PR. Merge only per git-safety.md rule 3.
 - Don't push tags from here. semantic-release owns tags.

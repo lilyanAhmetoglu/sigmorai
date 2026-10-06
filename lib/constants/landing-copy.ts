@@ -20,6 +20,8 @@ export const LANDING_META = {
 
 export const LANDING_TEXT = {
   navLabel: 'Account',
+  /** Replaces Sign in / Start free for a signed-in visitor (links to the dashboard). */
+  continueQuest: 'Continue quest',
   eyebrow: 'AI ENGINEERING · PIXEL-ART RPG',
   title: 'Start your AI engineering adventure.',
   lede: `Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work.`,
@@ -27,6 +29,25 @@ export const LANDING_TEXT = {
   audienceTitle: 'Pick the path that fits you',
   audienceIntro:
     'Both paths cross the same nine realms. Builders clear levels by deciding how to design the system. Strategists clear them by deciding real business cases.',
+} as const;
+
+/**
+ * The share image (app/(marketing)/opengraph-image.tsx). The alt repeats the
+ * words drawn in the image. Satori can't read CSS variables, so the colours are
+ * the token values from design/tokens/colors.css (landing-copy.test.ts checks them).
+ */
+export const SHARE_IMAGE = {
+  alt: `${SITE_NAME}: ${LANDING_TEXT.title} The ${SITE_NAME} logo over a pixel-art meadow with an open book on a stone stand.`,
+  colors: {
+    /** --ink-950 (--border-outline, shadows) */
+    outline: '#0a0913',
+    /** --ink-900 (--surface-1) */
+    surface: '#131126',
+    /** --ink-100 (--text-1) */
+    text: '#f2f1fa',
+    /** --spark-500 (--xp) */
+    accent: '#ffc53d',
+  },
 } as const;
 
 /** "Who it is for" cards, in the ticket's order: beginner, business, tech. */

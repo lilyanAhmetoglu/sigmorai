@@ -2,6 +2,7 @@
  * Content file names and limits (content/CLAUDE.md). Loaded and validated by
  * lib/content/load.ts; schemas in lib/types/content.ts.
  */
+import type { Accent } from '@/lib/types';
 import type { KB_SOURCE_KINDS } from './kb';
 
 /** One file per step inside an exercise folder. */
@@ -21,6 +22,13 @@ export const LESSON_SOURCE_KINDS = [
   'blog',
 ] as const satisfies readonly (typeof KB_SOURCE_KINDS)[number][];
 
+/** The SOURCES tab's chip colour per kind. The chip also shows the kind as text. */
+export const LESSON_SOURCE_ACCENT = {
+  docs: 'success',
+  repo: 'info',
+  blog: 'accent',
+} as const satisfies Record<(typeof LESSON_SOURCE_KINDS)[number], Accent>;
+
 /** A quick check has exactly this many questions (curriculum-design-plan.md). */
 export const QUICK_CHECK_QUESTIONS = 3;
 
@@ -32,10 +40,13 @@ export const CASE_QUESTIONS = { min: 3, max: 5 } as const;
 /** Each case question has exactly 4 options, one correct (exam style). */
 export const CASE_OPTIONS = { min: 4, max: 4 } as const;
 
-/** `sourceHash` in lesson frontmatter: a lowercase hex SHA-256 of the cited pages. */
-export const SOURCE_HASH_PATTERN = /^[a-f0-9]{64}$/;
-
-/** Dated blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx (no schema until step 8). */
+/**
+ * Dated blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx. Frontmatter is
+ * BlogFrontmatterSchema (lib/types/content.ts); loaded by lib/content/load.ts
+ * and checked by `content:check` like a lesson.
+ */
 export const BLOG_AREA = 'blog';
+/** A blog post's file extension. */
+export const BLOG_POST_EXT = '.mdx';
 /** Authoring notes inside content/; not content, skipped by the validator. */
 export const CONTENT_NOTES_FILE = 'CLAUDE.md';

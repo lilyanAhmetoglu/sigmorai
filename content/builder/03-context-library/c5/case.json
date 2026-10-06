@@ -1,0 +1,96 @@
+{
+  "id": "builder/r3/c5/challenge",
+  "title": "Sixty contracts in one prompt",
+  "scenario": "A legal team wants to find every early-cancellation clause in 60 supplier contracts. The contracts total about 410,000 tokens, so they fit in Claude Opus 5.5's 1M-token window. The team sends them in one prompt, but the model finds far fewer clauses than a human review did. You review the prompt layout and the result (exhibit).",
+  "exhibit": "PROMPT LAYOUT (Claude Opus 5.5)\n1  instructions and question          ~300 tokens\n   List every clause that allows early cancellation,\n   with the contract name and clause number.\n2  all 60 contracts as one JSON array  ~410,000 tokens\n   [{\"id\": 1, \"text\": \"...\"}, {\"id\": 2, \"text\": \"...\"}, ...]\n\nRESULT\n  model found:          9 clauses\n  human review found:  23 clauses",
+  "questions": [
+    {
+      "prompt": "Following the Claude docs, what is the first layout change?",
+      "options": [
+        {
+          "text": "Put the 60 contracts first and the question at the end.",
+          "explanation": "Right. The Claude docs say to place long documents above the query, and that queries at the end can improve quality by up to 30 percent in tests.",
+          "correct": true
+        },
+        {
+          "text": "Repeat the question before every contract in the array.",
+          "explanation": "That adds 60 copies of the question to an already long prompt. The docs' advice is one query, at the end."
+        },
+        {
+          "text": "Keep the question first, but make it longer and more detailed.",
+          "explanation": "A detailed question helps, but the Claude docs' point here is position: long documents on top, the query below them."
+        },
+        {
+          "text": "Move the question into a second request sent after the contracts.",
+          "explanation": "The question must be in the same request as the contracts. Within it, the docs put the query after the documents."
+        }
+      ]
+    },
+    {
+      "prompt": "How should each contract be packaged inside the prompt?",
+      "options": [
+        {
+          "text": "Keep the `[{id, text}]` JSON array, but strip the spaces to save tokens.",
+          "explanation": "Fewer spaces do not fix the structure. OpenAI's GPT-4.1 long-context tests found JSON performed particularly poorly; the Claude docs recommend XML document tags instead."
+        },
+        {
+          "text": "Join all contracts into one block of plain text with no breaks.",
+          "explanation": "Then the model cannot tell where one contract ends, so it cannot name the contract for each clause."
+        },
+        {
+          "text": "Wrap each in `<document>` tags with a `<source>` subtag.",
+          "explanation": "Right. That is the structure the Claude docs recommend for many documents, and it gives the model the contract name to cite. The text goes in a `<document_content>` subtag.",
+          "correct": true
+        },
+        {
+          "text": "Turn each contract into a summary table before sending it.",
+          "explanation": "A summary can drop the exact clause the team needs. The task needs the full text, clearly framed."
+        }
+      ]
+    },
+    {
+      "prompt": "Another team runs the same task on GPT-4.1. Where does OpenAI's GPT-4.1 guide put the instructions?",
+      "options": [
+        {
+          "text": "Only at the end, after all of the contracts in the prompt.",
+          "explanation": "That matches Claude and Gemini advice, but the GPT-4.1 guide says that if you place instructions once, above the context works better than below."
+        },
+        {
+          "text": "In a JSON field next to each contract.",
+          "explanation": "The guide found JSON performed particularly poorly in long-context tests, and it gives no advice to repeat instructions per item."
+        },
+        {
+          "text": "Only at the start, and never repeated.",
+          "explanation": "Above is the better single position, but the guide found that placing them at both ends performed better than only above or below."
+        },
+        {
+          "text": "At both the beginning and the end of the contracts.",
+          "explanation": "Right. The GPT-4.1 guide found that instructions at both ends performed better than only above or only below.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Finding 23 clauses means finding many needles at once. What does the Gemini long-context guide suggest for that kind of task?",
+      "options": [
+        {
+          "text": "Move to a model with a larger context window, such as 2 million tokens.",
+          "explanation": "The contracts already fit. The Gemini guide's concern is accuracy with many needles, not space."
+        },
+        {
+          "text": "Ask narrower questions in separate requests and use caching to cut the cost.",
+          "explanation": "Right. Gemini says accuracy drops with many needles, that high accuracy may take one request per item, and that context caching reduces that cost.",
+          "correct": true
+        },
+        {
+          "text": "Raise the output token limit so the model can list more clauses.",
+          "explanation": "The model listed 9 of 23, which is not an output-length problem. It missed clauses in the input."
+        },
+        {
+          "text": "Send the same single prompt three times and merge the answers.",
+          "explanation": "Three copies of the same broad question repeat the same weakness. The Gemini guide splits the work into narrower requests."
+        }
+      ]
+    }
+  ]
+}

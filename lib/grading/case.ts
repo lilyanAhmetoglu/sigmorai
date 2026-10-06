@@ -1,4 +1,4 @@
-import { CHAPTER_COUNT, XP_REWARDS } from '@/lib/constants';
+import { CHAPTER_COUNT, QUICK_CHECK_DAILY_TRIES, XP_REWARDS } from '@/lib/constants';
 import { buildExerciseId } from '@/lib/content/ids';
 import type {
   ExerciseRef,
@@ -17,11 +17,16 @@ import { questFailure } from './failure';
  * Server Action does the DB around it.
  */
 
-/** Which kind of answer set an exercise takes: a case (chapter or boss) or a quick check. */
+/**
+ * Which kind of answer set an exercise takes: a case (chapter or boss) or a
+ * quick check (chapter or Math Tower floor). The Frontier is not graded yet.
+ */
 export function gradedKind(ref: ExerciseRef): GradedKind | null {
   if (ref.area === 'boss') return 'case';
   if (ref.area === 'chapter' && ref.step === 'challenge') return 'case';
-  if (ref.area === 'chapter' && ref.step === 'quick-check') return 'quick-check';
+  if ((ref.area === 'chapter' || ref.area === 'math') && ref.step === 'quick-check') {
+    return 'quick-check';
+  }
   return null;
 }
 
@@ -35,18 +40,35 @@ export function hpNow(kind: GradedKind, cleared: boolean, spentToday: number): n
 }
 
 /**
- * Before grading: a cleared exercise is a replay (no HP cost, no XP);
- * otherwise a case needs HP left today. A quick check never costs HP.
+ * Before grading: a cleared exercise is a replay (no HP cost, no XP, no
+ * submissions row); otherwise a case needs HP left today and a quick check
+ * needs a try left today (QUICK_CHECK_DAILY_TRIES, SIG-27). `triesToday` =
+ * graded rows written today for this exercise.
  */
 export function decideSubmitStart(
   kind: GradedKind,
   cleared: boolean,
   spentToday: number,
+  triesToday: number,
 ): { ok: true; replay: boolean } | QuestFailure {
   if (cleared) return { ok: true, replay: true };
   if (hpNow(kind, false, spentToday) === 0) return questFailure('NO_HP');
+  if (kind === 'quick-check' && triesToday >= QUICK_CHECK_DAILY_TRIES) {
+    return questFailure('NO_TRIES');
+  }
   return { ok: true, replay: false };
 }
+
+/**
+ * Whether a graded attempt writes a submissions row. A replay of a cleared
+ * exercise is graded in memory only (SIG-27): it can't spend HP or earn XP,
+ * so storing it would only let one account grow the table without limit.
+ */
+export const storesAttempt = (replay: boolean): boolean => !replay;
+
+/** Quick-check tries left today, floored at 0. */
+export const triesLeft = (triesToday: number): number =>
+  Math.max(0, QUICK_CHECK_DAILY_TRIES - triesToday);
 
 /** HP after the graded attempt. Only a failed first-time case costs 1. */
 export function hpAfterSubmit(
@@ -63,7 +85,8 @@ export function hpAfterSubmit(
 export function clearReason(ref: ExerciseRef): keyof typeof XP_REWARDS {
   if (ref.area === 'boss') return 'boss';
   if (ref.area === 'chapter' && ref.step === 'challenge') return 'challenge';
-  if (ref.area === 'chapter' && ref.step === 'lesson') return 'lesson';
+  // A chapter or Math Tower lesson (any area but the boss has a step).
+  if (ref.step === 'lesson') return 'lesson';
   return 'quick-check';
 }
 
@@ -76,6 +99,7 @@ export function xpOutcome(xpBefore: number, awarded: number): XpOutcome {
 /**
  * The case a clear opens next: the next chapter's case, the boss after the
  * last chapter, and nothing after the boss. Ids keep the `challenge` segment.
+ * Null for the Math Tower and the Frontier (they have no cases).
  */
 export function nextCaseId(ref: ExerciseRef): string | null {
   if (ref.area !== 'chapter') return null;

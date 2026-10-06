@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { Question } from '@/lib/types';
-import { answerFeedback, gradeAnswers, type GradedAnswers } from './answers';
+import { answerFeedback, gradeAnswers, rightCount, type GradedAnswers } from './answers';
 import { shuffleOrder } from './shuffle';
 
 const SEED = '0123456789abcdef0123456789abcdef';
@@ -49,27 +49,34 @@ describe('gradeAnswers', () => {
   });
 });
 
-describe('answerFeedback', () => {
-  test('a fail never returns the correct option or other explanations', () => {
-    const feedback = answerFeedback(QUESTIONS, graded(ONE_WRONG), false);
-    for (const q of feedback) expect(q.options).toBeUndefined();
-    expect(feedback[1]).toEqual({
-      correct: false,
-      picked: { text: 'q2 option 1', explanation: 'why q2 option 1' },
-    });
-    // The right option of the wrong question (original 2) appears nowhere.
-    expect(JSON.stringify(feedback)).not.toContain('q2 option 2');
+describe('answerFeedback (SIG-27)', () => {
+  test('a first-time fail returns nothing per question: no flags, no explanations', () => {
+    expect(answerFeedback(QUESTIONS, graded(ONE_WRONG), false)).toBeNull();
+  });
+
+  test('a fail on a replay (reveal) shows every option, like a pass', () => {
+    const feedback = answerFeedback(QUESTIONS, graded(ONE_WRONG), true)!;
+    expect(feedback.map((q) => q.correct)).toEqual([true, false, true]);
+    expect(feedback[1].picked).toEqual({ text: 'q2 option 1', explanation: 'why q2 option 1' });
+    expect(feedback[1].options).toHaveLength(4);
   });
 
   test('a pass shows every explanation, in display order', () => {
-    const feedback = answerFeedback(QUESTIONS, graded(RIGHT), true);
+    const feedback = answerFeedback(QUESTIONS, graded(RIGHT), true)!;
     feedback.forEach((q, i) => {
       expect(q.correct).toBe(true);
       expect(q.options).toHaveLength(4);
-      expect(q.options!.map((o) => o.text)).toEqual(
+      expect(q.options.map((o) => o.text)).toEqual(
         ORDER[i].map((o) => QUESTIONS[i].options[o].text),
       );
-      expect(q.options!.filter((o) => o.correct)).toHaveLength(1);
+      expect(q.options.filter((o) => o.correct)).toHaveLength(1);
     });
+  });
+});
+
+describe('rightCount', () => {
+  test('counts right answers only: "N of M correct", nothing about which', () => {
+    expect(rightCount(graded(ONE_WRONG))).toEqual({ right: 2, total: 3 });
+    expect(rightCount(graded(RIGHT))).toEqual({ right: 3, total: 3 });
   });
 });

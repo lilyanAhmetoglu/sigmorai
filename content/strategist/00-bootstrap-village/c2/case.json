@@ -1,0 +1,74 @@
+{
+  "id": "strategist/r0/c2/challenge",
+  "title": "Three tasks, one AI budget",
+  "scenario": "You lead a customer operations team. Leadership gives you budget for one AI pilot this quarter. Your team suggests three tasks:\n\nA. Tag each incoming support ticket as billing, bug or how-to, so it reaches the right queue.\nB. Answer customers' questions about this week's new shipping rules. The rules were published four days ago on your internal wiki.\nC. Decide on its own whether to approve refunds of up to $2,000.\n\nYou must pick a pilot and plan it well.",
+  "exhibit": "Task  Mostly language?  Needs facts the model can't have?  Cost of a mistake\nA     yes               no (ticket text is in the prompt)    low: a person can move a ticket\nB     yes               yes (rules are 4 days old, internal) medium: wrong info to customers\nC     partly            yes (account history, policy)         high: money paid out",
+  "questions": [
+    {
+      "prompt": "Which task is the best first pilot?",
+      "options": [
+        {
+          "text": "A: tagging tickets.",
+          "explanation": "Right. It is a language task, the needed text is in the ticket itself, and a wrong tag is cheap to fix. Ticket routing is one of the common use cases in Anthropic's guides.",
+          "correct": true
+        },
+        {
+          "text": "B: answering questions on the new shipping rules.",
+          "explanation": "Possible later, but the rules are newer than any model's training data and live on your internal wiki. It needs the rules supplied with every question, which is more work for a first pilot."
+        },
+        {
+          "text": "C: approving refunds alone.",
+          "explanation": "The cost of a mistake is high, and money goes out. OpenAI's accuracy guide contrasts a bad draft a person fixes with a wrong refund: the second needs much more care."
+        },
+        {
+          "text": "Run all three at once, to learn faster.",
+          "explanation": "The budget is for one pilot. Mixing a cheap-to-fix task with one that pays out money means one bad week can sink the whole programme. Start with A, learn, then add B."
+        }
+      ]
+    },
+    {
+      "prompt": "A colleague wants to try task B anyway, with no extra setup. What will most likely go wrong?",
+      "options": [
+        {
+          "text": "The model will refuse to answer shipping questions.",
+          "explanation": "A refusal would at least be safe. The bigger risk is an answer that sounds right but comes from old or general knowledge."
+        },
+        {
+          "text": "The model will answer from older or general knowledge, because the new rules are past its knowledge cutoff and only on your internal wiki.",
+          "explanation": "Right. Out-of-date and proprietary knowledge are two of the gaps OpenAI's accuracy guide names. Anthropic lists a knowledge cutoff for each model.",
+          "correct": true
+        },
+        {
+          "text": "The model will read the wiki by itself.",
+          "explanation": "A model only sees what is in its context window. Unless someone sets up a way to fetch the wiki page, it never sees the rules."
+        },
+        {
+          "text": "Nothing. Models are updated every day with company news.",
+          "explanation": "Training data stops at a cutoff date, and your internal wiki was never in it."
+        }
+      ]
+    },
+    {
+      "prompt": "To make task B work later, the team pastes the whole wiki, about 300 pages, into every question. What is the better plan?",
+      "options": [
+        {
+          "text": "Keep pasting everything. More context always means better answers.",
+          "explanation": "Anthropic's docs say accuracy and recall degrade as the token count grows (context rot). OpenAI warns that irrelevant context can drown out the real information."
+        },
+        {
+          "text": "Paste nothing and trust the model's general knowledge.",
+          "explanation": "That brings back the first problem: the model doesn't have the new rules."
+        },
+        {
+          "text": "Paste the whole wiki once at the start of a long chat, then ask every question in that chat.",
+          "explanation": "The wiki stays in the context and is sent again with every question. Context rot still applies, and a later chapter shows it also costs more."
+        },
+        {
+          "text": "Find the shipping-rules pages that match each question and pass only those with the question.",
+          "explanation": "Right. That is the RAG idea: retrieve the relevant documents, then give them to the model. The glossary notes the result depends on retrieving the right documents.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { HP_PER_CHALLENGE, XP_REWARDS } from '@/lib/constants';
+import { HP_PER_CHALLENGE, QUICK_CHECK_DAILY_TRIES, XP_REWARDS } from '@/lib/constants';
 import type { ExerciseRef } from '@/lib/types';
 import { parseExerciseId } from '@/lib/content/ids';
 import {
@@ -9,13 +9,15 @@ import {
   hpAfterSubmit,
   hpNow,
   nextCaseId,
+  storesAttempt,
+  triesLeft,
   xpOutcome,
 } from './case';
 
 describe('HP on a graded case', () => {
   test('a first attempt with HP left starts; 0 HP is NO_HP', () => {
-    expect(decideSubmitStart('case', false, 0)).toEqual({ ok: true, replay: false });
-    expect(decideSubmitStart('case', false, HP_PER_CHALLENGE)).toMatchObject({
+    expect(decideSubmitStart('case', false, 0, 0)).toEqual({ ok: true, replay: false });
+    expect(decideSubmitStart('case', false, HP_PER_CHALLENGE, 0)).toMatchObject({
       ok: false,
       code: 'NO_HP',
     });
@@ -27,7 +29,10 @@ describe('HP on a graded case', () => {
   });
 
   test('a replay costs no HP, even at 0 HP and even when it fails', () => {
-    expect(decideSubmitStart('case', true, HP_PER_CHALLENGE)).toEqual({ ok: true, replay: true });
+    expect(decideSubmitStart('case', true, HP_PER_CHALLENGE, 0)).toEqual({
+      ok: true,
+      replay: true,
+    });
     expect(hpAfterSubmit('case', HP_PER_CHALLENGE, 'failed', true)).toBe(HP_PER_CHALLENGE);
   });
 });
@@ -47,11 +52,54 @@ describe('hpNow', () => {
 
 describe('HP on a quick check', () => {
   test('costs nothing: never NO_HP, and no HP value', () => {
-    expect(decideSubmitStart('quick-check', false, HP_PER_CHALLENGE + 5)).toEqual({
+    expect(decideSubmitStart('quick-check', false, HP_PER_CHALLENGE + 5, 0)).toEqual({
       ok: true,
       replay: false,
     });
     expect(hpAfterSubmit('quick-check', 0, 'failed', false)).toBeNull();
+  });
+});
+
+describe('quick-check daily tries (SIG-27)', () => {
+  test('the last try under the cap starts; at the cap it is NO_TRIES', () => {
+    expect(decideSubmitStart('quick-check', false, 0, QUICK_CHECK_DAILY_TRIES - 1)).toEqual({
+      ok: true,
+      replay: false,
+    });
+    expect(decideSubmitStart('quick-check', false, 0, QUICK_CHECK_DAILY_TRIES)).toMatchObject({
+      ok: false,
+      code: 'NO_TRIES',
+    });
+    expect(decideSubmitStart('quick-check', false, 0, QUICK_CHECK_DAILY_TRIES + 3)).toMatchObject({
+      code: 'NO_TRIES',
+    });
+  });
+
+  test('triesLeft counts down and floors at 0', () => {
+    expect(triesLeft(0)).toBe(QUICK_CHECK_DAILY_TRIES);
+    expect(triesLeft(QUICK_CHECK_DAILY_TRIES - 1)).toBe(1);
+    expect(triesLeft(QUICK_CHECK_DAILY_TRIES + 4)).toBe(0);
+  });
+
+  test('a replay of a cleared quick check is never capped', () => {
+    expect(decideSubmitStart('quick-check', true, 0, QUICK_CHECK_DAILY_TRIES * 2)).toEqual({
+      ok: true,
+      replay: true,
+    });
+  });
+
+  test('cases are limited by HP, not by tries', () => {
+    expect(decideSubmitStart('case', false, 0, QUICK_CHECK_DAILY_TRIES)).toEqual({
+      ok: true,
+      replay: false,
+    });
+  });
+});
+
+describe('storesAttempt (SIG-27)', () => {
+  test('a first-time attempt writes a submissions row; a replay does not', () => {
+    expect(storesAttempt(false)).toBe(true);
+    expect(storesAttempt(true)).toBe(false);
   });
 });
 
@@ -62,6 +110,12 @@ describe('gradedKind', () => {
     expect(kind('strategist/r2/boss/challenge')).toBe('case');
     expect(kind('strategist/r0/c1/quick-check')).toBe('quick-check');
     expect(kind('builder/r0/c1/lesson')).toBeNull();
+  });
+
+  test('a Math Tower quick check is a quick check; its lesson is not graded', () => {
+    expect(kind('math/f1/quick-check')).toBe('quick-check');
+    expect(kind('math/f8/quick-check')).toBe('quick-check');
+    expect(kind('math/f1/lesson')).toBeNull();
   });
 });
 
@@ -93,6 +147,11 @@ describe('XP', () => {
     expect(clearReason(chapter('lesson'))).toBe('lesson');
     expect(clearReason(chapter('quick-check'))).toBe('quick-check');
   });
+
+  test('a Math Tower lesson and quick check map to lesson and quick-check', () => {
+    expect(clearReason({ area: 'math', floor: 2, step: 'lesson' })).toBe('lesson');
+    expect(clearReason({ area: 'math', floor: 2, step: 'quick-check' })).toBe('quick-check');
+  });
 });
 
 describe('nextCaseId', () => {
@@ -107,5 +166,9 @@ describe('nextCaseId', () => {
     expect(nextCaseId(c(1))).toBe('strategist/r2/c2/challenge');
     expect(nextCaseId(c(6))).toBe('strategist/r2/boss/challenge');
     expect(nextCaseId({ area: 'boss', track: 'strategist', realm: 2 })).toBeNull();
+  });
+
+  test('a Math Tower floor opens no case', () => {
+    expect(nextCaseId({ area: 'math', floor: 1, step: 'quick-check' })).toBeNull();
   });
 });

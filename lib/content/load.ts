@@ -1,26 +1,36 @@
 import 'server-only';
-import { access, readFile } from 'node:fs/promises';
+import { access, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
 import {
+  BLOG_AREA,
   CASE_FILE,
   CONTENT_DIR,
+  MATH_AREA,
   KB_SOURCES_NAME,
   LESSON_FILE,
+  OUTLINE_FILE,
   QUICK_CHECK_FILE,
 } from '@/lib/constants';
 import {
+  BlogFrontmatterSchema,
   CaseSchema,
   KbSourcesFileSchema,
   LessonFrontmatterSchema,
+  MathOutlineSchema,
   QuickCheckSchema,
+  TrackOutlineSchema,
+  type BlogPost,
   type Case,
   type KbSource,
   type Lesson,
+  type MathOutline,
   type QuickCheck,
+  type Track,
+  type TrackOutline,
 } from '@/lib/types';
-import { parseExerciseId } from './ids';
+import { parseBlogFileName, parseExerciseId } from './ids';
 import { exerciseFile } from './paths';
 
 /**
@@ -122,23 +132,25 @@ async function loadJson<S extends z.ZodType<{ id: string }>>(
   return validate(schema, raw, id, at.file);
 }
 
+/**
+ * Splits an MDX file into its parsed frontmatter YAML (not yet validated) and
+ * its body. One parser for lessons and blog posts.
+ */
+export function parseMdx(text: string, file: string): { raw: unknown; body: string } {
+  const match = FRONTMATTER.exec(text);
+  if (!match) throw new ContentError('invalid', file, 'missing --- frontmatter block');
+  try {
+    return { raw: parseYaml(match[1]), body: text.slice(match[0].length) };
+  } catch (err) {
+    throw new ContentError('invalid', file, `invalid frontmatter YAML (${(err as Error).message})`);
+  }
+}
+
 export async function loadLesson(id: string, root = CONTENT_DIR): Promise<Lesson> {
   const at = locate(id, LESSON_FILE, root);
-  const text = await readText(at);
-  const match = FRONTMATTER.exec(text);
-  if (!match) throw new ContentError('invalid', at.file, 'missing --- frontmatter block');
-  let raw: unknown;
-  try {
-    raw = parseYaml(match[1]);
-  } catch (err) {
-    throw new ContentError(
-      'invalid',
-      at.file,
-      `invalid frontmatter YAML (${(err as Error).message})`,
-    );
-  }
+  const { raw, body } = parseMdx(await readText(at), at.file);
   const frontmatter = validate(LessonFrontmatterSchema, raw, id, at.file);
-  return { frontmatter, body: text.slice(match[0].length) };
+  return { frontmatter, body };
 }
 
 /** Whether an exercise has a content file. A stub chapter (outline only) has none. */
@@ -174,4 +186,77 @@ export async function loadKbSources(root = CONTENT_DIR): Promise<KbSource[]> {
   const result = KbSourcesFileSchema.safeParse(raw);
   if (!result.success) throw new ContentError('invalid', at.file, z.prettifyError(result.error));
   return result.data.sources;
+}
+
+/** Reads an outline.json under the content root and parses it with its schema. */
+async function loadOutline<S extends z.ZodType>(
+  folder: string,
+  schema: S,
+  root: string,
+): Promise<z.output<S>> {
+  const abs = contentPath(root, `${folder}/${OUTLINE_FILE}`);
+  const at = { abs, file: path.relative(process.cwd(), abs) };
+  const text = await readText(at);
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch (err) {
+    throw new ContentError('invalid', at.file, `invalid JSON (${(err as Error).message})`);
+  }
+  const result = schema.safeParse(raw);
+  if (!result.success) throw new ContentError('invalid', at.file, z.prettifyError(result.error));
+  return result.data;
+}
+
+/** content/<track>/outline.json, validated: topic, lore and chapter titles per realm. */
+export const loadTrackOutline = (track: Track, root = CONTENT_DIR): Promise<TrackOutline> =>
+  loadOutline(track, TrackOutlineSchema, root);
+
+/** content/math/outline.json, validated: what each floor covers and its formulas. */
+export const loadMathOutline = (root = CONTENT_DIR): Promise<MathOutline> =>
+  loadOutline(MATH_AREA, MathOutlineSchema, root);
+
+// ── Blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx ─────────────────────
+
+/** File names in content/blog/ that follow the post grammar, newest first. */
+async function blogFileNames(root: string): Promise<string[]> {
+  let names: string[];
+  try {
+    names = await readdir(contentPath(root, BLOG_AREA));
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw err;
+  }
+  // `YYYY-MM-DD-` sorts by date as text. Same date: reverse slug order, stable.
+  return names.filter((name) => parseBlogFileName(name) !== null).sort((a, b) => (a < b ? 1 : -1));
+}
+
+/**
+ * One post by its file name (`2026-10-06-be-specific.mdx`). The validator uses
+ * it per file; pages use loadBlogPost / listBlogPosts.
+ */
+export async function loadBlogFile(name: string, root = CONTENT_DIR): Promise<BlogPost> {
+  const abs = contentPath(root, `${BLOG_AREA}/${name}`);
+  const at = { abs, file: path.relative(process.cwd(), abs) };
+  const parsed = parseBlogFileName(name);
+  if (!parsed) {
+    throw new ContentError('invalid', at.file, 'a post is named <YYYY-MM-DD>-<slug>.mdx');
+  }
+  const { raw, body } = parseMdx(await readText(at), at.file);
+  const result = BlogFrontmatterSchema.safeParse(raw);
+  if (!result.success) throw new ContentError('invalid', at.file, z.prettifyError(result.error));
+  return { frontmatter: result.data, body, ...parsed };
+}
+
+/** The post at `/blog/<slug>`. `missing` when no file has that slug. */
+export async function loadBlogPost(slug: string, root = CONTENT_DIR): Promise<BlogPost> {
+  const name = (await blogFileNames(root)).find((n) => parseBlogFileName(n)?.slug === slug);
+  if (!name) throw new ContentError('missing', `${BLOG_AREA}/${slug}`, 'no post has this slug');
+  return loadBlogFile(name, root);
+}
+
+/** Every post, newest first. A bad post throws, so a broken file fails the build. */
+export async function listBlogPosts(root = CONTENT_DIR): Promise<BlogPost[]> {
+  const names = await blogFileNames(root);
+  return Promise.all(names.map((name) => loadBlogFile(name, root)));
 }

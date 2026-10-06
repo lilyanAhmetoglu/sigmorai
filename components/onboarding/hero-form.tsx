@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useId, useState } from 'react';
+import { startTransition, useActionState, useId, useState } from 'react';
 import { Choice, ChoiceGroup } from '@/components/choice';
 import { PixelAvatar } from '@/components/pixel-avatar';
 import { PixelButton } from '@/components/pixel-button';
@@ -16,8 +16,10 @@ const FORM_ERROR: Partial<Record<NonNullable<OnboardingFormState>['error'], stri
 
 /**
  * The track picker: hero name (live sprite preview) + builder or strategist.
- * Controlled inputs, so the values survive React's form reset after a failed
- * submit. The server re-validates everything (createHero).
+ * Controlled inputs. The submit is dispatched by hand: React's automatic form
+ * reset after an action would uncheck the DOM radio while React state still
+ * holds the pick (seen after a failed submit). `action` stays for a submit
+ * before hydration. The server re-validates everything (createHero).
  */
 export function HeroForm() {
   const [state, formAction, pending] = useActionState(createHero, null);
@@ -30,7 +32,18 @@ export function HeroForm() {
   const seed = heroName.trim();
 
   return (
-    <form action={formAction} className="flex flex-col gap-6" noValidate>
+    <form
+      action={formAction}
+      onSubmit={(e) => {
+        // preventDefault also stops React's own dispatch + form reset.
+        e.preventDefault();
+        if (pending) return;
+        const data = new FormData(e.currentTarget);
+        startTransition(() => formAction(data));
+      }}
+      className="flex flex-col gap-6"
+      noValidate
+    >
       <div className="flex items-center gap-4">
         <PixelAvatar seed={seed || undefined} size="md" className="flex-none" />
         <div className="flex flex-col gap-1.5">
@@ -50,7 +63,13 @@ export function HeroForm() {
         required
         maxLength={HERO_NAME_MAX}
         hint={ONBOARDING_TEXT.heroNameHint}
-        error={badFields.includes('heroName') ? ONBOARDING_TEXT.heroNameError : undefined}
+        error={
+          state?.error === 'name_taken'
+            ? ONBOARDING_TEXT.heroNameTaken
+            : badFields.includes('heroName')
+              ? ONBOARDING_TEXT.heroNameError
+              : undefined
+        }
       />
 
       <ChoiceGroup label={ONBOARDING_TEXT.path} aria-describedby={trackHintId}>

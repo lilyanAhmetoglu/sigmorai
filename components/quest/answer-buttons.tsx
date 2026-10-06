@@ -16,8 +16,12 @@ type Props = {
   /** Case HP left today; null for a quick check. */
   hp: number | null;
   replay: boolean;
+  /** NO_TRIES came back: the quick check's daily tries are used up. */
+  noTries: boolean;
   /** Where Continue goes after a pass. */
   nextHref: string;
+  /** "Read the lesson again" after a fail; null when there is no lesson. */
+  lessonHref: string | null;
   onSubmit: () => void;
   onTryAgain: () => void;
 };
@@ -28,7 +32,8 @@ type Props = {
  * Each button keeps a 44px target; the row wraps on a phone.
  */
 export function AnswerButtons(props: Props) {
-  const { kind, viewer, busy, graded, passed, allAnswered, hp, replay, nextHref } = props;
+  const { kind, viewer, busy, graded, passed, allAnswered, hp, replay, noTries, nextHref } = props;
+  const { lessonHref } = props;
 
   if (viewer.status !== 'ready') {
     return (
@@ -60,6 +65,11 @@ export function AnswerButtons(props: Props) {
               {QUEST_TEXT.tryAgain}
             </PixelButton>
           )}
+          {!passed && lessonHref && (
+            <PixelButton href={lessonHref} variant="secondary">
+              {QUEST_TEXT.rereadLesson}
+            </PixelButton>
+          )}
         </div>
         {noHp && <ResetNote lead={QUEST_TEXT.noHp} resetsAt={viewer.hpResetsAt} />}
       </div>
@@ -72,7 +82,7 @@ export function AnswerButtons(props: Props) {
         {/* While busy it stays focusable (aria-disabled; the hook ignores the press). */}
         <PixelButton
           variant="success"
-          disabled={noHp || !allAnswered}
+          disabled={noHp || noTries || !allAnswered}
           aria-disabled={busy || undefined}
           onClick={props.onSubmit}
           icon={busy ? undefined : <span aria-hidden="true">{QUEST_TEXT.submitIcon}</span>}
@@ -80,7 +90,7 @@ export function AnswerButtons(props: Props) {
           {busy ? QUEST_TEXT.submitting : QUEST_TEXT.submitAnswers}
         </PixelButton>
       </div>
-      <SubmitNote {...{ kind, replay, noHp, allAnswered, resetsAt: viewer.hpResetsAt }} />
+      <SubmitNote {...{ kind, replay, noHp, noTries, allAnswered, resetsAt: viewer.hpResetsAt }} />
     </div>
   );
 }
@@ -89,16 +99,19 @@ function SubmitNote({
   kind,
   replay,
   noHp,
+  noTries,
   allAnswered,
   resetsAt,
 }: {
   kind: GradedKind;
   replay: boolean;
   noHp: boolean;
+  noTries: boolean;
   allAnswered: boolean;
   resetsAt: string;
 }) {
   if (noHp) return <ResetNote lead={QUEST_TEXT.noHp} resetsAt={resetsAt} />;
+  if (noTries) return <ResetNote lead={QUEST_TEXT.noTries} resetsAt={resetsAt} />;
   const cost = replay
     ? QUEST_TEXT.replayNote
     : kind === 'case'

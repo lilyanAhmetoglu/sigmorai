@@ -1,0 +1,72 @@
+---
+id: strategist/r0/c2/lesson
+title: Strengths & limits
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Glossary
+    url: https://platform.claude.com/docs/en/about-claude/glossary
+  - kind: docs
+    title: Claude docs · Guides to common use cases
+    url: https://platform.claude.com/docs/en/about-claude/use-case-guides/overview
+  - kind: docs
+    title: Claude docs · Models overview
+    url: https://platform.claude.com/docs/en/models/overview
+  - kind: docs
+    title: Claude docs · Context windows
+    url: https://platform.claude.com/docs/en/build-with-claude/context-windows
+  - kind: docs
+    title: OpenAI docs · Text generation
+    url: https://developers.openai.com/api/docs/guides/text
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+---
+
+## Why it matters
+
+An LLM is very good at some work and weak at other work. Knowing which is which is the first skill of using AI at work. This lesson gives you a simple map.
+
+## What models do well
+
+Models are strong at work made of text and language.
+
+- **Write and rewrite.** First drafts, replies, summaries in a set tone. OpenAI's docs say models can write "almost any kind of text response", including human-like prose and structured data.
+- **Summarize and answer from a document.** Anthropic's glossary lists answering questions and summarizing information.
+- **Sort and label.** Anthropic's use-case guides include ticket routing: classifying customer support tickets and sending each to the right team. They also include content moderation and legal document summaries.
+
+Example: a support lead pastes 40 new tickets and asks the model to tag each one "billing", "bug" or "how-to". This is sorting text, and models handle it well. A person still spot-checks the tags.
+
+## Limit 1: knowledge stops at a date
+
+A model learns from data collected up to a point in time. Anthropic's model table lists a "reliable knowledge cutoff" for each model: the date through which its knowledge is most reliable. OpenAI's accuracy guide names out-of-date knowledge as one reason a model gets things wrong.
+
+Example: you ask "What changed in our country's tax rules this month?" The model may not know, or may describe the old rules as if they are still true. Give it the new text, or check an official source.
+
+## Limit 2: it doesn't know your company
+
+Your price list, your customers and your internal policies were not in the training data. OpenAI's guide lists "proprietary information" as knowledge a model lacks.
+
+The fix is to give the model the information in the prompt. This is the idea behind **RAG** (retrieval augmented generation): find the right documents, then pass them to the model with the question. Anthropic's glossary says this lets a model use information beyond its training data and improves accuracy. The glossary also says RAG is only as good as the documents you retrieve.
+
+Example: an HR assistant answers leave questions well only when the current leave policy is given to it. With an old policy, it gives old answers.
+
+## Limit 3: more text is not always better
+
+The context window has a size limit. And even inside the limit, Anthropic's docs say that as the token count grows, accuracy and recall degrade, which they call _context rot_. OpenAI's guide warns that too much irrelevant context can drown out the real information and cause hallucinations.
+
+Example: you paste ten long reports to answer one question about one report. Paste the one report that matters.
+
+## Limit 4: answers vary and can be wrong
+
+Output is non-deterministic: the same prompt can give different answers (OpenAI's text guide). And models can state false things in a confident tone. The next chapter covers that in detail.
+
+## A simple test for any task
+
+Ask three questions before you hand a task to a model:
+
+1. **Is it mostly about language?** Drafting, summarizing, sorting and rewriting fit well.
+2. **Does it need facts the model can't have?** Recent events or company data → you must supply them.
+3. **What happens if it is wrong?** OpenAI's guide puts it plainly: a bad draft a person must fix is very different from refunding a customer $1000 instead of $100. The higher the cost of a mistake, the more human checking you need.
+
+Example: drafting a meeting summary passes all three. Deciding a customer refund alone does not pass question 3. There, the AI can draft and a person decides.

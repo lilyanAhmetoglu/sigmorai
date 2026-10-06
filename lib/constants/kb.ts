@@ -8,3 +8,34 @@ export const KB_TRUST_TIERS = ['official', 'community'] as const;
 export const KB_SOURCES_NAME = 'sources.yaml';
 /** Registry file mirrored into kb_sources by `bun run seed`. */
 export const KB_SOURCES_FILE = `content/${KB_SOURCES_NAME}`;
+
+// ── Docs-watch (SIG-23): daily hash of every cited page; no DB, no model ──
+
+/** Sent with every docs-watch fetch, so a site owner can see who we are. */
+export const DOCS_WATCH_USER_AGENT = 'sigmorai-docs-watch/1.0 (+https://sigmorai.com)';
+/** One fetch gives up after this long. */
+export const DOCS_WATCH_TIMEOUT_MS = 15_000;
+/** Where the state lives when DOCS_WATCH_DIR is not set (the docs-watch branch checkout). */
+export const DOCS_WATCH_DEFAULT_DIR = './docs-watch';
+export const DOCS_WATCH_STATE_FILE = 'hashes.json';
+export const DOCS_WATCH_ISSUE_FILE = 'issue-body.md';
+/** Label of the one open "docs changed" issue. */
+export const DOCS_WATCH_LABEL = 'docs-changed';
+
+/**
+ * Hosts that serve a page's Markdown at `<page><suffix>` (cheaper and steadier
+ * than HTML: no banners, no build ids).
+ */
+export const DOCS_MD_HOSTS: Readonly<Record<string, string>> = {
+  'platform.claude.com': '.md',
+  'developers.openai.com': '.md',
+  'code.claude.com': '.md',
+  'modelcontextprotocol.io': '.md',
+  'ai.google.dev': '.md.txt',
+};
+/** Hosts whose docs base has an `llms.txt` page index (`<base>/llms.txt`). */
+export const DOCS_LLMS_TXT_HOSTS = [
+  'platform.claude.com',
+  'developers.openai.com',
+  'code.claude.com',
+] as const;

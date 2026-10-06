@@ -1,0 +1,92 @@
+---
+id: builder/r2/c1/lesson
+title: Why tools
+minutes: 8
+sources:
+  - kind: docs
+    title: Tool use with Claude (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+  - kind: docs
+    title: How tool use works (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works
+  - kind: docs
+    title: Function calling (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/function-calling
+  - kind: docs
+    title: Function calling (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+Realms 0 and 1 were about text in and text out. On its own, a model can only write text. It cannot look up the status of an order, and it cannot send the email it just drafted. Tools close that gap. This realm shows how to give a model tools and how to keep them safe.
+
+## What a tool is
+
+OpenAI defines a tool as "a piece of functionality that we tell the model it has access to". Its examples: get today's weather for a location, access account details for a given user ID, issue refunds for a lost order.
+
+The other vendors use the same idea under the same name. The Claude docs say tool use is "also called function calling". The Gemini docs say function calling lets "you connect models to external tools and APIs".
+
+You describe each tool to the model: a name, what it does, and the inputs it takes. The model reads the user's request and decides whether one of your tools would help.
+
+## The model asks, your code acts
+
+This is the most important idea in the realm. The model does not run anything.
+
+The Claude docs put it plainly: "The model never executes anything on its own. It emits a structured request, your code (or Anthropic's servers) runs the operation, and the result flows back into the conversation." The Gemini docs say the same: the model doesn't execute the function itself; your application extracts the name and arguments and executes it.
+
+Example: a user asks "Where is my order 4417?"
+
+1. The model replies with a tool call: name `get_order_status`, argument `order_id` = `"4417"`.
+2. Your server runs the lookup in your shipping system.
+3. Your server sends the result back: shipped 2 October, arriving 7 October.
+4. The model writes the answer for the user.
+
+The Claude docs add that the model "never sees your implementation; it only sees the schema you provided and the result you returned". Your code sits between the model's request and the real world. The Gemini best practices use that position: "Validate function calls before executing."
+
+## Three jobs tools do
+
+The Gemini docs name three primary use cases:
+
+- **Take actions**: schedule appointments, create invoices, send emails.
+- **Augment knowledge**: read from databases, APIs and knowledge bases.
+- **Extend capabilities**: perform computations, such as using a calculator, or create charts.
+
+The Claude docs give a similar list: actions with side effects, fresh or external data, structured outputs with a guaranteed shape, and calls into your existing systems.
+
+They also give a useful warning sign: "if you're writing a regex to extract a decision from model output, that decision should have been a tool call." Example: your code searches the reply for the words "REFUND: yes". That decision belongs in a tool call with a typed field, not in free text.
+
+## When not to use a tool
+
+Tools are not free. The Claude docs list when tool use does not fit:
+
+- The model can answer from training alone: summarisation, translation, general-knowledge questions.
+- One-shot questions with no side effects: "If there's nothing to execute, there's nothing for a tool to do."
+- Very small tasks, because "Every tool call is at least one extra round trip".
+
+Example: translating your FAQ page into Spanish needs no tool. Checking whether item 88 is in stock today does, because the answer lives in your database, not in the model.
+
+## Who runs the tool
+
+The Claude docs sort tools into three buckets by where the code runs:
+
+- **User-defined tools** run in your application: you write the schema, get the call, run it and send back the result.
+- **Anthropic-schema tools**, such as `bash` and `text_editor`, also run in your application, but Anthropic publishes the schema.
+- **Server tools**, such as web search and code execution, run on Anthropic's infrastructure, and you read the results.
+
+OpenAI makes a similar split. Function tools call your code. OpenAI also provides built-in tools that let the model search the web, run code or use an MCP server.
+
+This realm is about tools you define and run yourself. That is where most of your design work is.
+
+## Tools cost tokens
+
+Tool definitions are sent to the model, so you pay for them. OpenAI: function definitions "count against the model's context limit and are billed as input tokens." The Claude docs list the tool names, descriptions and schemas as extra input tokens, plus a special system prompt that the API adds when you send tools.
+
+Example: 40 tools with long descriptions are sent on every request, even when the user only says "thanks". Chapter 2 covers how to keep the tool list small.
+
+## Key points
+
+- A tool is a function you describe to the model. All three vendors call this function calling or tool use.
+- The model only asks. Your code runs the tool, so your code can check the call first.
+- Use tools for actions, fresh or private data, guaranteed structure, and your own systems.
+- If you parse model text with a regex to find a decision, make that decision a tool call.
+- Skip tools for tasks the model can do from text alone. Each call is an extra round trip.
+- Tool definitions are billed as input tokens on every request.

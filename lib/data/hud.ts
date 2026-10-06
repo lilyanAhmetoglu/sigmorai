@@ -6,12 +6,14 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import type { HudState } from '@/lib/types';
 import { levelProgress } from '@/lib/xp/level';
+import { isActiveToday, shownStreak } from '@/lib/xp/streak';
 
 /**
  * HUD values for the signed-in player. Scoped to Clerk's auth() user id only,
  * never an id from the request. No users row = not onboarded yet. Cached per
  * request, so a page and the HUD can both call it for one query.
- * Streak is the stored value; the "broken since yesterday" rule is SIG-16.
+ * The streak is the shown one (lib/xp/streak.ts): 0 once a UTC day is missed,
+ * even before the next pass rewrites the stored value.
  */
 export const getHudState = cache(async (): Promise<HudState> => {
   const { userId } = await auth();
@@ -23,6 +25,7 @@ export const getHudState = cache(async (): Promise<HudState> => {
       track: users.track,
       xp: users.xp,
       streak: users.streak,
+      lastActiveAt: users.lastActiveAt,
     })
     .from(users)
     .where(eq(users.id, userId))
@@ -30,5 +33,15 @@ export const getHudState = cache(async (): Promise<HudState> => {
 
   if (!row) return { status: 'onboarding' };
 
-  return { status: 'ready', stats: { ...row, ...levelProgress(row.xp) } };
+  const { lastActiveAt, ...stats } = row;
+  const now = new Date();
+  return {
+    status: 'ready',
+    stats: {
+      ...stats,
+      ...levelProgress(stats.xp),
+      streak: shownStreak(stats.streak, lastActiveAt, now),
+      activeToday: isActiveToday(lastActiveAt, now),
+    },
+  };
 });

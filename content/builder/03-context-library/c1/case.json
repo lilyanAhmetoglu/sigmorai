@@ -1,0 +1,96 @@
+{
+  "id": "builder/r3/c1/challenge",
+  "title": "The password that found Portugal",
+  "scenario": "A software company runs semantic search over its help centre. In March, a job embedded every help article. In September, the team upgraded the query service to a newer Gemini embedding model and left the stored vectors alone. Since then, users get strange results. You review the setup and one search (exhibit).",
+  "exhibit": "INDEX JOB (ran 2026-03-02)\n  model:   gemini-embedding-001\n  input:   raw article text, no prefix\n  stored:  18,400 vectors, 3072 dims each\n\nQUERY SERVICE (deployed 2026-09-28)\n  model:   gemini-embedding-2\n  input:   \"task: search result | query: \" + user_question\n\nSEARCH LOG 2026-10-01\n  query:   how do I reset my password?\n  top hit: \"Shipping times for Portugal\"\n  article that should match: \"Reset your password\"",
+  "questions": [
+    {
+      "prompt": "Why does the password question return a shipping article?",
+      "options": [
+        {
+          "text": "The query prefix is in the wrong format for a search task.",
+          "explanation": "The prefix matches the format the Gemini docs give for a search query: `task: search result | query:` followed by the text."
+        },
+        {
+          "text": "Help articles are too long to embed, so most of their text was cut.",
+          "explanation": "Length is not what changed in September. The search broke when the query model changed while the stored vectors stayed the same."
+        },
+        {
+          "text": "Queries and articles were embedded by two models with incompatible spaces.",
+          "explanation": "Right. The Gemini docs say embeddings from `gemini-embedding-001` and `gemini-embedding-2` cannot be directly compared.",
+          "correct": true
+        },
+        {
+          "text": "Semantic search cannot match questions to answers that use other words.",
+          "explanation": "It can. That is its main strength: in the OpenAI retrieval guide, the best answer to a moon question shares no words with it."
+        }
+      ]
+    },
+    {
+      "prompt": "The team wants to keep `gemini-embedding-2`. What must they do with the 18,400 stored vectors?",
+      "options": [
+        {
+          "text": "Re-embed every article with `gemini-embedding-2`.",
+          "explanation": "Right. The Gemini docs: if you are upgrading to `gemini-embedding-2`, you must re-embed all of your existing data.",
+          "correct": true
+        },
+        {
+          "text": "Normalize the stored vectors to length 1 so they line up with the new ones.",
+          "explanation": "Normalizing changes a vector's length, not the space it lives in. Vectors from the two models still cannot be compared."
+        },
+        {
+          "text": "Cut the stored vectors down to 768 numbers, one of the recommended sizes.",
+          "explanation": "Size is not the problem: the default output size for both models is 3072. The old vectors come from a different space at any size."
+        },
+        {
+          "text": "Add the same task prefix to the stored vectors as the query service uses.",
+          "explanation": "A prefix goes into the text before embedding. It cannot be added to vectors that already exist, so the articles must be embedded again."
+        }
+      ]
+    },
+    {
+      "prompt": "When they re-embed, how should each help article's text be formatted for `gemini-embedding-2`?",
+      "options": [
+        {
+          "text": "`task: search result | query: ` followed by the article text.",
+          "explanation": "That is the query structure. In the asymmetric search case, the Gemini docs give a different structure for documents."
+        },
+        {
+          "text": "The raw article text, with `task_type` set to `RETRIEVAL_DOCUMENT`.",
+          "explanation": "`task_type` is for `gemini-embedding-001`. The Gemini docs say you cannot use the `task_type` field with `gemini-embedding-2`."
+        },
+        {
+          "text": "The raw article text with no prefix, as in the March job.",
+          "explanation": "For text-only tasks with `gemini-embedding-2`, the Gemini docs strongly recommend adding the task format, so plain text ignores that advice."
+        },
+        {
+          "text": "`title: ` and the article title, then ` | text: ` and the body.",
+          "explanation": "Right. For search, question answering and similar asymmetric tasks, the Gemini docs give the document structure `title: {title} | text: {content}`.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Their new vector database stores at most 1,024 numbers per vector. What fits the Gemini docs best?",
+      "options": [
+        {
+          "text": "Keep 3072-number vectors and split each one across three database rows.",
+          "explanation": "That fights the database instead of using the model's option to return shorter vectors."
+        },
+        {
+          "text": "Set `output_dimensionality` to 768; the model normalizes the shorter vectors.",
+          "explanation": "Right. The docs recommend 768, 1536 or 3072, and say `gemini-embedding-2` normalizes vectors shorter than 3072 for you.",
+          "correct": true
+        },
+        {
+          "text": "Switch back to `gemini-embedding-001`, because only it supports short vectors.",
+          "explanation": "Both models support output sizes from 128 to 3072. With `gemini-embedding-001`, you would even have to normalize short vectors yourself."
+        },
+        {
+          "text": "Embed at 3072 and keep the first 1,024 numbers, with no further step.",
+          "explanation": "Cutting vectors yourself needs a normalize step afterwards. Asking the API for a smaller size avoids the extra work."
+        }
+      ]
+    }
+  ]
+}

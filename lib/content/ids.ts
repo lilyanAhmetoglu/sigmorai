@@ -10,6 +10,7 @@
  * Pure: no IO. Ids are stored in progress, submissions and xp_events forever.
  */
 import {
+  BLOG_POST_EXT,
   BOSS_SEGMENT,
   BOSS_STEP,
   CHAPTER_COUNT,
@@ -17,12 +18,17 @@ import {
   FRONTIER_AREA,
   MATH_AREA,
   MATH_FLOOR_COUNT,
+  MATH_HREF,
+  QUEST_BACK_HREF,
   REALM_COUNT,
+  REALMS,
+  realmHref,
   SEGMENT_PREFIX,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
-import type { ChapterStep, ExerciseRef, SideStep, Track } from '@/lib/types';
+import type { ChapterStep, ExerciseRef, RealmId, SideStep, Track } from '@/lib/types';
+import { utcMidnight } from '@/lib/utils';
 
 const alt = (xs: readonly (string | number)[]) => `(?:${xs.join('|')})`;
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
@@ -51,7 +57,7 @@ export const EXERCISE_ID_PATTERN = new RegExp(
 );
 
 function isCalendarDate(date: string): boolean {
-  const d = new Date(`${date}T00:00:00Z`);
+  const d = utcMidnight(date);
   return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(date);
 }
 
@@ -107,4 +113,49 @@ export function buildExerciseId(ref: ExerciseRef): string {
   const id = format(ref);
   if (!isExerciseId(id)) throw new RangeError(`Invalid exercise ref: ${JSON.stringify(ref)}`);
   return id;
+}
+
+/** A blog post's file name: the Frontier `<YYYY-MM-DD>-<slug>` grammar + `.mdx`. */
+const BLOG_FILE_PATTERN = new RegExp(`^(${DATE})-(${SLUG})${BLOG_POST_EXT.replace('.', '\\.')}$`);
+
+/**
+ * `2026-10-06-be-specific.mdx` → `{ date: '2026-10-06', slug: 'be-specific' }`.
+ * Null for any other name, or an impossible date (2026-02-30).
+ */
+export function parseBlogFileName(name: string): { date: string; slug: string } | null {
+  const match = BLOG_FILE_PATTERN.exec(name);
+  if (!match || !isCalendarDate(match[1])) return null;
+  return { date: match[1], slug: match[2] };
+}
+
+/** Every exercise id of one realm on one track: each chapter step, then the boss. */
+export function realmExerciseIds(track: Track, realm: number): string[] {
+  const ids: string[] = [];
+  for (let chapter = 1; chapter <= CHAPTER_COUNT; chapter++) {
+    for (const step of CHAPTER_STEPS) {
+      ids.push(buildExerciseId({ area: 'chapter', track, realm, chapter, step }));
+    }
+  }
+  ids.push(buildExerciseId({ area: 'boss', track, realm }));
+  return ids;
+}
+
+/** Every realm exercise id of one track, realm by realm in map order. */
+export function trackExerciseIds(track: Track): string[] {
+  return Array.from({ length: REALM_COUNT }, (_, realm) => realmExerciseIds(track, realm)).flat();
+}
+
+/** Every Math Tower exercise id, floor by floor (lesson, then quick check). */
+export function mathExerciseIds(): string[] {
+  return Array.from({ length: MATH_FLOOR_COUNT }, (_, i) =>
+    SIDE_STEPS.map((step) => buildExerciseId({ area: MATH_AREA, floor: i + 1, step })),
+  ).flat();
+}
+
+/** Where a quest's back link goes: its realm page on its track, the tower page, else the catalog. */
+export function questBackHref(exerciseId: string): string {
+  const ref = parseExerciseId(exerciseId);
+  if (ref?.area === MATH_AREA) return MATH_HREF;
+  if (ref?.area !== 'chapter' && ref?.area !== 'boss') return QUEST_BACK_HREF;
+  return realmHref(REALMS[ref.realm as RealmId].slug, ref.track);
 }

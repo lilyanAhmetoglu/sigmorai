@@ -1,12 +1,42 @@
 # Sigmorai — Quest actions
 
-> The contract for what happens when a learner presses a button on the quest page: Run, Submit, answer a case, answer a quick check. It fixes HP, XP, the run caps, the error codes and what the learner sees after each press. Read end-to-end before any code; each phase is gated by explicit approval.
+> The contract for what happens when a learner presses a button on the quest page: ~~Run, Submit,~~ (removed by the no-code pivot) answer a case, answer a quick check. It fixes HP, XP, ~~the run caps,~~ (removed by the no-code pivot) the error codes and what the learner sees after each press. Read end-to-end before any code; each phase is gated by explicit approval.
 
 ## Status
 
 **STATUS: Ready to implement (devil + db-architect passes applied). Build step: 5. Track: both. Tickets: SIG-18 (builder quest page), SIG-19 (strategist case + quick checks).**
 
 ## Amendments
+
+## Amendments locked 2026-10-06 (revalidation)
+
+- Step 5 below changes: actions call `refresh()` on a fail or replay and `updateTag(LEADERBOARD_CACHE_TAG)` when XP is awarded (both re-render the quest page and the HUD). `revalidatePath('/', 'layout')` stays only in `createHero`. Why: it also emptied the leaderboard's 60 s cache on every submit. See ENGINEERING.md (leaderboard amendment).
+
+## Amendments locked 2026-10-05 (SIG-27 security)
+
+- **A replay writes no `submissions` row.** A replay of a cleared case or quick check is graded in memory; it still costs 0 HP and earns 0 XP (a replay pass still moves the streak). Why: a replay changes nothing, so its row only let one account grow the table without limit.
+- **Quick checks get a daily cap: `QUICK_CHECK_DAILY_TRIES` (20) graded tries per quick check per UTC day**, counted from today's `submissions` rows (`submissions_user_exercise_idx`, no schema change). Over the cap the action returns the new code **`NO_TRIES`** (8 codes now); the page (also after a reload) disables Submit and shows "Tries reset at <local time> (your time)." Why: quick checks cost no HP, so nothing else bounded the writes.
+- **A first-time fail returns only "N of M correct"** (`right`, `total`; `questions: null`): no per-question correct flags, no explanations, not even for the picked option. This replaces "only the explanation of the option they picked appears" in §Strategist case step 4. Full feedback (every option, the correct one marked, every explanation) stays after a pass and on a replay. Same rule for cases and quick checks. Why: per-question flags let throwaway accounts farm the answer key, one question at a time.
+- **Known limit:** N of M correct still leaks one bit per try; with the 20-try cap a small quick check can be walked. Accepted: +5 XP, low value.
+- **After a fail, a "Read the lesson again" link** goes to the chapter's lesson when its file exists (none for a boss). Why: the learner gets a next step without the key.
+
+## Amendments locked 2026-10-05 (SIG-16, streak display)
+
+- The level curve, HP and streak primitives in lib/xp/ shipped with SIG-33, SIG-18 and SIG-19. SIG-16 now covers only the items below.
+- The streak the UI shows is computed at read time: the stored users.streak if last_active_at is today or yesterday (UTC), else 0. The write rule (nextStreak) is unchanged. Why: the stored value only moves on a pass, so a broken streak showed a false number until the next pass.
+- No 'you lost your streak' line anywhere. A broken streak shows 0; the dashboard note says 'Clear one step today to start a streak.' Why: DESIGN.md 'never shame a broken streak'.
+- The dashboard DAILY QUEST note has three states (done today / alive / none) in plain product voice. The design's 'keep your 14-day streak burning' is not used. Why: 'never fake urgency'.
+
+## Amendments locked 2026-10-05 (lesson page, SIG-11)
+
+- A lesson renders on the quest route (/quest/<track>/rN/cN/lesson); the step ids, realm links and Continue already point there.
+- MDX is compiled at request time with @mdx-js/mdx evaluate in a server component, from the same disk loader. No @next/mdx (second pipeline), no next-mdx-remote (archived 2026-04). Content is trusted (git).
+- Only <DialogBox> is allowed in a lesson body, bound to the realm NPC. Bodies start at ##. No import/export. content:check compiles every body.
+- No PublicLesson view: Lesson = { frontmatter, body } has nothing to hide.
+- 'Lesson done' is one explicit button → completeLesson (already shipped): +10 XP once (XP_REWARDS.lesson), progress row, streak. No scroll or time tracking. After done, Continue goes to the same chapter's case.
+- The lock is unchanged: the case never needs the lesson first.
+- Layout follows the design quest screen: LESSON | SOURCES tabs left, done panel right.
+- Lessons are public. Per-page metadata + canonical; the sitemap is a later ticket (done in SIG-24).
 
 ## Amendments locked 2026-10-05 (no-code pivot)
 
@@ -53,14 +83,14 @@ The `devil` and `db-architect` reviewed the first draft. The maintainer approved
 
 This is the "step-5 actions spec" that `curriculum-design-plan.md` points to (§Lock rules, §API contract). It defines `TIER_LOCKED` and the quick-check XP rule.
 
-| Already in place                                                                                                                         | Where                                                                   |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `users` (xp cache, streak, lastActiveAt), `progress` (one row per cleared exercise), `submissions` (every attempt), `xp_events` (ledger) | `db/schema/*.ts` on `canary`                                            |
-| Award-once unique index `(user_id, exercise_id, reason)` on `xp_events`                                                                  | `db/schema/xp.ts`                                                       |
-| `XP_REWARDS` (lesson 10, quick-check 5, challenge 150, boss 500), `levelForXp`                                                           | `lib/constants/xp.ts`, `lib/xp/level.ts`                                |
-| `isRealmOpen(tier)`, exercise id grammar                                                                                                 | `lib/content/curriculum.ts`, `ids.ts`                                   |
-| Content schemas + public views (`toPublicChallenge`, `toPublicCase`, `toPublicQuickCheck`)                                               | PR #15 `feat/content-loaders` (`lib/types/content.ts`, `lib/content/*`) |
-| Sandbox runner, `POST /api/run` (visible tests only), `RunResult`, nonce-protected harness, wiring checklist in `load-tests.ts`          | PR #16 `feat/code-runner` (`lib/runner/**`, `lib/types/runner.ts`)      |
+| Already in place                                                                                                                         | Where                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `users` (xp cache, streak, lastActiveAt), `progress` (one row per cleared exercise), `submissions` (every attempt), `xp_events` (ledger) | `db/schema/*.ts` on `canary`                                                                          |
+| Award-once unique index `(user_id, exercise_id, reason)` on `xp_events`                                                                  | `db/schema/xp.ts`                                                                                     |
+| `XP_REWARDS` (lesson 10, quick-check 5, challenge 150, boss 500), `levelForXp`                                                           | `lib/constants/xp.ts`, `lib/xp/level.ts`                                                              |
+| `isRealmOpen(tier)`, exercise id grammar                                                                                                 | `lib/content/curriculum.ts`, `ids.ts`                                                                 |
+| Content schemas + public views (`toPublicChallenge`, `toPublicCase`, `toPublicQuickCheck`)                                               | PR #15 `feat/content-loaders` (`lib/types/content.ts`, `lib/content/*`)                               |
+| ~~Sandbox runner, `POST /api/run` (visible tests only), `RunResult`, nonce-protected harness, wiring checklist in `load-tests.ts`~~      | ~~PR #16 `feat/code-runner` (`lib/runner/**`, `lib/types/runner.ts`)~~ (removed by the no-code pivot) |
 
 This spec builds on those shapes. It does not redefine them.
 
@@ -70,30 +100,30 @@ Screens: builder quest and strategist case in `design/ui_kits/webapp/Sigmorai Ap
 
 ## Purpose
 
-The quest page is where XP is earned, so it is where cheating would happen. Today the runner can run code, but nothing grades it, costs HP or writes XP. This spec says exactly how a press becomes a grade, an HP change and an `xp_events` row, all on the server, so the leaderboard stays honest and the sandbox bill stays small.
+The quest page is where XP is earned, so it is where cheating would happen. ~~Today the runner can run code, but nothing grades it, costs HP or writes XP.~~ (removed by the no-code pivot) This spec says exactly how a press becomes a grade, an HP change and an `xp_events` row, all on the server, so the leaderboard stays honest ~~and the sandbox bill stays small~~ (removed by the no-code pivot).
 
 ## Decisions
 
-1. **Two buttons: Run and Submit.** Run = free practice on the visible tests, through `POST /api/run`. Submit = the graded attempt, a Server Action, visible + hidden tests, costs 1 HP on a fail, writes `submissions` + `progress` + `xp_events`. Why: learners need a free way to try code; one button would make every typo cost HP.
-2. **Daily caps and a one-at-a-time lock, on the `users` row.** Two counters (`run_count`, `submit_count`) reset by `sandbox_day`, and `sandbox_pending_at` as the lock. Why: Vercel functions share no memory, and the user row is already locked for HP.
-3. **HP is spent before the runner, and refunded if the runner fails.** Why: a crashed function still costs HP (no free retries), but our own errors never punish the learner.
-4. **`TIER_LOCKED` and `NOT_OPEN` are re-checked on Run and on Submit**, before any sandbox call or HP change.
-5. **A child-pass token in the harness, and strict type checks in hidden tests.** Why: `os._exit(0)` today exits with code 0, which counts as a pass.
+1. ~~**Two buttons: Run and Submit.** Run = free practice on the visible tests, through `POST /api/run`.~~ (removed by the no-code pivot) Submit = the graded attempt, a Server Action, ~~visible + hidden tests,~~ (removed by the no-code pivot) costs 1 HP on a fail, writes `submissions` + `progress` + `xp_events`. ~~Why: learners need a free way to try code; one button would make every typo cost HP.~~ (removed by the no-code pivot)
+2. ~~**Daily caps and a one-at-a-time lock, on the `users` row.** Two counters (`run_count`, `submit_count`) reset by `sandbox_day`, and `sandbox_pending_at` as the lock. Why: Vercel functions share no memory, and the user row is already locked for HP.~~ (removed by the no-code pivot)
+3. ~~**HP is spent before the runner, and refunded if the runner fails.** Why: a crashed function still costs HP (no free retries), but our own errors never punish the learner.~~ (removed by the no-code pivot)
+4. **`TIER_LOCKED` and `NOT_OPEN` are re-checked ~~on Run and on Submit~~ (removed by the no-code pivot)**, before ~~any sandbox call or~~ (removed by the no-code pivot) HP change.
+5. ~~**A child-pass token in the harness, and strict type checks in hidden tests.** Why: `os._exit(0)` today exits with code 0, which counts as a pass.~~ (removed by the no-code pivot)
 6. **Cases and quick checks: the browser sends option indexes only.** The page shuffles options from a random seed; the action re-shuffles from the same seed, maps each index back, and stores the order with the submission. XP once per exercise via the existing unique index.
-7. **After Submit the learner sees per-test or per-question results.** Explanations appear only after submit. XP and level-up come from the server's answer, never from a client constant.
-8. **Every sandbox call logs one line** (user, exercise, kind, status, ms). Run code is never stored.
+7. **After Submit the learner sees ~~per-test or~~ (removed by the no-code pivot) per-question results.** Explanations appear only after submit. XP and level-up come from the server's answer, never from a client constant.
+8. ~~**Every sandbox call logs one line** (user, exercise, kind, status, ms). Run code is never stored.~~ (removed by the no-code pivot)
 
 ## User-visible behaviour
 
-### Builder challenge (golden path)
+### ~~Builder challenge (golden path)~~ (removed by the no-code pivot)
 
-1. The learner opens `/quest/builder/r0/c1/challenge`. Left: lesson. Right: editor, `HP ■■■` in the challenge panel, test list, Console / Ask Mentor tabs.
-2. They press **▸ Run tests**. The visible tests run. Each shows ✓ or ✗ with a short reason ("`location` is not required"). Console shows their `print` output. HP does not change.
-3. They press **Submit**. Visible + hidden tests run. Hidden tests show as "Hidden test 1 · passed" with no detail.
+1. ~~The learner opens `/quest/builder/r0/c1/challenge`. Left: lesson. Right: editor, `HP ■■■` in the challenge panel, test list, Console / Ask Mentor tabs.~~ (removed by the no-code pivot)
+2. ~~They press **▸ Run tests**. The visible tests run. Each shows ✓ or ✗ with a short reason ("`location` is not required"). Console shows their `print` output. HP does not change.~~ (removed by the no-code pivot)
+3. ~~They press **Submit**. Visible + hidden tests run. Hidden tests show as "Hidden test 1 · passed" with no detail.~~ (removed by the no-code pivot)
 4. All pass: the "LEVEL CLEARED · +150 XP" panel shows, the toast says "+150 XP · Quest cleared: Tokens", and the HUD XP updates. If the level went up, a second toast says "Level 4 reached".
-5. One test fails: HP drops to `■■□`. The panel says "2 of 3 HP left today. Run is still free."
+5. ~~One test fails: HP drops to `■■□`. The panel says "2 of 3 HP left today. Run is still free."~~ (removed by the no-code pivot)
 
-**Design change (noted, not silently amended):** the design has one button, "▸ Run tests". This spec adds a second, primary **Submit** button, and "▸ Run tests" becomes the secondary style. The design's "Claim & continue" adds XP on click; here XP is already written at Submit, so the button becomes **Continue** (navigate only). `DESIGN.md` is not edited. Maintainer to-do: re-export the quest screen in Claude Design with both changes.
+~~**Design change (noted, not silently amended):** the design has one button, "▸ Run tests". This spec adds a second, primary **Submit** button, and "▸ Run tests" becomes the secondary style. The design's "Claim & continue" adds XP on click; here XP is already written at Submit, so the button becomes **Continue** (navigate only). `DESIGN.md` is not edited. Maintainer to-do: re-export the quest screen in Claude Design with both changes.~~ (removed by the no-code pivot)
 
 ### Strategist case (golden path)
 
@@ -108,110 +138,112 @@ Same flow as a case: 3 questions, all must be right, +5 XP once. **No HP cost.**
 
 ### Edge cases the learner can hit
 
-| Situation                               | What they see                                                                                                         |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Run cap reached                         | "You used 40 of 40 runs today. Runs reset at 02:00 (your time)." Run disabled; **Submit still works** while HP lasts. |
-| Submit cap reached                      | "You used 30 of 30 graded runs today. They reset at 02:00 (your time)." Cases and quick checks still work.            |
-| HP at 0                                 | Submit disabled: "No HP left for this challenge. HP refills at 02:00 (your time)." Run, lesson and mentor still work. |
-| A run is already going (second tab)     | "A run is already in progress. Wait for it to finish."                                                                |
-| Runner timeout or sandbox error         | "The runner failed. No HP was used. Try again." HP unchanged.                                                         |
-| One slow test (learner's infinite loop) | That test fails with "Timed out after 5.0s". This **is** graded and costs HP on Submit.                               |
-| Exercise already cleared (replay)       | Graded as normal. "Cleared again · XP already earned." No HP cost, no XP.                                             |
-| Advanced realm (06–08)                  | "ADVANCED · LOCKED — coming later." No button works.                                                                  |
-| Chapter not open yet                    | "Clear chapter 2 first."                                                                                              |
-| Signed out                              | Lesson readable. Run / Submit say "Sign in to run and submit."                                                        |
+| Situation                                   | What they see                                                                                                                                            |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ~~Run cap reached~~                         | ~~"You used 40 of 40 runs today. Runs reset at 02:00 (your time)." Run disabled; Submit still works while HP lasts.~~ (removed by the no-code pivot)     |
+| ~~Submit cap reached~~                      | ~~"You used 30 of 30 graded runs today. They reset at 02:00 (your time)." Cases and quick checks still work.~~ (removed by the no-code pivot)            |
+| HP at 0                                     | Submit disabled: "No HP left for this challenge. HP refills at 02:00 (your time)." ~~Run,~~ (removed by the no-code pivot) lesson and mentor still work. |
+| ~~A run is already going (second tab)~~     | ~~"A run is already in progress. Wait for it to finish."~~ (removed by the no-code pivot)                                                                |
+| ~~Runner timeout or sandbox error~~         | ~~"The runner failed. No HP was used. Try again." HP unchanged.~~ (removed by the no-code pivot)                                                         |
+| ~~One slow test (learner's infinite loop)~~ | ~~That test fails with "Timed out after 5.0s". This **is** graded and costs HP on Submit.~~ (removed by the no-code pivot)                               |
+| Exercise already cleared (replay)           | Graded as normal. "Cleared again · XP already earned." No HP cost, no XP.                                                                                |
+| Advanced realm (06–08)                      | "ADVANCED · LOCKED — coming later." No button works.                                                                                                     |
+| Chapter not open yet                        | "Clear chapter 2 first."                                                                                                                                 |
+| Signed out                                  | Lesson readable. ~~Run / Submit say "Sign in to run and submit."~~ (removed by the no-code pivot)                                                        |
 
 Times are computed on the server as a UTC instant (`resetsAt`). The browser formats it in local time.
 
 ## Fairness and integrity check
 
-| Attack                                             | Stop                                                                                                                                                       |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Send `passed: true` or an XP amount                | Inputs are code, a seed or option indexes only (Zod `.strict()`). Amounts come from `XP_REWARDS`.                                                          |
-| Replay a cleared exercise for XP                   | `insert … on conflict do nothing returning` on `xp_events_award_once_idx`. Zero rows back = no XP, no `users.xp` change.                                   |
-| Retry Submit for free after a crash                | The `pending` submission is written before the runner. A crashed function leaves it `pending`, and `pending` counts as spent HP.                           |
-| Two tabs submit at once to beat HP                 | The user row is locked (`select … for update`) while HP is counted, and `sandbox_pending_at` allows one sandbox call per user at a time.                   |
-| Loop Submit on a cleared challenge (no HP cost)    | The Submit cap exists for exactly this: replays cost no HP, so without `submit_count` a cleared challenge would be a free sandbox loop.                    |
-| `os._exit(0)` / `sys.exit(0)` before the test runs | Child-pass token (below). `sys.exit` is already a fail (`SystemExit` is caught).                                                                           |
-| Return an object whose `__eq__` is always `True`   | Hidden tests check the exact type first (`type(result) is int`), using `type`/`isinstance` saved before learner code runs. `content-reviewer` checks this. |
-| `print` inside the function to leak hidden inputs  | Submit returns **no stdout** and no detail for hidden tests. Console output exists only on Run (visible tests).                                            |
-| Share "the answer is B"                            | Options are shuffled per attempt. Picking your own seed only re-orders options you can already read; it gains nothing.                                     |
-| Learn the case answer from a failed attempt        | A fail reveals only which questions were wrong and why the picked option is wrong. The correct option shows only after a pass.                             |
-| Get free Runs to test hidden tests                 | Run only ever loads `visibleTests` (`load-tests.ts`). Hidden tests and the solution never leave the server, even after a pass.                             |
-| Make the harness error on purpose to get refunds   | An error returns no results, so nothing leaks. Errored calls still used a `submit_count` slot.                                                             |
+| Attack                                                 | Stop                                                                                                                                                                                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Send `passed: true` or an XP amount                    | Inputs are ~~code,~~ (removed by the no-code pivot) a seed or option indexes only (Zod `.strict()`). Amounts come from `XP_REWARDS`.                                                          |
+| Replay a cleared exercise for XP                       | `insert … on conflict do nothing returning` on `xp_events_award_once_idx`. Zero rows back = no XP, no `users.xp` change.                                                                      |
+| ~~Retry Submit for free after a crash~~                | ~~The `pending` submission is written before the runner. A crashed function leaves it `pending`, and `pending` counts as spent HP.~~ (removed by the no-code pivot)                           |
+| Two tabs submit at once to beat HP                     | The user row is locked (`select … for update`) while HP is counted~~, and `sandbox_pending_at` allows one sandbox call per user at a time~~ (removed by the no-code pivot).                   |
+| ~~Loop Submit on a cleared challenge (no HP cost)~~    | ~~The Submit cap exists for exactly this: replays cost no HP, so without `submit_count` a cleared challenge would be a free sandbox loop.~~ (removed by the no-code pivot)                    |
+| ~~`os._exit(0)` / `sys.exit(0)` before the test runs~~ | ~~Child-pass token (below). `sys.exit` is already a fail (`SystemExit` is caught).~~ (removed by the no-code pivot)                                                                           |
+| ~~Return an object whose `__eq__` is always `True`~~   | ~~Hidden tests check the exact type first (`type(result) is int`), using `type`/`isinstance` saved before learner code runs. `content-reviewer` checks this.~~ (removed by the no-code pivot) |
+| ~~`print` inside the function to leak hidden inputs~~  | ~~Submit returns **no stdout** and no detail for hidden tests. Console output exists only on Run (visible tests).~~ (removed by the no-code pivot)                                            |
+| Share "the answer is B"                                | Options are shuffled per attempt. Picking your own seed only re-orders options you can already read; it gains nothing.                                                                        |
+| Learn the case answer from a failed attempt            | A fail reveals only which questions were wrong and why the picked option is wrong. The correct option shows only after a pass.                                                                |
+| ~~Get free Runs to test hidden tests~~                 | ~~Run only ever loads `visibleTests` (`load-tests.ts`). Hidden tests and the solution never leave the server, even after a pass.~~ (removed by the no-code pivot)                             |
+| ~~Make the harness error on purpose to get refunds~~   | ~~An error returns no results, so nothing leaks. Errored calls still used a `submit_count` slot.~~ (removed by the no-code pivot)                                                             |
 
-**Child-pass token.** For each test, the parent makes a fresh random token and writes it to the child's **stdin**. The child reads it and closes stdin before the learner's code runs. It prints the token as the **last stdout line**, only after the test code finishes. Pass = exit code 0 **and** the last stdout line equals the token. The parent strips that line before the output reaches the learner. `os._exit(0)` never prints the token, so the test fails with "Exited before the test finished".
+~~**Child-pass token.** For each test, the parent makes a fresh random token and writes it to the child's **stdin**. The child reads it and closes stdin before the learner's code runs. It prints the token as the **last stdout line**, only after the test code finishes. Pass = exit code 0 **and** the last stdout line equals the token. The parent strips that line before the output reaches the learner. `os._exit(0)` never prints the token, so the test fails with "Exited before the test finished".~~ (removed by the no-code pivot)
 
-**Honest limit.** Learner code shares the child process, so deep Python tricks (frame or `gc` inspection) could still find the token. These defences stop the cheap tricks, not a determined attacker. `submissions.payload` keeps Submit code, so a suspicious leaderboard entry can be checked by hand.
+~~**Honest limit.** Learner code shares the child process, so deep Python tricks (frame or `gc` inspection) could still find the token. These defences stop the cheap tricks, not a determined attacker. `submissions.payload` keeps Submit code, so a suspicious leaderboard entry can be checked by hand.~~ (removed by the no-code pivot)
 
 ## Data model
 
 db-architect reviewed this (2026-10-05). One migration, no new table, no new index.
 
-**`users`, 4 new columns**
+~~**`users`, 4 new columns**~~ (removed by the no-code pivot)
 
-| Column               | Type                                       | Notes                                                                           |
-| -------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- |
-| `sandbox_day`        | `date` null                                | The UTC day the two counters belong to.                                         |
-| `run_count`          | `integer not null default 0`, check `>= 0` | Runs used on `sandbox_day`.                                                     |
-| `submit_count`       | `integer not null default 0`, check `>= 0` | Graded sandbox calls used on `sandbox_day`. Cases and quick checks don't count. |
-| `sandbox_pending_at` | `timestamptz` null                         | The one-at-a-time lock. Stale after `RUN_STALE_MS`.                             |
+| Column                   | Type                                           | Notes                                                                                                              |
+| ------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| ~~`sandbox_day`~~        | ~~`date` null~~                                | ~~The UTC day the two counters belong to.~~ (removed by the no-code pivot)                                         |
+| ~~`run_count`~~          | ~~`integer not null default 0`, check `>= 0`~~ | ~~Runs used on `sandbox_day`.~~ (removed by the no-code pivot)                                                     |
+| ~~`submit_count`~~       | ~~`integer not null default 0`, check `>= 0`~~ | ~~Graded sandbox calls used on `sandbox_day`. Cases and quick checks don't count.~~ (removed by the no-code pivot) |
+| ~~`sandbox_pending_at`~~ | ~~`timestamptz` null~~                         | ~~The one-at-a-time lock. Stale after `RUN_STALE_MS`.~~ (removed by the no-code pivot)                             |
 
-**Sandbox gate** (Run and Submit, inside a short transaction):
+~~**Sandbox gate** (Run and Submit, inside a short transaction):~~ (removed by the no-code pivot)
 
-1. `select … from users where id = $me for update`.
-2. In code: if `sandbox_day` is not today (UTC), treat both counts as 0.
-3. `sandbox_pending_at` set and younger than `RUN_STALE_MS` → `RUN_IN_PROGRESS`.
-4. Count ≥ cap (`RUN_DAILY_CAP` or `SUBMIT_DAILY_CAP`) → `CAP_REACHED`.
-5. Update: `sandbox_day = today`, count + 1, `sandbox_pending_at = now()`. Commit.
-6. Call the runner **outside** the transaction.
-7. Clear `sandbox_pending_at` on any outcome (pass, fail, timeout, error).
+1. ~~`select … from users where id = $me for update`.~~ (removed by the no-code pivot)
+2. ~~In code: if `sandbox_day` is not today (UTC), treat both counts as 0.~~ (removed by the no-code pivot)
+3. ~~`sandbox_pending_at` set and younger than `RUN_STALE_MS` → `RUN_IN_PROGRESS`.~~ (removed by the no-code pivot)
+4. ~~Count ≥ cap (`RUN_DAILY_CAP` or `SUBMIT_DAILY_CAP`) → `CAP_REACHED`.~~ (removed by the no-code pivot)
+5. ~~Update: `sandbox_day = today`, count + 1, `sandbox_pending_at = now()`. Commit.~~ (removed by the no-code pivot)
+6. ~~Call the runner **outside** the transaction.~~ (removed by the no-code pivot)
+7. ~~Clear `sandbox_pending_at` on any outcome (pass, fail, timeout, error).~~ (removed by the no-code pivot)
 
 **`submissions`, one change**
 
-- Add `status text not null default 'pending'`, check `status in ('pending','passed','failed','errored')`.
+- Add `status text not null` ~~`default 'pending'`, check `status in ('pending','passed','failed','errored')`~~ (removed by the no-code pivot: no default, check `status in ('passed','failed')`).
 - Drop `passed`.
-- Add check `(status = 'pending') = (graded_at is null)`.
-- **HP spent** today on an exercise = rows since the UTC day start with `status in ('pending','failed')`. `errored` = refunded. `HP left = HP_PER_CHALLENGE − spent`, floored at 0. Computed, never stored (`db/CLAUDE.md` invariant 5). The existing `submissions_user_exercise_idx` serves this count.
+- ~~Add check `(status = 'pending') = (graded_at is null)`.~~ (removed by the no-code pivot)
+- **HP spent** today on an exercise = rows since the UTC day start with ~~`status in ('pending','failed')`~~ (removed by the no-code pivot: `status = 'failed'`). ~~`errored` = refunded.~~ (removed by the no-code pivot) `HP left = HP_PER_CHALLENGE − spent`, floored at 0. Computed, never stored (`db/CLAUDE.md` invariant 5). The existing `submissions_user_exercise_idx` serves this count.
 
 **How the other tables are used (no change)**
 
-- `submissions.payload`: builder `{ code }`; case / quick check `{ seed, answers: number[] /* original indexes */, order: number[][] /* display → original, per question */ }`.
-- `submissions.results`: builder `{ status, tests: [{ name, passed, hidden }] }` (no detail, no stdout); case `{ questions: [{ correct: boolean }] }`.
+- `submissions.payload`: ~~builder `{ code }`;~~ (removed by the no-code pivot) case / quick check `{ seed, answers: number[] /* original indexes */, order: number[][] /* display → original, per question */ }`.
+- `submissions.results`: ~~builder `{ status, tests: [{ name, passed, hidden }] }` (no detail, no stdout);~~ (removed by the no-code pivot) case `{ questions: [{ correct: boolean }] }`.
 - `progress`: `insert … on conflict do nothing` on pass.
 - `xp_events`: reasons `challenge`, `boss`, `quick-check`, `lesson` (all exist in `XP_REASONS`).
 - `users.xp += amount` only when the `xp_events` insert returned a row.
 - **Streak** (`lib/xp/streak.ts`, `bun test` covered): advances once per UTC day on **any pass**, replays included. Same day as `lastActiveAt` → no change; the day after → +1; later → back to 1. `lastActiveAt = now()` on every pass.
 
-**Cost log:** no table. Each sandbox call prints one line: `[runner] user=<id> exercise=<id> kind=run status=completed ms=1834`. No code, no output, no test names.
+~~**Cost log:** no table. Each sandbox call prints one line: `[runner] user=<id> exercise=<id> kind=run status=completed ms=1834`. No code, no output, no test names.~~ (removed by the no-code pivot)
 
-New constants (`lib/constants`): `HP_PER_CHALLENGE = 3`, `RUN_DAILY_CAP = 40`, `SUBMIT_DAILY_CAP = 30`, `RUN_STALE_MS` (`RUN_SANDBOX_TTL_MS` + slack), `SUBMISSION_STATUSES`.
+New constants (`lib/constants`): `HP_PER_CHALLENGE = 3`, ~~`RUN_DAILY_CAP = 40`, `SUBMIT_DAILY_CAP = 30`, `RUN_STALE_MS` (`RUN_SANDBOX_TTL_MS` + slack),~~ (removed by the no-code pivot) `SUBMISSION_STATUSES`.
 
 ## API contract
 
 Error codes live in one Zod enum, `QuestErrorCodeSchema` in `lib/types/quest.ts`:
 
-| Code              | When                                                                      | HTTP (`/api/run`) |
-| ----------------- | ------------------------------------------------------------------------- | ----------------- |
-| `UNAUTHENTICATED` | no Clerk session                                                          | 401               |
-| `NOT_ONBOARDED`   | session but no `users` row                                                | 403               |
-| `INVALID_INPUT`   | Zod fails, wrong step for this action, or no content file (stub chapter)  | 400 / 404 / 413   |
-| `TIER_LOCKED`     | realm tier not in `OPEN_TIERS`                                            | 403               |
-| `NOT_OPEN`        | chapter order not met                                                     | 403               |
-| `NO_HP`           | 0 HP left on this exercise today (not cleared yet)                        | —                 |
-| `CAP_REACHED`     | daily cap hit; carries `{ kind: 'run' \| 'submit', used, cap, resetsAt }` | 429               |
-| `RUN_IN_PROGRESS` | a fresh `sandbox_pending_at` exists                                       | 409               |
-| `RUNNER_FAILED`   | runner `timeout` / `error`, or setup failed. HP refunded.                 | 502               |
+| Code                  | When                                                                          | HTTP (`/api/run`)                      |
+| --------------------- | ----------------------------------------------------------------------------- | -------------------------------------- |
+| `UNAUTHENTICATED`     | no Clerk session                                                              | 401                                    |
+| `NOT_ONBOARDED`       | session but no `users` row                                                    | 403                                    |
+| `INVALID_INPUT`       | Zod fails, wrong step for this action, or no content file (stub chapter)      | 400 / 404 / 413                        |
+| `TIER_LOCKED`         | realm tier not in `OPEN_TIERS`                                                | 403                                    |
+| `NOT_OPEN`            | chapter order not met                                                         | 403                                    |
+| `NO_HP`               | 0 HP left on this exercise today (not cleared yet)                            | —                                      |
+| ~~`CAP_REACHED`~~     | ~~daily cap hit; carries `{ kind: 'run' \| 'submit', used, cap, resetsAt }`~~ | ~~429~~ (removed by the no-code pivot) |
+| ~~`RUN_IN_PROGRESS`~~ | ~~a fresh `sandbox_pending_at` exists~~                                       | ~~409~~ (removed by the no-code pivot) |
+| ~~`RUNNER_FAILED`~~   | ~~runner `timeout` / `error`, or setup failed. HP refunded.~~                 | ~~502~~ (removed by the no-code pivot) |
 
-Server Actions return `{ ok: false, code, message, resetsAt? }`, never a raw throw. `/api/run` keeps its `{ error: string }` body and adds `code` and `resetsAt?`.
+Server Actions return `{ ok: false, code, message, resetsAt? }`, never a raw throw. ~~`/api/run` keeps its `{ error: string }` body and adds `code` and `resetsAt?`.~~ (removed by the no-code pivot)
 
 **Open check (one server-only helper, `bun test` covered).** In order: parse the id → the content file exists → `isRealmOpen(REALMS[realm].tier)` else `TIER_LOCKED` → chapter 1 is open; chapter N is open when chapter N−1's challenge has a `progress` row (same track); the boss opens after all 6 challenges. Inside an open chapter, the lesson, challenge and quick check are all open. Order is checked inside the exercise's own track, not against `users.track`. Math and Frontier ids join in step 6.
 
-### `POST /api/run` (exists; this spec finishes it)
+> **Amended 2026-10-06 (step 6):** Math Tower floors now join the open check (floor N needs floor N−1's quick check; no tier check). Frontier ids still return `INVALID_INPUT`. See `curriculum-design-plan.md` → "Amendments locked 2026-10-06 (Math Tower playable, step 6)".
 
-Input stays `RunBodySchema` `{ exerciseId, code }`. Steps: auth → onboarded → body → open check → sandbox gate (`kind: 'run'`) → `runCode` with `visibleTests` → clear the lock → log line → return `RunResult`. `RunResult` is unchanged: `{ status, tests, output, truncated }`. No HP, no XP, no `submissions` row. This closes the four `load-tests.ts` checklist items.
+### ~~`POST /api/run` (exists; this spec finishes it)~~ (removed by the no-code pivot)
 
-### `submitChallenge` (Server Action, `lib/actions/quest.ts`)
+~~Input stays `RunBodySchema` `{ exerciseId, code }`. Steps: auth → onboarded → body → open check → sandbox gate (`kind: 'run'`) → `runCode` with `visibleTests` → clear the lock → log line → return `RunResult`. `RunResult` is unchanged: `{ status, tests, output, truncated }`. No HP, no XP, no `submissions` row. This closes the four `load-tests.ts` checklist items.~~ (removed by the no-code pivot)
+
+### ~~`submitChallenge` (Server Action, `lib/actions/quest.ts`)~~ (removed by the no-code pivot)
 
 ```ts
 input:  { exerciseId: string /* …/challenge or …/boss/challenge, builder */, code: string /* ≤ RUN_CODE_MAX_CHARS */ }
@@ -221,13 +253,13 @@ output: { ok: true; passed: boolean; replay: boolean; hpLeft: number;
       | { ok: false; code: QuestErrorCode; message: string; resetsAt?: string }
 ```
 
-1. Transaction A (short): lock the user row; open check; if not cleared, `NO_HP`; sandbox gate steps 2–5 (`kind: 'submit'`); insert a `pending` submission. Commit.
-2. Outside any transaction: `runCode` with `visibleTests + hiddenTests`. (A DB transaction must never stay open for 15 s.)
-3. Runner `timeout` / `error`: set the submission to `errored` (`graded_at = now()`), clear the lock, return `RUNNER_FAILED`.
-4. Transaction B: grade (pass = `status === 'completed'` and every test passed); set `passed` or `failed`; on pass insert `progress`, insert `xp_events` (`challenge` or `boss`) on conflict do nothing returning, add to `users.xp` only if a row came back, update the streak; clear the lock.
+1. ~~Transaction A (short): lock the user row; open check; if not cleared, `NO_HP`; sandbox gate steps 2–5 (`kind: 'submit'`); insert a `pending` submission. Commit.~~ (removed by the no-code pivot)
+2. ~~Outside any transaction: `runCode` with `visibleTests + hiddenTests`. (A DB transaction must never stay open for 15 s.)~~ (removed by the no-code pivot)
+3. ~~Runner `timeout` / `error`: set the submission to `errored` (`graded_at = now()`), clear the lock, return `RUNNER_FAILED`.~~ (removed by the no-code pivot)
+4. ~~Transaction B: grade (pass = `status === 'completed'` and every test passed);~~ (removed by the no-code pivot) set `passed` or `failed`; on pass insert `progress`, insert `xp_events` (`challenge` or `boss`) on conflict do nothing returning, add to `users.xp` only if a row came back, update the streak~~; clear the lock~~ (removed by the no-code pivot).
 5. `revalidatePath('/', 'layout')` (HUD XP) and the quest page. Return.
 
-The quest page sets `export const maxDuration = 30` (Server Actions take the page's limit).
+~~The quest page sets `export const maxDuration = 30` (Server Actions take the page's limit).~~ (removed by the no-code pivot)
 
 ### The shuffle seed
 
@@ -252,62 +284,62 @@ One transaction: lock the user row → open check → answers length = question 
 
 ## AI and cost
 
-No model call. The mentor tab is step 7. Cost is the sandbox only.
+No model call. The mentor tab is step 7. ~~Cost is the sandbox only.~~ (removed by the no-code pivot)
 
-- Worst case per user per day: 40 Runs + 30 graded runs = 70 sandbox calls, each ≤ 15 s.
-- Before launch, check the cost of one call on E2B's live pricing page and confirm the caps. Do not trust memory.
-- Cost watching: grep the `[runner]` log lines (count, status, ms per user).
+- ~~Worst case per user per day: 40 Runs + 30 graded runs = 70 sandbox calls, each ≤ 15 s.~~ (removed by the no-code pivot)
+- ~~Before launch, check the cost of one call on E2B's live pricing page and confirm the caps. Do not trust memory.~~ (removed by the no-code pivot)
+- ~~Cost watching: grep the `[runner]` log lines (count, status, ms per user).~~ (removed by the no-code pivot)
 
-## Code execution
+## ~~Code execution~~ (removed by the no-code pivot)
 
-- Run: `visibleTests` only, stdout returned (capped at `RUN_OUTPUT_MAX_CHARS`).
-- Submit: `visibleTests + hiddenTests` in one sandbox call, **no stdout returned**, hidden-test detail stripped on the server before the result leaves the action.
-- Limits stay as in `lib/constants/runner.ts` (15 s wall clock, 5 s per test, 256 MB per test).
-- Harness change (Phase A): child-pass token over stdin, as in §Fairness. A `bun test` proves a solution that calls `os._exit(0)` fails every test.
-- Hidden-test authoring rule, added to `content/CLAUDE.md` in Phase A: check the exact type before comparing values.
+- ~~Run: `visibleTests` only, stdout returned (capped at `RUN_OUTPUT_MAX_CHARS`).~~ (removed by the no-code pivot)
+- ~~Submit: `visibleTests + hiddenTests` in one sandbox call, **no stdout returned**, hidden-test detail stripped on the server before the result leaves the action.~~ (removed by the no-code pivot)
+- ~~Limits stay as in `lib/constants/runner.ts` (15 s wall clock, 5 s per test, 256 MB per test).~~ (removed by the no-code pivot)
+- ~~Harness change (Phase A): child-pass token over stdin, as in §Fairness. A `bun test` proves a solution that calls `os._exit(0)` fails every test.~~ (removed by the no-code pivot)
+- ~~Hidden-test authoring rule, added to `content/CLAUDE.md` in Phase A: check the exact type before comparing values.~~ (removed by the no-code pivot)
 
 ## States and transitions
 
-| State                    | Run button               | Submit button                      | Notes                                                |
-| ------------------------ | ------------------------ | ---------------------------------- | ---------------------------------------------------- |
-| Signed out               | "Sign in to run"         | "Sign in to submit"                | Lesson readable                                      |
-| Idle, HP > 0             | enabled                  | enabled, "Costs 1 HP if it fails"  |                                                      |
-| Running (either)         | disabled, "Running…"     | disabled                           | `aria-busy`, live region announces the result        |
-| Result: fail             | enabled                  | enabled if HP left                 | ✗ + text per test; focus moves to the result heading |
-| Result: pass, first time | enabled                  | becomes **Continue**               | Cleared panel + XP toast (+ level-up toast)          |
-| Replay                   | enabled                  | enabled, "Practice · no HP, no XP" |                                                      |
-| HP 0                     | enabled                  | disabled with refill time          |                                                      |
-| Run cap hit              | disabled with reset time | enabled                            |                                                      |
-| Submit cap hit           | enabled                  | disabled with reset time           |                                                      |
-| Runner failed            | enabled                  | enabled                            | "No HP was used" message                             |
-| Tier locked / not open   | hidden                   | hidden                             | Reason text + icon                                   |
+| State                    | Run button                   | Submit button                      | Notes                                                       |
+| ------------------------ | ---------------------------- | ---------------------------------- | ----------------------------------------------------------- |
+| Signed out               | "Sign in to run"             | "Sign in to submit"                | Lesson readable                                             |
+| Idle, HP > 0             | enabled                      | enabled, "Costs 1 HP if it fails"  |                                                             |
+| Running (either)         | disabled, "Running…"         | disabled                           | `aria-busy`, live region announces the result               |
+| Result: fail             | enabled                      | enabled if HP left                 | ✗ + text per test; focus moves to the result heading        |
+| Result: pass, first time | enabled                      | becomes **Continue**               | Cleared panel + XP toast (+ level-up toast)                 |
+| Replay                   | enabled                      | enabled, "Practice · no HP, no XP" |                                                             |
+| HP 0                     | enabled                      | disabled with refill time          |                                                             |
+| ~~Run cap hit~~          | ~~disabled with reset time~~ | ~~enabled~~                        | (removed by the no-code pivot)                              |
+| ~~Submit cap hit~~       | ~~enabled~~                  | ~~disabled with reset time~~       | (removed by the no-code pivot)                              |
+| ~~Runner failed~~        | ~~enabled~~                  | ~~enabled~~                        | ~~"No HP was used" message~~ (removed by the no-code pivot) |
+| Tier locked / not open   | hidden                       | hidden                             | Reason text + icon                                          |
 
 - **HP lives in the quest panel** (`HP ■■□`, text + squares), not in the HudBar.
-- **Mobile ≤ 390 px:** lesson stacks above the editor; Run and Submit sit side by side, each ≥ 44 px tall, wrap to two rows if needed.
+- **Mobile ≤ 390 px:** ~~lesson stacks above the editor; Run and Submit sit side by side,~~ (removed by the no-code pivot) each ≥ 44 px tall, wrap to two rows if needed.
 - **Reduced motion:** toasts appear without the slide; the XP bar is segmented anyway.
 - **Voice:** the cleared panel is product voice. The design's "The forge glows brighter" is lore outside a DialogBox, so it goes to `voice-guardian` (move it into the NPC's DialogBox or cut it).
 - Pass/fail is never colour-only: ✓ / ✗ plus "passed" / "failed" text.
 
 ## Phases
 
-**Phase A starts only after PRs #15 (content loaders) and #16 (code runner) are on `canary`.**
+~~**Phase A starts only after PRs #15 (content loaders) and #16 (code runner) are on `canary`.**~~ (removed by the no-code pivot)
 
-### Phase A — Run, finished (SIG-18, part 1)
+### Phase A — ~~Run, finished~~ (removed by the no-code pivot) (SIG-18, part 1)
 
-**Goal:** the migration lands, and `/api/run` uses real content, checks tier and order, enforces the run cap and the lock, logs, and the harness has the child-pass token.
+**Goal:** the migration lands~~, and `/api/run` uses real content, checks tier and order, enforces the run cap and the lock, logs, and the harness has the child-pass token~~ (removed by the no-code pivot).
 
 **Files**
 
 - `db/schema/users.ts`, `db/schema/submissions.ts` _(modify)_, `drizzle/<n>_quest_actions.sql` _(generated)_
-- `lib/constants/runner.ts`, `lib/constants/xp.ts` _(modify)_ — caps, `RUN_STALE_MS`, `HP_PER_CHALLENGE`, `SUBMISSION_STATUSES`
+- ~~`lib/constants/runner.ts`,~~ (removed by the no-code pivot) `lib/constants/xp.ts` _(modify)_ — ~~caps, `RUN_STALE_MS`,~~ (removed by the no-code pivot) `HP_PER_CHALLENGE`, `SUBMISSION_STATUSES`
 - `lib/types/quest.ts` _(new)_ — `QuestErrorCodeSchema`, action input/output schemas
 - `lib/grading/open.ts` + test _(new)_ — the open check
-- `lib/grading/sandbox-gate.ts` + test _(new)_ — day roll, lock, caps
+- ~~`lib/grading/sandbox-gate.ts` + test _(new)_ — day roll, lock, caps~~ (removed by the no-code pivot)
 - `lib/xp/hp.ts`, `lib/xp/streak.ts` + tests _(new)_
-- `lib/runner/load-tests.ts`, `app/api/run/route.ts`, `lib/runner/e2b/harness.ts` + test _(modify)_
-- `content/CLAUDE.md` _(modify)_ — hidden-test type rule
+- ~~`lib/runner/load-tests.ts`, `app/api/run/route.ts`, `lib/runner/e2b/harness.ts` + test _(modify)_~~ (removed by the no-code pivot)
+- ~~`content/CLAUDE.md` _(modify)_ — hidden-test type rule~~ (removed by the no-code pivot)
 
-**Verification:** `bun test` (open check: tier, order, boss; HP refill at the UTC boundary, `errored` refunded; streak across midnight; `os._exit(0)` fails; run 41 → 429; two parallel runs → one 409); `bunx drizzle-kit check`; `bun run runner:smoke` against E2B once; typecheck, lint, build.
+**Verification:** `bun test` (open check: tier, order, boss; HP refill at the UTC boundary, ~~`errored` refunded~~ (removed by the no-code pivot); streak across midnight; ~~`os._exit(0)` fails; run 41 → 429; two parallel runs → one 409~~ (removed by the no-code pivot)); `bunx drizzle-kit check`; ~~`bun run runner:smoke` against E2B once;~~ (removed by the no-code pivot) typecheck, lint, build.
 
 **Approval gate:** CTO review clean; maintainer runs it on a preview.
 
@@ -317,7 +349,7 @@ No model call. The mentor tab is step 7. Cost is the sandbox only.
 
 **Files:** `lib/actions/quest.ts` (`submitChallenge`, `completeLesson` contract), `lib/grading/challenge.ts` + test, `app/(app)/quest/[...exercise]/page.tsx` (+ loading/error; a catch-all, because exercise ids contain `/`), `components/quest/*` (buttons, HP, test list, cleared panel), `Toast` use.
 
-**Verification:** `bun test` (award once; replay gives 0 XP and no HP cost; runner error refunds HP; hidden detail and stdout never in the result; submit 31 → `CAP_REACHED`); Playwright with `CODE_RUNNER=fake` (fail → HP 2; pass → +150 in the HUD); browser check at 360 px.
+**Verification:** `bun test` (award once; replay gives 0 XP and no HP cost; ~~runner error refunds HP; hidden detail and stdout never in the result; submit 31 → `CAP_REACHED`~~ (removed by the no-code pivot)); ~~Playwright with `CODE_RUNNER=fake` (fail → HP 2; pass → +150 in the HUD)~~ (removed by the no-code pivot); browser check at 360 px.
 
 **Approval gate:** CTO review; `ui-ux-reviewer`; `voice-guardian` on the new copy.
 
@@ -327,7 +359,7 @@ No model call. The mentor tab is step 7. Cost is the sandbox only.
 
 **Files:** `lib/grading/shuffle.ts` + test (seeded shuffle, index mapping), `lib/actions/quest.ts` (`submitCase`, `submitQuickCheck`), `components/quest/answer-*` + `use-answers.ts` (one form for cases and quick checks).
 
-**Verification:** `bun test` (same seed → same order; different seeds → different orders; a fail never returns the correct option; quick check costs no HP; cases never touch `submit_count`); Playwright strategist flow.
+**Verification:** `bun test` (same seed → same order; different seeds → different orders; a fail never returns the correct option; quick check costs no HP~~; cases never touch `submit_count`~~ (removed by the no-code pivot)); Playwright strategist flow.
 
 **Approval gate:** CTO review; maintainer clears strategist 0 c1 on a preview.
 
@@ -338,19 +370,19 @@ No model call. The mentor tab is step 7. Cost is the sandbox only.
 SIG-18 and SIG-19 only. The lesson button is SIG-11.
 
 - [ ] No Server Action or route takes a score, pass flag, XP amount or level as input (grep the Zod schemas).
-- [ ] Hidden tests, `solution`, `correct` flags and explanations are absent from every client payload before submit (test on the page props and action results).
-- [ ] Submit returns no stdout and no hidden-test detail.
-- [ ] A solution with `os._exit(0)` fails every test (harness test).
+- [ ] ~~Hidden tests, `solution`,~~ (removed by the no-code pivot) `correct` flags and explanations are absent from every client payload before submit (test on the page props and action results).
+- [ ] ~~Submit returns no stdout and no hidden-test detail.~~ (removed by the no-code pivot)
+- [ ] ~~A solution with `os._exit(0)` fails every test (harness test).~~ (removed by the no-code pivot)
 - [ ] Clearing an exercise twice writes one `xp_events` row; `bun run db:check` passes.
-- [ ] A failed Submit costs exactly 1 HP; a runner error or timeout costs 0; HP is back to 3 after the UTC day boundary.
-- [ ] With 0 HP, Submit returns `NO_HP` and starts no sandbox.
-- [ ] Run 41 in a UTC day returns `CAP_REACHED { kind: 'run' }` with `resetsAt`; Submit still works.
-- [ ] Submit 31 in a UTC day returns `CAP_REACHED { kind: 'submit' }`; cases and quick checks still work.
-- [ ] Two parallel sandbox calls by one user: one gets `RUN_IN_PROGRESS`. A lock older than `RUN_STALE_MS` does not block.
-- [ ] An advanced-realm exercise returns `TIER_LOCKED` on Run and on every action, with no sandbox call and no HP change.
+- [ ] A failed Submit costs exactly 1 HP~~; a runner error or timeout costs 0~~ (removed by the no-code pivot); HP is back to 3 after the UTC day boundary.
+- [ ] With 0 HP, Submit returns `NO_HP` ~~and starts no sandbox~~ (removed by the no-code pivot).
+- [ ] ~~Run 41 in a UTC day returns `CAP_REACHED { kind: 'run' }` with `resetsAt`; Submit still works.~~ (removed by the no-code pivot)
+- [ ] ~~Submit 31 in a UTC day returns `CAP_REACHED { kind: 'submit' }`; cases and quick checks still work.~~ (removed by the no-code pivot)
+- [ ] ~~Two parallel sandbox calls by one user: one gets `RUN_IN_PROGRESS`. A lock older than `RUN_STALE_MS` does not block.~~ (removed by the no-code pivot)
+- [ ] An advanced-realm exercise returns `TIER_LOCKED` ~~on Run and~~ (removed by the no-code pivot) on every action, ~~with no sandbox call and~~ (removed by the no-code pivot) no HP change.
 - [ ] Case option order differs between two seeds (seeded test), and the stored submission has the seed and order.
 - [ ] A failed case never shows the correct option; a pass shows every explanation.
-- [ ] Every sandbox call prints one `[runner]` line with status and ms; no code in it.
+- [ ] ~~Every sandbox call prints one `[runner]` line with status and ms; no code in it.~~ (removed by the no-code pivot)
 - [ ] Every state in §States works at 360 px and by keyboard; pass/fail is text + icon.
 
 ## Out of scope
@@ -358,9 +390,9 @@ SIG-18 and SIG-19 only. The lesson button is SIG-11.
 - The XP level curve (SIG-33 sets LV 1), leaderboard (step 6), Math Tower and Frontier quick checks (step 6 extends the open check), the mentor tab (step 7).
 - The "Lesson done" button and the lesson page (SIG-11).
 - Paid HP refills (never: no dark patterns), entitlements and the paywall.
-- A runs table, a retention job, an admin cost dashboard.
-- Languages other than Python; a custom E2B template.
-- Full isolation against deliberate Python introspection (see Honest limit).
+- ~~A runs table, a retention job,~~ (removed by the no-code pivot) an admin cost dashboard.
+- ~~Languages other than Python; a custom E2B template.~~ (removed by the no-code pivot)
+- ~~Full isolation against deliberate Python introspection (see Honest limit).~~ (removed by the no-code pivot)
 
 ## Resolved 2026-10-05
 
@@ -369,15 +401,15 @@ The first draft's 8 open questions. The maintainer approved every lean.
 1. **Quick check costs no HP.** It is a +5 XP self-check.
 2. **A failed case shows only the picked option's explanation**, never the correct option. Otherwise the second attempt is free.
 3. **Chapter-level open:** chapter N opens when chapter N−1's challenge is cleared; all 3 steps inside an open chapter are open.
-4. **Caps: 40 Runs and 30 graded runs per user per UTC day.** Still check live E2B pricing before launch.
+4. ~~**Caps: 40 Runs and 30 graded runs per user per UTC day.** Still check live E2B pricing before launch.~~ (removed by the no-code pivot)
 5. **The lesson +10 XP trigger is a "Lesson done" button**, built in SIG-11.
-6. **A crashed function keeps its HP spent** (the submission stays `pending`). Refunding it would open free retries.
+6. ~~**A crashed function keeps its HP spent** (the submission stays `pending`). Refunding it would open free retries.~~ (removed by the no-code pivot)
 7. **The streak counts any pass, replays included.** It gives no XP.
 8. **HP comes from the `submissions.status` column**, not a rule over `passed` + `graded_at`.
 
 ## Maintainer to-dos
 
-- Re-export the builder quest screen with **Run** (secondary) + **Submit** (primary) and **Continue** instead of "Claim & continue". Same for the case screen's button.
+- ~~Re-export the builder quest screen with **Run** (secondary) + **Submit** (primary) and **Continue** instead of "Claim & continue". Same for the case screen's button.~~ (removed by the no-code pivot)
 - Add a quick-check screen (or confirm it reuses the case layout) and the "Lesson done" button (SIG-11).
 
 ## Companion plans

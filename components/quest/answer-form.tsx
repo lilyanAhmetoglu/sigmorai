@@ -14,6 +14,8 @@ type Props = {
   sheet: AnswerSheet;
   viewer: AnswerViewer;
   nextHref: string;
+  /** "Read the lesson again" after a fail; null when there is no lesson. */
+  lessonHref: string | null;
 };
 
 /** The one-line result, read out by the live region. */
@@ -21,8 +23,7 @@ function summarize(outcome: AnswerOutcome | null, hp: HpValue | null): string {
   if (!outcome) return '';
   if (outcome.kind === 'error') return outcome.message;
   if (outcome.passed) return outcome.replay ? QUEST_TEXT.passedReplay : QUEST_TEXT.passed;
-  const right = outcome.questions.filter((q) => q.correct).length;
-  const failed = QUEST_TEXT.failed(right, outcome.questions.length);
+  const failed = QUEST_TEXT.failed(outcome.right, outcome.total);
   if (!hp || outcome.replay) return `${failed} ${QUEST_TEXT.failedRetry}`;
   const hpText = QUEST_TEXT.hpLeft(hp.value, hp.max);
   // At 0 HP there is no Try again button (AnswerButtons), so don't ask for one.
@@ -35,7 +36,12 @@ function summarize(outcome: AnswerOutcome | null, hp: HpValue | null): string {
  * result, the cleared panel and the toasts. The browser sends the seed and
  * the picked display indexes only; every grade comes from the server.
  */
-export function AnswerForm({ sheet: initialSheet, viewer: initialViewer, nextHref }: Props) {
+export function AnswerForm({
+  sheet: initialSheet,
+  viewer: initialViewer,
+  nextHref,
+  lessonHref,
+}: Props) {
   const quest = useAnswers({ sheet: initialSheet, viewer: initialViewer });
   const { sheet, viewer, outcome, graded, hp } = quest;
   const resultHeading = useRef<HTMLHeadingElement>(null);
@@ -63,7 +69,7 @@ export function AnswerForm({ sheet: initialSheet, viewer: initialViewer, nextHre
               picked={quest.picks[i]}
               disabled={viewer.status !== 'ready' || quest.locked}
               onPick={(option) => quest.pick(i, option)}
-              feedback={graded?.questions[i]}
+              feedback={graded?.questions?.[i]}
             />
           ))}
           <div className="flex flex-col gap-2">
@@ -85,7 +91,9 @@ export function AnswerForm({ sheet: initialSheet, viewer: initialViewer, nextHre
             allAnswered={quest.allAnswered}
             hp={hp?.value ?? null}
             replay={quest.replay}
+            noTries={quest.noTries}
             nextHref={nextHref}
+            lessonHref={lessonHref}
             onSubmit={quest.submit}
             onTryAgain={quest.tryAgain}
           />

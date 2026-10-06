@@ -1,0 +1,74 @@
+{
+  "id": "strategist/r0/c3/challenge",
+  "title": "The confident wrong answer",
+  "scenario": "Your HR team is testing an AI assistant that answers staff questions using the company policy documents. In one test, an employee asks about parental leave. The assistant states a rule that is not in any of the documents, and it sounds sure.\n\nThe HR director wants to launch next month. You must recommend how to set it up and what checks to keep.",
+  "exhibit": "Employee: How many weeks of paid parental leave do I get after 2 years?\nAssistant: After 2 years of service you get 16 weeks of fully paid\n           parental leave, plus 2 extra weeks for each additional year.\n\nTester's note: the leave policy (policy-leave.pdf) says nothing about\n\"2 extra weeks for each additional year\".",
+  "questions": [
+    {
+      "prompt": "What is the best name for the problem in the exhibit?",
+      "options": [
+        {
+          "text": "A hallucination: text that is wrong or not supported by the given documents.",
+          "explanation": "Right. Anthropic defines hallucination as text that is factually incorrect or inconsistent with the given context. The extra-weeks rule is not in the policy.",
+          "correct": true
+        },
+        {
+          "text": "A sign the policy document is too short.",
+          "explanation": "The model added a rule the document doesn't contain. That is a hallucination, whatever the document's length."
+        },
+        {
+          "text": "Normal variation in wording, so it is not a problem.",
+          "explanation": "Different wording is fine. A made-up rule is not wording: it changes the facts an employee will act on."
+        },
+        {
+          "text": "The employee asked the question the wrong way.",
+          "explanation": "The question was clear. The answer contains a claim with no support in the policy, whatever the phrasing."
+        }
+      ]
+    },
+    {
+      "prompt": "Which change to the assistant's instructions lowers this risk the most?",
+      "options": [
+        {
+          "text": "\"Always answer confidently so staff trust you.\"",
+          "explanation": "That pushes the model to state guesses as facts. It makes the problem worse."
+        },
+        {
+          "text": "\"Use only the policy documents. Quote the sentence your answer comes from. If the documents don't answer the question, say so and point to HR.\"",
+          "explanation": "Right. This combines three techniques from Anthropic's guide: only the given documents, cite a supporting quote, and permission to say \"I don't know\".",
+          "correct": true
+        },
+        {
+          "text": "\"Give longer, more detailed answers.\"",
+          "explanation": "Length does not make an answer true. More detail can mean more unsupported claims."
+        },
+        {
+          "text": "\"Use your general knowledge of typical leave policies to fill gaps.\"",
+          "explanation": "That invites exactly this error: a typical-sounding rule that is not your company's rule."
+        }
+      ]
+    },
+    {
+      "prompt": "With these changes in place, can HR skip human review for answers about pay and leave?",
+      "options": [
+        {
+          "text": "Yes. The techniques remove hallucinations.",
+          "explanation": "Anthropic's guide says the techniques reduce hallucinations but don't eliminate them."
+        },
+        {
+          "text": "Yes, if the answer includes a quote.",
+          "explanation": "A quote makes the answer easier to check. Someone still has to check that the quote is real and says what the answer claims."
+        },
+        {
+          "text": "No. Keep a human check for high-stakes answers like pay and leave, because the risk is lower but not zero.",
+          "explanation": "Right. The guide says to always validate critical information, especially for high-stakes decisions. OpenAI's guide also matches the level of human control to the cost of a mistake.",
+          "correct": true
+        },
+        {
+          "text": "Yes, if the newest model is used.",
+          "explanation": "Anthropic's docs say even the most advanced models can hallucinate."
+        }
+      ]
+    }
+  ]
+}

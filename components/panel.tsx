@@ -6,6 +6,11 @@ type Props = ComponentProps<'section'> & {
   tone?: PanelTone;
   /** HUD tab on the top edge. */
   title?: string;
+  /**
+   * The tab's element. A div by default (a label). Use a heading when the tab
+   * names a page section, so the heading order stays right. Looks the same.
+   */
+  titleAs?: 'div' | 'h2' | 'h3';
   /** Colour of the title tab. */
   accent?: Accent;
   padding?: PanelPadding;
@@ -15,6 +20,7 @@ type Props = ComponentProps<'section'> & {
 export function Panel({
   tone = 'default',
   title,
+  titleAs: TitleTag = 'div',
   accent = 'accent',
   padding = 'md',
   className,
@@ -24,9 +30,9 @@ export function Panel({
   return (
     <section className={cn('panel', className)} data-tone={tone} data-padding={padding} {...rest}>
       {title && (
-        <div className="panel-title" data-accent={accent}>
+        <TitleTag className="panel-title" data-accent={accent}>
           {title}
-        </div>
+        </TitleTag>
       )}
       {children}
     </section>
