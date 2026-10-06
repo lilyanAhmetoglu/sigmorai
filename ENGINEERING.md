@@ -2,6 +2,14 @@
 
 How Sigmorai is built. Stack, architecture rules, data model, build order. The founding brief is `docs/build-prompt.md`; this file wins where they differ. Never makes aesthetic calls (that's `DESIGN.md`).
 
+## Amendments locked 2026-10-06 (E2E, SIG-26)
+
+- **Scope:** one Chromium flow on every PR (sign in → onboarding → lesson → case fail then pass → quick check → leaderboard) plus axe (WCAG 2.0/2.1 A + AA) on 6 routes: `/`, `/leaderboard`, the c1 lesson and case (signed out), and `/onboarding` + `/dashboard` (signed in, inside the flow). No nightly run, no other browsers, no retries (the setup resets the test user once per run; traces are kept on failure).
+- **Auth:** programmatic Clerk sign-in (`@clerk/testing`, `clerk.signIn({ emailAddress })`) with one dev-instance test user, `e2e+clerk_test@sigmorai.com`, created on first run. Its hero name is "E2E Hero" + the last 4 characters of its Clerk id, so it never clashes with a real player. The setup refuses non-`sk_test_`/`pk_test_` keys. Clerk's own sign-in form is not tested. The 2026-10-04 `CODE_RUNNER=fake` line is dead (no runner since the no-code pivot).
+- **Database:** one shared Neon branch `e2e` (child of `dev`), migrated and seeded on each run. Runs queue (`concurrency: e2e`, no cancel). The setup deletes only the test user's `users` row (cascade), so onboarding starts fresh. It refuses `NEON_BRANCH=production`.
+- **Answers:** the test reads `case.json` / `quick-check.json` in Node and picks options by their text. The `correct` flag never goes to the browser.
+- **CI settings:** var `E2E_ENABLED=true`, var `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (`pk_test_`), secrets `CLERK_SECRET_KEY` (`sk_test_`), `E2E_DATABASE_URL`, `E2E_DATABASE_URL_UNPOOLED`. Production Clerk keys never go into CI.
+
 ## Amendments locked 2026-10-06 (leaderboard)
 
 - **Public `/leaderboard` (SIG-20).** RSC page with loading, error and empty states. The range is a link (`?range=week|month|all`), not client Tabs; anything else means `all`. Top 25 per range, cached 60 s (`unstable_cache`: `cacheComponents` is off, and `'use cache'` needs it). The viewer's own rank is read fresh and never cached.
