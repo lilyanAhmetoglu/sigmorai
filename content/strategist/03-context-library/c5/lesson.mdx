@@ -1,0 +1,84 @@
+---
+id: strategist/r3/c5/lesson
+title: Freshness
+minutes: 7
+sources:
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+  - kind: docs
+    title: OpenAI docs · Retrieval
+    url: https://developers.openai.com/api/docs/guides/retrieval
+  - kind: docs
+    title: OpenAI docs · Web search
+    url: https://developers.openai.com/api/docs/guides/tools-web-search
+  - kind: docs
+    title: OpenAI docs · Pricing
+    url: https://developers.openai.com/api/docs/pricing
+  - kind: docs
+    title: OpenAI docs · GPT-5.5 model
+    url: https://developers.openai.com/api/docs/models/gpt-5.5
+  - kind: docs
+    title: Claude docs · Models overview
+    url: https://platform.claude.com/docs/en/models/overview
+  - kind: docs
+    title: Claude docs · Web search tool
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool
+---
+
+## Why it matters
+
+A knowledge base that is right today can be wrong next month. Prices change, policies are replaced and products are retired. An assistant that quotes an old price with confidence can cost you a refund, a complaint or a customer. Freshness is a plan, not a one-time upload.
+
+## Two clocks
+
+Every knowledge assistant runs on two clocks.
+
+- **The model clock** is the knowledge cutoff. Anthropic's models overview lists a reliable knowledge cutoff for each Claude model, for example Jun 2026 for Claude Opus 5.5. OpenAI's GPT-5.5 page lists Dec 01, 2025 (both checked 2026-10-06). It moves only when you change models.
+- **The library clock** is the last time your knowledge base was updated. You control this one.
+
+OpenAI's accuracy guide lists out-of-date knowledge as a reason to work on context, and it names RAG as a way to inject more recent content. That only works if the library clock is current. If it isn't, retrieval hands the model old facts, and the model may present them as current.
+
+## Match the update speed to the change speed
+
+This freshness table is a tool for this course. For each source, write down:
+
+1. **How often it changes** (daily, weekly, yearly, at each product launch).
+2. **The update rule** (sync on change, nightly, weekly).
+3. **The owner** who makes sure the update happens.
+4. **The check** that proves it worked (one test question with a known answer).
+
+Example: an electronics retailer runs a customer chat assistant. Prices change every Monday, so the price list syncs after each change, owned by the pricing team. The returns policy changes about once a year, so it updates on change, owned by Legal. A source that changes weekly but syncs monthly will be wrong for most of the month.
+
+## Replace, don't pile up
+
+When a document changes, remove the old version in the same step as you add the new one. If both stay, search may return either.
+
+Example: the retailer's returns window moves from 14 to 30 days. At 09:00 the team adds the new policy and removes the old one. Then it asks a test question, "How long do I have to return a laptop?", until every answer says 30 days. Only then does the service team tell customers.
+
+OpenAI's retrieval guide adds a timing detail. Removing files from a vector store is eventually consistent: search results may still include content from a removed file for a short period. So after each swap, run your test question again until only the new file appears. Then announce the change.
+
+The same guide offers two more tools:
+
+- **Date attributes.** Tag each file with dates such as `valid_from`, then filter results by date range.
+- **Expiration policies.** A vector store can have an `expires_after` setting. When the store expires, its files are deleted and you are no longer charged for them. This suits temporary content, such as a seasonal campaign.
+
+## When the facts live outside your files
+
+Some facts are not in your documents at all: a competitor's public prices, a new regulation, today's exchange rate. For these, both vendors offer web search.
+
+Anthropic's web search tool page says the tool gives Claude real-time web content beyond its knowledge cutoff. It says Claude searches when the request depends on information that is current, changing or outside its training data. It also searches when asked to. For stable knowledge, such as maths or coding concepts, it answers directly. OpenAI's web search guide says the tool gives models up-to-date information from the internet with sourced citations.
+
+Both let you limit where results come from. Claude's tool takes `allowed_domains` or `blocked_domains`. OpenAI's tool takes up to 100 allowed or blocked domains. Example: the retailer limits competitor price checks to the competitors' own shop websites, so results don't come from forums or old blog posts.
+
+Cost (both pages checked 2026-10-06): Anthropic charges $10 per 1,000 searches plus standard token costs for the search results. OpenAI's pricing page lists web search at $10.00 per 1,000 calls, plus search content tokens billed at model rates. So 3,000 searches a month cost about $30 in search fees on either platform, before tokens.
+
+Web results are not your policy. Keep your own rules, prices and terms in your own knowledge base, and use web search for outside facts.
+
+## Key points
+
+- Two clocks: the model's knowledge cutoff and your knowledge base's last update.
+- Set an update rule and an owner for each source, matched to how often it changes.
+- Remove the old version when you add the new one, then re-test until only the new one appears.
+- Use date attributes and expiry settings to keep the store clean.
+- Use web search for outside facts; its fees come on top of token costs.

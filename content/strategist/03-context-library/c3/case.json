@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r3/c3/challenge",
+  "title": "The insurer's library before go-live",
+  "scenario": "You are a project lead at a travel insurer. The call centre wants an assistant that answers agents' questions about policies, claims and prices. The plan is to load the company's documents into a hosted vector store next week.\n\nYou run a data readiness check first. The exhibit shows your inventory and one test chunk.",
+  "exhibit": "Knowledge base inventory (made-up example data)\n\nSource              Format  Size       Copies                Updated   Owner\nA Policy wordings   PDF     1,200 pp   3 versions            2025-04   Legal\n                                       (2023, 2024, 2025)\nB Claims FAQ        wiki    90 pp      1                     2026-09   Claims\nC Price tables      .xlsx   40 sheets  1                     2026-09   Pricing\nD Old intranet      .html   300 pp     unknown               2019      nobody\n\nTest chunk from source A (default chunking):\n  \"Medical cover: 2,000,000 EUR. Excess: 150 EUR. Cover ends\n   on the date of return.\"\n  (The country and plan name appear only in the page heading.)\n\nTest set: none yet",
+  "questions": [
+    {
+      "prompt": "Source A has three versions. What should go into the knowledge base?",
+      "options": [
+        {
+          "text": "All three versions, so the assistant can compare how the wording changed over time.",
+          "explanation": "Agents need today's wording. Old versions compete with it, and OpenAI's accuracy guide warns that irrelevant context drowns out the real information."
+        },
+        {
+          "text": "All three versions, plus a line in the prompt that says \"prefer the newest version\".",
+          "explanation": "The search may return only old chunks for a question, and the model may not know which version they come from."
+        },
+        {
+          "text": "Only the 2025 version; archive the 2023 and 2024 copies outside the knowledge base.",
+          "explanation": "Right. One current version removes the noise. OpenAI's retrieval guide also shows filters for files you can't remove.",
+          "correct": true
+        },
+        {
+          "text": "None of the versions, because policy wordings are too long to be split into chunks.",
+          "explanation": "Long documents are what chunking is for. OpenAI's guide accepts files up to 5,000,000 tokens."
+        }
+      ]
+    },
+    {
+      "prompt": "What should the team do with source C, the price tables in .xlsx?",
+      "options": [
+        {
+          "text": "Load them as they are, because the vector store converts every spreadsheet automatically on upload.",
+          "explanation": "On 2026-10-06, OpenAI's retrieval guide did not list .xlsx as a supported file type. Check the list; don't assume."
+        },
+        {
+          "text": ".xlsx is not on OpenAI's list (2026-10-06): convert, check the result, or use another route.",
+          "explanation": "Right. The supported list includes formats such as .pdf, .docx and .txt, but not .xlsx. Convert the tables and check them, or answer price questions another way.",
+          "correct": true
+        },
+        {
+          "text": "Paste a screenshot of each sheet into the policy PDF so it is indexed with the wording.",
+          "explanation": "That mixes prices into a different document and hides the numbers in images. It makes the data harder to keep current and to check."
+        },
+        {
+          "text": "Leave prices out of the project for good, since retrieval can't work with numbers.",
+          "explanation": "Retrieval can work with numbers in supported text. The problem here is the file format, not the numbers."
+        }
+      ]
+    },
+    {
+      "prompt": "Look at the test chunk. What is the best fix?",
+      "options": [
+        {
+          "text": "Make each chunk as small as possible, so that every chunk holds exactly one number.",
+          "explanation": "A smaller chunk still lacks the country and plan. It would lose even more meaning."
+        },
+        {
+          "text": "Turn off chunk overlap, so the page headings are not repeated across chunks.",
+          "explanation": "Overlap is not the problem. The heading text is missing from the chunk, so removing overlap can't add it back."
+        },
+        {
+          "text": "Ask agents to always say the country first, so the model can guess the right plan.",
+          "explanation": "The chunk itself still doesn't say which plan it belongs to. The model would be guessing between plans."
+        },
+        {
+          "text": "Add short context to each chunk, such as the country and plan from the page heading.",
+          "explanation": "Right. This is the fix in Anthropic's Contextual Retrieval post: add chunk-specific context before indexing.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What is the most important thing missing before the go-live next week?",
+      "options": [
+        {
+          "text": "A test set: 20 or more real agent questions with the right answer and its source.",
+          "explanation": "Right. OpenAI's accuracy guide calls an evaluation set of 20+ questions with ground-truth answers the right baseline. The inventory says \"none yet\".",
+          "correct": true
+        },
+        {
+          "text": "Source D loaded as well, so the assistant has the widest possible coverage.",
+          "explanation": "Source D is from 2019, has unknown copies and no owner. Loading it adds old, unowned content that may conflict with current policy."
+        },
+        {
+          "text": "A larger model, chosen before any testing, so quality is high from the first day.",
+          "explanation": "Without a test set, you can't tell whether a larger model helps. Measure first, then choose."
+        },
+        {
+          "text": "A target that the assistant gives zero wrong answers in its first month of use.",
+          "explanation": "That target is not realistic. OpenAI's accuracy guide says models are unlikely to reach 99.999% accuracy with off-the-shelf methods; set a measured target instead."
+        }
+      ]
+    }
+  ]
+}

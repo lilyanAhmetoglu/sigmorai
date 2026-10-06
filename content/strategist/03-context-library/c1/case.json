@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r3/c1/challenge",
+  "title": "The HR helper that guessed",
+  "scenario": "You are an HR operations lead at a logistics company with 2,400 staff. The HR team tried a chat assistant for staff questions. It uses a general model with a short role prompt and no company documents.\n\nThe HR director says: \"It sounds confident, but staff complain it is wrong. Should we buy a bigger model?\" The exhibit shows the test log.",
+  "exhibit": "HR helper: test log (made-up example data)\n\nSetup: general model, role prompt only, no company documents\n\n#  Question                                  Assistant said        Handbook says        Result\n1  Annual leave for new staff?               \"Usually 20 days\"     26 days              wrong\n2  How much unused leave can I carry over?   \"Most firms: 5 days\"  10 days (changed     wrong\n                                                                   in March 2026)\n3  Rota-tool code for sick leave?            \"Use SL\"              AB-2                 wrong\n4  Gross pay vs net pay?                     correct explanation   -                    right\n5  Make my leave email more polite           good rewrite          -                    right\n\nScore: 2 of 5",
+  "questions": [
+    {
+      "prompt": "What do the three wrong answers have in common?",
+      "options": [
+        {
+          "text": "Each one asks for an exact value, and the model is weak at giving exact values like these.",
+          "explanation": "The model can give exact values it has seen. It can't know values it never saw. The pattern is missing company facts, not exact values."
+        },
+        {
+          "text": "Each one needs a polite tone, and the role prompt doesn't set the tone.",
+          "explanation": "Tone was not the problem: the rewrite in test 5 was good. The wrong answers state wrong facts."
+        },
+        {
+          "text": "Each one needs company facts the model never saw: rules, a recent change, a code.",
+          "explanation": "Right. These are the gaps OpenAI's accuracy guide lists for context work: private information and knowledge that is out of date.",
+          "correct": true
+        },
+        {
+          "text": "Each one is too short for the model to understand what the staff member means.",
+          "explanation": "Tests 4 and 5 were short too and went well. The model understood the questions; it lacked the facts."
+        }
+      ]
+    },
+    {
+      "prompt": "Which first fix fits OpenAI's accuracy guide best?",
+      "options": [
+        {
+          "text": "Add the current handbook to the context and tell the model to answer only from it.",
+          "explanation": "Right. The failures are a context problem, so the fix is to supply the textbook. Anthropic's hallucination guide also suggests limiting answers to the provided documents.",
+          "correct": true
+        },
+        {
+          "text": "Fine-tune the model on 2,000 past HR emails so that it learns the company rules.",
+          "explanation": "The guide links fine-tuning to behaviour, such as tone and format. Old emails may also hold the leave rule from before March 2026."
+        },
+        {
+          "text": "Switch to the model with the latest knowledge cutoff and run the same five tests.",
+          "explanation": "A newer cutoff doesn't add private facts like the 26-day rule or the AB-2 code. The context gap stays."
+        },
+        {
+          "text": "Add \"Be accurate and check your facts\" to the role prompt and run the tests again.",
+          "explanation": "The model has no source to check against. An instruction can't supply facts that are not in the context."
+        }
+      ]
+    },
+    {
+      "prompt": "The team now plans to paste all 1,800 pages of HR files, including every old version since 2018, into each request. What is the best response?",
+      "options": [
+        {
+          "text": "Good plan. More context always gives the model more chances to find the answer.",
+          "explanation": "Anthropic's context engineering post describes context rot: recall goes down as the context grows."
+        },
+        {
+          "text": "Good plan, as long as the old versions sit at the end of the prompt, after the new ones.",
+          "explanation": "Order doesn't fix the real problem. Old versions give conflicting answers, such as 5 or 10 carry-over days."
+        },
+        {
+          "text": "Drop the files and wait for a model whose knowledge cutoff is after March 2026.",
+          "explanation": "The 26-day rule and the AB-2 code are private. No public model learns them from its training data."
+        },
+        {
+          "text": "Send only the current, relevant pages, and test answers at different context sizes.",
+          "explanation": "Right. Anthropic's post advises the smallest set of high-signal tokens, and OpenAI's guide says to evaluate long context at different sizes.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The assistant invented the code \"SL\" in test 3. Which prompt change fits Anthropic's hallucination guide?",
+      "options": [
+        {
+          "text": "Add an \"I don't know\" rule; then invented answers stop, and checks can end.",
+          "explanation": "The guide says these techniques reduce hallucinations but don't remove them. Critical answers still need checking."
+        },
+        {
+          "text": "Allow it to say \"I don't know\" when the handbook has no answer, and keep spot checks.",
+          "explanation": "Right. The guide lists explicit permission to admit uncertainty, and it says to keep checking critical information.",
+          "correct": true
+        },
+        {
+          "text": "Ask it to always give some answer, so staff are never left without help.",
+          "explanation": "That pushes the model to guess. The guide recommends the opposite: permission to say \"I don't know\"."
+        },
+        {
+          "text": "Ask it to sound less confident in every answer, so staff will double-check by themselves.",
+          "explanation": "A less confident tone still gives the wrong code. The guide's step is to allow \"I don't know\", not to soften wrong answers."
+        }
+      ]
+    }
+  ]
+}

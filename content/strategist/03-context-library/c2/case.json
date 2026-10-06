@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r3/c2/challenge",
+  "title": "The parts desk that couldn't find HX-4410",
+  "scenario": "You are a product manager at an industrial equipment wholesaler. The sales desk answers questions from customers about 60,000 parts. A pilot assistant searches the product catalogue and the FAQ pages, then writes an answer.\n\nThe sales director is unhappy with the pilot and wants a decision this week. The exhibit shows the pilot report.",
+  "exhibit": "Parts desk assistant: pilot report (made-up example data)\n\nKnowledge base: product catalogue (38,000 pages) + FAQ (250 pages)\nSearch: meaning-based (embeddings) only, top 10 chunks per question\n\nTest set: 200 real sales-desk questions\n  Type                              Count  Right passage found  Answer correct\n  By meaning (\"pump for salt water\")  120          106                101\n  By exact code (\"HX-4410 in stock?\")  80           34                 31\n  Total                               200          140                132\n\nThe 68 wrong answers\n  Right passage not found              60\n  Right passage found, answer wrong     8\n\nDraft cost line\n  \"Storage: 6 GB x $0.10 = $0.60 a day. That is the full running cost.\"",
+  "questions": [
+    {
+      "prompt": "The director asks: \"Why not put the whole catalogue in every prompt and skip search?\" What is the best answer?",
+      "options": [
+        {
+          "text": "Agree: the whole prompt is simplest, and prompt caching makes it cheap at any size.",
+          "explanation": "Anthropic's post gives about 500 pages (200,000 tokens) as the point for that approach. Caching helps cost, but it doesn't make 38,000 pages fit."
+        },
+        {
+          "text": "Disagree: 38,000 pages is far above the ~500 pages where the whole-prompt option fits.",
+          "explanation": "Right. Anthropic's post puts the whole-prompt option below 200,000 tokens, about 500 pages. Above that, retrieval is the typical solution.",
+          "correct": true
+        },
+        {
+          "text": "Agree, but split the catalogue across ten prompts, then merge the ten answers afterwards.",
+          "explanation": "Each prompt would still hold about 3,800 pages, far above the ~500-page guide, and merging ten answers adds new errors."
+        },
+        {
+          "text": "Disagree: keep only the 250 FAQ pages and drop the catalogue from the assistant.",
+          "explanation": "The FAQ can't answer stock or code questions about specific parts, which are 80 of the 200 test questions."
+        }
+      ]
+    },
+    {
+      "prompt": "Exact-code questions found the right passage 34 times out of 80. What change fits the sources best?",
+      "options": [
+        {
+          "text": "Fine-tune the model on part codes, so that it learns every code in the catalogue.",
+          "explanation": "The failure is in search: the passage never reaches the model. Fine-tuning changes the model, not what search returns."
+        },
+        {
+          "text": "Raise the chunks per question from 10 to 50, so the right code is more likely to appear.",
+          "explanation": "More chunks found by meaning still miss exact codes, and OpenAI's accuracy guide warns that too much irrelevant context drowns out the real information."
+        },
+        {
+          "text": "Add keyword search, such as BM25, next to meaning search, so exact codes are matched.",
+          "explanation": "Right. Anthropic's post says embeddings can miss exact matches like \"TS-999\" and that combining them with BM25 worked better than embeddings alone.",
+          "correct": true
+        },
+        {
+          "text": "Ask staff to rephrase code questions in words, describing the part instead of its code.",
+          "explanation": "Customers ask by code, and staff would lose time rewriting every question. The search should handle codes."
+        }
+      ]
+    },
+    {
+      "prompt": "Where should the team spend its effort first?",
+      "options": [
+        {
+          "text": "On retrieval: in 60 of the 68 wrong answers, the right passage never reached the model.",
+          "explanation": "Right. OpenAI's accuracy guide splits RAG failures into retrieval and model problems. Here retrieval causes most of them.",
+          "correct": true
+        },
+        {
+          "text": "On the prompt: the 68 wrong answers show that the model misreads the passages it receives.",
+          "explanation": "Only 8 wrong answers had the right passage. The other 60 never gave the model a chance."
+        },
+        {
+          "text": "On the model: switch to a larger model, because 132 correct out of 200 is too low.",
+          "explanation": "A larger model can't answer from a passage it never receives. The exhibit points to search."
+        },
+        {
+          "text": "On nothing yet: roll out now and collect complaints to learn which answers are wrong.",
+          "explanation": "The test set already shows where it fails: 60 of 68 wrong answers come from search. Real customers would get those wrong answers."
+        }
+      ]
+    },
+    {
+      "prompt": "What is wrong with the draft cost line? (OpenAI prices, checked 2026-10-06.)",
+      "options": [
+        {
+          "text": "Nothing: for a hosted search tool, storage is the only cost that the company pays.",
+          "explanation": "OpenAI's pricing page also charges per file search call and bills the tokens the tool uses at model rates."
+        },
+        {
+          "text": "It is too high: storage is free for every vector store that is smaller than 10 GB.",
+          "explanation": "The free amount is 1 GB across all stores, not 10 GB per store."
+        },
+        {
+          "text": "The storage maths is right, but the $0.10 rate is per month, so it should be lower.",
+          "explanation": "OpenAI's guide prices storage per GB per day, so the rate is a daily one."
+        },
+        {
+          "text": "Two errors: 1 GB is free, so $0.50 a day; tool calls and tokens are also charged.",
+          "explanation": "Right. (6 − 1) × $0.10 = $0.50 a day for storage. The pricing page adds $2.50 per 1,000 file search calls, plus tokens at model rates.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
