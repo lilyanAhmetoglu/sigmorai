@@ -1,0 +1,1032 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <title>
+          Sigmorai Blog — AI engineering guides, from prompts to production
+          agents
+        </title>
+        <meta
+          name="description"
+          content="Practical guides on prompt engineering, tool use, MCP, evals and multi-agent systems — sourced from the official Claude and OpenAI docs."
+        />
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:title"
+          content="Sigmorai Blog — AI engineering guides"
+        />
+        <meta
+          property="og:image"
+          content="../../assets/scenes/title-hero.svg"
+        />
+        <link rel="canonical" href="https://sigmorai.com/blog" />
+        <link rel="icon" href="../../assets/logo/favicon.svg" />
+        <link rel="stylesheet" href="../../styles.css" />
+        <script type="application/ld+json">
+          {
+            "@context": "https://schema.org",
+            "@type": "Blog",
+            "name": "Sigmorai Blog",
+            "url": "https://sigmorai.com/blog",
+            "publisher": { "@type": "Organization", "name": "Sigmorai" }
+          }
+        </script>
+        <style>
+          html,
+          body {
+            margin: 0;
+            background: #0a0913;
+            color: #f2f1fa;
+          }
+          a {
+            color: #40c4ff;
+            text-decoration: none;
+          }
+          a:hover {
+            color: #a3e2ff;
+          }
+          * {
+            font-variant-ligatures: none !important;
+            font-feature-settings:
+              "liga" 0,
+              "clig" 0 !important;
+          }
+        </style>
+      </helmet>
+
+      <div
+        style="
+          min-height: 100vh;
+          background: var(--bg-app);
+          font-family: var(--font-body);
+          color: var(--text-1);
+          display: flex;
+          flex-direction: column;
+        "
+      >
+        <nav
+          aria-label="Main"
+          style="
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            background: var(--ink-900);
+            border-bottom: 3px solid var(--ink-950);
+            box-shadow: 0 3px 0 var(--ink-800);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 12px clamp(16px, 4vw, 48px);
+          "
+        >
+          <a
+            href="./Sigmorai App.dc.html"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              color: var(--ink-100);
+            "
+          >
+            <img
+              src="../../assets/logo/sigmorai-mark.svg"
+              alt="Sigmorai"
+              width="32"
+              height="32"
+            />
+            <span style="font: 700 20px var(--font-display)">SIGMORAI</span>
+          </a>
+          <div
+            style="
+              display: flex;
+              gap: 4px;
+              flex-wrap: wrap;
+              align-items: center;
+            "
+          >
+            <a
+              href="./Sigmorai App.dc.html"
+              style="
+                padding: 8px 12px;
+                font: 11px var(--font-hud);
+                letter-spacing: 0.06em;
+                color: var(--text-2);
+              "
+              >REALMS</a
+            >
+            <a
+              href="./Sigmorai App.dc.html"
+              style="
+                padding: 8px 12px;
+                font: 11px var(--font-hud);
+                letter-spacing: 0.06em;
+                color: var(--text-2);
+              "
+              >PATHS</a
+            >
+            <button
+              onClick="{{ goIndex }}"
+              style="
+                background: var(--ink-700);
+                color: var(--ink-100);
+                border: 0;
+                padding: 8px 12px;
+                font: 11px var(--font-hud);
+                letter-spacing: 0.06em;
+                cursor: pointer;
+              "
+            >
+              BLOG
+            </button>
+          </div>
+          <a
+            href="./Sigmorai App.dc.html"
+            style="
+              background: var(--ember-500);
+              color: var(--ink-950);
+              padding: 10px 16px;
+              font: 700 13px var(--font-display);
+              text-transform: uppercase;
+              box-shadow: var(--bevel), var(--notch-outline);
+            "
+            >Start free</a
+          >
+        </nav>
+
+        <sc-if value="{{ isIndex }}" hint-placeholder-val="{{ true }}">
+          <main
+            style="
+              flex: 1;
+              width: 100%;
+              max-width: 1200px;
+              margin: 0 auto;
+              padding: 48px clamp(16px, 4vw, 48px) 72px;
+              box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+              gap: 40px;
+            "
+          >
+            <header style="display: flex; flex-direction: column; gap: 12px">
+              <span
+                style="
+                  font: 12px var(--font-hud);
+                  letter-spacing: 0.1em;
+                  color: var(--spark-500);
+                "
+                >THE SIGMORAI CHRONICLE</span
+              >
+              <h1
+                style="
+                  margin: 0;
+                  font: 700 clamp(36px, 6vw, 60px)/1.05 var(--font-display);
+                  text-wrap: balance;
+                "
+              >
+                AI engineering guides, from first prompt to production agents
+              </h1>
+              <p
+                style="
+                  margin: 0;
+                  font: 18px/1.6 var(--font-body);
+                  color: var(--text-2);
+                  max-width: 62ch;
+                  text-wrap: pretty;
+                "
+              >
+                Short, sourced explainers on the topics behind each realm. Every
+                claim links back to the official Claude and OpenAI docs.
+              </p>
+            </header>
+
+            <article
+              style="
+                display: grid;
+                grid-template-columns: repeat(
+                  auto-fit,
+                  minmax(min(100%, 420px), 1fr)
+                );
+                background: var(--surface-2);
+                box-shadow: var(--notch-outline), var(--shadow-drop-lg);
+                margin: 3px;
+              "
+            >
+              <div style="min-height: 240px; background: var(--ink-900)">
+                <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}"
+                  ><img
+                    src="{{ featured.scene }}"
+                    alt="{{ featured.alt }}"
+                    style="
+                      width: 100%;
+                      height: 100%;
+                      min-height: 240px;
+                      object-fit: cover;
+                      display: block;
+                      image-rendering: pixelated;
+                    "
+                /></sc-if>
+              </div>
+              <div
+                style="
+                  padding: clamp(20px, 3vw, 36px);
+                  display: flex;
+                  flex-direction: column;
+                  gap: 14px;
+                  justify-content: center;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                    flex-wrap: wrap;
+                  "
+                >
+                  <span
+                    style="
+                      background: var(--spark-500);
+                      color: var(--ink-950);
+                      font: 10px var(--font-hud);
+                      letter-spacing: 0.06em;
+                      padding: 4px 8px;
+                    "
+                    >FEATURED</span
+                  >
+                  <span
+                    style="font:10px var(--font-hud);letter-spacing:.08em;color:{{ featured.color }};"
+                    >{{ featured.realm }}</span
+                  >
+                </div>
+                <h2
+                  style="
+                    margin: 0;
+                    font: 700 clamp(26px, 3.4vw, 36px)/1.12 var(--font-display);
+                    text-wrap: balance;
+                  "
+                >
+                  {{ featured.title }}
+                </h2>
+                <p
+                  style="
+                    margin: 0;
+                    font: 16px/1.6 var(--font-body);
+                    color: var(--text-2);
+                    text-wrap: pretty;
+                  "
+                >
+                  {{ featured.excerpt }}
+                </p>
+                <span
+                  style="
+                    font: 10px var(--font-hud);
+                    letter-spacing: 0.06em;
+                    color: var(--text-3);
+                  "
+                  >{{ featured.date }} · {{ featured.read }}</span
+                >
+                <button
+                  onClick="{{ featured.open }}"
+                  style="
+                    align-self: flex-start;
+                    background: var(--ember-500);
+                    color: var(--ink-950);
+                    border: 0;
+                    padding: 12px 18px;
+                    font: 700 14px var(--font-display);
+                    text-transform: uppercase;
+                    cursor: pointer;
+                    box-shadow: var(--bevel), var(--notch-outline);
+                  "
+                  style-active="transform:translate(2px,2px);"
+                >
+                  Read guide ▸
+                </button>
+              </div>
+            </article>
+
+            <section
+              aria-label="All posts"
+              style="display: flex; flex-direction: column; gap: 20px"
+            >
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  gap: 16px;
+                  flex-wrap: wrap;
+                "
+              >
+                <h2
+                  style="
+                    margin: 0;
+                    font: 700 clamp(24px, 3vw, 32px)/1.1 var(--font-display);
+                  "
+                >
+                  Latest posts
+                </h2>
+                <div
+                  role="tablist"
+                  style="display: flex; gap: 6px; flex-wrap: wrap"
+                >
+                  <sc-for
+                    list="{{ filters }}"
+                    as="f"
+                    hint-placeholder-count="6"
+                  >
+                    <button
+                      onClick="{{ f.go }}"
+                      style="background:{{ f.bg }};color:{{ f.fg }};border:0;padding:8px 12px;font:10px var(--font-hud);letter-spacing:.06em;cursor:pointer;box-shadow:var(--notch-outline);"
+                    >
+                      {{ f.label }}
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(
+                    auto-fill,
+                    minmax(min(100%, 300px), 1fr)
+                  );
+                  gap: 20px;
+                "
+              >
+                <sc-for list="{{ posts }}" as="p" hint-placeholder-count="6">
+                  <article
+                    style="
+                      background: var(--surface-2);
+                      box-shadow: var(--notch-outline), var(--shadow-drop);
+                      margin: 3px;
+                      display: flex;
+                      flex-direction: column;
+                    "
+                  >
+                    <img
+                      src="{{ p.scene }}"
+                      alt="{{ p.alt }}"
+                      loading="lazy"
+                      style="
+                        width: 100%;
+                        aspect-ratio: 16/9;
+                        object-fit: cover;
+                        display: block;
+                        image-rendering: pixelated;
+                      "
+                    />
+                    <div
+                      style="
+                        padding: 16px;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                        flex: 1;
+                      "
+                    >
+                      <span
+                        style="font:10px var(--font-hud);letter-spacing:.08em;color:{{ p.color }};"
+                        >{{ p.realm }}</span
+                      >
+                      <h3
+                        style="
+                          margin: 0;
+                          font: 600 20px/1.25 var(--font-display);
+                          text-wrap: balance;
+                        "
+                      >
+                        <button
+                          onClick="{{ p.open }}"
+                          style="all: unset; cursor: pointer"
+                          style-hover="color:var(--spark-300);"
+                        >
+                          {{ p.title }}
+                        </button>
+                      </h3>
+                      <p
+                        style="
+                          margin: 0;
+                          font: 15px/1.55 var(--font-body);
+                          color: var(--text-2);
+                          flex: 1;
+                        "
+                      >
+                        {{ p.excerpt }}
+                      </p>
+                      <span
+                        style="
+                          font: 10px var(--font-hud);
+                          letter-spacing: 0.06em;
+                          color: var(--text-3);
+                        "
+                        >{{ p.date }} · {{ p.read }}</span
+                      >
+                    </div>
+                  </article>
+                </sc-for>
+              </div>
+            </section>
+
+            <sc-if
+              value="{{ showNewsletter }}"
+              hint-placeholder-val="{{ true }}"
+            >
+              <section
+                aria-label="Newsletter"
+                style="
+                  background: var(--surface-story);
+                  color: var(--text-story);
+                  padding: clamp(20px, 3vw, 32px);
+                  box-shadow:
+                    var(--notch-outline),
+                    var(--shadow-drop-lg),
+                    inset 0 0 0 3px var(--parchment-400);
+                  margin: 3px;
+                  display: flex;
+                  flex-wrap: wrap;
+                  gap: 20px;
+                  align-items: center;
+                  justify-content: space-between;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    max-width: 56ch;
+                  "
+                >
+                  <span
+                    style="
+                      font: 12px var(--font-hud);
+                      letter-spacing: 0.08em;
+                      color: var(--ember-700);
+                    "
+                    >DISPATCH FROM LATENTIA</span
+                  >
+                  <h2
+                    style="margin: 0; font: 700 26px/1.15 var(--font-display)"
+                  >
+                    New realms and guides, once a week
+                  </h2>
+                  <p style="margin: 0; font: 16px/1.55 var(--font-body)">
+                    When the docs change, we write it up. No hype, one email.
+                  </p>
+                </div>
+                <form
+                  style="
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    flex: 1;
+                    min-width: 260px;
+                    max-width: 440px;
+                  "
+                >
+                  <label
+                    for="nl-email"
+                    style="
+                      position: absolute;
+                      width: 1px;
+                      height: 1px;
+                      overflow: hidden;
+                      clip: rect(0 0 0 0);
+                    "
+                    >Email</label
+                  >
+                  <input
+                    id="nl-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    style="
+                      flex: 1;
+                      min-width: 180px;
+                      background: var(--parchment-200);
+                      color: var(--parchment-900);
+                      border: 0;
+                      padding: 12px 14px;
+                      font: 16px var(--font-body);
+                      box-shadow:
+                        inset 3px 3px 0 rgba(0, 0, 0, 0.15),
+                        0 0 0 3px var(--parchment-700);
+                    "
+                  />
+                  <button
+                    type="button"
+                    style="
+                      background: var(--ember-500);
+                      color: var(--ink-950);
+                      border: 0;
+                      padding: 12px 18px;
+                      font: 700 14px var(--font-display);
+                      text-transform: uppercase;
+                      cursor: pointer;
+                      box-shadow: var(--bevel), var(--notch-outline);
+                    "
+                  >
+                    Subscribe
+                  </button>
+                </form>
+              </section>
+            </sc-if>
+          </main>
+        </sc-if>
+
+        <sc-if value="{{ isPost }}" hint-placeholder-val="{{ false }}">
+          <main
+            style="
+              flex: 1;
+              width: 100%;
+              max-width: 1200px;
+              margin: 0 auto;
+              padding: 32px clamp(16px, 4vw, 48px) 72px;
+              box-sizing: border-box;
+              display: flex;
+              flex-direction: column;
+              gap: 28px;
+            "
+          >
+            <nav
+              aria-label="Breadcrumb"
+              style="
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                font: 10px var(--font-hud);
+                letter-spacing: 0.06em;
+                color: var(--text-3);
+              "
+            >
+              <button
+                onClick="{{ goIndex }}"
+                style="all: unset; cursor: pointer; color: var(--byte-500)"
+              >
+                BLOG</button
+              ><span>▸</span>
+              <span style="color:{{ post.color }};">{{ post.realm }}</span
+              ><span>▸</span>
+              <span>{{ post.slug }}</span>
+            </nav>
+
+            <header
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+                max-width: 820px;
+              "
+            >
+              <h1
+                style="
+                  margin: 0;
+                  font: 700 clamp(32px, 5vw, 52px)/1.08 var(--font-display);
+                  text-wrap: balance;
+                "
+              >
+                {{ post.title }}
+              </h1>
+              <p
+                style="
+                  margin: 0;
+                  font: 19px/1.6 var(--font-body);
+                  color: var(--text-2);
+                  text-wrap: pretty;
+                "
+              >
+                {{ post.excerpt }}
+              </p>
+              <div
+                style="
+                  display: flex;
+                  gap: 12px;
+                  align-items: center;
+                  flex-wrap: wrap;
+                "
+              >
+                <img
+                  src="../../assets/sprites/hero.svg"
+                  alt=""
+                  width="40"
+                  height="40"
+                  style="
+                    image-rendering: pixelated;
+                    background: var(--ink-800);
+                    box-shadow: 0 0 0 2px var(--ember-500);
+                  "
+                />
+                <div style="display: flex; flex-direction: column; gap: 4px">
+                  <span style="font: 600 15px var(--font-body)"
+                    >Sigmorai Editors</span
+                  >
+                  <span
+                    style="
+                      font: 10px var(--font-hud);
+                      letter-spacing: 0.06em;
+                      color: var(--text-3);
+                    "
+                    >{{ post.date }} · {{ post.read }} · UPDATED FROM DOCS</span
+                  >
+                </div>
+              </div>
+            </header>
+
+            <sc-if value="{{ ready }}" hint-placeholder-val="{{ false }}"
+              ><img
+                src="{{ post.scene }}"
+                alt="{{ post.alt }}"
+                style="
+                  width: 100%;
+                  aspect-ratio: 21/8;
+                  object-fit: cover;
+                  display: block;
+                  image-rendering: pixelated;
+                  box-shadow: var(--notch-outline), var(--shadow-drop-lg);
+                "
+            /></sc-if>
+
+            <div
+              style="
+                display: flex;
+                flex-wrap: wrap;
+                gap: 40px;
+                align-items: flex-start;
+              "
+            >
+              <article
+                style="
+                  flex: 3 1 520px;
+                  min-width: 0;
+                  max-width: 72ch;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 20px;
+                  font: 18px/1.7 var(--font-body);
+                  color: var(--ink-200);
+                "
+              >
+                <h2
+                  id="what"
+                  style="
+                    margin: 12px 0 0;
+                    font: 700 28px/1.2 var(--font-display);
+                    color: var(--text-1);
+                  "
+                >
+                  What prompt caching does
+                </h2>
+                <p style="margin: 0; text-wrap: pretty">
+                  Most requests to a model repeat the same opening: a long
+                  system prompt, tool definitions, a reference document. Prompt
+                  caching stores the processed form of that prefix, so the next
+                  request that starts the same way skips the work. You pay less
+                  for those tokens and the first token arrives sooner.
+                </p>
+                <p style="margin: 0; text-wrap: pretty">
+                  The cache is keyed on an exact prefix match. Change one
+                  character early in the prompt and everything after it is a
+                  cache miss.
+                </p>
+                <h2
+                  id="how"
+                  style="
+                    margin: 12px 0 0;
+                    font: 700 28px/1.2 var(--font-display);
+                    color: var(--text-1);
+                  "
+                >
+                  Marking a cache breakpoint
+                </h2>
+                <p style="margin: 0; text-wrap: pretty">
+                  Put stable content first and mark the end of it. Everything up
+                  to the breakpoint becomes cacheable.
+                </p>
+                <pre
+                  style="
+                    margin: 0;
+                    background: var(--ink-950);
+                    color: var(--ink-100);
+                    padding: 18px 20px;
+                    overflow-x: auto;
+                    font: 14px/1.6 var(--font-code);
+                    box-shadow: var(--notch-outline);
+                  "
+                ><code>{
+  "system": [{
+    "type": "text",
+    "text": "&lt;400 lines of product docs&gt;",
+    "cache_control": { "type": "ephemeral" }
+  }],
+  "messages": [{ "role": "user", "content": "How do refunds work?" }]
+}</code></pre>
+                <aside
+                  style="
+                    background: var(--surface-story);
+                    color: var(--text-story);
+                    padding: 18px 20px;
+                    box-shadow:
+                      var(--notch-outline),
+                      inset 0 0 0 3px var(--parchment-400);
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                  "
+                >
+                  <span
+                    style="
+                      font: 11px var(--font-hud);
+                      letter-spacing: 0.08em;
+                      color: var(--ember-700);
+                    "
+                    >MENTOR NOTE</span
+                  >
+                  <span style="font: 16px/1.55 var(--font-body)"
+                    >Put the user's question last. Anything that changes per
+                    request belongs after the breakpoint.</span
+                  >
+                </aside>
+                <h2
+                  id="when"
+                  style="
+                    margin: 12px 0 0;
+                    font: 700 28px/1.2 var(--font-display);
+                    color: var(--text-1);
+                  "
+                >
+                  When it pays off
+                </h2>
+                <ul
+                  style="
+                    margin: 0;
+                    padding-left: 22px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                  "
+                >
+                  <li>Chat assistants with a long, fixed system prompt</li>
+                  <li>
+                    Agents that resend the same tool definitions every turn
+                  </li>
+                  <li>Q&amp;A over one large document</li>
+                </ul>
+                <h2
+                  id="sources"
+                  style="
+                    margin: 12px 0 0;
+                    font: 700 28px/1.2 var(--font-display);
+                    color: var(--text-1);
+                  "
+                >
+                  Sources
+                </h2>
+                <ul
+                  style="
+                    margin: 0;
+                    padding-left: 22px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    font-size: 16px;
+                  "
+                >
+                  <li>
+                    <a
+                      href="https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching"
+                      >Anthropic docs — Prompt caching</a
+                    >
+                  </li>
+                  <li>
+                    <a
+                      href="https://platform.openai.com/docs/guides/prompt-caching"
+                      >OpenAI docs — Prompt caching</a
+                    >
+                  </li>
+                </ul>
+              </article>
+
+              <aside
+                style="
+                  flex: 1 1 260px;
+                  min-width: 0;
+                  display: flex;
+                  flex-direction: column;
+                  gap: 22px;
+                  position: sticky;
+                  top: 88px;
+                "
+              >
+                <nav
+                  aria-label="On this page"
+                  style="
+                    background: var(--surface-2);
+                    padding: 18px;
+                    box-shadow: var(--notch-outline), var(--shadow-drop);
+                    margin: 3px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                  "
+                >
+                  <span
+                    style="
+                      font: 10px var(--font-hud);
+                      letter-spacing: 0.08em;
+                      color: var(--text-3);
+                    "
+                    >ON THIS PAGE</span
+                  >
+                  <a href="#what" style="font: 15px/1.4 var(--font-body)"
+                    >What prompt caching does</a
+                  >
+                  <a href="#how" style="font: 15px/1.4 var(--font-body)"
+                    >Marking a cache breakpoint</a
+                  >
+                  <a href="#when" style="font: 15px/1.4 var(--font-body)"
+                    >When it pays off</a
+                  >
+                  <a href="#sources" style="font: 15px/1.4 var(--font-body)"
+                    >Sources</a
+                  >
+                </nav>
+                <sc-if
+                  value="{{ showQuestCta }}"
+                  hint-placeholder-val="{{ true }}"
+                >
+                  <div
+                    style="
+                      position: relative;
+                      background: var(--surface-2);
+                      padding: 28px 18px 18px;
+                      box-shadow: var(--notch-outline), var(--shadow-drop-lg);
+                      margin: 3px;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 12px;
+                    "
+                  >
+                    <div
+                      style="position:absolute;top:-14px;left:16px;background:{{ post.color }};color:var(--ink-950);font:11px var(--font-hud);letter-spacing:.06em;padding:4px 10px;box-shadow:var(--notch-outline);"
+                    >
+                      TRY THE QUEST
+                    </div>
+                    <span style="font: 600 19px/1.25 var(--font-display)"
+                      >Practice this in {{ post.realmName }}</span
+                    >
+                    <span
+                      style="
+                        font: 15px/1.5 var(--font-body);
+                        color: var(--text-2);
+                      "
+                      >Write the code, pass the tests, earn the XP.</span
+                    >
+                    <a
+                      href="./Sigmorai App.dc.html"
+                      style="
+                        align-self: flex-start;
+                        background: var(--ember-500);
+                        color: var(--ink-950);
+                        padding: 10px 16px;
+                        font: 700 14px var(--font-display);
+                        text-transform: uppercase;
+                        box-shadow: var(--bevel), var(--notch-outline);
+                      "
+                      >Start quest ▸</a
+                    >
+                  </div>
+                </sc-if>
+              </aside>
+            </div>
+
+            <section
+              aria-label="Related posts"
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+                border-top: 3px solid var(--ink-800);
+                padding-top: 32px;
+              "
+            >
+              <h2 style="margin: 0; font: 700 26px/1.1 var(--font-display)">
+                Keep reading
+              </h2>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(
+                    auto-fill,
+                    minmax(min(100%, 280px), 1fr)
+                  );
+                  gap: 18px;
+                "
+              >
+                <sc-for list="{{ related }}" as="p" hint-placeholder-count="3">
+                  <button
+                    onClick="{{ p.open }}"
+                    style="
+                      text-align: left;
+                      background: var(--surface-2);
+                      color: var(--text-1);
+                      border: 0;
+                      padding: 16px;
+                      cursor: pointer;
+                      box-shadow: var(--notch-outline), var(--shadow-drop);
+                      margin: 3px;
+                      display: flex;
+                      flex-direction: column;
+                      gap: 8px;
+                    "
+                    style-hover="background:var(--ink-700);"
+                  >
+                    <span
+                      style="font:10px var(--font-hud);letter-spacing:.08em;color:{{ p.color }};"
+                      >{{ p.realm }}</span
+                    >
+                    <span style="font: 600 18px/1.25 var(--font-display)"
+                      >{{ p.title }}</span
+                    >
+                    <span
+                      style="
+                        font: 10px var(--font-hud);
+                        letter-spacing: 0.06em;
+                        color: var(--text-3);
+                      "
+                      >{{ p.read }}</span
+                    >
+                  </button>
+                </sc-for>
+              </div>
+            </section>
+          </main>
+        </sc-if>
+
+        <footer
+          style="
+            border-top: 3px solid var(--ink-800);
+            padding: 24px clamp(16px, 4vw, 48px);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            font: 11px var(--font-hud);
+            letter-spacing: 0.08em;
+            color: var(--text-3);
+          "
+        >
+          <span>SIGMORAI.COM/BLOG</span><span>LEARN · BUILD · ASCEND</span>
+        </footer>
+      </div>
+    </x-dc>
+    <script
+      type="text/x-dc"
+      data-dc-script
+      data-props='{"showNewsletter":{"editor":"boolean","default":true,"tsType":"boolean","section":"Blog"},"showQuestCta":{"editor":"boolean","default":true,"tsType":"boolean","section":"Blog"}}'
+    >
+      const S = '../../assets/scenes/';
+      const POSTS = [
+        { slug:'prompt-caching-explained', title:'Prompt caching, explained: cut cost and latency on repeat prompts', excerpt:'How prefix caching works, where to put the breakpoint, and which workloads actually benefit.', realm:'TOOL FORGE', realmName:'Tool Forge', key:'build', color:'var(--realm-2)', scene:S+'02-tool-forge-caverns.svg', date:'OCT 2, 2026', read:'6 MIN READ' },
+        { slug:'what-is-mcp', title:'What is MCP? The Model Context Protocol in plain terms', excerpt:'Servers, clients and tools — how MCP lets one agent talk to many systems without custom glue.', realm:'MCP BRIDGELANDS', realmName:'MCP Bridgelands', key:'agents', color:'var(--realm-4)', scene:S+'05-mcp-bridgelands.svg', date:'SEP 28, 2026', read:'8 MIN READ' },
+        { slug:'writing-your-first-eval', title:'Writing your first eval: test prompts like you test code', excerpt:'Build a small graded dataset, pick a metric, and catch regressions before users do.', realm:'EVAL ARENA', realmName:'Eval Arena', key:'quality', color:'var(--realm-5)', scene:S+'06-eval-arena.svg', date:'SEP 21, 2026', read:'7 MIN READ' },
+        { slug:'system-prompts-that-work', title:'System prompts that work: structure, roles and examples', excerpt:'A practical template for system prompts, with before-and-after examples from the docs.', realm:'PROMPT FOREST', realmName:'Prompt Forest', key:'prompting', color:'var(--realm-1)', scene:S+'01-prompt-forest.svg', date:'SEP 14, 2026', read:'5 MIN READ' },
+        { slug:'context-window-budgeting', title:'Context window budgeting for long documents', excerpt:'Chunking, retrieval and summarization — when each one beats stuffing the whole file in.', realm:'CONTEXT LIBRARY', realmName:'Context Library', key:'prompting', color:'var(--realm-3)', scene:S+'03-context-library.svg', date:'SEP 7, 2026', read:'9 MIN READ' },
+        { slug:'the-agent-loop', title:'The agent loop: tool calls, results and when to stop', excerpt:'The core loop behind every agent, and the stop conditions that keep it from running forever.', realm:'AGENT CITADEL', realmName:'Agent Citadel', key:'agents', color:'var(--realm-0)', scene:S+'04-agent-citadel.svg', date:'AUG 31, 2026', read:'7 MIN READ' },
+        { slug:'orchestrator-worker-pattern', title:'Orchestrator and workers: a multi-agent pattern that scales', excerpt:'Split a big task across sub-agents without losing track of who knows what.', realm:'SWARM SPIRE', realmName:'Swarm Spire', key:'agents', color:'var(--realm-6)', scene:S+'07-swarm-spire.svg', date:'AUG 24, 2026', read:'10 MIN READ' },
+        { slug:'shipping-llm-features', title:'Shipping LLM features: rate limits, retries and fallbacks', excerpt:'The production checklist for keeping an AI feature up when the API has a bad day.', realm:'PRODUCTION PEAKS', realmName:'Production Peaks', key:'quality', color:'var(--realm-7)', scene:S+'08-production-peaks.svg', date:'AUG 17, 2026', read:'8 MIN READ' },
+        { slug:'embeddings-math-intuition', title:'Embeddings and cosine similarity: the math, visually', excerpt:'Vectors, dot products and why "close" in embedding space means "similar" in meaning.', realm:'MATH TOWER', realmName:'Math Tower', key:'math', color:'var(--realm-math)', scene:S+'math-tower.svg', date:'AUG 10, 2026', read:'6 MIN READ' },
+      ];
+      const FILTERS = [['all','ALL'],['prompting','PROMPTING'],['build','BUILDING'],['agents','AGENTS'],['quality','EVALS & PROD'],['math','MATH']];
+
+      class Component extends DCLogic {
+        state = { view:'index', slug:POSTS[0].slug, filter:'all' };
+        open = slug => () => { this.setState({ view:'post', slug }); window.scrollTo(0,0); };
+        deco = p => ({ ...p, alt:p.realmName+' pixel-art scene', open:this.open(p.slug) });
+        renderVals() {
+          const { view, slug, filter } = this.state;
+          const post = this.deco(POSTS.find(p => p.slug === slug));
+          const list = POSTS.slice(1).filter(p => filter === 'all' || p.key === filter);
+          const related = POSTS.filter(p => p.slug !== slug && p.key === post.key).concat(POSTS.filter(p => p.slug !== slug && p.key !== post.key)).slice(0,3);
+          return {
+            ready: true, isIndex: view === 'index', isPost: view === 'post',
+            goIndex: () => { this.setState({ view:'index' }); window.scrollTo(0,0); },
+            featured: this.deco(POSTS[0]),
+            posts: list.map(this.deco),
+            filters: FILTERS.map(([k,l]) => ({ label:l, go:() => this.setState({ filter:k }), bg: k===filter ? 'var(--spark-500)' : 'var(--ink-800)', fg: k===filter ? 'var(--ink-950)' : 'var(--text-2)' })),
+            post, related: related.map(this.deco),
+            showNewsletter: this.props.showNewsletter ?? true,
+            showQuestCta: this.props.showQuestCta ?? true,
+          };
+        }
+      }
+    </script>
+  </body>
+</html>
