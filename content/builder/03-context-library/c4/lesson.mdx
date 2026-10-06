@@ -56,7 +56,7 @@ OpenAI lists the same trap under "A shared prefix is not always a cached prefix"
 Writing to the cache costs a little more; reading costs much less.
 
 - **Claude:** a 5-minute cache write is 1.25 times the base input price, a 1-hour write is 2 times, and a cache read is 0.1 times. Some models read for less: 0.05 times on Claude Opus 5.5 and 0.025 times on Claude Fable 5.1 and Claude Mythos 5.1.
-- **OpenAI, GPT-5.6 and later:** writes cost 1.25 times the uncached input rate; reads cost 0.1 times on most of these models and 0.05 times on GPT-6.1 Sol.
+- **OpenAI, GPT-5.6 and later:** writes cost 1.25 times the uncached input rate; reads cost 0.1 times the uncached rate, except 0.05 times on GPT-6.1 Sol.
 
 OpenAI works through the math at the 0.1 read rate: across ten requests, "one write and nine full reads cost 2.15× at that rate, compared with 10× without caching." Claude's 5-minute rates on a model with the 0.1 read rate give the same result: 1.25 + 9 × 0.1 = 2.15.
 
@@ -70,7 +70,7 @@ Short prompts are not cached.
 - **OpenAI:** 1,024 tokens for GPT-5.6 and later.
 - **Gemini:** 4,096 tokens on Gemini 3.5 Flash, and 2,048 on Gemini 2.5 Flash and Gemini 2.5 Pro.
 
-Entries also expire. Claude's default lifetime is 5 minutes, refreshed for free each time the cache is used, with a 1-hour option at a higher write price. On OpenAI GPT-5.6 and later, a prefix stays reusable for at least 30 minutes after its last write or reuse.
+Entries also expire. Claude's default lifetime is 5 minutes, refreshed for free each time the cache is used, with a 1-hour option at a higher write price. On OpenAI GPT-5.6 and later, a prefix stays reusable for at least 30 minutes after its last write or reuse. Earlier OpenAI models use `prompt_cache_retention`, and its `24h` value means extended retention "typically keeps entries available for around 30 minutes and can retain them for up to 24 hours." OpenAI lists these models for extended retention: `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5.2`, `gpt-5.1-codex-max`, `gpt-5.1`, `gpt-5.1-codex`, `gpt-5.1-codex-mini`, `gpt-5.1-chat-latest`, `gpt-5`, `gpt-5-codex` and `gpt-4.1`.
 
 ## Check that it works
 
