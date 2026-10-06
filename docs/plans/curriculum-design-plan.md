@@ -8,6 +8,16 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (SIG-39, analytics + AI search readiness)
+
+- **Analytics are Vercel Web Analytics and Speed Insights**, in `app/layout.tsx` (`@vercel/analytics/next`, `@vercel/speed-insights/next`). Cookieless, so there is no consent banner. No custom events.
+- **CSP:** on a deployment both scripts load from the site itself (`/_vercel/…` or a per-build path) and send to it, so `'self'` covers them. Only `next dev` adds `https://va.vercel-scripts.com` to `script-src` (the debug scripts). The landing page stays static (○).
+- **Privacy page** gets a "Visit statistics" section (what Vercel records, no cookies, the 24-hour visitor hash) and a new cookies line. Facts and sources sit in the header of `lib/constants/legal-copy.ts`. Needs a voice-guardian pass.
+- **`/llms.txt`** (`app/llms.txt/route.ts` → `lib/content/llms.ts`) is static Markdown in the llmstxt.org shape: name, summary, then links to `/realms`, `/math`, `/blog` and each post, with `/leaderboard`, the sitemap, the RSS feed and `/privacy` under "Optional". Every line comes from existing page meta.
+- **Robots: AI search yes, training no** (maintainer, 2026-10-06). `AI_SEARCH_AGENTS` (OAI-SearchBot, ChatGPT-User, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User) get the same allow and disallow list as `*`, so AI search can cite lessons. `AI_TRAINING_AGENTS` (GPTBot, ClaudeBot, CCBot, Google-Extended, Applebot-Extended) are disallowed from `/`. Both lists live in `lib/constants/site.ts`. Google-Extended and Applebot-Extended are control tokens, not crawlers; the user-fetch agents may ignore robots.txt, per their vendors.
+- **JSON-LD** (`lib/content/json-ld.ts`, `components/json-ld.tsx`): WebSite + Organization on `/`, BlogPosting on each post. No Course schema, no logo or image yet.
+- **Waits on the maintainer:** (1) Vercel → project → Analytics and Speed Insights → Enable, then redeploy (until then the scripts 404). (2) Google Search Console: add a Domain property for `sigmorai.com`, put the TXT record it gives in DNS, verify, then submit `https://sigmorai.com/sitemap.xml`. No meta verification tag in the code. (3) After Enable + redeploy, check DevTools on sigmorai.com: no CSP violations, 2xx on `/<path>/view` and `/vitals`, and no cookie from either script. If Speed Insights loads from `va.vercel-scripts.com`, add it to the production `script-src`.
+
 ## Amendments locked 2026-10-06 (SIG-24, SEO + accessibility pass)
 
 - **Per-page metadata is already done** (realm pages, lessons, blog, catalog). No change here.

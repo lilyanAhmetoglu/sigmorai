@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { cache } from 'react';
 import { MarketingHeader } from '@/components/hud/marketing-header';
+import { JsonLd } from '@/components/json-ld';
 import { Panel } from '@/components/panel';
 import { PixelButton } from '@/components/pixel-button';
 import { LessonBody } from '@/components/quest/lesson-body';
@@ -14,7 +15,9 @@ import {
   MAIN_CONTENT_ID,
   questHref,
   SITE_NAME,
+  SITE_URL,
 } from '@/lib/constants';
+import { articleJsonLd } from '@/lib/content/json-ld';
 import { ContentError, listBlogPosts, loadBlogPost, loadLesson } from '@/lib/content/load';
 import { dateLabel } from '@/lib/utils';
 
@@ -62,6 +65,7 @@ export default async function BlogPostPage({ params }: PageProps<'/blog/[slug]'>
 
   return (
     <>
+      <JsonLd data={articleJsonLd(post, SITE_URL)} />
       <MarketingHeader />
       <main
         id={MAIN_CONTENT_ID}
