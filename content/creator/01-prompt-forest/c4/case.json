@@ -1,0 +1,96 @@
+{
+  "id": "creator/r1/c4/challenge",
+  "title": "Change only the sofa",
+  "scenario": "A furniture shop approved your hero image of a living room. On review day the client says: \"Love everything except the blue sofa. Make it brown leather.\"\n\nYou have the approved image (1536x1024 PNG) and an edit model. The exhibit shows the notes you wrote, plus the vendor facts you will use.",
+  "exhibit": "Approved image\n  Living room, warm evening light, blue sofa with two yellow pillows,\n  a floor lamp on the right, a rug with a grey pattern.\n\nClient: change the sofa only. Everything else is approved.\n\nVendor facts (from the docs)\n  Google: edit by words, \"change only the [element]... Keep everything else exactly the same\"\n  OpenAI mask edits:\n    - image and mask: same format and size, under 50MB\n    - mask needs an alpha channel\n    - mask applies to the first input image\n    - \"Masking with GPT Image is entirely prompt-based. The model uses\n      the mask as guidance, but may not follow its exact shape with\n      complete precision.\"",
+  "questions": [
+    {
+      "prompt": "Which prompt is best for an edit by words?",
+      "options": [
+        {
+          "text": "\"Using the provided image, change only the blue sofa to a vintage brown leather chesterfield. Keep the pillows, lamp, rug and light unchanged.\"",
+          "explanation": "Right. It names one element, gives the new one, and lists what stays. This is Google's inpainting pattern.",
+          "correct": true
+        },
+        {
+          "text": "\"Make a living room with a brown leather sofa, warm evening light, a floor lamp, yellow pillows and a grey patterned rug, as before.\"",
+          "explanation": "This generates a new room. The client approved the old one, and the new room will differ in many details."
+        },
+        {
+          "text": "\"Make the room better, with a nicer sofa, nicer pillows, nicer light and a nicer overall feel for the shop's website.\"",
+          "explanation": "It names no element, no new look and nothing to keep."
+        },
+        {
+          "text": "\"Change the sofa. Also change the pillows to blue so they match, and make the rug lighter and the lamp a bit taller.\"",
+          "explanation": "The client approved everything except the sofa. These extra changes were not asked for."
+        }
+      ]
+    },
+    {
+      "prompt": "You will use a mask instead. You paint the sofa area in your image editor. Which file is correct?",
+      "options": [
+        {
+          "text": "A JPEG at 800x533 with a white sofa area on black, saved without any alpha channel.",
+          "explanation": "The mask must match the image's format and size, and it needs an alpha channel. A smaller JPEG fails those rules."
+        },
+        {
+          "text": "A PNG at 1536x1024, the same size and format as the image, with an alpha channel.",
+          "explanation": "Right. These are the requirements in OpenAI's docs: same format and size, and an alpha channel.",
+          "correct": true
+        },
+        {
+          "text": "A PNG at any size you like, because the model resizes masks to fit the image.",
+          "explanation": "The docs say the image and mask must be the same size."
+        },
+        {
+          "text": "No file at all. Type the area in the prompt and the mask is made for you.",
+          "explanation": "For a mask edit you supply the mask file. Describing the area in words is the other way, without a mask."
+        }
+      ]
+    },
+    {
+      "prompt": "The result is good, but the sofa's edge has a soft halo and a bit of the rug changed. What do you conclude?",
+      "options": [
+        {
+          "text": "The mask file is broken and the vendor must fix it before you can use edits.",
+          "explanation": "Nothing says the file is broken. The docs say the model may not follow the mask's exact shape."
+        },
+        {
+          "text": "This can happen. The mask is guidance, so inspect the edge and retry or retouch it.",
+          "explanation": "Right. OpenAI says the model may not follow the exact shape with complete precision. Checking and retouching are part of the job.",
+          "correct": true
+        },
+        {
+          "text": "Edits never change anything outside the mask, so this cannot have happened.",
+          "explanation": "OpenAI says masking is prompt-based guidance, so changes outside the shape can happen."
+        },
+        {
+          "text": "Send it. A halo is part of the leather look and the client will like it.",
+          "explanation": "A visible halo and a changed rug would be noticed in review. Fix or retry first."
+        }
+      ]
+    },
+    {
+      "prompt": "The client now adds: \"Also remove the lamp, make the rug lighter and add a plant.\" What is the best plan?",
+      "options": [
+        {
+          "text": "Do all three in one prompt, then compare the result with the approved image.",
+          "explanation": "If one change goes wrong, you can't tell which words caused it."
+        },
+        {
+          "text": "Make one change per turn, check it against the previous image, then do the next.",
+          "explanation": "Right. Google recommends multi-turn conversation and small follow-up changes. One change per turn is our rule of thumb: you can see which instruction caused which change.",
+          "correct": true
+        },
+        {
+          "text": "Start again from a new generation that has all the changes in one prompt.",
+          "explanation": "A new generation would lose the approved room."
+        },
+        {
+          "text": "Do all three in one prompt and ask the model to keep everything else unchanged.",
+          "explanation": "Better than nothing, but if one change goes wrong you can't tell which instruction caused it."
+        }
+      ]
+    }
+  ]
+}

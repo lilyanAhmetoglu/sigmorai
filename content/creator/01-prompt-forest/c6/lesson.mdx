@@ -1,0 +1,94 @@
+---
+id: creator/r1/c6/lesson
+title: Review outputs
+minutes: 8
+sources:
+  - kind: docs
+    title: Claude docs · Vision
+    url: https://platform.claude.com/docs/en/build-with-claude/vision
+  - kind: docs
+    title: Claude docs · Prompting best practices
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: docs
+    title: OpenAI docs · Images and vision
+    url: https://developers.openai.com/api/docs/guides/images-vision
+  - kind: docs
+    title: Gemini API docs · Image understanding
+    url: https://ai.google.dev/gemini-api/docs/image-understanding
+---
+
+## Why it matters
+
+You can make 40 images in an afternoon. Someone has to look at all 40 before the client does. A vision model can read each image and answer questions about it, so it can do a first pass. But it makes mistakes, and some of them are exactly the ones a client notices. This lesson shows how to review in layers: what to check, what a vision model can help with, and what you must check yourself.
+
+## What to check
+
+This checklist is ours, built from the earlier chapters. Check every output against it:
+
+1. **The brief.** Right shape, size, subject, number of items.
+2. **The brand.** Does it match the style block and the anchor image (chapter 3)?
+3. **Text and logos.** Is every letter right (chapters 1 and 2)? Is the logo exact?
+4. **What else changed.** After an edit, did faces, hands or backgrounds change (chapter 4)?
+5. **Motion and sound** for video. Does the shoe stay the same shoe in every shot (chapter 5)?
+6. **Rights and safety.** Realm 0, chapter 6: are there real people, other brands or music you may not use?
+
+Do items 1 to 3 on every output. They are quick, and they are where most client complaints start.
+
+## A vision model as first reviewer
+
+Claude, OpenAI's models and Gemini all take images as input and answer in text. Google's docs list image captioning, visual question answering and classification among the tasks. OpenAI's docs say you can "describe images, read visible text, and answer questions about objects, shapes, colors, or textures".
+
+How to ask well:
+
+- **Write clear criteria.** Anthropic's guide says Claude responds well to "clear, explicit instructions". Don't ask "is this good?". Ask: "Is the logo in the top-right corner? Does the carton say 'Oat. Simply.'? Is the background plain cream?"
+- **Label each image.** Anthropic says to introduce each of several images with a short label, "Image 1:", "Image 2:". Send the approved anchor as Image 1 and the new output as Image 2, then ask for differences.
+- **Mind the order.** Anthropic says Claude works best when images come before the text. Google says that with one image, you should put the text prompt before the image. Follow the vendor you use.
+- **Ask for a table.** One row per criterion, with a pass or fail and a short reason (our habit). It makes review fast.
+
+## What a vision model gets wrong
+
+Both vendors list limits. Read them before you trust a report.
+
+| Limit | Anthropic (Claude) | OpenAI |
+| ----- | ------------------ | ------ |
+| Counting | "approximate counts", not always precise | "approximate counts" |
+| Position and space | coordinates and localisation are approximate | struggles with precise spatial localisation |
+| Small or low-quality images | may "hallucinate or make mistakes" under 200 pixels or when low-quality or rotated | small text is a problem; rotated text and images may be misread |
+| General accuracy | "always carefully review and verify" | "may generate incorrect descriptions or captions" |
+
+Anthropic adds a limit that matters to your work: "Claude cannot determine whether an image is AI-generated and might be incorrect if asked. Do not rely on it to detect fake or synthetic images." Anthropic says this about Claude. The other docs we cite make no claim that their models can do it, so our rule is: never use any vision model to prove an image is, or is not, AI-made.
+
+Example: a report says "12 cartons on the shelf" and the brief says 12. Count them yourself. If the shelf has 11, the model's "12" is the kind of error the docs describe.
+
+## Zoom in before you ask
+
+Small details are where models fail, and where clients look. Both vendors say to help with size:
+
+- OpenAI: "Enlarge text within the image to improve readability."
+- Anthropic: "Testing has shown consistent uplift on image evaluations when Claude is able to 'zoom' in on relevant regions of an image", and it describes a crop tool for this. Its vision docs also say that a large image may be resized, which can make text hard to read, and that heavy compression can add artifacts.
+
+So crop the label, the logo and the price tag. Send each crop as its own image with its own question. Send clean files, not heavily compressed copies.
+
+## Video
+
+Anthropic's prompting guide notes that Claude Opus 4.5 and 4.6 can analyze a video if you break it into frames. Our method: take a frame from each shot (first, middle, last) and run the same checklist. Then watch the clip yourself for motion and sound. A set of still frames cannot tell you if the movement looks right.
+
+## You sign off
+
+Anthropic's vision docs say: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight." The same holds for any vision model. A good pattern, and ours:
+
+- The model does the first pass on every output, and catches the easy misses.
+- You check counts, small text, logos and anything the model marked "unsure" by eye.
+- You decide what goes to the client.
+
+Keep a short **review log**: asset, prompt, model, which checks passed, who signed off. It shows what to fix in the next prompt, and it is proof of your process if a client asks.
+
+## What this means for your work
+
+- **Check every output against the brief, the brand and the text.**
+- **Ask for specific yes or no checks**, not "is it good".
+- **Label and order the images** the way the vendor's docs say.
+- **Verify counts, positions and small print by eye.**
+- **Crop and enlarge** small details before you ask.
+- **Never use a vision model to detect AI-made images (our rule, from Anthropic's warning).**
+- **Sign off yourself**, and keep a log.
