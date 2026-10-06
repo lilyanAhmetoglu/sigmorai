@@ -6,7 +6,7 @@ Layout: `content/<track>/<realm>/<chapter>/lesson.mdx` (exactly that name; a bos
 
 - Math Tower floors: `content/math/f<n>/` with `lesson.mdx` + `quick-check.json`.
 - Frontier chapters: `content/frontier/<YYYY-MM-DD>-<slug>/` with the lesson MDX + `quick-check.json`. No case, no outline file, no NPC.
-- Blog posts: `content/blog/<YYYY-MM-DD>-<slug>.mdx`, same date-slug and same `sources` as their lesson. Plain product voice.
+- Blog posts: `content/blog/<YYYY-MM-DD>-<slug>.mdx`. The date and slug come from the file name; the page is `/blog/<slug>`, so a slug is used once. Frontmatter is `title, description, lesson` (a live `…/lesson` id). No `sources`: a post cites via `lesson:`, and its page lists that lesson's sources. Body: plain Markdown, plain product voice, **no `<DialogBox>`** (no lore on the blog). Short: a summary + why it matters. Every claim must be in the linked lesson.
 
 ## Exercise ids
 
@@ -25,7 +25,7 @@ Realms `r0`–`r8`, chapters `c1`–`c6`, floors `f1`–`f8` (counts in `lib/con
 
 ## Rules
 
-- **Frontmatter is Zod-validated** (schemas in `lib/types/`): `id, title, minutes, sources[{kind:'docs'|'repo'|'blog', title, url}], sourceHash` (`blog` = an official vendor engineering post only). `sourceHash` is optional until the docs-sync job writes it (step 8). A file that fails the schema fails the build.
+- **Frontmatter is Zod-validated** (schemas in `lib/types/`): `id, title, minutes, sources[{kind:'docs'|'repo'|'blog', title, url}], sourceHash` (`blog` = an official vendor engineering post only). `sourceHash` is optional until the docs-sync job writes it (step 8). Blog posts: `title, description, lesson` (`BlogFrontmatterSchema`). A file that fails the schema fails the build.
 - **Every claim traces to a source in `sources`.** If you can't cite it, cut it. API shapes are checked against the live doc, not memory.
 - **Lesson prose is plain technical voice.** Lore lines only in `<DialogBox>` blocks, said by the realm's NPC.
 - **Lesson body rules** (the page renders it with `lib/content/mdx.tsx`): start at `##` (the page shows the title as the h1; no `# ` heading); the only component is `<DialogBox>…</DialogBox>` (no `speaker`: it is always the realm's NPC); no `import` / `export`; no `{…}` expressions (show code in a code span or block); no `<script>`, `<style>` or `<iframe>`. `bun run content:check` compiles every body and fails on any of these.

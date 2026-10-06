@@ -10,6 +10,7 @@
  * Pure: no IO. Ids are stored in progress, submissions and xp_events forever.
  */
 import {
+  BLOG_POST_EXT,
   BOSS_SEGMENT,
   BOSS_STEP,
   CHAPTER_COUNT,
@@ -111,6 +112,19 @@ export function buildExerciseId(ref: ExerciseRef): string {
   const id = format(ref);
   if (!isExerciseId(id)) throw new RangeError(`Invalid exercise ref: ${JSON.stringify(ref)}`);
   return id;
+}
+
+/** A blog post's file name: the Frontier `<YYYY-MM-DD>-<slug>` grammar + `.mdx`. */
+const BLOG_FILE_PATTERN = new RegExp(`^(${DATE})-(${SLUG})${BLOG_POST_EXT.replace('.', '\\.')}$`);
+
+/**
+ * `2026-10-06-be-specific.mdx` → `{ date: '2026-10-06', slug: 'be-specific' }`.
+ * Null for any other name, or an impossible date (2026-02-30).
+ */
+export function parseBlogFileName(name: string): { date: string; slug: string } | null {
+  const match = BLOG_FILE_PATTERN.exec(name);
+  if (!match || !isCalendarDate(match[1])) return null;
+  return { date: match[1], slug: match[2] };
 }
 
 /** Every exercise id of one realm on one track: each chapter step, then the boss. */
