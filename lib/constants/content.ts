@@ -2,6 +2,7 @@
  * Content file names and limits (content/CLAUDE.md). Loaded and validated by
  * lib/content/load.ts; schemas in lib/types/content.ts.
  */
+import type { Accent } from '@/lib/types';
 import type { KB_SOURCE_KINDS } from './kb';
 
 /** One file per step inside an exercise folder. */
@@ -20,6 +21,13 @@ export const LESSON_SOURCE_KINDS = [
   'repo',
   'blog',
 ] as const satisfies readonly (typeof KB_SOURCE_KINDS)[number][];
+
+/** The SOURCES tab's chip colour per kind. The chip also shows the kind as text. */
+export const LESSON_SOURCE_ACCENT = {
+  docs: 'success',
+  repo: 'info',
+  blog: 'accent',
+} as const satisfies Record<(typeof LESSON_SOURCE_KINDS)[number], Accent>;
 
 /** A quick check has exactly this many questions (curriculum-design-plan.md). */
 export const QUICK_CHECK_QUESTIONS = 3;

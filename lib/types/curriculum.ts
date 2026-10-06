@@ -22,6 +22,9 @@ const ChapterOutlineSchema = z.object({ id: Text, title: Text }).strict();
 /** A realm number from outside (route param, parsed id) → a known RealmId. */
 export const RealmIdSchema = z.literal(REALMS.map((r) => r.id));
 
+/** A realm slug from outside (the `/realms/[realm]` route param) → a known slug. */
+export const RealmSlugSchema = z.literal(REALMS.map((r) => r.slug));
+
 const RealmOutlineSchema = z
   .object({
     id: RealmIdSchema,

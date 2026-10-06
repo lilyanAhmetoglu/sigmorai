@@ -1,18 +1,19 @@
 import 'server-only';
 import { auth } from '@clerk/nextjs/server';
 import { connection } from 'next/server';
+import { cache } from 'react';
 import { db } from '@/db';
-import {
-  HP_PER_CHALLENGE,
-  PROFILE_HREF,
-  QUEST_ERROR_TEXT,
-  QUEST_TEXT,
-  questHref,
-  REALMS,
-} from '@/lib/constants';
+import { HP_PER_CHALLENGE, QUEST_ERROR_TEXT, QUEST_TEXT, questHref, REALMS } from '@/lib/constants';
 import { isRealmOpen, realmAccent } from '@/lib/content/curriculum';
-import { parseExerciseId } from '@/lib/content/ids';
-import { ContentError, hasContent, loadCase, loadQuickCheck } from '@/lib/content/load';
+import { buildExerciseId, parseExerciseId, questBackHref } from '@/lib/content/ids';
+import {
+  ContentError,
+  hasContent,
+  loadCase,
+  loadLesson,
+  loadQuickCheck,
+  loadTrackOutline,
+} from '@/lib/content/load';
 import { toPublicCase, toPublicQuickCheck } from '@/lib/content/public';
 import { readAttempts } from '@/lib/grading/attempts';
 import { gradedKind, hpNow, nextCaseId } from '@/lib/grading/case';
@@ -24,18 +25,21 @@ import type {
   AnswerViewer,
   ExerciseRef,
   GradedKind,
+  Lesson,
+  LessonViewer,
   RealmId,
 } from '@/lib/types';
 import { nextUtcDayStart } from '@/lib/xp/day';
 import { getHudState } from './hud';
 
-/** A realm case or quick check: the only exercises this page plays so far. */
+/** A realm step: a chapter lesson, case or quick check, or a boss. */
 type RealmRef = Extract<ExerciseRef, { area: 'chapter' | 'boss' }>;
+type ChapterRef = Extract<ExerciseRef, { area: 'chapter' }>;
 
 /** What the quest page renders. Public content only: no correct flags, no explanations. */
 export type QuestPage =
   | { kind: 'not-found' }
-  /** A real step this page can't show yet (the lesson page is SIG-11). */
+  /** A real step this page can't show yet (Math Tower and Frontier steps). */
   | { kind: 'unavailable' }
   | { kind: 'locked'; message: string }
   | {
@@ -51,19 +55,38 @@ export type QuestPage =
       viewer: AnswerViewer;
       /** Where Continue goes after a pass. */
       nextHref: string;
+    }
+  | {
+      kind: 'lesson';
+      exerciseId: string;
+      /** The full lesson: frontmatter + MDX body. Nothing in it is secret. */
+      lesson: Lesson;
+      /** "BOOTSTRAP VILLAGE · CHAPTER 1 · LESSON" */
+      tag: string;
+      accent: Accent;
+      /** The realm's NPC: every <DialogBox> in the body speaks as them. */
+      npc: string;
+      viewer: LessonViewer;
+      /** Where Continue goes after "Lesson done": this chapter's case. */
+      nextHref: string;
     };
 
-function tagFor(ref: RealmRef, kind: GradedKind): string {
+const STEP_TAG = {
+  case: QUEST_TEXT.caseTag,
+  'quick-check': QUEST_TEXT.quickCheckTag,
+  lesson: QUEST_TEXT.lessonTag,
+} as const satisfies Record<GradedKind | 'lesson', string>;
+
+function tagFor(ref: RealmRef, step: keyof typeof STEP_TAG): string {
   const realm = REALMS[ref.realm as RealmId].name.toUpperCase();
   const where = ref.area === 'boss' ? QUEST_TEXT.bossTag : QUEST_TEXT.chapterTag(ref.chapter);
-  const step = kind === 'case' ? QUEST_TEXT.caseTag : QUEST_TEXT.quickCheckTag;
-  return `${realm} · ${where} · ${step}`;
+  return `${realm} · ${where} · ${STEP_TAG[step]}`;
 }
 
-/** Continue after a pass: the next case if it has content, else the profile. */
-async function nextHrefFor(ref: ExerciseRef): Promise<string> {
+/** Continue after a pass: the next case if it has content, else the realm page. */
+async function nextHrefFor(ref: ExerciseRef, exerciseId: string): Promise<string> {
   const next = nextCaseId(ref);
-  return next && (await hasContent(next)) ? questHref(next) : PROFILE_HREF;
+  return next && (await hasContent(next)) ? questHref(next) : questBackHref(exerciseId);
 }
 
 /**
@@ -130,6 +153,7 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
   if (!isRealmOpen(REALMS[ref.realm as RealmId].tier)) {
     return { kind: 'locked', message: QUEST_ERROR_TEXT.TIER_LOCKED };
   }
+  if (ref.area === 'chapter' && ref.step === 'lesson') return lessonPage(ref, exerciseId);
   const kind = gradedKind(ref);
   if (!kind) return { kind: 'unavailable' };
 
@@ -158,6 +182,77 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
     tag: tagFor(ref, kind),
     accent: realmAccent(ref.realm as RealmId),
     viewer,
-    nextHref: await nextHrefFor(ref),
+    nextHref: await nextHrefFor(ref, exerciseId),
+  };
+}
+
+// ── Lessons ───────────────────────────────────────────────────────────────
+
+/** One disk read per lesson per request: generateMetadata and the page share it. */
+const loadLessonCached = cache((exerciseId: string) => loadLesson(exerciseId));
+
+/** Null when the lesson has no file (a stub chapter). A broken file still throws. */
+async function readLesson(exerciseId: string): Promise<Lesson | null> {
+  try {
+    return await loadLessonCached(exerciseId);
+  } catch (error) {
+    if (error instanceof ContentError && error.code === 'missing') return null;
+    throw error;
+  }
+}
+
+/** Continue after "Lesson done": this chapter's case if it has content, else the realm page. */
+async function lessonNextHref(ref: ChapterRef, exerciseId: string): Promise<string> {
+  const caseId = buildExerciseId({ ...ref, step: 'challenge' });
+  return (await hasContent(caseId)) ? questHref(caseId) : questBackHref(exerciseId);
+}
+
+/**
+ * Who is reading. Lessons are public: everyone reads the body. A signed-in
+ * player also gets the open check (completeLesson runs it again) and the clear.
+ */
+async function lessonViewer(exerciseId: string): Promise<LessonViewer> {
+  const hud = await getHudState();
+  if (hud.status === 'onboarding') return { status: 'onboarding' };
+  // getHudState is cached per request; auth() gives the same session's id.
+  const { userId } = await auth();
+  if (hud.status !== 'ready' || !userId) return { status: 'signed-out' };
+  const open = await checkOpen(db, userId, exerciseId);
+  if (!open.ok) return { status: 'not-open', message: open.message };
+  const { cleared } = await readAttempts(db, userId, exerciseId, new Date());
+  return { status: 'ready', cleared };
+}
+
+/** A realm chapter lesson. The tier check already ran in getQuestPage. */
+async function lessonPage(ref: ChapterRef, exerciseId: string): Promise<QuestPage> {
+  const lesson = await readLesson(exerciseId);
+  if (!lesson) return { kind: 'not-found' };
+  const [viewer, nextHref] = await Promise.all([
+    lessonViewer(exerciseId),
+    lessonNextHref(ref, exerciseId),
+  ]);
+  return {
+    kind: 'lesson',
+    exerciseId,
+    lesson,
+    tag: tagFor(ref, 'lesson'),
+    accent: realmAccent(ref.realm as RealmId),
+    npc: REALMS[ref.realm as RealmId].npc,
+    viewer,
+    nextHref,
+  };
+}
+
+/** Title, description (the realm's topic) and canonical for a realm lesson; null otherwise. */
+export async function getLessonMeta(exerciseId: string) {
+  const ref = parseExerciseId(exerciseId);
+  if (ref?.area !== 'chapter' || ref.step !== 'lesson') return null;
+  const lesson = await readLesson(exerciseId);
+  if (!lesson) return null;
+  const outline = await loadTrackOutline(ref.track);
+  return {
+    title: lesson.frontmatter.title,
+    description: outline.realms[ref.realm].topic,
+    canonical: questHref(exerciseId),
   };
 }

@@ -132,10 +132,29 @@ export const QUEST_TEXT = {
   notifications: 'Notifications',
   noticeHeading: 'Quest',
   notAvailable: 'This step is not available yet.',
-  notAvailableHint: 'Lessons are not built yet.',
+  notAvailableHint: 'Math Tower and Frontier steps open later.',
   // Tags: "BOOTSTRAP VILLAGE · CHAPTER 1 · CASE"
   chapterTag: (n: number) => `CHAPTER ${n}`,
   bossTag: 'BOSS',
+  lessonTag: 'LESSON',
+  // Lesson page: LESSON | SOURCES tabs, then the "Lesson done" panel.
+  lessonTabsLabel: 'Lesson sections',
+  lessonTab: 'LESSON',
+  sourcesTab: 'SOURCES',
+  sourcesIntro: 'Every claim in this lesson comes from these pages.',
+  minutes: (n: number) => `${n} min`,
+  lessonPanel: 'LESSON',
+  lessonDone: 'Lesson done',
+  lessonDoneNote: (xp: number) => `Mark it read for +${xp} XP, once.`,
+  lessonDoneReplay: 'Already done · XP already earned.',
+  lessonCleared: (xp: number) => `+${xp} XP · LESSON DONE`,
+  /** completeLesson's reply was lost. No HP is involved, so a retry is safe (award once). */
+  lessonNoReply: 'No reply from the server. Reload the page and try again.',
+  /** Accessible name of a scrollable code block in a lesson. */
+  codeExample: 'Code example',
+  saving: 'Saving…',
+  /** Opens in a new tab: said to screen readers. */
+  newTab: '(opens in a new tab)',
   caseTag: 'CASE',
   quickCheckTag: 'QUICK CHECK',
   quickCheckTitle: 'Quick check',
@@ -169,9 +188,9 @@ export const QUEST_TEXT = {
   /** The action may have finished (and spent HP) before the reply was lost. */
   noReply: 'No reply from the server. Reload the page to see your HP and result.',
   locked: 'LOCKED',
-  /** The back link until the world map ships (QUEST_BACK_HREF). */
+  /** The back link (questBackHref): the quest's realm page until the world map ships. */
   backIcon: '◂',
-  back: 'Back to profile',
+  back: 'Back to realm',
   loading: 'Loading the quest',
   loadError: "The quest didn't load. Try again in a moment.",
   retry: 'Retry',
