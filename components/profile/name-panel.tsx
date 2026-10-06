@@ -1,7 +1,8 @@
 'use client';
 
-import { startTransition, useActionState, useState } from 'react';
+import { startTransition, useActionState, useId, useState } from 'react';
 import { Panel } from '@/components/panel';
+import { PixelAvatar } from '@/components/pixel-avatar';
 import { PixelButton } from '@/components/pixel-button';
 import { TextField } from '@/components/text-field';
 import { renameHero } from '@/lib/actions/rename-hero';
@@ -41,6 +42,16 @@ export function NamePanel({ current }: NamePanelProps) {
   const [name, setName] = useState(current);
   // Typing after a save or an error hides the old message.
   const [dirty, setDirty] = useState(false);
+  const noteId = useId();
+
+  // After a save, show the stored name (trimmed, NFKC), so "Not saved yet." stays honest.
+  // Adjusted during render, not in an effect (react-hooks/set-state-in-effect):
+  // once per new result or new current name.
+  const [synced, setSynced] = useState({ state, current });
+  if (state?.done && (synced.state !== state || synced.current !== current)) {
+    setSynced({ state, current });
+    setName(current);
+  }
 
   const quiet = dirty || pending;
   const fieldError = state?.error && !quiet ? FIELD_ERROR[state.error] : undefined;
@@ -64,25 +75,32 @@ export function NamePanel({ current }: NamePanelProps) {
         className="flex flex-col gap-4"
         noValidate
       >
-        <p className="text-small leading-body text-text-2 max-w-reading m-0">
+        <p id={noteId} className="text-small leading-body text-text-2 max-w-reading m-0">
           {PROFILE_TEXT.nameNote}
         </p>
 
-        <TextField
-          label={PROFILE_TEXT.nameLabel}
-          name="heroName"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setDirty(true);
-          }}
-          autoComplete="nickname"
-          required
-          maxLength={HERO_NAME_MAX}
-          hint={PROFILE_TEXT.nameHint}
-          error={fieldError}
-          className="max-w-reading"
-        />
+        <div className="flex items-end gap-4">
+          {/* Decorative preview: the note above explains the sprite follows the name. */}
+          <div aria-hidden="true" className="flex-none">
+            <PixelAvatar seed={name.trim() || current} size="md" />
+          </div>
+          <TextField
+            label={PROFILE_TEXT.nameLabel}
+            name="heroName"
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              setDirty(true);
+            }}
+            autoComplete="nickname"
+            required
+            maxLength={HERO_NAME_MAX}
+            hint={PROFILE_TEXT.nameHint}
+            error={fieldError}
+            aria-describedby={noteId}
+            className="max-w-reading min-w-0 flex-1"
+          />
+        </div>
 
         {formError && (
           <p role="alert" className="text-small text-danger m-0">

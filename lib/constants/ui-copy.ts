@@ -116,7 +116,7 @@ export const PROFILE_TEXT = {
   level: 'LEVEL',
   noXp: 'No XP yet. You earn XP by clearing lessons, cases and quick checks.',
   namePanel: 'HERO NAME',
-  nameLabel: 'Hero name',
+  nameLabel: 'NEW HERO NAME',
   nameHint: ONBOARDING_TEXT.heroNameHint,
   nameNote:
     'Your hero name is public on the leaderboard. Your sprite is drawn from it, so a new name gives a new sprite.',
