@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r1/c4/challenge",
+  "title": "The reviewer that liked long answers",
+  "scenario": "You work in HR at a company of 3,000 people. An AI assistant drafts answers to employee questions about leave, benefits and expenses, using the staff handbook. An HR advisor approves each draft before it is sent. Volume is now about 600 questions a week, and the advisors can't keep up.\n\nA teammate set up a second model to score each draft from 1 to 10, with the instruction \"rate the quality of this answer\". Your manager wants to know if the team can trust these scores. The exhibit shows two drafts from a trial week.",
+  "exhibit": "Trial week (made-up example data)\n\nQuestion: How many days of paid leave do I get after 5 years?\n\nDraft A  400 words, friendly, explains leave history and policy background,\n         states 28 days.  Handbook says 25 days.      Model score: 9/10\nDraft B  70 words, states 25 days, links to handbook section 4.2.\n                                                     Model score: 6/10\n\nReviewer instruction used: \"Rate the quality of this answer from 1 to 10.\"",
+  "questions": [
+    {
+      "prompt": "Why did the model reviewer score the wrong draft higher?",
+      "options": [
+        {
+          "text": "Its instruction has no criteria, and model reviewers can prefer longer answers.",
+          "explanation": "Right. \"Rate the quality\" is not a rubric, so nothing told it to check facts against the handbook. OpenAI's guide names verbosity bias: model judges tend to prefer longer responses.",
+          "correct": true
+        },
+        {
+          "text": "The reviewer model is broken and needs to be replaced with a newer version.",
+          "explanation": "It did what it was asked: rate \"quality\" with no definition. A newer model with the same instruction can make the same mistake."
+        },
+        {
+          "text": "Draft A is in fact the better answer, because it gives the employee more background.",
+          "explanation": "Draft A states the wrong number of days. Extra background does not make a wrong fact right."
+        },
+        {
+          "text": "A score from 1 to 10 is too detailed, and models can only grade with pass or fail.",
+          "explanation": "Anthropic's guide says a 1–5 scale or correct/incorrect both work. The scale is not the main problem; the missing criteria are."
+        }
+      ]
+    },
+    {
+      "prompt": "What should the new reviewer instruction include?",
+      "options": [
+        {
+          "text": "\"Be strict. Only give high scores to really excellent, professional answers that staff will value.\"",
+          "explanation": "\"Excellent\" and \"professional\" are still not defined. The reviewer still has nothing to check."
+        },
+        {
+          "text": "\"Give a higher score to answers that explain more, since staff tell us that they like detail.\"",
+          "explanation": "This adds to the length bias you just found. Draft A would win again."
+        },
+        {
+          "text": "\"Score only the tone and friendliness of the answer, since the facts are checked at a later step.\"",
+          "explanation": "Facts are the main risk here, and no later check is planned. The rubric must cover them."
+        },
+        {
+          "text": "\"Check every fact against the handbook and cite the section. Length is not quality. Reason first, then answer pass or fail.\"",
+          "explanation": "Right. A specific rubric, reasoning before the verdict, and a clear result are what both vendors advise. Saying that length is not quality addresses verbosity bias.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The advisors have about 3 hours a week for review. Which plan fits best?",
+      "options": [
+        {
+          "text": "Advisors keep reading all 600 drafts, but faster, by skimming each one in under a minute.",
+          "explanation": "Skimming 600 drafts misses wrong numbers like 28 vs 25 days. It is the review by gut feeling that the guides warn against."
+        },
+        {
+          "text": "Rules and the model reviewer check every draft; advisors check flagged ones and a sample.",
+          "explanation": "Right. Automated checks cover the volume. People handle what is flagged and grade a sample, so you can see whether the model reviewer agrees with them.",
+          "correct": true
+        },
+        {
+          "text": "Send drafts that the model reviewer passes straight away, and stop all human review.",
+          "explanation": "OpenAI's guide says to scale up a model judge only once it consistently agrees with human grades. You have no such check yet, and you just saw it fail."
+        },
+        {
+          "text": "Stop the AI drafts entirely until the advisors have time to review every draft again.",
+          "explanation": "That gives up the time savings when a better review plan exists. Fix the review, not the whole tool."
+        }
+      ]
+    },
+    {
+      "prompt": "An employee got a draft with the wrong leave days before the fix. After you correct that answer, what else should you do?",
+      "options": [
+        {
+          "text": "Nothing more. It was one mistake, and the new rubric should catch the next one.",
+          "explanation": "You don't know that yet. Without a test, you can't show the new setup handles this case."
+        },
+        {
+          "text": "Add a line to the prompt saying \"never make mistakes about leave days\".",
+          "explanation": "An instruction like this gives the model no new information. It can still get the number wrong."
+        },
+        {
+          "text": "Add this question to a test set, fix the prompt, and run the tests on every prompt change.",
+          "explanation": "Right. OpenAI's guide says to mine your logs for test cases and grow the test set over time. Every future version must pass this case.",
+          "correct": true
+        },
+        {
+          "text": "Ask the employee to check the handbook themselves in future before they trust an answer.",
+          "explanation": "That moves the checking to every employee. The team owns the quality of the answers it sends."
+        }
+      ]
+    }
+  ]
+}
