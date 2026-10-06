@@ -1,0 +1,118 @@
+{
+  "id": "creator/r2/c5/challenge",
+  "title": "Morning after",
+  "scenario": "Overnight, your studio ran a batch of product videos on three services. Six jobs failed. The producer says: \"Rerun them all.\"\n\nThe report is in the exhibit. It is made up for this case. The codes and the vendor rules are copied from the vendors' docs. Sort the failures before you rerun anything.",
+  "exhibit": "Morning failure report (made up for this case)\n  #1  Runway task FAILED   failureCode: SAFETY.INPUT.TEXT\n  #2  Runway task FAILED   failureCode: INTERNAL.BAD_OUTPUT.01\n      note: the input photo has a studio watermark in the corner\n  #3  Runway HTTP 429      (too many requests)\n  #4  OpenAI image HTTP 429   error code: credit_balance_exhausted\n  #5  Runway task FAILED   failureCode: THIRD_PARTY.UNAVAILABLE\n  #6  Veo 3.1 request blocked because of an audio processing issue\n\nVendor rules (from the docs)\n  Runway:  SAFETY.INPUT.*  -> \"You should not retry these generations.\"\n           Credits are not refunded for SAFETY.INPUT.* failures.\n           INTERNAL.BAD_OUTPUT.01 causes: logos, watermarks or overlaid\n           text in input media. May be retried after corrections.\n           429 may be retried. Use exponential backoff with jitter.\n  OpenAI:  Retrying billing, spend or quota errors will not restore access.\n  Google:  Veo audio block: you will not be charged.",
+  "questions": [
+    {
+      "prompt": "What should you do with #1, the SAFETY.INPUT.TEXT failure?",
+      "options": [
+        {
+          "text": "Rerun it 3 times with a pause, in case moderation was a mistake.",
+          "explanation": "Runway says you should not retry these generations. Retries only repeat the rejection."
+        },
+        {
+          "text": "Wait an hour and rerun it as it is, as for an overloaded service.",
+          "explanation": "Moderation is not a busy-service problem. Waiting does not change what was rejected."
+        },
+        {
+          "text": "Do not rerun it as is. Change the prompt text that was rejected.",
+          "explanation": "Right. Runway says not to retry these generations. The prompt text is the likely source, and the failure code is only a hint.",
+          "correct": true
+        },
+        {
+          "text": "Rerun it on the other services without changing anything in the prompt.",
+          "explanation": "A different service has its own rules, and an unchanged prompt can be rejected again. The cause is in the request."
+        }
+      ]
+    },
+    {
+      "prompt": "What is the best plan for #2, the INTERNAL.BAD_OUTPUT.01 failure?",
+      "options": [
+        {
+          "text": "Add a longer prompt to explain the watermark to the model.",
+          "explanation": "The docs list prompts that ask for text generation as a cause. They do not suggest explaining the watermark."
+        },
+        {
+          "text": "Retry it unchanged, because the error is about Runway's servers.",
+          "explanation": "The docs list causes in your inputs, such as watermarks. An unchanged retry will probably fail the same way."
+        },
+        {
+          "text": "Never retry it. All failed tasks are permanent.",
+          "explanation": "Runway says INTERNAL.BAD_OUTPUT failures may be retried if corrections are made."
+        },
+        {
+          "text": "Remove the watermark from the input photo, then retry.",
+          "explanation": "Right. Runway lists watermarks in input media as a common cause and says this failure may succeed on retry after corrections.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What is the right next step for #4, the OpenAI 429 with credit_balance_exhausted?",
+      "options": [
+        {
+          "text": "Change the prompt to be shorter, then resend the request.",
+          "explanation": "The prompt is not the problem. The account has no credits."
+        },
+        {
+          "text": "Retry with backoff and jitter, as Runway says to do for any 429.",
+          "explanation": "Backoff helps with temporary rate limits. This code means the credit balance is empty."
+        },
+        {
+          "text": "Retry once per minute for an hour, and then ask someone to add credits.",
+          "explanation": "Waiting does not add credits. OpenAI says to update credits or limits before sending another request."
+        },
+        {
+          "text": "Ask someone to add credits first. Retrying will not help.",
+          "explanation": "Right. OpenAI says retrying billing, spend or quota errors won't restore API access.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "How should the team handle #3, the Runway HTTP 429?",
+      "options": [
+        {
+          "text": "Wait, then retry with backoff, jitter and a cap on tries.",
+          "explanation": "Right. Runway marks 429 as retryable. Its docs say to use backoff with jitter, and OpenAI says to limit attempts and total retry time.",
+          "correct": true
+        },
+        {
+          "text": "Change the prompt, because a 429 is a moderation result.",
+          "explanation": "A 429 means too many requests. Moderation shows up as a FAILED task with a SAFETY failure code."
+        },
+        {
+          "text": "Resend it every second until it works, with no limit on tries.",
+          "explanation": "OpenAI warns that unsuccessful requests count toward your per-minute limit, so constant resending won't work."
+        },
+        {
+          "text": "Give up. A 429 can never be retried, so mark the job lost.",
+          "explanation": "Runway's table lists 429 as retryable."
+        }
+      ]
+    },
+    {
+      "prompt": "What is true about the cost of failures #1 and #6?",
+      "options": [
+        {
+          "text": "Both are free, because a failed task never uses any credits.",
+          "explanation": "Runway says credits are not refunded for SAFETY.INPUT.* failures."
+        },
+        {
+          "text": "#1 is free because it failed, and #6 is charged by Google.",
+          "explanation": "It is the other way round: Runway does not refund #1, and Google does not charge #6."
+        },
+        {
+          "text": "Both are charged in full, because the vendors did work on them.",
+          "explanation": "Google says you will not be charged when a Veo video is blocked because of an audio issue."
+        },
+        {
+          "text": "#1 is not refunded by Runway. #6 is not charged by Google.",
+          "explanation": "Right. These are the vendors' own rules. Check each one before a bulk retry.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

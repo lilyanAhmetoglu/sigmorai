@@ -1,0 +1,91 @@
+---
+id: creator/r2/c2/lesson
+title: Tools in chat
+minutes: 6
+sources:
+  - kind: docs
+    title: Claude docs · Tool use overview
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+  - kind: docs
+    title: OpenAI docs · Function calling
+    url: https://developers.openai.com/api/docs/guides/function-calling
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: OpenAI docs · Image generation tool
+    url: https://developers.openai.com/api/docs/guides/tools-image-generation
+  - kind: docs
+    title: Gemini API docs · Function calling
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+---
+
+## Why it matters
+
+Many studios now work in a chat window: "make me a banner", "now try it in blue", "post it". Behind that chat, the assistant is not making the picture itself. It is **calling tools**. A tool is a small service the assistant can ask for help: an image maker, a file saver, a posting button.
+
+If you design or approve such a chat, you decide which tools exist, what they are called, and which ones need a human check. This lesson shows how tools work, so you can make those calls.
+
+## The model asks, the app does
+
+All three vendors describe the same loop.
+
+- Anthropic: Claude "determines when to call a tool based on the user's request and the tool's description". It "returns a structured call that your application executes".
+- OpenAI: the model may decide it needs a tool. It returns a tool call. Your application runs it and sends back the output.
+- Google: "The model _doesn't_ execute the function itself." You extract the name and arguments and run it in your application.
+
+So the model only writes a request, such as "call `make_image` with these settings". Something else runs it.
+
+There is one more kind. Anthropic calls tools that Anthropic runs for you **server tools** (web search is one). OpenAI has **built-in tools**, and image generation is one of them. For those, the vendor runs the tool and you do not write the running code.
+
+Example: you ask a chat assistant for a banner. The assistant calls an image tool. The tool makes the image. The assistant shows it to you and says what it did.
+
+## Image generation as a tool
+
+OpenAI offers image generation as a built-in tool in its Responses API. Two settings matter to you:
+
+- **Action.** The model can choose to generate a new image or edit an image already in the conversation. The `action` setting controls this. `auto` lets the model decide. `generate` or `edit` forces one. The default is `auto`.
+- **Revised prompt.** In the tool, the model rewrites your prompt first. The revised text comes back in a `revised_prompt` field.
+
+Google's image models work inside the conversation too. Its docs say a Gemini 3 image model (not 3.1 Flash Lite) can use Google Search as a tool "to verify facts and generate imagery based on real-time data", such as weather maps or recent events.
+
+Claude does not make images (Chapter 1 of the Bootstrap Village covered this). But Anthropic's docs say Claude can call functions that you define. So a studio could give Claude a function that sends a request to an image model. Claude asks, your function makes the image. This is our example, not a feature Anthropic sells.
+
+## Auto or forced
+
+By default, the model chooses. Anthropic's docs say that with the default `tool_choice` of `auto`, "Claude determines on each turn whether to call a tool or respond directly". To require a tool call, set `tool_choice`.
+
+Why would a creator care? Example: the client approved image 3. A teammate types "make the sky bluer". With `action: auto`, the tool may generate a brand new image instead of editing image 3. Forcing `edit` keeps the approved picture as the starting point. Forcing `generate` is right when the client wants fresh ideas.
+
+## Names and descriptions are part of the design
+
+The model picks a tool from its **name and description**. So a vague description causes wrong calls. Google's best practices say: "Function and Parameter Descriptions: Be clear and specific." and "Naming: Use descriptive names without spaces or special characters."
+
+Missing details are another risk. Anthropic's docs show an example. A weather tool needs a `location`. A user asks "What's the weather?" with no place. Claude "might guess values you didn't supply". The docs add: "This behavior is not guaranteed".
+
+Example: a `make_image` tool needs an `aspect_ratio`. The user only says "a banner". The assistant may pick 1:1, and the client wanted 16:9. Fix this in the tool design: say in the description that the ratio must come from the user, or make the chat ask first.
+
+## Check before the tool acts
+
+Google lists "Validate function calls before executing" as a best practice. Why: a tool call is the model's request, not a promise that the request is wise.
+
+Our rule for studios: split tools into two kinds.
+
+- **Make tools** create drafts: generate, edit, resize. A wrong call wastes a little time.
+- **Send tools** have outside effects: publish, email, delete, pay. A wrong call reaches a client or a customer.
+
+Put a person between the model and every send tool.
+
+## Tools have a cost
+
+Tool definitions are not free. Anthropic says the names, descriptions and schemas in the `tools` parameter count as input tokens. OpenAI says Responses API requests include the main model's token use in addition to the image generation costs. A chat with many tools and long descriptions costs more on every turn.
+
+## What this means for your work
+
+- **Know who runs the tool.** The model asks. Your app, or the vendor, does the work.
+- **Choose auto or forced on purpose.** Use forced `edit` when a picture is approved.
+- **Write tool descriptions like a brief.** Say what the tool does, and which details must come from the user.
+- **Keep a human before every send tool.** Make tools can be tried freely. Send tools cannot.

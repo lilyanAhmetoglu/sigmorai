@@ -1,0 +1,127 @@
+---
+id: creator/r2/c6/lesson
+title: Creative apps
+minutes: 6
+sources:
+  - kind: docs
+    title: Runway API docs · Agent context primer
+    url: https://docs.dev.runwayml.com/ai-context.md
+  - kind: docs
+    title: Runway API docs · Product Ad recipe
+    url: https://docs.dev.runwayml.com/recipes/product-ad
+  - kind: docs
+    title: Runway API docs · Multi-Shot Video recipe
+    url: https://docs.dev.runwayml.com/recipes/multi-shot-video
+  - kind: docs
+    title: Runway API docs · Reference media guidelines
+    url: https://docs.dev.runwayml.com/recipes/reference-media
+  - kind: docs
+    title: Runway API docs · Production launch checklist
+    url: https://docs.dev.runwayml.com/guides/go-live
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: OpenAI docs · Image generation tool
+    url: https://developers.openai.com/api/docs/guides/tools-image-generation
+  - kind: docs
+    title: OpenAI docs · Rate limits
+    url: https://developers.openai.com/api/docs/guides/rate-limits
+  - kind: docs
+    title: OpenAI docs · Error codes
+    url: https://developers.openai.com/api/docs/guides/error-codes
+  - kind: docs
+    title: Runway API docs · Handle task failures
+    url: https://docs.dev.runwayml.com/errors/task-failures
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: OpenAI docs · Function calling
+    url: https://developers.openai.com/api/docs/guides/function-calling
+  - kind: docs
+    title: Claude docs · Tool use overview
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+---
+
+## Why it matters
+
+A real client job is never one call. It is a brief, some shots, some images, a voice, a check, an export. A **creative app** is a tool that hides several of those steps behind one screen or one request.
+
+You will be asked to choose between a ready-made chain and a chain you design yourself. This lesson gives you the three levels and the questions to ask. It also shows where a person must stay in the loop.
+
+## Three levels of "one button"
+
+This grouping is ours, not a vendor's.
+
+1. **A single call.** One request, one asset. This is Chapters 1 to 5.
+2. **A vendor workflow.** The vendor has already built some of the steps.
+3. **Your own chain.** You pick the steps, the tools and the checks.
+
+## Level 2: prebuilt workflows
+
+Some vendors run part of the chain for you. Here are two examples.
+
+**Runway Recipes.** Runway calls its chains **Recipes**. Its primer says Recipes "are prebuilt multi-step workflows that wrap several generations behind a single call, so you do not have to orchestrate the steps yourself".
+
+- **Product Ad.** You give one to ten product photos, up to four style images, product notes and a creative direction. The docs say the recipe "analyzes the product, builds a storyboard, and renders a short video". Length is 4 to 15 seconds (default 10). Audio is off by default.
+- **Multi-Shot Video.** In `auto` mode you give one story prompt and the recipe splits it into shots. In `custom` mode you give 3 to 5 shots, and the shot lengths must add up to the total length. The total is 5, 10 or 15 seconds. Audio is **on** by default.
+
+Look at the two audio defaults. One recipe turns sound off, the other turns it on. **Check defaults for every recipe.** A silent ad or a surprise soundtrack can reach a client.
+
+A recipe is still a job. The primer says recipes return a task and follow the same contract as any other generation: submit, wait, pick up (Chapter 3). The same file and error rules apply (Chapters 4 and 5).
+
+Pin the version. Runway says to use "a dated version like `2026-06` to pin behavior, or `unsafe-latest` to track the newest stable version". For a client project, a pinned version helps keep the look steady from the first draft to the last.
+
+**OpenAI's built-in image generation tool.** In OpenAI's Responses API you add the `image_generation` tool to a request. The tool page says: "the model can decide when and how to generate images as part of the conversation, using your prompt and any provided image inputs." The result comes back as an `image_generation_call` with a base64-encoded image. You do not build the image step. You choose its settings (Chapter 1) and whether the model decides when to use it (Chapter 2).
+
+What the two have in common is our summary: you give up control of the inner steps in return for speed. So **read the defaults and the limits** before you promise a client anything.
+
+## Level 3: your own chain
+
+Vendors document the pieces you need to chain steps yourself.
+
+- **Image to video.** Google says Veo 3.1 accepts "up to 3 reference images" and can use first and last frames. A hero image from step 1 can steer a clip in step 2.
+- **Edit in turns.** OpenAI's image guide describes multi-turn editing, where you refine an image across conversation turns.
+- **Let a chat assistant run it.** In OpenAI's tool-calling flow, "your application can continue this flow for as many tool calls as the task requires". In Anthropic's flow, Claude returns a tool call, your code runs it, and the result goes back to Claude. A studio could use this to run a chain step by step (Chapter 2).
+
+Each hand-off needs the checks from Chapter 4: type, size, shape, place and time.
+
+## References are the biggest lever
+
+For Runway recipes, references are the biggest lever on quality. Its page says: "Strong references are the single biggest lever on output quality." Its guidelines:
+
+- Use the highest-quality source you have.
+- Keep the subject clear and free of clutter.
+- Use even, neutral light. Harsh shadows "can carry into the result".
+- One subject per reference.
+- Avoid watermarks or overlaid text on a product image.
+
+For people: "only use references of people you have permission to depict. You are responsible for the rights to any likeness you submit." Rights were covered in the Bootstrap Village. Here it becomes a step in your chain: confirm permission before the reference goes in.
+
+## Before the app goes live
+
+Runway's launch checklist is a good model, and OpenAI's pages back its failure advice. Our summary:
+
+- **Limits.** Your tier decides how many generations per day and how many at the same time. Check that it fits the demand.
+- **Credits.** Set up autobilling so the project does not run out of credits unexpectedly.
+- **Failures.** Test that the app copes with `429` and `503` errors (Runway's checklist). OpenAI says to follow `Retry-After` when it is present, and says: "Limit both the number of attempts and the total time spent retrying." So cap the retries.
+- **Monitoring.** Watch the error rate, the request count and the count of throttled tasks.
+- **Keys.** Never hard-code a key. Use a separate key for each person and place.
+
+## A pipeline sheet
+
+Before you build, write one line per step. This is our template:
+
+| Step | Input | Tool | Output | Person checks | Saved where |
+| ---- | ----- | ---- | ------ | ------------- | ----------- |
+
+If a row's "Person checks" cell is empty on a step that reaches the client, you have found a gap.
+
+## What this means for your work
+
+- **Choose the level on purpose.** A recipe is fast. Your own chain gives control.
+- **Read recipe defaults.** Audio, length and shape can differ between recipes.
+- **Pin versions where the vendor allows it.** Runway recipes do. Do not let a tool change under a running project.
+- **Clean references first.** Runway calls them the biggest lever for its recipes.
+- **Keep a person at each client-facing step.**
