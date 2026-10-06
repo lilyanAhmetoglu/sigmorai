@@ -17,9 +17,9 @@ export const metadata: Metadata = {
     title: LANDING_META.title,
     description: LANDING_META.description,
   },
-  // No share image exists yet, so the small card (no large-image placeholder).
+  // The image comes from app/opengraph-image.tsx; Twitter falls back to og:image.
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: LANDING_META.title,
     description: LANDING_META.description,
   },
