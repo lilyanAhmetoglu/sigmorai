@@ -5,6 +5,7 @@ import { DialogBox } from '@/components/dialog-box';
 import { Panel } from '@/components/panel';
 import { PixelButton } from '@/components/pixel-button';
 import { ChapterList } from '@/components/realms/chapter-list';
+import { RealmActionLabel } from '@/components/realms/realm-action-label';
 import { RealmScene } from '@/components/realms/realm-scene';
 import { SignInNote } from '@/components/realms/sign-in-note';
 import { StatusBadge } from '@/components/realms/status-badge';
@@ -13,7 +14,6 @@ import {
   MAP_TEXT,
   mapHref,
   questHref,
-  REALM_ACTION_TEXT,
   REALM_STATUS_TEXT,
   realmHref,
   REALMS,
@@ -91,7 +91,7 @@ export default async function RealmPage({ params, searchParams }: PageProps<'/re
           <div className="flex flex-wrap gap-3">
             {next && (
               <PixelButton href={questHref(next.step.exerciseId)}>
-                {REALM_ACTION_TEXT[realm.status]}
+                <RealmActionLabel status={realm.status} name={realm.name} />
               </PixelButton>
             )}
             <PixelButton href={mapHref(realm.slug, track)} variant="secondary">

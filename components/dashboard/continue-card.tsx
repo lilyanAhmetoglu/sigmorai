@@ -5,13 +5,13 @@ import {
   DASHBOARD_TEXT,
   QUEST_TEXT,
   questHref,
-  REALM_ACTION_TEXT,
   REALMS_HREF,
   REALMS_TEXT,
   STEP_TEXT,
 } from '@/lib/constants';
 import { realmAccent } from '@/lib/content/curriculum';
 import type { NextStep, RealmView } from '@/lib/types';
+import { RealmActionLabel } from '@/components/realms/realm-action-label';
 import { RealmScene } from '@/components/realms/realm-scene';
 
 type Props = {
@@ -56,7 +56,7 @@ export function ContinueCard({ next, realms }: Props) {
         />
       </div>
       <PixelButton href={questHref(next.step.exerciseId)}>
-        {REALM_ACTION_TEXT[realm.status]}
+        <RealmActionLabel status={realm.status} name={realm.name} />
       </PixelButton>
     </Panel>
   );

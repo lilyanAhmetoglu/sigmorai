@@ -32,7 +32,7 @@
 - 'Lesson done' is one explicit button → completeLesson (already shipped): +10 XP once (XP_REWARDS.lesson), progress row, streak. No scroll or time tracking. After done, Continue goes to the same chapter's case.
 - The lock is unchanged: the case never needs the lesson first.
 - Layout follows the design quest screen: LESSON | SOURCES tabs left, done panel right.
-- Lessons are public. Per-page metadata + canonical; the sitemap is a later ticket.
+- Lessons are public. Per-page metadata + canonical; the sitemap is a later ticket (done in SIG-24).
 
 ## Amendments locked 2026-10-05 (no-code pivot)
 
