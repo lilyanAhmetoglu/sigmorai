@@ -14,7 +14,6 @@ import {
 
 export const metadata: Metadata = {
   title: { absolute: NOT_FOUND_META.title },
-  robots: { index: false },
 };
 
 /**
