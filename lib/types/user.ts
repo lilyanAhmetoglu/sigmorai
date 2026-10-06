@@ -1,13 +1,51 @@
 import { z } from 'zod';
-import { HERO_NAME_MAX, HERO_NAME_MIN, HERO_NAME_PATTERN, TRACKS } from '@/lib/constants';
+import {
+  HERO_NAME_MAX,
+  HERO_NAME_MIN,
+  HERO_NAME_PATTERN,
+  HERO_NAME_SCRIPT_GROUPS,
+  RESERVED_HERO_NAMES,
+  TRACKS,
+} from '@/lib/constants';
 
-/** The name a player picks at onboarding. The DB CHECK enforces the length too. */
+/** Characters that are not part of a name's "word": "Sig-morai" and "sig morai" both match "sigmorai". */
+const NAME_SEPARATORS = /[ .'_-]/gu;
+const LETTER = /\p{L}/u;
+
+/** The reserved-word key of a name: lower case, separators removed. */
+export const heroNameKey = (name: string): string =>
+  name.toLowerCase().replace(NAME_SEPARATORS, '');
+
+/** True when every letter comes from one script group (HERO_NAME_SCRIPT_GROUPS). */
+export function isSingleScript(name: string): boolean {
+  let first: number | undefined;
+  for (const char of name) {
+    if (!LETTER.test(char)) continue;
+    // A letter in no listed group (Kannada, Khmer, Cherokee…) shares one OTHER group (-1).
+    const group = HERO_NAME_SCRIPT_GROUPS.findIndex((g) => g.test(char));
+    first ??= group;
+    if (group !== first) return false;
+  }
+  return true;
+}
+
+const RESERVED = new Set(RESERVED_HERO_NAMES.map(heroNameKey));
+
+/**
+ * The name a player picks at onboarding. Trim, then NFKC (full-width "Ａｄｍｉｎ"
+ * becomes "Admin") BEFORE the length and character checks, so the checks see
+ * what gets stored. The DB CHECK enforces the length too, and a unique index on
+ * lower(hero_name) stops two heroes sharing a name.
+ */
 export const HeroNameSchema = z
   .string()
   .trim()
+  .normalize('NFKC')
   .min(HERO_NAME_MIN)
   .max(HERO_NAME_MAX)
-  .regex(HERO_NAME_PATTERN);
+  .regex(HERO_NAME_PATTERN)
+  .refine(isSingleScript, { message: 'mixed_script' })
+  .refine((name) => !RESERVED.has(heroNameKey(name)), { message: 'reserved' });
 
 /**
  * The track-picker form (lib/actions/create-hero.ts). The only two things the
@@ -43,7 +81,8 @@ export type OnboardingField = keyof OnboardingInput;
  * redirects. null = nothing submitted yet.
  */
 export type OnboardingFormState = {
-  error: 'invalid_input' | 'unauthorized' | 'server_error';
+  /** name_taken: another hero has this name (any case). fields = ['heroName']. */
+  error: 'invalid_input' | 'name_taken' | 'unauthorized' | 'server_error';
   fields?: OnboardingField[];
 } | null;
 

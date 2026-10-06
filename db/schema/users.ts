@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-import { HERO_NAME_MAX, HERO_NAME_MIN, TRACKS } from '@/lib/constants';
+import { check, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { HERO_NAME_MAX, HERO_NAME_MIN, HERO_NAME_UNIQUE_INDEX, TRACKS } from '@/lib/constants';
 import { oneOf } from './checks';
 
 /**
@@ -34,6 +34,10 @@ export const users = pgTable(
       'users_hero_name_length_check',
       sql`char_length(${t.heroName}) between ${sql.raw(String(HERO_NAME_MIN))} and ${sql.raw(String(HERO_NAME_MAX))}`,
     ),
-    index('users_xp_idx').on(t.xp.desc()),
+    // All-time leaderboard: top 25 and "your rank" walk this index in tie order (lib/data/leaderboard.ts).
+    index('users_leaderboard_idx').on(t.xp.desc(), t.createdAt.asc(), t.id.asc()),
+    // One hero per name, any case: the name is public on the leaderboard. The app
+    // NFKC-normalises first (HeroNameSchema). createHero maps a clash to name_taken.
+    uniqueIndex(HERO_NAME_UNIQUE_INDEX).on(sql`lower(${t.heroName})`),
   ],
 );

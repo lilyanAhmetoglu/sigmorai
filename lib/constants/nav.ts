@@ -1,4 +1,5 @@
-import type { NavItem, Track } from '@/lib/types';
+import type { LeaderboardRange, NavItem, Track } from '@/lib/types';
+import { RANGE_PARAM } from './leaderboard';
 
 /** The public landing page. Where a deleted account lands. */
 export const HOME_HREF = '/';
@@ -42,6 +43,10 @@ export const QUEST_HREF = '/quest';
 export const questHref = (exerciseId: string) => `${QUEST_HREF}/${exerciseId}`;
 /** The quest page's fallback back link (a realm quest goes back to its realm: questBackHref). */
 export const QUEST_BACK_HREF = REALMS_HREF;
+/** The public leaderboard: `/leaderboard`, plus `?range=` (lib/constants/leaderboard.ts). */
+export const LEADERBOARD_HREF = '/leaderboard';
+export const leaderboardHref = (range: LeaderboardRange) =>
+  `${LEADERBOARD_HREF}?${RANGE_PARAM}=${range}`;
 /** Where onboarding sends the player. */
 export const AFTER_ONBOARDING_HREF = DASHBOARD_HREF;
 
@@ -55,7 +60,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Dashboard', href: DASHBOARD_HREF, live: true },
   { label: 'Realms', href: REALMS_HREF, live: true },
   { label: 'World map', href: MAP_HREF, live: true },
-  { label: 'Leaderboard', href: '/leaderboard', live: false },
+  { label: 'Leaderboard', href: LEADERBOARD_HREF, live: true },
   { label: 'Math Tower', href: MATH_HREF, live: true },
   { label: 'Profile', href: PROFILE_HREF, live: true },
 ];

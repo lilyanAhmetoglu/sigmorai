@@ -19,3 +19,10 @@ export function dbErrorSummary(error: unknown): DbErrorSummary {
     constraint: field(error, 'constraint') ?? field(cause, 'constraint'),
   };
 }
+
+/** Postgres SQLSTATE for unique_violation. */
+const UNIQUE_VIOLATION = '23505';
+
+/** True when the summary is a unique violation on the named index or constraint. */
+export const isUniqueViolation = (summary: DbErrorSummary, constraint: string): boolean =>
+  summary.code === UNIQUE_VIOLATION && summary.constraint === constraint;
