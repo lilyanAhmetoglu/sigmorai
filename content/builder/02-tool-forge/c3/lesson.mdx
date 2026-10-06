@@ -1,0 +1,84 @@
+---
+id: builder/r2/c3/lesson
+title: Results & errors
+minutes: 9
+sources:
+  - kind: docs
+    title: Handle tool calls (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls
+  - kind: docs
+    title: 'Tutorial: Build a tool-using agent (Claude docs)'
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent
+  - kind: docs
+    title: Define tools (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools
+  - kind: blog
+    title: Writing effective tools for agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/writing-tools-for-agents
+  - kind: docs
+    title: Function calling (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/function-calling
+  - kind: docs
+    title: Function calling (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+The model asked for a tool, and your code ran it. Now you send back what happened. The model continues from what you return, so write the result with the same care as a prompt. This chapter covers the format, the size and the errors.
+
+## Match each result to its call
+
+Every call has an id, and your result must carry the same id.
+
+- Claude: the call is a `tool_use` block with an `id`. You reply with a `tool_result` block whose `tool_use_id` is that id. It goes in the next `user` message.
+- OpenAI: the call is a `function_call` item with a `call_id`. You reply with a `function_call_output` item that carries the same `call_id`.
+
+The Claude docs add two strict format rules. Tool results "must immediately follow their corresponding tool use blocks in the message history". And in that user message, the `tool_result` blocks "must come FIRST in the content array"; any text goes after them. Breaking these rules returns an error.
+
+## What a result can contain
+
+OpenAI says the output "should typically be a string, where the format is up to you (JSON, error codes, plain text, etc.). The model will interpret that string as needed." Functions that return images or files can pass an array of image or file objects instead.
+
+The Claude `content` field can be a string or a list of blocks: text, image, document or search result.
+
+What if the tool has nothing to return, such as `send_email`? OpenAI: "return a string that indicates success or failure, such as "success"." Never leave the model guessing whether the action happened.
+
+## Return only what matters
+
+The Claude docs: "Design tool responses to return only high-signal information." Return stable ids that mean something, and "include only the fields Claude needs to reason about its next step." They warn that "Bloated responses waste context".
+
+Anthropic's engineering post on tool design suggests pagination, range selection, filtering or truncation, with sensible defaults, for any tool that could return a lot. It notes that Claude Code limits tool responses to 25,000 tokens by default. In one example, a "concise" response format used about a third of the tokens of the "detailed" one.
+
+Example: a `search_orders` tool returns 3,000 rows of raw database columns. A better version returns the 10 most recent orders with id, date, status and total, and says "Showing 10 of 3,000. Pass `page=2` or a `status` filter for more."
+
+## When the tool fails
+
+Tools fail: a network timeout, a rate limit, a record that does not exist. Don't crash the loop and don't hide the failure.
+
+On Claude, you return the error as the result content with `is_error: true`. The Claude tutorial explains why: "Claude reads the error and can retry with corrected input, ask the user for clarification, or explain the limitation."
+
+In OpenAI's function calling guide, the output is one string in a format you choose, and "error codes" is one of the formats it lists. So the error message goes in that string. Gemini's best practices list "Error Handling: Implement robust error handling."
+
+Whichever vendor you use, write the error for the model to read. The Claude docs: instead of a generic "failed", "include what went wrong and what Claude should try next". Their example: `"Rate limit exceeded. Retry after 60 seconds."` Anthropic's engineering post says the same: give "specific and actionable improvements, rather than opaque error codes or tracebacks."
+
+Example:
+
+```text
+Unhelpful:  Error 404
+Helpful:    No order with id 4471. Order ids have 4 digits and are printed
+            on the receipt. Ask the customer to check the number.
+```
+
+## Calls that are wrong to begin with
+
+Sometimes the call itself is bad: a required parameter is missing, or a value has the wrong type. Gemini's best practices say to validate function calls before executing them. Check the input first, and if it fails, send back an error result that names the problem.
+
+The Claude docs say that when a tool request is invalid or missing parameters, "Claude will retry 2-3 times with corrections before apologizing to the user." They suggest two longer-term fixes: write more detailed descriptions, and use strict mode (chapter 2) so inputs always match the schema.
+
+## Key points
+
+- Every result carries the id of its call: `tool_use_id` on Claude, `call_id` on OpenAI.
+- On Claude, results come right after the call, and before any text in the message.
+- Return a result even when there is nothing to return: say "success" or what failed.
+- Keep results small and high-signal. Page, filter or truncate large data.
+- Report errors as results, not crashes. On Claude, set `is_error: true`.
+- Write errors the model can act on: what went wrong and what to try next.
