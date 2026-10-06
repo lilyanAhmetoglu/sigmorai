@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r5/c4/challenge",
+  "title": "The calendar server with too many keys",
+  "scenario": "You are an IT risk analyst at a recruitment agency with 150 consultants. The team wants its AI assistant to read consultants' calendars and suggest interview slots. A third-party company offers a remote MCP server for the calendar system.\n\nThe IT lead filled in a request form and asks you to review it before go-live. The exhibit shows the form.",
+  "exhibit": "MCP server request form (made-up example data)\n\nServer: \"CalendarPro MCP\", run by a third-party company\nUse case: read calendars, suggest interview slots\n\nTools on the server (all switched on)\n  list_events            read\n  search_events          read\n  create_event           write\n  delete_all_events      write\n  share_calendar_public  write\n\nOAuth scopes requested: read and write ALL calendars\nApproval setting: never ask (\"saves time for consultants\")\nData: candidate names and interview notes appear in events\nAI vendor contract: Zero Data Retention (ZDR) agreed\nIT note: \"ZDR covers everything, so the server's own data\nterms don't matter.\"\nLogging: none",
+  "questions": [
+    {
+      "prompt": "Which change to the tools fits the vendors' guidance best?",
+      "options": [
+        {
+          "text": "Keep all five tools on; the model only calls a tool when the user asks for it.",
+          "explanation": "The model decides when to call tools. Both vendors provide tool limits so that unneeded tools can't be called at all."
+        },
+        {
+          "text": "Turn on only the read tools the use case needs, and switch off delete and share.",
+          "explanation": "Right. OpenAI's allowed_tools and Anthropic's allowlist and denylist do this. Anthropic's page recommends denylisting write or destructive tools for read-only assistants.",
+          "correct": true
+        },
+        {
+          "text": "Rename delete_all_events to a safer name, so the model is less likely to call it.",
+          "explanation": "A new name doesn't remove the power. The tool can still delete events if it is called."
+        },
+        {
+          "text": "Add a line to the prompt: \"never delete or share calendars\", and keep the tools on.",
+          "explanation": "A prompt line is not a control, and hidden instructions could override it. Switching the tools off removes the risk."
+        }
+      ]
+    },
+    {
+      "prompt": "The server asks for \"read and write ALL calendars\". What should the review say?",
+      "options": [
+        {
+          "text": "Accept it: a server needs full access, or OAuth sign-in will fail.",
+          "explanation": "Anthropic's Claude Code page shows you can pin the scopes to an approved subset, even when the server asks for more."
+        },
+        {
+          "text": "Accept it, but change the account password every month instead.",
+          "explanation": "A new password doesn't reduce what the access token can do. Scopes do that."
+        },
+        {
+          "text": "Reject OAuth and share one consultant's username and password with the server instead.",
+          "explanation": "Shared passwords give full access and no limit. Narrow OAuth scopes are the safer route."
+        },
+        {
+          "text": "Grant only the narrowest scope that the use case needs, such as read access to events.",
+          "explanation": "Right. Anthropic's Claude Code page describes pinning OAuth scopes to a set the security team has approved.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The IT note says ZDR with the AI vendor covers everything. What is accurate?",
+      "options": [
+        {
+          "text": "Data sent to the MCP server follows the server's own retention terms, so those need review too.",
+          "explanation": "Right. OpenAI's data controls page says MCP servers are third-party services with their own retention policies. Anthropic's MCP connector page says the connector is not covered by ZDR.",
+          "correct": true
+        },
+        {
+          "text": "ZDR covers the server too, because the server is reached through the AI vendor's API.",
+          "explanation": "OpenAI says data sent to an MCP server follows that server's own retention policies, and Anthropic says its MCP connector isn't covered by ZDR at all."
+        },
+        {
+          "text": "ZDR doesn't matter here, because calendar events never contain personal data.",
+          "explanation": "The exhibit says candidate names and interview notes appear in events."
+        },
+        {
+          "text": "ZDR means the server must delete every event after each request, so data is safe.",
+          "explanation": "ZDR is an agreement with the AI vendor. It sets no rules for a third-party server."
+        }
+      ]
+    },
+    {
+      "prompt": "Approval is set to \"never ask\" and there is no logging. What fits OpenAI's guidance best?",
+      "options": [
+        {
+          "text": "Keep \"never ask\"; approvals are only needed for servers built by your own team.",
+          "explanation": "The guide says the opposite: approvals matter most for third-party servers you don't yet trust."
+        },
+        {
+          "text": "Keep \"never ask\" but add logging, so mistakes can be undone afterwards.",
+          "explanation": "Logs help you find problems, but a deleted calendar or a public share has already happened. Write actions need approval first."
+        },
+        {
+          "text": "Turn approvals on, at least for sensitive actions, and log data sent to the server.",
+          "explanation": "Right. OpenAI's MCP guide says to require approval for sensitive actions, to skip approvals only once you trust a server, and to log data sent to MCP servers.",
+          "correct": true
+        },
+        {
+          "text": "Turn approvals on only for read tools, because reading private data is the main risk.",
+          "explanation": "Reads carry risk, but write tools like delete and share have the most direct effect. The guide asks for approval on sensitive actions."
+        }
+      ]
+    }
+  ]
+}
