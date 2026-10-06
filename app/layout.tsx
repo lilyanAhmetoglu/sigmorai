@@ -41,6 +41,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       className={`${pixelifySans.variable} ${silkscreen.variable} ${atkinson.variable} ${jetbrainsMono.variable} h-full`}
     >
       <body className="flex min-h-full flex-col">
+        {/* Never pass `dynamic`: it makes / dynamic and breaks the landing CTA swap (LandingCta). */}
         <ClerkProvider>{children}</ClerkProvider>
       </body>
     </html>

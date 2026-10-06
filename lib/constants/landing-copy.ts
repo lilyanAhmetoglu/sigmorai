@@ -20,6 +20,8 @@ export const LANDING_META = {
 
 export const LANDING_TEXT = {
   navLabel: 'Account',
+  /** Replaces Sign in / Start free for a signed-in visitor (links to the dashboard). */
+  continueQuest: 'Continue quest',
   eyebrow: 'AI ENGINEERING · PIXEL-ART RPG',
   title: 'Start your AI engineering adventure.',
   lede: `Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work.`,

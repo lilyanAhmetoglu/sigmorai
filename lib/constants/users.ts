@@ -33,6 +33,14 @@ export const RESERVED_HERO_NAMES: readonly string[] = [
   'oracle',
   'hallucinant',
   'mentor',
+  // Names that read like the system or a removed player on a public board.
+  'owner',
+  'security',
+  'help',
+  'anonymous',
+  'deleted',
+  'null',
+  'undefined',
 ];
 
 /**
