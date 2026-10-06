@@ -11,7 +11,7 @@ import {
 } from '@/lib/constants';
 import { expectNoViolations } from './axe';
 import { answersFor, type Answer } from './content';
-import { E2E_EMAIL, E2E_HERO } from './test-user';
+import { E2E_EMAIL, heroNameFor, testUserId } from './test-user';
 
 const CHAPTER_DIR = 'strategist/00-bootstrap-village/c1';
 const QUEST = '/quest/strategist/r0/c1';
@@ -31,6 +31,7 @@ async function submit(page: Page) {
 // The full loop: sign in → onboarding → lesson → case (fail, then pass) →
 // quick check → leaderboard. Assertions are on text, never on rank numbers.
 test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }) => {
+  const hero = heroNameFor(await testUserId());
   const caseAnswers = answersFor(CHAPTER_DIR, 'case.json');
   const checkAnswers = answersFor(CHAPTER_DIR, 'quick-check.json');
   const result = page.getByRole('status').filter({ hasText: /correct/ });
@@ -41,11 +42,11 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   // Onboarding: the setup deleted the users row, so this is a fresh hero.
   await page.goto('/onboarding');
   await expectNoViolations(page);
-  await page.getByLabel(ONBOARDING_TEXT.heroName).fill(E2E_HERO);
+  await page.getByLabel(ONBOARDING_TEXT.heroName).fill(hero);
   await page.getByRole('radio', { name: TRACK_TEXT.strategist.label }).check();
   await page.getByRole('button', { name: ONBOARDING_TEXT.submit }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole('group', { name: HUD_TEXT.label })).toContainText(E2E_HERO);
+  await expect(page.getByRole('group', { name: HUD_TEXT.label })).toContainText(hero);
   // The signed-in a11y check (a11y.spec.ts covers the public routes).
   await expectNoViolations(page);
 
@@ -76,6 +77,6 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
 
   // Leaderboard: the hero's own row, marked "YOU" in text.
   await page.goto('/leaderboard');
-  const mine = page.getByRole('listitem').filter({ hasText: E2E_HERO });
+  const mine = page.getByRole('listitem').filter({ hasText: hero });
   await expect(mine).toContainText(LEADERBOARD_TEXT.you);
 });

@@ -26,7 +26,8 @@ permissions:
 
 jobs:
   playwright:
-    if: vars.E2E_ENABLED == 'true'
+    # Fork PRs get no secrets: skip them instead of failing.
+    if: vars.E2E_ENABLED == 'true' && github.event.pull_request.head.repo.fork != true
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}

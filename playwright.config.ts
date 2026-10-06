@@ -19,11 +19,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   // One test user and one database: tests must not run side by side.
   workers: 1,
-  retries: process.env.CI ? 1 : 0,
+  // No retries: the setup resets the test user once, so a retried loop can't pass.
+  retries: 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: BASE_URL,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
   },
   projects: [
     { name: 'setup', testMatch: /global\.setup\.ts/ },
