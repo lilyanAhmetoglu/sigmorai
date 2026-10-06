@@ -8,7 +8,7 @@ The step-by-step procedures live in `/commit`, `/push` and `/review`. The hard d
 
 1. **Claude may NOT run `git commit`** until the user types an explicit go-word: `commit`, `yes commit`, `go ahead and commit`, `ship it`.
 2. **Claude may NOT run `git push`** until the user types a **separate** go-word: `push`, `yes push`, `go ahead and push`. Approving a commit never approves a push.
-3. **Claude NEVER merges a PR.** Push a branch (with approval), open the PR, report the URL and CI status, then **stop**. Even an explicit "merge" in chat does not authorise `gh pr merge`.
+3. **Claude may merge a PR into `canary`** with `gh pr merge <n> --merge` when the `cto` review has no Must-fix, CI is green and the PR is `MERGEABLE` (maintainer, 2026-10-05 and 2026-10-06). A merge into `main` (a release) still needs the maintainer's go-word: `release`.
 
 Staging exact paths (`git add <files>`) is not committing and needs no go-word. `git add .` and `git add -A` are never acceptable.
 
@@ -22,7 +22,7 @@ Staging exact paths (`git add <files>`) is not committing and needs no go-word. 
 
 ## Always needs a fresh, in-message approval
 
-Never carried over from an earlier "yes": `git push --force` / `--force-with-lease` · `git commit --amend` on pushed commits · `git reset --hard` · `git rebase` on a shared branch · `git checkout --` / `git restore .` / `git clean -f` that throws away work · `git branch -D` on an unmerged branch · `--no-verify` / `--no-gpg-sign` · deleting tags or releases · `gh pr merge` / `gh pr close` / `gh release delete` · pushing directly to `main` or `canary` (always go through a PR).
+Never carried over from an earlier "yes": `git push --force` / `--force-with-lease` · `git commit --amend` on pushed commits · `git reset --hard` · `git rebase` on a shared branch · `git checkout --` / `git restore .` / `git clean -f` that throws away work · `git branch -D` on an unmerged branch · `--no-verify` / `--no-gpg-sign` · deleting tags or releases · `gh pr close` / `gh release delete` · pushing directly to `main` or `canary` (always go through a PR).
 
 Before one of these, say in plain words what will happen ("this rewrites history already on origin/main") and wait for a fresh yes.
 

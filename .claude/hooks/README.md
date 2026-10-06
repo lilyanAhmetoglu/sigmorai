@@ -14,7 +14,7 @@ Deterministic guardrails. A rule in markdown is a **request**; a hook is a **gua
 
 ### `guard-bash.sh` denies
 
-`gh pr merge` / `gh pr close` / `gh release delete` · `git push --force` / `-f` · `git reset --hard` · `git clean -f` · `git commit --amend` · `--no-verify` / `--no-gpg-sign` · `git add .` / `-A` · staging a secret-shaped path (`.env*` except `.env.example`, `*.pem`, `*.key`, `*credentials*`, `*secret*`) · direct push to `main` or `canary` in any form (`HEAD:main`, `+main`) · `npm` / `pnpm` / `yarn` / `npx` (no exceptions in this repo).
+`gh pr close` / `gh release delete` · `git push --force` / `-f` · `git reset --hard` · `git clean -f` · `git commit --amend` · `--no-verify` / `--no-gpg-sign` · `git add .` / `-A` · staging a secret-shaped path (`.env*` except `.env.example`, `*.pem`, `*.key`, `*credentials*`, `*secret*`) · direct push to `main` or `canary` in any form (`HEAD:main`, `+main`) · `npm` / `pnpm` / `yarn` / `npx` (no exceptions in this repo).
 
 A segment must **start** with the binary to count, and heredoc bodies are dropped as data. So a commit message that names a blocked command is fine, while `echo hi && git add .` still trips.
 
