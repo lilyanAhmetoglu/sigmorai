@@ -38,7 +38,7 @@ const EXHIBIT_TITLE_ID = 'quest-exhibit-title';
 /**
  * The quest page (Sigmorai App.dc.html → isQuestBiz). A catch-all, because
  * exercise ids contain `/`: /quest/strategist/r0/c1/challenge. Lessons, cases
- * (chapter and boss) and quick checks, both tracks. For a case or quick check
+ * (chapter and boss) and quick checks, every track. For a case or quick check
  * the browser gets the public, shuffled view only. Lessons are public; their
  * NPC lines are the <DialogBox> blocks inside the lesson body. Math Tower
  * floors (lesson + quick check) use the same views and go back to the tower.

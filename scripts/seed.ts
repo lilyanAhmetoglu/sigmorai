@@ -23,6 +23,8 @@ const DEMOS: Demo[] = [
   { heroName: 'Karen Sparck Jones', track: 'strategist', chapters: 2, streak: 4 },
   { heroName: 'John McCarthy', track: 'builder', chapters: 1, streak: 0 },
   { heroName: 'Margaret Hamilton', track: 'strategist', chapters: 0, streak: 0 },
+  { heroName: 'Lillian Schwartz', track: 'creator', chapters: 3, streak: 2 },
+  { heroName: 'Muriel Cooper', track: 'creator', chapters: 1, streak: 0 },
 ];
 
 const demoId = (i: number) => `demo_${String(i + 1).padStart(2, '0')}`;

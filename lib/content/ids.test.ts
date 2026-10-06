@@ -58,6 +58,11 @@ describe('exercise ids round-trip', () => {
       { area: 'chapter', track: 'strategist', realm: 2, chapter: 3, step: 'challenge' },
     ],
     ['strategist/r3/boss/challenge', { area: 'boss', track: 'strategist', realm: 3 }],
+    ['creator/r0/boss/challenge', { area: 'boss', track: 'creator', realm: 0 }],
+    [
+      'creator/r0/c1/lesson',
+      { area: 'chapter', track: 'creator', realm: 0, chapter: 1, step: 'lesson' },
+    ],
     ['math/f1/lesson', { area: 'math', floor: 1, step: 'lesson' }],
     ['math/f8/quick-check', { area: 'math', floor: 8, step: 'quick-check' }],
     [

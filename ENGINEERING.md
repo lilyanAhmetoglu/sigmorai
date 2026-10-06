@@ -29,7 +29,7 @@ How Sigmorai is built. Stack, architecture rules, data model, build order. The f
 ## Amendments locked 2026-10-05 (no-code pivot)
 
 - **No code runner, no code editor.** The 2026-10-04 "Runner: E2B … fake runner" line is superseded. Stack rows "Editor: Monaco" and "Code runs: E2B via /api/run" are removed. `e2b` leaves package.json; `E2B_API_KEY` and `CODE_RUNNER` leave `.env.example`, `e2e.yml` and `eslint.config.mjs` (those code edits land in PR 2).
-- **Build order step 5:** "Quest page: graded scenario cases on both tracks + quick checks, plus XP/HP/streak logic."
+- **Build order step 5:** "Quest page: graded scenario cases on every track + quick checks, plus XP/HP/streak logic."
 - **"UI never imports a provider"** keeps DB, Anthropic and Blob; E2B is removed from the list.
 - **Data model:** `users` loses the four sandbox columns (migration 0003); `submissions.payload` is always `{ seed, answers, order }`. **`submissions` is graded at insert.** `status` is `passed` | `failed` with no default; `graded_at` is dropped (it always equalled `created_at`) and `submissions_graded_check` goes with it; `results` becomes NOT NULL. HP spent today = `failed` rows since 00:00 UTC, served by the existing `submissions_user_exercise_idx`. Migration 0003 (db-architect approved 2026-10-05); 0002 is never edited.
 
@@ -81,7 +81,7 @@ See `docs/build-prompt.md` → Data model, plus the Auth.js adapter tables (`acc
 2. Auth + track picker + profile/avatar
 3. DB schema + seed + dashboard + realms catalog + realm detail
 4. Level map
-5. Quest page: graded scenario cases on both tracks + quick checks, plus XP/HP/streak logic
+5. Quest page: graded scenario cases on every track + quick checks, plus XP/HP/streak logic
 6. Leaderboard + Math Tower
 7. AI mentor (+ eval corpus)
 8. Docs-watch (daily GitHub Action: hash cited pages, open one `docs-changed` issue) + the knowledge-sync Claude Code routine (drafts `new-level` PRs). No DB, no API key. See `docs/plans/knowledge-base-design-plan.md`, amendment 2026-10-06.

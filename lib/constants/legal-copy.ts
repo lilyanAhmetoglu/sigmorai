@@ -69,7 +69,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
     items: [
       {
         term: 'Hero',
-        text: 'Your hero name, your path (builder or strategist), and when you made the hero. The hero name is public on the leaderboard.',
+        text: 'Your hero name, your path, and when you made the hero. The hero name is public on the leaderboard.',
       },
       {
         term: 'Stats',

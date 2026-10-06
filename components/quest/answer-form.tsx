@@ -32,7 +32,7 @@ function summarize(outcome: AnswerOutcome | null, hp: HpValue | null): string {
 
 /**
  * The case / quick-check panel (Sigmorai App.dc.html → isQuestBiz, right
- * column), both tracks: the bar with HP, the questions, Submit answers, the
+ * column), every track: the bar with HP, the questions, Submit answers, the
  * result, the cleared panel and the toasts. The browser sends the seed and
  * the picked display indexes only; every grade comes from the server.
  */

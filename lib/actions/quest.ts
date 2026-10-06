@@ -70,7 +70,7 @@ async function lockUser(tx: Tx, userId: string): Promise<QuestFailure | null> {
 }
 
 /**
- * submitCase: a chapter case or a boss (both tracks). The browser sends the
+ * submitCase: a chapter case or a boss (every track). The browser sends the
  * page's seed and one display index per question; the server grades. A wrong
  * answer set costs 1 HP (3 per case per UTC day); a replay costs 0, earns 0
  * and writes no submissions row. A first-time fail returns only "N of M correct".

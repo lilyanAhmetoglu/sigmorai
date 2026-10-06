@@ -147,7 +147,7 @@ export async function getRealmPage(slug: string, trackParam: unknown): Promise<R
   return { viewer, track: map.track, realm, next: firstOpenStep([realm]) };
 }
 
-/** The realm's name, description and whether any chapter on either track is live (else noindex). */
+/** The realm's name, description and whether any chapter on any track is live (else noindex). */
 export async function getRealmMeta(slug: string) {
   const parsed = RealmSlugSchema.safeParse(slug);
   if (!parsed.success) return null;
@@ -156,7 +156,7 @@ export async function getRealmMeta(slug: string) {
   const indexable = TRACKS.some((track, i) =>
     realmExerciseIds(track, realm.id).some((id) => lists[i].has(id)),
   );
-  // Same text on both tracks' URL (the canonical has no ?track=): the beginner path's topic.
+  // Same text on every track' URL (the canonical has no ?track=): the beginner path's topic.
   const outline = await loadTrackOutline(DEFAULT_TRACK);
   return { name: realm.name, description: outline.realms[realm.id].topic, indexable };
 }
