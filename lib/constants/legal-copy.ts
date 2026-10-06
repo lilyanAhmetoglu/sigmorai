@@ -21,7 +21,10 @@ import { SITE_NAME } from './site';
  * - Vercel Speed Insights: anonymous; fields: route, URL, network speed,
  *   browser, device type, OS, country, Web Vitals
  *   (vercel.com/docs/speed-insights/privacy-policy). Neither page names a
- *   storage region, so this page names none.
+ *   storage region, so this page names none. Its doc does not say "no
+ *   cookies", so the page claims that for Web Analytics only.
+ * - To check on the first deploy: DevTools → Application → Cookies on
+ *   sigmorai.com shows no cookie from either script.
  *
  * MAINTAINER setup this page doesn't promise but the code supports:
  * - Clerk dashboard → Webhooks: add https://sigmorai.com/api/webhooks/clerk,
@@ -112,8 +115,8 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
     id: 'visit-statistics',
     heading: 'Visit statistics',
     paragraphs: [
-      'We use Vercel Web Analytics and Vercel Speed Insights. They count page views and measure how fast pages load. They work for every visitor, signed in or not, and they use no cookies.',
-      'For each page view they record: the page address, the site you came from, your country, region and city, your browser, your operating system, and your device type (phone, tablet or computer). Speed Insights also records how fast the page loaded and your network type (for example 4g).',
+      'We use Vercel Web Analytics and Vercel Speed Insights. They count page views and measure how fast pages load. They work for every visitor, signed in or not. Web Analytics uses no cookies. Speed Insights records anonymous timing data only.',
+      'Web Analytics records, for each page view: the page address, the site you came from, your country, region and city, your browser, your operating system, and your device type (phone, tablet or computer). Speed Insights records the page address, your country, your browser, operating system and device type, plus how fast the page loaded and your network type (for example 4g).',
       'Vercel does not link these records to you or to your IP address. To count unique visitors, it makes a one-way code (a hash) from your request and deletes it after 24 hours. We see totals only, never one person.',
     ],
   },
@@ -123,6 +126,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
     paragraphs: [
       'Until you delete your account. When you delete it, we delete your hero and every row listed above at once, and Clerk deletes your sign-in account.',
       "Deleted data can stay in Neon's restore history for up to 6 hours, then it is gone.",
+      'Visit statistics are not linked to your account, so deleting it does not change them. They are totals only, with no record of you in them.',
     ],
   },
   {
@@ -144,7 +148,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
     id: 'cookies',
     heading: 'Cookies',
     paragraphs: [
-      'Only the cookies Clerk needs to keep you signed in. Our visit statistics use no cookies. No ad cookies, and no tracking across other websites.',
+      'Only the cookies Clerk needs to keep you signed in. Web Analytics uses no cookies. Speed Insights records anonymous timing data only. No ad cookies, and no tracking across other websites.',
     ],
   },
   {
