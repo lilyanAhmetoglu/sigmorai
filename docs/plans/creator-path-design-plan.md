@@ -10,6 +10,14 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (path from landing)
+
+- **Each landing card starts its own path.** The card's button links to `signUpHref(track)`: `/sign-up?redirect_url=/onboarding?path=<track>` (encoded). The beginner card starts `strategist`.
+- **Clerk keeps `redirect_url`** through its own steps (email code, OAuth, the switch to sign-in), so the track survives sign-up.
+- **Sign-up and sign-in parse it** (`pathFromRedirect`, `lib/utils/path-param.ts`): only an `/onboarding` URL with a valid track counts. Each page passes its own `forceRedirectUrl` / `signUpForceRedirectUrl` = `onboardingHref(track)`. The raw URL is never redirected to.
+- **Onboarding preselects `?path=`** (still changeable). Signed out, it sends the visitor to sign-in with itself as `redirect_url`. Signed in with a hero, the card goes on to the dashboard.
+- **Paths must look different.** Each onboarding option shows who it is for and what its realm 0 teaches (outline topic). The landing intro says the realms share names but the lessons and cases differ.
+
 ## Amendments locked 2026-10-06 (devil pass, maintainer approved)
 
 These win over any later section of this spec that says otherwise (PR 2–5 below, "waits for the token", "Coming soon, no link").

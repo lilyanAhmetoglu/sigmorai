@@ -9,6 +9,7 @@ import type {
   PANEL_TONES,
   QUEST_STATUSES,
 } from '@/lib/constants';
+import type { Track } from './exercise';
 
 export type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
 export type ButtonSize = (typeof BUTTON_SIZES)[number];
@@ -30,6 +31,18 @@ export type Audience = {
   body: string;
   points: readonly string[];
   forWho: string;
+  /** The track this card's CTA starts (the beginner card starts strategist). */
+  track: Track;
+  /** The card's own start button. */
+  cta: string;
+};
+
+/** What onboarding shows under one track option, so the paths look different. */
+export type TrackIntro = {
+  /** Who the path is for (the track's landing card title). */
+  audience: string;
+  /** What realm 0 of this track teaches (its outline.json topic). */
+  firstTopic: string;
 };
 
 /** One section of the privacy page (lib/constants/legal-copy.ts). */
