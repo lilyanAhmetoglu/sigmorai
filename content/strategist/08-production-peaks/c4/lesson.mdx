@@ -1,0 +1,109 @@
+---
+id: strategist/r8/c4/lesson
+title: Incident response
+minutes: 8
+sources:
+  - kind: docs
+    title: OpenAI docs · Safety best practices
+    url: https://developers.openai.com/api/docs/guides/safety-best-practices
+  - kind: docs
+    title: OpenAI docs · Production best practices
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+  - kind: docs
+    title: OpenAI docs · Admin APIs
+    url: https://developers.openai.com/api/docs/guides/admin-apis
+  - kind: docs
+    title: Claude docs · Admin API
+    url: https://platform.claude.com/docs/en/manage-claude/admin-api
+  - kind: docs
+    title: Claude docs · Workspaces
+    url: https://platform.claude.com/docs/en/manage-claude/workspaces
+  - kind: docs
+    title: Claude docs · Mitigate jailbreaks and prompt injections
+    url: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks
+  - kind: docs
+    title: Claude docs · Messages API reference
+    url: https://platform.claude.com/docs/en/api/messages/create
+  - kind: docs
+    title: Claude docs · Query the Activity Feed
+    url: https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed
+---
+
+## Why it matters
+
+Controls reduce risk. They do not remove it. Sooner or later an AI tool will say something wrong to a customer, leak a key, or run up a bill overnight. An **incident** is any event like this that harms people, data or money.
+
+In realm 4 you saw agent failures and what checks catch them. This chapter is about the company side: who notices, who acts, and how you learn.
+
+## Five steps (a tool for this course)
+
+No vendor publishes an incident plan for your company. This five-step list is our own:
+
+1. **Spot.** Someone or something notices the problem.
+2. **Contain.** Stop the damage first. Fix later.
+3. **Investigate.** Find out what happened, and who changed what.
+4. **Tell.** Inform the people who must know, in the right order.
+5. **Learn.** Change the tests, controls and policy so it is harder to repeat.
+
+Name one **incident owner** per AI use in the risk register from chapter 2. A plan with no named person is a plan that waits.
+
+## Step 1: Spot the problem
+
+Both vendors point to simple signals.
+
+- **A report channel that a human reads.** OpenAI's safety guide says users should generally have an easily available way to report improper functionality or other concerns, and that a human should monitor it and respond as appropriate.
+- **Spend alerts.** OpenAI's production guide says to set spend alerts that send a notification when usage passes a dollar amount. Anthropic's workspaces page lets you cap monthly spend per workspace and configure alerts at thresholds.
+- **Regular output checks.** Anthropic's jailbreak guide has a short section on continuous monitoring: regularly analyze outputs for signs of a successful injection, and use what you learn to refine prompts, validation and filtering.
+- **Per-user identifiers.** OpenAI's safety guide recommends a safety identifier for products where individual users interact with a model. It says this helps OpenAI monitor and detect abuse, gives your team more actionable feedback if OpenAI detects a policy violation, and can help your team respond to abuse faster. Anthropic's Messages API has a similar field, `metadata.user_id`: "an external identifier for the user" that should be an opaque value, not a name or email. The page says Anthropic may use this id to help detect abuse.
+
+Example: a travel site's spend alert fires at 08:05. The email goes to a developer who left in June. Nobody reads it for six hours. The alert worked; the owner did not exist.
+
+## Step 2: Contain
+
+Pick the smallest action that stops the harm. Know your options before the incident.
+
+- **Turn off a key.** Anthropic's Admin API can read, rename and change the status of existing keys. Its example sets a key to "inactive". Check the exact steps in your own console first.
+- **Cap the limits.** Anthropic workspaces can have lower spend and rate limits than the organization.
+- **Deal with the user.** Anthropic's jailbreak guide says to consider throttling or banning users who repeatedly try to get around your guardrails.
+- **Know what removing a person does.** Anthropic's Admin API page says personal keys stop working when their user is removed, but workspace API keys continue to work. A team that "removes the developer" may stop nothing.
+- **Know what is hard to undo.** Anthropic's workspaces page says archiving a workspace archives every API key created for it, and it cannot be undone.
+
+Example: the assistant is giving out invented discounts. You turn off its key and show a fixed FAQ page. Customers get slower help, but no new false promises.
+
+## Step 3: Investigate
+
+Logs answer "who changed what, and when".
+
+- OpenAI's Admin APIs include an Audit Logs endpoint that lists recent user actions and configuration changes for the organization.
+- Anthropic's Activity Feed records authentication, administrative and platform activity, among others. Its page says recording is not retroactive: it begins when the Compliance API is first enabled.
+
+Both are only useful if they were on before the incident (chapter 3).
+
+## Step 4: Tell
+
+This step is ours, not a vendor rule. Decide before any incident:
+
+- who tells legal and the data protection lead, and how fast,
+- who writes to affected customers, using only facts you have checked,
+- who talks to the vendor.
+
+Do not guess in a customer letter. "We are investigating and will update you" is true. "No data was affected" may not be. Your legal team sets the deadlines that apply to you.
+
+## Step 5: Learn
+
+After the incident, do three things:
+
+1. **Add the case to your tests.** OpenAI's guide recommends red-teaming: test with a representative set of inputs and also with inputs from someone trying to break the application. Anthropic's guide says to red-team before deploying. A real attack is the best new test.
+2. **Re-check the tier and the controls** in the risk register.
+3. **Fix the policy.** If a key had no expiry or an alert had no owner, change the rule from chapter 1.
+
+Keep the write-up about the system, not about a person. Blame makes people hide the next problem.
+
+## Key points
+
+- Five steps: spot, contain, investigate, tell, learn (our own list). Name an owner before the incident.
+- Spot with a human-read report channel, spend alerts and output checks.
+- Contain with the smallest step: key status, limits, throttling a user. Removing a person may not stop a workspace key.
+- Archiving a workspace cannot be undone.
+- Logs must be on before the incident; Anthropic's Activity Feed is not retroactive.
+- After an incident, add the attack to your tests and fix the policy.

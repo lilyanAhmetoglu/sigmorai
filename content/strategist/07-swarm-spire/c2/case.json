@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r7/c2/challenge",
+  "title": "The refund desk redesign",
+  "scenario": "You run customer operations for an online home-goods shop. The refund desk handles about 900 emails a week. A vendor demo put one agent on top of the old process, and replies became slow and expensive.\n\nThe COO asks you to redesign the workflow before the next pilot. The exhibit shows the current draft.",
+  "exhibit": "Refund desk: draft agent workflow (made-up example data)\n\nStep  What happens                               Who / what     Side effect?\n1     Read email, decide: question, refund,      triage agent   no\n      or damaged item\n2     Look up order and refund policy            refund agent   no\n      (after a handoff from triage)\n3     Write internal QA notes and analytics      refund agent   no\n      tags for the weekly report\n4     Issue the refund in the payment system     refund agent   YES (money)\n5     Reply to the customer                      refund agent   no\n\nControls today:\n- One input guardrail on the triage agent: \"block refunds over EUR 500\"\n- No human approval anywhere\n- Steps 1-5 all run before the customer gets a reply",
+  "questions": [
+    {
+      "prompt": "Step 1 sorts each email into one of three kinds that need different handling. Which pattern from Anthropic's post is this?",
+      "options": [
+        {
+          "text": "Evaluator-optimizer, because one call writes and another call checks it.",
+          "explanation": "Evaluator-optimizer is a writing-and-feedback loop. Step 1 sorts inputs; it doesn't refine a draft."
+        },
+        {
+          "text": "Routing, because it classifies the input and sends it to a specialised path.",
+          "explanation": "Right. Anthropic's post uses this exact case: general questions, refund requests and technical support sent to different processes.",
+          "correct": true
+        },
+        {
+          "text": "Parallelization, because all three kinds of email are handled at the same time.",
+          "explanation": "Each email goes down one path. Parallelization runs independent parts of one task at the same time."
+        },
+        {
+          "text": "Orchestrator-workers, because the triage agent plans new subtasks for each email.",
+          "explanation": "The three paths are known in advance. Orchestrator-workers fits when you can't predict the subtasks."
+        }
+      ]
+    },
+    {
+      "prompt": "The team relies on the triage agent's input guardrail to stop refunds over EUR 500. What is the problem?",
+      "options": [
+        {
+          "text": "Guardrails can't read money amounts, so the rule needs a human instead.",
+          "explanation": "Nothing in the guide says this. The problem is where the check runs, not what it can read."
+        },
+        {
+          "text": "An input guardrail is too slow, so it should be replaced by an output guardrail.",
+          "explanation": "An output guardrail runs only for the agent that gives the final output. It still doesn't sit next to the refund tool."
+        },
+        {
+          "text": "There is no problem: a check at the start of the chain covers every later step.",
+          "explanation": "OpenAI's guide says agent-level guardrails don't run everywhere. A check at the front door doesn't cover a later tool call."
+        },
+        {
+          "text": "Input guardrails run only for the first agent; a later agent makes the refund.",
+          "explanation": "Right. OpenAI's guide says to put validation next to the tool that creates the side effect, not only at the start.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Where should a human approval step go in this workflow?",
+      "options": [
+        {
+          "text": "Before step 4: the run pauses until a person approves the refund.",
+          "explanation": "Right. OpenAI's guide says to pause before side effects, and step 4 is the only step that moves money.",
+          "correct": true
+        },
+        {
+          "text": "Before step 1: a person reads every email before the agent sees it.",
+          "explanation": "That puts people on the step with no side effect and keeps all the slow manual work."
+        },
+        {
+          "text": "After step 5: a person checks the reply once the refund is already paid.",
+          "explanation": "By then the money has moved. Approval belongs before the side effect, not after it."
+        },
+        {
+          "text": "Nowhere: the agent's policy lookup in step 2 makes human review unnecessary.",
+          "explanation": "A policy lookup doesn't approve an action. The guide uses human review for sensitive actions like this one."
+        }
+      ]
+    },
+    {
+      "prompt": "Replies are slow. Which change fits OpenAI's support-agent cookbook?",
+      "options": [
+        {
+          "text": "Drop step 3 completely, because the weekly report is not important to anyone.",
+          "explanation": "The cookbook doesn't say to delete reporting. It says to move it out of the customer-facing path."
+        },
+        {
+          "text": "Add a second QA agent to step 3 so that the internal notes are more complete.",
+          "explanation": "That adds more work before the reply. The cookbook moves this kind of work later."
+        },
+        {
+          "text": "Move step 3 to follow-up work after the reply; it doesn't change the outcome.",
+          "explanation": "Right. The cookbook keeps the decision and the reply in the main path and moves QA, tags and reporting to follow-up work.",
+          "correct": true
+        },
+        {
+          "text": "Run steps 1 to 5 with the largest model so that each step finishes much faster.",
+          "explanation": "The cookbook advises right-sizing the model for each step, and the slow path is caused by extra work, not model size alone."
+        }
+      ]
+    }
+  ]
+}

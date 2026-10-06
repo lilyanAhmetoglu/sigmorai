@@ -1,0 +1,96 @@
+{
+  "id": "builder/r7/c4/challenge",
+  "title": "Five steps, one slow clock",
+  "scenario": "A retail team runs a weekly price check on the Claude Agent SDK. A lead agent starts subagents to read three competitor stores, then builds a table and writes a summary. The run takes too long, and a quick question once cost far too much. You read the task list and the logs (exhibit). The team, the tasks and every number are made up for this case.",
+  "exhibit": "TASKS (made up for this case)\n  T1  read store A price page          40 s   needs: nothing\n  T2  read store B price page          55 s   needs: nothing\n  T3  read store C price page          35 s   needs: nothing\n  T4  build comparison table           30 s   needs: T1, T2, T3 results\n  T5  write summary                    20 s   needs: T4 result\n\nCURRENT RUN\n  all five tasks run one after another: 40 + 55 + 35 + 30 + 20 = 180 s\n\nLOG (made up)\n  10-03  Store B's page hung for 20 minutes. T4 and T5 never started.\n  10-04  Finance: \"No more than 5 subagents should run at once.\"",
+  "questions": [
+    {
+      "prompt": "Which steps can run in parallel without losing any information?",
+      "options": [
+        {
+          "text": "T3 and T4, because T4 can start when store C is ready.",
+          "explanation": "T4 needs the results of T1, T2 and T3. Starting it early would build the table from missing data."
+        },
+        {
+          "text": "T4 and T5, because the summary can be written while the table is built.",
+          "explanation": "T5 needs the table from T4. Without it, the summary has nothing to describe."
+        },
+        {
+          "text": "T1, T2 and T3, because none of them needs another task's result.",
+          "explanation": "Right. These are independent subtasks, the case where parallel work helps. T4 and T5 depend on earlier results.",
+          "correct": true
+        },
+        {
+          "text": "All five, with T4 and T5 retrying until the reads finish.",
+          "explanation": "Retries burn calls while waiting. T4 and T5 still depend on earlier results."
+        }
+      ]
+    },
+    {
+      "prompt": "T1, T2 and T3 run in parallel, then T4 and T5 run in order. About how long does the run take?",
+      "options": [
+        {
+          "text": "About 105 seconds.",
+          "explanation": "Right. The parallel part takes as long as the slowest task, 55 s. Then T4 (30 s) and T5 (20 s) follow: 55 + 30 + 20 = 105.",
+          "correct": true
+        },
+        {
+          "text": "About 180 seconds.",
+          "explanation": "That is the sum of all five tasks. It is the current sequential time, not the parallel time."
+        },
+        {
+          "text": "About 55 seconds.",
+          "explanation": "That counts only the slowest store read. T4 and T5 still have to run after it."
+        },
+        {
+          "text": "About 130 seconds.",
+          "explanation": "That is 40 + 55 + 35, the sum of the three reads. Parallel reads take the time of the slowest one instead."
+        }
+      ]
+    },
+    {
+      "prompt": "On 10-03 the whole run waited on one slow read. Why, and what fits Anthropic's notes?",
+      "options": [
+        {
+          "text": "The lead waits for each set of workers; give each a stop rule.",
+          "explanation": "Right. Anthropic says synchronous execution creates bottlenecks: the system can be blocked by one subagent. A stop rule keeps one worker from blocking the rest.",
+          "correct": true
+        },
+        {
+          "text": "The lead was out of context, so it needs a longer window to continue.",
+          "explanation": "The log shows a hung page, not a full context. A longer window would not end the wait."
+        },
+        {
+          "text": "Parallel agents cannot be stopped, so remove store B from the plan for good.",
+          "explanation": "Dropping a store loses data forever. Anthropic's note is about waiting, which a stop rule can bound."
+        },
+        {
+          "text": "The reads ran in parallel, so the slowest one cannot affect the total time.",
+          "explanation": "The opposite is true. Parallel work takes the time of the slowest worker, so a hung worker holds up the run."
+        }
+      ]
+    },
+    {
+      "prompt": "Finance wants at most 5 subagents running at once in the Claude Agent SDK. Which setting does that?",
+      "options": [
+        {
+          "text": "Set `max_turns` to 5, so each run stops after five round trips.",
+          "explanation": "`max_turns` caps tool-use round trips for the run. It does not limit how many subagents run at once."
+        },
+        {
+          "text": "Set `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` to 5 in `env`.",
+          "explanation": "Right. At the limit, a new spawn fails with `Concurrent subagent limit reached` until the running count drops.",
+          "correct": true
+        },
+        {
+          "text": "Set `max_budget_usd` to 5, so each run stops at five dollars.",
+          "explanation": "That caps spend in dollars. A run could still start many subagents before it reaches the cap."
+        },
+        {
+          "text": "Set `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` to 5 in the environment.",
+          "explanation": "That limits how deeply subagents can nest, not how many run at the same time."
+        }
+      ]
+    }
+  ]
+}

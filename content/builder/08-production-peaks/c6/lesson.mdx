@@ -1,0 +1,116 @@
+---
+id: builder/r8/c6/lesson
+title: Launch
+minutes: 10
+sources:
+  - kind: docs
+    title: Model deprecations (Claude docs)
+    url: https://platform.claude.com/docs/en/about-claude/model-deprecations
+  - kind: docs
+    title: Service tiers (Claude docs)
+    url: https://platform.claude.com/docs/en/api/service-tiers
+  - kind: docs
+    title: Fast mode, research preview (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/fast-mode
+  - kind: docs
+    title: Rate limits (Claude docs)
+    url: https://platform.claude.com/docs/en/api/rate-limits
+  - kind: docs
+    title: Deprecations (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/deprecations
+  - kind: docs
+    title: Flex processing (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/flex-processing
+  - kind: docs
+    title: Rate limits (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/rate-limits
+  - kind: docs
+    title: Production best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+  - kind: docs
+    title: Safety best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/safety-best-practices
+---
+
+Launch is where the earlier chapters meet. Limits (chapter 1), batching (chapter 2), monitoring (chapter 3), keys and data (chapter 4) and speed (chapter 5) each fix one risk. This chapter adds the last pieces: model end dates, a fallback model, a staged rollout, safe budgets and a way back.
+
+## Models have an end date
+
+Models are retired over time. Claude lists four states: Active, Legacy, Deprecated and Retired. Requests to a retired model fail, and the docs say deprecated models "are likely to be less reliable than active models". Anthropic gives at least 60 days' notice before retiring a publicly released model, and the table shows a tentative retirement date, often as "Not sooner than" a date.
+
+OpenAI's notice periods depend on the model type:
+
+- Generally available models: at least 6 months.
+- Specialized variants, such as chat or Codex variants: at least 3 months.
+- Preview models, with `preview` in the name: "much shorter notice, such as 2 weeks". OpenAI does not recommend them for business-critical production unless you can migrate on short notice.
+
+To find what you still use, Claude's Console Usage page has an Export button that gives a CSV by API key and model.
+
+Our habits: keep model ids in configuration, not scattered in code. Keep a list of each model, its retirement date and an owner. Test the replacement on your eval set well before the date, which is also Anthropic's advice (realm 6, chapters 3 and 6).
+
+## Plan a fallback model
+
+A fallback answers when the main model cannot. The vendors already describe same-model versions of this idea:
+
+- **Claude Priority Tier.** With `service_tier` set to `auto`, a request uses Priority capacity if available and falls back to other capacity if not.
+- **Claude fast mode.** If fast mode is rate limited, you can catch the error and retry without `speed: "fast"`. The docs warn that this misses the prompt cache, because speeds do not share cached prefixes.
+- **OpenAI Flex.** On a `429 Resource Unavailable`, retry with standard processing by setting `service_tier` to `auto` (chapter 2).
+
+A second model is a bigger step. Our rules for it:
+
+1. **Fall back only on capacity problems.** That means 429 from a rate limit, 503 or 529 overload, and timeouts. A 400 will fail again on any model, a 401 means a key problem, and a spend-limit error will not clear (chapter 1).
+2. **The fallback must pass your eval by itself.** A different model can handle prompts, tools and structured output differently (realms 1 and 2). Run the eval gate on it (realm 6, chapter 6).
+3. **Choose how far away it is.** A smaller model from the same vendor keeps the same keys and data terms. A second vendor has separate capacity but needs its own key, data review (chapter 4) and prompt changes.
+4. **Make it visible.** Log which model answered (chapter 3), and alert when the fallback rate rises.
+5. **Test it at peak.** A fallback sends load to another pool with its own limits (chapter 1).
+
+## Ramp the launch
+
+Opening to everyone at once is the fastest way to meet acceleration limits. Chapter 1's rule from OpenAI: once traffic reaches 1 million input tokens per minute, raise it by no more than 50% every 15 minutes. Claude also warns that a sharp rise can return 429 and says to ramp gradually.
+
+Example (made-up): you expect a peak of 3 million input tokens per minute and start at 1 million. Raising by 50% every 15 minutes gives 1.5 million, 2.25 million and 3.375 million. That is three steps, about 45 minutes.
+
+A staged rollout, our pattern, uses a flag that sends 1% of users, then 5%, 25% and 100% through the new path. Between steps, check the error rate, p95 latency, cost per user and a sample of answers.
+
+## Set budgets that fail safely
+
+Money limits can cause outages, so choose them on purpose.
+
+- **OpenAI** separates a spend alert (it sends a notification, and traffic continues) from a hard spend limit (affected requests return a 429). The production guide says to review the hard limit before you enable it in production.
+- **Claude** has a monthly spend cap per tier, with HTTP 429 and no `retry-after` when it is reached. A limit you set yourself returns HTTP 400.
+
+Our plan: set alerts at several levels of the monthly budget, such as half and four fifths. Decide what the app shows when the hard stop happens. Keep background work in its own workspace or project so it cannot use up the budget of live chat (chapter 1). OpenAI also suggests a usage limit for each individual user.
+
+## Safety and abuse
+
+OpenAI's safety page lists steps that fit a launch review:
+
+- Its Moderation API is free to use.
+- Red-team the app: test prompt injection and off-topic use (realm 6, chapter 5).
+- Have a human review high-stakes outputs.
+- Require login, and limit input length and output tokens.
+- Give users a way to report problems, and read those reports.
+- Send a hashed safety identifier per user (chapter 4).
+
+## A way back
+
+Make every risky choice a switch, not a deploy: the model id, the prompt version, the fallback, the traffic percentage and any fast mode. Keep the last good pair of prompt and model. When a change goes wrong, flip the switch first and investigate after.
+
+Our checklist:
+
+| Area       | Launch check                                           | Chapter |
+| ---------- | ------------------------------------------------------ | ------- |
+| Limits     | Peak load tested; one retry layer; ramp plan           | 1       |
+| Offline    | Background jobs in batches or their own workspace      | 2       |
+| Monitoring | Request ids, p95, tokens, cost and fallback alerts     | 3       |
+| Secrets    | Service key in a secrets manager; ZDR checked          | 4       |
+| Speed      | Streaming on; deadlines set; workers sized             | 5       |
+| Models     | Retirement dates listed; fallback tested; switches set | 6       |
+
+## Key points
+
+- Models retire. Claude gives at least 60 days' notice, OpenAI at least 6 months for generally available models, and preview models can go in about 2 weeks.
+- Fall back only on capacity errors. Test the fallback on your evals, and log when it is used.
+- Ramp traffic in steps and watch the numbers between them.
+- Alerts warn you. Hard spend limits stop traffic, so plan for that moment.
+- Put every risky choice behind a switch, so a rollback does not need a deploy.

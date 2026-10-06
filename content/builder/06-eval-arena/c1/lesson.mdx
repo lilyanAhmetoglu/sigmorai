@@ -1,0 +1,115 @@
+---
+id: builder/r6/c1/lesson
+title: Test sets
+minutes: 9
+sources:
+  - kind: blog
+    title: Demystifying evals for AI agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+  - kind: docs
+    title: Define success criteria and build evaluations (Claude docs)
+    url: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests
+  - kind: docs
+    title: Evaluation best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: docs
+    title: Building resilient prompts with an evaluation flywheel (OpenAI Cookbook)
+    url: https://developers.openai.com/cookbook/examples/evaluation/building_resilient_prompts_using_an_evaluation_flywheel
+---
+
+The first five realms built a system: prompts, tools, retrieval, agent loops, servers. This realm asks a harder question: how do you know it works? "It looked fine when I tried it" is not an answer. OpenAI calls that an anti-pattern: "Vibe-based evals". The answer starts with a test set.
+
+## What an eval is
+
+Anthropic's evals post gives a short definition: "An evaluation (“eval”) is a test for an AI system: give an AI an input, then apply grading logic to its output to measure success."
+
+OpenAI explains why normal software tests are not enough: "Models sometimes produce different output from the same input". Evals are a way to test the system despite this variability.
+
+Anthropic's post uses a small vocabulary. This realm uses it too:
+
+| Word       | Meaning                                                                    |
+| ---------- | -------------------------------------------------------------------------- |
+| Task       | One test with defined inputs and success criteria                          |
+| Trial      | One attempt at a task. Outputs vary, so you run several                    |
+| Grader     | Logic that scores some part of the result                                  |
+| Transcript | The full record of a trial: outputs, tool calls, reasoning                 |
+| Outcome    | The final state in the environment at the end of the trial                 |
+| Suite      | A collection of tasks with a shared goal, such as refunds and cancellation |
+
+The outcome matters. Anthropic's example: a flight agent may say "Your flight has been booked", but the outcome is whether a reservation exists in the database.
+
+## Start with success criteria
+
+You can't write a test until you know what passing means. The Claude docs say good criteria are specific, measurable, achievable and relevant. Their safety example:
+
+- Bad: "Safe outputs"
+- Good: "Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter."
+
+OpenAI's eval process has the same first step. Its five steps are: define the eval objective, collect a dataset, define eval metrics, run and compare evals, and evaluate continuously.
+
+## Where tasks come from
+
+Teams often wait because they think they need hundreds of tasks. Anthropic disagrees: "20-50 simple tasks drawn from real failures is a great start." Early on, each change has a large effect, so a small set can show it.
+
+Good first sources, from Anthropic's post:
+
+- The manual checks you already run before each release.
+- Common tasks that end users try.
+- If you are live: your bug tracker and support queue. Turn user-reported failures into test cases.
+
+OpenAI lists more data sources: synthetic, domain-specific, purchased, human-curated, production and historical data. Its tip "Log everything" helps here: logs from development become a mine for good eval cases. Its warning is about the mix: a dataset that doesn't "faithfully reproduce production traffic patterns" is biased.
+
+The Claude docs add one more rule: "Prioritize volume over quality." More questions with automated grading beat a few hand-graded ones.
+
+## Write tasks two experts would agree on
+
+Anthropic: "A good task is one where two domain experts would independently reach the same pass/fail verdict." If a task is vague, the score turns into noise.
+
+Each task should also be passable. Anthropic's example: a task asks the agent to write a script but gives no file path, while the tests expect one fixed path. The agent fails "through no fault of its own".
+
+Two habits help:
+
+- **Write a reference solution.** A known output that passes all graders proves the task is solvable and the graders are set up right.
+- **Suspect the task first.** With frontier models, Anthropic says a 0% pass rate over many trials "is most often a signal of a broken task, not an incapable agent".
+
+## Balance the set
+
+"One-sided evals create one-sided optimization." Anthropic learned this with web search in Claude.ai. If you only test cases where the model should search, you may get a model that searches for almost everything. So the team tested both directions: questions that need a search (the weather) and questions it should answer from what it knows ("who founded Apple?").
+
+Example: a refund agent. Half your tasks should be refunds that must be approved. The other half should be requests it must refuse or escalate.
+
+## Cover the edge cases
+
+Both vendors list edge cases worth a task:
+
+- **Claude docs:** irrelevant or missing input, overly long input, harmful user input, and cases so ambiguous that even humans would disagree.
+- **OpenAI:** many languages and formats; typos; several questions in one message; very short requests (a user who just says "returns"); long conversations; jailbreak attempts; and user prompts that conflict with the system prompt.
+
+OpenAI also says test data should include "typical cases, edge cases, and adversarial cases". Chapter 5 goes deep on the adversarial ones.
+
+## Grow the set with synthetic data
+
+Real failures are the best tasks, but sometimes you need more. Both vendors suggest using a model to write extra cases. The OpenAI Cookbook warns that asking a model to "generate N examples" often gives a homogenous set.
+
+Its fix is to list dimensions and combine them. For a leasing assistant:
+
+- Channel: Voice, Chat, Text
+- Intent: Tour Scheduling, Maintenance, General Info & Inquiries
+- Persona: Prospective Resident, Agency
+
+Each combination, such as `(Text, Tour Scheduling, Prospective Resident)`, becomes a prompt for new cases. Perturbations make them harder: add irrelevant information, introduce mistakes, or use different slang.
+
+## Keep some tasks held out
+
+The Claude docs' criteria examples measure results "on a held-out test set". OpenAI's examples do the same with "a held-out set of 1000 reference transcripts".
+
+The OpenAI Cookbook shows what held out means when it tunes a model grader (chapter 2). You improve the grader on one part of the data. Then you run it once on the held-out part, which confirms "you haven't overfit". Our habit in this course, not a vendor rule: do the same for prompts, and keep some tasks you never tune on.
+
+## Key points
+
+- An eval gives the system an input and grades the result. Run several trials, because outputs vary.
+- Write success criteria first. Make them specific and measurable.
+- Start small: 20 to 50 tasks from real failures, manual checks and the support queue.
+- A good task gets the same verdict from two experts and has a reference solution.
+- Test both sides of a behaviour: when it should happen and when it shouldn't.
+- Add edge cases, then synthetic cases built from dimensions, not "generate N examples".

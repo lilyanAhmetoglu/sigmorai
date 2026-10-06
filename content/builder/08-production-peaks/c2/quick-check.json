@@ -1,0 +1,59 @@
+{
+  "id": "builder/r8/c2/quick-check",
+  "questions": [
+    {
+      "prompt": "An OpenAI batch expires with 3,000 of its 10,000 requests finished. What do you get?",
+      "options": [
+        {
+          "text": "Nothing. An expired batch returns no results at all.",
+          "explanation": "That is Gemini's behavior for an expired job. OpenAI makes finished responses available."
+        },
+        {
+          "text": "The 3,000 finished responses, which you pay for.",
+          "explanation": "Right. OpenAI keeps completed responses in the output file and charges for those tokens. Unfinished requests get the code batch_expired.",
+          "correct": true
+        },
+        {
+          "text": "All 10,000 responses, which arrive late and cost the standard price.",
+          "explanation": "An expired batch is cancelled for the unfinished requests. They are not completed later."
+        }
+      ]
+    },
+    {
+      "prompt": "A Flex request on OpenAI returns 429 Resource Unavailable, and the job must finish today. What fits the docs?",
+      "options": [
+        {
+          "text": "Stop the job, because a Flex 429 means your spend limit is reached.",
+          "explanation": "A Flex 429 means Flex lacked resources for the request. It is not a spend-limit error."
+        },
+        {
+          "text": "Resend the same Flex request in a loop with no delay until it works.",
+          "explanation": "OpenAI recommends exponential backoff. Fast resends also add load and do not help the job finish."
+        },
+        {
+          "text": "Retry with standard processing at higher cost, or back off.",
+          "explanation": "Right. OpenAI offers both paths. You are not charged for the failed request. Set service_tier to auto, or remove it, to use standard processing.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "A Gemini batch job shows JOB_STATE_EXPIRED. What does the Gemini documentation say?",
+      "options": [
+        {
+          "text": "It passed 48 hours with no results. Resubmit or split the job.",
+          "explanation": "Right. The docs say an expired job has no results to retrieve, and suggest resubmitting or using smaller batches.",
+          "correct": true
+        },
+        {
+          "text": "It ran over 24 hours, and the finished part is in an output file.",
+          "explanation": "Gemini's target time is 24 hours, but expiry is at 48 hours, and an expired job has no results."
+        },
+        {
+          "text": "It was canceled by you, and you can restart it from the same point.",
+          "explanation": "Cancelled is a different state. Expired means the job ran or waited too long."
+        }
+      ]
+    }
+  ]
+}

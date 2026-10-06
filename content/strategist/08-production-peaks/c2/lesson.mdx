@@ -1,0 +1,93 @@
+---
+id: strategist/r8/c2/lesson
+title: Risk tiers
+minutes: 8
+sources:
+  - kind: docs
+    title: OpenAI docs · Safety best practices
+    url: https://developers.openai.com/api/docs/guides/safety-best-practices
+  - kind: docs
+    title: OpenAI docs · Guardrails and human review
+    url: https://developers.openai.com/api/docs/guides/agents/guardrails-approvals
+  - kind: docs
+    title: Claude docs · Mitigate jailbreaks and prompt injections
+    url: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks
+  - kind: docs
+    title: Claude docs · Reduce hallucinations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations
+  - kind: blog
+    title: Anthropic Engineering · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+---
+
+## Why it matters
+
+Not every AI use carries the same risk. A wrong word in an internal meeting summary is a small problem. A wrong refund, a wrong credit decision or a wrong medical answer is a big one. If every use gets the same heavy checks, people stop using the approved tools. If every use gets light checks, a serious mistake gets through.
+
+**Risk tiers** sort AI uses into levels, so each level gets the controls it needs.
+
+## Three tiers
+
+This three-tier model is a tool for this course. Your legal or risk team may use other names. What matters is that each tier has clear controls.
+
+| Tier   | What the AI does                                      | Example                                 |
+| ------ | ----------------------------------------------------- | --------------------------------------- |
+| Low    | Drafts for staff, who read and edit before any use    | Summarise internal meeting notes        |
+| Medium | Text that reaches customers or the public             | Answer product questions on the website |
+| High   | Actions or decisions with money, legal or safety risk | Issue refunds, approve a loan           |
+
+Two questions place a use in a tier:
+
+1. **Who sees the output first?** A member of staff, or a customer?
+2. **Can it act?** Does it only write text, or can it change something, like a payment or a record?
+
+## Controls for the low tier
+
+Staff are the first readers, so their review is the main control. Anthropic's guide to reducing hallucinations says its techniques reduce hallucinations but don't remove them. It tells you to always validate critical information. So even in the low tier, the policy should say: check facts and numbers before you send them on.
+
+## Controls for the medium tier
+
+Here, the output reaches people outside the company. OpenAI's safety guide offers several controls:
+
+- **Constrain inputs and outputs.** Limiting user input helps avoid prompt injection, and limiting output tokens reduces the chance of misuse. Validated dropdown fields can be safer than open text.
+- **Use validated materials.** The guide says that returning an existing, validated support article can be safer than writing a new answer from scratch.
+- **Know your customer.** The guide says users should generally need to register and log in. Linking to an existing account may help, and requiring a credit card or ID card reduces risk further.
+- **Test against attacks.** The guide recommends "red-teaming": testing with inputs from someone who is trying to break the application.
+
+Anthropic's guide to mitigating jailbreaks adds a **screen**: a small, fast model checks user input before it reaches the main conversation. It also suggests system prompts that say what is out of bounds and how to refuse.
+
+Example: an energy supplier's website assistant answers tariff questions. It draws answers from approved tariff pages, screens input, and is red-teamed before launch.
+
+## Controls for the high tier
+
+In the high tier, the AI can act. OpenAI's guide to guardrails and human review describes two controls that work together:
+
+- **Guardrails** check input, output or tool behaviour automatically.
+- **Human review** pauses the run so a person can approve or reject a sensitive action. The guide's examples of side effects to pause for include cancellations and edits.
+
+Anthropic's jailbreak guide adds the **principle of least privilege**: give the model access only to the data and actions it needs, so a successful prompt injection can do little damage.
+
+Anthropic's "Building effective agents" post says agents' autonomy means higher costs and the potential for compounding errors. It recommends extensive testing in sandboxed environments, with the right guardrails.
+
+Example: the energy supplier wants the assistant to issue goodwill credits. The assistant may propose a credit, but a person approves it before it is paid. The assistant has no access to change tariffs at all.
+
+## Tiers can change
+
+A use can move up a tier. Example: the meeting-summary tool starts emailing summaries straight to clients. It is no longer a draft for staff; it now reaches customers. Re-check the tier when:
+
+- the audience changes (staff to customers),
+- the AI gains a new action (read to write),
+- or the data changes (public to personal data).
+
+## Keep a register
+
+A **risk register** is a simple list of every approved AI use, its tier, its controls and its owner. When someone asks "what AI do we run, and who checks it?", the register answers in one page.
+
+## Key points
+
+- Risk tiers match controls to the stakes (the three tiers are a tool for this course).
+- Ask two questions: who sees the output first, and can the AI act?
+- Low tier: staff review, and check critical facts; hallucination techniques reduce errors but don't remove them.
+- Medium tier: constrain input and output, use validated materials, screen input, red-team.
+- High tier: guardrails, human approval before sensitive actions, least privilege, sandbox testing.
+- Re-tier a use when its audience, actions or data change.

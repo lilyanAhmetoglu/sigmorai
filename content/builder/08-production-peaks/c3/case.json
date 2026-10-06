@@ -1,0 +1,96 @@
+{
+  "id": "builder/r8/c3/challenge",
+  "title": "The slow answer at 14:03",
+  "scenario": "A travel company runs an assistant on the OpenAI Responses API. Support gets complaints about slow replies and one timeout. The team opens its call log and weekly summary (exhibit) to find out what happened.",
+  "exhibit": "(made-up example data)\n\nCALL LOG, 14:01 to 14:04\n  time   feature    status   attempts  seconds  out_tokens  x-request-id  client id\n  14:01  summarize  200      1         4.1      220         req_a1        c-101\n  14:02  summarize  200      3         9.8      230         req_a2        c-102\n  14:03  summarize  timeout  1         60.0     -           none          c-103\n  14:04  answer     200      1         8.0      450         req_a4        c-104\n\nWEEKLY SUMMARY, feature \"answer\"\n                       before prompt edit   after prompt edit\n  avg input tokens          3,000               3,000\n  avg output tokens           220                 450\n  p95 seconds                 4.1                 8.0",
+  "questions": [
+    {
+      "prompt": "The 14:03 call timed out and no server id came back. What can the team give OpenAI support?",
+      "options": [
+        {
+          "text": "req_a2, because it is the nearest call that needed retries.",
+          "explanation": "A different call has a different id. Support needs the id of the call in question."
+        },
+        {
+          "text": "c-103, the client id the team sent in X-Client-Request-Id.",
+          "explanation": "Right. When a timeout leaves no X-Request-Id, the client id lets support check whether OpenAI received the request.",
+          "correct": true
+        },
+        {
+          "text": "Nothing. A timed-out request never reached OpenAI, so no trace exists.",
+          "explanation": "The request may have arrived. That is why the client id exists: support can look it up."
+        },
+        {
+          "text": "req_a4, because it is the next call that has a server id.",
+          "explanation": "That is an unrelated call, a different feature at a different time."
+        }
+      ]
+    },
+    {
+      "prompt": "Call 14:02 returned 200 after 3 attempts and took 9.8 s. What should the team add?",
+      "options": [
+        {
+          "text": "Nothing. A 200 status means the call was healthy.",
+          "explanation": "The user waited 9.8 s, and two failed tries counted toward the rate limit. A final 200 hides both."
+        },
+        {
+          "text": "A higher max_tokens, so the call needs fewer attempts.",
+          "explanation": "Attempts are retries after failed requests. Output size is not the cause here."
+        },
+        {
+          "text": "A longer timeout, because a call over 9 seconds looks broken.",
+          "explanation": "This call succeeded. A longer timeout would not remove the retries that cost the user time."
+        },
+        {
+          "text": "Alerts on attempts and 429 counts, not only on final status.",
+          "explanation": "Right. Retries add latency and use up the limit. A rising attempt count warns you before users see errors.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The \"answer\" feature's p95 time doubled after a prompt edit, with no errors. Which alert would have caught it on day one?",
+      "options": [
+        {
+          "text": "A change alert on output tokens per request.",
+          "explanation": "Right. Output went from 220 to 450 tokens. No error fired, but tokens per request moved first, and output length drives latency.",
+          "correct": true
+        },
+        {
+          "text": "An alert on HTTP 5xx errors in the call log only.",
+          "explanation": "No errors appeared. A 200 can still be slow and costly."
+        },
+        {
+          "text": "An alert on the monthly invoice total from the vendor.",
+          "explanation": "The invoice arrives weeks later. The token change was visible the same day."
+        },
+        {
+          "text": "An alert on input tokens per request, by feature.",
+          "explanation": "Input stayed at 3,000 tokens. Output is what changed."
+        }
+      ]
+    },
+    {
+      "prompt": "The team wants to log every full prompt and reply to debug faster. What does Claude Code's telemetry suggest?",
+      "options": [
+        {
+          "text": "Log all content on every call, since debugging speed matters most.",
+          "explanation": "Claude Code leaves prompt text off by default and warns that raw bodies include the whole conversation."
+        },
+        {
+          "text": "Hash each prompt before logging; hashes can be read back when debugging.",
+          "explanation": "A hash cannot be turned back into text, so it does not help you debug. It is not a safe copy of the content either."
+        },
+        {
+          "text": "Log metadata by default, and content only for a small, limited sample.",
+          "explanation": "Right. Claude Code keeps prompt text and raw bodies off by default. Content is opt-in, so the team stores less customer data.",
+          "correct": true
+        },
+        {
+          "text": "Log nothing about calls, because logs may contain user data.",
+          "explanation": "Without ids, status and tokens you cannot find any call. Metadata is safe to keep and is the base of observability."
+        }
+      ]
+    }
+  ]
+}

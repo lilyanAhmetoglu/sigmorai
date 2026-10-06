@@ -1,0 +1,96 @@
+{
+  "id": "builder/r7/c1/challenge",
+  "title": "The graph with too many boxes",
+  "scenario": "A market-intelligence team wants an AI system that writes a weekly competitor report. Each week the list of competitors and the sources worth checking change. Some requests are quick facts, others are full reports. A colleague drew the first design (exhibit). You review it before anyone builds it. The company and the design are made up for this case.",
+  "exhibit": "PROPOSED DESIGN (made up for this case)\n\nrequest\n  -> lead agent decides freely: quick fact or full report\n  -> research step: 5 fixed steps, always the same\n       1 search news   2 search filings   3 search blogs\n       4 search pricing pages   5 search job ads\n  -> writer agent drafts the report\n  -> report sent to 40 people\n\nNOTES FROM THE REVIEW MEETING\n- Some weeks only 2 of the 5 searches matter; other weeks a new source type is needed.\n- Sales wants every report checked against a 6-point style rubric before it goes out.\n- Finance wants quick-fact requests to always take the cheap path, every time.\n- The full-report step must still choose its own searches each week.",
+  "questions": [
+    {
+      "prompt": "The research subtasks change from week to week. Which pattern from Anthropic's post fits the research step best?",
+      "options": [
+        {
+          "text": "Prompt chaining: keep the five fixed search steps, in the same order.",
+          "explanation": "Anthropic says prompt chaining suits tasks that split cleanly into fixed subtasks. Here the subtasks change each week."
+        },
+        {
+          "text": "Routing: classify each request and send it down one fixed path.",
+          "explanation": "Routing picks one specialized follow-up per input category. It does not decide a new set of subtasks for each request."
+        },
+        {
+          "text": "Orchestrator-workers: an LLM picks the subtasks from each input.",
+          "explanation": "Right. Anthropic: in orchestrator-workers, subtasks are not pre-defined but determined by the orchestrator based on the specific input.",
+          "correct": true
+        },
+        {
+          "text": "Voting: run the same five searches several times and compare.",
+          "explanation": "Voting runs the same task several times for diverse outputs. It does not solve the problem that the needed searches change."
+        }
+      ]
+    },
+    {
+      "prompt": "Sales wants each report checked against a 6-point rubric and improved until it passes. Which pattern fits?",
+      "options": [
+        {
+          "text": "Evaluator-optimizer: one call writes, another grades it and sends feedback.",
+          "explanation": "Right. Anthropic says this pattern works well when there are clear evaluation criteria and refinement adds value. A fixed rubric is a clear criterion.",
+          "correct": true
+        },
+        {
+          "text": "Routing: send each report to one of six rubric agents, then publish.",
+          "explanation": "Routing sends an input to one path. The rubric needs every report checked and then improved, not sorted."
+        },
+        {
+          "text": "Sectioning: split the report into six parts and write each part in parallel.",
+          "explanation": "Sectioning splits work into independent subtasks. It does not add a check-and-improve loop."
+        },
+        {
+          "text": "Add the rubric to the writer's prompt and send the first draft.",
+          "explanation": "This adds no check at all. Nothing confirms the draft passes before it goes to 40 people."
+        }
+      ]
+    },
+    {
+      "prompt": "Finance wants quick-fact requests to take the cheap path every time. How should the first step decide?",
+      "options": [
+        {
+          "text": "Keep the lead agent deciding freely, and prompt it to prefer the cheap path.",
+          "explanation": "A prompt can push the model, but the choice is still made by the model each time. Finance asked for the same path every time."
+        },
+        {
+          "text": "Run both paths for every request and keep whichever answer costs less.",
+          "explanation": "That pays for the expensive path on every request, which is the cost Finance wants to avoid."
+        },
+        {
+          "text": "Let every agent vote on the category and take the majority answer.",
+          "explanation": "Voting adds more model calls and still leaves the path to model output. It does not make the flow decided by code."
+        },
+        {
+          "text": "Classify with a structured output, then let code pick the agent.",
+          "explanation": "Right. The OpenAI Agents SDK docs list this as orchestrating via code, which makes tasks more deterministic and predictable in speed, cost and performance.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Finance wants a fixed quick-fact path, and the report step must still adapt each week. How do the OpenAI docs suggest combining these?",
+      "options": [
+        {
+          "text": "One lead agent decides everything, including the path, from its prompt.",
+          "explanation": "That is orchestrating via LLM only. Finance asked for a fixed path, which a prompt cannot guarantee."
+        },
+        {
+          "text": "Code fixes every step, including the five searches, so nothing varies.",
+          "explanation": "That is orchestrating via code only. The searches would stay the same, but the needed sources change each week."
+        },
+        {
+          "text": "Code picks fact or report; a model picks the report's searches.",
+          "explanation": "Right. The OpenAI docs say you can mix and match: code decides the flow, and a model decides inside one step.",
+          "correct": true
+        },
+        {
+          "text": "A model picks fact or report; code fixes the searches inside the report.",
+          "explanation": "This reverses the roles. The path stays model-chosen, and the changing searches stay hard-coded."
+        }
+      ]
+    }
+  ]
+}
