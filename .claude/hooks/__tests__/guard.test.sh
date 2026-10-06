@@ -108,6 +108,13 @@ assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'NEXT_PUBLIC_ANTHR
 
 assert deny guard-bash.sh "$(bash_cmd "gh pr merge 12; ${big_tail}")"  "gh pr merge ahead of a huge command (reason embeds the command)"
 
+reason_len=$(printf '%s' "$(bash_cmd "gh pr merge 12; ${big_tail}")" | bash "$HOOKS/guard-bash.sh" | jq -r '.hookSpecificOutput.permissionDecisionReason' | wc -c)
+if [ "$reason_len" -lt 1024 ]; then
+  pass=$((pass+1)); printf '  \033[32m✓\033[0m huge denied command → short reason (%s bytes)\n' "$reason_len"
+else
+  fail=$((fail+1)); printf '  \033[31m✗\033[0m huge denied command → reason too long (%s bytes)\n' "$reason_len"
+fi
+
 echo "hooks fail CLOSED on a bad payload"
 assert deny guard-bash.sh  ''                    "bash guard: empty payload"
 assert deny guard-bash.sh  'not json'            "bash guard: non-JSON payload"

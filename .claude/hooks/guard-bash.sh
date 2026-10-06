@@ -15,6 +15,9 @@
 # Test: bash .claude/hooks/__tests__/guard-bash.test.sh
 set -uo pipefail
 
+# Fail closed without jq (every check below needs it). Fixed JSON, no jq.
+command -v jq >/dev/null || { printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED: jq is not installed (brew install jq). Hooks fail closed without it."}}'; exit 0; }
+
 payload=$(cat)
 
 # The reason goes in on STDIN, never as an argument: Linux caps one argument at
@@ -42,6 +45,10 @@ fi
 cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
 [ -z "$cmd" ] && exit 0
+
+# Deny reasons echo the command; cap it so a huge command gives a small reason.
+short_cmd=${cmd:0:300}
+[ "${#cmd}" -gt 300 ] && short_cmd+="…"
 
 # Two-stage normalisation.
 #
@@ -108,7 +115,7 @@ seg_matches_q() {
 
 # ── 1. Merging / closing PRs and deleting releases — never Claude's call ──────
 if seg_matches '^gh\s+(pr\s+(merge|close)|release\s+delete)(\s|$)'; then
-  deny "BLOCKED: humans merge and close PRs in this repo, never Claude (git-safety.md). Open the PR and report the URL + CI status instead. If you really want this, run it yourself: ! ${cmd}"
+  deny "BLOCKED: humans merge and close PRs in this repo, never Claude (git-safety.md). Open the PR and report the URL + CI status instead. If you really want this, run it yourself: ! ${short_cmd}"
 fi
 
 # ── 2. History rewriting / destructive git ───────────────────────────────────

@@ -8,6 +8,9 @@
 # Test: bash .claude/hooks/__tests__/guard.test.sh
 set -uo pipefail
 
+# Fail closed without jq (every check below needs it). Fixed JSON, no jq.
+command -v jq >/dev/null || { printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED: jq is not installed (brew install jq). Hooks fail closed without it."}}'; exit 0; }
+
 payload=$(cat)
 
 # Reason goes in on STDIN, not as an argument (Linux caps one argument at 128 KiB).
