@@ -12,6 +12,7 @@ import { ExerciseIdSchema, type ExerciseRef } from '@/lib/types';
 import {
   buildExerciseId,
   isExerciseId,
+  parseBlogFileName,
   parseExerciseId,
   mathExerciseIds,
   questBackHref,
@@ -170,5 +171,28 @@ describe('mathExerciseIds', () => {
     const ids = mathExerciseIds();
     expect(ids).toHaveLength(MATH_FLOOR_COUNT * SIDE_STEPS.length);
     expect(ids.slice(0, 3)).toEqual(['math/f1/lesson', 'math/f1/quick-check', 'math/f2/lesson']);
+  });
+});
+
+describe('parseBlogFileName', () => {
+  test('date and slug from <YYYY-MM-DD>-<slug>.mdx', () => {
+    expect(parseBlogFileName('2026-10-06-be-specific.mdx')).toEqual({
+      date: '2026-10-06',
+      slug: 'be-specific',
+    });
+  });
+
+  test('anything else is null', () => {
+    for (const name of [
+      'be-specific.mdx',
+      '2026-10-06-be-specific.md',
+      '2026-10-06-Be-Specific.mdx',
+      '2026-02-30-impossible.mdx',
+      '2026-10-06-.mdx',
+      '2026-10-06-x.mdx.bak',
+      '2026-10-06-xmdx',
+    ]) {
+      expect(parseBlogFileName(name)).toBeNull();
+    }
   });
 });

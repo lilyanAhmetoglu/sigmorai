@@ -13,3 +13,4 @@ export * from './landing-copy';
 export * from './realms-copy';
 export * from './level-map';
 export * from './legal-copy';
+export * from './blog-copy';

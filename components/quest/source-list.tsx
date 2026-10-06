@@ -2,16 +2,20 @@ import { Badge } from '@/components/badge';
 import { LESSON_SOURCE_ACCENT, QUEST_TEXT } from '@/lib/constants';
 import type { LessonFrontmatter } from '@/lib/types';
 
-type Props = { sources: LessonFrontmatter['sources'] };
+type Props = {
+  sources: LessonFrontmatter['sources'];
+  /** The line above the list. A blog post says the sources are its lesson's. */
+  intro?: string;
+};
 
 /**
  * The SOURCES tab (Sigmorai App.dc.html → tabSources): kind chip, title and
  * the site's host name. The whole row is one link, so the target is big.
  */
-export function SourceList({ sources }: Props) {
+export function SourceList({ sources, intro = QUEST_TEXT.sourcesIntro }: Props) {
   return (
     <div className="flex flex-col gap-3">
-      <p className="quest-note">{QUEST_TEXT.sourcesIntro}</p>
+      <p className="quest-note">{intro}</p>
       <ul className="lesson-sources">
         {sources.map((source) => (
           <li key={source.url}>

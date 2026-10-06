@@ -19,7 +19,7 @@ There is no code in this product (no-code pivot, 2026-10-05). Both tracks end ea
 - Each id matches its path. Ids never change: a renamed id is a blocker (it loses learners' progress).
 - A chapter has up to three files: `lesson.mdx`, `case.json`, `quick-check.json`. A boss is one `case.json`.
 - Frontier chapters (`content/frontier/<YYYY-MM-DD>-<slug>/`) = lesson + `quick-check.json` only. A `case.json` there is a blocker.
-- Blog posts (`content/blog/<YYYY-MM-DD>-<slug>.mdx`) use plain product voice (no NPC lines) and cite the same sources as their lesson.
+- Blog posts (`content/blog/<YYYY-MM-DD>-<slug>.mdx`): frontmatter `title, description, lesson` (no `sources`); a post cites via `lesson:`, so check every claim against that lesson and its sources. Plain product voice, no `<DialogBox>` (content:check fails one).
 
 **Curriculum** (`content/<track>/outline.json`, `content/math/outline.json`, `lib/constants/curriculum.ts`)
 
