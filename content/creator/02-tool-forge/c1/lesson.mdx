@@ -1,0 +1,79 @@
+---
+id: creator/r2/c1/lesson
+title: Generation APIs
+minutes: 6
+sources:
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: OpenAI docs · Image generation tool
+    url: https://developers.openai.com/api/docs/guides/tools-image-generation
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+---
+
+## Why it matters
+
+The apps you use every day (a chat page, a design plugin) call a model behind the scenes. A **generation API** is the same model, reached by a request instead of a button. Studios use it to make many assets, or to build their own tools.
+
+You will not write the request. You will decide what goes in it. Someone has to choose the size, the quality, the number of images and the model. If nobody chooses, the defaults choose for you. This lesson shows what is on that order form.
+
+Model names, limits and prices were covered in the Bootstrap Village. This lesson is about the shape of a request.
+
+## Two ways to ask
+
+**One shot.** You send one request with one prompt. You get a result.
+
+**A conversation.** You send a request, look at the result, then send a follow-up: "same image, warmer light". The model remembers the earlier turns.
+
+OpenAI's image guide splits this into its Image API (one prompt, one result) and its Responses API (conversations). Google calls multi-turn conversation "the recommended way to iterate on images". Choosing between them was covered in Prompt Forest, chapter 1. Here, only the order form matters.
+
+Example: a poster for a concert. The client asks for ten different styles to pick from. That is ten one-shot requests. Then the client picks one and asks for five small changes. That is a conversation.
+
+## The order form
+
+Every request has settings besides the prompt. Think of them as the order form for a print shop.
+
+| Setting    | OpenAI image models                                                   | Gemini image models                                                   |
+| ---------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Shape      | `size`, such as 1024x1536 (portrait)                                  | `aspect_ratio`, such as 16:9                                          |
+| Resolution | part of `size`                                                        | `image_size`: 1K, 2K or 4K                                            |
+| Quality    | `low`, `medium`, `high`, `auto`; GPT Image 2.5 adds `xhigh` and `max` | not listed in the guide                                               |
+| File type  | `png` (default), `jpeg` or `webp`                                     | `mime_type` in `response_format`, such as `image/png` or `image/jpeg` |
+| Background | `transparent`, opaque or `auto`                                       | not listed in the guide                                               |
+| References | edit endpoint, or image inputs in a conversation                      | up to 14 reference images (Gemini 3 models)                           |
+
+Three details matter for planning:
+
+- **Drafts first.** OpenAI says to use low quality for quick drafts and to compare higher settings for final assets (Prompt Forest, chapter 1).
+- **Transparent background needs the right file.** OpenAI's rule is to set `background: "transparent"` and use `png` or `webp`. `jpeg` is not on that list.
+- **Exact sizes can matter.** Google's guide says Gemini 3 image models make 1K images by default. You must ask for 2K or 4K. It also says the "K" must be uppercase: lowercase `1k` is rejected.
+
+Choose the shape before you generate. A 1:1 image cropped later to 9:16 loses a lot of its picture.
+
+## What comes back
+
+When you click a button in an app, an image appears. In an API, the response carries the image data. Both vendors' code samples take base64 image data from the response and write it to a file. So **saving the file is a separate step**, and somebody has to do it. If nobody saves it, you have no file to deliver.
+
+Some responses also carry text:
+
+- Google says its image models return both text and image by default. You can ask for images only.
+- OpenAI's tool version of image generation revises your prompt first. The docs say the mainline model "will automatically revise your prompt for improved performance". The revised text comes back in a `revised_prompt` field.
+
+Practical rule: **save the revised prompt next to the image.** If a result looks wrong, the prompt you typed may not be the prompt the model got.
+
+## Counts are requests, not promises
+
+You can ask for several images at once. OpenAI has an `n` setting for this. But check what the vendor promises. Google's limits list says the model "won't always follow the exact number of image outputs" you ask for. So count the files you got. Don't count the files you asked for.
+
+## What this means for your work
+
+- **Write a request sheet before a big job.** Shape, resolution, quality, file type, background, references, how many, and where files are saved.
+- **Draft cheap, finish high.** Use low quality to explore. Switch up for the files you deliver.
+- **One shot for variety, a conversation for refinement.** Pick by the job, not by habit.
+- **Keep the record.** Save the model name, the settings and the revised prompt with every file you deliver.

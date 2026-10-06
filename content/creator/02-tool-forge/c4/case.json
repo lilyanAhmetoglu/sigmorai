@@ -1,0 +1,118 @@
+{
+  "id": "creator/r2/c4/challenge",
+  "title": "The hand-off",
+  "scenario": "Your studio builds a vertical teaser for a bottle brand. The plan below chains four steps. Each step passes a file to the next one. The plan is made up for this case. The limits are copied from the vendors' docs.\n\nFind which hand-offs will break.",
+  "exhibit": "Hand-off plan (made up for this case)\n  Step 1  Hero photo: square (1:1), 4 MB PNG.\n          Sent as a data URI to a Runway video job. The job is 9:16.\n  Step 2  Voice-over made with OpenAI speech, format: pcm.\n          It goes into the video editor.\n  Step 3  Veo 3.1 clip made on Friday at 18:00.\n          The team plans to download it on Monday at 09:00.\n  Step 4  The Runway task output link is pasted into the client email.\n\nLimits from the vendors' docs\n  Runway: image data URI limit 5 MB (the encoded size);\n          base64 makes a file about 33% bigger;\n          image by URL limit 16 MB; URLs must be HTTPS; redirects are not followed;\n          inputs are auto-cropped to the target aspect ratio;\n          output links expire within 24-48 hours.\n  OpenAI speech: default mp3. pcm = raw samples, no header.\n          wav = uncompressed WAV audio. flac = lossless compression.\n  Veo: generated videos are stored on the server for 2 days.",
+  "questions": [
+    {
+      "prompt": "Step 1 sends a 4 MB PNG as a data URI. What is the best fix?",
+      "options": [
+        {
+          "text": "Send it by HTTPS URL or as an upload. Encoded as base64, 4 MB becomes about 5.3 MB, over the 5 MB data URI limit.",
+          "explanation": "Right. The limit applies to the encoded data URI. The URL route allows 16 MB for an image.",
+          "correct": true
+        },
+        {
+          "text": "Send it by a short link that redirects to the file.",
+          "explanation": "Runway says redirects are not followed. A 3XX response counts as a failed request."
+        },
+        {
+          "text": "No fix. 4 MB is under 5 MB, so it is fine.",
+          "explanation": "The 5 MB limit is for the encoded size. Base64 adds about 33%, so 4 MB grows to about 5.3 MB."
+        },
+        {
+          "text": "Send it anyway. The tool will shrink it for you.",
+          "explanation": "Runway's page gives a hard limit for data URIs and says to upload larger files. It does not promise to resize them."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 1 also gives a square photo to a 9:16 video job. What will happen?",
+      "options": [
+        {
+          "text": "The tool stretches the photo to fill the frame.",
+          "explanation": "Runway's primer says the input is cropped, not stretched."
+        },
+        {
+          "text": "The photo is auto-cropped to 9:16. This can silently change the composition, for example cutting off a label.",
+          "explanation": "Right. This is what Runway's primer says. Prepare a 9:16 version first.",
+          "correct": true
+        },
+        {
+          "text": "The tool adds blank bars on the sides to keep the whole photo.",
+          "explanation": "Runway says it auto-crops. It does not mention bars."
+        },
+        {
+          "text": "The job always fails with an error.",
+          "explanation": "Runway says it crops silently. It does not say a mismatch is an error."
+        }
+      ]
+    },
+    {
+      "prompt": "The video editor needs a standard, uncompressed audio file with a header. Which OpenAI speech format should step 2 use?",
+      "options": [
+        {
+          "text": "mp3",
+          "explanation": "mp3 is the default for general use. WAV is the uncompressed choice."
+        },
+        {
+          "text": "flac",
+          "explanation": "flac is lossless compression, so it is a compressed file."
+        },
+        {
+          "text": "pcm",
+          "explanation": "pcm is raw samples without the header, so an editor may not open it as it is."
+        },
+        {
+          "text": "wav",
+          "explanation": "Right. WAV is described as uncompressed WAV audio. It has the header an editor expects.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Step 3: will the Veo clip still be on Google's server on Monday at 09:00?",
+      "options": [
+        {
+          "text": "No. Veo stores a video for 2 days, so it was removed on Sunday at 18:00. Download it before Sunday 18:00.",
+          "explanation": "Right. Google says to download within 2 days of generation.",
+          "correct": true
+        },
+        {
+          "text": "Yes. Videos stay until you delete them.",
+          "explanation": "Google says generated videos are stored on the server for 2 days, then removed."
+        },
+        {
+          "text": "Yes, but only if the video is in 1080p.",
+          "explanation": "Nothing in the docs links the 2-day storage time to resolution."
+        },
+        {
+          "text": "It depends on the Runway tier.",
+          "explanation": "The clip is on Veo. Runway rules do not apply to it."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 4: what is wrong with pasting the Runway output link into the client email?",
+      "options": [
+        {
+          "text": "The link is temporary and expires within 24-48 hours. Download the file and send it from your own storage.",
+          "explanation": "Right. Runway says to save the data and not to expose these links directly in your product.",
+          "correct": true
+        },
+        {
+          "text": "Nothing. Output links stay valid for as long as the project exists.",
+          "explanation": "Runway says the links expire within 24-48 hours."
+        },
+        {
+          "text": "The link only works for the person who made the task.",
+          "explanation": "Runway's page says the links expire. It does not say they are limited to one person."
+        },
+        {
+          "text": "The video should be sent as a data URI instead.",
+          "explanation": "A data URI is a way to send files in a request, with size limits. Output files are saved by downloading them."
+        }
+      ]
+    }
+  ]
+}

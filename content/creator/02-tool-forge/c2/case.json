@@ -1,0 +1,118 @@
+{
+  "id": "creator/r2/c2/challenge",
+  "title": "The studio desk",
+  "scenario": "Your agency built a chat assistant for client work. It has three tools, listed in the exhibit. The exhibit also has a chat log from a test.\n\nThe tool list and the log are made up for this case. They follow the tool-calling pattern in the vendors' docs. Read the log before you answer.\n\nThe client's brief says 16:9, but nobody typed it in the chat.",
+  "exhibit": "Tools (our own example for this case)\n  make_image       \"Makes an image.\"\n                   inputs: prompt, aspect_ratio (required)\n  edit_image       \"Edits the image the user is looking at.\"\n                   inputs: instruction\n  post_to_social   \"Posts the current image to the brand's account.\"\n                   inputs: caption\n\nChat log (made up for this case)\n  user:      Make a banner for the autumn sale.\n  assistant: [calls make_image(prompt=\"autumn sale banner\")]\n  note:      tool run rejected: aspect_ratio missing\n  assistant: [calls make_image(prompt=\"autumn sale banner\", aspect_ratio=\"1:1\")]\n  user:      Nice. Make the sky bluer.\n  assistant: [calls make_image(prompt=\"autumn sale banner, bluer sky\",\n                               aspect_ratio=\"1:1\")]\n  user:      Great, post it.\n  assistant: [calls post_to_social(caption=\"Autumn sale!\")]",
+  "questions": [
+    {
+      "prompt": "The brief said 16:9, but the chat never said it. The banner came back 1:1. Which design fix is the best?",
+      "options": [
+        {
+          "text": "Tell the client to always write a longer first message.",
+          "explanation": "A short request is normal. The tool design should handle a missing value, not the client."
+        },
+        {
+          "text": "Remove the aspect_ratio input so the tool never needs it.",
+          "explanation": "The tool needs a shape to make the image. Removing the input hides the choice instead of making it right."
+        },
+        {
+          "text": "Say in the make_image description that aspect_ratio must come from the user. Make the assistant ask when it is missing.",
+          "explanation": "Right. Anthropic's docs show a model can guess a missing required value, and say this is not guaranteed. Here the assistant filled in 1:1 itself. Fix it in the tool description or the chat flow.",
+          "correct": true
+        },
+        {
+          "text": "Accept it. The model always picks the best ratio.",
+          "explanation": "The model guessed 1:1. Anthropic's docs say it may guess values you didn't supply."
+        }
+      ]
+    },
+    {
+      "prompt": "\"Make the sky bluer\" made a brand new image instead of changing the approved one. What is the best change?",
+      "options": [
+        {
+          "text": "Nothing can be done. The model decides and that is final.",
+          "explanation": "Anthropic's docs say you can set tool_choice to require a tool call. OpenAI's image tool has an action setting for forcing edit or generate."
+        },
+        {
+          "text": "Add five more tools so the assistant has more choices.",
+          "explanation": "More tools do not clear up a confusing pair. Google's tips also cap the active set at 10-20 tools."
+        },
+        {
+          "text": "Switch to a bigger model and the problem will vanish.",
+          "explanation": "No doc promises that. Tool choice depends on the descriptions and settings you give."
+        },
+        {
+          "text": "Make the descriptions say that make_image creates a new image and edit_image changes the current one. Add a rule for when to use each.",
+          "explanation": "Right. The model picks a tool from its name and description. Google's best practices say to be clear and specific. Anthropic (`tool_choice`) and OpenAI (the image tool's `action`) also let you force the choice.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Which tool should have a person approve each call?",
+      "options": [
+        {
+          "text": "None. The model checks its own requests before acting.",
+          "explanation": "A tool call is the model's request, not a check. Google lists validating calls before executing them as a best practice."
+        },
+        {
+          "text": "make_image",
+          "explanation": "It only makes a draft. A wrong call costs a little time."
+        },
+        {
+          "text": "post_to_social",
+          "explanation": "Right. It has an outside effect: it reaches the brand's audience. This is our rule for send tools. Google also lists validating calls before executing them.",
+          "correct": true
+        },
+        {
+          "text": "edit_image",
+          "explanation": "It also only changes a draft. A wrong call can be undone by editing again."
+        }
+      ]
+    },
+    {
+      "prompt": "In the log, who ran make_image?",
+      "options": [
+        {
+          "text": "The model, inside itself, while it was writing the reply.",
+          "explanation": "Google's docs say the model does not execute the function itself."
+        },
+        {
+          "text": "Nobody. A tool call is only a label in the log.",
+          "explanation": "A tool call is a real request. The docs show a result that is sent back to the model."
+        },
+        {
+          "text": "Something outside the model: your application, or a vendor's built-in tool. The model only asked for it.",
+          "explanation": "Right. Google says the model does not execute the function itself. Anthropic and OpenAI describe the same loop: the model returns a call, and an application or built-in tool runs it.",
+          "correct": true
+        },
+        {
+          "text": "The user's browser, because the user typed the request.",
+          "explanation": "The docs say an application executes client tools, or the vendor runs server or built-in tools. Nothing says the user's browser runs them."
+        }
+      ]
+    },
+    {
+      "prompt": "The agency adds twelve more tools with long descriptions. What happens to the cost of each chat turn?",
+      "options": [
+        {
+          "text": "It goes up. Anthropic says tool names, descriptions and schemas count as input tokens.",
+          "explanation": "Right. Tool definitions are sent with the request, so they add input tokens even on turns that call no tool.",
+          "correct": true
+        },
+        {
+          "text": "It goes down, because the model has more ready-made answers.",
+          "explanation": "Nothing in the docs says extra tools lower cost."
+        },
+        {
+          "text": "It stays the same. Tool definitions are free.",
+          "explanation": "Anthropic's docs list the tools parameter as a source of extra input tokens."
+        },
+        {
+          "text": "It only changes on turns where a tool is called.",
+          "explanation": "Tool definitions are sent with each request that includes them, whether or not a tool is called."
+        }
+      ]
+    }
+  ]
+}
