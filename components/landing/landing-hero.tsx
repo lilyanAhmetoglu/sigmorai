@@ -1,3 +1,4 @@
+import { LandingCta } from '@/components/landing/landing-cta';
 import { PixelButton } from '@/components/pixel-button';
 import {
   AUTH_ROUTES,
@@ -8,8 +9,9 @@ import {
 
 /**
  * Landing hero: static parallax art (CSS layers; the canvas scene comes later),
- * the legibility fade, then the pitch and the Start free CTA. The art is
- * decoration (aria-hidden); the heading and text carry the meaning.
+ * the legibility fade, then the pitch and the Start free CTA (Continue quest
+ * when signed in). The art is decoration (aria-hidden); the heading and text
+ * carry the meaning.
  * Styles: landing.css.
  */
 export function LandingHero() {
@@ -27,9 +29,11 @@ export function LandingHero() {
         </h1>
         <p className="landing-lede">{LANDING_TEXT.lede}</p>
         <div>
-          <PixelButton href={AUTH_ROUTES.signUp} size="lg">
-            {AUTH_TEXT.startFree}
-          </PixelButton>
+          <LandingCta size="lg">
+            <PixelButton href={AUTH_ROUTES.signUp} size="lg">
+              {AUTH_TEXT.startFree}
+            </PixelButton>
+          </LandingCta>
         </div>
       </div>
     </section>
