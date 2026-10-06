@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r5/c2/challenge",
+  "title": "The slide that got MCP wrong",
+  "scenario": "You are a business analyst at a regional insurance company. The IT team wants to connect the claims team's AI assistant to two internal systems through MCP.\n\nBefore the steering meeting, a project manager wrote one slide to explain MCP to the board. The COO asks you to check it. The exhibit shows the slide.",
+  "exhibit": "Steering slide draft: \"What is MCP?\" (made-up example data)\n\n1. MCP is a product we buy from one AI vendor.\n2. Our AI app is the server; the claims system and the\n   policy database are the clients.\n3. Every connected system can read the full chat, so each\n   one has the complete picture.\n4. A connected system can offer three things:\n   prompts, resources and tools. The model decides when\n   to use all three.\n5. The policy database server will run on our internal\n   network and is not reachable from the internet. We will\n   connect it through the AI vendor's API connector for\n   remote servers, unchanged.\n6. Our vendor's connector supports MCP, so it supports\n   every MCP feature.",
+  "questions": [
+    {
+      "prompt": "Lines 1 and 2 describe what MCP is and its roles. What is the accurate version?",
+      "options": [
+        {
+          "text": "MCP is one vendor's product; the AI app is the client and each system is a host.",
+          "explanation": "The spec calls MCP an open protocol, not a product. The AI app is the host, not a client."
+        },
+        {
+          "text": "MCP is an open protocol; the AI app is the host, and each system is offered by a server.",
+          "explanation": "Right. The spec calls MCP an open protocol. The host is the AI app, and it holds one client for each server.",
+          "correct": true
+        },
+        {
+          "text": "MCP is an open protocol; each system is the host, and the AI app is one big server.",
+          "explanation": "The roles are the other way round. The host is the AI application that starts the connections."
+        },
+        {
+          "text": "MCP is a file format for exports; there are no roles, only files sent between apps.",
+          "explanation": "The spec describes a protocol with three roles: host, client and server."
+        }
+      ]
+    },
+    {
+      "prompt": "Line 3 says every connected system can read the full chat. What does the MCP architecture page say?",
+      "options": [
+        {
+          "text": "It is right: each server must get the whole history to answer questions well.",
+          "explanation": "The architecture page says the opposite: the full conversation history stays with the host."
+        },
+        {
+          "text": "It is right, but only for servers that run on the same network as the host.",
+          "explanation": "The design principle doesn't depend on the network. Servers get only the information they need."
+        },
+        {
+          "text": "It is wrong: a server can read the full chat only after the user names it in a message.",
+          "explanation": "The spec has no such rule. Its principle is that the full history stays with the host, and servers get only what they need."
+        },
+        {
+          "text": "It is wrong: servers should get only the information they need, not the whole chat.",
+          "explanation": "Right. A design principle says servers shouldn't read the whole conversation or see into other servers.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Line 4 says the model decides when to use prompts, resources and tools. What should the slide say?",
+      "options": [
+        {
+          "text": "The user controls prompts, the application controls resources, and the model controls tools.",
+          "explanation": "Right. This is the control rule in the spec's server features overview.",
+          "correct": true
+        },
+        {
+          "text": "The model controls all three, but only after the board signs off on each one.",
+          "explanation": "The spec gives each building block a different controller. Only tools are model-controlled."
+        },
+        {
+          "text": "The server controls all three and sends them to the model when it wants.",
+          "explanation": "The spec says prompts are user-controlled, resources application-controlled and tools model-controlled."
+        },
+        {
+          "text": "The user controls tools, and the model controls prompts and resources.",
+          "explanation": "This swaps the roles. Tools are the model-controlled building block."
+        }
+      ]
+    },
+    {
+      "prompt": "Lines 5 and 6 are about the vendor's API connector. Assume the vendor is Anthropic. What do its MCP connector docs say?",
+      "options": [
+        {
+          "text": "Both lines are fine: the connector supports all MCP features and reaches any server.",
+          "explanation": "The connector page lists limits: only tool calls are supported, and the server must be publicly exposed over HTTP."
+        },
+        {
+          "text": "Line 5 is fine, but line 6 is wrong, because the connector supports only prompts.",
+          "explanation": "The page says only tool calls are currently supported, not prompts. Line 5 is also a problem: the server must be public."
+        },
+        {
+          "text": "Both lines need fixing: the server must be reachable over public HTTP, and only tool calls are supported.",
+          "explanation": "Right. Anthropic's MCP connector page lists both limits. A private server needs another route, and resources and prompts aren't supported there.",
+          "correct": true
+        },
+        {
+          "text": "Neither line matters, because MCP servers can't run on an internal network at all.",
+          "explanation": "The architecture page says servers can be local processes or remote services. The issue is what this connector can reach."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "id": "strategist/r5/c5/challenge",
+  "title": "The bill that grew with the tool list",
+  "scenario": "You are a finance partner at an online retailer. The customer-service team built an AI assistant that connects to the order system through a set of tools. Usage is rising, and the head of service asks why the bill is higher than the demo suggested.\n\nThe engineer sent a cost sheet. The prices are round example numbers, not a vendor's real prices. Use the exhibit to advise.",
+  "exhibit": "Monthly cost sheet (made-up example numbers)\n\nWorkload: 60,000 requests a month\nPer request:\n  tool definitions   6,000 tokens (same text every time)\n  customer question    500 tokens\n  assistant answer     300 tokens\n\nExample prices per million tokens:\n  input $1 | cache read $0.10 | output $5\n\nMonthly model cost:\n  tool definitions  360M tokens  $360\n  questions          30M tokens   $30\n  answers            18M tokens   $90\n  total                          $480\n\nNot on the sheet: engineer time.\nNotes:\n  - The team edits tool descriptions about once a week.\n  - A separate nightly job summarises 20,000 closed tickets. Nobody reads the summaries before 8 am.",
+  "questions": [
+    {
+      "prompt": "Which line in the sheet explains most of the bill?",
+      "options": [
+        {
+          "text": "The assistant's answers, because output tokens cost more.",
+          "explanation": "Answers cost $90 of $480. Output tokens are pricier, but there are far fewer of them."
+        },
+        {
+          "text": "The customer questions, because they are different every time.",
+          "explanation": "Questions cost only $30 a month in the sheet."
+        },
+        {
+          "text": "The tool definitions: $360 of $480, sent again with every request.",
+          "explanation": "Right. Anthropic's pricing page counts the tools parameter as input tokens, and OpenAI says function definitions are billed as input tokens. They are paid for on every request.",
+          "correct": true
+        },
+        {
+          "text": "Nothing in particular; the cost is spread evenly.",
+          "explanation": "The sheet shows one line at 75% of the total."
+        }
+      ]
+    },
+    {
+      "prompt": "Suppose the definitions were read from cache at the example cache-read price, and the other lines stay the same. Ignore cache writes. About what would the monthly model cost be?",
+      "options": [
+        {
+          "text": "About $480, because caching does not change the price.",
+          "explanation": "Both vendors list a lower price for cached input, so the sum changes."
+        },
+        {
+          "text": "About $156: $36 for definitions, plus $30 and $90.",
+          "explanation": "Right. 360M tokens at $0.10 per million is $36. Add $30 for questions and $90 for answers.",
+          "correct": true
+        },
+        {
+          "text": "About $48, which is 10% of the whole $480.",
+          "explanation": "The cache price applies only to the repeated definitions. Questions and answers stay at full price."
+        },
+        {
+          "text": "About $36, because only the definitions are billed.",
+          "explanation": "Questions and answers are still billed: $30 and $90."
+        }
+      ]
+    },
+    {
+      "prompt": "The team edits tool descriptions every week. What does that mean for caching?",
+      "options": [
+        {
+          "text": "Nothing; the cache ignores changes to tool text.",
+          "explanation": "Both vendors say the opposite. Changing tool definitions breaks the cached start of the prompt."
+        },
+        {
+          "text": "Only the edited tool is re-processed; the others stay cached.",
+          "explanation": "Anthropic's caching page says modifying tool definitions invalidates the entire cache. OpenAI's guide says reuse needs the full prefix to match."
+        },
+        {
+          "text": "Tools can't be cached at all, so caching is not an option.",
+          "explanation": "Anthropic lists tool definitions as cacheable content, and OpenAI says tool definitions are part of the cached prefix."
+        },
+        {
+          "text": "Each edit breaks the cached prefix, so the next requests pay full or cache-write prices again; group edits into rare, planned releases.",
+          "explanation": "Right. Both vendors say a change invalidates the cached prefix. Fewer, planned changes keep the savings.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "How should the nightly summary job for 20,000 closed tickets run?",
+      "options": [
+        {
+          "text": "As live requests, because the Batch API costs more than the live API.",
+          "explanation": "Both vendors list a 50% discount for batch, not a higher price."
+        },
+        {
+          "text": "Through a Batch API, because nobody needs the results before 8 am.",
+          "explanation": "Right. Anthropic lists 50% off and says most batches finish in under an hour. OpenAI lists 50% off with results within 24 hours.",
+          "correct": true
+        },
+        {
+          "text": "Through the live chat path, so the cache covers it for free.",
+          "explanation": "A cache read is cheaper than full input, but it is not free, and the job pays for it at live prices."
+        },
+        {
+          "text": "Move the live customer chat to a Batch API too, to get the discount.",
+          "explanation": "A customer waiting for an answer can't wait for asynchronous results."
+        }
+      ]
+    },
+    {
+      "prompt": "The sheet leaves out engineer time. Which addition makes the comparison with a bought tool fairer? (This checklist is our own framework.)",
+      "options": [
+        {
+          "text": "Nothing: once built, an integration needs no more work.",
+          "explanation": "Vendors retire models and change tools, so the integration needs updates over time."
+        },
+        {
+          "text": "Build time now, plus yearly time for updating tools, prompts and tests, for both options.",
+          "explanation": "Right. Model usage is only part of the cost. Compare build, run, maintain and review costs of both options over several years.",
+          "correct": true
+        },
+        {
+          "text": "Only the licence fee of the bought tool, since building is already paid for.",
+          "explanation": "That counts one side's extra costs and ignores the other side's maintenance."
+        },
+        {
+          "text": "The price of the most expensive model, as a safety margin.",
+          "explanation": "A margin is not a cost line. It hides which parts of the bill you can reduce."
+        }
+      ]
+    }
+  ]
+}

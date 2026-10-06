@@ -1,0 +1,118 @@
+{
+  "id": "strategist/r5/c6/challenge",
+  "title": "Three years with one vendor",
+  "scenario": "You are the procurement lead at a regional insurer. The claims team wants a three-year contract for an AI claims assistant. It reads claim files and a policy database. The architect's inventory is in the exhibit.\n\nThe contract is cheaper if you commit to one AI vendor for three years. Your job is to find where the lock-in is and what to ask for before you sign.",
+  "exhibit": "Integration inventory (made-up example)\n\nA. Policy database access: built as our own MCP server\nB. Document search: uses one vendor's built-in connector\n   to a file-sharing service\nC. Assistant prompts: tuned for one model, copied\n   into 6 apps; no sample test set\nD. Conversation history: kept only in the vendor's\n   stored responses (store setting on)\nE. Hosting plan: run the vendor's models through a cloud\n   provider for billing reasons; plan to use the vendor's\n   MCP connector feature there\nContract: 3 years, one AI vendor, one model today",
+  "questions": [
+    {
+      "prompt": "Which item is the least tied to one AI vendor?",
+      "options": [
+        {
+          "text": "Item B: a built-in connector is the standard way for every vendor.",
+          "explanation": "OpenAI's guide describes connectors as its own built-in support for specific services. It is a vendor feature."
+        },
+        {
+          "text": "Item C: prompts are plain text, so any model reads them the same way.",
+          "explanation": "Models differ in how they respond to the same prompt, so prompts tuned for one model need re-testing on another."
+        },
+        {
+          "text": "Item A: an MCP server you own, built on an open protocol.",
+          "explanation": "Right. The MCP specification calls MCP an open protocol, and the Claude Code docs say MCP servers aren't specific to one client. The server can stay when the vendor changes.",
+          "correct": true
+        },
+        {
+          "text": "Item D: the history is stored by the vendor, so it moves with you.",
+          "explanation": "Vendor storage doesn't move on its own. OpenAI's page says stored response data is kept for at least 30 days with the store setting on."
+        }
+      ]
+    },
+    {
+      "prompt": "The model in item C is retired during the contract. What does the exhibit tell you about your readiness?",
+      "options": [
+        {
+          "text": "You are ready: the vendor will pick the replacement for you automatically.",
+          "explanation": "Anthropic's page says requests to a retired model fail and tells customers to migrate themselves. OpenAI says the model becomes inaccessible at shut-down."
+        },
+        {
+          "text": "You are not ready: there is no sample test set, and the prompts sit in 6 places.",
+          "explanation": "Right. Anthropic advises testing replacement models well before retirement. A test set and one place for prompts make that fast. (The test set idea is our suggestion.)",
+          "correct": true
+        },
+        {
+          "text": "You are ready: a three-year contract means the model can't be retired.",
+          "explanation": "Both vendors publish retirement schedules. A contract term does not stop a vendor from retiring a model."
+        },
+        {
+          "text": "You are not ready, but only because the prompts are too long.",
+          "explanation": "Length is not the problem in the exhibit. The missing test set and the copies in 6 apps are."
+        }
+      ]
+    },
+    {
+      "prompt": "What should the budget say about model changes over three years?",
+      "options": [
+        {
+          "text": "Include at least one migration, and check the notice period of the model you use.",
+          "explanation": "Right. Anthropic lists at least 60 days' notice for public models. OpenAI lists at least 6 months for generally available models, 3 for specialised variants and much shorter notice for previews, such as 2 weeks.",
+          "correct": true
+        },
+        {
+          "text": "Nothing: models don't change within a contract.",
+          "explanation": "Both vendors publish deprecation pages with real retirement dates."
+        },
+        {
+          "text": "Assume 12 months of notice from every vendor, so migration can wait.",
+          "explanation": "The pages list shorter notice: at least 60 days at Anthropic, at least 6 months at OpenAI for generally available models, and possibly only 2 weeks for previews."
+        },
+        {
+          "text": "Plan a migration only if the vendor raises its price.",
+          "explanation": "Retirements are driven by model lifecycles. Price changes are a separate risk."
+        }
+      ]
+    },
+    {
+      "prompt": "Item D keeps all conversation history only in the vendor's stored responses. What is the best advice?",
+      "options": [
+        {
+          "text": "Keep your own copy of the logs you are allowed to keep, in your own storage.",
+          "explanation": "Right. OpenAI's page describes vendor storage as time-limited (at least 30 days with store on) and tied to settings such as Zero Data Retention. Keeping your own copy, within privacy rules, is our suggestion.",
+          "correct": true
+        },
+        {
+          "text": "Do nothing: vendor storage is a permanent archive.",
+          "explanation": "OpenAI's page describes retention in days and says Zero Data Retention makes store behave as false."
+        },
+        {
+          "text": "Keep every record forever, personal data included, just in case.",
+          "explanation": "Keeping personal data without a limit can break privacy rules. Keep what the business needs and the law allows."
+        },
+        {
+          "text": "Turn on Zero Data Retention, since it gives you an archive.",
+          "explanation": "Zero Data Retention reduces what the vendor keeps. It is the opposite of an archive."
+        }
+      ]
+    },
+    {
+      "prompt": "Item E plans to use Anthropic's MCP connector through a cloud provider. What should the review say?",
+      "options": [
+        {
+          "text": "Fine: the same features are always available on every platform.",
+          "explanation": "Anthropic's MCP connector page lists the feature as not available on Amazon Bedrock or Google Cloud."
+        },
+        {
+          "text": "Check feature availability on that platform first; the connector page says it is not available on Amazon Bedrock or Google Cloud.",
+          "explanation": "Right. Hosting choices can change which vendor features you can use. Anthropic's deprecations page also says Bedrock and Google Cloud set their own retirement schedules.",
+          "correct": true
+        },
+        {
+          "text": "Fine: MCP is an open protocol, so no vendor limits apply.",
+          "explanation": "The protocol is open, but each vendor and platform decides how it supports the feature. The page marks the connector as beta and lists platform support."
+        },
+        {
+          "text": "Reject the cloud plan: models can only be used from the vendor's own API.",
+          "explanation": "Anthropic's pages describe its models on several platforms, including Amazon Bedrock and Google Cloud."
+        }
+      ]
+    }
+  ]
+}
