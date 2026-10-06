@@ -26,15 +26,15 @@ The operational rules of the repo. Read them before acting.
 
 ## Loads on demand
 
-| File                      | Fires on                                                                          |
-| ------------------------- | --------------------------------------------------------------------------------- |
-| `db/CLAUDE.md`            | any file under `db/`: schema, client, migrations                                  |
-| `content/CLAUDE.md`       | any file under `content/`: lessons, cases, quick checks, sources                  |
-| `scoped/specs.md`         | `docs/plans/**`: the spec flow and the devil gate                                 |
-| `scoped/grading.md`       | `lib/grading/**`, `lib/actions/**`, `lib/xp/**`                                   |
-| `scoped/mentor-eval.md`   | `lib/mentor/**`, `lib/prompts/**`, `app/api/mentor/**`, `scripts/sync-sources.ts` |
-| `scoped/pixel-art.md`     | `lib/sprite/**`, `components/scenes/**`, `components/map/**`, `public/art/**`     |
-| `scoped/design-tokens.md` | `app/globals.css`, `components/**`, `design/tokens/**`                            |
+| File                      | Fires on                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------ |
+| `db/CLAUDE.md`            | any file under `db/`: schema, client, migrations                                                 |
+| `content/CLAUDE.md`       | any file under `content/`: lessons, cases, quick checks, sources                                 |
+| `scoped/specs.md`         | `docs/plans/**`: the spec flow and the devil gate                                                |
+| `scoped/grading.md`       | `lib/grading/**`, `lib/actions/**`, `lib/xp/**`                                                  |
+| `scoped/mentor-eval.md`   | `lib/mentor/**`, `lib/prompts/**`, `app/api/mentor/**`, `.claude/skills/knowledge-sync/SKILL.md` |
+| `scoped/pixel-art.md`     | `lib/sprite/**`, `components/scenes/**`, `components/map/**`, `public/art/**`                    |
+| `scoped/design-tokens.md` | `app/globals.css`, `components/**`, `design/tokens/**`                                           |
 
 ## Tools in `.claude/`
 

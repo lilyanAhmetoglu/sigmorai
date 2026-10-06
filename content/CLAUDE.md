@@ -25,7 +25,7 @@ Realms `r0`–`r8`, chapters `c1`–`c6`, floors `f1`–`f8` (counts in `lib/con
 
 ## Rules
 
-- **Frontmatter is Zod-validated** (schemas in `lib/types/`): `id, title, minutes, sources[{kind:'docs'|'repo'|'blog', title, url}], sourceHash` (`blog` = an official vendor engineering post only). `sourceHash` is optional until the docs-sync job writes it (step 8). Blog posts: `title, description, lesson` (`BlogFrontmatterSchema`). A file that fails the schema fails the build.
+- **Frontmatter is Zod-validated** (schemas in `lib/types/`): `id, title, minutes, sources[{kind:'docs'|'repo'|'blog', title, url}]` (`blog` = an official vendor engineering post only). No `sourceHash`: page hashes live on the `docs-watch` branch (SIG-23). Blog posts: `title, description, lesson` (`BlogFrontmatterSchema`). A file that fails the schema fails the build.
 - **Every claim traces to a source in `sources`.** If you can't cite it, cut it. API shapes are checked against the live doc, not memory.
 - **Lesson prose is plain technical voice.** Lore lines only in `<DialogBox>` blocks, said by the realm's NPC.
 - **Lesson body rules** (the page renders it with `lib/content/mdx.tsx`): start at `##` (the page shows the title as the h1; no `# ` heading); the only component is `<DialogBox>…</DialogBox>` (no `speaker`: it is always the realm's NPC); no `import` / `export`; no `{…}` expressions (show code in a code span or block); no `<script>`, `<style>` or `<iframe>`. `bun run content:check` compiles every body and fails on any of these.
@@ -33,5 +33,5 @@ Realms `r0`–`r8`, chapters `c1`–`c6`, floors `f1`–`f8` (counts in `lib/con
 - **Cite more than one vendor where the concept exists at more than one** (Claude, OpenAI, Gemini, open models). A lesson that reads like one vendor's tutorial fails review.
 - **Docs first:** build from the official docs; keep only what matters. `sources` lists at least 1 Anthropic page and at least 1 OpenAI page where both document the concept (REQUIRED); Google and MCP spec pages are optional. Every url sits under a `trustTier: official` entry of `content/sources.yaml`. Community repos and community blogs are examples only. Official vendor engineering posts (e.g. pages under `anthropic.com/engineering` or `openai.com/index`) count as official pages; they are the primary source for harness engineering. A claim with no official page is a blocker.
 - **`quick-check.json`:** the same question shape as `case.json` (`{id, questions[3]}`, no title/scenario), exactly 3 questions, 2–6 options each (see `docs/plans/curriculum-design-plan.md`).
-- **Never auto-publish.** The sync job opens a PR labelled `new-level`; run the `content-reviewer` agent on it.
+- **Never auto-publish.** The knowledge-sync routine opens a PR labelled `new-level`; run the `content-reviewer` agent on it.
 - **Validate every change.** `bun run content:check` (schemas, runs in a hook and CI) and the `validate-content` skill (facts vs the cited pages). `/commit` and `/review` run `content-reviewer` when content or the curriculum changes.

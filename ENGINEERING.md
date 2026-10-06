@@ -75,7 +75,7 @@ See `docs/build-prompt.md` → Data model, plus the Auth.js adapter tables (`acc
 5. Quest page: graded scenario cases on both tracks + quick checks, plus XP/HP/streak logic
 6. Leaderboard + Math Tower
 7. AI mentor (+ eval corpus)
-8. Docs-sync script + GitHub Action
+8. Docs-watch (daily GitHub Action: hash cited pages, open one `docs-changed` issue) + the knowledge-sync Claude Code routine (drafts `new-level` PRs). No DB, no API key. See `docs/plans/knowledge-base-design-plan.md`, amendment 2026-10-06.
 9. Playwright: sign up → pick track → clear a level → see XP on the leaderboard
 
 `bun run build` must pass after every step.

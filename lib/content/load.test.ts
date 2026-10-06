@@ -126,11 +126,11 @@ describe('schemas', () => {
     expect(CaseSchema.safeParse(c).success).toBe(false);
   });
 
-  test('sourceHash is optional until step 8, but must be a SHA-256 when set', async () => {
-    const { sourceHash, ...rest } = (await loadLesson(LESSON, VALID)).frontmatter;
-    expect(sourceHash).toBeDefined();
-    expect(LessonFrontmatterSchema.safeParse(rest).success).toBe(true);
-    expect(LessonFrontmatterSchema.safeParse({ ...rest, sourceHash: 'abc' }).success).toBe(false);
+  test('sourceHash is gone: page hashes live on the docs-watch branch (SIG-23)', async () => {
+    const { frontmatter } = await loadLesson(LESSON, VALID);
+    expect(LessonFrontmatterSchema.safeParse(frontmatter).success).toBe(true);
+    const sourceHash = 'f16d05ec6b29248d2c61adb1e9263f78e4f7bace1b955014a2d17872cfe4064d';
+    expect(LessonFrontmatterSchema.safeParse({ ...frontmatter, sourceHash }).success).toBe(false);
   });
 
   test('a case has 3–5 questions', async () => {

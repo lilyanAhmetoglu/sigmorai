@@ -10,7 +10,6 @@ import {
   LESSON_SOURCE_KINDS,
   QUESTION_OPTIONS,
   QUICK_CHECK_QUESTIONS,
-  SOURCE_HASH_PATTERN,
 } from '@/lib/constants';
 import { ExerciseIdSchema } from './exercise';
 
@@ -39,11 +38,6 @@ export const LessonFrontmatterSchema = z
     title: Text,
     minutes: z.number().int().positive(),
     sources: z.array(LessonSourceSchema).min(1, 'a lesson cites at least one source'),
-    // Required once scripts/sync-sources.ts writes it (step 8).
-    sourceHash: z
-      .string()
-      .regex(SOURCE_HASH_PATTERN, 'sourceHash must be a hex SHA-256')
-      .optional(),
   })
   .strict();
 export type LessonFrontmatter = z.infer<typeof LessonFrontmatterSchema>;

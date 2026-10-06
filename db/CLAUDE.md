@@ -19,7 +19,7 @@
 - `db/schema/*.ts`: one file per table group, re-exported from `db/schema/index.ts`.
 - `db/index.ts`: the Neon client + drizzle instance. `import 'server-only'`.
 - `drizzle/`: generated SQL migrations + `meta/` (never hand-edit `meta/`).
-- v1 tables: `users`, `progress`, `submissions`, `xp_events`, `kb_sources`. `mentor_messages` arrives in step 7; `level_announcements`, the other `kb_*` tables, `lesson_sources` and **pgvector** arrive in step 8.
+- v1 tables: `users`, `progress`, `submissions`, `xp_events`, `kb_sources`. `mentor_messages` arrives in step 7. Step 8 adds **no** tables: docs-watch keeps its page hashes in git on the `docs-watch` branch, and the other `kb_*` tables, `lesson_sources` and pgvector are dropped (knowledge-base plan, amendment 2026-10-06). `kb_sources` stays but nothing reads it yet; removing it is a later cleanup with db-architect.
 
 ## Migrations
 
