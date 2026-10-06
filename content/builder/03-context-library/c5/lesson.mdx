@@ -1,0 +1,92 @@
+---
+id: builder/r3/c5/lesson
+title: Long context
+minutes: 10
+sources:
+  - kind: docs
+    title: Context windows (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/context-windows
+  - kind: docs
+    title: Prompting best practices (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: blog
+    title: Introducing Contextual Retrieval (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/contextual-retrieval
+  - kind: docs
+    title: Conversation state (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/conversation-state
+  - kind: docs
+    title: GPT-4.1 prompting guide (OpenAI Cookbook)
+    url: https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide
+  - kind: docs
+    title: Long context (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/long-context
+---
+
+Chapters 1 to 3 picked a few chunks out of a large library. Some models can now read a whole library at once. This chapter covers when that works, how to lay out a long prompt, and where it breaks.
+
+## What the context window holds
+
+The Claude docs call the context window the model's "working memory": "all the text a language model can reference when generating a response, including the response itself." The Gemini docs use the same picture: short-term memory.
+
+Everything counts. On Claude, that means the system prompt, every message (including tool results, images and documents), the tool definitions, and the output, thinking included. OpenAI: the context window "includes input, output, and reasoning tokens."
+
+Sizes differ by model:
+
+- **Claude:** current models such as Claude Opus 5.5 and Claude Sonnet 5.5 have a 1M-token context window. Others, including Claude Sonnet 4.5, have 200k.
+- **Gemini:** "Many Gemini models come with large context windows of 1 million or more tokens."
+- **OpenAI:** GPT-4.1 has a 1M-token input context window. OpenAI's model pages list the size for each model.
+
+For scale, the Gemini docs say 1 million tokens is about 50,000 lines of code, or 8 average-length English novels.
+
+## Bigger is not automatically better
+
+A big window does not mean the model uses all of it equally well.
+
+- **Claude:** "As token count grows, accuracy and recall degrade, a phenomenon known as context rot."
+- **OpenAI** (GPT-4.1 guide): performance "can degrade as more items are required to be retrieved", or when the task needs reasoning over the state of the whole context.
+- **Gemini:** with multiple pieces of information to find, "the model does not perform with the same accuracy" as with a single one.
+
+The OpenAI and Gemini pages point to the same pattern: one fact in a huge prompt is easier to find than many. Example: "What is the notice period in contract 12?" is one needle. "List every clause, in all 60 contracts, that allows early cancellation" is many needles.
+
+## Long context or retrieval?
+
+Anthropic gives a simple rule: "If your knowledge base is smaller than 200,000 tokens (about 500 pages of material), you can just include the entire knowledge base in the prompt", with no need for RAG. Prompt caching (chapter 4) makes that faster and cheaper. As the knowledge base grows, Anthropic says you'll need a more scalable solution, and RAG is the typical one for knowledge bases that don't fit in the window.
+
+The Gemini docs make the same cost point: when you reuse the same long context many times, context caching is "the primary optimization". They also note a cost of their own: you pay the input tokens every time you send a long query.
+
+## Where to put the question
+
+Here the vendors' advice differs, so check the guide for the model you use.
+
+- **Claude:** put long documents "near the top of your prompt, above your query, instructions, and examples." Queries at the end "can improve response quality by up to 30 percent in tests".
+- **Gemini:** in most cases, performance is better "if you put your query / question at the end of the prompt (after all the other context)."
+- **OpenAI (GPT-4.1):** place your instructions "at both the beginning and end of the provided context". If you only want them once, put them above the context: that "works better than below."
+
+Example: 80 pages of contracts and one question. For Claude or Gemini: contracts first, question last. For GPT-4.1: instructions, then contracts, then the instructions again.
+
+## Give each document a frame
+
+When you paste many documents, mark where each one starts and ends, and where it came from.
+
+- **Claude:** wrap each document in `<document>` tags with `<document_content>` and `<source>` subtags.
+- **OpenAI (GPT-4.1):** XML "performed well in our long context testing", for example `<doc id='1' title='The Fox'>...</doc>`. JSON "performed particularly poorly."
+
+A second Claude tip helps with long tasks: ask the model to first pull out quotes from the documents that relate to the task, then work from those quotes. This "helps Claude focus on the relevant content and ignore the rest of the document."
+
+## Limits and latency
+
+Long prompts can fail or slow down.
+
+- **Claude:** if the input alone is larger than the window, the API returns a 400 error ("prompt is too long"). Use the token counting API to estimate before you send.
+- **OpenAI:** a prompt that fills the window "might result in truncated outputs."
+- **Gemini:** "generally longer queries will have higher latency (time to first token)."
+
+## Key points
+
+- The context window holds everything: instructions, messages, tools, documents and the output.
+- Anthropic, Google and OpenAI all document 1M-token windows. But accuracy drops as context grows (Claude), and with many needles (OpenAI, Gemini).
+- Anthropic: under about 200,000 tokens, you can skip RAG and send the whole knowledge base, with prompt caching.
+- Claude and Gemini: documents first, question last. GPT-4.1: instructions before and after the context.
+- Wrap documents in tags with their source. GPT-4.1 tests found XML good and JSON poor.
+- Long prompts cost more and take longer. Count tokens before you send.

@@ -1,0 +1,96 @@
+{
+  "id": "builder/r3/c2/challenge",
+  "title": "The allowance with no country",
+  "scenario": "An HR team loads its 120-page staff handbook into an OpenAI vector store so an assistant can answer policy questions. Their first upload is rejected. The second one works, but answers about country rules are unreliable. You review the ingest settings and one search (exhibit).",
+  "exhibit": "ATTEMPT 1 (rejected)\nchunking_strategy = {\"type\": \"static\", \"static\": {\n    \"max_chunk_size_tokens\": 6000,\n    \"chunk_overlap_tokens\": 1000 }}\n\nATTEMPT 2 (accepted)\nchunking_strategy = default (800 / 400)\n\nSEARCH after attempt 2\n  query:  home-office allowance for remote staff in Portugal\n  chunk #1 (score 0.41):\n    Staff in this group receive a home-office\n    allowance of EUR 40 per month. Claims are\n    paid with the next salary.\n\nNOTE: the heading \"7.3 Remote staff in Portugal\" is two\npages earlier, in a different chunk. Sections 7.1 to 7.6\nall start with the same sentence: Staff in this group\nreceive a home-office allowance of ...",
+  "questions": [
+    {
+      "prompt": "Why was attempt 1 rejected?",
+      "options": [
+        {
+          "text": "An overlap of 1000 is more than half of the chunk size.",
+          "explanation": "Half of 6000 is 3000, so an overlap of 1000 is inside the limit. The problem is the chunk size itself."
+        },
+        {
+          "text": "The overlap must be 0 when you set a custom chunk size.",
+          "explanation": "The OpenAI docs only say the overlap must be non-negative and should not exceed half the chunk size. Non-zero overlap is allowed."
+        },
+        {
+          "text": "Custom chunking is only allowed on files smaller than 100 pages.",
+          "explanation": "The OpenAI retrieval guide sets no page limit for custom chunking. Its limits are on chunk size and overlap."
+        },
+        {
+          "text": "A chunk size of 6000 is above the 4096 maximum.",
+          "explanation": "Right. The OpenAI docs say `max_chunk_size_tokens` must be between 100 and 4096 inclusive.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Why is chunk #1 a weak match for the Portugal question?",
+      "options": [
+        {
+          "text": "The 400-token overlap repeats text, so the scores are inflated.",
+          "explanation": "Overlap keeps text near a cut whole. The real gap is that this chunk never says which country it is about."
+        },
+        {
+          "text": "The chunk lost its context: it never names Portugal.",
+          "explanation": "Right. Like Anthropic's example of a revenue line with no company or quarter, the chunk is right for one country but cannot show which.",
+          "correct": true
+        },
+        {
+          "text": "Embedding models cannot read amounts written as EUR 40.",
+          "explanation": "The amount is not the issue. Six sections share the same wording, and none of the matching chunks say which country they cover."
+        },
+        {
+          "text": "The query is too short for the vector store to match well.",
+          "explanation": "The query names the country clearly. The chunks it should match are the ones missing that word."
+        }
+      ]
+    },
+    {
+      "prompt": "Which fix matches the method in Anthropic's Contextual Retrieval post?",
+      "options": [
+        {
+          "text": "Prepend a short summary of the whole handbook to every chunk.",
+          "explanation": "Anthropic tried generic document summaries and saw very limited gains. Every chunk would get the same text, so the six sections would still look alike."
+        },
+        {
+          "text": "Have a model write a short, chunk-specific context for each chunk.",
+          "explanation": "Right. The post prepends model-written context, usually 50 to 100 tokens, such as: this chunk is from section 7.3, remote staff in Portugal.",
+          "correct": true
+        },
+        {
+          "text": "Set the overlap to 0, so each section appears in only one chunk.",
+          "explanation": "Less overlap does not add the missing country. It only makes it more likely that a rule is split at a cut."
+        },
+        {
+          "text": "Ask staff to add the section number to every question they type.",
+          "explanation": "That pushes the system's job onto users, and most will not know the section. The chunks themselves need the context."
+        }
+      ]
+    },
+    {
+      "prompt": "The handbook gives about 200 chunks, and each context call sends the whole handbook. How does the post keep this cheap?",
+      "options": [
+        {
+          "text": "Send only the chunk, without the handbook, to save input tokens.",
+          "explanation": "Without the document, the model cannot know which section or country the chunk belongs to."
+        },
+        {
+          "text": "Write the context lines by hand for the most popular chunks.",
+          "explanation": "The post calls manual annotation far too much work for large knowledge bases. It uses a model and caching instead."
+        },
+        {
+          "text": "Load the document into the prompt cache once and reuse it.",
+          "explanation": "Right. With prompt caching, you don't pass in the document for every chunk; you load it into the cache once and reference it.",
+          "correct": true
+        },
+        {
+          "text": "Run the context step only on chunks under 100 tokens.",
+          "explanation": "The default chunks here are 800 tokens, so that would skip almost all of them. The post contextualizes every chunk."
+        }
+      ]
+    }
+  ]
+}
