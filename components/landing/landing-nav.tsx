@@ -6,7 +6,7 @@ import { AUTH_ROUTES, AUTH_TEXT, LANDING_TEXT } from '@/lib/constants';
 /**
  * Landing top bar over the hero art: logo, Sign in, Start free. Not Clerk's
  * <Show> (a server auth read would make / dynamic): LandingCta swaps in
- * "Continue your quest" on the client. Styles: landing.css.
+ * "Continue quest" on the client. Styles: landing.css.
  */
 export function LandingNav() {
   return (
