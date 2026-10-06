@@ -8,6 +8,8 @@ import { expectNoViolations } from './axe';
 const PUBLIC_ROUTES = [
   '/',
   '/leaderboard',
+  '/blog',
+  '/blog/be-specific',
   '/quest/strategist/r0/c1/lesson',
   '/quest/strategist/r0/c1/challenge',
 ];

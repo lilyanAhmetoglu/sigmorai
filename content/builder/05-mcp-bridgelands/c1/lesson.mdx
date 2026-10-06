@@ -1,0 +1,112 @@
+---
+id: builder/r5/c1/lesson
+title: MCP basics
+minutes: 9
+sources:
+  - kind: docs
+    title: Specification (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28
+  - kind: docs
+    title: Architecture (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/architecture
+  - kind: docs
+    title: Server features overview (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server
+  - kind: docs
+    title: MCP connector (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: Connect Claude Code to tools via MCP (Claude Code docs)
+    url: https://code.claude.com/docs/en/mcp
+  - kind: docs
+    title: MCP servers (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: repo
+    title: Model context protocol (MCP) (OpenAI Agents SDK docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md
+---
+
+Realm 2 taught you to define tools for one app. But every app defined its tools in its own way. If ten AI apps wanted to use your issue tracker, someone wrote ten integrations. The Model Context Protocol (MCP) fixes that: you build one server, and any app that speaks MCP can use it.
+
+## What MCP is
+
+The MCP specification calls it "an open protocol that enables seamless integration between LLM applications and external data sources and tools." It says MCP takes some inspiration from the Language Server Protocol, which did the same job for programming languages in code editors.
+
+The messages are JSON-RPC 2.0. You don't need to read them by hand, but they explain the names you will see in logs: `tools/list`, `tools/call`, `resources/read`, `prompts/get`.
+
+The spec pages cited in this realm are revision 2026-07-28.
+
+## Three roles: host, client, server
+
+The spec splits an MCP system into three parts:
+
+- **Host:** the LLM application, such as a chat app or an IDE. It "initiates connections".
+- **Client:** a connector inside the host. Each client "communicates with exactly one server".
+- **Server:** a service that "provide[s] context and capabilities". It can be a local process or a remote service.
+
+Example: a desktop assistant (the host) connects to a Git server and a database server. It runs two clients, one for each server. A 1:1 link per server keeps the servers apart.
+
+The host has the most jobs. The spec says it enforces security policies and consent requirements, handles user authorization decisions, and coordinates the AI model. Servers stay small and focused.
+
+## Servers can't see everything
+
+One design principle matters a lot for security. The architecture page says servers "should not be able to read the whole conversation, nor 'see into' other servers". In detail:
+
+- Servers receive only necessary contextual information.
+- Full conversation history stays with the host.
+- Cross-server interactions are controlled by the host.
+
+So if your assistant talks to a CRM server and an email server, the CRM server never sees the email server's data unless the host passes it on.
+
+## Three server primitives
+
+A server can offer three kinds of things. The spec sorts them by who controls them:
+
+| Primitive | Control                | Example from the spec           |
+| --------- | ---------------------- | ------------------------------- |
+| Prompts   | User-controlled        | Slash commands, menu options    |
+| Resources | Application-controlled | File contents, git history      |
+| Tools     | Model-controlled       | API POST requests, file writing |
+
+- **Tools:** functions the model can call, like the tools in realm 2.
+- **Resources:** data that gives the model context, picked by the app or the user.
+- **Prompts:** templates that a user chooses, often as a slash command.
+
+Chapters 2 to 4 take each one in turn. Features also go the other way: the spec lists elicitation, a client feature for "server-initiated requests for additional information from users".
+
+## How a client learns what a server can do
+
+Servers declare what they support, such as tool support or prompt templates. The 2026-07-28 revision is stateless: "every request is self-contained and carries its own protocol version and capabilities." A client can call `server/discover` first to learn the server's supported versions and capabilities.
+
+Then the client asks for lists. For tools, it sends `tools/list`, and the model picks a tool from that list. The client sends `tools/call`, and the result goes back to the model.
+
+## The same server, many hosts
+
+The point of MCP is reuse. Several vendors' products can act as the MCP client:
+
+- **Claude Code** connects to MCP servers directly. Its docs say to connect a server "when you find yourself copying data into chat from another tool, like an issue tracker or a monitoring dashboard."
+- **Claude API:** the MCP connector lets the Messages API connect to remote MCP servers "without a separate MCP client". Its limitation: of the MCP feature set, only tool calls are supported.
+- **OpenAI Responses API:** the `mcp` tool type connects a model to a remote MCP server. The API first lists the server's tools (an `mcp_list_tools` item), then makes calls (`mcp_call` items).
+- **OpenAI Agents SDK:** it "understands multiple MCP transports", so an agent can use a hosted MCP tool or connect to a server itself.
+
+So one server can serve a Claude app and an OpenAI app. That is what the spec's design principles aim for: "Shared protocol enables interoperability."
+
+## Safety comes first
+
+The spec lists key principles for everyone who builds on MCP:
+
+- Users must explicitly consent to and understand all data access and operations.
+- Hosts must obtain explicit user consent before exposing user data to servers.
+- Tools represent arbitrary code execution and must be treated with appropriate caution.
+- Hosts must obtain explicit user consent before invoking any tool.
+
+The spec also says MCP itself "cannot enforce these security principles at the protocol level". The host and the people who build it must do that. Chapter 6 goes deeper on auth and trust.
+
+## Key points
+
+- MCP is an open protocol: build one server, use it from any MCP host.
+- Host = the app. Client = one connection inside it. Server = the service. One client per server.
+- Servers don't see the whole conversation or other servers. The host controls what crosses.
+- Tools are model-controlled, resources are application-controlled, prompts are user-controlled.
+- Claude Code, the Claude API MCP connector, the OpenAI Responses API and the OpenAI Agents SDK can all use MCP servers. The Claude API connector supports only tool calls.
+- Consent is the host's job. The protocol cannot enforce it alone.

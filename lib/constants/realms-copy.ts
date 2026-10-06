@@ -57,7 +57,7 @@ export const REALMS_TEXT = {
   heading: (trackLabel: string) =>
     `Explore realms · ${trackLabel.charAt(0)}${trackLabel.slice(1).toLowerCase()} path`,
   /** Meta description of the catalog. */
-  description: `Every Sigmorai realm on the builder and strategist paths: ${CHAPTER_COUNT} chapters and a boss each, built from official docs.`,
+  description: `Every Sigmorai realm on every path: ${CHAPTER_COUNT} chapters and a boss each, built from official docs.`,
   intro: `Every realm is a course: ${CHAPTER_COUNT} chapters and a boss, built from official docs.`,
   trackSwitch: 'Path',
   signInNote: 'Sign in to save your progress and earn XP.',
@@ -190,7 +190,7 @@ export const MATH_TEXT = {
   eyebrow: `SIDE REALM · ${MATH_FLOOR_COUNT} FLOORS`,
   /** Meta description and the line under the title. */
   description: `The math behind AI systems, one floor at a time: vectors, probability, statistics and more. ${MATH_FLOOR_COUNT} free floors, each a short lesson and a quick check.`,
-  intro: `The math behind AI systems, one floor at a time. Each floor is a short lesson and a quick check. Clear a floor's quick check to open the next floor. Every floor is free on both paths.`,
+  intro: `The math behind AI systems, one floor at a time. Each floor is a short lesson and a quick check. Clear a floor's quick check to open the next floor. Every floor is free on every path.`,
   floorsHeading: 'FLOORS',
   /** "FLOOR 3" */
   floorLabel: (n: number) => `FLOOR ${n}`,

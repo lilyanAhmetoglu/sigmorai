@@ -18,7 +18,7 @@ Server Actions are public HTTP endpoints. Treat every argument as hostile.
 
 - **Zod-parse every input** at the top. Never trust a client-sent score, XP amount, `passed` flag, track or user id.
 - **`auth()` first.** No session → `{ ok: false, error: 'unauthorized' }`. The user id comes from the session only.
-- **Grading happens here.** Compare answers to `case.json` on the server, on both tracks. The client never receives correct indexes or explanations before submitting.
+- **Grading happens here.** Compare answers to `case.json` on the server, on every track. The client never receives correct indexes or explanations before submitting.
 - **XP is an `xp_events` row**, written in the same `db.transaction` as the `progress`/`submissions` change, with an idempotency guard (one +150 per exercise per user, one +500 per boss). `users.xp` is derived/updated inside that transaction. Amounts come from `lib/xp/` constants, never literals.
 - **HP**: check and decrement attempts on the server; refill is computed from dates, not a cron.
 - **`revalidatePath`** every page that shows what changed (`/dashboard`, `/leaderboard`, `/realms/[realm]`, `/map/[realm]`).

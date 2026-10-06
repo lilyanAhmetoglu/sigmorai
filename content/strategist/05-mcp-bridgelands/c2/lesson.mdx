@@ -1,0 +1,101 @@
+---
+id: strategist/r5/c2/lesson
+title: MCP in plain words
+minutes: 7
+sources:
+  - kind: docs
+    title: MCP specification · Overview (version 2026-07-28)
+    url: https://modelcontextprotocol.io/specification/2026-07-28
+  - kind: docs
+    title: MCP specification · Architecture
+    url: https://modelcontextprotocol.io/specification/2026-07-28/architecture
+  - kind: docs
+    title: MCP specification · Server features overview
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server
+  - kind: docs
+    title: Claude docs · MCP connector
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: Claude Code docs · Connect Claude Code to tools via MCP
+    url: https://code.claude.com/docs/en/mcp
+  - kind: docs
+    title: OpenAI docs · MCP servers
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: docs
+    title: Gemini API docs · Function calling (Remote MCP)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+## Why it matters
+
+Vendors, consultants and your own IT team will say "MCP" a lot. You don't need to build it. You need to know what it is, what it can offer and what questions to ask. This chapter explains it without code.
+
+## What MCP is
+
+The MCP specification describes the **Model Context Protocol** as an open protocol. It connects AI applications with outside data sources and tools in a standard way. A protocol is a shared set of rules for how two programs talk, like the rules that let any phone call any other phone.
+
+The spec says MCP took some inspiration from the Language Server Protocol, which standardised how programming-language support is added across many coding tools. MCP aims to do the same for adding context and tools to AI applications.
+
+The spec has dated versions. The latest one listed on 2026-10-06 is version 2026-07-28.
+
+## Three roles: host, client, server
+
+The spec names three roles:
+
+- **Host:** the AI application the user works in, such as a chat app or a coding tool. It starts the connections.
+- **Client:** a connector inside the host. Each client talks to exactly one server.
+- **Server:** a service that offers data and actions, for example for a ticket system or a database.
+
+The architecture page gives the host important jobs. It controls connection permissions, enforces security policies and consent, and handles the user's authorisation decisions. So when you buy an AI app, much of the safety depends on the host, not only on the servers.
+
+Example: an operations team uses an AI desktop app (the host). It connects to a ticket-system server and a file-storage server. The app holds one client for each server.
+
+## What a server can offer
+
+The spec lists three building blocks that servers offer. Each one has a different "who decides" rule:
+
+- **Prompts** are controlled by the user. The spec's examples: slash commands, menu options.
+- **Resources** are controlled by the application. The spec's examples: file contents, git history.
+- **Tools** are controlled by the model. The spec's examples: API requests, writing files.
+
+Tools are the powerful part: the model can decide to call them. That is why the spec warns that tools can run arbitrary code and must be treated with caution.
+
+## Servers don't see everything
+
+One design principle in the architecture page is useful for privacy talks. Servers should not be able to read the whole conversation or "see into" other servers. The full conversation history stays with the host, and each server gets only the information it needs.
+
+Example: your AI app connects to a CRM server and a payroll server. The payroll server should not see what the user asked the CRM. This is a design goal of the protocol. Still check how your chosen app handles it.
+
+## Local and remote servers
+
+The architecture page says servers can be local processes or remote services. A local server runs on the user's own computer; a remote one runs on the internet.
+
+The big AI platforms connect to remote servers:
+
+- Anthropic's **MCP connector** connects to remote MCP servers from the Messages API. The server must be publicly reachable over HTTP; local servers can't be connected directly.
+- OpenAI's MCP guide says remote MCP servers can be any server on the public internet that implements MCP.
+- Google's Gemini function calling page says its Interactions API can connect to remote MCP servers, using the Streamable HTTP type only.
+
+Coding tools often use both kinds. Anthropic's Claude Code page shows example tasks: implementing a feature from an issue tracker, querying a database or updating an email template from new designs.
+
+## Support is not identical
+
+A shared protocol doesn't mean every product supports all of it. Anthropic's MCP connector page says that, of the MCP feature set, only tool calls are currently supported. Resources and prompts need another route. Always ask a vendor which parts of MCP its product supports.
+
+## Questions to ask about any MCP proposal
+
+This list is a tool for this course:
+
+1. **Which host?** Which AI app will use it, and what consent and approval screens does it show?
+2. **Which server, run by whom?** The service's own company, a third party, or our team?
+3. **Local or remote?** Does data leave the user's computer or our network?
+4. **Which building blocks?** Only tools, or also resources and prompts, and does our host support them?
+5. **Which tools can change things?** Those need approval.
+
+## Key points
+
+- MCP is an open protocol for connecting AI apps to data and tools.
+- Host = the AI app; client = its connector; server = the service that offers data and actions.
+- Servers offer prompts (user-controlled), resources (app-controlled) and tools (model-controlled).
+- By design, servers shouldn't see the whole conversation or each other.
+- Anthropic, OpenAI and Google document remote MCP support, but feature support differs, so ask.

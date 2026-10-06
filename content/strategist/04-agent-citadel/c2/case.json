@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r4/c2/challenge",
+  "title": "The maintenance agent's first month",
+  "scenario": "You manage operations at a property company with 900 flats. A maintenance agent will handle repair requests from tenants: it reads the request, books a contractor, sends reminders and pays small invoices.\n\nThe team drafted an autonomy sheet using the course's four-step ladder (1 Suggest, 2 Ask first, 3 Act within limits, 4 Act and report). Go-live is next week. The exhibit shows the draft.",
+  "exhibit": "Maintenance agent: autonomy sheet, draft v1 (made-up example data)\n\nAction                              Can undo?   Step   Track record\nSort requests by urgency             yes         3      400 test cases, 2 errors\nSend appointment reminder SMS        partly      2      none yet\nBook a contractor visit              yes         2      none yet\nPay contractor invoices up to €5,000 no          4      none yet\nCancel a tenant's booking            partly      3      none yet\n\nTeam note: \"Prompts slow us down. Could we just run the whole\nagent in a bypass mode, like the coding tools have?\"",
+  "questions": [
+    {
+      "prompt": "Which line of the sheet is the most dangerous as drafted?",
+      "options": [
+        {
+          "text": "Sort requests by urgency at step 3, because sorting needs a person to check every case.",
+          "explanation": "Sorting can be undone and has a test record (400 cases, 2 errors). Step 3 is a reasonable choice."
+        },
+        {
+          "text": "Book a contractor visit at step 2, because booking is too risky for an agent at all.",
+          "explanation": "Step 2 means a person approves each booking. That is a careful start, not a danger."
+        },
+        {
+          "text": "Pay invoices up to €5,000 at step 4: a payment can't be undone and there is no record yet.",
+          "explanation": "Right. A high cost of mistake, no undo and no evidence all point to a low step, such as 2 (Ask first).",
+          "correct": true
+        },
+        {
+          "text": "Send reminder SMS at step 2, because reminders should never need any approval.",
+          "explanation": "With no record yet, asking first is a safe start. The lesson's rule is to start low and move up with evidence."
+        }
+      ]
+    },
+    {
+      "prompt": "How should you answer the team note about a bypass mode?",
+      "options": [
+        {
+          "text": "Agree: one mode for the whole agent is simpler to manage than a step per action.",
+          "explanation": "Simpler, but it gives the riskiest action (payments) the same freedom as sorting. The lesson sets a step per action."
+        },
+        {
+          "text": "Disagree: Claude Code's docs keep bypass mode for isolated containers and VMs only; set each action's step instead.",
+          "explanation": "Right. In bypass mode everything runs without asking. The docs limit it to isolated environments, and this agent works with real money and real tenants.",
+          "correct": true
+        },
+        {
+          "text": "Agree, if the agent's instructions say \"never pay more than you should\".",
+          "explanation": "An instruction is not a limit. In bypass mode everything runs without a prompt, whatever the instruction says."
+        },
+        {
+          "text": "Disagree: bypass mode adds extra prompts, so it would slow the team down even more.",
+          "explanation": "The opposite: in bypass mode everything runs without asking. That is exactly why the docs limit it to isolated environments."
+        }
+      ]
+    },
+    {
+      "prompt": "Three months later, reminder SMS has 1,200 approvals and 0 changes by staff. What fits the vendor guidance best?",
+      "options": [
+        {
+          "text": "Move reminders up one step, to step 3, and write down the evidence for the change.",
+          "explanation": "Right. Anthropic's SDK docs suggest loosening permissions as trust builds, and OpenAI's MCP guide says you can skip approvals once you trust a server.",
+          "correct": true
+        },
+        {
+          "text": "Move every action up one step, because the agent has now proved itself.",
+          "explanation": "The record is for reminders only. Payments and cancellations have their own risks and their own records."
+        },
+        {
+          "text": "Keep reminders at step 2 forever, because an agent's step should never change.",
+          "explanation": "Both vendors describe autonomy that grows with trust. Never moving up wastes staff time."
+        },
+        {
+          "text": "Move reminders straight to step 4 and stop checking them at all.",
+          "explanation": "The lesson moves one step at a time. Step 4 also means working in a separated space, but SMS reach real tenants."
+        }
+      ]
+    },
+    {
+      "prompt": "A manager says: \"Staff approve almost everything. Replace all approvals, payments included, with an automatic safety checker.\" What is the best reply?",
+      "options": [
+        {
+          "text": "Agree: if people approve almost everything, their approvals add no safety.",
+          "explanation": "Fatigue is real, but a checker can miss things too. The answer is fewer, better prompts, not none on payments."
+        },
+        {
+          "text": "Agree, as long as the checker reads the agent's own reason for each payment before deciding.",
+          "explanation": "Anthropic's auto mode post removes the agent's own messages from what its classifier sees, on purpose, so the agent can't talk the checker into a bad call."
+        },
+        {
+          "text": "Disagree: approvals must always stay on every action, even sorting.",
+          "explanation": "Too many prompts cause approval fatigue. Low-risk actions with a good record can move up."
+        },
+        {
+          "text": "Partly: automate low-risk prompts, but keep a person on payments.",
+          "explanation": "Right. Anthropic's auto mode post reports approval fatigue (93% of prompts approved), but its classifier missed 17% of real overeager actions and is not a replacement for careful human review on high-stakes infrastructure.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

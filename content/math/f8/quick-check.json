@@ -1,0 +1,67 @@
+{
+  "id": "math/f8/quick-check",
+  "questions": [
+    {
+      "prompt": "A query scores 4 and 0 against two keys, and the keys have d = 16 numbers. What are the scaled scores before softmax?",
+      "options": [
+        {
+          "text": "1 and 0",
+          "explanation": "Right. √16 = 4, so the scores become 4 ÷ 4 = 1 and 0 ÷ 4 = 0.",
+          "correct": true
+        },
+        {
+          "text": "0.25 and 0",
+          "explanation": "That divides by d = 16, not by its square root. Attention divides by √d = 4."
+        },
+        {
+          "text": "4 and 0, because scaling happens after softmax.",
+          "explanation": "The order is score, divide by √d, then softmax. Scaling after softmax would break the rule that the weights add up to 1."
+        },
+        {
+          "text": "16 and 0",
+          "explanation": "That multiplies by √d instead of dividing. Multiplying would make softmax sharper, the opposite of what the scaling is for."
+        }
+      ]
+    },
+    {
+      "prompt": "After softmax, the weights for three tokens are 0.5, 0.25 and 0.25. Their values are (2, 0), (0, 4) and (4, 4). What is the attention output?",
+      "options": [
+        {
+          "text": "(6, 8), the sum of the values.",
+          "explanation": "That ignores the weights. Each value is multiplied by its weight before adding."
+        },
+        {
+          "text": "(2, 2)",
+          "explanation": "Right. First number: 0.5×2 + 0.25×0 + 0.25×4 = 1 + 0 + 1 = 2. Second: 0.5×0 + 0.25×4 + 0.25×4 = 0 + 1 + 1 = 2.",
+          "correct": true
+        },
+        {
+          "text": "(2, 0), the value of the token with the biggest weight.",
+          "explanation": "Attention blends all the values; it does not just pick the top one. The top token counts most, but the others still add their share."
+        },
+        {
+          "text": "(1, 0)",
+          "explanation": "That is only the top token's share, 0.5 × (2, 0). Add the other two weighted values too."
+        }
+      ]
+    },
+    {
+      "prompt": "Your agent's context grows from 2,000 to 20,000 tokens. Per Anthropic's description of the transformer, how many pairwise relationships does attention now cover?",
+      "options": [
+        {
+          "text": "10 times as many: 20,000 instead of 2,000.",
+          "explanation": "That counts tokens, not pairs. Every token attends to every other token, so the count grows with n²."
+        },
+        {
+          "text": "100 times as many: 400,000,000 instead of 4,000,000.",
+          "explanation": "Right. Anthropic says attention gives n² pairwise relationships for n tokens. 2,000² = 4,000,000 and 20,000² = 400,000,000. Ten times the tokens, a hundred times the pairs.",
+          "correct": true
+        },
+        {
+          "text": "The same number, because attention only looks at the newest token.",
+          "explanation": "Anthropic writes that the transformer lets every token attend to every other token across the entire context."
+        }
+      ]
+    }
+  ]
+}

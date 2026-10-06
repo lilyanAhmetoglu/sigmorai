@@ -8,6 +8,10 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (Creator path)
+
+- **A third track, Creator, is added** (`docs/plans/creator-path-design-plan.md`). Supersedes "Three audiences, still two tracks. No third track." (2026-10-05) and the brief's "Two paths" (`docs/build-prompt.md:32`). Why: designers use different models and tools; neither path spoke to them. A fourth track (Scientist) is planned.
+
 ## Amendments locked 2026-10-06 (SIG-39, analytics + AI search readiness)
 
 - **Analytics are Vercel Web Analytics and Speed Insights**, in `app/layout.tsx` (`@vercel/analytics/next`, `@vercel/speed-insights/next`). Cookieless, so there is no consent banner. No custom events.

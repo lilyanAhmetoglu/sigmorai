@@ -165,7 +165,7 @@ export async function hasContent(id: string, root = CONTENT_DIR): Promise<boolea
   }
 }
 
-/** A graded case: the `challenge` step (chapter or boss) on either track. */
+/** A graded case: the `challenge` step (chapter or boss) on any track. */
 export const loadCase = (id: string, root = CONTENT_DIR): Promise<Case> =>
   loadJson(id, CaseSchema, CASE_FILE, root);
 

@@ -16,7 +16,7 @@ const VALID = `${import.meta.dir}/__fixtures__/valid`;
 const BROKEN = `${import.meta.dir}/__fixtures__/broken`;
 
 const LESSON = 'builder/r0/c1/lesson';
-/** The graded `challenge` step is a case on both tracks. */
+/** The graded `challenge` step is a case on every track. */
 const BUILDER_CASE = 'builder/r0/c1/challenge';
 const CASE = 'strategist/r0/c1/challenge';
 const QUICK_CHECK = 'builder/r0/c1/quick-check';

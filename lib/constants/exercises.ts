@@ -3,8 +3,8 @@
  * Parsed and built by lib/content/ids.ts; the grammar is in content/CLAUDE.md.
  */
 
-/** The two learner paths. Also users.track (CHECK in db/schema/users.ts). */
-export const TRACKS = ['builder', 'strategist'] as const;
+/** The learner paths. Also users.track (CHECK in db/schema/users.ts). */
+export const TRACKS = ['builder', 'strategist', 'creator'] as const;
 
 /** Realms r0..r8 per track. */
 export const REALM_COUNT = 9;

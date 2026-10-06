@@ -9,7 +9,7 @@
  * Only users.track changes. Progress is already kept per track (the exercise
  * id holds the track, db/CLAUDE.md invariant 4), so nothing is lost and
  * nothing is granted: no confirm box, no rate limit. XP, level and streak are
- * one ledger, shared by both paths. Saving the same track is a no-op success.
+ * one ledger, shared by every path. Saving the same track is a no-op success.
  */
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';

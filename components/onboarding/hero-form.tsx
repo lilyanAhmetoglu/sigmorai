@@ -15,7 +15,7 @@ const FORM_ERROR: Partial<Record<NonNullable<OnboardingFormState>['error'], stri
 };
 
 /**
- * The track picker: hero name (live sprite preview) + builder or strategist.
+ * The track picker: hero name (live sprite preview) + a path.
  * Controlled inputs. The submit is dispatched by hand: React's automatic form
  * reset after an action would uncheck the DOM radio while React state still
  * holds the pick (seen after a failed submit). `action` stays for a submit

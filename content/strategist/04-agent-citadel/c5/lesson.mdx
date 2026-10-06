@@ -1,0 +1,97 @@
+---
+id: strategist/r4/c5/lesson
+title: Agent permissions
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude Code docs · Configure permissions
+    url: https://code.claude.com/docs/en/permissions
+  - kind: docs
+    title: Claude docs · Computer use tool
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool
+  - kind: docs
+    title: OpenAI docs · MCP and connectors
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: docs
+    title: OpenAI docs · Safety in building agents
+    url: https://developers.openai.com/api/docs/guides/agent-builder-safety
+  - kind: docs
+    title: OpenAI Cookbook · Building workspace agents in ChatGPT
+    url: https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep
+  - kind: docs
+    title: Gemini API docs · Agents in AI Studio playground
+    url: https://ai.google.dev/gemini-api/docs/aistudio-agents
+---
+
+## Why it matters
+
+An agent can only do what its connections let it do. Give it a shared drive with delete rights, and one bad step can delete files. Give it read-only access, and the worst case is a wrong summary.
+
+**Permissions** are the limits on what an agent can reach and do: which tools, which actions, with whose account. Setting them is a business decision, not only an IT task.
+
+## Assume it will use everything you give it
+
+Google's AI Studio agents page states the rule plainly: the agent may use any credential it has access to in order to complete its task. So only give credentials whose full scope you are willing to grant. Its advice:
+
+- Use **least-privilege** credentials: only the permissions the agent needs.
+- Prefer short-lived tokens over long-lived keys.
+- Rotate credentials on a regular schedule.
+
+OpenAI's safety guide for building agents makes the same point: even with safeguards, agents can make mistakes or be tricked, so use caution in what access you give them.
+
+## Read, write, delete
+
+Most connections offer more than one kind of action. Split them:
+
+- **Read:** search, open, list.
+- **Write:** create, edit, send.
+- **Delete:** remove, cancel.
+
+OpenAI's cookbook does this for its sales brief agent. It allows only read actions on the calendar. On SharePoint it allows a broad set of reads but prevents bulk writes and deletes. It also notes that admins can enforce connector actions at the workspace level, for example read actions only, no writes.
+
+Google's page says the same for tools: if a tool supports read-only mode, prefer it unless writes are strictly needed.
+
+## Allow, ask, deny
+
+Claude Code's permissions docs use three kinds of rules:
+
+- **Allow:** the agent may use the tool without asking.
+- **Ask:** the agent must get confirmation each time.
+- **Deny:** the agent may not use the tool.
+
+The order matters. Rules are checked deny first, then ask, then allow. A broad deny rule blocks a call even if a narrower allow rule also matches. In business terms: "never delete" wins over "may tidy up old files".
+
+OpenAI's MCP guide offers similar controls for connected tools. An `allowed_tools` setting limits which of a server's tools the model can use. A `require_approval` setting decides which calls need approval. The guide says to use these so any sensitive action needs an approval.
+
+## Whose account does it use?
+
+OpenAI's cookbook shows a choice that is easy to miss. Each connection can use:
+
+- an **end-user account**: each person signs in, and the agent sees only that person's data, or
+- an **agent-owned account**: one shared account. Anyone the agent is shared with can then reach everything that account can reach.
+
+Example: an HR agent with an agent-owned account on the HR drive, shared with all managers, lets every manager reach every salary file through the agent. With end-user accounts, each manager sees only what they could already see.
+
+## Limit where it can go
+
+Permissions are also about places. Anthropic's computer use docs suggest a dedicated virtual machine or container with minimal privileges, no access to sensitive data such as login details, and internet access limited to an allowlist of domains. Google's AI Studio restricts outbound network access by default; you add each domain the agent may reach.
+
+Connections can change, too. OpenAI's MCP guide says to prefer official servers hosted by the service provider, to log the data you send, and warns that MCP servers may update tool behaviour unexpectedly.
+
+## A permission sheet
+
+This one-page sheet is a tool for this course. Fill one line per connection:
+
+1. **Connection:** calendar, CRM, shared drive.
+2. **Actions allowed:** read / write / delete, each one named.
+3. **Account:** end-user or agent-owned, and who the agent is shared with.
+4. **Approval:** which actions ask first.
+5. **Owner and review date:** who checks it, and when.
+
+## Key points
+
+- Assume the agent will use every permission and credential you give it.
+- Split read, write and delete; allow only what the task needs.
+- Deny rules win over allow rules; use ask for sensitive actions.
+- Agent-owned accounts share their reach with everyone who uses the agent.
+- Limit places too: a separated machine and an allowlist of sites.

@@ -1,0 +1,84 @@
+---
+id: strategist/r4/c1/lesson
+title: What agents do
+minutes: 7
+sources:
+  - kind: blog
+    title: Anthropic Engineering · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: Claude Code docs · How the agent loop works
+    url: https://code.claude.com/docs/en/agent-sdk/agent-loop
+  - kind: docs
+    title: OpenAI docs · Agents
+    url: https://developers.openai.com/api/docs/guides/agents
+  - kind: docs
+    title: OpenAI docs · Running agents
+    url: https://developers.openai.com/api/docs/guides/agents/running-agents
+  - kind: docs
+    title: OpenAI Cookbook · Building workspace agents in ChatGPT
+    url: https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep
+  - kind: docs
+    title: Gemini API docs · Agents overview
+    url: https://ai.google.dev/gemini-api/docs/agents
+---
+
+## Why it matters
+
+"Agent" is on every vendor slide. Some mean a chat assistant with one extra button. Some mean software that works alone for hours. If you can't tell the two apart, you can't judge cost, risk or who must watch it.
+
+This realm is about agents at work: what they do, how much freedom to give them, where a person must check, and how they fail.
+
+## Workflow or agent
+
+Anthropic's "Building effective agents" post calls all of these **agentic systems**, and splits them into two kinds:
+
+- **Workflows:** the model and its tools follow a path that someone set in advance.
+- **Agents:** the model directs its own process and tool use. It decides how to do the task.
+
+OpenAI's agents guide describes agents in a similar way: they can plan and complete tasks using tools, work with other agents, and keep context across steps.
+
+Example: "Every invoice goes through extract, check, then file" is a workflow. The steps never change. "Find out why our March cloud bill went up, and tell me what to cut" is agent work. Nobody knows in advance which reports it must open.
+
+## The loop at the centre
+
+Under the label, an agent is a loop. Anthropic's Agent SDK docs describe it: the model looks at the prompt, calls tools to take action, gets the results, and repeats until the task is complete. OpenAI's guide to running agents describes the same loop: call the model, run any tool calls, hand off to another agent if asked, and stop when there is a final answer with no more tool work.
+
+Anthropic's post adds a key point. At each step the agent should get "ground truth" from its environment, such as a tool result, to check its progress. It can pause for human feedback at checkpoints or when it is blocked.
+
+Example: OpenAI's cookbook builds a sales agent that runs each day. It checks tomorrow's customer meetings in a calendar, pulls account notes from SharePoint, searches the web for company news, writes a meeting brief, saves it and sends a summary. Nobody tells it how many searches to run. It decides as it goes.
+
+## When an agent fits
+
+Anthropic's post says agents suit open-ended problems where you can't predict the number of steps and can't hard-code a fixed path. It also says you must have some level of trust in the agent's decisions.
+
+In its appendix, the post says agents add the most value for tasks that:
+
+- need both conversation and action,
+- have clear success criteria,
+- allow feedback loops, and
+- include meaningful human oversight.
+
+Customer support is its main business example. A support agent can pull customer data and order history, and take actions such as issuing refunds or updating tickets.
+
+## When not to use one
+
+The same post recommends the simplest solution possible. That might mean no agentic system at all. For many applications, it says, one well-built model call with retrieval and examples is usually enough. When a task is well defined, workflows give predictability and consistency.
+
+Example: a team wants an "agent" to translate each product description into French. The task is the same every time. A single prompt, or a short fixed workflow, is cheaper and easier to check.
+
+## Autonomy has a price
+
+Anthropic's post is direct: the autonomous nature of agents means higher costs and the potential for compounding errors. One wrong step early can steer every later step. The post recommends extensive testing in sandboxed (safe, separated) environments, with guardrails.
+
+The cost can be large. Google's Gemini agents overview says a single interaction with its managed agents can trigger multiple reasoning loops, typically using 100k to 3M tokens. Compare that with a chat answer of a few hundred tokens.
+
+Limits help. Anthropic's Agent SDK lets you cap the loop with a maximum number of turns and a maximum budget in US dollars. Without limits, the docs say, the loop runs until the model finishes, which can run long on open-ended prompts. They call a budget a good default for production agents.
+
+## Key points
+
+- A workflow follows a fixed path; an agent chooses its own steps and tools.
+- Every agent is a loop: think, use a tool, read the result, repeat until done.
+- Agents fit open-ended tasks with clear success criteria and human oversight.
+- If one call or a fixed workflow does the job, don't build an agent.
+- Agents cost more and errors can compound; set turn and budget limits.

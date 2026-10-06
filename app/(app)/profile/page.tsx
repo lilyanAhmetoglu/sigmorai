@@ -22,7 +22,7 @@ export const metadata: Metadata = { title: `${PROFILE_TEXT.title} · Sigmorai` }
  * The player's profile (Sigmorai App.dc.html → profile screen): sprite, hero
  * name, track, level and XP. Reads the same cached query as the HUD.
  * Then "Hero name" (rename; the sprite follows the name), "Your path"
- * (switch builder ↔ strategist) and "Your data":
+ * (switch path) and "Your data":
  * download and delete (GDPR).
  * Not built yet: photo upload (sprite only for now) and realm progress.
  */

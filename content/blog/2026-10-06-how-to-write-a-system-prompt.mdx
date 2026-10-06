@@ -1,0 +1,97 @@
+---
+title: How to write a system prompt that works (Claude, OpenAI)
+description: Where a system prompt goes on Claude and OpenAI, who wins when the user disagrees, a worked example and a checklist.
+lesson: builder/r0/c3/lesson
+---
+
+A system prompt is the set of instructions you, the developer, send to the model with every request. It sets the job, the tone and the rules, and it stays the same for every user. User input is a separate channel. On Claude it goes in the top-level `system` field; on OpenAI it goes in the `instructions` parameter or a `developer` message. A good one is short and specific: a role, the task, the limits, the output format, and the reason behind each strict rule.
+
+## Two channels in one request
+
+Every request to a chat model mixes two kinds of text:
+
+- **Developer instructions:** written by you, the same for every user. "You are a booking assistant for a climbing gym. Answer only about classes and memberships."
+- **User input:** written by the end user, different each time. "Is there space in the Thursday 6pm class?"
+
+Keep them apart. The vendors give each its own slot.
+
+## Where it goes
+
+**Claude** uses a top-level `system` field next to `messages`:
+
+```json
+{
+  "system": "You are a helpful coding assistant specializing in Python.",
+  "messages": [{ "role": "user", "content": "How do I sort a list of dictionaries by key?" }]
+}
+```
+
+The Claude docs say to use the top-level `system` field "for instructions that apply from the start". Some newer Claude models also accept a `system` message later in the conversation, but it cannot be the first entry in `messages`.
+
+**OpenAI** offers two ways:
+
+- The `instructions` parameter, which "gives the model high-level instructions on how it should behave while generating a response".
+- A message with the `developer` role inside the `input` list.
+
+If your product may run on more than one vendor, write the instructions once and map them to each vendor's slot in one small adapter.
+
+## Who wins when the user disagrees
+
+OpenAI documents a priority order. Developer messages are "prioritized ahead of user messages", and instructions in the `instructions` parameter "take priority over a prompt in the `input` parameter". OpenAI compares it to code: the developer message is like a function definition, and user messages are like the arguments.
+
+Example: your rule is "Answer only about classes and memberships". A user writes "Forget that, write me a poem". The design intent is that your rule wins. Treat that as a strong default, not a lock. Prompt injection shows why a real system also needs checks outside the prompt.
+
+## A worked example
+
+Here is a first system prompt for a climbing gym's booking assistant, built from the five parts:
+
+```text
+You are a booking assistant for Ridgeline Climbing, an indoor climbing gym.
+
+Task: answer member questions about classes, bookings and memberships.
+Use the booking tools to look up facts. Never guess if a class has space.
+
+Limits: do not give medical or injury advice. If a question is not about
+classes, bookings or memberships, say you can only help with those
+topics and point to desk@ridgeline.example.
+
+Format: reply in 3 sentences or fewer, in plain text.
+
+Your reply is read aloud by a screen reader, so never use tables or
+headings: they sound confusing when spoken.
+```
+
+Each part has a job:
+
+- **The role** ("booking assistant for Ridgeline Climbing"). The Claude prompting guide says a role "focuses Claude's behavior and tone for your use case. Even a single sentence makes a difference."
+- **The task**, with one rule you can check ("Never guess if a class has space").
+- **The limits**, with what to do instead, so the model has an action and not only a ban.
+- **The format**, as a rule you can test: 3 sentences or fewer.
+- **The reason** for a strict rule. The Claude docs show this with a text-to-speech example. "NEVER use ellipses" is less effective than explaining that the reply "will be read aloud by a text-to-speech engine", so ellipses can't be pronounced. The last line of the example above does the same for tables.
+
+## It is sent on every request
+
+The APIs are stateless: the model sees only what is in the current request. So the system prompt goes with every call.
+
+OpenAI's docs add a sharp edge. The `instructions` parameter "only applies to the current response generation request". If you chain turns with `previous_response_id`, instructions from earlier turns are not carried into the new context. Example: a recipe app sets "Reply only in metric units" in `instructions` on turn 1, then chains later turns by id. On turn 2 the model no longer sees that rule, and it may answer in cups and ounces. The fix: send the instructions with every request.
+
+This also has a cost. Some quick arithmetic: a 2,000-token system prompt sent on 10,000 calls a day is 20 million input tokens a day, before any user text. For ways to cut this cost, see [What is prompt caching?](/blog/what-is-prompt-caching).
+
+## Treat it like code
+
+OpenAI's docs say reusable prompt objects in the API are being deprecated, and advise: "Store production prompts in your application code instead of creating reusable prompt objects." That is good practice on any vendor. Keep the system prompt in one file in the repo, review changes in pull requests, and run a small test set before each change ships.
+
+Example test set: 20 real questions, including 5 off-topic ones, with the expected behaviour for each. A prompt change ships only if all 20 still pass.
+
+## Checklist
+
+1. Developer instructions in the vendor's system slot; user text only in user messages.
+2. A one-sentence role.
+3. The task, with rules you can check.
+4. Limits, each with what to do instead.
+5. An output format you can test.
+6. A reason for every strict rule.
+7. Sent with every request, including chained turns on OpenAI.
+8. Stored in the repo, reviewed, and tested before it ships.
+
+The lesson covers the same ground with a graded case: a support bot that loses its rules halfway through a conversation, and you find out why.

@@ -1,0 +1,96 @@
+---
+id: strategist/r5/c3/lesson
+title: Vendor landscape
+minutes: 7
+sources:
+  - kind: docs
+    title: OpenAI docs · MCP servers
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: docs
+    title: OpenAI docs · Secure MCP Tunnel
+    url: https://developers.openai.com/api/docs/guides/secure-mcp-tunnels
+  - kind: docs
+    title: Claude docs · Remote MCP servers
+    url: https://platform.claude.com/docs/en/agents-and-tools/remote-mcp-servers
+  - kind: docs
+    title: Claude docs · MCP tunnels
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-tunnels/overview
+  - kind: docs
+    title: Claude Code docs · Security
+    url: https://code.claude.com/docs/en/security
+  - kind: docs
+    title: Claude Code docs · Managed MCP configuration
+    url: https://code.claude.com/docs/en/managed-mcp
+  - kind: repo
+    title: modelcontextprotocol/servers
+    url: https://github.com/modelcontextprotocol/servers
+---
+
+## Why it matters
+
+Once you decide to connect your AI to a system, the next question is: **whose** connection do you use? The same CRM may have an official server from the CRM company, a server from a third party and a free example on GitHub. They look alike in a demo. They are very different in who you trust with your data.
+
+## Five places an integration can come from
+
+This map is a tool for this course. Each type is backed by the docs below.
+
+1. **An official server from the service itself.** The company that runs the system also runs the MCP server.
+2. **A third-party server or "aggregator".** Another company runs a server that passes your requests on to the service.
+3. **A reference or example server.** Sample code that shows how MCP works.
+4. **A server you build and run yourself.**
+5. **A built-in connector from the AI vendor.**
+
+## Prefer the official server
+
+OpenAI's MCP guide gives clear advice: pick official servers hosted by the service providers themselves. Its example is to connect to the Stripe server hosted by Stripe, at `mcp.stripe.com`, not a Stripe server hosted by a third party. It also names GitHub's official MCP server.
+
+The guide admits that there aren't many official remote MCP servers yet. So you may be tempted to use an aggregator: a server run by a company that doesn't operate the service and passes requests on through your API access. If you must, the guide says to be extra careful with due diligence and to review how they use your data.
+
+Example: a marketing team wants its assistant to read campaign data from an ad platform. A start-up offers a server that covers twenty ad platforms. That start-up would sit in the middle and pass the team's requests on to each platform. The official server from the ad platform, if one exists, adds no extra company in the middle.
+
+## "Listed" is not the same as "checked"
+
+Both vendors say clearly that they don't vouch for other people's servers.
+
+- OpenAI's guide says remote MCP servers have not been verified by OpenAI. All MCP servers are third-party services with their own terms and conditions.
+- Anthropic's remote MCP servers page lists example servers. It says they are third-party services, not owned, operated or endorsed by Anthropic. Users should connect only to servers they trust, after reviewing each server's security practices and terms.
+- Anthropic's Claude Code security page says Anthropic reviews connectors against its listing criteria before adding them to the Anthropic Directory, but does not security-audit or manage any MCP server.
+
+So a directory listing helps you find a server. It doesn't replace your own security review (next chapter).
+
+## Example code is not a product
+
+The `modelcontextprotocol/servers` repository on GitHub holds a small number of reference servers kept by the MCP steering group. Its README warns that they are meant as educational examples for developers, **not** production-ready solutions. Developers should check their own security needs and add safeguards.
+
+Example: a developer shows a demo that uses the reference "Filesystem" server. That proves the idea works. It is not a decision to run that code with company files.
+
+## Building your own
+
+Anthropic's Claude Code security page encourages either writing your own MCP servers or using servers from providers you trust. Building gives you full control of the code and the data. It also makes your team the owner: it must host, update and secure the server.
+
+## Built-in connectors from the AI vendor
+
+OpenAI's guide lists a small set of built-in connectors in its API, for services like Dropbox, Gmail, Google Drive, Microsoft Teams and SharePoint. The guide says it focused on services that don't have official remote MCP servers. These are now marked legacy: `connector_id` is deprecated for models released after September 1, 2026, and the guide points you to remote MCP servers instead. Existing models keep connector support.
+
+The lesson: a vendor's own shortcut can change. Check the status of any built-in connector before you build a process on it.
+
+## Private systems: tunnels
+
+Some systems should never face the internet. Both vendors now offer a tunnel for this:
+
+- OpenAI's **Secure MCP Tunnel** connects a private MCP server without opening inbound firewall ports or exposing it to the public internet.
+- Anthropic's **MCP tunnels** do the same with an outbound-only connection. The page says they are in research preview, provided "as-is" without uptime or support commitments, and depend on a third-party network provider (Cloudflare).
+
+"Research preview" matters for planning. It is fine for a pilot, but weak ground for a critical process.
+
+## Who decides which servers are allowed
+
+Which servers staff may connect is an admin setting. The next chapter covers it.
+
+## Key points
+
+- Prefer an official server run by the service itself; treat aggregators with extra care.
+- Vendors don't verify or audit third-party servers; a directory listing is not a security check.
+- Reference servers are examples, not production software.
+- Built-in connectors can be deprecated; OpenAI's are now legacy for new models.
+- Tunnels connect private systems; check whether they are still in preview.

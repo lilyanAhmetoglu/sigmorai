@@ -1,0 +1,95 @@
+---
+id: strategist/r5/c1/lesson
+title: Integration basics
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Tool use with Claude
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+  - kind: docs
+    title: OpenAI docs · Function calling
+    url: https://developers.openai.com/api/docs/guides/function-calling
+  - kind: docs
+    title: OpenAI docs · Using tools
+    url: https://developers.openai.com/api/docs/guides/tools
+  - kind: docs
+    title: OpenAI docs · MCP servers
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: docs
+    title: MCP specification · Server features overview
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server
+  - kind: docs
+    title: MCP specification · Tools
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server/tools
+  - kind: blog
+    title: Anthropic Engineering · Code execution with MCP
+    url: https://www.anthropic.com/engineering/code-execution-with-mcp
+---
+
+## Why it matters
+
+A model on its own can only work with the text you send it. It can't open your calendar, look up an order or update a customer record. An **integration** connects the model to your tools and data, so it can fetch facts and take actions. This realm is about choosing those connections well: what to connect, how, at what cost and with what risk.
+
+## The model asks, your system acts
+
+Both big vendors use the same basic idea. Anthropic's tool use page says tool use (also called function calling) lets Claude call functions that you define. Claude decides when to call a tool, based on the user's request and the tool's description. It returns a structured call, and your application runs it.
+
+OpenAI's function calling guide says the same thing in five steps:
+
+1. Your app sends a request with the tools the model could call.
+2. The model replies with a tool call.
+3. Your app runs code with the input from that call.
+4. Your app sends the tool's output back to the model.
+5. The model gives a final answer, or asks for more tool calls.
+
+The key point for a manager: the model doesn't press any buttons itself. It writes a request, and a system runs it. That system is where you put limits, checks and logs.
+
+Example: a staff member asks "Is order 5521 shipped?" The model asks for `get_order_status` with the order number. Your order system looks it up and returns "shipped on Monday". The model then writes the answer.
+
+## Who runs the tool
+
+Anthropic's page says tools differ mainly by where the code runs:
+
+- **Client tools** run in your application. Your team builds and runs them.
+- **Server tools**, such as web search, run on Anthropic's infrastructure.
+
+OpenAI's tools guide lists a similar mix: built-in tools (web search, file search and others), function calling for your own functions, and remote MCP servers to reach third-party services.
+
+So "connect the AI to X" can mean three different projects: turn on a vendor's built-in tool, build your own tool, or connect a service that someone else runs. Each one has a different owner, cost and risk.
+
+## Reading is not the same as acting
+
+The MCP specification (the open standard covered in the next chapter) separates what a connection can offer. Its examples help:
+
+- **Resources** are data for context, such as file contents.
+- **Tools** are functions the model can call to take actions, such as sending an API request or writing a file.
+
+For a business, this split matters more than any technical detail. A tool that reads the price list can show a wrong price. A tool that writes to the CRM can change a record for real. OpenAI's MCP guide lets the developer decide whether tool calls run automatically or need explicit approval. The MCP spec says there should always be a human in the loop who can deny tool calls.
+
+Example: a sales assistant may search the CRM freely. Updating a deal value or emailing a client should wait for a person to click "approve".
+
+## One connection per pair does not scale
+
+Anthropic's post on code execution with MCP describes the old problem. Connecting agents to tools and data used to need a custom integration for each pairing. That causes duplicated effort. MCP is its answer: a universal protocol. The post says developers implement MCP once in their agent, and it unlocks a whole ecosystem of integrations.
+
+Example (this course's arithmetic): a company uses two AI assistants and wants both to reach its ticket system and its wiki. With custom work for each pair, that is four integrations to build and maintain. With a shared standard, each system needs one MCP server, and each assistant connects to both.
+
+## Describe each integration on one card
+
+This card is a tool for this course. Before you approve any integration, fill in five lines:
+
+1. **System:** what it connects to (for example, the CRM).
+2. **Read or write:** does it only fetch data, or can it change things?
+3. **Runs where:** in our app, on the AI vendor's side, or on a third party's server?
+4. **Data that leaves:** what data goes out, and to whom?
+5. **Approval:** which actions need a person to confirm?
+
+The rest of the realm fills in these lines in more detail: what MCP is, who offers integrations, how to review security, what it costs and how to avoid being locked in.
+
+## Key points
+
+- An integration lets a model fetch data and take actions in your systems.
+- The model writes a structured request; your system (or the vendor's) runs it.
+- Tools can run in your app, on the vendor's side, or on a third party's server.
+- Reading data and changing data carry very different risk; keep approval on for actions.
+- A shared standard such as MCP avoids building one integration for every pair.

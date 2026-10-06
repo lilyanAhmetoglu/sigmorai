@@ -43,7 +43,7 @@ const RealmOutlineSchema = z
   })
   .strict();
 
-/** content/builder/outline.json and content/strategist/outline.json. Realm i has id i. */
+/** content/<track>/outline.json. Realm i has id i. */
 export const TrackOutlineSchema = z
   .object({
     realms: z

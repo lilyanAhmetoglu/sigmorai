@@ -24,7 +24,7 @@ type PathPanelProps = {
 };
 
 /**
- * "Your path" on /profile: switch between builder and strategist
+ * "Your path" on /profile: switch between paths
  * (switchTrack Server Action). Nothing is lost: progress is kept per path,
  * and XP, level and streak are shared, so there is no confirm box.
  * The submit is dispatched by hand: React's automatic form reset after an

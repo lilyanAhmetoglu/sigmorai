@@ -1,0 +1,107 @@
+---
+id: builder/r4/c6/lesson
+title: Permissions
+minutes: 10
+sources:
+  - kind: docs
+    title: Configure permissions (Claude Agent SDK, Claude Code docs)
+    url: https://code.claude.com/docs/en/agent-sdk/permissions
+  - kind: docs
+    title: Configure permissions (Claude Code docs)
+    url: https://code.claude.com/docs/en/permissions
+  - kind: docs
+    title: How the agent loop works (Claude Code docs)
+    url: https://code.claude.com/docs/en/agent-sdk/agent-loop
+  - kind: blog
+    title: Building effective agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: Guardrails and human review (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/guardrails-approvals
+  - kind: repo
+    title: Human-in-the-loop (openai/openai-agents-python)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/human_in_the_loop.md
+  - kind: docs
+    title: Tools (Model Context Protocol specification)
+    url: https://modelcontextprotocol.io/specification/2025-11-25/server/tools
+---
+
+The model decides which tool to call. The harness decides whether that call may run. Permissions are where you draw that line, before an agent deletes a folder, pushes to `main` or refunds the wrong customer.
+
+## Why the model can't be the only check
+
+Anthropic's agents post warns that autonomy brings "higher costs, and the potential for compounding errors," and recommends "extensive testing in sandboxed environments, along with the appropriate guardrails." The MCP specification says: "there **SHOULD** always be a human in the loop with the ability to deny tool invocations."
+
+The Claude docs state the split clearly: "Claude determines which tools to call based on the task, but you control whether those calls are allowed to execute."
+
+## Three answers to every tool call
+
+Claude Code's permission rules give each call one of three outcomes:
+
+- **Allow:** run it without asking.
+- **Ask:** pause and get a decision from a person or your code.
+- **Deny:** block it. The model gets a rejection as the tool result.
+
+OpenAI's approval flow uses the same idea: a call that needs review pauses until it is approved or rejected. And in the Claude SDK, a denied call is not a crash: "Claude receives a rejection message as the tool result and typically attempts a different approach or reports that it couldn't proceed."
+
+## Claude: rules and modes
+
+Claude Code and the Claude Agent SDK use allow, ask and deny rules. A rule can name a whole tool (`Bash`) or scope it (`Bash(npm *)`). The order is fixed: "Rules are evaluated in order: deny, then ask, then allow. The first match in that order determines the outcome, and rule specificity doesn't change the order."
+
+So a narrow allow can never punch a hole in a broad deny. Example: deny `Bash(aws *)` and allow `Bash(aws s3 ls)`. The call `aws s3 ls` is denied.
+
+Deny rules come in two strengths. A bare name like `Bash` "removes the tool from Claude's context entirely". A scoped rule like `Bash(rm *)` keeps the tool and blocks matching calls.
+
+On top of rules sits a **permission mode**:
+
+| Mode                | Behavior, in short                                                |
+| ------------------- | ----------------------------------------------------------------- |
+| `default`           | Calls that need approval go to your `canUseTool` callback         |
+| `dontAsk`           | Never prompts; anything that would prompt is denied               |
+| `acceptEdits`       | Auto-approves file edits and common filesystem commands           |
+| `plan`              | Explores and plans; edits are never auto-approved                 |
+| `auto`              | A model classifier allows or blocks each action it reviews        |
+| `bypassPermissions` | Runs allowed tools without asking; for isolated environments only |
+
+Two traps from the SDK docs:
+
+- **`allowed_tools` does not limit `bypassPermissions`.** It only pre-approves the listed tools. "Setting `allowed_tools=["Read"]` alongside `permission_mode="bypassPermissions"` still approves every tool, including `Bash`, `Write`, and `Edit`."
+- **For a locked-down headless agent, pair `allowedTools` with `dontAsk`.** Listed tools run; every other call that would prompt is denied.
+
+Hooks come first in the SDK's order. A `PreToolUse` hook "can deny the call outright", and "a hook deny applies even in `bypassPermissions` mode." A hook "allow" does not skip the deny and ask rules.
+
+## OpenAI: approvals and guardrails
+
+The OpenAI Agents SDK works at the level of each tool. Set `needs_approval=True` on a function tool to always require approval, or pass a function that decides per call. MCP servers use `require_approval`.
+
+The approval flow pauses the run instead of executing the tool:
+
+1. The run records an approval interruption.
+2. The result returns `interruptions` plus a resumable `state`.
+3. Your app approves or rejects the pending items.
+4. You resume the same run from `state`, not a new user turn.
+
+If review takes hours, "serialize `state`, store it, and resume later. That's still the same run."
+
+Guardrails are automatic checks. They have edges you must know: "Input guardrails run only for the first agent in the chain", output guardrails only for the agent that produces the final output, and tool guardrails only on the tools they are attached to. OpenAI's advice: "Put validation next to the tool that creates the side effect."
+
+## Pick by risk
+
+The two vendors use different words. Our summary of the design moves in these docs:
+
+- Reads can often run freely; side effects get a check. OpenAI lists cancellations, edits, shell commands and sensitive MCP actions as cases for approval.
+- Put the hard rule in code (a deny rule, a hook, `needs_approval`), not in the prompt.
+- Put the check next to the tool that does the damage.
+- Keep fully unattended modes for isolated environments. The Claude docs reserve `bypassPermissions` for "CI, containers, or other isolated environments".
+
+Example for a support agent: `lookup_order` runs freely, `issue_refund` needs approval above 50 euros, and `delete_account` is not in the agent's tool list at all.
+
+## Key points
+
+- The model proposes tool calls; the harness allows, asks or denies them.
+- Claude rules: deny, then ask, then allow. First match wins; specificity doesn't matter.
+- `bypassPermissions` approves unlisted tools. For headless agents, use `allowedTools` with `dontAsk`.
+- A `PreToolUse` hook deny holds in every mode.
+- OpenAI: `needs_approval` pauses the run; approve or reject, then resume from `state`.
+- Agent-level guardrails have edges. Validate next to the tool with the side effect.
+- MCP: a human SHOULD always be able to deny tool invocations.

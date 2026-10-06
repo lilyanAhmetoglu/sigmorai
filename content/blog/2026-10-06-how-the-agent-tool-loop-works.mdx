@@ -1,0 +1,98 @@
+---
+title: How does the agent tool loop work? Worked example
+description: An agent is a model that calls tools in a loop. How the loop works on Claude, OpenAI and Gemini, a step-by-step trace, and the stop rules every loop needs.
+lesson: builder/r2/c4/lesson
+---
+
+The agent tool loop is the small piece of code that lets a model use tools for several steps in a row. You call the model with a list of tools. If it asks for a tool, your code runs it, adds the result to the conversation, and calls the model again. The loop repeats until the model answers with no more tool calls. Claude, OpenAI and Gemini all document this same loop. Two parts are your job, not the model's: keeping the full history, and a hard stop rule.
+
+## One round trip
+
+OpenAI describes one round trip in five steps:
+
+1. Make a request to the model with tools it could call.
+2. Receive a tool call from the model.
+3. Execute code on the application side with input from the tool call.
+4. Make a second request to the model with the tool output.
+5. Receive a final response from the model (or more tool calls).
+
+The loop lives in step 5: "or more tool calls". The Gemini docs say the process "can be repeated over multiple turns."
+
+## The loop
+
+The Claude docs give the shape: a `while` loop keyed on the stop reason. While the response's `stop_reason` is `"tool_use"`, run the tools, send the results, and ask again. Any other stop reason (`"end_turn"`, `"max_tokens"`, `"stop_sequence"` or `"refusal"`) ends the loop. OpenAI's Agents SDK runs the same loop for you, and returns a result when the model gives a final answer "with no more tool work".
+
+Here is the loop with the two parts you must add, in plain pseudocode:
+
+```text
+MAX_ROUNDS = 8
+messages = [user question]
+
+for round in 1..MAX_ROUNDS:
+    response = call model(messages, tools)
+    add response to messages            # keep the full history
+    if response has no tool calls:
+        if stop reason is a normal finish: return the answer
+        else: handle it (see below)
+    run each tool call
+    add every result to messages
+
+stop: log the trace, tell the user what was done and what was not
+```
+
+## A worked trace
+
+A customer asks: "Can I get a refund for order 4417?" The bot has three tools: `get_order`, `get_customer` and `get_refund_policy`.
+
+| Round | Model asks for                           | Your code returns                              |
+| ----- | ---------------------------------------- | ---------------------------------------------- |
+| 1     | `get_order` with order 4417              | delivered 12 days ago, customer 88             |
+| 2     | `get_customer` with id 88                | standard plan                                  |
+| 3     | `get_refund_policy` with plan "standard" | refunds within 14 days                         |
+| 4     | no tool call: final answer               | "Yes, order 4417 is within the 14-day window." |
+
+Four model calls, three tool runs. Note how each round depends on the one before. If round 3 had dropped the result of round 1, the model would have to look up the order again, or guess.
+
+## Keep the whole history
+
+The Claude tutorial says to keep "a running list and append to it" instead of rebuilding the messages each time, so "Every turn sees the complete prior context." OpenAI says the same: send back the tool definitions, the original prompt, the model's tool call and the tool output. For reasoning models, OpenAI adds that "any reasoning items returned in model responses with tool calls must also be passed back with tool call outputs."
+
+## Add your own stop rule
+
+A loop that stops only when the model is done has no upper limit. Anthropic's post on building effective agents says agents may run "for many turns", and that "it's also common to include stopping conditions (such as a maximum number of iterations) to maintain control." The same post warns of "higher costs, and the potential for compounding errors." OpenAI's Agents SDK lists max-turn limits among the run failures your code must handle.
+
+Anthropic does this for its own server-side tools too: that loop has an iteration limit, and when it is reached the response stops with `"pause_turn"`.
+
+How to pick the number: look at real traces. If almost every task finishes in 3 or 4 rounds, a limit of 8 leaves room and still stops a runaway loop. When the limit hits, don't fail silently. Log the trace and tell the user what was done.
+
+## Handle every way the loop can end
+
+Not every stop is a finished answer:
+
+- **`end_turn`:** the normal finish. Show the answer.
+- **`max_tokens`:** the reply hit your output limit. If this cuts a tool call in half, the Claude docs say to retry with a higher `max_tokens`.
+- **`refusal`:** the model declined. Don't keep looping. Read `stop_details`, which names the policy category.
+
+A loop that treats every non-tool stop as success will show a half-written reply as if it were final.
+
+## Who decides to call a tool
+
+By default the model decides. All three vendors let you change that:
+
+- **Claude:** `auto` (the default with tools), `any`, `tool` (one named tool), `none`.
+- **OpenAI:** `auto` (the default), `required`, one forced function, `allowed_tools`, `none`.
+- **Gemini:** `auto` (the default), `any`, `none`, `validated`.
+
+Forcing is not supported everywhere. On Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.1 and Claude Mythos 5.1, `any` and `tool` return a 400 error; the Claude docs suggest `auto` with strict tool use instead.
+
+## Checklist
+
+1. Loop while the model asks for tools; stop when it doesn't.
+2. Append to one message list. Never rebuild it.
+3. Pass back reasoning items on OpenAI reasoning models.
+4. Set a maximum number of rounds, from real traces.
+5. Handle `max_tokens` and `refusal` as their own cases.
+6. Log every round, so you can read a trace when something goes wrong.
+7. Check tool choice support before you force a tool.
+
+The lesson ends with a graded case: a research assistant whose loop ran 212 rounds overnight.

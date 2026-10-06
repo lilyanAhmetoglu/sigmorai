@@ -1,0 +1,93 @@
+---
+id: builder/r5/c2/lesson
+title: Servers & tools
+minutes: 9
+sources:
+  - kind: docs
+    title: Tools (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server/tools
+  - kind: docs
+    title: Schema reference (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/schema
+  - kind: docs
+    title: MCP connector (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: MCP servers (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: repo
+    title: Model context protocol (MCP) (OpenAI Agents SDK docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md
+  - kind: repo
+    title: modelcontextprotocol/servers
+    url: https://github.com/modelcontextprotocol/servers
+---
+
+Most MCP servers exist to offer tools. An MCP tool looks a lot like the tools you defined in realm 2: a name, a description and a JSON Schema for the input. The difference is where it lives. The definition sits on the server, and any MCP client can list it and call it.
+
+## What a tool definition holds
+
+The MCP spec lists these fields:
+
+- `name`: the unique identifier for the tool.
+- `title`: an optional display name for people.
+- `description`: what the tool does.
+- `inputSchema`: a JSON Schema for the parameters. It must be a valid JSON Schema object, not `null`.
+- `outputSchema`: an optional JSON Schema for structured results.
+- `annotations`: optional hints about the tool's behavior.
+
+The spec's example is `get_weather`, with one required string parameter, `location`. For a tool with no parameters, the spec recommends `"type": "object"` plus `"additionalProperties": false`, which accepts only an empty object.
+
+## Naming rules
+
+The spec says tool names should be 1 to 128 characters, case-sensitive, and use only ASCII letters, digits, underscore, hyphen and dot. No spaces or commas. Valid examples from the spec: `getUser`, `DATA_EXPORT_v2`, `admin.tools.list`.
+
+Names only need to be unique inside one server. When a host connects to several servers, two of them may both offer `search`. The spec says clients should disambiguate, for example by prefixing tool names with a server identifier. It also warns that the server `name` from `serverInfo` is not guaranteed to be unique, so don't rely on it alone.
+
+The OpenAI Agents SDK has an opt-in setting for this, `include_server_in_tool_names`. It shows each tool to the model with a server-prefixed name and still calls the original name on the original server.
+
+## Listing and calling
+
+A client sends `tools/list` and gets the server's tools. The spec says the list must not vary per connection, but it may vary by the authorization on the request, for example "returning only the tools the caller's granted scopes permit". Servers should return tools in a deterministic order, which helps clients cache the list and improves prompt cache hit rates.
+
+To run a tool, the client sends `tools/call` with the name and arguments. The result has `content`, a list of blocks such as text, images, audio or resource links. A tool can also return `structuredContent`, JSON that matches its `outputSchema`. For backwards compatibility, the spec says such a tool should also return the same JSON as text.
+
+## Two kinds of errors
+
+This split matters for agents. The spec defines:
+
+1. **Protocol errors:** an unknown tool, a malformed request, a server error. They come back as standard JSON-RPC errors. The spec says models are "less likely to be able to fix" these.
+2. **Tool execution errors:** an API failure, a date in the wrong format, a business rule. They come back as a normal result with `isError: true`, with "actionable feedback that language models can use to self-correct".
+
+Example from the spec: "Invalid departure date: must be in the future. Current date is 08/08/2025." The model reads it and retries with a better date. The spec says clients should give tool execution errors to the model.
+
+## Annotations are hints, not promises
+
+Annotations describe behavior. The schema reference lists `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`. Two defaults are worth knowing: `readOnlyHint` defaults to false and `destructiveHint` defaults to true.
+
+But the schema says "all properties in `ToolAnnotations` are **hints**". The tools page says clients must consider annotations untrusted unless they come from trusted servers. A server can label a delete tool read-only. Your host should not skip a confirmation because of that label alone.
+
+## Choosing which tools the model sees
+
+A server may offer far more tools than one app needs. Claude and OpenAI both let you narrow the list:
+
+- **Claude API MCP connector:** an `mcp_toolset` with `default_config` and per-tool `configs`. To allowlist, set `enabled: false` as the default and enable the tools you want. To denylist, disable single tools. The Claude docs recommend denylisting write or destructive tools for read-only assistants.
+- **OpenAI Responses API:** the `allowed_tools` parameter imports only the tools you list. OpenAI notes that exposing many tools "can result in high cost and latency".
+- **OpenAI Agents SDK:** `create_static_tool_filter` with `allowed_tool_names` and `blocked_tool_names`. The allow list applies first, then the block list.
+
+Our rule of thumb: filtering is cheap safety. A tool the model never sees is a tool it can never call by mistake.
+
+## What a server must do
+
+The spec's security list for tools is short and strict. Servers **must** validate all tool inputs, implement proper access controls, rate limit tool invocations and sanitize tool outputs. Clients **should** ask the user to confirm sensitive operations, show tool inputs before calling the server, validate results before passing them to the model, use timeouts and log tool usage.
+
+The reference servers in the `modelcontextprotocol/servers` repo show these features in practice. Their README calls them educational examples, "not as production-ready solutions", and tells developers to evaluate their own security requirements.
+
+## Key points
+
+- An MCP tool has a name, description, `inputSchema`, an optional `outputSchema` and optional annotations.
+- Names: 1 to 128 characters, no spaces. Across servers, prefix names to avoid collisions.
+- Protocol errors are JSON-RPC errors. Tool execution errors use `isError: true` so the model can self-correct.
+- Annotations such as `readOnlyHint` are hints. Don't trust them from servers you don't trust.
+- Narrow the tool list: Claude's `mcp_toolset` configs, OpenAI's `allowed_tools`, the Agents SDK's tool filter.
+- Servers must validate inputs, control access, rate limit and sanitize outputs.

@@ -1,0 +1,104 @@
+---
+id: builder/r4/c1/lesson
+title: The loop
+minutes: 9
+sources:
+  - kind: blog
+    title: Building effective agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: How the agent loop works (Claude Code docs)
+    url: https://code.claude.com/docs/en/agent-sdk/agent-loop
+  - kind: docs
+    title: How Claude Code works (Claude Code docs)
+    url: https://code.claude.com/docs/en/how-claude-code-works
+  - kind: docs
+    title: Running agents (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/running-agents
+  - kind: repo
+    title: Running agents (openai/openai-agents-python)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md
+---
+
+Realm 2 built the tool loop: call the model, run its tool calls, send the results back, repeat. This realm starts from that loop and asks what turns it into an agent, and what you have to build around it so the agent stays useful and safe.
+
+## Workflow or agent
+
+Anthropic's post on building agents draws one line through all "agentic systems":
+
+- **Workflows** are "systems where LLMs and tools are orchestrated through predefined code paths."
+- **Agents** are "systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks."
+
+The difference is who picks the next step. In a workflow, your code does. In an agent, the model does.
+
+Example: a nightly job that downloads a report, converts it and uploads it always runs the same three steps. That is a workflow. "Find out why checkout tests fail and fix them" has no fixed path. That is a job for an agent.
+
+## When an agent is worth it
+
+The same post says agents fit "open-ended problems where it's difficult or impossible to predict the required number of steps, and where you can't hardcode a fixed path."
+
+It also lists the price. Agents trade "latency and cost for better task performance", and their autonomy means "higher costs, and the potential for compounding errors." Its advice is to find "the simplest solution possible" and add complexity only when it improves results. Sometimes that means no agent at all.
+
+## The loop, as two SDKs run it
+
+Both Anthropic and OpenAI ship an SDK that runs the loop for you.
+
+**Claude Agent SDK.** The docs describe five steps:
+
+1. Receive the prompt, with the system prompt, tool definitions and history.
+2. Evaluate and respond: text, one or more tool calls, or both.
+3. Execute the tools and feed the results back.
+4. Repeat steps 2 and 3. "Each full cycle is one turn."
+5. Return the result when Claude "produces a response with no tool calls".
+
+**OpenAI Agents SDK.** The runner loops "until it reaches a real stopping point":
+
+1. Call the current agent's model with the prepared input.
+2. Inspect the model output.
+3. If there are tool calls, execute them and continue.
+4. If the model handed off to another specialist, switch agents and continue.
+5. If there is "a final answer with no more tool work", return a result.
+
+Same shape, one extra branch: OpenAI's loop can switch to another agent mid-run (chapter 4 covers handoffs). The SDK docs make the end rule exact: output counts as final when it "produces text output with the desired type, and there are no tool calls."
+
+## A run, turn by turn
+
+The Claude docs walk through the prompt "Fix the failing tests in auth.ts":
+
+| Turn  | What Claude does                                      |
+| ----- | ----------------------------------------------------- |
+| 1     | Runs the test command. Three tests fail.              |
+| 2     | Reads `auth.ts` and `auth.test.ts`.                   |
+| 3     | Edits `auth.ts`, then runs the tests again. All pass. |
+| Final | Replies in text only, with no tool calls.             |
+
+The docs count this as "four turns: three with tool calls, one final text-only response." Your code did not choose any of these steps. The model did, based on what each tool returned.
+
+## Ground truth at every step
+
+Why run the tests again in turn 3? Anthropic's post says it is "crucial for the agents to gain 'ground truth' from the environment at each step (such as tool call results or code execution) to assess its progress."
+
+Claude Code describes its own loop in three phases: **gather context**, **take action**, and **verify results**. "These phases blend together." A question may only need context. A bug fix "cycles through all three phases repeatedly."
+
+Example: an agent that edits a file and then says "fixed" has guessed. An agent that edits, re-runs the tests and reads the output has checked.
+
+## The context grows every turn
+
+The Claude docs are clear that the context window "does not reset between turns within a session." The system prompt, tool definitions, history, tool inputs and tool outputs all add up. Reading one big file or running a command with long output "can use thousands of tokens in a single turn."
+
+When the window gets close to full, the SDK compacts older history into a summary (realm 3, chapter 6). That keeps the loop alive, but early instructions may not survive it. Long-lived rules belong in an instruction file, which is chapter 3 and chapter 5.
+
+## Who is in the loop
+
+The loop is not only model and tools. Claude Code says "You're part of this loop too": you can interrupt and steer at any point. OpenAI's runner can pause a run for a human approval and resume it later (chapter 6).
+
+Anthropic's post says the same about agents in general: they "can then pause for human feedback at checkpoints or when encountering blockers."
+
+## Key points
+
+- A workflow follows code paths you wrote. An agent picks its own next step.
+- Use an agent when you can't predict the steps. Expect more cost and compounding errors.
+- The loop: model call, tool calls, results back, repeat. It ends when a response has no tool calls.
+- OpenAI's runner adds one branch: a handoff switches the active agent.
+- Each step should get ground truth from the environment, such as test output.
+- Context grows every turn and does not reset inside a session.
