@@ -1,0 +1,86 @@
+---
+id: strategist/r4/c2/lesson
+title: Autonomy levels
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude Code docs · Choose a permission mode
+    url: https://code.claude.com/docs/en/permission-modes
+  - kind: docs
+    title: Claude Code docs · Configure permissions (Agent SDK)
+    url: https://code.claude.com/docs/en/agent-sdk/permissions
+  - kind: blog
+    title: Anthropic Engineering · How we built Claude Code auto mode
+    url: https://www.anthropic.com/engineering/claude-code-auto-mode
+  - kind: docs
+    title: OpenAI docs · Guardrails and human review
+    url: https://developers.openai.com/api/docs/guides/agents/guardrails-approvals
+  - kind: docs
+    title: OpenAI docs · MCP and connectors
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: blog
+    title: Anthropic Engineering · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+---
+
+## Why it matters
+
+An agent is not simply "on" or "off". The real question is how far it may go before a person checks. Set it too low and staff click "approve" all day. Set it too high and one bad step reaches a customer, a bank account or a shared file.
+
+**Autonomy** is how much an agent may do without asking. You choose it, action by action.
+
+## Products already have levels
+
+Anthropic's Claude Code, a coding agent, is a good public example. Its docs list permission modes, each a different tradeoff between convenience and oversight:
+
+- **Manual** (`default`): only reads run without asking. Best for reviewing every action yourself and sensitive work.
+- **Accept edits** (`acceptEdits`): reads, file edits and common file commands run without asking. Best for iterating on code you are reviewing.
+- **Plan** (`plan`): the agent explores and plans; edits wait until you approve a plan.
+- **Auto** (`auto`): everything runs, with background safety checks. Best for long tasks and fewer prompts.
+- **Don't ask** (`dontAsk`): reads and pre-approved tools run; anything that would prompt is denied. Best for locked-down scripts.
+- **Bypass permissions** (`bypassPermissions`): everything runs. For isolated containers and VMs only.
+
+OpenAI's Agents SDK sets autonomy per tool instead. Its guide says guardrails and human review together decide when a run should continue, pause or stop. You can mark one tool, such as "cancel order", as needing approval. The model can still decide the action is needed, but the run pauses until someone approves or rejects it.
+
+So these two products show two dials: a mode for the whole session, and a rule for each tool.
+
+## A ladder for business tasks
+
+This four-step ladder is a tool for this course, not a vendor standard:
+
+1. **Suggest.** The agent drafts; a person does the action. Example: it drafts a refund email, a support team member sends it.
+2. **Ask first.** The agent prepares each action and waits for approval. Example: it fills in the refund form; a team lead clicks approve.
+3. **Act within limits.** Pre-approved actions run alone; everything else asks. Example: refunds under €50 run alone, larger ones wait.
+4. **Act and report.** The agent works alone in a separated space; people review results afterwards. Example: it sorts a copy of last month's tickets overnight.
+
+## Choose the step for each action
+
+Give each action its own step, not the whole agent one step. Ask three questions:
+
+- **What does a mistake cost?** Sending a wrong refund costs money. Drafting a wrong summary costs a re-read.
+- **Can you undo it?** OpenAI's guide lists cancellations, edits, shell commands and sensitive connector actions as side effects to pause before.
+- **How much evidence do you have?** A new agent has no track record yet.
+
+Anthropic's "Building effective agents" post notes that an agent may run for many turns, so you must have some level of trust in its decisions. It says agents' autonomy suits scaling tasks in trusted environments.
+
+## Start low and move up
+
+Anthropic's and OpenAI's docs both describe autonomy that grows with trust. Anthropic's Agent SDK docs suggest you can start restrictive and loosen permissions as trust builds, for example after reviewing the agent's first approach. OpenAI's MCP guide says you can require approval for every call, and skip approvals once you trust a server, to reduce delay.
+
+Move up one step when the evidence supports it, and write down the reason. Example: after 200 approved refunds under €50 with no errors, the team moves that action from step 2 to step 3. Larger refunds stay at step 2.
+
+## Higher steps need other safeguards
+
+Fewer prompts does not have to mean less safety. Anthropic's post on Claude Code auto mode says users approved 93% of permission prompts, and that many prompts lead to approval fatigue: people stop paying close attention. Auto mode replaces some prompts with a classifier (a second model) that checks risky actions. The classifier does not see the agent's own messages, so the agent can't talk it into a bad call.
+
+The same post is honest about limits. The classifier missed 17% of the real overeager actions in Anthropic's test set. The post says it is not a drop-in replacement for careful human review on high-stakes infrastructure.
+
+Claude Code's docs also limit the top step: `bypassPermissions` is for isolated containers and VMs only. The more an agent may do alone, the smaller the space it should work in.
+
+## Key points
+
+- Autonomy is how much an agent may do without asking; set it per action.
+- Claude Code sets a mode per session; OpenAI's Agents SDK sets approval per tool.
+- Use the cost of a mistake, whether it can be undone and your evidence to pick a step.
+- Start low; move one action up when the record supports it.
+- Higher steps need other safeguards, such as a separated space and checks.
