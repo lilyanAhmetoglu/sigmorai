@@ -1,0 +1,84 @@
+---
+id: creator/r1/c4/lesson
+title: Edit & inpaint
+minutes: 8
+sources:
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: Claude docs · Vision
+    url: https://platform.claude.com/docs/en/build-with-claude/vision
+---
+
+## Why it matters
+
+Realm 0 said that an edit tool can fix the one wrong part of a picture. This lesson shows how. The client says: "Love it. Change the sofa." If you regenerate the whole image, the room, the light and the people all change. An **edit** keeps the picture and changes only what you name. **Inpainting** is an edit of one part of the image.
+
+Anthropic's docs have no editing guide, because Claude is "an image understanding model only" and cannot edit images. This lesson uses OpenAI's and Google's docs.
+
+## Two ways to say where
+
+You can tell the model where to edit with words, or with a mask.
+
+**With words.** Google calls this "inpainting (semantic masking)": you "conversationally define a mask". Its template:
+
+> Using the provided image, change only the [specific element] to [new element/description]. Keep everything else in the image exactly the same, preserving the original style, lighting, and composition.
+
+Google's example changes a blue sofa to "a vintage, brown leather chesterfield sofa" and says to keep "the rest of the room, including the pillows on the sofa and the lighting, unchanged".
+
+**With a mask.** OpenAI's edits endpoint accepts an image plus a mask that marks the area to replace. A few facts from its docs:
+
+- The image and the mask must have the same format and size, under 50MB.
+- The mask must have an alpha channel. If you make it in an image editor, "make sure to save the mask with an alpha channel".
+- If you give several input images, the mask applies to the first one.
+- "Masking with GPT Image is entirely prompt-based. The model uses the mask as guidance, but may not follow its exact shape with complete precision."
+
+That last point matters. A mask is a strong hint, not a pixel-exact cut-out. Look closely at the edges of the edited area.
+
+In OpenAI's mask example, the prompt describes the whole finished scene: "A sunlit indoor lounge area with a pool containing a flamingo". The mask covers part of the pool. So with a mask, describe the result you want in the picture.
+
+## Add, remove, change
+
+Google lists these edit jobs: add, remove or modify an element. The guide says the model "will match the original image's style, lighting, and perspective". Its template:
+
+> Using the provided image of [subject], please [add/remove/modify] [element] to/from the scene. Ensure the change is [description of how the change should integrate].
+
+Example: "Using the provided image of the café counter, please remove the paper cup on the left. Ensure the counter looks clean and the light stays the same."
+
+The last sentence matters. It tells the model how the edit should blend with the rest.
+
+## One change per turn
+
+Google says multi-turn conversation is the recommended way to iterate. In its example, the follow-up asks to update an infographic into Spanish and adds: "Do not change any other elements of the image."
+
+OpenAI's Responses API also lets you refine an image across turns. Its image tool can choose by itself whether to make a new image or edit the one in the conversation. If you want an edit, you can set the `action` option to `edit`, and the docs say that forces editing when an image is in context.
+
+Our rule of thumb: ask for one change, check the result, then ask for the next. If you ask for four changes and one goes wrong, you can't tell which words caused it.
+
+## Check what else changed
+
+An edit can touch more than you asked. After every edit, put the original and the result side by side and look at:
+
+- **Faces and hands.** Are they the same people?
+- **Logos and text.** Is every letter still right? (Chapter 1 and 2 covered why text needs checks.)
+- **Light and shadows.** Does the new element match the light?
+- **Edges.** Is there a halo or a soft seam where the edit meets the rest?
+
+Google adds a size note: by default, the model "matches the output image size to that of your input image". That helps when you need the same banner size back.
+
+## When to leave the model
+
+Some changes are better made in your design tool. A logo that must be exact, a price, or a mask edge that must be clean to the pixel are examples. This is our advice. It follows from OpenAI's note that a mask is only guidance, and from the text limits in chapter 1. Use the model for the fast, creative part, and your own tool for the exact part.
+
+## What this means for your work
+
+- **Edit, don't regenerate**, when the client likes most of the picture.
+- **Name one element, and say what stays the same.** Use Google's "change only the ... keep everything else" pattern.
+- **Prepare masks properly.** Same size, same format, alpha channel.
+- **Don't trust mask edges.** OpenAI says the model may not follow the exact shape.
+- **Compare before and after.** Check faces, text, logos, light and edges.
+- **Finish exact things by hand.**
