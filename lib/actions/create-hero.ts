@@ -13,9 +13,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { AFTER_ONBOARDING_HREF } from '@/lib/constants';
+import { AFTER_ONBOARDING_HREF, HERO_NAME_UNIQUE_INDEX } from '@/lib/constants';
 import { OnboardingSchema, type OnboardingField, type OnboardingFormState } from '@/lib/types';
-import { dbErrorSummary } from '@/lib/utils';
+import { dbErrorSummary, isUniqueViolation } from '@/lib/utils';
 
 export async function createHero(
   _prev: OnboardingFormState,
@@ -37,14 +37,21 @@ export async function createHero(
 
   try {
     // A second submit (double click, second tab) keeps the first row: the
-    // track can't be switched here, and this is not a profile edit.
+    // track can't be switched here, and this is not a profile edit. The target
+    // is the id only, so a hero-name clash still raises 23505 (handled below).
     await db
       .insert(users)
       .values({ id: userId, heroName: parsed.data.heroName, track: parsed.data.track })
       .onConflictDoNothing({ target: users.id });
   } catch (err) {
+    const summary = dbErrorSummary(err);
+    // Another hero already has this name (any case): the unique index on
+    // lower(hero_name). Not a server fault, so no log line.
+    if (isUniqueViolation(summary, HERO_NAME_UNIQUE_INDEX)) {
+      return { error: 'name_taken', fields: ['heroName'] };
+    }
     // Code + constraint only: the query error's message holds the row (id, hero name).
-    console.error('[createHero] insert failed', dbErrorSummary(err));
+    console.error('[createHero] insert failed', summary);
     return { error: 'server_error' };
   }
 

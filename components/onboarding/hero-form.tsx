@@ -50,7 +50,13 @@ export function HeroForm() {
         required
         maxLength={HERO_NAME_MAX}
         hint={ONBOARDING_TEXT.heroNameHint}
-        error={badFields.includes('heroName') ? ONBOARDING_TEXT.heroNameError : undefined}
+        error={
+          state?.error === 'name_taken'
+            ? ONBOARDING_TEXT.heroNameTaken
+            : badFields.includes('heroName')
+              ? ONBOARDING_TEXT.heroNameError
+              : undefined
+        }
       />
 
       <ChoiceGroup label={ONBOARDING_TEXT.path} aria-describedby={trackHintId}>
