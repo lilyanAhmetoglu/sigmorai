@@ -21,21 +21,3 @@ export const AUTH_TEXT = {
   signIn: 'Sign in',
   startFree: 'Start free',
 } as const;
-
-/**
- * The share image (app/opengraph-image.tsx). Satori can't read CSS variables,
- * so the colours are the token values copied from design/tokens/colors.css.
- */
-export const SHARE_IMAGE = {
-  alt: `${SITE_NAME}: the pixel-art hero scene with the ${SITE_NAME} logo`,
-  colors: {
-    /** --ink-950 (--border-outline, shadows) */
-    outline: '#0a0913',
-    /** --ink-900 (--surface-1) */
-    surface: '#131126',
-    /** --ink-100 (--text-1) */
-    text: '#f2f1fa',
-    /** --spark-500 (--xp) */
-    accent: '#ffc53d',
-  },
-} as const;

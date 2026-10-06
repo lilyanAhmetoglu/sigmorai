@@ -16,6 +16,9 @@
 - **Robots (`app/robots.ts`)** allows `/`, disallows `/dashboard`, `/profile`, `/onboarding`, `/api/`, and points to `/sitemap.xml`. No per-environment branch: Vercel sends `X-Robots-Tag: noindex` on preview deployments (but not on a custom domain assigned to a preview branch).
 - **After the leaderboard merged (#47):** the sitemap also lists `/leaderboard` (all-time view only, no range param), and robots also disallows Clerk's `/sign-in` and `/sign-up`. Supersedes "the leaderboard joins when it ships" above.
 - **Not in this ticket:** structured data, OG image, `llms.txt`, analytics (SIG-34, SIG-39), a title-template refactor.
+- **The SIG-34 share image lives in `app/(marketing)/opengraph-image.tsx`, not `app/`.** At the root, the landing page's own `openGraph` object replaces it and `og:image` is lost; a file in the page's own segment wins. The route group adds a suffix to the URL (`/opengraph-image-<hash>`).
+- **One static share image for all public pages** (landing, blog, privacy, realms), made at build time. Twitter falls back to it; the landing card is `summary_large_image`.
+- **Per-post (blog) and per-realm share images are deferred** to a later ticket.
 - **The accessibility pass is a verify step:** Lighthouse (accessibility + SEO) on the main public routes and a keyboard walk at 360px; real findings fixed in the same branch. No Playwright/axe test and no CI job (SIG-26 owns that). Fixed: realm Start/Continue links carry the realm name in screen-reader text (`RealmActionLabel`); the landing Sign in ghost button gets a solid ink fill (it was 3.6:1 on the sky); the skip link is 44px tall.
 
 ## Amendments locked 2026-10-06 (Math Tower playable, step 6)

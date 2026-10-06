@@ -68,7 +68,6 @@ export default async function Image() {
             position: 'absolute',
             left: (size.width - ART.width) / 2,
             top: size.height - ART.height,
-            imageRendering: 'pixelated',
           }}
         />
       ))}

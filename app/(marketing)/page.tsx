@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     title: LANDING_META.title,
     description: LANDING_META.description,
   },
-  // The image comes from app/opengraph-image.tsx; Twitter falls back to og:image.
+  // The image comes from app/(marketing)/opengraph-image.tsx; Twitter falls back to og:image.
   twitter: {
     card: 'summary_large_image',
     title: LANDING_META.title,
