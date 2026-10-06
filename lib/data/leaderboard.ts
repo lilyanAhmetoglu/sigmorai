@@ -5,7 +5,12 @@ import { unstable_cache } from 'next/cache';
 import { z } from 'zod';
 import { db } from '@/db';
 import { users, xpEvents } from '@/db/schema';
-import { LEADERBOARD_CACHE_SECONDS, LEADERBOARD_SIZE, TRACKS } from '@/lib/constants';
+import {
+  LEADERBOARD_CACHE_SECONDS,
+  LEADERBOARD_CACHE_TAG,
+  LEADERBOARD_SIZE,
+  TRACKS,
+} from '@/lib/constants';
 import type {
   LeaderboardRange,
   LeaderboardView,
@@ -116,13 +121,14 @@ async function readWindow(cutoff: Date, limit: number, userId: string | null) {
  * The cached top list. unstable_cache, not 'use cache': this app has not
  * turned on cacheComponents (next.config.ts), and 'use cache' needs it.
  * The arguments are part of the cache key; the cutoff is a day-aligned ISO
- * string, so the key changes once a UTC day.
+ * string, so the key changes once a UTC day. The tag lets the actions that
+ * change the board expire it at once (updateTag), and only those.
  */
 const readTopCached = unstable_cache(
   async (range: LeaderboardRange, cutoffIso: string | null): Promise<RankedPlayer[]> =>
     cutoffIso === null ? readAllTimeTop() : readWindow(new Date(cutoffIso), LEADERBOARD_SIZE, null),
   ['leaderboard-top'],
-  { revalidate: LEADERBOARD_CACHE_SECONDS },
+  { revalidate: LEADERBOARD_CACHE_SECONDS, tags: [LEADERBOARD_CACHE_TAG] },
 );
 
 /** The viewer's own rank in the range, fresh (not cached). null = no XP in it. */

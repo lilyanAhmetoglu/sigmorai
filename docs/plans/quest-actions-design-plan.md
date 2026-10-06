@@ -8,6 +8,10 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (revalidation)
+
+- Step 5 below changes: actions call `refresh()` on a fail or replay and `updateTag(LEADERBOARD_CACHE_TAG)` when XP is awarded (both re-render the quest page and the HUD). `revalidatePath('/', 'layout')` stays only in `createHero`. Why: it also emptied the leaderboard's 60 s cache on every submit. See ENGINEERING.md (leaderboard amendment).
+
 ## Amendments locked 2026-10-05 (SIG-27 security)
 
 - **A replay writes no `submissions` row.** A replay of a cleared case or quick check is graded in memory; it still costs 0 HP and earns 0 XP (a replay pass still moves the streak). Why: a replay changes nothing, so its row only let one account grow the table without limit.

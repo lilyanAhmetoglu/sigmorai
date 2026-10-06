@@ -16,6 +16,12 @@ export const LEADERBOARD_SIZE = 25;
 export const LEADERBOARD_CACHE_SECONDS = 60;
 
 /**
+ * The cache tag on the top list (lib/data/leaderboard.ts). Server Actions that
+ * change what the board shows (XP, hero name, track, a deleted hero) expire it.
+ */
+export const LEADERBOARD_CACHE_TAG = 'leaderboard-top';
+
+/**
  * Rolling UTC-day windows. 7 days = today plus the 6 UTC days before it, so
  * the week cutoff is 00:00 UTC six days ago (lib/xp/leaderboard.ts → rangeCutoff).
  */

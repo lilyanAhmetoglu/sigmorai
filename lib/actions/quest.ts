@@ -9,7 +9,7 @@
  */
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { refresh, updateTag } from 'next/cache';
 import type { z } from 'zod';
 import { db, type Tx } from '@/db';
 import { submissions, users } from '@/db/schema';
@@ -20,6 +20,7 @@ import { recordClear } from '@/lib/grading/award';
 import { clearReason, decideSubmitStart, hpAfterSubmit, storesAttempt } from '@/lib/grading/case';
 import { toActionFailure as fail, questFailure } from '@/lib/grading/failure';
 import { checkOpen } from '@/lib/grading/open';
+import { LEADERBOARD_CACHE_TAG } from '@/lib/constants';
 import {
   CompleteLessonInputSchema,
   SubmitCaseInputSchema,
@@ -30,8 +31,10 @@ import {
   type QuestFailure,
   type SubmitAnswersInput,
   type SubmitAnswersResult,
+  type XpOutcome,
 } from '@/lib/types';
 import { dbErrorSummary } from '@/lib/utils';
+import { movesLeaderboard } from '@/lib/xp/leaderboard';
 
 /**
  * A transaction error, safe to log: name + Postgres code/constraint only. A
@@ -43,8 +46,18 @@ function safeError(error: unknown) {
   return { name: error instanceof Error ? error.name : typeof error, ...dbErrorSummary(error) };
 }
 
-/** Every page that shows XP, HP or a clear: the HUD is in the (app) layout. */
-const revalidateQuest = () => revalidatePath('/', 'layout');
+/**
+ * After a save. refresh() re-renders the page the player is on, with the
+ * (app) layout and its HUD, so XP, HP and the clear show at once; other pages
+ * are dynamic and render fresh on the next visit. Not revalidatePath('/',
+ * 'layout'): that also throws away the leaderboard's 60 s cache, even after a
+ * fail. Only a clear that awards XP expires the board (updateTag, which also
+ * refreshes the page).
+ */
+function revalidateQuest(xp: XpOutcome | null) {
+  if (movesLeaderboard(xp)) updateTag(LEADERBOARD_CACHE_TAG);
+  else refresh();
+}
 
 /** Locks the user row for the rest of the transaction. NOT_ONBOARDED when there is none. */
 async function lockUser(tx: Tx, userId: string): Promise<QuestFailure | null> {
@@ -158,7 +171,7 @@ async function submitAnswers(
   if (!outcome.ok) return fail(outcome);
   // After the commit: a revalidate error must never read as "Nothing was saved".
   try {
-    revalidateQuest();
+    revalidateQuest(outcome.xp);
   } catch (error) {
     console.error(`[submit ${kind}] revalidate failed`, error);
   }
@@ -195,7 +208,7 @@ export async function completeLesson(input: unknown): Promise<CompleteLessonResu
   if (!outcome.ok) return fail(outcome);
   // After the commit: a revalidate error must never read as "Nothing was saved".
   try {
-    revalidateQuest();
+    revalidateQuest(outcome.xp);
   } catch (error) {
     console.error('[completeLesson] revalidate failed', error);
   }
