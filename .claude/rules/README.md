@@ -11,7 +11,7 @@ Claude Code finds rules recursively, so `scoped/` is only a folder for tidiness.
 | Scoped rule        | Fires on                                                                                                              |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | `specs.md`         | `docs/plans/**`: the spec flow and the devil gate                                                                     |
-| `mentor-eval.md`   | `lib/mentor/**`, `app/api/mentor/**`, `scripts/sync-sources.ts`, `scripts/eval/**`, `lib/prompts/**`                  |
+| `mentor-eval.md`   | `lib/mentor/**`, `app/api/mentor/**`, `.claude/skills/knowledge-sync/SKILL.md`, `scripts/eval/**`, `lib/prompts/**`   |
 | `grading.md`       | `lib/grading/**`, `lib/actions/**`, `lib/xp/**`, `content/**/case.json`                                               |
 | `pixel-art.md`     | `lib/sprite/**`, `components/scenes/**`, `components/map/**`, `public/art/**`, `public/levels/**`, `design/assets/**` |
 | `design-tokens.md` | `app/globals.css`, `components/**`, `design/tokens/**`                                                                |

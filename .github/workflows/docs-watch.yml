@@ -1,0 +1,125 @@
+name: Docs watch
+
+# Daily: hash every official page a lesson cites (+ one index per source) and
+# list what changed in ONE open issue labelled docs-changed. Closing that issue
+# = handled. No DB, no model, no API key (knowledge-base plan, amendment 2026-10-06).
+# State (hashes.json) lives on the orphan branch `docs-watch`, never on canary/main.
+#
+# GitHub runs scheduled workflows only from the DEFAULT branch (main), so the
+# daily cron starts after the next release merges canary into main. Until then,
+# run it by hand: Actions → Docs watch → Run workflow → branch canary.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: docs-watch
+  cancel-in-progress: false
+
+env:
+  # No commit hooks here: the docs-watch branch has no app, config or node_modules.
+  HUSKY: '0'
+  STATE_DIR: docs-watch
+  LABEL: docs-changed
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: canary
+
+      - name: Check out the docs-watch state branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898283+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --heads origin docs-watch > /dev/null; then
+            git fetch --depth=1 origin docs-watch:docs-watch
+            git worktree add "$STATE_DIR" docs-watch
+          else
+            # First run ever: an orphan branch that only holds the state.
+            git worktree add --orphan -b docs-watch "$STATE_DIR"
+            printf '%s\n' '# docs-watch state' '' \
+              'Written by .github/workflows/docs-watch.yml on canary. Not an app branch: never merge it.' \
+              > "$STATE_DIR/README.md"
+            # Keep Vercel from deploying this data branch.
+            printf '%s\n' '{ "git": { "deploymentEnabled": false } }' > "$STATE_DIR/vercel.json"
+            git -C "$STATE_DIR" add -- README.md vercel.json
+          fi
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - run: bun install --frozen-lockfile
+
+      - name: Find the docs-changed issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          number=''
+          if [ -f "$STATE_DIR/hashes.json" ]; then
+            number=$(jq -r '.issue // empty' "$STATE_DIR/hashes.json")
+          fi
+          state=''
+          if [ -n "$number" ]; then
+            # A deleted issue counts as closed; any other gh error stops the run.
+            if out=$(gh issue view "$number" --json state --jq .state 2>&1); then
+              state=$out
+            elif printf '%s' "$out" | grep -qi 'could not resolve'; then
+              state=CLOSED
+            else
+              printf '%s\n' "$out"
+              exit 1
+            fi
+          fi
+          echo "ISSUE_STATE=$(echo "$state" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - name: Hash the watched pages
+        run: bun run docs:watch
+        env:
+          DOCS_WATCH_DIR: ${{ env.STATE_DIR }}
+
+      - name: Open or update the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          file="$STATE_DIR/hashes.json"
+          if [ "$(jq '.pending | length' "$file")" -eq 0 ]; then
+            echo 'Nothing pending.'
+            exit 0
+          fi
+          number=$(jq -r '.issue // empty' "$file")
+          if [ -n "$number" ] && git -C "$STATE_DIR" diff --quiet -- issue-body.md; then
+            echo "Issue #$number is already up to date."
+            exit 0
+          fi
+          if [ -z "$number" ]; then
+            # Reuse an open one if the state lost its number.
+            number=$(gh issue list --label "$LABEL" --state open --json number --jq '.[0].number // empty')
+          fi
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file "$STATE_DIR/issue-body.md"
+          else
+            url=$(gh issue create --label "$LABEL" \
+              --title 'Official docs changed: lessons to check' \
+              --body-file "$STATE_DIR/issue-body.md")
+            number="${url##*/}"
+          fi
+          jq --argjson n "$number" '.issue = $n' "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+
+      - name: Save the state
+        working-directory: ${{ env.STATE_DIR }}
+        run: |
+          git add -- hashes.json issue-body.md
+          if git diff --cached --quiet; then
+            echo 'State unchanged.'
+            exit 0
+          fi
+          git commit -m "chore(sync): docs-watch $(date -u +%F)"
+          git push origin HEAD:docs-watch

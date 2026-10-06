@@ -4,9 +4,60 @@
 
 ## Status
 
-**STATUS: Ready for devil + db-architect review (frontier + blog amendment added 2026-10-05). Build step: 8 (schema pulled into step 3). Track: both.**
+**STATUS: Approved for SIG-23 (amendment 2026-10-06: docs-watch + knowledge-sync routine; no new tables). Build step: 8. Track: both.**
 
 ## Amendments
+
+## Amendments locked 2026-10-06 (SIG-23: docs-watch + knowledge-sync routine)
+
+Devil-reviewed plan for SIG-23. Layered on top; everything below stays for history. **This block replaces the whole Pipeline, Data model, Mentor grounding, AI and cost, Licensing and Phases sections.** Why: the old pipeline needed a DB role, embeddings, a model key and a triage prompt to answer one question, "did a page a lesson cites change?". A hash in git answers it for free; a Claude Code routine with a human-merged PR does the drafting.
+
+**Two parts replace the pipeline.**
+
+| Part              | What                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. docs-watch     | `.github/workflows/docs-watch.yml`, daily `17 6 * * *` + manual. Runs `bun run docs:watch` (`scripts/docs-watch.ts`, logic in `lib/content/docs-watch.ts`, bun-tested). Fetches, normalises, sha256-hashes, compares. No DB, no model, no API key, no network calls except the GETs. Always exits 0: a failed fetch is a log row and keeps the stored hash. |
+| 2. knowledge-sync | A Claude Code **routine** (`.claude/skills/knowledge-sync/SKILL.md`, Part 2) reads the open `docs-changed` issue, checks each citing lesson against the live page, and opens `new-level` PRs into `canary`. It drafts; a human merges.                                                                                                                      |
+
+**Fetch set.** Every page any track, Math Tower or Frontier lesson cites, plus one index per enabled source in `sources.yaml`:
+
+- `docs` on platform.claude.com, developers.openai.com, code.claude.com → `<base>/llms.txt`. Other `docs` → the base page.
+- `changelog` → the page as Markdown. Two new official sources: `claude-release-notes` and `openai-changelog`.
+- `blog` (anthropic.com/engineering) → the page's main text.
+- `repo` → `releases.atom` (entry ids + update times); the raw `README.md` when there are no releases.
+- Pages on platform.claude.com, developers.openai.com, code.claude.com and modelcontextprotocol.io are fetched as `<page>.md`, and on ai.google.dev as `<page>.md.txt` (no banners in the hash); on a 404 the page itself (a moved page).
+- Normalise: Markdown/plain → trimmed. HTML → first `<article>`, else `<main>`; tags stripped, whitespace collapsed (regex, no parser package). A URL with no stored hash (first run, new citation) is recorded, never reported.
+
+**State in git, not a DB.** `hashes.json` = `{ pages: { [url]: { hash, checkedAt, changedAt } }, pending: [{ url, sourceId, changedAt, lessons }], issue }` on the orphan branch **`docs-watch`** (never merged; carries a `vercel.json` with deployments off). Only the workflow pushes there, with the built-in token.
+
+**One issue.** One open issue labelled `docs-changed` lists every pending page: URL, source id, changed date, citing lesson ids. URLs and ids only, never page text (a page is untrusted). **Closing the issue = handled**: the next run clears `pending` and opens a fresh issue on the next change.
+
+**Routine rules (Part 2).**
+
+- Branch from `origin/canary` (the repo default branch is `main`). PRs target `canary`, labelled `new-level`.
+- The PR body carries the `validate-content` steps 2–5 result (each claim: supported / not supported / not found, with quote + URL).
+- At most **2 PRs per run**; **none when 5 or more `new-level` PRs are open**. Never merges, never closes an issue or a PR.
+- Environment: Custom network = the defaults + `developers.openai.com`, `ai.google.dev`, `modelcontextprotocol.io`. Setup script `bun install --frozen-lockfile`. No connectors. No secrets.
+
+**Dead (dropped, not deferred):** `kb_documents`, `kb_chunks`, `kb_changes`, `kb_source_candidates`, `lesson_sources`, embeddings and pgvector (Voyage), model triage and its enum, weekly star discovery, `fetch_config` licence rules, the least-privilege DB role, the content-dashboard `stale` flag, and lesson-frontmatter `sourceHash` (removed from `LessonFrontmatterSchema`).
+
+**Kept but unread:** `kb_sources` stays in the schema and in `bun run seed`; nothing reads it. Dropping it is a later cleanup with **db-architect**.
+
+**Deferred:** `level_announcements` and the NEW LEVEL banner (a later ticket).
+
+**`.github/workflows/content-review.yml` is deleted.** It needed an Anthropic key that will not exist. The routine runs the same fact-check (validate-content steps 2–5) on what it drafts, and `content-reviewer` still runs on every content PR through `/commit` and `/review`.
+
+**Build order.** Step 8 before step 7 (mentor) is fine: nothing here depends on the mentor. The mentor's grounding is now "the current lesson's cited pages", decided in step 7.
+
+**Acceptance (replaces the list at the bottom).**
+
+- [ ] `bun run docs:watch` run twice in a row against the live sites reports 0 changes the second time.
+- [ ] A changed page appears once in `pending` and once in the issue, with every citing lesson id; a second change to it keeps one row.
+- [ ] A fetch error never changes the stored hash and never fails the job.
+- [ ] Closing the issue clears `pending` on the next run.
+- [ ] The workflow pushes only to `docs-watch`; never to `canary` or `main`.
+- [ ] The issue body holds URLs, source ids, dates and lesson ids only.
+- [ ] Routine PRs: into `canary`, labelled `new-level`, at most 2 per run, none at 5+ open, never merged by the routine.
 
 ## Amendments locked 2026-10-06 (blog pages, SIG-22)
 
