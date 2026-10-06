@@ -1,0 +1,84 @@
+---
+id: strategist/r7/c1/lesson
+title: Team structures
+minutes: 7
+sources:
+  - kind: blog
+    title: Anthropic Engineering · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: blog
+    title: Anthropic Engineering · How we built our multi-agent research system
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+  - kind: docs
+    title: Claude Code docs · Orchestrate teams of Claude Code sessions
+    url: https://code.claude.com/docs/en/agent-teams
+  - kind: docs
+    title: OpenAI docs · Orchestration and handoffs
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: docs
+    title: OpenAI docs · Multi-agent (Agents API)
+    url: https://developers.openai.com/api/docs/guides/agents-api/multi-agent
+---
+
+## Why it matters
+
+Every company knows how to draw an org chart for people. Now some team members can be AI agents. A **multi-agent system** is several agents working together: one plans, others do parts of the job.
+
+A team of agents can finish big jobs faster. It can also cost much more and create confusion. So the first question is not "how many agents?" It is "do we need more than one?"
+
+## Start with one agent
+
+Anthropic's Building effective agents post recommends the simplest solution possible, and more complexity only when needed. Sometimes that means no agent at all. The post says agentic systems often trade latency and cost for better task performance.
+
+OpenAI's orchestration guide says the same thing in its own words: start with one agent whenever you can. Add specialists only when they clearly improve one of these: keeping capabilities apart, keeping policies apart, prompt clarity, or traces that are easy to read. The guide warns that splitting too early creates more prompts, more traces and more approval points, without always making the work better.
+
+Example: an insurance team wants an agent that reads a claim form and drafts a summary. That is one job with one set of rules. One agent is enough.
+
+## Three common shapes
+
+**1. A manager with specialists.** One agent stays in charge. It breaks the job into parts, sends parts to helper agents and combines their results. Anthropic calls this **orchestrator-workers**. It fits jobs where you can't predict the subtasks in advance. OpenAI calls the same idea **agents as tools**: the manager calls specialists for bounded tasks, like summarising or classifying, and keeps ownership of the final answer.
+
+**2. A handoff.** One agent passes the conversation to a specialist, and the specialist takes over. OpenAI's example is a triage agent that hands off to a billing agent or a refund agent. The guide says the first design choice is who owns the final answer at each branch of the work.
+
+**3. A team that talks to itself.** Claude Code has an experimental feature called agent teams. One session is the lead. Teammates work in their own context, share a task list and message each other directly. The docs compare this with subagents, which report results back to the main agent and use fewer tokens.
+
+## When a team pays off
+
+The vendors agree on the main test: are the parts independent?
+
+- Anthropic's research post says its multi-agent system did best on breadth-first questions, where many independent directions can be explored at the same time.
+- OpenAI's Agents API guide says to use subagents for independent tasks, such as reviewing separate documents. It says to keep short tasks and dependent steps in the main agent.
+- The Claude Code docs say that for sequential tasks, edits to the same file, or work with many dependencies, a single session or subagents work better than a team.
+
+Anthropic's post also names a poor fit: work where all agents need the same context, or with many dependencies between agents.
+
+Example: checking 12 suppliers against the same checklist is a good fit. Each supplier is a separate piece of work. Writing one contract, where each clause depends on the last one, is a poor fit.
+
+## A bigger team costs more
+
+Anthropic's research post (June 2025) reports that in its data, agents used about 4 times more tokens than chat, and multi-agent systems about 15 times more. The post says the task must be valuable enough to pay for that.
+
+The Claude Code docs give team-size advice. Token use scales with the number of active teammates. Start with 3 to 5 teammates for most workflows. "Three focused teammates often outperform five scattered ones."
+
+OpenAI's Agents API has a setting that limits how many subagents can run at once. The default is 6, not counting the coordinator. A limit like this is one way to keep a team from growing out of control.
+
+## Brief each member well
+
+A team is only as good as its briefs. Anthropic's post says each subagent needs:
+
+1. an objective,
+2. an output format,
+3. guidance on which tools and sources to use, and
+4. clear task boundaries.
+
+Without this, agents repeat each other's work or leave gaps. In Anthropic's example, a short brief like "research the semiconductor shortage" led several subagents to run the same searches.
+
+Example: "Check supplier 7. Use only the 2026 audit file and the public register. Return a table: risk, evidence, page. Don't contact the supplier." That brief has all four parts.
+
+## Key points
+
+- Start with one agent; add specialists only when they clearly help.
+- A manager keeps the final answer (orchestrator-workers, agents as tools); a handoff gives it to a specialist.
+- Teams fit independent parallel work, not dependent step-by-step work.
+- More agents means more tokens; start small and grow only when the work needs it.
+- Brief every agent with an objective, an output format, sources and boundaries.

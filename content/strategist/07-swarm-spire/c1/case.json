@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r7/c1/challenge",
+  "title": "The supplier review swarm",
+  "scenario": "You are head of procurement operations at a food distribution company. Every quarter your team reviews 40 suppliers against the same risk checklist, then writes one decision letter to the board.\n\nAn enthusiastic team lead proposes an agent team for the next review. The exhibit shows the proposal. The finance director asks you: \"Is this the right shape, and is it worth the cost?\"",
+  "exhibit": "Proposal: supplier review agent team (made-up example data)\n\nTask                                         Depends on            Proposed agents\nA  Check each supplier vs the risk checklist  nothing (40 separate  8 checker agents\n   (licences, audits, news, payment record)   suppliers)            running at once\nB  Score all 40 suppliers on one scale        all A results         1 scoring agent\nC  Write the board decision letter            B                     handed off to a\n                                                                    \"letter agent\"\nD  Draft a contract amendment, clause by      each clause uses      4 drafting agents,\n   clause (12 clauses)                        the clause before     3 clauses each\n\nNotes from the team lead:\n- \"More agents = faster, so let's start with 8 checkers.\"\n- Briefs for checker agents: \"Review the suppliers.\"",
+  "questions": [
+    {
+      "prompt": "Which task in the exhibit is the best fit for several agents working in parallel?",
+      "options": [
+        {
+          "text": "Task D, because twelve clauses can be split evenly between four drafting agents.",
+          "explanation": "Each clause uses the clause before it. The vendor docs say dependent, step-by-step work belongs with one agent, not a parallel team."
+        },
+        {
+          "text": "Task B, because scoring 40 suppliers is the largest single piece of work.",
+          "explanation": "Task B needs every result from task A on one shared scale. Work that needs all the context in one place is a poor fit for splitting."
+        },
+        {
+          "text": "Task A, because each supplier check is independent of the others.",
+          "explanation": "Right. Anthropic's research post and OpenAI's Agents API guide both point to independent tasks, like reviewing separate documents, as the fit for parallel subagents.",
+          "correct": true
+        },
+        {
+          "text": "Task C, because a separate letter agent can start before the scores are ready.",
+          "explanation": "The letter depends on the scores from task B. It can't usefully start before them."
+        }
+      ]
+    },
+    {
+      "prompt": "The board letter must combine all findings, and the review lead's process must stay responsible for it. Which shape fits best?",
+      "options": [
+        {
+          "text": "A manager agent that calls specialists as helpers and writes the letter itself.",
+          "explanation": "Right. OpenAI's guide says agents as tools fit when the manager should synthesise the final answer. Anthropic's orchestrator-workers pattern also has the central agent combine the results.",
+          "correct": true
+        },
+        {
+          "text": "A handoff to a separate letter agent that takes over and then owns the whole final reply.",
+          "explanation": "In a handoff, control moves to the specialist. That fits when the specialist should own the next answer, not when one owner must combine everything."
+        },
+        {
+          "text": "A team where all agents message each other and anyone may send the letter.",
+          "explanation": "That leaves no clear owner for the final answer. OpenAI's guide says the first design choice is who owns the final answer at each branch."
+        },
+        {
+          "text": "One agent per supplier, each writing its own short letter to the board.",
+          "explanation": "The board needs one decision letter that compares suppliers, not 40 separate letters."
+        }
+      ]
+    },
+    {
+      "prompt": "The team lead wants to start with 8 checker agents because \"more agents = faster\". What is the best response?",
+      "options": [
+        {
+          "text": "Agree, because token cost stays the same no matter how many agents run.",
+          "explanation": "The Claude Code docs say token use scales with the number of active teammates, and Anthropic reports multi-agent systems use far more tokens than chat."
+        },
+        {
+          "text": "Agree, but give every checker the same brief so that all of their results match.",
+          "explanation": "Identical vague briefs led to duplicated work in Anthropic's example. Each agent needs its own objective and boundaries."
+        },
+        {
+          "text": "Refuse any team at all, because one agent is always cheaper and also better.",
+          "explanation": "The vendors say start with one agent when you can, not always. Task A is independent work where a team can pay off."
+        },
+        {
+          "text": "Start with a small team, measure it, and add agents only if it clearly helps.",
+          "explanation": "Right. The Claude Code docs suggest 3 to 5 teammates for most workflows, and OpenAI's guide says add specialists only when they clearly improve the work.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The checker brief says only \"Review the suppliers.\" Which rewrite fits Anthropic's advice on delegation?",
+      "options": [
+        {
+          "text": "\"Review the suppliers carefully and be thorough, because this decision matters a great deal to the board.\"",
+          "explanation": "This adds urgency but no objective per agent, no output format, no sources and no boundaries."
+        },
+        {
+          "text": "\"Check suppliers 1 to 5. Use the audit files and register. Return a table: risk, evidence, page.\"",
+          "explanation": "Right. It gives an objective, an output format, sources to use and clear task boundaries: the four parts Anthropic's post lists.",
+          "correct": true
+        },
+        {
+          "text": "\"Review all 40 suppliers against the checklist, then compare your results with the other checker agents.\"",
+          "explanation": "Every agent would cover the same 40 suppliers. Anthropic's example shows this kind of brief leads to duplicated work."
+        },
+        {
+          "text": "\"Use any sources you like, decide for yourself what format to return, and contact suppliers if needed.\"",
+          "explanation": "That removes the guidance on sources and the output format, which makes results hard to combine."
+        }
+      ]
+    }
+  ]
+}
