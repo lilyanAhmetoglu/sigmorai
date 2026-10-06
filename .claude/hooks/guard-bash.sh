@@ -118,6 +118,18 @@ if seg_matches '^gh\s+(pr\s+(merge|close)|release\s+delete)(\s|$)'; then
   deny "BLOCKED: humans merge and close PRs in this repo, never Claude (git-safety.md). Open the PR and report the URL + CI status instead. If you really want this, run it yourself: ! ${short_cmd}"
 fi
 
+# The same through the raw REST/GraphQL API. The knowledge-sync routine
+# (.claude/skills/knowledge-sync/SKILL.md) uses `gh api` and has no branch
+# protection behind it, so this hook is the guard. Quote-preserving segments:
+# API paths and fields are usually quoted. Allowed: GET reads and the POSTs the
+# routine needs (`/pulls`, `/issues/N/comments`, `/issues/N/labels`).
+gh_api_deny="BLOCKED: 'gh api' may only read, open a PR, comment or add a label. Merging, closing (state=), PUT/PATCH/DELETE and git ref changes are a human's call (git-safety.md). If you really want this, run it yourself: ! ${short_cmd}"
+if seg_matches_q '^gh\s+api\b.*/merges?([/?'"'"'"[:space:]]|$)'; then deny "$gh_api_deny"; fi
+if seg_matches_q '^gh\s+api\b.*\s(-X|--method)(\s+|=)?['"'"'"]?(PUT|PATCH|DELETE|put|patch|delete)\b'; then deny "$gh_api_deny"; fi
+if seg_matches_q '^gh\s+api\b.*\s(-f|-F|--field|--raw-field)(\s+|=)['"'"'"]?state='; then deny "$gh_api_deny"; fi
+if seg_matches_q '^gh\s+api\b.*/git/refs'; then deny "$gh_api_deny"; fi
+if seg_matches_q '^gh\s+api\s+graphql\b.*(mergePullRequest|closePullRequest|closeIssue|updatePullRequest|updateIssue|deleteRef|updateRef)'; then deny "$gh_api_deny"; fi
+
 # ── 2. History rewriting / destructive git ───────────────────────────────────
 # Flags must belong to the git command in THIS segment, so `-f` from an
 # unrelated `rm -f` in a chain can't be read as a force-push.
