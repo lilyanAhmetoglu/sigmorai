@@ -16,20 +16,32 @@
 set -uo pipefail
 
 payload=$(cat)
-cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
-[ -z "$cmd" ] && exit 0
-
+# The reason goes in on STDIN, never as an argument: Linux caps one argument at
+# 128 KiB, so `jq --arg reason "...${cmd}..."` failed on a huge command and the
+# deny printed nothing, which reads as allow. If jq still fails, print a fixed
+# deny by hand. A deny must never come out empty.
 deny() {
-  jq -n --arg reason "$1" '{
+  printf '%s' "$1" | jq -Rs '{
     hookSpecificOutput: {
       hookEventName: "PreToolUse",
       permissionDecision: "deny",
-      permissionDecisionReason: $reason
+      permissionDecisionReason: .
     }
-  }'
+  }' 2>/dev/null \
+    || printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by hook (reason could not be rendered)."}}'
   exit 0
 }
+
+# Fail CLOSED: an empty or non-JSON payload is denied, not allowed. Valid JSON
+# with no command (another tool shape) still falls through to the allow below.
+if ! jq -e . >/dev/null 2>&1 <<<"$payload"; then
+  deny "BLOCKED: the hook payload was empty or not valid JSON, so the command cannot be checked (fail closed)."
+fi
+
+cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)
+
+[ -z "$cmd" ] && exit 0
 
 # Two-stage normalisation.
 #

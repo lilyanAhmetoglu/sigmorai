@@ -9,6 +9,26 @@
 set -uo pipefail
 
 payload=$(cat)
+
+# Reason goes in on STDIN, not as an argument (Linux caps one argument at 128 KiB).
+# If jq fails, print a fixed deny by hand. A deny must never come out empty.
+deny() {
+  printf '%s' "$1" | jq -Rs '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: .
+    }
+  }' 2>/dev/null \
+    || printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by hook (reason could not be rendered)."}}'
+  exit 0
+}
+
+# Fail CLOSED: an empty or non-JSON payload is denied, not allowed.
+if ! jq -e . >/dev/null 2>&1 <<<"$payload"; then
+  deny "BLOCKED: the hook payload was empty or not valid JSON, so the write cannot be checked (fail closed)."
+fi
+
 path=$(printf '%s' "$payload" | jq -r '.tool_input.file_path // empty' 2>/dev/null)
 [ -z "$path" ] && exit 0
 
@@ -19,17 +39,6 @@ content=$(printf '%s' "$payload" | jq -r '
     (.tool_input.edits? // [] | .[]?.new_string?)
   ] | map(select(. != null)) | join("\n")
 ' 2>/dev/null)
-
-deny() {
-  jq -n --arg reason "$1" '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    }
-  }'
-  exit 0
-}
 
 # Repo-relative view of the path, so the checks below work for absolute paths.
 root="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"

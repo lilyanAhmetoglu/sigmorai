@@ -26,8 +26,11 @@ assert() {
   fi
 }
 
-bash_cmd() { jq -n --arg c "$1" '{tool_name:"Bash",tool_input:{command:$c}}'; }
-write_file() { jq -n --arg p "$1" --arg c "${2-}" '{tool_name:"Write",tool_input:{file_path:$p,content:$c}}'; }
+# Big values go in on STDIN (-Rs), never as `--arg`: Linux caps ONE argument at
+# 128 KiB ("jq: Argument list too long"), which made the huge-payload cases send
+# an empty payload on CI. Small values (the path) are fine as arguments.
+bash_cmd() { printf '%s' "$1" | jq -Rs '{tool_name:"Bash",tool_input:{command:.}}'; }
+write_file() { printf '%s' "${2-}" | jq -Rs --arg p "$1" '{tool_name:"Write",tool_input:{file_path:$p,content:.}}'; }
 
 echo "guard-bash.sh — must DENY"
 assert deny guard-bash.sh "$(bash_cmd 'gh pr merge 12')"                      "gh pr merge"
@@ -102,6 +105,16 @@ big_file=$(yes 'const padding = 1;' | head -20000)
 big_keys=$(yes 'const example = "sk_live_abcdefghijklmno"' | head -20000)
 assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'const k = "sk_live_abcdefghijklmno"\n%s' "$big_keys")")"        "live key on line 1, then many allow-listed key lines"
 assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'NEXT_PUBLIC_ANTHROPIC_API_KEY=abc\n%s' "$big_file")")"           "NEXT_PUBLIC_ secret on line 1 of a huge file"
+
+assert deny guard-bash.sh "$(bash_cmd "gh pr merge 12; ${big_tail}")"  "gh pr merge ahead of a huge command (reason embeds the command)"
+
+echo "hooks fail CLOSED on a bad payload"
+assert deny guard-bash.sh  ''                    "bash guard: empty payload"
+assert deny guard-bash.sh  'not json'            "bash guard: non-JSON payload"
+assert deny guard-write.sh ''                    "write guard: empty payload"
+assert deny guard-write.sh 'not json'            "write guard: non-JSON payload"
+assert allow guard-bash.sh  '{"tool_name":"Bash","tool_input":{}}'  "bash guard: valid JSON, no command"
+assert allow guard-write.sh '{"tool_name":"Write","tool_input":{}}' "write guard: valid JSON, no path"
 
 echo "guard-write.sh — must DENY"
 assert deny guard-write.sh "$(write_file "$ROOT/.next/server/app.js" 'x')"                                    "generated .next/ (absolute path)"
