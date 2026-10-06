@@ -10,11 +10,22 @@ type Props = ComponentProps<'input'> & {
 };
 
 /** Sunken pixel text input for auth, profile and search. Styles: text-field.css. */
-export function TextField({ label, error, hint, id, className, type = 'text', ...rest }: Props) {
+export function TextField({
+  label,
+  error,
+  hint,
+  id,
+  className,
+  type = 'text',
+  'aria-describedby': describedBy,
+  ...rest
+}: Props) {
   const autoId = useId();
   const inputId = id ?? autoId;
   const message = error ?? hint;
   const messageId = message ? `${inputId}-message` : undefined;
+  // A caller's note (aria-describedby) is read first, then the hint or error.
+  const describedByIds = [describedBy, messageId].filter(Boolean).join(' ') || undefined;
 
   return (
     <div className={cn('text-field', className)}>
@@ -26,8 +37,8 @@ export function TextField({ label, error, hint, id, className, type = 'text', ..
         type={type}
         className="text-field-input"
         aria-invalid={error ? true : undefined}
-        aria-describedby={messageId}
         {...rest}
+        aria-describedby={describedByIds}
       />
       {message && (
         <span
