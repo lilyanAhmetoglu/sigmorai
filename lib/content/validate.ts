@@ -29,13 +29,15 @@ import {
   loadLesson,
   loadQuickCheck,
 } from './load';
+import { compileLesson } from './mdx';
 import { exerciseFile } from './paths';
 import { isUnderBase } from './source-urls';
 
 /**
  * The deterministic content check (`bun run content:check`, the content-check
  * hook, CI). Walks every file under the content root and validates it with the
- * same loaders and schemas the app uses. It checks shape, not truth: facts are
+ * same loaders and schemas the app uses, and compiles every lesson body with
+ * the page's own MDX rules. It checks shape, not truth: facts are
  * the content-reviewer agent's job (.claude/skills/validate-content).
  */
 
@@ -145,7 +147,12 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
     }
     try {
       if (rel.endsWith(LESSON_FILE)) {
-        const { frontmatter } = await loadLesson(id, abs);
+        const { frontmatter, body } = await loadLesson(id, abs);
+        try {
+          await compileLesson(body);
+        } catch (err) {
+          issues.push({ file: rel, message: `MDX body: ${(err as Error).message}` });
+        }
         for (const { url } of frontmatter.sources) {
           if (official && !isUnderBase(url, official)) {
             issues.push({

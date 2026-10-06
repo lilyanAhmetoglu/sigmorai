@@ -85,6 +85,53 @@ describe('broken content is caught, with the file name', () => {
     expect(await validateContent(root)).toEqual([]);
   });
 
+  test('a lesson body that is not valid MDX', async () => {
+    const root = await copyOfContent();
+    const lesson = (await Bun.file(FIXTURE_LESSON).text()) + '\n<DialogBox>never closed\n';
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    const [issue] = await validateContent(root);
+    expect(issue.file).toBe(`${C1}/lesson.mdx`);
+    expect(issue.message).toContain('MDX body');
+  });
+
+  test('a lesson body with an h1, an import or an unknown component', async () => {
+    const root = await copyOfContent();
+    const lesson = (await Bun.file(FIXTURE_LESSON).text()).replace(
+      '## Fixture lesson',
+      "import x from 'y'\n\n# Fixture lesson\n\n<Quiz />",
+    );
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    const issues = await validateContent(root);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('Start at "##"');
+    expect(issues[0].message).toContain('import/export');
+    expect(issues[0].message).toContain('<Quiz>');
+  });
+
+  test('a lesson body with a {…} expression or a <script>', async () => {
+    const root = await copyOfContent();
+    const lesson =
+      (await Bun.file(FIXTURE_LESSON).text()) +
+      '\n{process.env.HOME}\n\nHome is {1 + 1}.\n\n<DialogBox {...x}>a</DialogBox>\n\n' +
+      '<DialogBox title={y}>b</DialogBox>\n\n<script>alert(1)</script>\n\n<iframe src="https://x.example" />\n';
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    const issues = await validateContent(root);
+    expect(issues).toHaveLength(1);
+    const lines = issues[0].message.split('\n');
+    expect(lines.filter((l) => l.includes('no {…} expressions'))).toHaveLength(4);
+    expect(issues[0].message).toContain('<script> is not allowed');
+    expect(issues[0].message).toContain('<iframe> is not allowed');
+  });
+
+  test('a "#" comment inside a code block is not an h1', async () => {
+    const root = await copyOfContent();
+    const lesson =
+      (await Bun.file(FIXTURE_LESSON).text()) +
+      '\n```bash\n# install\n```\n\n<DialogBox>Hello.</DialogBox>\n';
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    expect(await validateContent(root)).toEqual([]);
+  });
+
   test('a missing sources.yaml is an issue, not a silent skip', async () => {
     const root = await copyOfContent();
     await rm(`${root}/sources.yaml`);

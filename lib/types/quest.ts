@@ -46,7 +46,7 @@ export type XpOutcome = {
   levelAfter: number;
 };
 
-/** completeLesson input (contract only; the "Lesson done" button is SIG-11). */
+/** completeLesson input: the lesson page's "Lesson done" button (SIG-11). */
 export const CompleteLessonInputSchema = z
   .object({
     exerciseId: ExerciseIdSchema.refine((id) => id.endsWith('/lesson'), {
@@ -57,6 +57,16 @@ export const CompleteLessonInputSchema = z
 export type CompleteLessonInput = z.infer<typeof CompleteLessonInputSchema>;
 
 export type CompleteLessonResult = { ok: true; xp: XpOutcome } | QuestActionFailure;
+
+/**
+ * Who is reading a lesson. Scoped to auth()'s user. `not-open`: the chapter
+ * before is not cleared, so "Lesson done" would be refused (the text says why).
+ */
+export type LessonViewer =
+  | { status: 'signed-out' }
+  | { status: 'onboarding' }
+  | { status: 'not-open'; message: string }
+  | { status: 'ready'; cleared: boolean };
 
 // ── Cases and quick checks ────────────────────────────────────────────────
 
