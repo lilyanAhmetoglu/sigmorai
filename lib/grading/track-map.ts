@@ -12,6 +12,7 @@ import { buildExerciseId } from '@/lib/content/ids';
 import type {
   ChapterView,
   ExerciseRef,
+  FloorState,
   LevelStatus,
   NextStep,
   Realm,
@@ -170,9 +171,9 @@ export function buildTrackMap(
 export function buildTowerMap(
   live: ReadonlySet<string>,
   cleared: ReadonlySet<string>,
-): ChapterView[] {
+): FloorState[] {
   const sets = { live, cleared };
-  return MATH_FLOORS.map((floor): ChapterView => {
+  return MATH_FLOORS.map((floor): FloorState => {
     const steps = SIDE_STEPS.map((step) =>
       stepView({ area: MATH_AREA, floor: floor.n, step }, sets),
     );

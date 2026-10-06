@@ -167,8 +167,8 @@ export const MATH_TEXT = {
   title: MATH_TOWER.name,
   eyebrow: `SIDE REALM · ${MATH_FLOOR_COUNT} FLOORS`,
   /** Meta description and the line under the title. */
-  description: `The maths behind AI systems, one floor at a time: vectors, probability, statistics and more. ${MATH_FLOOR_COUNT} free floors, each a short lesson and a quick check.`,
-  intro: `The maths behind AI systems, one floor at a time. Each floor is a short lesson and a quick check. Clear a floor's quick check to open the next floor. Every floor is free on both paths.`,
+  description: `The math behind AI systems, one floor at a time: vectors, probability, statistics and more. ${MATH_FLOOR_COUNT} free floors, each a short lesson and a quick check.`,
+  intro: `The math behind AI systems, one floor at a time. Each floor is a short lesson and a quick check. Clear a floor's quick check to open the next floor. Every floor is free on both paths.`,
   floorsHeading: 'FLOORS',
   /** "FLOOR 3" */
   floorLabel: (n: number) => `FLOOR ${n}`,

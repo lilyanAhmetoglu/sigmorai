@@ -3,19 +3,14 @@ import { cache } from 'react';
 import { MATH_AREA } from '@/lib/constants';
 import { loadMathOutline } from '@/lib/content/load';
 import { buildTowerMap } from '@/lib/grading/track-map';
-import type { ChapterView, MathOutline } from '@/lib/types';
-import { clearedIds, getViewer, liveIds, type Viewer } from './realms';
+import type { FloorView, MathPage } from '@/lib/types';
+import { clearedIds, getViewer, liveIds } from './realms';
 
 /**
  * The Math Tower page's read. Public: a visitor sees the floors with no
  * progress. Progress is scoped to auth()'s user only (getViewer). States come
  * from buildTowerMap, the same lock rule the Server Actions run.
  */
-
-/** One floor card: its state and steps, plus what it covers (content/math/outline.json). */
-export type FloorView = ChapterView & Pick<MathOutline['floors'][number], 'covers' | 'formulas'>;
-
-export type MathPage = { viewer: Viewer['status']; floors: FloorView[] };
 
 export const getMathPage = cache(async (): Promise<MathPage> => {
   const viewer = await getViewer();

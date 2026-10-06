@@ -10,6 +10,8 @@ export default function Loading() {
       </span>
       <div className="bg-surface-2 h-11 w-32" />
       <div className="bg-surface-2 min-h-65" />
+      <div className="bg-surface-2 h-11 w-60" />
+      <div className="bg-surface-2 h-4 w-20" />
       <div className="card-grid">
         {Array.from({ length: MATH_FLOOR_COUNT }, (_, i) => (
           <Panel key={i} tone="sunken">
