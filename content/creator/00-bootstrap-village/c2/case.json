@@ -1,0 +1,74 @@
+{
+  "id": "creator/r0/c2/challenge",
+  "title": "The moodboard that cost too much",
+  "scenario": "Your packaging team uses an AI model to review designs. Each morning, a designer exports 60 full artboards as 4K images (3840×2160) and asks one question: \"Is the allergy warning in the bottom corner readable?\" The monthly bill is high, and twice the model said \"readable\" when the warning was cut off.\n\nYour lead also wants 200 draft images per week for social posts, made with an image model. Today every draft is made at 4K.\n\nThe exhibit shows numbers copied from the vendors' docs on 2026-10-06.",
+  "exhibit": "Input image (Claude docs, high-resolution tier)\n  1000x1000        -> 1,296 tokens\n  3840x2160 (4K)   -> shrunk to 2576x1449, 4,784 tokens\n  Note: a resized image can make text less legible.\n\nOutput image (Gemini docs, Nano Banana 2.1)\n  1K  1024x1024  -> 1,120 tokens\n  2K  2048x2048  -> 1,680 tokens\n  4K  4096x4096  -> 2,520 tokens\n  3:2 at 1K (1264x848) -> 1,120 tokens",
+  "questions": [
+    {
+      "prompt": "Why is the review bill high?",
+      "options": [
+        {
+          "text": "Each 4K artboard counts as thousands of input tokens, and 60 are sent every day.",
+          "explanation": "Right. Images are counted as tokens. The exhibit shows a 4K image at 4,784 tokens on this tier, sent 60 times a day.",
+          "correct": true
+        },
+        {
+          "text": "The question is long, and question text is the main cost.",
+          "explanation": "The question is one short sentence. The 60 large images are most of the tokens."
+        },
+        {
+          "text": "Images are free, so the cost must come from somewhere else.",
+          "explanation": "The vendors' docs say images are tokenized and billed. They are not free."
+        },
+        {
+          "text": "The model reads each image several times to be sure.",
+          "explanation": "Nothing in the docs says this. The cost follows from the token count per image and the number of images."
+        }
+      ]
+    },
+    {
+      "prompt": "What change fixes both the cost and the wrong \"readable\" answers?",
+      "options": [
+        {
+          "text": "Send the full 4K artboards at a higher quality setting.",
+          "explanation": "Above the top size, the image is shrunk anyway, and small text can become less legible. This keeps the cost and the problem."
+        },
+        {
+          "text": "Shrink each artboard to 1000×1000 before sending it.",
+          "explanation": "Cheaper, but the small warning text gets even smaller. The wrong answers may get worse."
+        },
+        {
+          "text": "Send a crop of the bottom corner at a readable size, with the same question.",
+          "explanation": "Right. A crop is far fewer tokens than the whole artboard, and the warning text stays large enough to read.",
+          "correct": true
+        },
+        {
+          "text": "Ask the model to zoom in on the corner itself.",
+          "explanation": "The model only sees the image it receives, after any resizing. If the text was shrunk, the detail is already lost."
+        }
+      ]
+    },
+    {
+      "prompt": "For the 200 weekly social drafts, what is the best size plan?",
+      "options": [
+        {
+          "text": "Keep making every draft at 4K, so nothing needs to be made twice.",
+          "explanation": "Most drafts are thrown away. Making each one at 4K pays 2,520 tokens for an image that only needs a quick look."
+        },
+        {
+          "text": "Make drafts at 1K, then make only the chosen ones at a larger size.",
+          "explanation": "Right. A 1K image is 1,120 tokens against 2,520 at 4K. Pay for the big size only on the images you keep.",
+          "correct": true
+        },
+        {
+          "text": "Switch drafts from 1:1 to 3:2 to save tokens.",
+          "explanation": "The exhibit shows 3:2 at 1K is also 1,120 tokens. The size step changes the count, not the shape."
+        },
+        {
+          "text": "Stop making drafts and write longer prompts instead.",
+          "explanation": "Drafts help the team choose. The saving comes from making them small, not from skipping them."
+        }
+      ]
+    }
+  ]
+}
