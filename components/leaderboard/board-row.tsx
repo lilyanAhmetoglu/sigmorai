@@ -17,10 +17,10 @@ const PODIUM = 3;
 export function BoardRow({ row, ...rest }: Props) {
   return (
     <li
+      {...rest}
       className="board-row"
       data-viewer={row.isViewer || undefined}
       aria-current={row.isViewer ? 'true' : undefined}
-      {...rest}
     >
       <span className="board-rank" data-place={row.rank <= PODIUM ? row.rank : undefined}>
         <span className="sr-only">{LEADERBOARD_TEXT.rank} </span>

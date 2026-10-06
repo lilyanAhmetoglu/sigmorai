@@ -58,6 +58,17 @@ describe('HeroNameSchema: one script', () => {
     expect(HeroNameSchema.safeParse(n).success).toBe(false);
   });
 
+  test.each(['ಕನ್ನಡ', 'नमस्ते', 'ខ្មែរ'])(
+    'accepts an Indic or unlisted script with marks %p',
+    (n) => {
+      expect(HeroNameSchema.safeParse(n).success).toBe(true);
+    },
+  );
+
+  test('refuses Cyrillic "А" + Latin "da"', () => {
+    expect(HeroNameSchema.safeParse('\u0410da').success).toBe(false);
+  });
+
   test('isSingleScript ignores digits and separators', () => {
     expect(isSingleScript('2 ._-')).toBe(true);
   });

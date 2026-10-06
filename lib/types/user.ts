@@ -18,14 +18,13 @@ export const heroNameKey = (name: string): string =>
 
 /** True when every letter comes from one script group (HERO_NAME_SCRIPT_GROUPS). */
 export function isSingleScript(name: string): boolean {
-  let group: RegExp | undefined;
+  let first: number | undefined;
   for (const char of name) {
     if (!LETTER.test(char)) continue;
-    if (group?.test(char)) continue;
-    // First letter, or a letter outside the group picked so far.
-    if (group) return false;
-    group = HERO_NAME_SCRIPT_GROUPS.find((g) => g.test(char));
-    if (!group) return false;
+    // A letter in no listed group (Kannada, Khmer, Cherokee…) shares one OTHER group (-1).
+    const group = HERO_NAME_SCRIPT_GROUPS.findIndex((g) => g.test(char));
+    first ??= group;
+    if (group !== first) return false;
   }
   return true;
 }

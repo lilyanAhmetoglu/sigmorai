@@ -1,8 +1,12 @@
 /** Hero names show on the public leaderboard, so they are short and plain. */
 export const HERO_NAME_MIN = 2;
 export const HERO_NAME_MAX = 24;
-/** Letters (any language), digits, space, dot, apostrophe, dash, underscore. */
-export const HERO_NAME_PATTERN = /^[\p{L}\p{N} .'_-]+$/u;
+/**
+ * Letters (any language), combining marks (Indic vowel signs like the "े" in
+ * "नमस्ते"), digits, space, dot, apostrophe, dash, underscore. Checked on the
+ * NFKC string, so the length limits bound the marks too.
+ */
+export const HERO_NAME_PATTERN = /^[\p{L}\p{M}\p{N} .'_-]+$/u;
 
 /**
  * The case-insensitive unique index on users.hero_name. createHero matches a
@@ -34,8 +38,8 @@ export const RESERVED_HERO_NAMES: readonly string[] = [
 /**
  * Letters in one hero name must come from one of these groups (no mixed
  * scripts, so "pаypal" with a Cyrillic "а" fails). Japanese and Korean mix
- * Han with kana or Hangul, so those share one group. A letter outside every
- * group is refused. Digits, spaces and . ' _ - belong to no script and are free.
+ * Han with kana or Hangul, so those share one group. Letters outside every
+ * listed group (Kannada, Khmer, Cherokee…) share one OTHER group. Digits, spaces and . ' _ - belong to no script and are free.
  */
 export const HERO_NAME_SCRIPT_GROUPS: readonly RegExp[] = [
   /\p{Script=Latin}/u,

@@ -55,7 +55,10 @@ export default async function LeaderboardPage({ searchParams }: PageProps<'/lead
         </ol>
       )}
 
-      <ViewerRank viewer={viewer} range={range} />
+      {/* An empty board already says "no XP", so skip the viewer's own no-XP line. */}
+      {!(rows.length === 0 && viewer.status === 'no-xp') && (
+        <ViewerRank viewer={viewer} range={range} />
+      )}
     </div>
   );
 }

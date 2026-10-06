@@ -11,6 +11,12 @@ export default function Loading() {
         <p className="page-eyebrow">{LEADERBOARD_TEXT.eyebrow}</p>
         <p className="page-title">{LEADERBOARD_TEXT.title}</p>
       </div>
+      {/* Where the WEEK / MONTH / ALL TIME links go: same 44px height, not interactive. */}
+      <div className="flex gap-1.5" aria-hidden="true">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="bg-surface-2 shadow-notch h-11 w-20" />
+        ))}
+      </div>
       <ul className="board-list" aria-hidden="true">
         {Array.from({ length: PLACEHOLDER_ROWS }, (_, i) => (
           <li key={i} className="board-row">
