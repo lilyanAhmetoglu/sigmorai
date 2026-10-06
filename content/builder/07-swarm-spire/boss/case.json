@@ -1,0 +1,118 @@
+{
+  "id": "builder/r7/boss/challenge",
+  "title": "Design a multi-agent research system: orchestrator, worker roles, shared state and a token budget",
+  "scenario": "A market-research firm is designing a research system with a lead agent, web workers and a citation step. The team builds one version on the Claude Agent SDK and one on the OpenAI Agents SDK to compare them. Five parts of the draft look weak. You review the draft in the exhibit. The firm and every number are made up for this case.",
+  "exhibit": "(made-up example data)\n\nBRIEF:\n  A market-research firm builds a research system.\n  Example request: \"How are the 3 largest European grocery chains changing prices?\"\n  A lead agent plans and combines. Web workers search, one chain each.\n  A citation step ties each claim to a source.\n\nROLES (draft), with the team's reason for each:\n  web workers (3)   only they get web_search and fetch_page; the lead has no web tools\n  citation agent    its own short prompt: match each claim to a source\n  report writer     the only role allowed to write the final report file\n  title agent       writes the report title; same tools and style rules as the report writer\n\nDELIVERY (OpenAI version, draft):\n  lead -> handoff -> worker 1 -> handoff -> worker 2 -> handoff -> worker 3\n  worker 3 writes the final answer to the user.\n\nRUN LOG (Claude version):\n  Run 41: the plan was saved to memory and each worker table to a file.\n  At minute 38 of 45, worker 3's fetch_page call returned a timeout error.\n  The app discarded the run and started again from the beginning.\n  Cost: $9.00 for the first attempt, $9.00 for the second.\n\nFETCH (OpenAI version):\n  A worker emitted 12 fetch_page calls in one turn. fetch_page is a local function tool.\n  All 12 started at once. The news site allows 4 requests at a time and blocked the firm.\n  The team still wants the calls to run in parallel.\n\nBUDGET (Claude version):\n  max_budget_usd: 6.00\n  Plan: lead $1.00, 3 workers at $1.50 each, citation step $0.50 (total $6.00)\n  Run 52: lead $1.00, worker 1 $1.50, worker 2 $3.50 (looped on one site) = $6.00\n  Worker 3 was never started. The run ended with error_max_budget_usd. No report.",
+  "questions": [
+    {
+      "prompt": "OpenAI's guide says to add a specialist only when it clearly helps. Which role in the draft has the weakest case?",
+      "options": [
+        {
+          "text": "The web workers: the lead could run the searches itself and so skip three more agents.",
+          "explanation": "These workers alone hold the web tools. That is capability isolation, one of the reasons OpenAI names."
+        },
+        {
+          "text": "The citation agent: the lead could match claims to sources itself and so skip one more prompt.",
+          "explanation": "A narrow job with its own short prompt is prompt clarity, one of the reasons OpenAI names. Anthropic's Research system also ends in a separate CitationAgent."
+        },
+        {
+          "text": "The report writer: the lead could write the report file itself and so skip one more trace.",
+          "explanation": "Only this role may write the final file. That is policy isolation, one of the reasons OpenAI names."
+        },
+        {
+          "text": "The title agent: the report writer could write the title itself, with the same tools.",
+          "explanation": "Right. OpenAI says to start with one agent and add specialists only for capability isolation, policy isolation, prompt clarity or trace legibility. This role gives none of them and adds a prompt and a trace.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "In the OpenAI version, worker 3 writes the final answer after two handoffs. How should the lead use the workers instead?",
+      "options": [
+        {
+          "text": "Keep the handoff chain, but tell worker 3 in its prompt to combine the findings of workers 1 and 2.",
+          "explanation": "A handoff moves ownership of the reply away from the lead, and a prompt does not change that. OpenAI's fit for a manager that combines results is agents as tools, where the manager keeps the reply."
+        },
+        {
+          "text": "Call each worker as a tool, so the lead reads all three results and writes the combined answer.",
+          "explanation": "Right. OpenAI's guide says agents as tools fit when the manager should synthesize the final answer; the manager keeps ownership of the reply.",
+          "correct": true
+        },
+        {
+          "text": "Send the three tables as handoff input_type metadata, so that the next agent receives them in full.",
+          "explanation": "The SDK docs say input_type is for metadata the model decides at handoff time. It also does not change who owns the final reply."
+        },
+        {
+          "text": "Add a handoff from every worker back to the lead, so that control returns after each worker.",
+          "explanation": "Each handoff transfers ownership. The guide's fit for a manager that combines results is agents as tools, where the manager keeps the reply."
+        }
+      ]
+    },
+    {
+      "prompt": "Run 41 failed at minute 38 of 45 and cost $9.00 twice. What fits Anthropic's research-system advice?",
+      "options": [
+        {
+          "text": "Save checkpoints, resume from the last one, and add retry logic for a failed call such as the timeout.",
+          "explanation": "Right. Anthropic says it can't just restart from the beginning, because restarts are expensive. It built systems that resume where the agent was, with deterministic safeguards like retry logic and regular checkpoints.",
+          "correct": true
+        },
+        {
+          "text": "Restart from the beginning on any error, but use a longer timeout so that restarts happen less often.",
+          "explanation": "Anthropic says restarts are expensive and frustrating for users. A longer timeout does not remove the need to resume."
+        },
+        {
+          "text": "Keep the plan only in the lead's context, so each restart plans again from a clean state.",
+          "explanation": "The plan is already saved to memory, which is the safer place. Planning again also repeats the cost."
+        },
+        {
+          "text": "Remove fetch_page from the workers, so that a tool can't fail in the middle of a run.",
+          "explanation": "The workers need the tool, and tools will fail sometimes. Anthropic handles this with retries and checkpoints."
+        }
+      ]
+    },
+    {
+      "prompt": "The news site allows 4 requests at a time, and the team wants parallel calls. Which setting fits the OpenAI Agents SDK?",
+      "options": [
+        {
+          "text": "Set parallel_tool_calls to False, so the model emits one call per response and never goes over 4.",
+          "explanation": "That setting controls whether the model may emit several calls in one response. Turned off, calls go one by one, and the team wants parallel work."
+        },
+        {
+          "text": "Set max_turns to 4, so that a worker makes at most four round trips and sends at most four calls.",
+          "explanation": "max_turns counts turns, not calls at the same time. One turn can still hold 12 calls, as in the log."
+        },
+        {
+          "text": "Cap local function tool calls with max_function_tool_concurrency set to 4 in the run's tool execution config.",
+          "explanation": "Right. By default the SDK starts all local function tool calls the model emits in a turn. This setting caps how many run at once.",
+          "correct": true
+        },
+        {
+          "text": "Set parallel_tool_calls to True and tell the worker in its instructions to send at most 4 calls at once.",
+          "explanation": "parallel_tool_calls only lets the model emit several calls in one response, and an instruction is not a hard cap. The SDK still starts every local function tool call the model emits."
+        }
+      ]
+    },
+    {
+      "prompt": "What caused worker 2's $3.50, and what should the Claude version add?",
+      "options": [
+        {
+          "text": "max_budget_usd gave worker 2 its own $1.50, but the SDK failed to enforce it, so report it as a bug.",
+          "explanation": "The cap is for the whole query. It does not give each worker a share, so there is nothing to enforce per worker."
+        },
+        {
+          "text": "The cap is for the whole query, not per worker. Set maxTurns on each worker so a loop stops early.",
+          "explanation": "Right. The Claude docs say the spend cap counts the call's own spend, subagent requests included. maxTurns bounds one subagent, and its output is marked partial at the limit (needs Claude Code v2.1.246 or later).",
+          "correct": true
+        },
+        {
+          "text": "Set max_budget_usd to 1.50, so that each worker stops at its own share of the planned budget.",
+          "explanation": "It would still count the whole query, so the run would end after the lead and part of worker 1."
+        },
+        {
+          "text": "Set the concurrency limit to 1, so that workers cannot spend money while another one is running.",
+          "explanation": "Concurrency limits how many subagents run at once. A single worker can still loop and spend."
+        }
+      ]
+    }
+  ]
+}
