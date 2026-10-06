@@ -1,0 +1,96 @@
+{
+  "id": "builder/r3/c4/challenge",
+  "title": "The cache that never hit",
+  "scenario": "A shop's support bot runs on Claude Sonnet 5.5. Every request sends the same 6,000-token policy manual. The team turned on prompt caching to cut the bill, but the bill went up a little. You review the request layout and the usage numbers (exhibit).",
+  "exhibit": "REQUEST LAYOUT (same for every user)\nsystem[0]  Today is 2026-10-06 09:14:07 UTC.   ~15 tokens\nsystem[1]  refund and shipping policy manual   ~6,000 tokens\nmessages   the user's question                 ~40 tokens\ncache_control: on the last block (the user's question)\n\nUSAGE (three requests, 2 minutes apart)\nreq  cache_creation_input_tokens  cache_read_input_tokens\n1    6,055                        0\n2    6,061                        0\n3    6,048                        0\n\nPRICES (Claude Sonnet 5.5, per million tokens)\nbase input $2   5m cache write $2.50   cache read $0.20",
+  "questions": [
+    {
+      "prompt": "Why is nothing ever read from the cache?",
+      "options": [
+        {
+          "text": "6,000 tokens is below the minimum cacheable length for this model.",
+          "explanation": "The Claude docs give 512 tokens as the minimum for Claude Sonnet 5.5. The usage also shows writes happening, which means the length is enough."
+        },
+        {
+          "text": "The requests are too far apart, so each entry expires first.",
+          "explanation": "They are 2 minutes apart, inside the 5-minute default lifetime. Expiry is not the cause."
+        },
+        {
+          "text": "Prompt caching on Claude needs a beta header that is missing.",
+          "explanation": "Caching works without a beta header here: the usage shows cache writes on every request."
+        },
+        {
+          "text": "The first block and the marked block change on every request.",
+          "explanation": "Right. Cache hits need an identical prefix. The timestamp at the top changes each time, and the breakpoint sits on the changing question.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What is the best fix?",
+      "options": [
+        {
+          "text": "Remove the timestamp, and keep `cache_control` on the user's question.",
+          "explanation": "Writes only happen at the breakpoint. With the mark on the question, which changes every time, no earlier entry is ever written to read back."
+        },
+        {
+          "text": "Put the manual first, the time after it, and `cache_control` on the manual.",
+          "explanation": "Right. The Claude docs: mark the last block that stays the same across requests, and keep changing content after it.",
+          "correct": true
+        },
+        {
+          "text": "Move `cache_control` to the timestamp block at the top.",
+          "explanation": "The timestamp changes every request, so a breakpoint there writes a new entry each time and never gets a read."
+        },
+        {
+          "text": "Switch to the 1-hour cache so entries live longer.",
+          "explanation": "A longer lifetime does not help when the prefix never matches. It would also make every write cost 2 times base instead of 1.25."
+        }
+      ]
+    },
+    {
+      "prompt": "After the fix, 10 requests arrive within 5 minutes. What does sending the manual cost, compared with one uncached pass of it?",
+      "options": [
+        {
+          "text": "About 2.15 times, against 10 times without caching.",
+          "explanation": "Right. One write at 1.25 ($2.50 / $2) plus nine reads at 0.1 ($0.20 / $2) is 2.15.",
+          "correct": true
+        },
+        {
+          "text": "About 1.25 times, because only the write is billed.",
+          "explanation": "Reads are cheap but not free. Each of the nine reads costs 0.1 times the base price."
+        },
+        {
+          "text": "About 1 time, because cache reads are free.",
+          "explanation": "The price list shows cache reads at $0.20 per million tokens, not zero."
+        },
+        {
+          "text": "About 12.5 times, because every request pays the write price.",
+          "explanation": "Only the first request writes. The next nine read the stored prefix at 0.1 times base."
+        }
+      ]
+    },
+    {
+      "prompt": "At night, a request comes only every 20 minutes. What does the Claude documentation suggest?",
+      "options": [
+        {
+          "text": "Nothing changes, because the cache lasts 24 hours by default.",
+          "explanation": "Claude's default lifetime is 5 minutes, with a 1-hour option. The 24-hour `prompt_cache_retention` value is an OpenAI setting for models such as `gpt-5.5` and `gpt-4.1`, not a Claude one."
+        },
+        {
+          "text": "Keep the 5-minute cache; each read refreshes it, so it stays alive.",
+          "explanation": "A read does refresh it, but only if it comes within 5 minutes. With 20-minute gaps, each entry expires first."
+        },
+        {
+          "text": "Use the 1-hour cache, which costs 2 times base to write.",
+          "explanation": "Right. Anthropic offers a 1-hour cache for when 5 minutes is too short, at 2 times the base input price for writes.",
+          "correct": true
+        },
+        {
+          "text": "Turn caching off at night, since it never helps when traffic is low.",
+          "explanation": "It can still help with the 1-hour lifetime, which spans the 20-minute gaps."
+        }
+      ]
+    }
+  ]
+}

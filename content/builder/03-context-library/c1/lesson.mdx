@@ -1,0 +1,94 @@
+---
+id: builder/r3/c1/lesson
+title: Embeddings
+minutes: 9
+sources:
+  - kind: docs
+    title: Embeddings (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/embeddings
+  - kind: docs
+    title: Vector embeddings (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/embeddings
+  - kind: docs
+    title: Retrieval (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/retrieval
+  - kind: docs
+    title: Embeddings (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/embeddings
+---
+
+Realm 2 gave the model tools to fetch facts. This realm is about a different question: which facts should reach the model at all? A company wiki can hold millions of words, and only a few paragraphs answer any one question. The first step to finding them is the embedding.
+
+## What an embedding is
+
+OpenAI puts it simply: "An embedding is a vector (list) of floating point numbers." You send text to an embedding model, and it returns a fixed-length list of numbers.
+
+The useful part is the distance between two lists. OpenAI: "Small distances suggest high relatedness and large distances suggest low relatedness." Texts with similar meaning land close together, even when they share no words.
+
+Example from the OpenAI retrieval guide. The query is "When did we go to the moon?"
+
+| Text                                              | Keyword similarity | Semantic similarity |
+| ------------------------------------------------- | ------------------ | ------------------- |
+| The first lunar landing occurred in July of 1969. | 0%                 | 65%                 |
+| When I ate the moon cake, it was delicious.       | 40%                | 28%                 |
+
+OpenAI points out that the most relevant result contains none of the words in the query. Keyword search ranks it last; embeddings rank it first.
+
+## What embeddings are used for
+
+OpenAI lists search, clustering, recommendations, anomaly detection, diversity measurement and classification. The Gemini docs list a similar set and add retrieval-augmented generation (RAG): "Embeddings enhance the quality of generated text by retrieving and incorporating relevant information into the context of a model."
+
+In this realm, search for RAG is the main job: turn your documents into vectors once, turn each question into a vector, and pick the documents closest to it.
+
+## Who makes the embedding model
+
+Embedding models have their own names and prices, and not every vendor has one.
+
+- **Anthropic:** the Claude docs say "Anthropic does not offer its own embedding model." They describe Voyage AI as one provider, and say you should assess a variety of vendors for your use case.
+- **OpenAI:** `text-embedding-3-small` (1536 numbers by default) and `text-embedding-3-large` (3072 by default).
+- **Gemini:** `gemini-embedding-2` is multimodal and takes up to 8,192 input tokens. For text-only use, `gemini-embedding-001` remains available.
+
+So a Claude app gets its embeddings from another vendor. The chat model and the embedding model are two separate choices.
+
+## Comparing two vectors
+
+OpenAI recommends cosine similarity and says "The choice of distance function typically doesn't matter much."
+
+OpenAI and Voyage both normalize their embeddings to length 1. Both docs draw the same two conclusions: cosine similarity can be computed faster as a dot product, and cosine similarity and Euclidean distance give identical rankings.
+
+## Use one model for both sides
+
+A query vector and a document vector can only be compared if the same model made them. The Gemini docs are direct about this: the spaces of `gemini-embedding-001` and `gemini-embedding-2` are "incompatible", and "If you are upgrading to `gemini-embedding-2`, you must re-embed all of your existing data."
+
+Example: you index 20,000 help articles with one model in March. In September, you switch the query side to a newer model. Every search now compares vectors from two models, which the Gemini docs say you "cannot directly compare". The fix is to re-embed the articles too.
+
+## Tell the model what the text is
+
+Some models want to know if a text is a question or a document.
+
+- **Voyage** (in the Claude docs): for retrieval, set `input_type` to `query` or `document`. "Do not omit `input_type` or set `input_type=None`."
+- **Gemini, `gemini-embedding-2`:** put the task in the text itself. A search query becomes `task: search result | query: how do I reset my password?`. A document becomes `title: Reset your password | text: ...`. Use `title: none` when there is no title.
+- **Gemini, `gemini-embedding-001`:** set a `task_type` field instead. `gemini-embedding-2` does not accept it.
+
+For symmetric tasks such as classification, the Gemini docs say the task must be used consistently: documents and queries get the same format.
+
+## Size, cost and dimensions
+
+Bigger vectors cost more to keep. OpenAI: larger embeddings "generally" cost more and use more compute, memory and storage than smaller ones.
+
+OpenAI, Gemini and Voyage each let you ask for shorter vectors:
+
+- OpenAI: the `dimensions` parameter. Its example: a vector store that accepts at most 1024 dimensions can still use `text-embedding-3-large` with `dimensions` set to 1024, "trading off some accuracy" for the smaller size.
+- Gemini: `output_dimensionality`, from 128 to 3072, with 768, 1536 and 3072 recommended. `gemini-embedding-2` normalizes the shorter vectors for you. With `gemini-embedding-001`, you normalize them yourself for any size other than 3072.
+- Voyage: `output_dimension`. If you cut vectors you already stored, keep the leading numbers and normalize them again.
+
+For many vectors, use a vector database. OpenAI recommends one "For searching over many vectors quickly", and the Gemini docs say it is common in production.
+
+## Key points
+
+- An embedding is a list of numbers. Close vectors mean related texts, even with no shared words.
+- Anthropic has no embedding model of its own; the Claude docs point to Voyage AI as one provider. OpenAI and Gemini have their own.
+- OpenAI recommends cosine similarity. On vectors normalized to length 1, it ranks the same as Euclidean distance.
+- Embed queries and documents with the same model. A model change means re-embedding everything.
+- Mark queries and documents where the model asks for it: `input_type` on Voyage, a task prefix on `gemini-embedding-2`.
+- Shorter vectors cost less to store. Request them with the API parameter, and normalize if you cut them yourself.
