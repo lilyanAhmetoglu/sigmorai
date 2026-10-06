@@ -3,7 +3,7 @@ paths:
   - 'lib/mentor/**'
   - 'lib/prompts/**'
   - 'app/api/mentor/**'
-  - 'scripts/sync-sources.ts'
+  - '.claude/skills/knowledge-sync/SKILL.md'
   - 'scripts/eval/**'
 ---
 

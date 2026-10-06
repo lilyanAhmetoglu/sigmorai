@@ -15,21 +15,40 @@
 # Test: bash .claude/hooks/__tests__/guard-bash.test.sh
 set -uo pipefail
 
+# Fail closed without jq (every check below needs it). Fixed JSON, no jq.
+command -v jq >/dev/null || { printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED: jq is not installed (brew install jq). Hooks fail closed without it."}}'; exit 0; }
+
 payload=$(cat)
+
+# The reason goes in on STDIN, never as an argument: Linux caps one argument at
+# 128 KiB, so `jq --arg reason "...${cmd}..."` failed on a huge command and the
+# deny printed nothing, which reads as allow. If jq still fails, print a fixed
+# deny by hand. A deny must never come out empty.
+deny() {
+  printf '%s' "$1" | jq -Rs '{
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: .
+    }
+  }' 2>/dev/null \
+    || printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"BLOCKED by hook (reason could not be rendered)."}}'
+  exit 0
+}
+
+# Fail CLOSED: an empty or non-JSON payload is denied, not allowed. Valid JSON
+# with no command (another tool shape) still falls through to the allow below.
+if ! jq -e . >/dev/null 2>&1 <<<"$payload"; then
+  deny "BLOCKED: the hook payload was empty or not valid JSON, so the command cannot be checked (fail closed)."
+fi
+
 cmd=$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null)
 
 [ -z "$cmd" ] && exit 0
 
-deny() {
-  jq -n --arg reason "$1" '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: $reason
-    }
-  }'
-  exit 0
-}
+# Deny reasons echo the command; cap it so a huge command gives a small reason.
+short_cmd=${cmd:0:300}
+[ "${#cmd}" -gt 300 ] && short_cmd+="…"
 
 # Two-stage normalisation.
 #
@@ -76,23 +95,27 @@ segments=$(strip_quotes "$(strip_heredocs "$cmd")" \
 segments_q=$(strip_heredocs "$cmd" \
   | tr '\n' ';' | sed -E 's/(\|\||&&|[;&|])/\n/g' | sed -E 's/^ +| +$//g' | tr -s ' ' | grep -v '^$')
 
+# NOTE: no `printf | grep -q` here. With `pipefail`, grep -q exits at its first
+# match, the writer can then die of SIGPIPE, and the pipeline reports failure,
+# so a real match reads as "no match" (a flaky false-allow). A here-string has no
+# writer process, so the result is deterministic.
 # seg_matches <extended-regex> — true if ANY single segment matches.
 # Patterns are anchored with ^ so a segment must START with the binary. Prose
 # that merely mentions a command (a commit message, an echo) never does. This
 # anchor is what makes the guard safe to hard-block with; the earlier
 # unanchored version blocked its own commit message.
 seg_matches() {
-  printf '%s\n' "$segments" | grep -qE "$1"
+  grep -qE "$1" <<<"$segments"
 }
 
 # seg_matches_q — same, against the quote-preserving segments.
 seg_matches_q() {
-  printf '%s\n' "$segments_q" | grep -qE "$1"
+  grep -qE "$1" <<<"$segments_q"
 }
 
 # ── 1. Merging / closing PRs and deleting releases — never Claude's call ──────
 if seg_matches '^gh\s+(pr\s+(merge|close)|release\s+delete)(\s|$)'; then
-  deny "BLOCKED: humans merge and close PRs in this repo, never Claude (git-safety.md). Open the PR and report the URL + CI status instead. If you really want this, run it yourself: ! ${cmd}"
+  deny "BLOCKED: humans merge and close PRs in this repo, never Claude (git-safety.md). Open the PR and report the URL + CI status instead. If you really want this, run it yourself: ! ${short_cmd}"
 fi
 
 # ── 2. History rewriting / destructive git ───────────────────────────────────

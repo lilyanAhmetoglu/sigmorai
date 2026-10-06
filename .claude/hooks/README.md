@@ -36,6 +36,10 @@ Runs `bun run content:check` (Zod loaders over every file in `content/`, no mode
 
 **`lint-file.sh`** and **`content-check.sh`** run after the write, so the exit code is the only channel: `0` = clean/skipped/toolchain broken (silent), `2` = real lint errors (stdout goes to Claude).
 
+## Requirements
+
+`jq` must be installed (`brew install jq`). `guard-bash.sh` and `guard-write.sh` fail closed (deny) without it.
+
 ## Tests: run after ANY hook change
 
 ```bash
