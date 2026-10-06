@@ -1,0 +1,80 @@
+---
+id: strategist/r3/c3/lesson
+title: Data readiness
+minutes: 7
+sources:
+  - kind: docs
+    title: OpenAI docs · Retrieval
+    url: https://developers.openai.com/api/docs/guides/retrieval
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+  - kind: docs
+    title: Claude docs · PDF support
+    url: https://platform.claude.com/docs/en/build-with-claude/pdf-support
+  - kind: docs
+    title: Claude docs · Prompting best practices
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: blog
+    title: Anthropic Engineering · Introducing Contextual Retrieval
+    url: https://www.anthropic.com/engineering/contextual-retrieval
+  - kind: blog
+    title: Anthropic Engineering · Effective context engineering for AI agents
+    url: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+---
+
+## Why it matters
+
+Retrieval can only find what is in the knowledge base, in a form it can read. Old copies, unreadable files and chunks without meaning all lead to wrong answers. A **data readiness** check happens before you load anything, not after customers complain.
+
+## Start with an inventory
+
+This inventory template is a tool for this course. For each source, write down:
+
+1. **What** it is and **who owns** it.
+2. **Format** (PDF, Word, spreadsheet, wiki page).
+3. **Versions**: how many copies exist, and which one is current.
+4. **Last updated**, and how often it changes.
+5. **Who may see it.**
+
+Example: a travel insurer wants an assistant for its call centre. Its inventory lists policy wordings (PDF), a claims FAQ (wiki), price tables (Excel) and call notes (CRM). Each one needs a different plan. The call notes also hold customer details, so they raise the access questions in the next chapter.
+
+## Check that the format can be read
+
+OpenAI's retrieval guide lists the file types its vector stores accept. They include .pdf, .docx, .pptx, .md, .txt, .html and .json. Text files must use UTF-8, UTF-16 or ASCII encoding. A file can be up to 512 MB and should hold no more than 5,000,000 tokens. On 2026-10-06, the list did not include .xlsx or .csv. So the insurer's Excel price tables need a plan: convert them to a listed format and check the result, or answer price questions another way.
+
+Anthropic's PDF support page says Claude can work with text, pictures, charts and tables in PDFs. It needs a standard PDF with no password or encryption. A request can hold up to 600 pages, or 100 when the request's context window is under 1M tokens.
+
+## Keep the meaning in each chunk
+
+Anthropic's Contextual Retrieval post shows a common problem. A chunk from a financial filing says: "The company's revenue grew by 3% over the previous quarter." On its own, it doesn't say which company or which quarter. That makes it hard to find and hard to use. The post's fix is to add a short, chunk-specific context to each chunk before indexing it.
+
+The same thing happens in business files. The insurer's policy wording has the country only in the page heading. A chunk that says "Medical cover: 2,000,000 EUR, excess: 150 EUR" loses the country, so the assistant may quote the wrong plan.
+
+Chunk settings matter too. OpenAI's retrieval guide splits files into 800-token chunks with a 400-token overlap by default, and you can change the size from 100 to 4,096 tokens. Anthropic's post says chunk size, boundary and overlap can all affect retrieval performance.
+
+## Remove old copies and drafts
+
+OpenAI's accuracy guide warns that too much irrelevant context drowns out the real information and causes hallucinations. Three versions of the same policy are exactly that kind of noise. The search may return the 2023 version next to the current one, and the model may not know which one is current.
+
+Before loading, keep one current version of each document. Archive the rest outside the knowledge base. OpenAI's retrieval guide also shows a filter example that excludes drafts by filename, which helps if you can't remove them.
+
+## Add labels
+
+Labels (metadata) tell the system what a file is. OpenAI's retrieval guide lets you attach **attributes** to each file, up to 16 keys, and filter on them, for example by region or date range. Anthropic's prompting guide suggests wrapping each document in `<document>` tags, with its content and a `<source>` tag plus other metadata. Anthropic's context engineering post adds that naming conventions and timestamps are signals that help agents understand how and when to use information.
+
+Example labels for the insurer: `product`, `country`, `valid_from`, `owner`.
+
+## Test with real questions
+
+OpenAI's accuracy guide says the best output of the first stage is a good prompt plus an evaluation set: 20 or more questions with ground-truth answers. Collect real questions from the call centre. For each one, write the correct answer and the document it comes from. Then you can see whether a wrong answer comes from missing data, an old copy or a weak chunk.
+
+Set a measured target, not "no errors". The same guide says models are unlikely to reach 99.999% accuracy with off-the-shelf methods.
+
+## Key points
+
+- Take an inventory: owner, format, versions, last update and who may see each source.
+- Check every format against the vendor's supported list before loading.
+- Keep the meaning in each chunk; add context that headings or titles carry.
+- Load one current version; old copies and drafts compete with the truth.
+- Label files and test with 20 or more real questions with known answers.

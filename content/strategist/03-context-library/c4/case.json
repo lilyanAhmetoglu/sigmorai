@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r3/c4/challenge",
+  "title": "The sales assistant that quoted salaries",
+  "scenario": "You are an operations manager at a software company with 400 staff. IT built an internal assistant that answers questions from company documents. It runs on a vendor's file storage and search.\n\nIn the pilot, a sales rep got a salary band in an answer. The CEO asks you to review the design before the wider launch. The exhibit shows the design draft.",
+  "exhibit": "Internal assistant: design draft v1 (made-up example data)\n\nStorage: one shared workspace and store, 5,200 files\n  Sales playbooks         1,900 files   meant for: all staff\n  Product docs            2,600 files   meant for: all staff\n  HR files (salary bands,   700 files   meant for: HR only\n  performance reviews)\n\nAccess rule (system prompt):\n  \"Never reveal HR files to anyone outside HR.\"\n\nFile lookup: the browser sends the file_id of the\n  document the user picked; the server fetches it.\n\nPhase 2: add contracts for 300 client firms, each with\n  its own client portal, in the same shared store.\n\nPilot: 150 questions from sales staff;\n  2 answers quoted a salary band.",
+  "questions": [
+    {
+      "prompt": "What is the main flaw in the access rule?",
+      "options": [
+        {
+          "text": "The rule is too short; add examples of HR questions that the model should refuse.",
+          "explanation": "More examples may reduce leaks, but HR text still reaches the model. OpenAI's agent safety guide says a model can leak private data in a way that's not intended, without an attacker behind it."
+        },
+        {
+          "text": "Repeat the rule in every user message, so that the model sees it more often.",
+          "explanation": "Repeating the line doesn't change what the model can see. The HR files still reach it."
+        },
+        {
+          "text": "HR files still reach the model; a line in the prompt is not an access control.",
+          "explanation": "Right. Decide what each user may see before retrieval, so HR text never reaches the model for a sales request.",
+          "correct": true
+        },
+        {
+          "text": "The rule works; 2 leaks in 150 questions is a normal error rate for a pilot.",
+          "explanation": "Two salary leaks in a small pilot is a design failure, not noise. Each leak exposes private data that can't be taken back."
+        }
+      ]
+    },
+    {
+      "prompt": "What is the best fix for the HR files?",
+      "options": [
+        {
+          "text": "Keep HR files out of the shared store, or filter by team from the user's login.",
+          "explanation": "Right. OpenAI's retrieval guide supports attribute filters before search. Our rule: set the filter from the login, not from what a user types.",
+          "correct": true
+        },
+        {
+          "text": "Give HR files neutral titles, so that search ranks them lower for sales questions.",
+          "explanation": "Lower ranking still lets them appear. A salary question from a sales rep would still find them."
+        },
+        {
+          "text": "Ask all sales staff to sign a policy that says they won't ask HR questions.",
+          "explanation": "The pilot leak came from normal questions. A policy can't stop the assistant from returning HR text."
+        },
+        {
+          "text": "Keep the shared store, but block any answer that contains the word \"salary\".",
+          "explanation": "A word filter misses other wording, such as \"pay band\" or a plain number. The HR text still reaches the model."
+        }
+      ]
+    },
+    {
+      "prompt": "What should change about the file lookup?",
+      "options": [
+        {
+          "text": "Nothing; file IDs are long random strings, so nobody can guess another user's ID.",
+          "explanation": "IDs can be shared, copied or leaked. Anthropic's Files API page says never to accept file IDs from end users."
+        },
+        {
+          "text": "Keep it, but log every file ID requested, so that misuse can be found later.",
+          "explanation": "Logs show misuse after the data is gone. The fix is to stop trusting user-supplied IDs."
+        },
+        {
+          "text": "Encrypt the file ID in the browser before it is sent to the server.",
+          "explanation": "The server would still trust an ID that came from the user. Encryption doesn't check who may see the file."
+        },
+        {
+          "text": "Keep file IDs on the server and map each user to their files there.",
+          "explanation": "Right. Anthropic's Files API page says never to accept a file ID from an end user. Keep the IDs on your server and decide there which files each user may open.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What should phase 2 (contracts for 300 client firms) look like?",
+      "options": [
+        {
+          "text": "One shared store, with each client's name in the prompt so the model picks the right files.",
+          "explanation": "That puts access in the prompt again. Other clients' contracts would still reach the model."
+        },
+        {
+          "text": "A separate workspace for each client, so one client's files can't reach another.",
+          "explanation": "Right. Anthropic's Files API page says to create a separate workspace per tenant for hard isolation.",
+          "correct": true
+        },
+        {
+          "text": "One shared store, filtered on a client name that the user types into the portal.",
+          "explanation": "A user could type another client's name. Filters must come from the login, and full separation suits client data."
+        },
+        {
+          "text": "One shared store for now; split it later if a client reports seeing another's contract.",
+          "explanation": "That waits for a leak of a client's contract, which can't be undone. Separate the data before launch."
+        }
+      ]
+    }
+  ]
+}

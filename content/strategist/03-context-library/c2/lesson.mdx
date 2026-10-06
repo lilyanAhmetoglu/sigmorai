@@ -1,0 +1,82 @@
+---
+id: strategist/r3/c2/lesson
+title: Knowledge bases
+minutes: 7
+sources:
+  - kind: blog
+    title: Anthropic Engineering · Introducing Contextual Retrieval
+    url: https://www.anthropic.com/engineering/contextual-retrieval
+  - kind: docs
+    title: Claude docs · Embeddings
+    url: https://platform.claude.com/docs/en/build-with-claude/embeddings
+  - kind: docs
+    title: OpenAI docs · Retrieval
+    url: https://developers.openai.com/api/docs/guides/retrieval
+  - kind: docs
+    title: OpenAI docs · File search
+    url: https://developers.openai.com/api/docs/guides/tools-file-search
+  - kind: docs
+    title: OpenAI docs · Pricing
+    url: https://developers.openai.com/api/docs/pricing
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+---
+
+## Why it matters
+
+A **knowledge base** is the set of documents your assistant can draw on: policies, product sheets, past answers. The model doesn't read all of it every time. Something has to pick the right parts and hand them over. How that works decides cost, speed and whether answers are right.
+
+## Small library: just put it in the prompt
+
+Anthropic's Contextual Retrieval post starts with a simple option. If your knowledge base is smaller than 200,000 tokens (about 500 pages), you can include the whole thing in the prompt, with no need for retrieval. Treat this as a rule of thumb from the post (Sept 2024), not a hard limit. The post says prompt caching makes this faster and cheaper.
+
+Example: a dental clinic chain has a 40-page handbook for its front desk. Sending all of it with each question is the simplest design. There is nothing to build and nothing to tune. If the handbook later grows into thousands of pages, the clinic should look at this choice again.
+
+## Large library: retrieval (RAG)
+
+For knowledge bases too large for the context window, the post calls retrieval-augmented generation (RAG) the typical solution. It describes the steps:
+
+1. Split the documents into smaller **chunks**, usually no more than a few hundred tokens.
+2. Turn each chunk into an **embedding**, a list of numbers that encodes meaning.
+3. Store the embeddings in a database you can search by meaning.
+4. When a question arrives, find the most relevant chunks and add them to the prompt.
+
+Think of it as a librarian who brings the five best pages to the reader, instead of the whole library.
+
+## Search by meaning and by exact words
+
+OpenAI's retrieval guide explains **semantic search**: it finds results with similar meaning even when they share few or no keywords. Its example query is "When did we go to the moon?" The best match, "The first lunar landing occurred in July of 1969", shares none of the query's words.
+
+Meaning is not always enough. Anthropic's post says embedding models can miss exact matches. Its example: a user searches for "Error code TS-999", and an embedding model might return pages about error codes in general. A keyword method called BM25 looks for that exact text. The post found that combining embeddings with BM25 worked better than embeddings alone.
+
+OpenAI's file search guide also says the tool retrieves through semantic and keyword search.
+
+Example: an equipment wholesaler gets questions like "Is part HX-4410 in stock?" Codes like HX-4410 need exact matching. Questions like "Which pump suits salt water?" need meaning.
+
+## Build it or use a hosted tool
+
+You don't always have to build each step yourself. OpenAI's retrieval guide says that when you add a file to a vector store, it is automatically chunked, embedded and indexed. Its file search guide calls file search a hosted tool, so you don't write code to run the search yourself.
+
+Anthropic's embeddings page says Anthropic does not offer its own embedding model. It names Voyage AI as one provider and says you should assess a variety of embedding vendors for your use case.
+
+Cost example: OpenAI's retrieval guide prices vector store storage at free up to 1 GB across all stores, then $0.10 per GB per day (checked 2026-10-06). A 6 GB store costs (6 − 1) × $0.10 = $0.50 a day. That is storage only. OpenAI's pricing page adds $2.50 per 1,000 file search tool calls in the Responses API, and the tokens the tool uses are billed at the model's rates.
+
+## Two places where RAG breaks
+
+OpenAI's accuracy guide says a RAG system can break down in two areas:
+
+- **Retrieval:** it supplies the wrong context, so the model can't answer, or too much irrelevant context, which drowns out the real information and causes hallucinations.
+- **The model:** it gets the right context and still does the wrong thing with it.
+
+The fixes are different, so check which one it is. Look at each wrong answer: was the right passage among the retrieved chunks? If not, tune the search. If yes, work on the prompt.
+
+Anthropic's post shows how much retrieval itself can improve. In its tests, adding context to each chunk before embedding and keyword indexing cut failed retrievals by 49%, and by 67% when combined with a reranking step. Treat those as Anthropic's test results, not a promise for your data.
+
+## Key points
+
+- A small knowledge base (under about 500 pages, a 2024 rule of thumb) can go straight into the prompt.
+- Larger ones need retrieval: chunk, embed, store, then fetch the best chunks.
+- Combine meaning-based search with exact keyword search for codes and IDs.
+- Hosted tools such as OpenAI file search do the chunking and indexing for you.
+- When an answer is wrong, first check whether retrieval found the right passage.
