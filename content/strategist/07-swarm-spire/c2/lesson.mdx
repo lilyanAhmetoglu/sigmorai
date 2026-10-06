@@ -1,0 +1,84 @@
+---
+id: strategist/r7/c2/lesson
+title: Redesign workflows
+minutes: 7
+sources:
+  - kind: blog
+    title: Anthropic Engineering · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: OpenAI docs · Guardrails and human review
+    url: https://developers.openai.com/api/docs/guides/agents/guardrails-approvals
+  - kind: docs
+    title: OpenAI Cookbook · Building workspace agents in ChatGPT
+    url: https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep
+  - kind: docs
+    title: OpenAI Cookbook · Optimizing customer support agents for cost and quality
+    url: https://developers.openai.com/cookbook/examples/agent_optimization/optimizing_agents_for_cost_and_quality
+---
+
+## Why it matters
+
+The quick way to "add AI" is to drop an agent into an old process. Often the old waste stays, and new risks appear. A better way is to redesign the workflow: look at each step, then decide what a model does, what fixed rules do, and where a person checks.
+
+A **workflow** here means the steps that turn a request into a result: a refund, a report, a meeting brief.
+
+## Map the work first
+
+This checklist is a tool for this course. For each step of today's process, write down:
+
+1. **Input**: what arrives (an email, a form, a calendar entry).
+2. **Output**: what leaves (a decision, a document, a payment).
+3. **Judgment**: is this step fixed rules, or does it need judgment?
+4. **Damage**: what happens if this step is wrong? Can it be undone?
+
+OpenAI's cookbook on workspace agents starts from a real pain point. It says sales teams often spend time pulling account notes, customer feedback, usage metrics and company news by hand before customer meetings. The redesigned workflow runs each day. It checks tomorrow's customer meetings, gathers account context and recent news, writes a brief, saves it as a document and sends a summary. The salesperson still runs the meeting. The agent does the gathering.
+
+## Workflow or agent?
+
+Anthropic's Building effective agents post draws a clear line:
+
+- **Workflows**: models and tools follow predefined code paths.
+- **Agents**: the model directs its own process and tool use.
+
+The post says workflows offer predictability and consistency for well-defined tasks. Agents are better when you need flexibility and model-driven decisions. So when a step is well defined, the post's advice points to a workflow. The post also says that for many applications, a single well-prepared model call is enough.
+
+## Four patterns to reuse
+
+Anthropic's post describes patterns you can combine:
+
+- **Prompt chaining**: split a task into fixed steps, with checks ("gates") between them. Example: write an outline, check it against criteria, then write the document.
+- **Routing**: sort the input, then send it to a specialised path. The post's example is customer service: general questions, refund requests and technical support go to different processes. Easy questions can go to smaller, cheaper models.
+- **Parallelization**: run independent parts at the same time, or run the same task several times and compare.
+- **Evaluator-optimizer**: one model call writes, another checks and gives feedback in a loop. The post says this fits when you have clear evaluation criteria.
+
+Example: a travel agency's booking-change desk. Routing sorts emails into "date change", "cancellation" and "complaint". Each type follows a short chain of fixed steps.
+
+## Put people at the right points
+
+OpenAI's guide on guardrails and human review separates two controls:
+
+- **Guardrails** check input, output or tool behaviour automatically.
+- **Human review** pauses the run so that a person or policy can approve or reject a sensitive action.
+
+The guide says to pause before side effects like cancellations, edits, shell commands or sensitive MCP actions (actions in connected tools). When a tool needs approval, the run stops, waits for a decision, and then continues from the same point.
+
+The guide also warns about boundaries. Input guardrails run only for the first agent in a chain. Output guardrails run only for the agent that gives the final output. So if a later agent creates the side effect, put the check next to that tool. Don't rely only on a check at the front door.
+
+Anthropic's post adds that agents can pause for human feedback at checkpoints, or when they hit a blocker. It also mentions stopping conditions, such as a maximum number of steps, to keep control.
+
+## Take side work off the main path
+
+OpenAI's cookbook on support agents redesigns a slow, expensive workflow. Its baseline did internal QA, analytics tags and routing audits before replying to the customer.
+
+The fix: keep classification, the needed lookups, the resolve-or-escalate decision and the customer reply in the main path. Move QA, tags, internal summaries, audits and reporting to follow-up work when they don't change the immediate outcome. That follow-up work can run later on cheaper, slower processing, such as the Batch API for offline jobs.
+
+Example: the travel desk sends the customer an answer first. The weekly complaint report is built afterwards from the same records.
+
+## Key points
+
+- Map each step: input, output, judgment, damage if wrong.
+- Use a fixed workflow for well-defined steps; use an agent where flexibility is needed.
+- Reuse patterns: chaining with gates, routing, parallel work, evaluator-optimizer.
+- Pause for human approval before side effects, and put checks next to the tool that acts.
+- Keep only outcome-changing steps in the main path; move reporting and audits later.
