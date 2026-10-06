@@ -3,6 +3,8 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import {
+  ANSWER_LENGTH_MAX_RATIO,
+  ANSWER_LENGTH_MIN_GAP,
   BLOG_AREA,
   BOSS_SEGMENT,
   CASE_FILE,
@@ -111,6 +113,30 @@ async function officialBases(root: string, issues: ContentIssue[]): Promise<stri
     });
     return null;
   }
+}
+
+type QuestionLike = { options: { text: string; correct: boolean }[] };
+
+/**
+ * Questions whose right option gives itself away by length: it is the single
+ * longest, more than ANSWER_LENGTH_MAX_RATIO longer than the next-longest
+ * option and at least ANSWER_LENGTH_MIN_GAP characters longer. Ties pass.
+ */
+export function lengthGiveaways(questions: QuestionLike[], file: string): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  questions.forEach((q, i) => {
+    const right = q.options.find((o) => o.correct);
+    if (!right) return;
+    const next = Math.max(...q.options.filter((o) => !o.correct).map((o) => o.text.length));
+    const gap = right.text.length - next;
+    if (gap >= ANSWER_LENGTH_MIN_GAP && gap > next * ANSWER_LENGTH_MAX_RATIO) {
+      issues.push({
+        file,
+        message: `question ${i + 1}: the correct option is the longest (${right.text.length} chars vs ${next} for the next). Make the options a similar length.`,
+      });
+    }
+  });
+  return issues;
 }
 
 /** The site's static folder, where a post's `cover` path points. */
@@ -241,8 +267,11 @@ export async function validateContent(
             });
           }
         }
-      } else if (rel.endsWith(CASE_FILE)) await loadCase(id, abs);
-      else await loadQuickCheck(id, abs);
+      } else if (rel.endsWith(CASE_FILE)) {
+        issues.push(...lengthGiveaways((await loadCase(id, abs)).questions, rel));
+      } else {
+        issues.push(...lengthGiveaways((await loadQuickCheck(id, abs)).questions, rel));
+      }
     } catch (err) {
       issues.push({ file: rel, message: detail(err) });
     }

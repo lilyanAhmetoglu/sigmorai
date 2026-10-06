@@ -50,3 +50,11 @@ export const BLOG_AREA = 'blog';
 export const BLOG_POST_EXT = '.mdx';
 /** Authoring notes inside content/; not content, skipped by the validator. */
 export const CONTENT_NOTES_FILE = 'CLAUDE.md';
+
+/**
+ * Length giveaway guard (`bun run content:check`): the right option fails when
+ * it is the single longest AND longer than the runner-up by more than this
+ * share AND by at least this many characters.
+ */
+export const ANSWER_LENGTH_MAX_RATIO = 0.15;
+export const ANSWER_LENGTH_MIN_GAP = 8;
