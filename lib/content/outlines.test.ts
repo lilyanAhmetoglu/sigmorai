@@ -1,6 +1,7 @@
 import { readdirSync } from 'node:fs';
 import { describe, expect, test } from 'bun:test';
 import {
+  CASE_FILE,
   CHAPTER_STEPS,
   CONTENT_DIR,
   MATH_AREA,
@@ -10,7 +11,7 @@ import {
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
-import { ExerciseIdSchema, MathOutlineSchema, TrackOutlineSchema } from '@/lib/types';
+import { CaseSchema, ExerciseIdSchema, MathOutlineSchema, TrackOutlineSchema } from '@/lib/types';
 import { realmFolder } from './curriculum';
 import { buildExerciseId, segment } from './ids';
 
@@ -59,12 +60,27 @@ describe.each([...TRACKS])('%s outline', (track) => {
     for (const folder of subfolders(areaDir(track))) {
       const realm = known.get(folder);
       expect(realm, `unknown realm folder ${track}/${folder}`).toBeDefined();
-      const chapterIds = realm!.chapters.map((c) => c.id);
+      // `boss` is the realm's boss case folder, not a chapter.
+      const chapterIds = [...realm!.chapters.map((c) => c.id), 'boss'];
       for (const chapter of subfolders(`${areaDir(track)}/${folder}`)) {
         expect(chapterIds, `unknown chapter folder ${track}/${folder}/${chapter}`).toContain(
           chapter,
         );
       }
+    }
+  });
+});
+
+describe.each([...TRACKS])('%s boss cases', (track) => {
+  test('a boss case title is its realm outline boss.task, verbatim', async () => {
+    const { realms } = TrackOutlineSchema.parse(await readOutline(track));
+    for (const realm of realms) {
+      const file = Bun.file(`${areaDir(track)}/${realmFolder(realm.id)}/boss/${CASE_FILE}`);
+      if (!(await file.exists())) continue;
+      const { title } = CaseSchema.parse(await file.json());
+      const label = `${track} realm ${realm.id}`;
+      expect(realm.boss.task, `${label}: a boss case needs an outline boss.task`).toBeDefined();
+      expect(title, `${label} boss title`).toBe(realm.boss.task!);
     }
   });
 });

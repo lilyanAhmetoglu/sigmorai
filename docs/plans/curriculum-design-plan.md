@@ -8,6 +8,19 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-06 (bosses)
+
+- **A boss is a `case.json`, same schema as a chapter case.** `CaseSchema`, `loadCase`, the quest page, `submitCase`, the open check and the map already handle `<track>/r<N>/boss/challenge`. No new format, no code. Supersedes "Out of scope: boss format" and the "Stub: … bosses" row (2026-10-05).
+- **Boss shape:** 5 questions (the case max), one longer exhibit with labelled parts (`BRIEF:`, `TRACE:`, `BUDGET:` …), each question on a different chapter of the realm. Pass is already every question right.
+- **The id stays `<track>/r<N>/boss/challenge`.** Ids are forever.
+- **A boss opens after all 6 chapter cases of that realm.** Clearing it marks the realm cleared (7/7) and pays +500. It does not gate the next realm (realms open by tier).
+- **XP +500** (`XP_REWARDS.boss`), normal HP rule (3 failed tries per UTC day). Replay after a clear is free practice.
+- **No schema change.**
+- **UI:** the quest case page, the castle map node and the "Boss battle" row. No boss scene, no NPC intro.
+- **Boss title = the outline `boss.task` line, verbatim.**
+- **Content order:** realm 0 bosses on all three tracks first, then builder r1–r5, then strategist r1–r5. Realms 6–8 and creator r1–r8 wait for their chapters.
+- **Existing players:** nothing is migrated or revoked. The boss node turns open when the file lands.
+
 ## Amendments locked 2026-10-06 (Creator path)
 
 - **A third track, Creator, is added** (`docs/plans/creator-path-design-plan.md`). Supersedes "Three audiences, still two tracks. No third track." (2026-10-05) and the brief's "Two paths" (`docs/build-prompt.md:32`). Why: designers use different models and tools; neither path spoke to them. A fourth track (Scientist) is planned.
@@ -293,12 +306,12 @@ _Note 2026-10-05: `progress` has no `status` column (it is one row per cleared e
 
 ## MVP content cut (48h sprint)
 
-| Priority     | What gets real lessons                                                                                                    | Count                          |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Sprint       | The 3 outline files                                                                                                       | 3 files                        |
-| Sprint (P0)  | Realm 0, **both tracks**: 6 chapters each (lesson + challenge/case + quick check)                                         | 12 chapters                    |
-| After sprint | P1 realm 1 · P2 realm 2 (builder keeps the design's `get_weather` challenge) + Math floor 1 · P3 realm 3, all both tracks | 36 chapters + 1 floor          |
-| Stub         | Everything else: in the outline only, shows "Coming soon", no route                                                       | Realms 4–8, bosses, floors 2–8 |
+| Priority     | What gets real lessons                                                                                                    | Count                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Sprint       | The 3 outline files                                                                                                       | 3 files                                                                                                    |
+| Sprint (P0)  | Realm 0, **both tracks**: 6 chapters each (lesson + challenge/case + quick check)                                         | 12 chapters                                                                                                |
+| After sprint | P1 realm 1 · P2 realm 2 (builder keeps the design's `get_weather` challenge) + Math floor 1 · P3 realm 3, all both tracks | 36 chapters + 1 floor                                                                                      |
+| Stub         | Everything else: in the outline only, shows "Coming soon", no route                                                       | Realms 4–8, bosses, floors 2–8 (bosses superseded 2026-10-06, see "Amendments locked 2026-10-06 (bosses)") |
 
 Bosses ship after their realm's 6 chapters. The outlines ship in the sprint, so the full map and catalog exist from day one. Each priority is one content PR, checked by `content-reviewer` and `voice-guardian`.
 
@@ -410,7 +423,7 @@ The lock itself is enforced when `lib/data`, `lib/actions` and `/api/run` are bu
 
 - Payment, pricing, entitlements (only the lock).
 - The blog and the sync job (`knowledge-base-design-plan.md`).
-- Lesson writing beyond P0; boss format; exact public URL shapes (route specs).
+- Lesson writing beyond P0; boss format (superseded 2026-10-06: see "Amendments locked 2026-10-06 (bosses)"); exact public URL shapes (route specs).
 - The `TIER_LOCKED` code and the quick-check XP amount (step-5 actions spec).
 
 ## Maintainer to-dos

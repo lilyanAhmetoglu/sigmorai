@@ -1,0 +1,118 @@
+{
+  "id": "strategist/r0/boss/challenge",
+  "title": "Pick a model and a first use case for one team",
+  "scenario": "You lead customer care at an online furniture shop. Leadership gives you budget for one AI pilot with one use case and one model. You must recommend which use case to start with, how to guard it, which model to run and what it will cost. The exhibit holds everything you know. The prices are made up for this case, not a real price list.",
+  "exhibit": "BRIEF:\n  Customer care team, 12 agents, about 1,000 emails a day.\n  Pilot: one use case, one model, 6 weeks.\n  Emails hold the customer's name, home address, phone number, order number and complaint text.\n  IT has approved one business account, under the company's contract with the vendor.\n  Some agents also have free personal chat apps on their phones.\n\nUSE CASES:\n  A. Draft a full reply to each \"where is my order\" email.\n     The delivery rules are in the shipping policy: internal, changed 5 days ago.\n     An agent reads each draft before it is sent.\n  B. Decide alone whether to approve refunds up to $1,500.\n  C. Tag each email (delivery, damage, billing, other) and write a one-line summary.\n     The email text is all it needs. An agent opens every email and can change a wrong tag.\n\nDEMO OF USE CASE C (one email):\n  Email:    \"My oak table arrived with a cracked leg. Order 88213.\n             Please send a new leg or a refund.\"\n  Assistant: \"Tag: damage. Summary: Oak table arrived with a cracked leg;\n             customer wants a replacement; support already promised a refund.\"\n  Tester note: the email says nothing about a promised refund.\n\nMODEL TEST (30 real past emails with the right tag known; bar = 27 of 30 tags correct):\n  Model Lite   28 / 30   $2 per 1M input tokens    $10 per 1M output tokens   (made up)\n  Model Pro    29 / 30   $20 per 1M input tokens   $100 per 1M output tokens  (made up)\n\nTRAFFIC FOR USE CASE C:\n  1,000 emails a day, 30 days a month.\n  Each request: about 1,000 input tokens and 100 output tokens.\n\nVENDOR NOTES:\n  OpenAI docs: data sent to the API is not used to train its models unless you opt in.\n  OpenAI docs: abuse monitoring logs are kept for up to 30 days by default.\n  Anthropic docs: standard retention for consumer use is set by a separate consumer data retention policy.\n  Anthropic docs: Claude Free, Pro and Max plans are not covered by zero data retention (ZDR).",
+  "questions": [
+    {
+      "prompt": "Which use case is the best first pilot?",
+      "options": [
+        {
+          "text": "A: draft replies, because an agent reads each draft anyway.",
+          "explanation": "The agent review helps, but the model does not know the shipping policy. It is internal and changed 5 days ago, so it would have to be passed in with every email."
+        },
+        {
+          "text": "B: approve refunds alone, because it saves agents the most time.",
+          "explanation": "Time saved does not decide the first pilot. A wrong approval pays out money, so B needs the most human checking."
+        },
+        {
+          "text": "C: tag emails and write a one-line summary.",
+          "explanation": "Right. It is mostly language, it needs no facts the model cannot have (the email is in the prompt), and a wrong tag costs little because an agent opens every email.",
+          "correct": true
+        },
+        {
+          "text": "None of them. Wait until the model can be trusted on every task.",
+          "explanation": "No model is right every time. The answer is to match human checking to the cost of a mistake, and C has a low cost of mistakes."
+        }
+      ]
+    },
+    {
+      "prompt": "Before the pilot goes live, which test best helps you spot made-up details like the invented refund?",
+      "options": [
+        {
+          "text": "Ask the model if its summary is accurate.",
+          "explanation": "The model's own confidence is not a check. It can sound sure about a made-up detail."
+        },
+        {
+          "text": "Run each test email through the model several times and compare the summaries. A detail that changes between runs is a warning sign.",
+          "explanation": "Right. Anthropic's guide says to run the same prompt several times and compare: inconsistencies across outputs could indicate hallucinations. It lowers the risk, not to zero, so agents keep opening every email.",
+          "correct": true
+        },
+        {
+          "text": "Test one email. If it is right, the rest will be too.",
+          "explanation": "One email shows very little. Made-up details can appear on some emails and not others."
+        },
+        {
+          "text": "Make the summaries longer so agents see more detail.",
+          "explanation": "More text gives more room for unsupported details. It does not make the summary more true."
+        }
+      ]
+    },
+    {
+      "prompt": "Which model should the pilot use?",
+      "options": [
+        {
+          "text": "Model Lite: 28 of 30 clears the bar of 27 at the lower price. Keep the test set to re-run later.",
+          "explanation": "Right. The guide says to compare on your own examples and keep the lightest option that meets your quality bar. Re-running the test set also helps when the vendor updates its models.",
+          "correct": true
+        },
+        {
+          "text": "Model Pro, because it scored higher.",
+          "explanation": "The bar is 27 of 30, and Lite already clears it. Pro costs ten times as much per token for one more correct tag."
+        },
+        {
+          "text": "Model Pro first, then move down later.",
+          "explanation": "Starting strong is valid when accuracy matters more than cost. Here the lighter model already passes, so there is no reason to pay ten times more."
+        },
+        {
+          "text": "Neither. Thirty emails are too few to decide.",
+          "explanation": "Anthropic's guide calls a good evaluation set, built from your actual prompts and data, the most important step. Thirty real emails with known tags is a fair first test, and it beats a headline benchmark."
+        }
+      ]
+    },
+    {
+      "prompt": "Using Model Lite and the traffic in the exhibit, what is the monthly cost of the pilot?",
+      "options": [
+        {
+          "text": "About $3.",
+          "explanation": "This is the daily cost: $2 for input plus $1 for output. A month has 30 days."
+        },
+        {
+          "text": "About $60.",
+          "explanation": "Input alone is $2 a day, or $60 a month. Output tokens are billed too, at a higher price per token."
+        },
+        {
+          "text": "About $90.",
+          "explanation": "Right. Input: 1,000 x 1,000 = 1M tokens x $2 = $2. Output: 1,000 x 100 = 0.1M tokens x $10 = $1. That is $3 a day, so about $90 a month.",
+          "correct": true
+        },
+        {
+          "text": "About $900.",
+          "explanation": "At Model Pro prices the same traffic costs $30 a day, or $900 a month. The pilot runs on Model Lite."
+        }
+      ]
+    },
+    {
+      "prompt": "IT approves the business account. Before real emails go in, what should be removed?",
+      "options": [
+        {
+          "text": "Nothing. The business account covers all data.",
+          "explanation": "The approved account is the first step, not the last. Prompts still go to the vendor, so send only what the task needs."
+        },
+        {
+          "text": "Names, home addresses and phone numbers. Keep the email text and order number, which the tag and summary need.",
+          "explanation": "Right. Share the minimum: remove personal details the task does not need. The tag and summary need only what the customer wrote.",
+          "correct": true
+        },
+        {
+          "text": "The complaint text, so only the order number is sent.",
+          "explanation": "Then the model cannot tag or summarise. The email text is what the task needs."
+        },
+        {
+          "text": "Everything except names, because addresses are public.",
+          "explanation": "Home addresses and phone numbers are personal data too, and the tag does not need them."
+        }
+      ]
+    }
+  ]
+}
