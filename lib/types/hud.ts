@@ -26,7 +26,10 @@ export type HudStats = LevelProgress & {
   track: Track;
   /** Total XP (users.xp, the ledger cache). */
   xp: number;
+  /** The shown streak: 0 once a UTC day was missed (lib/xp/streak.ts). */
   streak: number;
+  /** A step was passed this UTC day. */
+  activeToday: boolean;
 };
 
 /**
