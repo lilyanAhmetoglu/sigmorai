@@ -1,0 +1,110 @@
+---
+id: builder/r0/c6/lesson
+title: Costs
+minutes: 9
+sources:
+  - kind: docs
+    title: Pricing (Claude docs)
+    url: https://platform.claude.com/docs/en/about-claude/pricing
+  - kind: docs
+    title: Rate limits and spend limits (Claude docs)
+    url: https://platform.claude.com/docs/en/api/rate-limits
+  - kind: docs
+    title: Context windows (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/context-windows
+  - kind: docs
+    title: Pricing (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/pricing
+  - kind: docs
+    title: Batch API (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/batch
+  - kind: docs
+    title: Prompt caching (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/prompt-caching
+  - kind: docs
+    title: Reasoning models (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/reasoning
+  - kind: docs
+    title: Conversation state (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/conversation-state
+---
+
+Model spend is often the biggest running cost of an AI feature. It is also predictable. If you know your tokens and the price list, you can estimate the bill before launch and find the levers that cut it.
+
+This chapter uses **made-up example prices**. Real prices change often. Always read the vendor's current pricing page before you plan a budget.
+
+## The cost formula
+
+Both Anthropic and OpenAI price models per **million tokens** (MTok), with separate prices for input and output. One request costs:
+
+```text
+cost = input_tokens  × input_price_per_token
+     + output_tokens × output_price_per_token
+```
+
+Output is usually the pricier side. On Anthropic's price list, every model's output price is higher than its input price. Check your vendor's page for the ratio.
+
+## A worked estimate
+
+Example prices (made up, not a real price list): input **$2 per MTok**, output **$10 per MTok**.
+
+A support assistant handles 3,000 conversations a day. Each one uses, on average, 4,000 input tokens and 500 output tokens in total.
+
+- Input per day: 3,000 × 4,000 = 12,000,000 tokens = 12 MTok × $2 = **$24**
+- Output per day: 3,000 × 500 = 1,500,000 tokens = 1.5 MTok × $10 = **$15**
+- Per day: **$39**. Per 30-day month: about **$1,170**.
+
+Notice that output is only 11% of the tokens here but almost 40% of the cost. A small change in reply length moves the bill.
+
+## Where hidden tokens come from
+
+The estimate is only as good as the token counts. Common things teams forget:
+
+- **History.** Each turn resends the conversation (chapter 2). With OpenAI's `previous_response_id`, "all previous input tokens for responses in the chain are billed as input tokens".
+- **Tools.** Anthropic's pricing page says tool definitions count as input, and the API adds a tool-use system prompt whenever tools are present.
+- **Images and PDF pages** (chapter 4).
+- **Thinking and reasoning.** Claude thinking tokens "are billed as output tokens". OpenAI reasoning tokens are not visible but "are billed as output tokens". A reasoning model can bill many output tokens for a short visible answer.
+
+Example: a reply shows 200 visible words but the usage says 3,000 output tokens. The difference is reasoning. You pay for all of it.
+
+## Lever 1: pick the right model
+
+Price per token can differ a lot between a vendor's large and small models. Anthropic's pricing page advises using smaller models for simple tasks and larger ones "for the most complex reasoning". Test the smallest model that passes your evaluation (chapter 5).
+
+Example (made-up numbers): a tagging job passes the same tests on a small model that costs 10× less per token than the large one. Same quality, a tenth of the bill.
+
+## Lever 2: prompt caching
+
+Many requests start with the same long prefix: system prompt, tool definitions, a reference document. Caching lets the vendor reuse that prefix at a lower price.
+
+- **Anthropic**: cache reads cost a fraction of the base input price (0.1× on most models), but cache writes cost more than normal input (1.25× for a 5-minute cache, 2× for 1 hour). The pricing page says the 5-minute cache "pays off after one cache read".
+- **OpenAI**: "Prompt caching is enabled by default for supported OpenAI models." The cache needs "the entire rendered prefix to match", and the guide advises putting stable instructions and shared reference material first, and dynamic content after.
+
+Design rule for both: **static content first, changing content last.** Example: put the 3,000-token policy document before the user's question, never after it. If the question came first, the prefix would change on every call and nothing would be reused.
+
+## Lever 3: batch what can wait
+
+Some work has no user waiting: nightly reports, evaluations, bulk tagging.
+
+- Anthropic: the Batch API gives "a 50% discount on both input and output tokens".
+- OpenAI: the Batch API has a "50% cost discount compared to synchronous APIs", a 24-hour completion window, and a separate pool of rate limits.
+
+Example: a job that classifies 200,000 old tickets overnight should run as a batch, not as 200,000 live calls.
+
+These discounts can combine. Anthropic says batch and caching discounts "can be combined".
+
+## Lever 4: cap and measure
+
+- **Cap output** with `max_tokens` / `max_output_tokens` sized for the task.
+- **Log `usage`** from every response, per feature and per customer. It is the real bill, not the estimate.
+- **Set a spend limit.** Anthropic organizations have a monthly spend cap per tier, and you can set your own lower limit on the Billing page. When usage reaches a limit you set, requests fail until access resumes or you raise the limit, so alert before you get there.
+
+Example: a dashboard built from `usage` shows one customer account at 40% of the monthly budget by day 10. You get an alert and act long before the limit stops requests.
+
+## Key points
+
+- Cost = input tokens × input price + output tokens × output price. Prices are per million tokens.
+- Use example prices for practice; read the live pricing page for real budgets.
+- Hidden tokens: history, tools, images, and reasoning (billed as output).
+- Levers: smaller model, prompt caching (static first), batch for non-urgent work, output caps, spend limits.
+- Measure with `usage` on every call.

@@ -1,0 +1,96 @@
+{
+  "id": "builder/r0/c3/challenge",
+  "title": "Rules that fade",
+  "scenario": "A bookshop runs a support assistant on the OpenAI API. The developer instructions tell it to answer only about orders and shipping, in short replies. Turn 1 follows the rules. From turn 2 the assistant writes long essays on any topic. The team also wants to run the same assistant on the Claude API next quarter. You review the request code (exhibit).",
+  "exhibit": "// turn 1\nresponses.create({\n  instructions: \"You are a bookshop support assistant. Answer only about orders and shipping. Keep replies under 80 words.\",\n  input: userMessage\n})\n\n// turn 2 and later\nresponses.create({\n  previous_response_id: lastId,\n  input: userMessage\n})",
+  "questions": [
+    {
+      "prompt": "Why does the assistant stop following the rules from turn 2?",
+      "options": [
+        {
+          "text": "instructions apply only to the current request; when chaining with previous_response_id, earlier instructions are not in the context.",
+          "explanation": "Right. The OpenAI text generation guide says exactly this. The rules were sent on turn 1 only.",
+          "correct": true
+        },
+        {
+          "text": "The model forgets instructions after one turn on purpose, to save tokens.",
+          "explanation": "Nothing is forgotten on purpose. The rules were simply not part of the turn 2 request."
+        },
+        {
+          "text": "The user overrode the rules, because user messages rank above developer instructions.",
+          "explanation": "OpenAI documents the opposite order: developer instructions are prioritized ahead of user messages."
+        },
+        {
+          "text": "`instructions` are cached server-side for 60 seconds, and turn 2 came too late.",
+          "explanation": "There is no such cache. `instructions` apply only to the request that carries them."
+        }
+      ]
+    },
+    {
+      "prompt": "What is the best fix?",
+      "options": [
+        {
+          "text": "Send the same instructions with every request, from one place in the code.",
+          "explanation": "Right. The API is stateless, so the system rules belong in every request. One shared constant keeps them consistent.",
+          "correct": true
+        },
+        {
+          "text": "Paste the rules into the first user message instead.",
+          "explanation": "That moves developer rules into the user channel, which ranks below developer instructions. Keep the channels apart."
+        },
+        {
+          "text": "Ask users to repeat 'only orders and shipping' in their questions.",
+          "explanation": "Users should not carry your system's rules. Your app owns the instructions."
+        },
+        {
+          "text": "Store the instructions as a reusable prompt object in the vendor dashboard.",
+          "explanation": "OpenAI is deprecating reusable prompt objects and advises keeping production prompts in your application code."
+        }
+      ]
+    },
+    {
+      "prompt": "Next quarter the same assistant runs on the Claude API. Where do the instructions go?",
+      "options": [
+        {
+          "text": "In the top-level system field of each Messages API request.",
+          "explanation": "Right. The Claude docs say to use the top-level system field for instructions that apply from the start.",
+          "correct": true
+        },
+        {
+          "text": "As the first entry of messages, with role system.",
+          "explanation": "The Claude docs say a system message cannot be the first entry in messages. Use the top-level field."
+        },
+        {
+          "text": "In a developer role message.",
+          "explanation": "developer is an OpenAI role. Claude uses the top-level system field."
+        },
+        {
+          "text": "Nowhere. Claude models do not take developer instructions.",
+          "explanation": "They do, through the system field. The Claude docs show a role set there."
+        }
+      ]
+    },
+    {
+      "prompt": "The rule 'Keep replies under 80 words' is often ignored. Which rewrite follows the vendor guidance best?",
+      "options": [
+        {
+          "text": "Add the reason: 'Replies show in a small mobile chat bubble, so keep them under 80 words.'",
+          "explanation": "Right. The Claude prompting guide says giving the motivation behind an instruction helps the model understand the goal.",
+          "correct": true
+        },
+        {
+          "text": "Write it in capitals: 'NEVER WRITE MORE THAN 80 WORDS!!!'",
+          "explanation": "Shouting adds no information. The guide's own example shows a plain rule with its reason works better than a bare 'NEVER'."
+        },
+        {
+          "text": "Remove the rule and trim long replies in the UI.",
+          "explanation": "Cutting text in the UI breaks sentences and still pays for the long output."
+        },
+        {
+          "text": "Move the rule to the end of every user message.",
+          "explanation": "That mixes developer rules into user input. Keep rules in the developer channel and explain them."
+        }
+      ]
+    }
+  ]
+}

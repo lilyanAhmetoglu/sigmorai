@@ -1,0 +1,96 @@
+{
+  "id": "builder/r0/c5/challenge",
+  "title": "Launch-day limits",
+  "scenario": "A study-helper chat app launched on Monday. By noon there are three complaints: replies take 20 seconds to appear, some requests fail at peak hours, and long explanations stop mid-sentence. The team also hard-coded the context size in several files. You read the incident notes (exhibit).",
+  "exhibit": "incident notes, Monday\n\n12:01  p95 time to full reply: 20s (UI shows spinner until done)\n12:14  HTTP 429 x 340, header retry-after: 12\n       app behaviour: retries instantly, 5 times\n12:30  replies cut: stop_reason = max_tokens (cap: 300)\n12:45  plan: move to vendor B; vendor B docs: 'rate limit is\n       calculated as the maximum of max_tokens and the estimated\n       number of tokens'; proposal: set max_tokens = 100000\n       on every call 'to be safe'",
+  "questions": [
+    {
+      "prompt": "Users stare at a spinner for 20 seconds. What change helps them most?",
+      "options": [
+        {
+          "text": "Stream the reply (stream: true over server-sent events) so text appears as it is generated.",
+          "explanation": "Right. Streaming lets you show the beginning of the output while the model writes the rest. Handle errors that arrive mid-stream.",
+          "correct": true
+        },
+        {
+          "text": "Raise max_tokens so the model finishes faster.",
+          "explanation": "A higher cap allows longer replies; it does not make the first words appear sooner."
+        },
+        {
+          "text": "Move to the largest model available.",
+          "explanation": "Larger models are often slower. The Claude comparison lists the largest models as slower."
+        },
+        {
+          "text": "Show nothing until the reply is complete, but add a progress bar.",
+          "explanation": "That is the current design with decoration. Streaming shows real text early."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the app handle the 429 errors?",
+      "options": [
+        {
+          "text": "Wait for the retry-after time, then retry with exponential backoff and jitter.",
+          "explanation": "Right. Claude sends retry-after saying how long to wait; OpenAI recommends exponential backoff with jitter and honouring Retry-After.",
+          "correct": true
+        },
+        {
+          "text": "Retry instantly five times, as it does now.",
+          "explanation": "Instant retries hit the same limit and add load. The header says to wait 12 seconds."
+        },
+        {
+          "text": "Treat 429 as a permanent failure and show an error.",
+          "explanation": "A rate-limit 429 is temporary. Waiting and retrying usually succeeds."
+        },
+        {
+          "text": "Split each request into many tiny requests.",
+          "explanation": "More requests use up the requests-per-minute limit faster."
+        }
+      ]
+    },
+    {
+      "prompt": "Replies stop with stop_reason max_tokens at a cap of 300. What is the right reading?",
+      "options": [
+        {
+          "text": "The cap is too low for these answers; raise it or continue the reply, and check the stop signal on every call.",
+          "explanation": "Right. max_tokens means the reply hit your limit, not that the model finished.",
+          "correct": true
+        },
+        {
+          "text": "The context window is full.",
+          "explanation": "A full context window has its own signal (model_context_window_exceeded on Claude). This is your output cap."
+        },
+        {
+          "text": "The model refused to answer.",
+          "explanation": "A refusal has its own stop_reason, refusal."
+        },
+        {
+          "text": "The rate limit cut the reply.",
+          "explanation": "Rate limits reject requests with 429; they do not end a reply with max_tokens."
+        }
+      ]
+    },
+    {
+      "prompt": "On vendor B, the team proposes max_tokens = 100000 on every call 'to be safe'. What is the problem?",
+      "options": [
+        {
+          "text": "A huge cap uses up vendor B's rate limit fast.",
+          "explanation": "Right. Vendor B counts the larger of max_tokens and the estimated tokens toward the rate limit. That is OpenAI's documented rule. Claude's OTPM ignores max_tokens, so the same habit is cheap there but costly here. Set a cap that fits the task.",
+          "correct": true
+        },
+        {
+          "text": "No problem. max_tokens never affects rate limits on any vendor.",
+          "explanation": "The exhibit quotes vendor B saying the opposite. This differs by vendor."
+        },
+        {
+          "text": "The model will always write 100,000 tokens.",
+          "explanation": "max_tokens is a ceiling, not a target. The issue is how vendor B counts it toward limits."
+        },
+        {
+          "text": "max_tokens must always equal the context window.",
+          "explanation": "There is no such rule. The output cap should fit the expected answer."
+        }
+      ]
+    }
+  ]
+}
