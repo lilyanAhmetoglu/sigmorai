@@ -1,0 +1,96 @@
+{
+  "id": "builder/r7/c6/challenge",
+  "title": "The $48 question",
+  "scenario": "A research firm runs a lead agent and subagents on the Claude Agent SDK. Finance sees a high bill and one run that cost far more than the others. You read the weekly numbers and the config (exhibit). The firm, the config and every number are made up for this case.",
+  "exhibit": "CONFIG (made up for this case)\n  lead + up to N workers, chosen by the lead agent\n  models:           lead and every worker use the same top-tier model\n  max_budget_usd:   not set\n  subagent depth:   SDK default\n  scaling rules:    none in the lead's prompt\n\nWEEKLY SPEND (made up)\n  request type   runs   cost per run   total\n  quick fact      200      $0.80       $160\n  comparison       50      $2.40       $120\n  full report      10      $9.00        $90\n  total                                $370\n\nTYPICAL FULL REPORT, $9.00 (made up)\n  lead (plan, synthesis)        $1.50\n  4 workers at $1.50 each       $6.00\n  citation step                 $1.50\n\nLOG (made up)\n  10-03  One comparison cost $48.\n         The lead started workers, and those workers started their own.\n         It ended at a human's stop button.",
+  "questions": [
+    {
+      "prompt": "Quick facts are the largest line, at $160 a week. Which change fits Anthropic's Research advice?",
+      "options": [
+        {
+          "text": "Send quick facts down the full-report path so they get more care.",
+          "explanation": "That would raise the cost per quick fact, from $0.80 toward $9.00. The goal is to spend less on simple questions."
+        },
+        {
+          "text": "Remove all subagents from the comparison and report paths as well.",
+          "explanation": "Anthropic found parallel subagents valuable for broad research. Removing them from every path risks the quality of the large jobs."
+        },
+        {
+          "text": "Ask the writer to be concise, so the final answer has fewer tokens.",
+          "explanation": "A shorter answer trims a little output. Most of the cost is the workers' own calls, which a prompt about the answer does not change."
+        },
+        {
+          "text": "Add scaling rules: 1 agent and a few tool calls for a simple fact.",
+          "explanation": "Right. Anthropic put scaling rules in its prompts because agents struggle to judge effort, and simple fact-finding needs 1 agent.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "On 10-03 workers started their own workers. Which setting is made to stop that nesting, without stopping parallel workers?",
+      "options": [
+        {
+          "text": "Set `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` to 1.",
+          "explanation": "Right. A depth of 1 stops your subagents from spawning any of their own. The SDK default is 3 layers.",
+          "correct": true
+        },
+        {
+          "text": "Set `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` to 1.",
+          "explanation": "With a limit of 1, a worker's own spawn is refused while it runs, but so is every second worker, so parallel work stops too. Concurrency caps how many run at once; depth is the setting made for nesting."
+        },
+        {
+          "text": "Set the lead's `maxTurns` to a smaller number than before.",
+          "explanation": "Turns limit one agent's loop. They do not decide whether a worker may start other agents."
+        },
+        {
+          "text": "Ask in the lead's prompt that workers never start workers.",
+          "explanation": "A prompt only steers the model. The SDK docs say the limits are enforced however Claude decides to delegate."
+        }
+      ]
+    },
+    {
+      "prompt": "Finance wants every run capped at $12. What should the team do, and what happens at the cap?",
+      "options": [
+        {
+          "text": "Set `max_turns` to 12; the run raises `MaxTurnsExceeded` at the cap.",
+          "explanation": "`max_turns` counts round trips, not dollars. `MaxTurnsExceeded` belongs to the OpenAI Agents SDK, not the Claude SDK."
+        },
+        {
+          "text": "Set `max_budget_usd` to 12; only the lead's own spend is counted.",
+          "explanation": "The Claude docs say the cap counts the call's own spend, subagent requests included. Worker cost counts too."
+        },
+        {
+          "text": "Set `max_budget_usd` to 12; it ends with `error_max_budget_usd`.",
+          "explanation": "Right. At the cap the SDK refuses new subagents, stops background ones and ends with that subtype. The app should check it.",
+          "correct": true
+        },
+        {
+          "text": "Set `max_budget_usd` to 12; the run waits for workers, then stops.",
+          "explanation": "Background subagents are stopped at the cap. The run does not wait for them to finish."
+        }
+      ]
+    },
+    {
+      "prompt": "Workers cost $6.00 of a $9.00 report. Which change fits Anthropic's and Claude Code's advice?",
+      "options": [
+        {
+          "text": "Give the lead a cheaper model than the workers, so the plan is cheaper.",
+          "explanation": "The plan and synthesis are the hard part of the job. Anthropic's routing advice puts easy work on cheaper models."
+        },
+        {
+          "text": "Route simple worker tasks to a smaller, cheaper model such as Haiku.",
+          "explanation": "Right. Anthropic describes routing easy work to smaller, cost-efficient models, and Claude Code's docs list Haiku for subagents as a cost control.",
+          "correct": true
+        },
+        {
+          "text": "Double the number of workers so each one reads fewer pages.",
+          "explanation": "Each added worker is another context window and more requests. Cost grows with the worker count."
+        },
+        {
+          "text": "Remove the citation step, because it adds $1.50 to every report.",
+          "explanation": "Anthropic's final citation step attributes claims to sources. Removing it saves money but loses the check."
+        }
+      ]
+    }
+  ]
+}

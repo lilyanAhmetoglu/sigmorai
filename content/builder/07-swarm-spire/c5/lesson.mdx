@@ -1,0 +1,92 @@
+---
+id: builder/r7/c5/lesson
+title: Conflict
+minutes: 9
+sources:
+  - kind: blog
+    title: How we built our multi-agent research system (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+  - kind: blog
+    title: Building effective agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: Orchestrate teams of Claude Code sessions (Claude Code docs)
+    url: https://code.claude.com/docs/en/agent-teams
+  - kind: docs
+    title: Create custom subagents (Claude Code docs)
+    url: https://code.claude.com/docs/en/sub-agents
+  - kind: docs
+    title: Orchestration and handoffs (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: repo
+    title: Agent orchestration (openai-agents-python docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md
+  - kind: repo
+    title: Context management (openai-agents-python docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/context.md
+---
+
+Chapter 4 put agents side by side. When agents work side by side, they sometimes get in each other's way. This chapter names four kinds of conflict and a fix for each. The four kinds are our grouping, not a vendor list.
+
+## Overlap: two agents do the same work
+
+This is the mildest conflict. It wastes money but breaks nothing. Anthropic's Research team saw it early. With vague instructions, subagents repeated each other's searches (the semiconductor example from realm 4, chapter 4).
+
+The fix is in the brief (realm 4, chapter 4). Each subagent needs an objective, an output format, guidance on tools and sources, and clear task boundaries. Without detailed task descriptions, "agents duplicate work, leave gaps, or fail to find necessary information."
+
+Anthropic also saw agents "distracting each other with excessive updates". When you design how agents talk to each other, ask who really needs each message.
+
+## Write clash: two agents change the same thing
+
+This one loses work. Claude Code's agent-teams docs say it directly: "Two teammates editing the same file leads to overwrites." Their advice is to "break the work so each teammate owns a different set of files." They also warn that more teammates means more "potential for conflicts".
+
+Two ways to prevent it:
+
+- **Ownership.** Give each agent a set of files, rows or fields that only it may change. The OpenAI docs show why this matters in code: nested `Agent.as_tool()` runs "do not get an isolated copy of your app state by default." So an app-state field that two nested agents can write needs one owner (our rule from chapter 3).
+- **Isolation.** A Claude Code subagent can set `isolation: worktree`. It then runs in a temporary git worktree, which gives it "an isolated copy of the repository" instead of your checkout.
+
+Example: one agent rewrites `billing.ts` and another updates its tests. Both also want to change `config.ts`. Give `config.ts` to one of them, and have the other ask for the change.
+
+## Disagreement: two agents report different facts
+
+Worker A says a company has 4,000 staff. Worker B says 6,000. Averaging gives 5,000, which may be wrong for both. A disagreement is a question to settle, not a number to blend.
+
+Anthropic's Research system has three tools for this:
+
+- **Check claims against sources.** Its LLM judge scored each output on factual accuracy ("do claims match sources?"), citation accuracy and source quality ("primary sources over lower-quality secondary sources"). A final CitationAgent attributes claims to their sources.
+- **Teach source quality.** Human testers noticed early agents "consistently chose SEO-optimized content farms" over authoritative sources. Adding source-quality heuristics to the prompts helped.
+- **One agent combines.** The lead synthesizes the results and decides whether more research is needed.
+
+OpenAI describes the same split of roles. With agents as tools, the manager "keeps ownership of the reply" and synthesizes the final answer. A code loop can also run a task agent and an evaluator agent, "stop when the evaluator says the output passes the required criteria."
+
+Claude Code teams show a deliberate version. For a bug with an unclear cause, a single agent tends to "find one plausible explanation and stop looking". The docs' fix is several teammates, each testing a different theory and trying to disprove the others. They say the theory that survives "is much more likely to be the actual root cause."
+
+Disagreement is useful when you design for it, and harmful when a lead quietly picks one answer.
+
+## Authority: an agent claims it has permission
+
+One agent can tell another "the user approved this". That claim is only text. Claude Code treats it that way:
+
+- A message sent between agents arrives marked as coming from another Claude session, not from the user. A teammate "can't approve a permission prompt or supply consent on your behalf."
+- A teammate that was denied an action "can't relay it to another teammate to bypass the check."
+- A subagent's report arrives under a header saying that instructions or approval claims inside it carry no authority from the user.
+
+The lesson for any system: approvals come from a person or from your own code, never from the words of another agent.
+
+## A tie-break order
+
+When agents conflict and you must decide who wins, use this order (ours). Stop at the first step that settles it.
+
+1. **A rule in code.** One owner per file, field or task.
+2. **Evidence.** The claim that matches a primary source wins.
+3. **A judge with a rubric.** A separate call scores each answer against written criteria.
+4. **A person.** For money, safety or anything hard to undo.
+
+## Key points
+
+- Four conflicts (ours): overlap, write clash, disagreement and authority.
+- Overlap is fixed with a clear brief and task boundaries.
+- Write clashes are fixed by ownership, or by isolation such as a worktree.
+- Disagreements are settled with sources and one combining agent, not by averaging.
+- A claim of approval from another agent is not approval.
+- Order for tie-breaks: code rule, evidence, judge, person.

@@ -1,0 +1,115 @@
+---
+id: builder/r7/c6/lesson
+title: Cost control
+minutes: 9
+sources:
+  - kind: blog
+    title: How we built our multi-agent research system (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+  - kind: blog
+    title: Building effective agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: Subagents in the SDK (Claude Agent SDK docs)
+    url: https://code.claude.com/docs/en/agent-sdk/subagents
+  - kind: docs
+    title: Create custom subagents (Claude Code docs)
+    url: https://code.claude.com/docs/en/sub-agents
+  - kind: docs
+    title: Manage costs effectively (Claude Code docs)
+    url: https://code.claude.com/docs/en/costs
+  - kind: docs
+    title: Orchestration and handoffs (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: repo
+    title: Usage (openai-agents-python docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/usage.md
+  - kind: repo
+    title: Running agents (openai-agents-python docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md
+  - kind: repo
+    title: Tools (openai-agents-python docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/tools.md
+---
+
+Chapter 4 showed that parallel agents save time. This chapter is about the bill. Every agent has its own context and makes its own model calls, so a multi-agent system can cost much more than one agent. Realm 4 covered turn and budget caps for one agent. Here we apply them to a team.
+
+## Why a team costs more
+
+Anthropic measured about 4× the tokens of a chat for an agent and about 15× for a multi-agent system (realm 4, chapter 4).
+
+The same post explains why teams still pay off sometimes. In its BrowseComp analysis, three factors explained 95% of the performance variance, and "token usage by itself explains 80% of the variance". Multi-agent systems "work mainly because they help spend enough tokens to solve the problem." The post's rule: "For economic viability, multi-agent systems require tasks where the value of the task is high enough to pay for the increased performance."
+
+The Building effective agents post says the same in general: agentic systems "often trade latency and cost for better task performance", so consider whether the trade makes sense.
+
+The product docs show the mechanism. Claude Code's docs say a subagent "sends its own requests", and each teammate in an agent team "has its own context window", so token use scales with the number of active teammates. OpenAI's orchestration guide makes a related point about design: splitting too early creates "more prompts, more traces, and more approval surfaces".
+
+## Six dials
+
+This list is our summary. Each dial has a vendor control behind it.
+
+| Dial         | What it limits                        | Where it is documented                                                               |
+| ------------ | ------------------------------------- | ------------------------------------------------------------------------------------ |
+| Worker count | How many agents start                 | Anthropic's scaling rules; Claude SDK concurrency limit                              |
+| Depth        | How far agents can spawn more agents  | Claude SDK `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, default 3                         |
+| Turns        | How long each agent can loop          | `maxTurns` on a Claude subagent; OpenAI `max_turns`, also on `as_tool`               |
+| Total spend  | The cost of the whole run             | Claude SDK `max_budget_usd`                                                          |
+| Model tier   | The price of each call                | Anthropic's routing pattern; Claude subagent `model` setting                         |
+| Result size  | How much each worker adds to the lead | Claude subagents return only their final message; Anthropic's file-reference pattern |
+
+### Worker count and depth
+
+Claude decides how many subagents to start, "and a subagent can spawn subagents of its own, so one prompt can grow into a tree of agents". The SDK docs list three caps (on Agent SDK TypeScript v0.3.219 and Python v0.2.127 and later): depth (default 3 layers), concurrency (default 20 at once) and spend. Anthropic's Research prompts add scaling rules: 1 agent for a simple fact, 2-4 subagents for a comparison, more than 10 for complex research.
+
+### Turns
+
+A turn cap bounds one agent. A Claude subagent can set `maxTurns` in its definition; at the limit its output is marked partial. In the OpenAI Agents SDK, `max_turns` raises `MaxTurnsExceeded`, and `Agent.as_tool()` accepts `max_turns` for the nested run.
+
+### Total spend
+
+The Claude SDK's `max_budget_usd` counts "the call's own spend, subagent requests included". At the cap it "refuses to spawn more subagents, returning `Budget limit reached`, stops background subagents that are still running, and ends the query with the `error_max_budget_usd` result subtype." Check that subtype, as in realm 4.
+
+This cap is for the whole query. If you want a smaller share for each worker, you have to design that yourself, for example with turn caps.
+
+### Model tier and result size
+
+Anthropic's Building effective agents describes routing "easy/common questions to smaller, cost-efficient models". Claude Code's subagent docs list "control costs by routing tasks to faster, cheaper models like Haiku". For agent teams, the cost guide suggests Sonnet for teammates.
+
+Subagents also keep their working context private: only the final message returns to the parent. Ask workers for short, structured results. Anthropic's appendix adds that storing large outputs in files and passing references reduces "token overhead from copying large outputs through conversation history".
+
+## Stop paying for idle workers
+
+Claude Code's cost guide for agent teams gives plain advice:
+
+- Keep teams small.
+- Keep spawn prompts focused, because "everything in the spawn prompt adds to their context from the start".
+- Shut down teammates when their work is done. "Each active teammate continues consuming tokens until it exits or the session ends."
+
+## Measure before you tune
+
+You cannot control a cost you cannot see. In the OpenAI Agents SDK, usage "is aggregated across all model calls during the run, including model calls that produce tool calls or handoffs." Nested `as_tool` runs add their usage to the outer run, also after a resume. In the Claude SDK, each subagent's requests count toward the query's `total_cost_usd`.
+
+Log cost per run and per role, so you can see which worker is expensive.
+
+## Example: a budget for a research run
+
+Made-up numbers. A run gets a total cap of $6.00. The design splits it (ours):
+
+| Part                         | Budget    |
+| ---------------------------- | --------- |
+| Lead agent (plan, synthesis) | $1.00     |
+| 3 workers at $1.50 each      | $4.50     |
+| Citation step                | $0.50     |
+| **Total**                    | **$6.00** |
+
+Set `max_budget_usd` to 6. Give each worker a turn cap, tell the lead to start 3 workers for a comparison, and cap concurrency at 3. A simple question goes to one agent. If the cap is hit, the app reads the subtype and shows a partial answer instead of an empty page.
+
+## Key points
+
+- Anthropic measured about 4× the tokens of a chat for an agent and about 15× for a multi-agent system.
+- A team is worth it when the task's value pays for the extra tokens.
+- Dials: worker count, depth, turns, total spend, model tier, result size.
+- Claude SDK `max_budget_usd` includes subagent spend and refuses new spawns at the cap.
+- Turn caps exist on both sides: `maxTurns` for Claude subagents, `max_turns` in the OpenAI SDK.
+- Shut down idle teammates and keep spawn prompts short.
+- Log cost per run and per role.
