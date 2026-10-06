@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { SiteLogo } from '@/components/hud/site-logo';
+import { MarketingHeader } from '@/components/hud/marketing-header';
 import { Panel } from '@/components/panel';
 import {
   MAIN_CONTENT_ID,
@@ -19,11 +19,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <>
-      <header className="site-header">
-        <div className="site-header-bar">
-          <SiteLogo />
-        </div>
-      </header>
+      <MarketingHeader />
       <main
         id={MAIN_CONTENT_ID}
         tabIndex={-1}

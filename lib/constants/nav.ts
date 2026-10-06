@@ -4,6 +4,12 @@ import type { NavItem, Track } from '@/lib/types';
 export const HOME_HREF = '/';
 /** The privacy page (app/(marketing)/privacy), linked from the footer. */
 export const PRIVACY_HREF = '/privacy';
+/** The blog list (app/(marketing)/blog), linked from the footer. */
+export const BLOG_HREF = '/blog';
+/** One post: `/blog/<slug>` (the slug is the file name without its date). */
+export const blogHref = (slug: string) => `${BLOG_HREF}/${slug}`;
+/** The RSS 2.0 feed of every post (app/(marketing)/blog/feed.xml). */
+export const BLOG_FEED_HREF = `${BLOG_HREF}/feed.xml`;
 /** "Download your data": a JSON attachment (app/api/account/export). */
 export const ACCOUNT_EXPORT_HREF = '/api/account/export';
 /** The file name of that download. */

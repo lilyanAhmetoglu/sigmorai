@@ -51,8 +51,9 @@ export const SHELL_TEXT = {
   menu: 'Menu',
   footerLeft: 'SIGMORAI.COM',
   footerRight: 'LEARN · BUILD · ASCEND',
+  footerBlog: 'BLOG',
   footerPrivacy: 'PRIVACY',
-  footerNavLabel: 'Legal',
+  footerNavLabel: 'Site',
 } as const;
 
 export const HUD_TEXT = {
