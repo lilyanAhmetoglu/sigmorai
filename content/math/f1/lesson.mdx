@@ -17,7 +17,7 @@ Similarity search turns every text into a list of numbers, then ranks the lists 
 
 A vector is an ordered list of numbers. `(3, 4)` is a vector with 2 numbers. Each number is one position, or dimension.
 
-An embedding is the same thing, only longer. The OpenAI docs: "An embedding is a vector (list) of floating point numbers." By default, `text-embedding-3-small` returns 1536 numbers per text. The Voyage AI models in the Claude docs return 1024 numbers by default.
+An embedding is the same thing, only longer. The OpenAI docs: "An embedding is a vector (list) of floating point numbers." Floating point means numbers with decimals, like 0.37. By default, `text-embedding-3-small` returns 1536 numbers per text. Most Voyage AI models in the Claude docs, such as `voyage-4`, return 1024 numbers by default.
 
 You can't draw 1536 dimensions. The math is the same as in 2, so this floor uses 2-number vectors that you can check by hand.
 
@@ -61,7 +61,7 @@ Cosine similarity divides the dot product by the two lengths:
 
 `cos(a, b) = a·b ⁄ ‖a‖‖b‖`
 
-That takes the length out, so only the direction counts. The result is always between −1 and 1:
+That takes the length out, so only the direction counts. For any two non-zero vectors, the result is between −1 and 1:
 
 - `1`: same direction
 - `0`: at a right angle (nothing in common)
@@ -97,8 +97,8 @@ Check it by hand. Divide `q = (3, 4)` and `A = (4, 3)` by their length 5: you ge
 
 Two vendors state this for their own embeddings:
 
-- **OpenAI:** "OpenAI embeddings are normalized to length 1", so cosine similarity "can be computed slightly faster using just a dot product", and cosine similarity and Euclidean distance "will result in the identical rankings".
-- **Voyage AI** (in the Claude docs): embeddings are "normalized to length 1", so cosine similarity is equivalent to dot-product similarity, "while the latter can be computed more quickly". The Claude docs' search example ranks documents with `np.dot` for this reason.
+- **OpenAI:** "OpenAI embeddings are normalized to length 1", so cosine similarity "can be computed slightly faster using just a dot product", and cosine similarity and Euclidean distance "will result in the identical rankings". (Euclidean distance is the straight-line distance between the two points, the same rule as the length formula above.)
+- **Voyage AI** (in the Claude docs): embeddings are "normalized to length 1", so cosine similarity is equivalent to dot-product similarity, "while the latter can be computed more quickly". The Claude docs' search example ranks documents with NumPy's `np.dot` (a dot-product function) for this reason.
 
 This holds only for vectors of length 1. If you cut a stored vector shorter, the Claude docs say to normalize it again.
 

@@ -72,7 +72,7 @@ Compare the gap with the spread. Say the old prompt's runs look like prompt A or
 - With B's spread (about 14 points), a gap of 3 points is lost in the noise.
 - A gap of 15 points with a spread of 2.8 is hard to explain as luck.
 
-Averaging helps. If the runs are independent, the mean of n runs varies less than one run: its standard deviation is the run's standard deviation divided by `√n`. For prompt A, the mean of 4 runs has a spread of about `2.8 ⁄ √4 = 1.4`. More runs give a steadier mean.
+Averaging helps. If the runs are independent (one run does not affect the next), the mean of n runs varies less than one run: its standard deviation is the run's standard deviation divided by `√n`. For prompt A, the mean of 4 runs has a spread of about `2.8 ⁄ √4 = 1.4`. More runs give a steadier mean.
 
 How many runs you need depends on the size of the change. Anthropic notes that in early agent work, "each change to the system often has a clear, noticeable impact, and this large effect size means small sample sizes suffice", and that "20-50 simple tasks drawn from real failures is a great start." Small changes need more data before you trust them.
 
@@ -84,10 +84,14 @@ Floor 2's rule, multiply for steps in a row, also measures reliability. Anthropi
 
 Check it: `0.75 × 0.75 × 0.75 = 0.421875`, about 42%. An agent that looks good on one try can still fail a user who asks three times.
 
+Anthropic also defines the opposite view: `pass@k` "measures the likelihood that an agent gets at least one correct solution in k attempts." To compute it, use "at least one passes = 1 − (all fail)". For 2 trials at 90%: `1 − 0.1 × 0.1 = 0.99`, or 99%, if the trials are independent.
+
+Multiplying is only correct when the trials are independent (one run does not affect the next). Anthropic warns: "If multiple distinct trials fail because of the same limitation in the environment (like limited CPU memory), these trials are not independent because they're affected by the same factor, and the eval results become unreliable for measuring agent performance."
+
 ## Key points
 
 - Model outputs vary between runs, so one eval run is a noisy measurement.
 - Mean: sum divided by count. `78, 82, 80, 76, 84` has mean 80.
 - Variance: the mean of the squared distances from the mean. Standard deviation is its square root.
 - A gap smaller than the spread is weak evidence. Run more trials; the mean of n independent runs has a spread `√n` times smaller.
-- The chance that all k trials pass is the per-trial rate to the power k: `0.75³ ≈ 0.42`.
+- If the trials are independent, the chance that all k trials pass is the per-trial rate to the power k: `0.75³ ≈ 0.42`.

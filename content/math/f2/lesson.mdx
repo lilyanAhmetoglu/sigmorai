@@ -61,13 +61,15 @@ To get the probability of two tokens in a row, multiply the probability of the f
 
 Example: ` blue` has 0.60. Say `.` then has 0.50, given `The sky is blue`. The pair has probability `0.60 × 0.50 = 0.30`.
 
-Long texts multiply many small numbers, so APIs often report log probabilities instead. With logs, multiplying becomes adding:
+Long texts multiply many small numbers. The OpenAI API can return log probabilities (logprobs). With logs, multiplying becomes adding.
+
+`ln` is the natural logarithm: the ln button on a calculator. `e^x` undoes it: `e^(ln p) = p`. So you can take the ln of each step, add, and turn the sum back into a probability:
 
 - `ln 0.60 ≈ −0.511`
 - `ln 0.50 ≈ −0.693`
 - sum: `−1.204`, and `e^(−1.204) ≈ 0.30`, the same answer
 
-The OpenAI cookbook says the same: you add the logprobs of the tokens, and "Exponentiating that sum gives the joint probability." It also notes that a higher logprob means a more likely token, and a logprob of `0.0` corresponds to 100% probability. Every logprob is 0 or below, because no probability is above 1.
+The OpenAI cookbook says the same: you add the logprobs of the tokens, and "Exponentiating that sum gives the joint probability." Exponentiating means taking e to the power of the sum. It also notes that a higher logprob means a more likely token, and a logprob of `0.0` corresponds to 100% probability. Every logprob is 0 or below, because no probability is above 1.
 
 ## Sampling: picking from the distribution
 
@@ -82,7 +84,7 @@ Some settings remove unlikely tokens before the pick. The Gemini docs explain `t
 
 ## Temperature, in one picture
 
-Temperature changes how random the pick is. The Claude glossary: "Lower temperatures result in more conservative and deterministic outputs that stick to the most probable phrasing and answers." Higher temperatures lead to "more creative and diverse outputs".
+Temperature changes how random the pick is. The Claude glossary: "Lower temperatures result in more conservative and deterministic outputs that stick to the most probable phrasing and answers." Deterministic means the same output every time. Higher temperatures lead to "more creative and diverse outputs".
 
 Think of it as sharpening or flattening the table. Low temperature makes ` blue` win almost every time. High temperature gives ` clear` and ` dark` more chances. Floor 5 shows the exact formula.
 
@@ -90,6 +92,8 @@ Two warnings from the docs:
 
 - **Claude:** "Even with temperature set to 0, the results will not be fully deterministic and identical inputs may produce different outputs across API calls."
 - **Gemini:** for Gemini 3.x models, Google strongly recommends keeping these parameters at their default values, because changing them "can cause unexpected behavior, such as looping or degraded performance".
+
+On paper, greedy decoding always picks the same token. A served API can still vary for other reasons, so don't count on identical outputs.
 
 ## Key points
 
