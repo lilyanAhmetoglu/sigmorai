@@ -1,0 +1,100 @@
+---
+id: strategist/r2/c1/lesson
+title: Map the workflow
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Ticket routing
+    url: https://platform.claude.com/docs/en/about-claude/use-case-guides/ticket-routing
+  - kind: docs
+    title: Claude docs · Customer support agent
+    url: https://platform.claude.com/docs/en/about-claude/use-case-guides/customer-support-chat
+  - kind: blog
+    title: Anthropic Engineering · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: OpenAI docs · Evaluation best practices
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: docs
+    title: OpenAI Cookbook · ChatGPT Enterprise prompting guide
+    url: https://developers.openai.com/cookbook/examples/chatgpt/chatgpt_prompt_guide/chatgpt_prompt_guide
+---
+
+## Why it matters
+
+Many AI projects start with a tool: "We bought a chatbot. Where can we use it?" A better start is the work itself. Before you pick an AI opportunity, draw how the work runs today, step by step.
+
+The map shows three things: which steps AI could do, which steps need a person, and what you will measure later. Without a map, you automate a guess.
+
+## Start with how people do it today
+
+Anthropic's ticket routing guide says that before you automate, you should understand how your team handles the work now. It suggests questions like these:
+
+- What rules decide which team or level gets a ticket?
+- Are there automated rules already? In what cases do they fail?
+- How are edge cases and unclear tickets handled?
+- How does the team prioritize?
+
+The guide's reason: the more you know about how humans handle certain cases, the better you can work with the model on the task.
+
+Example: an online furniture shop wants AI in its support inbox. Don't start from the handbook. Sit with an agent and walk through ten real emails from last week. Write down what they really did, including the workarounds.
+
+## Write each step the same way
+
+For each step, write down five things:
+
+1. **Trigger.** What starts the step? ("A customer email arrives.")
+2. **Input.** What does the person read or use? ("The email and the order system.")
+3. **Action.** What do they do? ("Find the order and check its status.")
+4. **Output.** What do they produce? ("The order status and the delivery date.")
+5. **Owner and time.** Who does it, and how long does it take? ("Support agent, about 3 minutes.")
+
+The furniture shop's map might look like this:
+
+```
+1. Read the email, decide the topic       → topic label
+2. Find the order number, look it up      → order status
+3. Write a reply                          → draft email
+4. If refund over the limit: ask manager  → approval or not
+5. Send the reply, close the ticket       → closed ticket
+```
+
+## Break big jobs into separate tasks
+
+One customer conversation can hide many tasks. Anthropic's customer support guide says support chat is a collection of different tasks: answering questions, finding information and taking action on requests. It tells you to break the ideal interaction into every task before you build, so you can prompt and test each one. Some teams draw it as a flowchart.
+
+OpenAI's evaluation guide uses a similar example. A workflow for an order question has three steps: extract the order ID, look up the order details, then give those details to the model for the final reply. The guide says each step can be evaluated on its own.
+
+This is why the map matters for strategy. "Automate support" is too big to judge. "Label the topic of each email" is small enough to test.
+
+## Ask "what does good look like?" for each output
+
+OpenAI's ChatGPT Enterprise prompting guide asks: what is the single output I want, and what will I judge as good? Its rule of thumb: if you can't describe "good" in one or two sentences, the model can't reliably hit it either.
+
+Apply this to each step of the map. Step 1 has a clear "good": the right topic label. Step 4 is harder: "a fair refund decision" needs rules a person can write down. If nobody can write them down, that step is not ready for AI.
+
+## Notice which steps are fixed and which are not
+
+Anthropic's "Building effective agents" post separates two designs. In a **workflow**, the model and tools follow steps written in advance. In an **agent**, the model decides its own steps and which tools to use. The post recommends finding the simplest solution possible, and says this might mean not building an agentic system at all.
+
+Your map shows which one you need. If the same five steps happen every time, the work is a fixed path. If every case needs a different path, the work is open-ended. The post says agents can handle that kind of work, but at higher cost and with the risk of compounding errors.
+
+Example: the furniture shop's map is mostly fixed. Only refunds over the limit need a manager. That points to a simple, step-by-step design with a person at step 4.
+
+## Mark each step
+
+When the map is done, add a mark to each step:
+
+- **AI candidate**: clear input, clear output, "good" is easy to describe.
+- **Person decides**: the rules are unwritten, or a mistake is costly.
+- **Not worth it**: rare, or already fast.
+
+The next chapters use these marks to find repetition, score each candidate and choose one.
+
+## Key points
+
+- Map how the work really runs today, not how the handbook says it runs.
+- Write every step with a trigger, input, action, output, owner and time.
+- Break big jobs into small tasks you can test one at a time.
+- If you can't describe a good output in one or two sentences, the step isn't ready.
+- Fixed steps suit a simple workflow; the simplest solution may need no agent.
