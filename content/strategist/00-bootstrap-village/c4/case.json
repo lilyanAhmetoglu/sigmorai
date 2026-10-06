@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r0/c4/challenge",
+  "title": "The bill that jumped",
+  "scenario": "Your marketing team uses an AI model through the vendor's API to write product descriptions. Last month the bill was small. This month it is more than five times higher, but the number of products stayed the same. Finance asks you why, and what to do about it.\n\nThe exhibit shows usage per product and the monthly totals, before and after a teammate changed the workflow.",
+  "exhibit": "Prices (made up for this case): input $2 / 1M tokens, output $10 / 1M tokens\n\n                        Last month         This month\nRequests per product    1                  1 (inside long chats of about 10 products)\nInput tokens            1,200              avg 9,000 (earlier chat resent)\nOutput tokens           250                900 (\"write 3 versions\")\nProducts per month      4,000              4,000\n\nLast month:  input 4.8M tok -> $9.60   output 1.0M tok -> $10.00   total $19.60\nThis month:  input 36M tok  -> $72.00  output 3.6M tok -> $36.00   total $108.00",
+  "questions": [
+    {
+      "prompt": "What drove the biggest part of the increase?",
+      "options": [
+        {
+          "text": "Input tokens: the team now runs products in long chats, so the earlier history is sent again with each new product.",
+          "explanation": "Right. Input went from $9.60 to $72.00. In a conversation, each earlier message and reply stays in the context and is sent again with the next request.",
+          "correct": true
+        },
+        {
+          "text": "The vendor raised its prices.",
+          "explanation": "The exhibit uses the same prices both months. The token counts changed, not the price."
+        },
+        {
+          "text": "More products were written.",
+          "explanation": "The product count stayed at 4,000 both months."
+        },
+        {
+          "text": "Output tokens alone.",
+          "explanation": "Output did grow, from $10 to $36. But input grew more, from $9.60 to $72."
+        }
+      ]
+    },
+    {
+      "prompt": "Why do the 3.6M output tokens cost $36 while 36M input tokens cost $72?",
+      "options": [
+        {
+          "text": "Output tokens are counted twice.",
+          "explanation": "Tokens are counted once. The difference is in the price per token."
+        },
+        {
+          "text": "Output tokens have their own price, and here it is higher per token than input.",
+          "explanation": "Right. Vendors price input and output separately, and in Anthropic's and OpenAI's current tables output usually costs more per token. Here output is 5x the input price.",
+          "correct": true
+        },
+        {
+          "text": "Input tokens are free after the first million.",
+          "explanation": "Nothing in the exhibit or the vendors' pricing says that. Every input token is billed."
+        },
+        {
+          "text": "Output is billed per word, not per token.",
+          "explanation": "Both input and output are billed in tokens."
+        }
+      ]
+    },
+    {
+      "prompt": "What is the best fix to recommend to finance?",
+      "options": [
+        {
+          "text": "Keep the long chat but ask the model to \"use fewer tokens\".",
+          "explanation": "The model cannot stop the chat history being sent. The input cost comes from the workflow, not from the model's wording."
+        },
+        {
+          "text": "Stop using AI for product descriptions.",
+          "explanation": "Last month the same work cost under $20. The task fits; the workflow change is the problem."
+        },
+        {
+          "text": "Move to the most capable model, so it needs fewer tries.",
+          "explanation": "Stronger models often cost more per token. That would raise the bill, not lower it."
+        },
+        {
+          "text": "Send one fresh request per product with a short fixed instruction, and ask for one version unless more are needed.",
+          "explanation": "Right. A fresh request carries no old chat history, and one version cuts output. Both bring the cost back near last month's.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The descriptions are needed by next week, not right now. Which extra lever fits?",
+      "options": [
+        {
+          "text": "Send the work as a batch job.",
+          "explanation": "Right. Batch processing is priced lower for work that can wait: Anthropic gives a 50% discount, and OpenAI lists separate lower Batch prices.",
+          "correct": true
+        },
+        {
+          "text": "Ask the model to think longer before each answer.",
+          "explanation": "Thinking or reasoning tokens are billed as output tokens at both vendors. This would raise the cost."
+        },
+        {
+          "text": "Paste every past product description into each request as an example.",
+          "explanation": "That adds a lot of input tokens to every request. Use a few short examples, if any."
+        },
+        {
+          "text": "Run each product three times and pick the best.",
+          "explanation": "That triples the tokens again."
+        }
+      ]
+    }
+  ]
+}
