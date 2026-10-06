@@ -44,6 +44,8 @@ export const SHELL_TEXT = {
   menu: 'Menu',
   footerLeft: 'SIGMORAI.COM',
   footerRight: 'LEARN · BUILD · ASCEND',
+  footerPrivacy: 'PRIVACY',
+  footerNavLabel: 'Legal',
 } as const;
 
 export const HUD_TEXT = {
@@ -105,6 +107,24 @@ export const PROFILE_TEXT = {
   totalXp: 'TOTAL XP',
   level: 'LEVEL',
   noXp: 'No XP yet. You earn XP by clearing lessons, cases and quick checks.',
+  dataPanel: 'YOUR DATA',
+  dataIntro:
+    'Download a copy of everything we store about you, or delete your account. What we store, and why, is on the',
+  privacyLink: 'privacy page',
+  downloadHeading: 'Download',
+  download: 'Download my data',
+  downloadNote: 'A JSON file: your hero, progress, graded answers and XP history.',
+  deleteHeading: 'Delete account',
+  deleteBody:
+    "This deletes your hero, progress, graded answers, XP and your sign-in account. Your name leaves the leaderboard. This can't be undone.",
+  deleteConfirm: "I understand this can't be undone.",
+  deleteSubmit: 'Delete my account',
+  deleting: 'Deleting…',
+  deleteNotConfirmed: 'Tick the box first.',
+  deleteUnauthorized: 'Your session ended. Sign in again.',
+  deleteServerError: 'Nothing was deleted. Try again in a moment.',
+  deleteClerkError:
+    'Your game data is deleted, but your sign-in account is not. Tick the box and press delete again to finish.',
   loading: 'Loading your profile',
   error: "Your profile didn't load. Try again in a moment.",
   retry: 'Retry',

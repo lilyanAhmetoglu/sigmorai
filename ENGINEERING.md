@@ -2,6 +2,13 @@
 
 How Sigmorai is built. Stack, architecture rules, data model, build order. The founding brief is `docs/build-prompt.md`; this file wins where they differ. Never makes aesthetic calls (that's `DESIGN.md`).
 
+## Amendments locked 2026-10-05 (account privacy)
+
+- One Clerk webhook, for erasure only. POST /api/webhooks/clerk verifies with verifyWebhook (CLERK_WEBHOOK_SIGNING_SECRET) and on user.deleted deletes the users row (cascade). 'No webhook' still holds for row creation: rows are created by onboarding, never by a webhook.
+- In-app delete is the primary path. deleteAccount (Server Action): DB row first, then clerkClient().users.deleteUser, so a failure never leaves an orphan row. Both paths are idempotent.
+- Export is a GET route handler (/api/account/export, JSON attachment), because a download needs headers a Server Action can't set.
+- No Terms page yet; the privacy page lists Clerk, Neon, Vercel. Anthropic is added in the mentor PR. Regions are read from the dashboards, never written from memory.
+
 ## Amendments locked 2026-10-05 (no-code pivot)
 
 - **No code runner, no code editor.** The 2026-10-04 "Runner: E2B … fake runner" line is superseded. Stack rows "Editor: Monaco" and "Code runs: E2B via /api/run" are removed. `e2b` leaves package.json; `E2B_API_KEY` and `CODE_RUNNER` leave `.env.example`, `e2e.yml` and `eslint.config.mjs` (those code edits land in PR 2).

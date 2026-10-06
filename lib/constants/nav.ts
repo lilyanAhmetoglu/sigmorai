@@ -1,5 +1,17 @@
 import type { NavItem, Track } from '@/lib/types';
 
+/** The public landing page. Where a deleted account lands. */
+export const HOME_HREF = '/';
+/** The privacy page (app/(marketing)/privacy), linked from the footer. */
+export const PRIVACY_HREF = '/privacy';
+/** "Download your data": a JSON attachment (app/api/account/export). */
+export const ACCOUNT_EXPORT_HREF = '/api/account/export';
+/** The file name of that download. */
+export const ACCOUNT_EXPORT_FILENAME = 'sigmorai-data.json';
+/** The delete-account form's confirm checkbox: its name, and the value it sends when ticked. */
+export const DELETE_CONFIRM_FIELD = 'confirm';
+export const DELETE_CONFIRM_VALUE = 'yes';
+
 /** Onboarding: a signed-in player with no users row picks a track and a hero name here. */
 export const ONBOARDING_HREF = '/onboarding';
 export const PROFILE_HREF = '/profile';
