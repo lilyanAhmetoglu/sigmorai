@@ -5,7 +5,7 @@
  */
 import { BLOG_FEED_HREF, BLOG_HREF, BLOG_META, blogHref } from '@/lib/constants';
 import type { BlogPost } from '@/lib/types';
-import { utcMidnight } from '@/lib/utils';
+import { absoluteUrl as absolute, utcMidnight } from '@/lib/utils';
 
 const XML_ENTITIES: Record<string, string> = {
   '&': '&amp;',
@@ -22,9 +22,6 @@ export function escapeXml(text: string): string {
 
 /** `2026-10-06` → `Tue, 06 Oct 2026 00:00:00 GMT` (RFC 822, as RSS 2.0 wants). */
 export const rssDate = (date: string) => utcMidnight(date).toUTCString();
-
-/** A site path as an absolute URL on `siteUrl` (trailing slash or not). */
-const absolute = (siteUrl: string, href: string) => new URL(href, siteUrl).toString();
 
 type FeedPost = Pick<BlogPost, 'date' | 'slug'> & {
   frontmatter: Pick<BlogPost['frontmatter'], 'title' | 'description'>;

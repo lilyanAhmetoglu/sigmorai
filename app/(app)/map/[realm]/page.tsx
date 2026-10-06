@@ -3,13 +3,13 @@ import { notFound } from 'next/navigation';
 import { DialogBox } from '@/components/dialog-box';
 import { LevelMap } from '@/components/map/level-map';
 import { PixelButton } from '@/components/pixel-button';
+import { RealmActionLabel } from '@/components/realms/realm-action-label';
 import { SignInNote } from '@/components/realms/sign-in-note';
 import { TrackSwitch } from '@/components/realms/track-switch';
 import {
   MAP_TEXT,
   mapHref,
   questHref,
-  REALM_ACTION_TEXT,
   realmHref,
   REALMS,
   REALMS_TEXT,
@@ -102,7 +102,7 @@ export default async function MapRealmPage({ params, searchParams }: PageProps<'
         <TrackSwitch current={track} hrefFor={(t) => mapHref(realm.slug, t)} />
         {next && (
           <PixelButton href={questHref(next.step.exerciseId)}>
-            {REALM_ACTION_TEXT[realm.status]}
+            <RealmActionLabel status={realm.status} name={realm.name} />
           </PixelButton>
         )}
         {viewer === 'signed-out' && <SignInNote />}

@@ -1,14 +1,9 @@
 import { PixelButton } from '@/components/pixel-button';
 import { XPBar } from '@/components/xp-bar';
-import {
-  REALM_ACTION_TEXT,
-  REALM_STATUS_TEXT,
-  REALMS_TEXT,
-  realmHref,
-  TIER_TEXT,
-} from '@/lib/constants';
+import { REALM_STATUS_TEXT, REALMS_TEXT, realmHref, TIER_TEXT } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
 import type { RealmView, Track } from '@/lib/types';
+import { RealmActionLabel } from './realm-action-label';
 import { RealmScene } from './realm-scene';
 import { StatusBadge } from './status-badge';
 
@@ -26,7 +21,6 @@ type Props = {
  */
 export function RealmCard({ realm, track }: Props) {
   const locked = realm.status === 'tier-locked';
-  const action = REALM_ACTION_TEXT[realm.status];
 
   return (
     <article className="realm-card" data-accent={realmAccent(realm.id)} data-status={realm.status}>
@@ -58,9 +52,8 @@ export function RealmCard({ realm, track }: Props) {
           size="sm"
           variant={locked ? 'secondary' : 'primary'}
           className="realm-card-action"
-          aria-label={`${action}: ${realm.name}`}
         >
-          {action}
+          <RealmActionLabel status={realm.status} name={realm.name} />
         </PixelButton>
       </div>
     </article>

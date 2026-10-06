@@ -15,15 +15,16 @@ import { getLessonMeta, getQuestPage, type QuestPage as QuestPageData } from '@/
 
 /**
  * A lesson gets its own title, description (the realm's topic) and canonical;
- * every other quest step keeps the plain title. Relative URLs resolve against
- * metadataBase (app/layout.tsx). The sitemap is a later ticket.
+ * every other quest step (case, quick check) keeps the plain title and is
+ * noindex, like the sitemap leaves it out. Relative URLs resolve against
+ * metadataBase (app/layout.tsx).
  */
 export async function generateMetadata({
   params,
 }: PageProps<'/quest/[...exercise]'>): Promise<Metadata> {
   const { exercise } = await params;
   const meta = await getLessonMeta(exercise.join('/'));
-  if (!meta) return { title: `Quest · ${SITE_NAME}` };
+  if (!meta) return { title: `Quest · ${SITE_NAME}`, robots: { index: false } };
   return {
     title: `${meta.title} · ${SITE_NAME}`,
     description: meta.description,
