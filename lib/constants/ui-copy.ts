@@ -90,7 +90,8 @@ export const ONBOARDING_TEXT = {
   spriteHint: 'Drawn from your hero name. Same name, same sprite.',
   heroName: 'HERO NAME',
   heroNameHint: HERO_NAME_RULE,
-  heroNameError: `Use ${HERO_NAME_RULE}`,
+  heroNameError: `Use ${HERO_NAME_RULE}. Use one alphabet only, and not a reserved name like "admin".`,
+  heroNameTaken: 'Another hero already has this name. Pick a different one.',
   path: 'Choose your path',
   beginnerHint:
     'No code on either path. New to AI, or using it at work? Pick strategist. Want to design AI systems? Pick builder.',

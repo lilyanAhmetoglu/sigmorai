@@ -13,3 +13,7 @@ export const utcDayStart = (at: Date): Date => new Date(utcDayNumber(at) * DAY_M
 
 /** 00:00 UTC of the next day: when HP refills. */
 export const nextUtcDayStart = (at: Date): Date => new Date((utcDayNumber(at) + 1) * DAY_MS);
+
+/** 00:00 UTC of the day `days` days before the day `at` is in (0 = today). */
+export const utcDayStartDaysAgo = (at: Date, days: number): Date =>
+  new Date((utcDayNumber(at) - days) * DAY_MS);

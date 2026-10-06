@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { dbErrorSummary } from './db-error';
+import { dbErrorSummary, isUniqueViolation } from './db-error';
 
 describe('dbErrorSummary', () => {
   test('keeps only the code and constraint, from the error or its cause', () => {
@@ -23,5 +23,14 @@ describe('dbErrorSummary', () => {
     expect(dbErrorSummary(new Error('user_123'))).toEqual({ code: null, constraint: null });
     expect(dbErrorSummary('boom')).toEqual({ code: null, constraint: null });
     expect(dbErrorSummary(null)).toEqual({ code: null, constraint: null });
+  });
+});
+
+describe('isUniqueViolation', () => {
+  test('matches code 23505 on the named constraint only', () => {
+    expect(isUniqueViolation({ code: '23505', constraint: 'a_idx' }, 'a_idx')).toBe(true);
+    expect(isUniqueViolation({ code: '23505', constraint: 'users_pkey' }, 'a_idx')).toBe(false);
+    expect(isUniqueViolation({ code: '23514', constraint: 'a_idx' }, 'a_idx')).toBe(false);
+    expect(isUniqueViolation({ code: null, constraint: null }, 'a_idx')).toBe(false);
   });
 });
