@@ -9,3 +9,4 @@ export * from './content';
 export * from './quest';
 export * from './realms';
 export * from './leaderboard';
+export * from './blog';
