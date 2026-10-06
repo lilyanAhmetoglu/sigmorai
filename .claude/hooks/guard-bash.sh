@@ -76,18 +76,22 @@ segments=$(strip_quotes "$(strip_heredocs "$cmd")" \
 segments_q=$(strip_heredocs "$cmd" \
   | tr '\n' ';' | sed -E 's/(\|\||&&|[;&|])/\n/g' | sed -E 's/^ +| +$//g' | tr -s ' ' | grep -v '^$')
 
+# NOTE: no `printf | grep -q` here. With `pipefail`, grep -q exits at its first
+# match, the writer can then die of SIGPIPE, and the pipeline reports failure,
+# so a real match reads as "no match" (a flaky false-allow). A here-string has no
+# writer process, so the result is deterministic.
 # seg_matches <extended-regex> — true if ANY single segment matches.
 # Patterns are anchored with ^ so a segment must START with the binary. Prose
 # that merely mentions a command (a commit message, an echo) never does. This
 # anchor is what makes the guard safe to hard-block with; the earlier
 # unanchored version blocked its own commit message.
 seg_matches() {
-  printf '%s\n' "$segments" | grep -qE "$1"
+  grep -qE "$1" <<<"$segments"
 }
 
 # seg_matches_q — same, against the quote-preserving segments.
 seg_matches_q() {
-  printf '%s\n' "$segments_q" | grep -qE "$1"
+  grep -qE "$1" <<<"$segments_q"
 }
 
 # ── 1. Merging / closing PRs and deleting releases — never Claude's call ──────

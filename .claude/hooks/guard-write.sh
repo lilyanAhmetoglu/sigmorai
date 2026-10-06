@@ -76,16 +76,16 @@ esac
 # ── 4. Hardcoded live credentials ────────────────────────────────────────────
 # The allowlist is checked on the MATCHING LINE only; a whole-file check would
 # let a real key through whenever the word "example" appears anywhere.
-if printf '%s' "$content" \
-  | grep -E '(sk-[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{10,}|pk_live_[A-Za-z0-9]{10,}|rk_live_[A-Za-z0-9]{10,}|whsec_[A-Za-z0-9]{10,}|sk-ant-[A-Za-z0-9_-]{20,}|e2b_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|vercel_blob_rw_[A-Za-z0-9_]{10,}|npg_[A-Za-z0-9]{10,})' \
-  | grep -qviE '(example|placeholder|dummy|fake|xxx|your[-_]?key|test_)'; then
+# (here-strings, not `printf | grep -q`: see the SIGPIPE note in guard-bash.sh)
+key_lines=$(grep -E '(sk-[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{10,}|pk_live_[A-Za-z0-9]{10,}|rk_live_[A-Za-z0-9]{10,}|whsec_[A-Za-z0-9]{10,}|sk-ant-[A-Za-z0-9_-]{20,}|e2b_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|vercel_blob_rw_[A-Za-z0-9_]{10,}|npg_[A-Za-z0-9]{10,})' <<<"$content")
+if [ -n "$key_lines" ] && grep -qviE '(example|placeholder|dummy|fake|xxx|your[-_]?key|test_)' <<<"$key_lines"; then
   deny "BLOCKED: this write contains what looks like a live API key. Secrets never go in the repo — use Vercel env vars ('bunx vercel env add') and .env.local, and document the name in .env.example."
 fi
 
 # ── 5. Server-only secrets behind the client-visible prefix ──────────────────
 # Deliberately NOT matching bare KEY or URL: NEXT_PUBLIC_SITE_URL is
 # client-safe by design.
-if printf '%s' "$content" | grep -qE 'NEXT_PUBLIC_[A-Z_]*(SECRET|PRIVATE|TOKEN|ANTHROPIC|OPENAI|E2B|JUDGE0|DATABASE|POSTGRES|NEON|AUTH_|GITHUB|GOOGLE_CLIENT|RESEND|BLOB|WEBHOOK)'; then
+if grep -qE 'NEXT_PUBLIC_[A-Z_]*(SECRET|PRIVATE|TOKEN|ANTHROPIC|OPENAI|E2B|JUDGE0|DATABASE|POSTGRES|NEON|AUTH_|GITHUB|GOOGLE_CLIENT|RESEND|BLOB|WEBHOOK)' <<<"$content"; then
   deny "BLOCKED: NEXT_PUBLIC_ inlines the value into the browser bundle. Never put ANTHROPIC_API_KEY, E2B_API_KEY, DATABASE_URL, AUTH_SECRET / OAuth secrets, RESEND_API_KEY, BLOB_READ_WRITE_TOKEN or webhook secrets behind it. Read them in server code only."
 fi
 

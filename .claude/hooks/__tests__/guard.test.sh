@@ -16,7 +16,9 @@ pass=0; fail=0
 assert() {
   local expect="$1" script="$2" payload="$3" label="$4" out got
   out=$(printf '%s' "$payload" | bash "$HOOKS/$script" 2>/dev/null)
-  if printf '%s' "$out" | grep -q '"permissionDecision": *"deny"'; then got=deny; else got=allow; fi
+  # here-string, not `printf | grep -q`: under pipefail a SIGPIPE'd writer turned a
+  # real deny into a false "allow" (the flaky 81/82). See guard-bash.sh.
+  if grep -q '"permissionDecision": *"deny"' <<<"$out"; then got=deny; else got=allow; fi
   if [ "$got" = "$expect" ]; then
     pass=$((pass+1)); printf '  \033[32m✓\033[0m %s\n' "$label"
   else
@@ -87,6 +89,17 @@ assert deny guard-bash.sh "$(bash_cmd 'git push origin HEAD:canary')"         "r
 assert deny guard-bash.sh "$(bash_cmd 'git add "."')"                         "quoted git add ."
 assert deny guard-bash.sh "$(bash_cmd 'pnpm dlx create-app')"                 "pnpm dlx"
 
+echo "pipefail / SIGPIPE regression — big payloads, match on the FIRST line"
+# grep -q exits at its first match. If a writer process is still sending, it gets
+# SIGPIPE and (under pipefail) a real match is reported as "no match". Big
+# inputs make that happen every time, so these fail loudly if a hook regresses.
+big_tail=$(yes 'echo padding-padding-padding-padding' | head -4000 | tr '\n' ';')
+assert deny guard-bash.sh "$(bash_cmd "yarn install; ${big_tail}")"  "yarn install ahead of a huge command"
+assert deny guard-bash.sh "$(bash_cmd "git add .; ${big_tail}")"     "git add . ahead of a huge command"
+big_file=$(yes 'const padding = 1;' | head -20000)
+assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'const k = "sk_live_abcdefghijklmno"\n%s' "$big_file")")"        "live key on line 1 of a huge file"
+assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'NEXT_PUBLIC_ANTHROPIC_API_KEY=abc\n%s' "$big_file")")"           "NEXT_PUBLIC_ secret on line 1 of a huge file"
+
 echo "guard-write.sh — must DENY"
 assert deny guard-write.sh "$(write_file "$ROOT/.next/server/app.js" 'x')"                                    "generated .next/ (absolute path)"
 assert deny guard-write.sh "$(write_file 'next-env.d.ts' 'x')"                                                   "generated next-env.d.ts (relative path)"
@@ -140,7 +153,7 @@ assert_exit 0 "$(edit_file "$ROOT/app/page.tsx")" "clean file → no wake"
 
 # The probe has a DELIBERATE lint error. Three defences against leaving it
 # behind: remove any stale copy first, an EXIT trap, and a .gitignore entry.
-PROBE="$ROOT/app/__lint_hook_probe.ts"
+PROBE="$ROOT/app/__lint_hook_probe_$$.ts"
 cleanup_probe() { rm -f "$PROBE"; }
 cleanup_probe
 trap cleanup_probe EXIT
@@ -177,7 +190,7 @@ assert_content 0 "$(edit_file "$ROOT/content/builder/outline.json")" "valid cont
 assert_content 0 "$(edit_file 'lib/constants/curriculum.ts')"         "curriculum map (relative path) → no wake"
 
 # A stray file the validator rejects. Removed by a trap; gitignored too.
-CPROBE="$ROOT/content/__content_hook_probe.json"
+CPROBE="$ROOT/content/__content_hook_probe_$$.json"
 cleanup_cprobe() { rm -f "$CPROBE"; }
 cleanup_cprobe
 trap cleanup_cprobe EXIT
