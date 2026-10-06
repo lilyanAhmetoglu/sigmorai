@@ -21,7 +21,7 @@ function pickNote({ streak, activeToday }: Props) {
 export function DailyQuest(props: Props) {
   const note = pickNote(props);
   return (
-    <Panel title={TEXT.heading} className="pt-8">
+    <Panel title={TEXT.heading} titleAs="h2" className="pt-8">
       <p className="daily-quest" data-state={note.state}>
         <span className="daily-quest-icon" aria-hidden="true">
           {note.icon}

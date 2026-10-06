@@ -33,6 +33,7 @@
 - **The §Content files outline field list is superseded** by the 2026-10-05 amendment: a floor is `{ n, covers, formulas[{ math, text }] }`.
 - **Not in this ticket:** the Frontier list page and open rule, a Math level map, the dashboard Math panel and MATH FLOORS stat, any Oru DialogBox line.
 - **The design's FLOORS order and its Oru line outside a DialogBox are stale.** `MATH_FLOORS` and the two-voice rule win.
+- **Later (dashboard follow-up): the dashboard Math panel and MATH FLOORS stat ship.** The MATH TOWER panel shows the first open floor ("FLOOR n", one sentence "<name> is open.", a Climb button to its playable step). When every live floor is cleared, or the next floor is not built, it shows one sentence and a "View the tower" link to `/math`. MATH FLOORS = cleared live floors / live floors, hidden while no floor has content. Plain product voice, no Oru line. This supersedes the "Not in this ticket" line above and the dashboard's earlier "Not built yet" note for these two items.
 
 ## Amendments locked 2026-10-06 (SIG-36, path switch)
 

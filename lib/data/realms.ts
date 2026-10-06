@@ -7,13 +7,22 @@ import { progress } from '@/db/schema';
 import { DASHBOARD_REALM_LIMIT, DEFAULT_TRACK, MATH_AREA, REALMS, TRACKS } from '@/lib/constants';
 import { mathExerciseIds, realmExerciseIds, trackExerciseIds } from '@/lib/content/ids';
 import { hasContent, loadTrackOutline } from '@/lib/content/load';
-import { activeRealms, buildTrackMap, clearedLevels, firstOpenStep } from '@/lib/grading/track-map';
+import {
+  activeRealms,
+  buildTowerMap,
+  buildTrackMap,
+  clearedLevels,
+  firstOpenStep,
+  towerSummary,
+} from '@/lib/grading/track-map';
 import {
   RealmSlugSchema,
   TrackSchema,
+  type FloorState,
   type HudStats,
   type NextStep,
   type RealmView,
+  type TowerSummary,
   type Track,
   type TrackMap,
 } from '@/lib/types';
@@ -79,6 +88,19 @@ export async function clearedIds(userId: string, area: LiveArea): Promise<Set<st
     .where(and(eq(progress.userId, userId), like(progress.exerciseId, `${area}/%`)));
   return new Set(rows.map((r) => r.id));
 }
+
+/**
+ * The Math Tower's floor states for this user (null: a visitor, no progress).
+ * Cached per request on the user id; shared by the dashboard (getDashboard)
+ * and the /math page (lib/data/math.ts).
+ */
+export const getTowerFloors = cache(async (userId: string | null): Promise<FloorState[]> => {
+  const [live, cleared] = await Promise.all([
+    liveIds(MATH_AREA),
+    userId ? clearedIds(userId, MATH_AREA) : Promise.resolve(new Set<string>()),
+  ]);
+  return buildTowerMap(live, cleared);
+});
 
 const getTrackMap = cache(async (track: Track, userId: string | null): Promise<TrackMap> => {
   const [outline, live, cleared] = await Promise.all([
@@ -150,18 +172,24 @@ export type Dashboard =
       active: RealmView[];
       /** Chapters and bosses cleared on the player's track. */
       levelsCleared: number;
+      /** The Math Tower panel and MATH FLOORS stat. */
+      tower: TowerSummary;
     };
 
 /** The signed-in player's next step, stats and realms, on their own track. */
 export async function getDashboard(): Promise<Dashboard> {
   const viewer = await getViewer();
   if (viewer.status !== 'ready') return viewer;
-  const map = await getTrackMap(viewer.stats.track, viewer.userId);
+  const [map, floors] = await Promise.all([
+    getTrackMap(viewer.stats.track, viewer.userId),
+    getTowerFloors(viewer.userId),
+  ]);
   return {
     status: 'ready',
     stats: viewer.stats,
     map,
     active: activeRealms(map.realms, DASHBOARD_REALM_LIMIT),
     levelsCleared: clearedLevels(map.realms),
+    tower: towerSummary(floors),
   };
 }

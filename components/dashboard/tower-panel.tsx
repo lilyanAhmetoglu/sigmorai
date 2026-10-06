@@ -17,12 +17,12 @@ const TEXT = DASHBOARD_TEXT.tower;
 export function TowerPanel({ tower }: Props) {
   const { next } = tower;
   return (
-    <Panel title={TEXT.heading} accent="math" data-accent="math" className="tower-panel pt-8">
+    <Panel title={TEXT.heading} titleAs="h2" accent="math" className="tower-panel pt-8">
       {next ? (
         <>
-          <p className="tower-panel-tag">{TEXT.floor(next.floor, next.title)}</p>
+          <p className="tower-panel-tag">{TEXT.floor(next.floor)}</p>
           <p className="tower-panel-text">{TEXT.open(next.title)}</p>
-          <PixelButton href={questHref(next.step.exerciseId)} size="sm">
+          <PixelButton href={questHref(next.step.exerciseId)} variant="math" size="sm">
             {TEXT.climb}
             <span className="sr-only">{TEXT.climbTarget(next.floor)}</span>
           </PixelButton>
