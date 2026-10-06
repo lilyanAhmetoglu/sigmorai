@@ -67,7 +67,7 @@ bun run build
 bun run typecheck
 bun run lint
 bun run test             # bun test
-bun run test:e2e         # playwright
+bun run test:e2e         # playwright: needs `bun run build` + `bunx playwright install chromium`; resets the E2E test user's row on the .env.local branch
 bun run format
 bun run hooks:test       # guardrail hook tests
 bun run content:check    # every content/ file vs its Zod schema
