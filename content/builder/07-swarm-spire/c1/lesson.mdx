@@ -1,0 +1,108 @@
+---
+id: builder/r7/c1/lesson
+title: Agent graphs
+minutes: 9
+sources:
+  - kind: blog
+    title: Building effective agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: blog
+    title: How we built our multi-agent research system (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+  - kind: docs
+    title: Orchestration and handoffs (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: repo
+    title: Agent orchestration (openai-agents-python docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md
+  - kind: docs
+    title: Agent Builder (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agent-builder
+  - kind: docs
+    title: Node reference (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/node-reference
+---
+
+Realm 4 built one agent: a model that uses tools in a loop. This realm puts several of them together. Before you add a second agent, draw the shape of the system: which steps run, in what order, and who decides the next step. In this realm, we call that shape a graph.
+
+## Workflows and agents
+
+Realm 4, chapter 1 covered Anthropic's split: workflows follow predefined code paths, and agents direct their own steps. A multi-agent system can mix both. Some steps are fixed by your code. Others are chosen by a model while it runs.
+
+## Nodes and edges
+
+"Graph" is our word for the drawing, not a vendor term. A node is one step: a model call, an agent, a tool, a check or a human approval. An edge is a path from one step to the next.
+
+OpenAI's Agent Builder made this literal. It is a visual canvas (now being deprecated) where you insert and connect nodes, and "Each connection between nodes becomes a typed edge." Its node reference lists, among others:
+
+- **Start** and **Agent** nodes. "All workflows have start and agent nodes."
+- **If/else** and **While** nodes for branches and loops, written as Common Expression Language (CEL) expressions.
+- **Human approval**, to let a person approve a step before the workflow continues.
+- **Set state**, which defines global variables for use across the workflow.
+
+The docs' homework helper shows a small graph: one agent rewrites the question, another classifies it as Q&A or fact-finding, and a specialist agent answers each type.
+
+Note: OpenAI is deprecating Agent Builder, and the docs say it is scheduled to shut down on November 30, 2026. The design idea stays useful. You can draw the same graph on paper and build it in code.
+
+## Five common shapes
+
+Anthropic's post names five workflow patterns. Most multi-agent graphs are built from them.
+
+| Pattern              | What happens                                                                  | Fits when                                                    |
+| -------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Prompt chaining      | Each call works on the output of the one before                               | The task splits cleanly into fixed subtasks                  |
+| Routing              | Classify the input, then send it to a specialized follow-up                   | Inputs fall into distinct categories you can classify well   |
+| Parallelization      | Calls run at the same time; outputs are combined by code                      | Subtasks are independent, or you want several attempts       |
+| Orchestrator-workers | A central LLM breaks down the task, delegates to workers, combines the result | You cannot predict the subtasks in advance                   |
+| Evaluator-optimizer  | One call generates, another evaluates and gives feedback, in a loop           | You have clear evaluation criteria and refinement adds value |
+
+Orchestrator-workers and parallelization look alike on paper. Anthropic names the difference: in orchestrator-workers, "subtasks aren't pre-defined, but determined by the orchestrator based on the specific input."
+
+Anthropic's own Research feature is an orchestrator-workers graph. A lead agent plans the research and creates subagents that search in parallel. It reads their findings and decides if more research is needed. When it has enough, a fixed last step passes everything to a CitationAgent, which identifies specific locations for citations so that claims are attributed to their sources.
+
+## Who decides the next edge?
+
+The OpenAI Agents SDK docs describe two ways to orchestrate:
+
+1. **Orchestrating via LLM.** The model plans and decides which steps to take, using tools and handoffs. This suits open-ended tasks.
+2. **Orchestrating via code.** Your code decides the flow. The docs say this makes tasks "more deterministic and predictable, in terms of speed, cost and performance."
+
+The code patterns they list map onto Anthropic's shapes:
+
+- Use structured outputs to classify a task, then pick the next agent by category (routing).
+- Chain agents so one agent's output is the next agent's input (prompt chaining).
+- In a `while` loop, run a task agent and an evaluator agent until the evaluator passes the output (evaluator-optimizer).
+- Run independent agents at the same time, for example with `asyncio.gather` (parallelization).
+
+The docs say you can mix and match. A common mix: code decides the big edges, and a model decides the details inside one node.
+
+## Start with one node
+
+Both vendors warn against building a big graph too early. Anthropic recommends "finding the simplest solution possible, and only increasing complexity when needed" (see realm 4, chapter 1). OpenAI: "Start with one agent whenever you can." Add specialists only when they materially improve capability isolation, policy isolation, prompt clarity, or trace legibility. "Splitting too early creates more prompts, more traces, and more approval surfaces without necessarily making the workflow better."
+
+## Example: draw it before you build it
+
+A support inbox gets refund requests, technical questions and general questions. A first graph (our example):
+
+```
+start
+  -> classify (agent, structured output: refund | technical | general)
+  -> if/else on the category
+       refund    -> refund agent -> human approval -> pay refund (tool)
+       technical -> technical agent
+       general   -> FAQ agent
+  -> end
+```
+
+The edges are decided by code. Each answer is written by a focused agent. The money step waits for a person. This is routing, from Anthropic's list, built from If/else and Human approval nodes like Agent Builder's.
+
+Drawing it first shows what you are adding. Each node is a prompt to write, a trace to read and a place things can fail.
+
+## Key points
+
+- Workflows follow predefined code paths. Agents direct their own steps. Real systems mix both.
+- A graph is our name for the drawing: nodes are steps, edges are paths. Agent Builder made edges typed connections, but it is being shut down.
+- Anthropic's five shapes: prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer.
+- Orchestrator-workers differs from parallelization because the orchestrator decides the subtasks from the input.
+- Orchestration via code is more predictable in speed, cost and performance. Orchestration via LLM handles open-ended work.
+- Start with one agent. Split only when it clearly helps.
