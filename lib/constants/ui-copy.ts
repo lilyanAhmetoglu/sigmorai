@@ -9,6 +9,7 @@ import type {
 import { QUICK_CHECK_QUESTIONS } from './content';
 import { FRONTIER } from './curriculum';
 import { CHAPTER_COUNT, MATH_AREA } from './exercises';
+import { SITE_NAME } from './site';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
 /**
@@ -43,6 +44,21 @@ export const QUEST_ACTION_TEXT: Record<QuestStatus, string> = {
   done: 'Replay',
   locked: 'Locked',
 };
+
+/** The site-wide 404 (app/not-found.tsx): any unknown URL. Plain voice, no lore. */
+export const NOT_FOUND_META = {
+  title: `Page not found · ${SITE_NAME}`,
+} as const;
+
+export const NOT_FOUND_TEXT = {
+  eyebrow: '404',
+  title: 'Page not found',
+  body: 'There is no page at this address. Check the link, or start again from one of these pages.',
+  linksLabel: 'Where to go next',
+  home: 'Home',
+  realms: 'Realms',
+  blog: 'Blog',
+} as const;
 
 /** App shell and HudBar words. */
 export const SHELL_TEXT = {
@@ -115,6 +131,20 @@ export const PROFILE_TEXT = {
   totalXp: 'TOTAL XP',
   level: 'LEVEL',
   noXp: 'No XP yet. You earn XP by clearing lessons, cases and quick checks.',
+  namePanel: 'HERO NAME',
+  nameLabel: 'NEW HERO NAME',
+  nameHint: ONBOARDING_TEXT.heroNameHint,
+  nameNote:
+    'Your hero name is public on the leaderboard. Your sprite is drawn from it, so a new name gives a new sprite.',
+  nameSave: 'Save name',
+  nameSaving: 'Saving…',
+  nameSaved: 'Name saved.',
+  nameUnsaved: 'Not saved yet.',
+  nameInvalid: ONBOARDING_TEXT.heroNameError,
+  nameTaken: ONBOARDING_TEXT.heroNameTaken,
+  nameUnauthorized: 'Your session ended. Sign in again.',
+  nameNotOnboarded: 'Set up your hero first.',
+  nameServerError: "Your name wasn't saved. Try again in a moment.",
   pathPanel: 'YOUR PATH',
   pathLegend: 'Choose your path',
   pathNote: 'Your progress on each path is kept. XP, level and streak are shared.',
