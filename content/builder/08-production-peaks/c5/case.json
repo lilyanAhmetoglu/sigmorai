@@ -1,0 +1,96 @@
+{
+  "id": "builder/r8/c5/challenge",
+  "title": "Seven seconds is too long",
+  "scenario": "A software company's support assistant takes too long to reply. The team lists timings and three ideas (exhibit). You choose what to do, and you review one more problem: a report feature that times out.",
+  "exhibit": "(made-up example data)\n\nPIPELINE, one request\n  S1  input check      0.8 s   (the answer may be shown only if S1 passes)\n  S2  retrieve docs    0.5 s\n  S3  draft answer     6.0 s   (needs the result of S2)\n  steps in a row:      7.3 s   (0.8 + 0.5 + 6.0)\n\nDRAFT STEP (S3)\n  now:                 6,000 input tokens, 800 output tokens\n  idea A:              cut input to 3,000 tokens\n  idea B:              cut output to 400 tokens\n\nNIGHTLY EVAL JOB\n  30,000 requests at 01:00, results read the next morning\n  idea C:              run it in a fast mode so it ends sooner\n\nMONTHLY REPORT FEATURE\n  max_tokens 64,000, no streaming\n  error: request timed out after 10 minutes (users on office networks)",
+  "questions": [
+    {
+      "prompt": "For the draft step, ideas A and B each cut a token count in half. Which helps more?",
+      "options": [
+        {
+          "text": "Idea A. Prompt size sets how long the whole call takes.",
+          "explanation": "OpenAI says cutting 50% of a prompt may only improve latency by 1 to 5%, unless the context is huge."
+        },
+        {
+          "text": "Neither. Larger models usually respond faster, so switch up.",
+          "explanation": "The docs say the opposite: smaller models usually run faster. Claude names Haiku 4.5 for speed-critical apps."
+        },
+        {
+          "text": "They help the same, because latency depends on total tokens only.",
+          "explanation": "Output tokens are generated one at a time, so they cost far more time than input tokens."
+        },
+        {
+          "text": "Idea B. Generating tokens is the slowest step in a call.",
+          "explanation": "Right. OpenAI's rule of thumb: cutting 50% of output tokens may cut about 50% of latency.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "S3's answer may be shown only if S1 passes. How can the pipeline get faster?",
+      "options": [
+        {
+          "text": "Skip the input check, since it adds 0.8 s to every request.",
+          "explanation": "The check protects the product. The trick is to hide its time, not to remove it."
+        },
+        {
+          "text": "Stream the draft and keep the steps in a row. Total time falls.",
+          "explanation": "Streaming lets users see the first words sooner, but the total time stays the same."
+        },
+        {
+          "text": "Start S1 beside the rest, and cancel the draft if S1 fails.",
+          "explanation": "Right. This is OpenAI's speculative execution. The time becomes about 6.5 s (0.5 + 6.0), because S1's 0.8 s runs alongside.",
+          "correct": true
+        },
+        {
+          "text": "Run S3 first because it is longest, then S1 and S2.",
+          "explanation": "S3 needs the result of S2, so it cannot start first."
+        }
+      ]
+    },
+    {
+      "prompt": "Idea C is a fast mode for the 01:00 eval job. What fits the docs?",
+      "options": [
+        {
+          "text": "Yes. OpenAI's guide recommends Fast mode for large batch jobs.",
+          "explanation": "OpenAI advises the opposite: avoid running large ETL or batch jobs in Fast mode."
+        },
+        {
+          "text": "No. A fast mode costs a premium and suits user-facing calls.",
+          "explanation": "Right. Both vendors price fast modes at a premium. Nobody waits for this job, so batch or Flex fits (chapter 2).",
+          "correct": true
+        },
+        {
+          "text": "Yes. Claude's fast mode works inside the Batch API and costs less.",
+          "explanation": "Claude's fast mode is not available with the Batch API, and it is priced at a premium."
+        },
+        {
+          "text": "Yes. Fast modes are cheaper when used between midnight and 06:00.",
+          "explanation": "The docs describe no time-of-day discount. Fast modes carry a per-token premium."
+        }
+      ]
+    },
+    {
+      "prompt": "The report feature times out at 10 minutes. What is the best fix?",
+      "options": [
+        {
+          "text": "Stream the response, or use Batch if nobody is waiting.",
+          "explanation": "Right. Claude advises streaming or Batch for long requests, because some networks drop idle connections.",
+          "correct": true
+        },
+        {
+          "text": "Raise max_tokens so the reply is finished in one longer call.",
+          "explanation": "A larger max_tokens allows an even longer wait, which makes the timeout more likely."
+        },
+        {
+          "text": "Add three retries, so one of the attempts finishes in time.",
+          "explanation": "Each retry has the same long wait. Three timed-out attempts keep the user waiting even longer."
+        },
+        {
+          "text": "Cut the request timeout to 60 s so the call fails faster.",
+          "explanation": "That only makes the failure come sooner. The report still does not arrive."
+        }
+      ]
+    }
+  ]
+}
