@@ -1,0 +1,85 @@
+---
+id: creator/r3/c3/lesson
+title: Asset search
+minutes: 6
+sources:
+  - kind: docs
+    title: OpenAI docs · Retrieval
+    url: https://developers.openai.com/api/docs/guides/retrieval
+  - kind: docs
+    title: OpenAI docs · File search
+    url: https://developers.openai.com/api/docs/guides/tools-file-search
+  - kind: docs
+    title: OpenAI docs · Vector embeddings
+    url: https://developers.openai.com/api/docs/guides/embeddings
+  - kind: docs
+    title: Gemini API docs · File Search
+    url: https://ai.google.dev/gemini-api/docs/file-search
+  - kind: docs
+    title: Gemini API docs · Embeddings
+    url: https://ai.google.dev/gemini-api/docs/embeddings
+  - kind: docs
+    title: Claude docs · Embeddings
+    url: https://platform.claude.com/docs/en/build-with-claude/embeddings
+---
+
+## Why it matters
+
+A library of 2,000 assets is too big to scroll and too big to put into a request. Someone, or something, must find the right three. Often that is a search tool that sits between the library and the model.
+
+This matters because the model reads only what the search returns. If search returns the wrong packshot, the model works from the wrong packshot. You will not write the search. You will decide what it can filter, what it can read and how you check it.
+
+## Three ways to find an asset
+
+This grouping is ours.
+
+1. **Filter.** Exact facts: brand, kind of asset, approved or not, year.
+2. **Text search.** Find assets by what their captions mean.
+3. **Picture search.** Find assets by how they look.
+
+Good search often uses all three, in that order. Filter first, then rank what is left.
+
+## Filters: for hard rules
+
+Both OpenAI and Google let you attach facts to a file and filter on them.
+
+- **OpenAI:** vector store files carry `attributes`. An `attribute_filter` narrows the results "by applying criteria, such as restricting searches to a specific date range". Filters can be combined with `and` and `or`.
+- **Google:** you can add custom metadata to a file in File Search, a set of key-value pairs, and search with a `metadata_filter`, such as `author="Robert Graves"`.
+
+Use filters for rules that must never be broken. "Only approved assets" is a filter. It is not something to hope the ranking gets right.
+
+## Text search: meaning, not matching words
+
+OpenAI's retrieval guide explains **semantic search**. It surfaces relevant results "even when they match few or no keywords". Its example: for the question "When did we go to the moon?", the best match, "The first lunar landing occurred in July of 1969", shares no words with the question.
+
+For a library, this means a search for "cosy" can find a caption that says "warm candlelit table". OpenAI describes its embeddings as measuring "the relatedness of text strings". Text search works on text. So **captions are context too**: someone must write them. A caption says the subject, look, colours, mood and use. A vision model can draft captions. Check the drafts, as you learned in Prompt Forest, chapter 3.
+
+## Picture search: the vendors differ
+
+Can the search read the pictures themselves? Check the vendor.
+
+- **OpenAI:** its embeddings page describes "text embeddings". Its File search page lists supported files, and the table shows text and document formats such as `.pdf`, `.md` and `.docx`. It lists no image types. For an image library on OpenAI, index a text file of captions, and keep the image id in each entry.
+- **Google:** `gemini-embedding-2` "maps text, images, video, audio, and documents into a unified embedding space", for cross-modal search. In File Search, the store uses a text-only embedding model by default. To search images you must create the store with `models/gemini-embedding-2`. Images must be PNG or JPEG, at most 4K x 4K. The page also says audio and video formats are not currently supported.
+- **Anthropic:** it "does not offer its own embedding model". Its page points to Voyage AI, whose multimodal model can vectorize "interleaved text, images, and videos".
+
+Pick the tool after you know the formats in your library, not before.
+
+## Check what came back
+
+Search can look fine and still be wrong. Three habits help.
+
+- **Look at the results, not only the answer.** Google's File Search returns citations. When the model uses an image, the response carries a `media_id`, so you can download the exact image it used.
+- **Set a floor.** OpenAI lets you set a `score_threshold` between 0.0 and 1.0 in its ranking options. OpenAI says a higher value limits results to more relevant chunks, though it may exclude some useful ones. It measures relevance to the query. It does not know if you may use the asset. That is a filter's job.
+- **Test with real briefs.** Our habit: take ten past briefs. Run the search. Compare its top three with what the art director really chose. Fix the captions and filters until they agree.
+
+## When nothing matches
+
+Sometimes the right asset is not in the library. A search tool can still return its closest results, and a weak result is not a match. This rule is ours. Decide it before the job: below a set closeness, the answer is "nothing found", and a person decides what happens next. Do not let the model fill the gap with a look-alike.
+
+## What this means for your work
+
+- **Filter first, rank second.** Rules go in filters. Closeness goes in ranking.
+- **Captions are context.** Write and check them.
+- **Match the tool to the formats.** OpenAI file search reads text. Google can search PNG and JPEG with `gemini-embedding-2`. Anthropic points to Voyage AI.
+- **Look at what came back.** Citations and scores help.
+- **Test with real briefs.** Compare with the art director's picks.

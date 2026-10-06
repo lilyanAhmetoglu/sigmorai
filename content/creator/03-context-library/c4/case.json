@@ -1,0 +1,118 @@
+{
+  "id": "creator/r3/c4/challenge",
+  "title": "The founder film",
+  "scenario": "Northgate Bakery sends two long files for its brand library. You plan how to read them. For video you use a Gemini model with a 1M context window. For the interview you use OpenAI transcription.\n\nThe file list and the notes in the exhibit are made up for this case.",
+  "exhibit": "Files (made up)\n  founder-interview.mp3   90 minutes, 86 MB\n  brand-film.mp4          130 minutes\n\nNeeds\n  The small print on the flour sacks in the film must be readable, so\n  fine detail matters.\n\nNotes from a first test (made up)\n  Film: a fast whip-pan to the new loaf, about 2 seconds long, near 12:05.\n        The model's description of the film skips it.\n  Interview: the finished transcript is about 70,000 tokens.\n  Model answer: \"The oven door scene is at 41:20.\"",
+  "questions": [
+    {
+      "prompt": "What do you do with the 86 MB interview for OpenAI transcription?",
+      "options": [
+        {
+          "text": "Send the 86 MB file as it is. The API will split it into the right sizes by itself, for you.",
+          "explanation": "OpenAI's transcription API accepts files up to 25 MB. A larger file has to be compressed or split first."
+        },
+        {
+          "text": "Convert it to uncompressed WAV so the audio is as clean as possible before it is sent.",
+          "explanation": "WAV is larger, not smaller. OpenAI says to use a compressed format or to split the file."
+        },
+        {
+          "text": "Split it into 25 MB chunks or less, cutting at pauses between speakers, not mid-sentence.",
+          "explanation": "Right. OpenAI says to split into chunks of 25 MB or less and to avoid splitting in the middle of a sentence.",
+          "correct": true
+        },
+        {
+          "text": "Cut it into exact 25 MB pieces with no gaps, so that no audio is lost at any of the joins.",
+          "explanation": "OpenAI warns that splitting in the middle of a sentence can remove context and reduce accuracy."
+        }
+      ]
+    },
+    {
+      "prompt": "How do you read the 130-minute film when the small print must be readable?",
+      "options": [
+        {
+          "text": "Send all 130 minutes in one request at high media resolution. The limit is 3 hours.",
+          "explanation": "The 3-hour limit is for low media resolution. At high resolution Google lists up to 1 hour."
+        },
+        {
+          "text": "Send it in one request at low media resolution. 130 minutes is under 3 hours, so detail is no problem.",
+          "explanation": "Low resolution fits the length, but the brief needs readable small print. Detail and length trade against each other."
+        },
+        {
+          "text": "Set fps to 10 for the whole film, so that more frames reach the model in a single request.",
+          "explanation": "More frames do not raise the length limit. They add more to read in one request."
+        },
+        {
+          "text": "Split the film into parts shorter than one hour, and send each part at high media resolution.",
+          "explanation": "Right. Google lists up to 1 hour at high media resolution for models with a 1M window. Three parts of about 43 minutes fit.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The whip-pan to the new loaf is missing from the description. What is the best fix?",
+      "options": [
+        {
+          "text": "Re-run only that stretch of the film, clipped with start and end offsets, at a higher fps.",
+          "explanation": "Right. Google says 1 frame per second may miss rapid motion. In static mode, it lets you set fps and clip a video.",
+          "correct": true
+        },
+        {
+          "text": "Lower fps to 0.5 for the whole film, so the model has fewer frames to look at carefully.",
+          "explanation": "A lower rate reads even fewer frames, so a 2-second shot is even more likely to be missed."
+        },
+        {
+          "text": "Ask the model to try harder. It already reads every frame of the film by default.",
+          "explanation": "The default is 1 frame per second, not every frame. A fast shot can fall between samples."
+        },
+        {
+          "text": "Accept the gap. The sampling rate cannot be changed, so a fast shot is always lost.",
+          "explanation": "Google documents an fps setting, so the rate can be changed."
+        }
+      ]
+    },
+    {
+      "prompt": "How do you lay out the prompt for the 70,000-token transcript with a Claude model?",
+      "options": [
+        {
+          "text": "Put the question first and the transcript after it, so the model knows the goal before it reads.",
+          "explanation": "Anthropic says to put longform data at the top, above the question and the instructions."
+        },
+        {
+          "text": "Put the transcript at the top, then the question, and ask for the relevant quotes before the answer.",
+          "explanation": "Right. Anthropic advises longform data at the top and asking the model to quote relevant parts first.",
+          "correct": true
+        },
+        {
+          "text": "Cut it into ten parts and ask the same question in ten separate chats, then join the answers.",
+          "explanation": "Each chat sees only a tenth of the interview. Anything that links two parts is lost."
+        },
+        {
+          "text": "Write a three-line summary yourself and send only that, with the question, to save tokens.",
+          "explanation": "A summary hides the exact words, so the model cannot quote the lines that matter."
+        }
+      ]
+    },
+    {
+      "prompt": "The model says the oven door scene is at 41:20. What do you do before it goes into the library?",
+      "options": [
+        {
+          "text": "Use 41:20 as it is. MM:SS is the format Google documents, so the time must be exact.",
+          "explanation": "A documented format does not make the time correct. A model that samples video can be off."
+        },
+        {
+          "text": "Ask the model for the time again. If it gives 41:20 twice, the answer is confirmed.",
+          "explanation": "The same answer twice is not a check. Only the file itself can confirm the moment."
+        },
+        {
+          "text": "Round every time to the nearest minute, so that small errors cannot matter.",
+          "explanation": "Rounding makes the pointer less useful. Nobody can find a 5-second shot from a minute."
+        },
+        {
+          "text": "Open the file at 41:20, check the scene, then add the checked row to the moment sheet.",
+          "explanation": "Right. This is our habit: a timestamp is a pointer until a person has opened the file there.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
