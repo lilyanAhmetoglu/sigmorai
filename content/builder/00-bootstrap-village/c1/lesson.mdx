@@ -1,0 +1,98 @@
+---
+id: builder/r0/c1/lesson
+title: Tokens
+minutes: 7
+sources:
+  - kind: docs
+    title: Token counting (Claude docs)
+    url: https://platform.claude.com/docs/en/build-with-claude/token-counting
+  - kind: docs
+    title: Pricing (Claude docs)
+    url: https://platform.claude.com/docs/en/about-claude/pricing
+  - kind: docs
+    title: Key concepts (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/concepts
+  - kind: docs
+    title: Pricing (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/pricing
+  - kind: docs
+    title: Prompt caching (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/prompt-caching
+---
+
+A model does not read words. It reads **tokens**. Price, context size and rate limits are all counted in tokens. So the first skill of an AI engineer is to think in tokens, not in words.
+
+## What a token is
+
+A token is a piece of text that the model processes. OpenAI describes tokens as "commonly occurring sequences of characters".
+
+Both Anthropic and OpenAI give the same rough rule for English:
+
+- 1 token ≈ 4 characters
+- 1 token ≈ 0.75 words
+
+Example: a 1,500-word English support article is about 1,500 ÷ 0.75 = **2,000 tokens**.
+
+This is only a rule of thumb. Anthropic's pricing FAQ says the exact count "varies by language and content type". Text in other languages, or other kinds of content, may not follow the English rule. Use the rule for a first sketch, then measure.
+
+## Why tokens matter for a system design
+
+Three things you will design around are measured in tokens:
+
+1. **Cost.** Both vendors price models per million input tokens and per million output tokens. More tokens, bigger bill (chapter 6).
+2. **Context.** A model can only look at a fixed number of tokens per request (chapter 5).
+3. **Throughput.** Rate limits cap tokens per minute, not words per minute (chapter 5).
+
+Example: you plan to paste a 300-page manual into every request. Before you write any code, convert pages to tokens. That number decides whether it fits, how much each call costs, and how many calls per minute you can make.
+
+## Each model family has its own tokenizer
+
+A **tokenizer** is the part that cuts text into tokens. Different models can use different tokenizers, so the same text can give different counts.
+
+Anthropic's docs give a concrete case: Claude 4.7 and later models use a newer tokenizer, and "the same input text produces approximately 30 percent more tokens than on earlier models". The docs say to recount prompts against the model you plan to use, and not to reuse counts measured on an older model.
+
+Example: your prompt measured 10,000 tokens on an older model. On a model with the newer tokenizer it could be about 13,000. Your cost estimate and your context budget both move.
+
+The rule: **a token count belongs to one model.** When you switch models, recount.
+
+## Counting before you send
+
+You often want the count before you pay for a call. The vendors offer different tools:
+
+- **Anthropic** has a token counting endpoint. It "accepts the same structured list of inputs for creating a message", including system prompts, tools, images and PDFs, and returns the total input tokens. It is free to use but has its own requests-per-minute limit. The docs call the result an **estimate**: the real count "might differ by a small amount".
+- **OpenAI** offers a tokenizer tool to "test specific strings and see how they are translated into tokens".
+
+Example from the Claude docs: a one-line system prompt plus "Hello, Claude" counts 14 input tokens. A one-sentence weather question with one small tool defined counts 403. Most of that gap is the tool. The tool definition is input. The Claude pricing page says the API also adds a tool-use system prompt whenever tools are present.
+
+## Counting after the call
+
+Every response tells you what it really used. A Claude response carries a `usage` block:
+
+```json
+"usage": {
+  "input_tokens": 12,
+  "output_tokens": 6
+}
+```
+
+OpenAI responses also carry a `usage` object. For example, the OpenAI caching guide points to `usage.input_tokens_details.cached_tokens` to see how many input tokens came from the cache.
+
+Log these numbers on every call. They are the ground truth for your cost and capacity dashboards. An estimate from a word count is a plan; `usage` is what happened.
+
+## Not only text costs tokens
+
+Plan for every part of a request, not just the user's message:
+
+- the system prompt or instructions
+- the whole conversation history you resend (chapter 2)
+- tool definitions (names, descriptions, schemas)
+- images and PDF pages (chapter 4)
+
+Example: a chat app with a 2,000-token system prompt and a 50-token user question sends about 2,050 input tokens, not 50.
+
+## Key points
+
+- A token is a piece of text. For English, about 4 characters or 0.75 words. Other content varies.
+- Cost, context and rate limits are all measured in tokens.
+- Counts depend on the model's tokenizer. Recount when you change models.
+- Estimate before the call (counting tools), then trust `usage` after it.

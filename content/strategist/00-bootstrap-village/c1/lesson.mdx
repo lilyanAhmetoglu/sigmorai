@@ -1,0 +1,66 @@
+---
+id: strategist/r0/c1/lesson
+title: What an LLM is
+minutes: 6
+sources:
+  - kind: docs
+    title: Claude docs · Glossary
+    url: https://platform.claude.com/docs/en/about-claude/glossary
+  - kind: docs
+    title: Claude docs · Context windows
+    url: https://platform.claude.com/docs/en/build-with-claude/context-windows
+  - kind: docs
+    title: OpenAI docs · Text generation
+    url: https://developers.openai.com/api/docs/guides/text
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+  - kind: docs
+    title: OpenAI docs · Key concepts
+    url: https://developers.openai.com/api/docs/concepts
+  - kind: docs
+    title: Gemini API docs · Understand and count tokens
+    url: https://ai.google.dev/gemini-api/docs/tokens
+---
+
+## Why it matters
+
+AI assistants such as Claude and ChatGPT run on the same kind of system: a **large language model**, or LLM. This lesson explains what that is, in plain words. You need no tech background.
+
+## The short version
+
+An LLM is a program that reads text and writes text. It was trained on a very large amount of text. You give it a **prompt**: a question, an instruction, or a document plus a task. It writes a reply.
+
+Example: you paste a long email thread and write "List the decisions and who owns each one." The model reads the thread and writes the list.
+
+The OpenAI docs say models can generate "almost any kind of text response", from prose to structured data. Anthropic's glossary lists answering questions and summarizing information among the useful tasks.
+
+## How it learned
+
+Training happens in steps.
+
+1. **Pretraining.** The model reads a huge amount of text and learns to predict the next word from the words before it. Anthropic's glossary says a model at this stage is not good at answering questions or following instructions yet.
+2. **Fine-tuning and feedback.** The model is trained more, so it acts like a helpful assistant. One method is RLHF (reinforcement learning from human feedback): people rank example answers, and the model learns to prefer answers like the higher-ranked ones.
+
+Example: a pretrained model given "Write a polite reply to this customer" might just continue the text. An assistant model writes the reply.
+
+## How it reads your prompt
+
+The model does not read letters or whole words. It reads **tokens**: small pieces of text. A token can be a whole word like "cat", or part of a long word. Gemini's docs say long words are broken into several tokens.
+
+Everything the model can look at while it answers sits in its **context window**. Anthropic calls this the model's "working memory". It holds your prompt, the files you add, the chat so far, and the reply itself. It is separate from the training data.
+
+Example: you upload this quarter's sales report and ask a question. The report is in the context window, so the model can use it. Last week's report, which you did not upload, is not there.
+
+## Same prompt, different answer
+
+LLMs are **non-deterministic**: the same prompt can give a different answer each time. OpenAI's docs say this is why getting the output you want is "a mix of art and science". Anthropic's glossary adds that even with temperature (the randomness setting) at 0, identical inputs may produce different outputs.
+
+Example: you ask for a product description twice. You get two different versions. Both may be fine, but you can't assume the second run repeats the first.
+
+## What this means at work
+
+- **The prompt is your main tool.** OpenAI's docs compare it to a function in code: your instructions set the rules, and your input fills them in. A clear brief gets a better result.
+- **Give it what it needs.** The model only works with what is in its context window, plus what it learned in training. OpenAI's accuracy guide notes that a model lacks knowledge that was not in its training set, is out of date, or is private to your company. If a fact is only in your company's files, add the file.
+- **Expect variation.** Check outputs, and don't build a process that needs the exact same words every time.
+- **It writes fluent text. That is not the same as true text.** Later chapters cover where models fail and how to check them.

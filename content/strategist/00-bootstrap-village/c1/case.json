@@ -1,71 +1,71 @@
 {
   "id": "strategist/r0/c1/challenge",
-  "title": "PLACEHOLDER · The confident wrong answer",
-  "scenario": "PLACEHOLDER CASE for local testing (SIG-19). Real content comes in a later ticket.\n\nYour HR team tests an AI assistant that answers staff questions from the company policy documents. In one test it states a leave rule that is not in any document, and it sounds sure.\n\nSource: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations",
+  "title": "The assistant that forgot the price list",
+  "scenario": "You run a small sales team. Your manager wants to use an AI chat assistant to draft replies to customer emails. In a trial, a teammate asks the assistant: \"What is our discount for orders over 500 units?\" The assistant answers with a number. Nobody gave it the company price list. A second teammate asks the same question and gets a different number.\n\nYour manager asks you to explain what happened and what to change before the team uses the tool.",
   "questions": [
     {
-      "prompt": "What is this kind of answer called?",
+      "prompt": "Why could the assistant not know the real discount?",
       "options": [
         {
-          "text": "A hallucination: text that is wrong or not supported by the given context.",
-          "explanation": "Right. The docs define hallucination as text that is factually incorrect or inconsistent with the given context.",
+          "text": "The price list was never in its context window, and a company's own price list is not something it learned in training.",
+          "explanation": "Right. The model works from its training plus what is in its context window, its \"working memory\". Your private price list was in neither.",
           "correct": true
         },
         {
-          "text": "A rate limit error.",
-          "explanation": "A rate limit stops requests. Here the model answered, but the answer was not supported."
+          "text": "The assistant has a bug and needs to be reinstalled.",
+          "explanation": "Nothing is broken. The model wrote a fluent answer without the facts it needed. Reinstalling gives it no price list."
         },
         {
-          "text": "A cache hit.",
-          "explanation": "Caching reuses a prompt prefix. It does not make up rules."
+          "text": "The assistant's training data is too old. A newer model would know the discount.",
+          "explanation": "No model's training data includes your private price list, however new the model is. OpenAI's accuracy guide lists proprietary information as a gap you must fill yourself."
         },
         {
-          "text": "A sign the policy documents are too short.",
-          "explanation": "The model made up a rule that the documents don't contain. That is a hallucination, whatever the length."
+          "text": "AI assistants can look up any company's internal files on their own.",
+          "explanation": "A model only sees what is in its context window. Here nobody gave it the file, so it had nothing to look up."
         }
       ]
     },
     {
-      "prompt": "Which first step is simplest and lowers this risk?",
+      "prompt": "Why did the two teammates get different numbers for the same question?",
       "options": [
         {
-          "text": "Tell the assistant to always sound confident.",
-          "explanation": "That pushes it to state guesses as facts. It makes the problem worse."
+          "text": "One teammate typed the question wrong.",
+          "explanation": "They asked the same thing. Different answers to the same prompt are normal for LLMs, so a typo is not needed to explain it."
         },
         {
-          "text": "Remove the documents so the prompt is shorter.",
-          "explanation": "Without the documents the assistant has nothing to ground its answers in."
-        },
-        {
-          "text": "Ask for longer answers.",
-          "explanation": "Length does not make an answer true."
-        },
-        {
-          "text": "Allow it to say \"I don't know\" when the documents don't answer the question.",
-          "explanation": "Right. The docs list giving the model permission to admit uncertainty as a basic strategy.",
+          "text": "LLM output is non-deterministic: the same prompt can give different answers.",
+          "explanation": "Right. The OpenAI docs call model output non-deterministic, and Anthropic's glossary says identical inputs may produce different outputs.",
           "correct": true
+        },
+        {
+          "text": "The model changed the company discount between the two questions.",
+          "explanation": "The model can't change your prices. It wrote two different guesses because it had no real price list to read."
+        },
+        {
+          "text": "The second answer is the correct one because it came later.",
+          "explanation": "Neither answer came from the price list. A later answer is not more true."
         }
       ]
     },
     {
-      "prompt": "You add these techniques. Can you now skip human review on high-stakes answers?",
+      "prompt": "What is the best change before the team uses the tool for customer emails?",
       "options": [
         {
-          "text": "Yes. The techniques remove hallucinations.",
-          "explanation": "The docs say the techniques reduce hallucinations but do not remove them."
+          "text": "Ask the question again until two answers match.",
+          "explanation": "Two matching guesses are still guesses. The model still has no price list."
         },
         {
-          "text": "No. They reduce hallucinations but don't remove them, so check critical answers.",
-          "explanation": "Right. The docs: always validate critical information, especially for high-stakes decisions.",
+          "text": "Stop using AI for any email, because it can't be trusted.",
+          "explanation": "Too broad. Drafting replies is a good fit for an LLM. The fix is to give it the facts and check the drafts."
+        },
+        {
+          "text": "Give the assistant the current price list with each request, and have a person check prices in each draft before it is sent.",
+          "explanation": "Right. Facts in the context window give the model something real to work from. A person still checks, because fluent text is not proof that the text is true.",
           "correct": true
         },
         {
-          "text": "Yes, if the answer includes a citation.",
-          "explanation": "Citations make answers easier to check. Someone still has to check the high-stakes ones."
-        },
-        {
-          "text": "Yes, if the model is a newer one.",
-          "explanation": "The docs say even the most advanced models can hallucinate."
+          "text": "Tell the assistant to write longer, more detailed replies.",
+          "explanation": "More words do not add the missing facts. A longer reply can hold more wrong details."
         }
       ]
     }

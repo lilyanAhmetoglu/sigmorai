@@ -1,0 +1,96 @@
+{
+  "id": "builder/r0/c6/challenge",
+  "title": "The budget review",
+  "scenario": "Your team runs two AI features: a live support chat and a nightly job that summarises the day's tickets for managers. Finance wants a monthly estimate for the chat and a plan to cut cost. Use the example prices and traffic in the exhibit (the prices are made up for this case, not a real price list).",
+  "exhibit": "EXAMPLE PRICES (made up for this case)\n  input   $3.00 per 1M tokens\n  output  $15.00 per 1M tokens\n\nLIVE CHAT (per day)\n  conversations                      2,000\n  avg input tokens / conversation    5,000\n  avg output tokens / conversation     500\n  every request starts with the same 3,000-token policy doc,\n  but the template puts the user's question BEFORE the doc\n\nNIGHTLY SUMMARY JOB\n  starts at 18:00; managers read it at 09:00 the day after next (39 hours later)\n  currently: one live API call per ticket\n\nSWITCH TEST\n  reasoning model: usage shows 4,000 output tokens\n  for replies of about 150 visible words",
+  "questions": [
+    {
+      "prompt": "What is the chat's estimated cost for a 30-day month at the example prices?",
+      "options": [
+        {
+          "text": "About $1,350.",
+          "explanation": "Right. Input: 2,000 × 5,000 = 10 MTok × $3 = $30. Output: 2,000 × 500 = 1 MTok × $15 = $15. $45 a day × 30 = $1,350.",
+          "correct": true
+        },
+        {
+          "text": "About $45.",
+          "explanation": "That is one day. The question asks for a 30-day month."
+        },
+        {
+          "text": "About $990.",
+          "explanation": "That prices output at the input rate (11 MTok × $3 a day). Output has its own, higher price."
+        },
+        {
+          "text": "About $13,500.",
+          "explanation": "That is ten times too high. Check the conversion: 10,000,000 tokens is 10 MTok, not 100."
+        }
+      ]
+    },
+    {
+      "prompt": "Every chat request repeats the same 3,000-token policy doc. What is the best change?",
+      "options": [
+        {
+          "text": "Put the static policy doc first and the user's question last, so prompt caching can reuse the prefix.",
+          "explanation": "Right. Caching needs the prefix to match. OpenAI caches automatically on supported models; Anthropic cache reads cost a fraction of base input. Either way, static content must come first.",
+          "correct": true
+        },
+        {
+          "text": "Keep the question first; caching matches any part of the prompt.",
+          "explanation": "Caching works on the prefix. OpenAI says the entire rendered prefix must match, so a changing question at the start breaks reuse."
+        },
+        {
+          "text": "Remove the policy doc and trust the model's general knowledge.",
+          "explanation": "That saves tokens but loses the grounding the answers need. Caching cuts the cost and keeps the doc."
+        },
+        {
+          "text": "Send the policy doc only on the first turn of each conversation.",
+          "explanation": "The APIs are stateless. A doc missing from a request is not available to the model for that request."
+        }
+      ]
+    },
+    {
+      "prompt": "The nightly summary job starts at 18:00 and is read 39 hours later. How should it run?",
+      "options": [
+        {
+          "text": "As a batch job, for about 50% off on both vendors.",
+          "explanation": "Right. Both vendors document a 50% Batch API discount. OpenAI says a batch completes within 24 hours, so the job fits as long as the deadline is more than 24 hours after the start.",
+          "correct": true
+        },
+        {
+          "text": "As live calls with streaming, so it finishes faster.",
+          "explanation": "Nobody is watching the job run. Streaming helps users see text early; it does not reduce cost."
+        },
+        {
+          "text": "As live calls on the largest model, for best quality.",
+          "explanation": "That is the most expensive choice for work that can wait. Batch first, then pick the smallest model that passes."
+        },
+        {
+          "text": "Split it into many parallel live calls to finish within minutes.",
+          "explanation": "Parallel live calls pay full price and use your live rate limits. Batch is cheaper and has its own limit pool on OpenAI."
+        }
+      ]
+    },
+    {
+      "prompt": "In the switch test, a reasoning model reports 4,000 output tokens for about 150 visible words. Why?",
+      "options": [
+        {
+          "text": "Reasoning tokens are not shown in the reply but are billed as output tokens.",
+          "explanation": "Right. OpenAI says reasoning tokens are not visible but are billed as output; Claude thinking tokens are billed as output too. Estimate with usage, not visible text.",
+          "correct": true
+        },
+        {
+          "text": "The usage block is wrong; bill by visible words.",
+          "explanation": "usage is the real count. Hidden reasoning is part of the output you pay for."
+        },
+        {
+          "text": "Output tokens include the input prompt.",
+          "explanation": "Input and output are counted separately. The extra output is reasoning."
+        },
+        {
+          "text": "The 150 words are billed twice: once as output and once as context for the next turn.",
+          "explanation": "This is the usage of one reply, and output is billed once, when it is generated. The extra tokens are hidden reasoning."
+        }
+      ]
+    }
+  ]
+}
