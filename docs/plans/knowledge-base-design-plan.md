@@ -37,6 +37,7 @@ Devil-reviewed plan for SIG-23. Layered on top; everything below stays for histo
 - Branch from `origin/canary` (the repo default branch is `main`). PRs target `canary`, labelled `new-level`.
 - The PR body carries the `validate-content` steps 2–5 result (each claim: supported / not supported / not found, with quote + URL).
 - At most **2 PRs per run**; **none when 5 or more `new-level` PRs are open**. Never merges, never closes an issue or a PR.
+- At most **1 Frontier chapter + its blog post per run**, in its own PR, never mixed with lesson fixes.
 - Environment: Custom network = the defaults + `developers.openai.com`, `ai.google.dev`, `modelcontextprotocol.io`. Setup script `bun install --frozen-lockfile`. No connectors. No secrets.
 
 **Dead (dropped, not deferred):** `kb_documents`, `kb_chunks`, `kb_changes`, `kb_source_candidates`, `lesson_sources`, embeddings and pgvector (Voyage), model triage and its enum, weekly star discovery, `fetch_config` licence rules, the least-privilege DB role, the content-dashboard `stale` flag, and lesson-frontmatter `sourceHash` (removed from `LessonFrontmatterSchema`).
