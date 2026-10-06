@@ -92,7 +92,7 @@ const questionSchema = (options: { min: number; max: number }) =>
     });
 
 /**
- * case.json: the graded `challenge` step (chapter and boss) on both tracks.
+ * case.json: the graded `challenge` step (chapter and boss) on every track.
  * 3–5 questions of exactly 4 options. `exhibit` is shown read-only in
  * monospace: a trace, a tool schema, a prompt, a config.
  */

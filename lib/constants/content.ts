@@ -7,7 +7,7 @@ import type { KB_SOURCE_KINDS } from './kb';
 
 /** One file per step inside an exercise folder. */
 export const LESSON_FILE = 'lesson.mdx';
-/** The graded `challenge` step (chapter and boss) on both tracks is a case. */
+/** The graded `challenge` step (chapter and boss) on every track is a case. */
 export const CASE_FILE = 'case.json';
 export const QUICK_CHECK_FILE = 'quick-check.json';
 

@@ -14,7 +14,7 @@ Two layers. The first is cheap and certain. The second costs model tokens and ch
 | Path                                              | What it is                    |
 | ------------------------------------------------- | ----------------------------- |
 | `content/<track>/<realm>/<cN or boss>/lesson.mdx` | lesson (frontmatter + prose)  |
-| `content/**/case.json`                            | graded case, both tracks      |
+| `content/**/case.json`                            | graded case, every track      |
 | `content/**/quick-check.json`                     | quick check                   |
 | `content/<track or math>/outline.json`            | curriculum outline            |
 | `lib/constants/curriculum.ts`                     | realm names, NPCs, tiers      |

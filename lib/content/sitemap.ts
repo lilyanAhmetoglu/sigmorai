@@ -3,7 +3,7 @@
  * realms, the live ids and the posts; this only turns them into absolute URLs.
  * Listed (curriculum spec → SEO): the public pages (the leaderboard's
  * all-time view only, no range param), indexable realm pages,
- * live lessons (both tracks and the Math Tower) and every blog post. Never
+ * live lessons (every track and the Math Tower) and every blog post. Never
  * listed: level maps, cases, quick checks and private pages.
  */
 import type { MetadataRoute } from 'next';

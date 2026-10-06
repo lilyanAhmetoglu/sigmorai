@@ -143,7 +143,7 @@ describe('OnboardingSchema', () => {
 });
 
 describe('SwitchTrackSchema', () => {
-  test.each(['builder', 'strategist'])('accepts %p', (track) => {
+  test.each(['builder', 'strategist', 'creator'])('accepts %p', (track) => {
     expect(SwitchTrackSchema.parse({ track })).toEqual({ track });
   });
 
