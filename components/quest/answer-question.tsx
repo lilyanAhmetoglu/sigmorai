@@ -11,16 +11,15 @@ type Props = {
   picked: number | null;
   disabled: boolean;
   onPick: (option: number) => void;
-  /** After submit. Without `feedback.options` (a fail), only the pick is explained. */
+  /** After a pass or a replay only. A first-time fail sends none (SIG-27), so nothing is marked. */
   feedback?: QuestionFeedback;
 };
 
 /**
- * One question: its options as radios. After submit the picked option shows
- * "✓ Correct" or "✗ Wrong" (Choice mark: text + icon, not colour only), with
- * its explanation as the radio's description. On a fail only the picked
- * option is marked and explained, so the correct one is never shown. After a
- * pass every option shows why, and the correct one is marked.
+ * One question: its options as radios. After a pass (or a replay) the picked
+ * option shows "✓ Correct" or "✗ Wrong" (Choice mark: text + icon, not colour
+ * only), every option shows why, and the correct one is marked. After a
+ * first-time fail there is no feedback: the form shows only "N of M correct".
  */
 export function AnswerQuestion({
   number,
@@ -34,13 +33,9 @@ export function AnswerQuestion({
   const stateOf = (option: number): ChoiceState | undefined => {
     if (!feedback) return undefined;
     if (option === picked) return feedback.correct ? 'correct' : 'wrong';
-    return feedback.options?.[option]?.correct ? 'correct' : undefined;
+    return feedback.options[option]?.correct ? 'correct' : undefined;
   };
-  const whyOf = (option: number): string | undefined => {
-    if (!feedback) return undefined;
-    if (feedback.options) return feedback.options[option]?.explanation;
-    return option === picked ? feedback.picked.explanation : undefined;
-  };
+  const whyOf = (option: number): string | undefined => feedback?.options[option]?.explanation;
 
   return (
     <ChoiceGroup label={`${number}. ${question.prompt}`} disabled={disabled}>

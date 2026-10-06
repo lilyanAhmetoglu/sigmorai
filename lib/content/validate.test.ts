@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { CONTENT_DIR } from '@/lib/constants';
+import { isSafeLessonUrl } from './mdx';
 import { validateContent } from './validate';
 
 const REAL = path.resolve(import.meta.dir, '../..', CONTENT_DIR);
@@ -145,5 +146,106 @@ describe('broken content is caught, with the file name', () => {
     await Bun.write(`${root}/blog/2026-10-05-tokens.mdx`, '---\n---\n');
     await Bun.write(`${root}/blog/tokens.mdx`, '---\n---\n');
     expect((await validateContent(root)).map((i) => i.file)).toEqual(['blog/tokens.mdx']);
+  });
+});
+
+describe('lesson body allowlist (SIG-27)', () => {
+  /** The fixture lesson with `extra` appended to its body. */
+  async function lessonIssues(extra: string) {
+    const root = await copyOfContent();
+    const lesson = (await Bun.file(FIXTURE_LESSON).text()) + `\n${extra}\n`;
+    await writeFile(`${root}/${C1}/lesson.mdx`, lesson);
+    return validateContent(root);
+  }
+
+  test('markdown and allowed tags with safe links pass', async () => {
+    const body = [
+      '### Part',
+      '- a [doc](https://platform.claude.com/docs), a [page](/realms) and an [anchor](#part)',
+      '1. **bold** and _em_ and `code`',
+      '> a quote',
+      '---',
+      '<p>Text with <a href="https://ai.google.dev" title="Gemini">a link</a>.<br /></p>',
+      '<table><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td colSpan="1">1</td></tr></tbody></table>',
+      '<DialogBox>Hello.</DialogBox>',
+    ].join('\n\n');
+    expect(await lessonIssues(body)).toEqual([]);
+  });
+
+  test('a tag off the allowlist fails, even a harmless-looking one', async () => {
+    const issues = await lessonIssues(
+      '<img src="https://x.example/a.png" />\n\n<form action="https://x.example"><button>Go</button></form>\n\n<object data="x" />\n\n<svg><a href="https://x.example">x</a></svg>',
+    );
+    expect(issues).toHaveLength(1);
+    for (const tag of ['img', 'form', 'button', 'object', 'svg']) {
+      expect(issues[0].message).toContain(`<${tag}> is not allowed`);
+    }
+  });
+
+  test('unsafe links fail: javascript:, data:, http:, //host, also in raw <a>', async () => {
+    const issues = await lessonIssues(
+      [
+        '[a](javascript:alert(1))',
+        '[b](data:text/html,hi)',
+        '[c](http://example.com)',
+        '[d][ref]',
+        '[ref]: //evil.example',
+        '<a href="JaVaScRiPt:alert(1)">e</a>',
+        '<a href="java&#10;script:alert(1)">f</a>',
+      ].join('\n\n'),
+    );
+    expect(issues).toHaveLength(1);
+    const lines = issues[0].message.split('\n');
+    // Six: the [d][ref] use is reported once, at its `[ref]:` definition.
+    expect(lines.filter((l) => l.includes('is not allowed. Use https:'))).toHaveLength(6);
+  });
+
+  test('event handlers, style, id and src attributes fail on allowed tags', async () => {
+    const issues = await lessonIssues(
+      '<p onClick="alert(1)" style="color:red" id="x">a</p>\n\n<a src="x" href="#ok">b</a>',
+    );
+    expect(issues).toHaveLength(1);
+    for (const name of ['onClick', 'style', 'id', 'src']) {
+      expect(issues[0].message).toContain(`the attribute "${name}"`);
+    }
+  });
+
+  test('markdown images fail: no lesson needs one', async () => {
+    const issues = await lessonIssues('![alt](https://x.example/a.png)');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('images are not allowed');
+  });
+});
+
+describe('isSafeLessonUrl', () => {
+  test('https, relative paths and anchors are safe', () => {
+    for (const url of [
+      'https://a.example/x',
+      'HTTPS://a.example',
+      '/realms',
+      'page',
+      './x',
+      '#top',
+      '?q=1',
+    ]) {
+      expect(isSafeLessonUrl(url)).toBe(true);
+    }
+  });
+
+  test('other schemes, protocol-relative and control-character tricks are not', () => {
+    const bad = [
+      'javascript:alert(1)',
+      ' javascript:alert(1)',
+      'java\tscript:alert(1)',
+      'java\nscript:alert(1)',
+      'data:text/html,x',
+      'vbscript:x',
+      'http://a.example',
+      'mailto:a@b.example',
+      '//evil.example',
+      '\\\\evil.example',
+      '/\\evil.example',
+    ];
+    for (const url of bad) expect(isSafeLessonUrl(url)).toBe(false);
   });
 });
