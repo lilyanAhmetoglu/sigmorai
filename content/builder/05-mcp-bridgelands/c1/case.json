@@ -1,0 +1,96 @@
+{
+  "id": "builder/r5/c1/challenge",
+  "title": "One client for everything",
+  "scenario": "A company is building an internal assistant for its staff. It will use MCP to reach three systems: the code repository, the HR database and a web search service. A junior engineer wrote the first design note (exhibit). You review it before any server is built.",
+  "exhibit": "DESIGN NOTE v0.1 (made-up example)\n\nHost:   staff-assistant (desktop app)\nClient: one shared MCP client, connected to all three servers\n\nServers:\n  repo-server    local process   (files, git history)\n  hr-server      remote service  (HR database)\n  search-server  remote service  (web search)\n\nOpen requests from the server teams:\n  hr-server team: \"Send us the full conversation on every\n  call, so our answers have more context.\"\n\nPlanned features:\n  F1  /weekly-report      user picks it from the slash menu\n  F2  HR policy document  app attaches it as context\n  F3  create_ticket       model decides when to call it\n\nSafety: \"The MCP protocol enforces user consent, so the\nhost needs no consent screens.\"",
+  "questions": [
+    {
+      "prompt": "The note plans one shared MCP client for all three servers. What does the spec's architecture say?",
+      "options": [
+        {
+          "text": "One client is right, because a host may run only one client.",
+          "explanation": "The spec says the opposite: each host can run multiple client instances."
+        },
+        {
+          "text": "The host should create one client per server; each client talks to exactly one server.",
+          "explanation": "Right. The architecture page says each client communicates with exactly one server, a 1:1 relationship.",
+          "correct": true
+        },
+        {
+          "text": "Remote servers need a client each, but local servers can share one.",
+          "explanation": "The 1:1 rule does not depend on where the server runs. Local and remote servers each get their own client."
+        },
+        {
+          "text": "Clients are optional; the host can talk to servers directly.",
+          "explanation": "In the spec, clients are the connectors inside the host. The host reaches each server through a client."
+        }
+      ]
+    },
+    {
+      "prompt": "The HR server team wants the full conversation on every call. What fits MCP's design principles?",
+      "options": [
+        {
+          "text": "Agree, because MCP servers always receive the whole chat history.",
+          "explanation": "The spec says servers should not be able to read the whole conversation. They are not sent it by default."
+        },
+        {
+          "text": "Agree, but only for remote servers, which have no other context.",
+          "explanation": "Being remote does not change the principle. Remote or local, servers get only the context they need."
+        },
+        {
+          "text": "Let the HR server read the repo server's data instead of the chat.",
+          "explanation": "The spec says servers should not 'see into' other servers. Cross-server interactions are controlled by the host."
+        },
+        {
+          "text": "Refuse: full history stays with the host, and the server gets only the context it needs.",
+          "explanation": "Right. The architecture page: servers receive only necessary contextual information, and full conversation history stays with the host.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Which mapping of F1, F2 and F3 to MCP primitives matches the spec's control model?",
+      "options": [
+        {
+          "text": "F1 prompt, F2 resource, F3 tool",
+          "explanation": "Right. Prompts are user-controlled (slash commands), resources are application-controlled (context the app attaches), tools are model-controlled.",
+          "correct": true
+        },
+        {
+          "text": "F1 tool, F2 prompt, F3 resource",
+          "explanation": "A user-picked slash command is the spec's example of a prompt, and a function the model decides to call is a tool."
+        },
+        {
+          "text": "F1 resource, F2 tool, F3 prompt",
+          "explanation": "A document the app attaches is a resource. A prompt is chosen by the user, not called by the model."
+        },
+        {
+          "text": "All three should be tools, because only tools reach the model.",
+          "explanation": "Resources and prompts also put content into the model's context. The difference is who decides when they are used."
+        }
+      ]
+    },
+    {
+      "prompt": "The note says the protocol enforces consent, so the host needs no consent screens. What is the problem?",
+      "options": [
+        {
+          "text": "None: MCP servers ask the user for consent before every tool call.",
+          "explanation": "The spec puts consent on the host: hosts must obtain explicit user consent before invoking any tool."
+        },
+        {
+          "text": "Consent is the model's job, so the system prompt must ask for it.",
+          "explanation": "The spec gives this job to the host application, not to the model."
+        },
+        {
+          "text": "MCP cannot enforce it at the protocol level; the host must get explicit consent before invoking tools.",
+          "explanation": "Right. The spec says MCP itself cannot enforce these security principles, and hosts must obtain explicit user consent before invoking any tool.",
+          "correct": true
+        },
+        {
+          "text": "Consent is only needed for local servers, which can touch files.",
+          "explanation": "The consent principles in the spec do not depend on where the server runs."
+        }
+      ]
+    }
+  ]
+}

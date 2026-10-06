@@ -1,0 +1,104 @@
+---
+id: builder/r5/c4/lesson
+title: Prompts
+minutes: 9
+sources:
+  - kind: docs
+    title: Prompts (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server/prompts
+  - kind: docs
+    title: Server features overview (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server
+  - kind: docs
+    title: Connect Claude Code to tools via MCP (Claude Code docs)
+    url: https://code.claude.com/docs/en/mcp
+  - kind: docs
+    title: MCP connector (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: repo
+    title: Model context protocol (MCP) (OpenAI Agents SDK docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md
+---
+
+The third primitive is the one people forget. A server that knows a system well also knows the best way to ask about it. MCP prompts let the server ship those good requests as ready-made templates, so a user can run "review this pull request" without writing the instructions each time.
+
+## What an MCP prompt is
+
+The spec says prompts let servers "provide structured messages and instructions for interacting with language models." A client can list them, fetch one, and fill in arguments.
+
+A prompt definition holds:
+
+- `name`: the unique identifier.
+- `title`: an optional display name.
+- `description`: optional, what the prompt is for.
+- `arguments`: an optional list of arguments for customization.
+
+The spec's example is `code_review`. Its one argument, `code`, has a `name`, a `description` and `required: true`.
+
+## User-controlled
+
+Prompts are **user-controlled**: they are exposed "with the intention of the user being able to explicitly select them for use." The spec adds a key detail: "This refers to who decides when the prompt is used, not who authors its content. Prompt content is defined by the server."
+
+The usual interface is a slash command. The spec's picture shows prompts in a slash menu, but it doesn't mandate any one interface.
+
+Put the three primitives side by side, using one question: who pulls the trigger? (This framing is ours; the control labels are the spec's.)
+
+| Primitive | Who pulls the trigger      | Example                         |
+| --------- | -------------------------- | ------------------------------- |
+| Tool      | The model                  | `create_ticket` during a task   |
+| Resource  | The app, or the user in it | A policy file attached as input |
+| Prompt    | The user                   | `/weekly_report` from a menu    |
+
+If the user should decide when something happens, it is probably a prompt. If the model should decide, it is a tool.
+
+## Listing and getting
+
+The two messages are:
+
+- `prompts/list`: the prompts the server offers. It supports pagination.
+- `prompts/get`: one prompt by name, with arguments.
+
+The list may differ by the authorization on the request, for example showing only the prompts the caller's scopes permit. If the server declares `listChanged`, clients that opened a `subscriptions/listen` stream get `notifications/prompts/list_changed` when the list changes.
+
+The result of `prompts/get` is a list of messages. Each message has a `role`, `user` or `assistant`, and content. In the spec's example, the client sends `code` as an argument and gets back one user message: "Please review this Python code:" followed by the code.
+
+Message content can be text, an image, audio, a `resource_link`, or an embedded `resource`. Images and audio must be base64 with a valid MIME type. Embedded resources let a prompt carry server-managed content, like documentation or code samples, straight into the conversation.
+
+Example (made up): an `incident_summary` prompt takes a `service` argument. The server returns a user message with clear instructions plus an embedded resource holding the last 24 hours of alerts for that service. The user typed one command; the model gets a complete, well-built request.
+
+## Errors
+
+For common failures, the spec says servers should return standard JSON-RPC errors:
+
+- Invalid prompt name: `-32602` (Invalid params).
+- Missing required arguments: `-32602` (Invalid params).
+- Internal errors: `-32603` (Internal error).
+
+Servers should also validate prompt arguments before processing them.
+
+## Safety: prompt text is server text
+
+Because prompt content comes from the server, a prompt is a direct way for server text to reach the model. The spec's security line is short: implementations "**MUST** carefully validate all prompt inputs and outputs to prevent injection attacks or unauthorized access to resources."
+
+Our reading of that line, in practice:
+
+- **Inputs:** a user argument that is pasted into a template can carry injected instructions. Validate it.
+- **Outputs:** a server you don't control decides the text of every prompt it offers. If you wouldn't trust the server's tools, don't trust its prompts either.
+
+## How hosts use prompts
+
+- **Claude Code:** MCP prompts become commands. Type `/` to see them; each shows as `/servername:promptname (MCP)`, and `/mcp__servername__promptname` also runs it. Arguments go after the command, separated by spaces, for example `/mcp__github__pr_review 456`. The docs say prompt results are injected directly into the conversation.
+- **Claude API:** the MCP connector supports only tool calls. If you run your own MCP client, the Anthropic SDK has a helper that converts MCP prompt messages into Claude API message format.
+- **OpenAI Agents SDK:** servers that support prompts expose `list_prompts()` and `get_prompt(name, arguments)`. The SDK docs describe prompts that "dynamically generate agent instructions". The built-in local server classes follow `nextCursor` automatically when listing prompts.
+
+One practical result: the same prompt can drive a person in Claude Code and an agent's instructions in the OpenAI Agents SDK. The team that owns the server owns the wording.
+
+## Key points
+
+- An MCP prompt is a server-defined template with optional named arguments.
+- Prompts are user-controlled: the user decides when; the server decides the content.
+- `prompts/list` finds them; `prompts/get` returns messages with `user` or `assistant` roles.
+- Messages can embed resources, images and audio, so one command can carry a full request.
+- Bad name or missing required argument: `-32602`.
+- Validate prompt inputs and outputs. Prompt text comes from the server.
+- Claude Code shows prompts as slash commands; the OpenAI Agents SDK uses `get_prompt` for agent instructions; the Claude API connector needs your own client for prompts.

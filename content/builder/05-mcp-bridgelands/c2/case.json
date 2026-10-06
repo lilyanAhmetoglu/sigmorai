@@ -1,0 +1,96 @@
+{
+  "id": "builder/r5/c2/challenge",
+  "title": "Two searches and a safe delete",
+  "scenario": "A support team built an MCP server for its helpdesk. Their assistant connects to it and to a second MCP server for product docs. In the first week, the model searched the wrong system, gave up on a simple date error, and nearly deleted a ticket without asking. You review the tool lists and one call log (exhibit).",
+  "exhibit": "MADE-UP EXAMPLE\n\nhelpdesk-server  tools/list\n  search         \"Search tickets by keyword\"\n  update_ticket  inputSchema: ticket_id, status, due_date\n  delete_ticket  annotations: { readOnlyHint: true }\n\ndocs-server  tools/list\n  search         \"Search product documentation\"\n\nCALL LOG 2026-09-30\n  tools/call update_ticket { ticket_id: 4411, due_date: \"2026-09-01\" }\n  <- JSON-RPC error -32602 \"Invalid params\"\n  model: \"Sorry, I could not update the ticket.\"\n\nHOST RULE\n  if tool.annotations.readOnlyHint == true:\n      run without asking the user",
+  "questions": [
+    {
+      "prompt": "Both servers expose a tool called `search`, and the model sometimes picks the wrong one. What does the MCP spec recommend?",
+      "options": [
+        {
+          "text": "Tell the model in the system prompt which `search` is which.",
+          "explanation": "That leaves two tools with the same name in front of the model. The spec recommends a disambiguation strategy in the client."
+        },
+        {
+          "text": "Tell them apart by the server `name` in `serverInfo`.",
+          "explanation": "The spec warns that the server `name` is not guaranteed to be unique across servers and should not be relied upon for this."
+        },
+        {
+          "text": "Merge the two servers into one, so names are unique.",
+          "explanation": "That throws away MCP's composability to fix a naming problem the client can solve."
+        },
+        {
+          "text": "Have the client prefix each tool name with a server identifier.",
+          "explanation": "Right. The spec says clients that aggregate tools should disambiguate, for example by prefixing tool names with a server identifier.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The due date was in the past, and the model gave up. How should the server report this error?",
+      "options": [
+        {
+          "text": "As a tool result with `isError: true` and a message that says what to fix.",
+          "explanation": "Right. Input validation errors are tool execution errors. The spec says they carry actionable feedback the model can use to self-correct.",
+          "correct": true
+        },
+        {
+          "text": "As a JSON-RPC protocol error, as the log shows, but with a longer message.",
+          "explanation": "Protocol errors are for unknown tools and malformed requests. The spec says models are less likely to recover from them."
+        },
+        {
+          "text": "As an empty success result, so the model does not stop.",
+          "explanation": "Hiding the failure tells the model the ticket was updated when it was not."
+        },
+        {
+          "text": "By closing the connection, so the client retries automatically.",
+          "explanation": "A retry with the same past date fails again. The model needs to know what was wrong."
+        }
+      ]
+    },
+    {
+      "prompt": "`delete_ticket` claims `readOnlyHint: true`, and the host runs such tools without asking. What is the main problem?",
+      "options": [
+        {
+          "text": "None: the protocol checks that a read-only tool cannot change data.",
+          "explanation": "The schema says annotations are hints, not guaranteed to describe the tool faithfully. Nothing in the protocol checks them."
+        },
+        {
+          "text": "The hint is fine, because `destructiveHint` defaults to false.",
+          "explanation": "The schema gives `destructiveHint` a default of true, and a wrong `readOnlyHint` is the real issue here."
+        },
+        {
+          "text": "Annotations are untrusted hints; a host should not skip confirmation for a delete because of them.",
+          "explanation": "Right. The spec says clients must treat annotations as untrusted unless they come from trusted servers, and should confirm sensitive operations.",
+          "correct": true
+        },
+        {
+          "text": "Read-only tools must not have annotations at all.",
+          "explanation": "Annotations are allowed on any tool. The problem is trusting a label instead of confirming a destructive action."
+        }
+      ]
+    },
+    {
+      "prompt": "A second app, a triage assistant on the Claude API MCP connector, should only search tickets. Which setup fits the Claude docs?",
+      "options": [
+        {
+          "text": "Keep all tools enabled and tell the model never to delete.",
+          "explanation": "An instruction is not a control. A tool that is enabled can still be called."
+        },
+        {
+          "text": "In the `mcp_toolset`, set `default_config.enabled` to false and enable only `search` in `configs`.",
+          "explanation": "Right. This is the allowlist pattern in the Claude docs: disable by default, then enable the tools you want.",
+          "correct": true
+        },
+        {
+          "text": "Remove `update_ticket` and `delete_ticket` from the server for every app.",
+          "explanation": "The support assistant still needs those tools. Filtering in the triage app's toolset limits only that app."
+        },
+        {
+          "text": "Set `readOnlyHint: false` on the write tools so Claude skips them.",
+          "explanation": "Annotations describe behavior. They do not turn a tool off. The connector's `enabled` setting does."
+        }
+      ]
+    }
+  ]
+}
