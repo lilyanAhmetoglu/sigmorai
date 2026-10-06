@@ -1,0 +1,118 @@
+{
+  "id": "builder/r3/boss/challenge",
+  "title": "Design a RAG pipeline on a budget: chunking, retrieval, caching and citations",
+  "scenario": "A telecom shop is adding a support bot for router questions. It must search a very large set of help articles and manuals, and it must also handle a small set of returns-policy pages. Input tokens are the main cost. The team has a draft plan and a few test traces and asks for a design review before building. Use the exhibit. The price in it is made up for this case.",
+  "exhibit": "BRIEF:\n  Support bot for a telecom shop, built on Claude. Customers are logged in; the account says which router they own (X100, X200 or X300).\n  Knowledge: about 12 million tokens of help articles and router manuals, plus a separate set of 9 returns-policy pages (90,000 tokens in total, edited about once a month).\n  Input tokens are the main cost. No embedding vendor is chosen yet.\n\nEMBEDDING PLAN (draft):\n  Embed the articles and the customer questions with Claude's embedding endpoint. Send the raw text for both.\n\nSEARCH TRACE (customer owns an X200 and asks: \"How do I reset my router?\"):\n  #1  0.71  x300 manual p.4   \"Press the pinhole button twice.\"\n  #2  0.71  x100 manual p.3   \"Hold RESET for 30 seconds.\"\n  #3  0.70  x200 manual p.5   \"Hold RESET for 10 seconds.\"\n  #4  0.66  x300 FAQ          (reset steps for the X300)\n  #5  0.65  x100 FAQ          (reset steps for the X100)\n\nCHUNK RECORD (one stored chunk, as it will be passed to the model):\n  vector_row_id:  88213                          (new ids each time the index is rebuilt)\n  file:           x200_manual_final_v3(2).pdf    (renamed at each release)\n  article_id:     kb://x200-reset-guide          (never changes)\n  text:           \"To reset the router, hold RESET for 10 seconds, then ...\"\n  Each answer must show a source that opens the right article, also after a rebuild.\n\nRETURNS-POLICY TEST (the 9 pages went through the same search; 20 refund questions):\n  14 questions: every page needed was retrieved\n   6 questions: one needed page was missing\n  One policy page often points to an exception on another page.\n\nPRICING (made-up base price; Claude cache multipliers for a 5-minute cache, on a model with the standard 0.1x read rate, for example Claude Sonnet 5.5):\n  Base input price: $3 per 1M tokens. Cache write: 1.25 x base. Cache read: 0.1 x base.\n  20 requests arrive within one 5-minute window. The first one writes the cache; the other 19 read it.\n  Count only the 90,000-token policy set.",
+  "questions": [
+    {
+      "prompt": "Which embedding setup fits the plan for a bot built on Claude?",
+      "options": [
+        {
+          "text": "Use Claude's own embedding model for the articles and the questions, with the raw text for both.",
+          "explanation": "Anthropic does not offer its own embedding model. The Claude docs name Voyage AI as one provider."
+        },
+        {
+          "text": "Use a provider such as Voyage AI; set input_type to document for articles and query for questions.",
+          "explanation": "Right. The chat model and the embedding model are separate choices. For retrieval, the Claude embeddings docs (Voyage AI section) say to set input_type to query or document and not to omit it.",
+          "correct": true
+        },
+        {
+          "text": "Use Voyage AI and leave input_type empty, so that one setting fits both sides.",
+          "explanation": "The Claude embeddings docs (Voyage AI section) say not to omit input_type, or set it to None, for retrieval tasks. Saying which text is a query and which is a document gives better vectors."
+        },
+        {
+          "text": "Use Voyage AI and set input_type to query for all text, because all of it is searched.",
+          "explanation": "The articles are documents, not queries. The setting tells the model which kind of text it is embedding."
+        }
+      ]
+    },
+    {
+      "prompt": "Search shows three similar scores for three router models, and the X200 steps are third. What is the best fix?",
+      "options": [
+        {
+          "text": "Store the router model as a label on each chunk and filter on the customer's model at search time.",
+          "explanation": "Right. The account already gives the model, so a filter removes the other manuals before ranking. OpenAI vector stores (attributes) and Gemini File Search (custom_metadata) both support labels like this.",
+          "correct": true
+        },
+        {
+          "text": "Add 'This chunk is from the X200 manual' to each chunk before embedding, then re-embed all manuals.",
+          "explanation": "The question does not contain 'X200', so these extra words may not move the chunk up. The model is known from the account, which makes a filter the direct tool."
+        },
+        {
+          "text": "Raise the number of chunks from 5 to 15, so the X200 manual is surely in the list, and let the model pick.",
+          "explanation": "This pays for 15 chunks a question, and most come from other models with different reset steps."
+        },
+        {
+          "text": "Tell the model in the prompt to ignore any chunk that is about another router than the customer's.",
+          "explanation": "The other chunks are still sent and paid for, and the model cannot tell which chunk is for which model unless it is labelled."
+        }
+      ]
+    },
+    {
+      "prompt": "What should go into the source field when each chunk is passed to Claude as a search result?",
+      "options": [
+        {
+          "text": "88213, the vector row id.",
+          "explanation": "The exhibit says row ids are new each time the index is rebuilt, so an old citation would point to nothing."
+        },
+        {
+          "text": "x200_manual_final_v3(2).pdf, the file name.",
+          "explanation": "The file is renamed at each release, so the citation would stop matching after the next one."
+        },
+        {
+          "text": "The first sentence of the chunk text.",
+          "explanation": "A sentence is not a pointer to an article. It cannot be opened, and it changes when the article is edited."
+        },
+        {
+          "text": "kb://x200-reset-guide, the article id.",
+          "explanation": "Right. The Claude docs say source can be any stable string, such as a URL or an internal identifier like kb://article-1234. This id never changes, so a citation opens the right article after a rebuild.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "If the 9 policy pages are sent whole and cached for these 20 requests, what do the pages cost?",
+      "options": [
+        {
+          "text": "About $0.34.",
+          "explanation": "This counts only the cache write (0.3375). The 19 reads are not free: each costs 0.1 times the base price."
+        },
+        {
+          "text": "About $5.40.",
+          "explanation": "This is the cost with no caching: 20 x $0.27."
+        },
+        {
+          "text": "About $0.85.",
+          "explanation": "Right. One pass is 90,000 x $3 / 1M = $0.27. The write costs 1.25 x $0.27 = $0.3375. The 19 reads cost 19 x 0.1 x $0.27 = $0.513. Total about $0.85.",
+          "correct": true
+        },
+        {
+          "text": "About $6.75.",
+          "explanation": "This charges the write price on all 20 requests: 20 x 1.25 x $0.27. Only the first request writes."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the returns-policy pages be handled?",
+      "options": [
+        {
+          "text": "Add the 9 pages to the same index, so that one pipeline serves everything and it is easier to run.",
+          "explanation": "The test shows 6 of 20 refund questions missed a needed page. Anthropic says a knowledge base under about 200,000 tokens can go in the prompt, with no need for RAG."
+        },
+        {
+          "text": "Send all 9 pages in every request as a cached prefix; under about 200,000 tokens, no retrieval is needed.",
+          "explanation": "Right. Anthropic says a knowledge base under about 200,000 tokens can be included whole, with no need for RAG, and prompt caching makes this cheaper. The model sees every page, so no page can be missed.",
+          "correct": true
+        },
+        {
+          "text": "Raise the number of chunks to 50 for refund questions, so no page is missed, and keep the rest as it is.",
+          "explanation": "This adds tokens to every refund question, and nothing guarantees that it removes the misses. Anthropic also warns that more information can distract the model."
+        },
+        {
+          "text": "Send only the 3 most-read pages in every request and drop the other 6 pages to save tokens.",
+          "explanation": "One page often points to an exception on another. Dropping pages by hand builds the misses into the design."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "id": "builder/r4/boss/challenge",
+  "title": "Configure a coding agent for a team repo: instruction file, permissions, hooks, subagents and a stop rule",
+  "scenario": "A team sets up a coding agent for its Bun and TypeScript web app. The agent runs in CI, and developers also use Claude Code. After a trial week, the team has five problems: where the loop runs, vague repo rules, an edit to a generated file, a missing review step and a stop check that never lets go. You review the setup in the exhibit.",
+  "exhibit": "BRIEF:\n  A coding agent for a team repo (a Bun and TypeScript web app). It runs headless in the team's CI job, and developers also use Claude Code on their laptops.\n  The agent loop must run inside the CI job, not in a hosted service. The team wants built-in tools, permissions and hooks.\n  After a trial week the team lists five problems and asks for a configuration design.\n\nINSTRUCTION FILE (CLAUDE.md, excerpt):\n  line 3:   Keep files organized.\n  line 40:  Test your changes.\n  Trial week: the agent put three new API handlers in src/utils/, and twice ended a task without running the tests.\n\nPERMISSIONS (CI run, draft options):\n  permission_mode:  bypassPermissions      (the CI container is isolated)\n  allowed_tools:    [\"Read\", \"Edit\", \"Bash\"]\n  Trial week: the agent hand-edited drizzle/0007_add_users.sql. Generated migrations must never be edited by hand. Edits under src/ are fine.\n\nREVIEW SUBAGENT (wanted):\n  Reviews a diff for bugs and missing tests after code changes.\n  Must not be able to change any file. Its exploration must stay out of the main context.\n\nSTOP HOOK (.claude/hooks/stop-check.sh):\n  runs `bun test`; if any test fails, returns decision \"block\" with the reason \"Tests are failing. Fix them before finishing.\"\n  CI options: max_turns 40, max_budget_usd 5.00\n\nNIGHT TRACE (the test database service was down):\n  stop 1   bun test: connection refused    -> hook blocks\n  stop 2   bun test: connection refused    -> hook blocks\n  stop 3   bun test: connection refused    -> hook blocks\n  ... the agent can only retry; it cannot start the database service",
+  "questions": [
+    {
+      "prompt": "Which Anthropic option fits the runtime need in the brief?",
+      "options": [
+        {
+          "text": "The Client SDK. You write the tool loop, the permissions and the hooks yourself.",
+          "explanation": "This runs in your process, but you build the loop, permissions and hooks yourself. Those built-in features belong to the Agent SDK."
+        },
+        {
+          "text": "Managed Agents with an Anthropic-managed sandbox, so Anthropic runs the code for you.",
+          "explanation": "Managed Agents is a hosted harness that runs the agent loop. The brief says the loop must run inside the CI job."
+        },
+        {
+          "text": "The Claude Agent SDK, a library in your process with built-in tools, permissions and hooks.",
+          "explanation": "Right. The Agent SDK runs inside an application that you operate, so it can run in the CI job. The Anthropic docs list built-in tools, permissions, sessions and hooks as part of it.",
+          "correct": true
+        },
+        {
+          "text": "Managed Agents with a self-hosted sandbox on the team's own machines, so execution stays on its network.",
+          "explanation": "The sandbox would be yours, but the harness that runs the loop is still hosted by Anthropic. The brief rules out a hosted service for the loop."
+        }
+      ]
+    },
+    {
+      "prompt": "Which rewrite of lines 3 and 40 follows the Claude Code docs?",
+      "options": [
+        {
+          "text": "'API handlers live in src/api/handlers/.' and 'Run bun test before committing.'",
+          "explanation": "Right. The docs say to write instructions concrete enough to verify, with examples like 'API handlers live in src/api/handlers/' instead of 'Keep files organized' and 'Run npm test before committing' instead of 'Test your changes'. A reviewer can check each line.",
+          "correct": true
+        },
+        {
+          "text": "'ALWAYS keep files organized!!' and 'ALWAYS test your changes!!' in capitals at the top of the file.",
+          "explanation": "Capitals add emphasis but no detail. The agent still has to guess what organized means and which tests to run."
+        },
+        {
+          "text": "Add a page of text on good project structure and on testing habits, with examples.",
+          "explanation": "The docs say longer files use more context and reduce adherence. A long text without concrete rules is still vague."
+        },
+        {
+          "text": "Move both lines to auto memory, so the agent keeps and writes its own rules over time.",
+          "explanation": "CLAUDE.md is where the team's rules go. Auto memory holds notes Claude writes from corrections, and a vague rule stays vague in either place."
+        }
+      ]
+    },
+    {
+      "prompt": "How should the team stop edits to the generated migration files in the CI run?",
+      "options": [
+        {
+          "text": "Add 'Never edit files under drizzle/' to CLAUDE.md and to the start of every prompt.",
+          "explanation": "An instruction file is a request, not a guarantee. The agent can still break it."
+        },
+        {
+          "text": "Remove Edit from allowed_tools and add it back only when a developer approves.",
+          "explanation": "allowed_tools does not limit bypassPermissions, which approves every tool. Edits under src/ are also needed."
+        },
+        {
+          "text": "Add a PreToolUse hook that returns allow for edits under src/ and nothing else.",
+          "explanation": "A hook allow does not block anything else. In bypassPermissions mode, every other path would still be approved."
+        },
+        {
+          "text": "Add a PreToolUse hook that denies Edit and Write calls for paths under drizzle/.",
+          "explanation": "Right. A hook runs first and can deny the call outright, and a hook deny applies even in bypassPermissions mode. The Claude docs say that a rule which must hold every time should be a hook, not a prompt instruction. Bash can also write files, so the hook should check Bash commands that touch drizzle/ too.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Which definition fits the review subagent?",
+      "options": [
+        {
+          "text": "Give it all tools and add 'never edit any file under any condition' to its prompt.",
+          "explanation": "A prompt line is a request. The docs say limiting a subagent to specific tools is what stops it from changing files."
+        },
+        {
+          "text": "Write a specific description, give it only Read and Grep, and ask for a short findings list.",
+          "explanation": "Right. The main agent delegates based on each description, so it should say what the subagent does and when to use it. Limiting tools to Read and Grep means it can analyze but cannot modify files. Only its final message returns to the main context.",
+          "correct": true
+        },
+        {
+          "text": "Give it Read, Grep and Edit, so it can fix the small problems it finds while reviewing.",
+          "explanation": "With Edit it can change files, which the brief rules out."
+        },
+        {
+          "text": "Use the description 'Reviewer' and let the main agent work out when to call it from the task text.",
+          "explanation": "Claude decides when to delegate from the task and the subagent's description. A vague description makes delegation unreliable."
+        }
+      ]
+    },
+    {
+      "prompt": "The Stop hook blocked three times because the test database was down. How should the hook change?",
+      "options": [
+        {
+          "text": "Keep blocking every time. Claude Code ends the turn after a set number of blocks anyway.",
+          "explanation": "Here the cap may never fire: the count resets each time Claude calls a tool, and the agent reruns bun test after every block. The docs say to check stop_hook_active to avoid blocking on a condition that will never resolve."
+        },
+        {
+          "text": "Remove the hook, so the agent stops at once and the night job ends without waiting.",
+          "explanation": "Without the hook, the agent can again declare a task done without tests passing. The hook should stay, with a way out."
+        },
+        {
+          "text": "Read stop_hook_active in the hook input. If true, let the agent stop and report the failing tests.",
+          "explanation": "Right. The docs say stop_hook_active is true when Claude Code is already continuing because of a stop hook, and to check it to avoid blocking on a condition that will never resolve. The 8-in-a-row cap is no safety net here, because each bun test rerun is a tool call and resets the count.",
+          "correct": true
+        },
+        {
+          "text": "Raise max_turns to 200, so the agent has more time to fix the tests before the next stop.",
+          "explanation": "More turns cannot start a service the agent has no access to. They only pay for more retries. OpenAI's Agents SDK works the same way: past max_turns it raises MaxTurnsExceeded. A cap ends the run; it does not fix the cause."
+        }
+      ]
+    }
+  ]
+}
