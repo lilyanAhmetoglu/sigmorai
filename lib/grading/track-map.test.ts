@@ -9,6 +9,7 @@ import {
   clearedLevels,
   levelStatus,
   playableStep,
+  towerSummary,
 } from './track-map';
 
 const outline: TrackOutline = {
@@ -246,5 +247,50 @@ describe('buildTowerMap', () => {
     const floors = buildTowerMap(LIVE, new Set(['math/f1/lesson']));
     expect(status(floors).slice(0, 2)).toEqual(['open', 'locked']);
     expect(playableStep(floors[0])?.exerciseId).toBe('math/f1/quick-check');
+  });
+});
+
+describe('towerSummary', () => {
+  const floorIds = (n: number) => [`math/f${n}/lesson`, `math/f${n}/quick-check`];
+  /** Floors 1–3 have files, like content/math today. */
+  const LIVE = new Set([1, 2, 3].flatMap(floorIds));
+  const summary = (live: Set<string>, cleared: Set<string>) =>
+    towerSummary(buildTowerMap(live, cleared));
+
+  test('a new player: floor 1 open at its lesson, 0 of 3 live floors cleared', () => {
+    const s = summary(LIVE, NONE);
+    expect(s.state).toBe('open');
+    expect(s.next?.floor).toBe(1);
+    expect(s.next?.title).toBe(buildTowerMap(LIVE, NONE)[0].title);
+    expect(s.next?.step.exerciseId).toBe('math/f1/lesson');
+    expect([s.cleared, s.live]).toEqual([0, 3]);
+  });
+
+  test('lesson done: the next step is the same floor quick check', () => {
+    const s = summary(LIVE, new Set(['math/f1/lesson']));
+    expect(s.next?.floor).toBe(1);
+    expect(s.next?.step.exerciseId).toBe('math/f1/quick-check');
+    expect(s.cleared).toBe(0);
+  });
+
+  test('floor 1 cleared: floor 2 is next, 1 of 3 cleared', () => {
+    const s = summary(LIVE, new Set(floorIds(1)));
+    expect(s.next?.floor).toBe(2);
+    expect(s.next?.step.exerciseId).toBe('math/f2/lesson');
+    expect([s.cleared, s.live]).toEqual([1, 3]);
+  });
+
+  test('every live floor cleared: state cleared, no next floor', () => {
+    expect(summary(LIVE, LIVE)).toEqual({ state: 'cleared', next: null, cleared: 3, live: 3 });
+  });
+
+  test('a gap with no content: nothing playable, state soon', () => {
+    const live = new Set([1, 3].flatMap(floorIds));
+    const s = summary(live, new Set(floorIds(1)));
+    expect(s).toEqual({ state: 'soon', next: null, cleared: 1, live: 2 });
+  });
+
+  test('no live floors at all: state soon, 0 of 0', () => {
+    expect(summary(NONE, NONE)).toEqual({ state: 'soon', next: null, cleared: 0, live: 0 });
   });
 });

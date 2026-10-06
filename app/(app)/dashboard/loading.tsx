@@ -25,6 +25,12 @@ export default function Loading() {
         <Panel tone="sunken">
           <div className="h-48" />
         </Panel>
+        <Panel tone="sunken">
+          <div className="h-28" />
+        </Panel>
+        <Panel tone="sunken">
+          <div className="h-28" />
+        </Panel>
       </div>
     </div>
   );
