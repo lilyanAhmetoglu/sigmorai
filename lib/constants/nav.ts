@@ -70,3 +70,7 @@ export const LIVE_NAV_ITEMS = NAV_ITEMS.filter((item) => item.live);
 
 /** id of the <main> the skip link jumps to. */
 export const MAIN_CONTENT_ID = 'main';
+/** The sitemap (app/sitemap.ts), linked from robots.txt and llms.txt. */
+export const SITEMAP_HREF = '/sitemap.xml';
+/** The plain-Markdown site guide for AI tools (app/llms.txt, llmstxt.org). */
+export const LLMS_TXT_HREF = '/llms.txt';
