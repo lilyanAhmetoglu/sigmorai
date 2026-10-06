@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r8/c4/challenge",
+  "title": "The assistant that promised free rebooking",
+  "scenario": "You are head of digital at an online travel agency with 600 staff. Your website assistant runs on Anthropic's API through a workspace API key called web-assistant. Last night something went wrong.\n\nThe CEO calls you at 09:30 and asks what to do first. The exhibit shows the log and three proposals from the team.",
+  "exhibit": "Incident INC-7: website assistant (made-up example data)\n\nTimeline (Tuesday)\n  02:10  Spend alert: day spend 3x a normal day. Sent to dev-alerts@\n         (no owner; last read 3 weeks ago).\n  08:40  Customer form: \"The assistant promised me free rebooking.\"\n  09:15  Review: 38 answers offered discounts we never sell.\n         One visitor account sent 4,000 requests overnight, many\n         telling the assistant to ignore its rules.\n\nFacts\n  - Key web-assistant is a workspace key created in the Console.\n  - Workspace \"Production\" also runs the booking-email tool.\n  - All requests go out under one key, with no per-user identifier.\n\nProposals\n  P1  Remove developer Sam from the organization (he made the key).\n  P2  Archive the whole \"Production\" workspace.\n  P3  Add to the prompt: \"Never invent discounts.\"",
+  "questions": [
+    {
+      "prompt": "What is the main weakness in how this incident was spotted?",
+      "options": [
+        {
+          "text": "The spend alert did not exist, so nothing could have warned the team.",
+          "explanation": "The exhibit shows an alert at 02:10. The alert worked."
+        },
+        {
+          "text": "The alert went to an address no one owns, so no person read it for hours.",
+          "explanation": "Right. OpenAI's safety guide says a report method should be monitored by a human. The same holds for alerts: a named person must read them.",
+          "correct": true
+        },
+        {
+          "text": "The alert was set too low, so it fired on a day with normal spend.",
+          "explanation": "The exhibit says spend was 3 times a normal day. The alert fired for a real reason."
+        },
+        {
+          "text": "The customer form was the wrong place to report problems about the assistant.",
+          "explanation": "A report form is what the safety guides recommend. The form worked at 08:40."
+        }
+      ]
+    },
+    {
+      "prompt": "Which containment step fits best at 09:30?",
+      "options": [
+        {
+          "text": "P1. Removing Sam stops the web-assistant key, so the problem ends at once.",
+          "explanation": "Anthropic's Admin API page says workspace API keys continue to work when a user is removed. P1 may stop nothing."
+        },
+        {
+          "text": "P2. Archive the \"Production\" workspace, so every key in it stops at once.",
+          "explanation": "Archiving archives every key in the workspace, cannot be undone, and would also stop the booking-email tool."
+        },
+        {
+          "text": "Set the key to inactive, show a fixed FAQ page, and lower the workspace limits.",
+          "explanation": "Right. Anthropic's Admin API can change a key's status, and workspace limits can be set lower. This is the smallest step that stops the harm and can be undone.",
+          "correct": true
+        },
+        {
+          "text": "Leave the assistant on until the cause is known, so customers keep getting help.",
+          "explanation": "Containment comes before the investigation. Every hour of delay means more invented discounts."
+        }
+      ]
+    },
+    {
+      "prompt": "One visitor account sent 4,000 rule-breaking requests. Which step fits the vendors' guidance?",
+      "options": [
+        {
+          "text": "Throttle or block that account, and tag requests with a per-user identifier from now on.",
+          "explanation": "Right. Anthropic's jailbreak guide says to consider throttling or banning repeat offenders. Anthropic's Messages API has a metadata user_id field to help detect abuse; OpenAI's safety guide recommends safety identifiers for the same reason.",
+          "correct": true
+        },
+        {
+          "text": "Send an email to all customers asking them not to try to break the assistant.",
+          "explanation": "This does not stop the one account, and it tells the other visitors about an attack they did not know about."
+        },
+        {
+          "text": "Take no action against the account, because it only sent text and cannot act.",
+          "explanation": "The vendor guide says to respond to repeat offenders. The same attacker can keep trying until a prompt works."
+        },
+        {
+          "text": "Block every visitor who has not logged in, and keep the block in place for good.",
+          "explanation": "That is far wider than the problem. It punishes all new customers because of one account."
+        }
+      ]
+    },
+    {
+      "prompt": "The team wants to close the incident with P3 only. What should the \"learn\" step include instead?",
+      "options": [
+        {
+          "text": "Find who set up the alert address, and write a formal warning for their file.",
+          "explanation": "The lesson says to keep the write-up about the system, not a person. Blame makes people hide the next problem."
+        },
+        {
+          "text": "Move to another AI vendor, because the attack shows this vendor is unsafe.",
+          "explanation": "The weak points were the alert owner, key handling and testing. A new vendor would have the same gaps."
+        },
+        {
+          "text": "Keep P3 as the only change, because a clear prompt rule makes the model safe to use.",
+          "explanation": "A prompt line helps, but both vendors' guides say to test with attacks and add other controls. A prompt alone does not remove the risk."
+        },
+        {
+          "text": "Add the attack messages to the red-team tests, name an alert owner, fix the policy.",
+          "explanation": "Right. OpenAI and Anthropic both recommend red-teaming, and the lesson says to fix the rule that failed.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

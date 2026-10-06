@@ -223,7 +223,8 @@ describe('blog posts', () => {
 
   test('a lesson with no file (a stub chapter) fails', async () => {
     const issues = await postIssues({
-      '2026-10-05-tokens.mdx': post(undefined, { lesson: 'strategist/r8/c6/lesson' }),
+      // A real id whose chapter is not written yet; move it when creator r8 ships.
+      '2026-10-05-tokens.mdx': post(undefined, { lesson: 'creator/r8/c6/lesson' }),
     });
     expect(issues).toHaveLength(1);
     expect(issues[0].message).toContain('has no lesson file');
