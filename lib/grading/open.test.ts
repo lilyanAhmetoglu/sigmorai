@@ -77,10 +77,41 @@ describe('boss', () => {
   });
 });
 
-describe('side areas', () => {
-  test('Math Tower and Frontier are not handled yet (step 6)', () => {
-    const result = decideOpen(ref('math/f1/quick-check'), NONE);
-    if (!result.ok) expect(result.code).toBe('INVALID_INPUT');
+describe('Math Tower', () => {
+  test('floor 1 is open with nothing cleared', () => {
+    expect(requiredClears(ref('math/f1/lesson'))).toEqual([]);
+    expect(decideOpen(ref('math/f1/lesson'), NONE).ok).toBe(true);
+    expect(decideOpen(ref('math/f1/quick-check'), NONE).ok).toBe(true);
+  });
+
+  test('floor 2 needs the floor 1 quick check', () => {
+    expect(requiredClears(ref('math/f2/lesson'))).toEqual(['math/f1/quick-check']);
+    const result = decideOpen(ref('math/f2/lesson'), NONE);
     expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.code).toBe('NOT_OPEN');
+      expect(result.message).toBe('Clear floor 1 first.');
+    }
+    const cleared = new Set(['math/f1/quick-check']);
+    expect(decideOpen(ref('math/f2/lesson'), cleared).ok).toBe(true);
+    expect(decideOpen(ref('math/f2/quick-check'), cleared).ok).toBe(true);
+  });
+
+  test('the floor 1 lesson alone is not enough', () => {
+    const result = decideOpen(ref('math/f2/quick-check'), new Set(['math/f1/lesson']));
+    expect(result.ok).toBe(false);
+  });
+
+  test('a realm clear does not open a floor', () => {
+    const cleared = new Set(['builder/r0/c1/quick-check', 'strategist/r0/c1/challenge']);
+    expect(decideOpen(ref('math/f2/lesson'), cleared).ok).toBe(false);
+  });
+});
+
+describe('Frontier', () => {
+  test('is not handled yet: INVALID_INPUT', () => {
+    const result = decideOpen(ref('frontier/2026-10-05-some-slug/lesson'), NONE);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('INVALID_INPUT');
   });
 });

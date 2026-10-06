@@ -17,6 +17,7 @@ import {
   FRONTIER_AREA,
   MATH_AREA,
   MATH_FLOOR_COUNT,
+  MATH_HREF,
   QUEST_BACK_HREF,
   REALM_COUNT,
   REALMS,
@@ -129,9 +130,17 @@ export function trackExerciseIds(track: Track): string[] {
   return Array.from({ length: REALM_COUNT }, (_, realm) => realmExerciseIds(track, realm)).flat();
 }
 
-/** Where a quest's back link goes: its realm page on its track, else the catalog. */
+/** Every Math Tower exercise id, floor by floor (lesson, then quick check). */
+export function mathExerciseIds(): string[] {
+  return Array.from({ length: MATH_FLOOR_COUNT }, (_, i) =>
+    SIDE_STEPS.map((step) => buildExerciseId({ area: MATH_AREA, floor: i + 1, step })),
+  ).flat();
+}
+
+/** Where a quest's back link goes: its realm page on its track, the tower page, else the catalog. */
 export function questBackHref(exerciseId: string): string {
   const ref = parseExerciseId(exerciseId);
+  if (ref?.area === MATH_AREA) return MATH_HREF;
   if (ref?.area !== 'chapter' && ref?.area !== 'boss') return QUEST_BACK_HREF;
   return realmHref(REALMS[ref.realm as RealmId].slug, ref.track);
 }

@@ -1,7 +1,14 @@
-import type { ChoiceState, LevelStatus, QuestErrorCode, QuestStatus, Track } from '@/lib/types';
+import type {
+  ChoiceState,
+  ExerciseRef,
+  LevelStatus,
+  QuestErrorCode,
+  QuestStatus,
+  Track,
+} from '@/lib/types';
 import { QUICK_CHECK_QUESTIONS } from './content';
-import { FRONTIER, MATH_TOWER } from './curriculum';
-import { CHAPTER_COUNT } from './exercises';
+import { FRONTIER } from './curriculum';
+import { CHAPTER_COUNT, MATH_AREA } from './exercises';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
 /**
@@ -166,9 +173,11 @@ export const QUEST_TEXT = {
   notifications: 'Notifications',
   noticeHeading: 'Quest',
   notAvailable: 'This step is not available yet.',
-  notAvailableHint: `${MATH_TOWER.name} and ${FRONTIER.name} steps open later.`,
+  notAvailableHint: `${FRONTIER.name} steps open later.`,
   // Tags: "BOOTSTRAP VILLAGE · CHAPTER 1 · CASE"
   chapterTag: (n: number) => `CHAPTER ${n}`,
+  // "MATH TOWER · FLOOR 2 · QUICK CHECK"
+  floorTag: (n: number) => `FLOOR ${n}`,
   bossTag: 'BOSS',
   lessonTag: 'LESSON',
   // Lesson page: LESSON | SOURCES tabs, then the "Lesson done" panel.
@@ -192,7 +201,7 @@ export const QUEST_TEXT = {
   caseTag: 'CASE',
   quickCheckTag: 'QUICK CHECK',
   quickCheckTitle: 'Quick check',
-  quickCheckIntro: `${QUICK_CHECK_QUESTIONS} questions on this chapter. Get them all right for XP. It costs no HP.`,
+  quickCheckIntro: `${QUICK_CHECK_QUESTIONS} questions on the lesson. Get them all right for XP. It costs no HP.`,
   caseFile: 'CASE FILE',
   exhibit: 'EXHIBIT',
   questionsLabel: 'Questions',
@@ -226,9 +235,10 @@ export const QUEST_TEXT = {
   /** The action may have finished (and spent HP) before the reply was lost. */
   noReply: 'No reply from the server. Reload the page to see your HP and result.',
   locked: 'LOCKED',
-  /** The back link (questBackHref): the quest's realm page, which lists every step. */
+  /** The back link (questBackHref): the realm page, or the tower page for a Math Tower floor. */
   backIcon: '◂',
-  back: 'Back to realm',
+  back: (area: ExerciseRef['area'] | undefined) =>
+    area === MATH_AREA ? 'Back to tower' : 'Back to realm',
   loading: 'Loading the quest',
   loadError: "The quest didn't load. Try again in a moment.",
   retry: 'Retry',
@@ -236,5 +246,7 @@ export const QUEST_TEXT = {
 
 /** NOT_OPEN for chapter N: the chapter before it is not cleared. */
 export const notOpenText = (previousChapter: number) => `Clear chapter ${previousChapter} first.`;
+/** NOT_OPEN for Math Tower floor N: floor N−1's quick check is not cleared. */
+export const floorNotOpenText = (previousFloor: number) => `Clear floor ${previousFloor} first.`;
 /** NOT_OPEN for a boss. */
 export const BOSS_NOT_OPEN_TEXT = `Clear all ${CHAPTER_COUNT} chapters first.`;
