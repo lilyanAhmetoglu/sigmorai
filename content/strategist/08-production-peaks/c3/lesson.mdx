@@ -1,0 +1,91 @@
+---
+id: strategist/r8/c3/lesson
+title: Compliance
+minutes: 8
+sources:
+  - kind: docs
+    title: OpenAI docs · Production best practices
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+  - kind: docs
+    title: OpenAI docs · Data controls in the OpenAI platform
+    url: https://developers.openai.com/api/docs/guides/your-data
+  - kind: docs
+    title: OpenAI docs · Admin APIs
+    url: https://developers.openai.com/api/docs/guides/admin-apis
+  - kind: docs
+    title: Claude docs · Data residency
+    url: https://platform.claude.com/docs/en/manage-claude/data-residency
+  - kind: docs
+    title: Claude docs · API and data retention
+    url: https://platform.claude.com/docs/en/manage-claude/api-and-data-retention
+  - kind: docs
+    title: Claude docs · Query the Activity Feed
+    url: https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed
+---
+
+## Why it matters
+
+**Compliance** means following the laws, contracts and industry rules that apply to your company. For AI, the questions are usually the same: Where is the data processed and stored? How long is it kept? Who did what, and when? Can you show proof?
+
+This chapter is not legal advice. Your legal team decides which rules apply. Your job is to know which vendor settings answer their questions, and what those settings cost.
+
+## Start with your data
+
+OpenAI's production guide says that, before production, you need to assess the security and compliance requirements of your application. That means examining the data you handle, understanding how the API processes it, and deciding which regulations you must follow. It lists data storage, data transmission and data retention as common areas. It also mentions privacy protections such as encryption or anonymization where possible.
+
+Example: a chain of 40 dental clinics wants AI to draft letters to patients. The letters include health details. That one fact changes the vendor settings, the contract and the audit needs.
+
+## Where the data is processed
+
+Some rules say data must stay in a region. The two vendors offer different controls.
+
+**Anthropic** has two independent settings:
+
+- **Inference geo** controls where the model runs, per request or as a workspace default. A workspace can also restrict which geos are allowed, so a request for a geo outside the list returns an error.
+- **Workspace geo** controls where data is stored at rest. It is set when you create the workspace and can't be changed afterwards.
+
+**OpenAI** sets data residency per project: with it enabled, you choose a region when you create a new project. It can also select regional processing per request, from a project with Global geography, for supported endpoints and models. Processing stays in the region only where the region supports regional processing. OpenAI's page says residency does not apply to "system data", such as account information, usage statistics and billing information.
+
+Both cost more. Anthropic's page prices US-only inference at 1.1x the standard rate for Claude 4.6 and later models. OpenAI's page says data residency endpoints are charged a 10% uplift for eligible models released on or after March 5, 2026. (Both pages checked on 2026-10-06.)
+
+Example: the dental chain must keep processing in the US. With Anthropic, a workspace that allows only the "us" geo enforces this for every key in it. The budget must include the higher rate.
+
+## Health data and special agreements
+
+Health data often needs a signed agreement with the vendor.
+
+- Anthropic's page says that with a signed BAA (Business Associate Agreement) and a HIPAA-enabled organization, supported API features can process protected health information (PHI). Its feature table lists which features are eligible. When a HIPAA-enabled organization sends a request with a non-eligible feature, the API returns an error.
+- OpenAI's data controls page describes PHI processing on BAA-eligible endpoints for customers who signed its Business Associate and Healthcare Addendum and meet its setup conditions. It also lists endpoint and feature limits.
+
+Example: a developer at the dental chain wants to add a new API feature to the letter tool. The rule: check the vendor's eligibility list first. "We have a BAA" does not mean every feature is covered.
+
+## Who did what: audit trails
+
+Auditors ask questions like "Who turned off the retention control on this project, and when?" You need logs that answer them.
+
+- OpenAI's Admin APIs include an Audit Logs endpoint that lists recent user actions and configuration changes for the organization.
+- Anthropic's Activity Feed records authentication, administrative and platform activity, among others, and keeps it for 6 years. Its page warns that recording is not retroactive: it starts when the Compliance API is first enabled, and earlier activity is not backfilled.
+
+So turn audit logging on before launch, not after the first audit question.
+
+## Retention has exceptions
+
+Retention promises have limits written into the docs. Anthropic's page says that even with ZDR or HIPAA arrangements, it may keep data where the law requires it, or where its automated trust and safety systems flag it. Flagged inputs and outputs may be kept for up to 2 years. Tell your legal team about such exceptions; don't write "nothing is ever stored" in a customer contract.
+
+## Keep an evidence file
+
+This checklist is a tool for this course. For each AI use, keep one file with:
+
+1. **Data map:** what data goes in, and its class (for example, health data).
+2. **Settings:** retention, region and allowed features, with the date checked.
+3. **Agreements:** which contract or addendum covers the data.
+4. **Logs:** where the audit trail lives, and who can read it.
+5. **Owner:** the person who keeps this file current.
+
+## Key points
+
+- Compliance asks: where is data processed, how long is it kept, who did what, and can you prove it?
+- Region controls differ by vendor: Anthropic per request and per workspace; OpenAI per project or per request. Both charge more (checked 2026-10-06).
+- A health-data agreement covers only eligible features; check the vendor's list.
+- Turn on audit logs before launch; Anthropic's Activity Feed doesn't record the past.
+- Vendors document retention exceptions; never promise "nothing is stored".

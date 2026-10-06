@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r8/c3/challenge",
+  "title": "The patient letters and the audit",
+  "scenario": "You are the operations director of a dental chain with 40 clinics and 1,300 staff. A new tool drafts letters to patients from treatment notes. The letters contain health details.\n\nThe tool runs on Anthropic's API. Legal has three requirements. IT has filled in a status sheet. You must review it before launch.",
+  "exhibit": "Compliance review: patient letter tool (made-up example data)\n\nLegal asks\n  L1  Model processing stays in the US.\n  L2  Patient health details only with a signed health-data agreement.\n  L3  Show who changed settings, and when.\n\nIT status\n  S1  The developer team sets inference_geo to \"us\" in its own code.\n      Marketing's key in the same workspace sends no geo setting.\n      Workspace allowed geos: not set.\n  S2  Expected token cost at the standard rate: $12,000 a month.\n      Model: Claude 4.6 or later.\n  S3  BAA signed. Organization is HIPAA-enabled.\n      Next week a developer wants to add a new API feature.\n      The feature is not marked eligible in the vendor's feature table.\n  S4  Compliance API (Activity Feed) switched on today, 6 Oct.\n      Auditor asks: \"Who changed workspace settings on 29 Sept?\"",
+  "questions": [
+    {
+      "prompt": "Line S1 does not meet requirement L1 for every key. Which fix works?",
+      "options": [
+        {
+          "text": "Set the workspace geo to US, because that decides where each request is processed.",
+          "explanation": "Workspace geo controls where data is stored at rest, and it is set when the workspace is created. Inference geo controls where the model runs."
+        },
+        {
+          "text": "Limit the workspace's allowed inference geos to US and set its default geo to US.",
+          "explanation": "Right. Anthropic's page says these workspace settings enforce a geo policy across all keys in the workspace. A request for a geo outside the list returns an error.",
+          "correct": true
+        },
+        {
+          "text": "Ask the marketing team to add the same geo setting to its own code as well.",
+          "explanation": "That depends on each team remembering. A workspace restriction is enforced for every key, so nobody can forget."
+        },
+        {
+          "text": "Move the tool to an older model, because older models always run in the US.",
+          "explanation": "Anthropic's page says older models do not support the inference geo setting at all. A request that includes it returns a 400 error."
+        }
+      ]
+    },
+    {
+      "prompt": "Finance asks for the monthly token cost with US-only processing. Anthropic's page (checked 2026-10-06) is the source. What is the number?",
+      "options": [
+        {
+          "text": "$12,000",
+          "explanation": "That is the standard rate. The page says US-only inference costs more on Claude 4.6 and later models."
+        },
+        {
+          "text": "$12,100",
+          "explanation": "That adds only $100, less than 1%. The page says the multiplier is 1.1x, which is 10% more."
+        },
+        {
+          "text": "$13,200",
+          "explanation": "Right. The page prices US-only inference at 1.1x the standard rate for Claude 4.6 and later models. $12,000 x 1.1 = $13,200.",
+          "correct": true
+        },
+        {
+          "text": "$24,000",
+          "explanation": "That doubles the cost. The documented multiplier is 1.1x, not 2x."
+        }
+      ]
+    },
+    {
+      "prompt": "Line S3: what should the developer do before adding the new feature?",
+      "options": [
+        {
+          "text": "Check the eligibility table first, and leave the feature out until it is marked eligible.",
+          "explanation": "Right. Anthropic's page says a HIPAA-enabled organization gets an error for a non-eligible feature. OpenAI also lists limits for its BAA-eligible endpoints and features.",
+          "correct": true
+        },
+        {
+          "text": "Add it, because a signed BAA covers every single feature of the vendor's API.",
+          "explanation": "Anthropic's page says its feature table lists which features are eligible. The signed BAA is the source of truth, and not every feature is covered."
+        },
+        {
+          "text": "Add it, because the API will quietly ignore any feature that the BAA does not cover.",
+          "explanation": "The page says the API returns a 400 error instead. It does not ignore the feature."
+        },
+        {
+          "text": "Try it on real patient letters at one clinic first, and ask legal after the trial ends.",
+          "explanation": "This sends patient health data through a feature that may not be covered. Legal and the eligibility table come first."
+        }
+      ]
+    },
+    {
+      "prompt": "Line S4: the auditor asks about 29 Sept. What is accurate?",
+      "options": [
+        {
+          "text": "The Activity Feed fills in older activity once enabled, so 29 Sept will appear soon.",
+          "explanation": "Anthropic's page says recording is not retroactive. Activity from before enablement is not backfilled."
+        },
+        {
+          "text": "The feed keeps 6 years of history, so a change on 29 Sept will be in it.",
+          "explanation": "The 6 years apply from the day recording starts. Nothing before 6 Oct was recorded."
+        },
+        {
+          "text": "Tell the auditor no change was made, because the feed shows nothing for that day.",
+          "explanation": "An empty feed before 6 Oct means nothing was recorded, not that nothing happened. That statement could be false."
+        },
+        {
+          "text": "The feed starts on 6 Oct, so it can't show 29 Sept. Find other records and keep logging on.",
+          "explanation": "Right. Recording starts when the Compliance API is first enabled. The lesson's rule is to turn audit logging on before launch.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

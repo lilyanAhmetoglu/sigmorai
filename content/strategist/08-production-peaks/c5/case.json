@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r8/c5/challenge",
+  "title": "Monday at 09:00 for 2,400 people",
+  "scenario": "You are head of operations at a logistics company with 3,000 staff, 2,400 of them in offices. A 60-person pilot of a shipping-document assistant ended with a clear go. The assistant calls the Claude API.\n\nThe CEO wants every office worker on it next Monday at 09:00. Finance asks you for a plan. The exhibit shows the draft.",
+  "exhibit": "Shipping-document assistant: rollout DRAFT (made-up example data)\n\nPilot result\n  60 users, 6 weeks. Go rule: at least 85% of drafts accepted.\n  Result: 91% accepted. Pilot token cost: $450 a month.\n\nDraft plan\n  Launch    Mon 09:00: all 2,400 office staff switched on.\n  Testing   Testers and staff share the workspace \"docs-prod\"\n            and one API key.\n  Budget    Organization monthly spend limit: $30,000.\n            Plan: set the docs-prod limit to $40,000 \"for headroom\".\n            Pilot cost x 40 (2,400 / 60) = expected $18,000 a month.\n  Fallback  The manual process is retired on launch day.\n  Training  One announcement email.",
+  "questions": [
+    {
+      "prompt": "The tool calls an API. What does OpenAI's rate limits page warn about switching 2,400 people on at 09:00?",
+      "options": [
+        {
+          "text": "Nothing, because staying inside the rate limits means that no errors can happen at all.",
+          "explanation": "The page says a slow_down error can occur even when traffic is within its per-minute limits."
+        },
+        {
+          "text": "A fast jump in traffic can return slow_down errors even inside limits, so start teams in steps.",
+          "explanation": "Right. The page says slow_down can occur within the limits, and gives a rule of thumb for ramping. A wave plan also adds gates and stop rules.",
+          "correct": true
+        },
+        {
+          "text": "Only the price changes at high traffic, so the main risk is a much bigger monthly bill.",
+          "explanation": "The page warns about errors from a fast ramp. Cost is a separate matter, covered by spend limits."
+        },
+        {
+          "text": "A higher limit always fixes it, so ask the vendor for more capacity before the launch.",
+          "explanation": "A higher limit does not remove the ramp-rate rule. The error is about how fast traffic rises."
+        }
+      ]
+    },
+    {
+      "prompt": "Testers and staff share one workspace and key. Which fix fits Anthropic's workspace guidance?",
+      "options": [
+        {
+          "text": "Create development, staging and production workspaces, with testers in the first two.",
+          "explanation": "Right. Anthropic's workspaces page suggests this split, with lower rate limits for development and full limits with monitoring for production.",
+          "correct": true
+        },
+        {
+          "text": "Keep one shared workspace, and ask the testers to run their scripts only at night.",
+          "explanation": "A test script gone wrong can still use the production budget and rate limits at any hour."
+        },
+        {
+          "text": "Give testers their own personal accounts at the vendor, outside the company's control.",
+          "explanation": "The company would lose control of keys, limits and data terms. The fix is separate workspaces inside the organization."
+        },
+        {
+          "text": "Let testers keep using the production key, with a note that says it is for tests.",
+          "explanation": "A note changes no setting. Test traffic still counts toward production limits and cost."
+        }
+      ]
+    },
+    {
+      "prompt": "The draft sets the docs-prod spend limit to $40,000. What is the best change?",
+      "options": [
+        {
+          "text": "Keep $40,000. The extra headroom costs nothing unless somebody actually uses it.",
+          "explanation": "Anthropic's page says workspace limits can't be higher than the organization's. The $30,000 organization limit applies anyway."
+        },
+        {
+          "text": "Remove the workspace limit, because the organization limit already protects all of it.",
+          "explanation": "The organization limit protects the total, but one workspace could still use all of it. Workspace limits and alerts catch problems earlier."
+        },
+        {
+          "text": "Set it to $30,000, so the workspace can use the whole organization budget if needed.",
+          "explanation": "That allows this one tool to use the entire company budget. Other workspaces could be blocked."
+        },
+        {
+          "text": "Set it below $30,000, near the $18,000 estimate, with alerts at set thresholds.",
+          "explanation": "Right. Workspace limits can be at or below the organization's, and the page says to configure alerts at thresholds.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The draft retires the manual process on launch day. What should the rollback plan say instead?",
+      "options": [
+        {
+          "text": "State that no rollback is needed, because the pilot reached 91% accepted drafts.",
+          "explanation": "A pilot of 60 people does not show how 2,400 people will use the tool. The plan still needs a way back."
+        },
+        {
+          "text": "Name a trigger, an action and an owner, and keep the manual process for some weeks.",
+          "explanation": "Right. A way back needs an exact trigger, a way to stop the tool, and a fallback so work does not stop.",
+          "correct": true
+        },
+        {
+          "text": "Plan to retrain staff if anything goes wrong, since the tool itself will be fine.",
+          "explanation": "That assumes the problem is always people. A serious incident may need the tool to stop."
+        },
+        {
+          "text": "Keep the manual process only for the pilot group, and retire it for all others.",
+          "explanation": "The people most affected by a problem, the new users, would have no fallback."
+        }
+      ]
+    }
+  ]
+}
