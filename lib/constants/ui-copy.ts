@@ -77,8 +77,7 @@ const HERO_NAME_RULE = `${HERO_NAME_MIN}–${HERO_NAME_MAX} characters: letters,
 export const ONBOARDING_TEXT = {
   title: 'Create your hero',
   panel: 'NEW HERO',
-  intro:
-    'Pick a hero name and a path. Your hero name shows on the leaderboard. You can change your path later on your profile.',
+  intro: 'Pick a hero name and a path. Your hero name shows on the leaderboard.',
   sprite: 'YOUR SPRITE',
   spriteHint: 'Drawn from your hero name. Same name, same sprite.',
   heroName: 'HERO NAME',
@@ -113,6 +112,8 @@ export const PROFILE_TEXT = {
   pathSave: 'Save path',
   pathSaving: 'Saving…',
   pathSaved: 'Path saved.',
+  pathCurrent: 'Current path',
+  pathUnsaved: 'Not saved yet.',
   pathInvalid: 'Pick a path.',
   pathUnauthorized: 'Your session ended. Sign in again.',
   pathNotOnboarded: 'Set up your hero first.',

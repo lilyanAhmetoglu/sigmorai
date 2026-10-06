@@ -11,11 +11,12 @@
 ## Amendments locked 2026-10-06 (SIG-36, path switch)
 
 - **The switch lives on `/profile`** ("YOUR PATH" panel), not in the HUD. The HUD track stays a read-only Badge.
+- **The design reference plans a HUD TrackToggle** (`design/BUILD_PROMPT_NEXTJS_BUN.md:29`). The profile panel replaces it for now.
 - **One Server Action, `switchTrack`** (`lib/actions/switch-track.ts`), updates `users.track` only. The user id comes from the session; the form sends one track.
 - **No schema change.** Progress is already per track through the exercise id (`db/CLAUDE.md` invariant 4), so the old path's progress stays and shows again on a switch back.
 - **XP, level and streak are one ledger**, shared by both paths. Math Tower (and Frontier) progress is shared too: those ids have no track.
 - **No confirm box, no rate limit.** A switch loses nothing and grants nothing. Saving the same path is a no-op success.
-- **Leaderboard** shows the player's current path next to their total level. Its 60 s cache may show the old path for up to a minute.
+- **When the leaderboard is built (step 6):** it shows the player's current path next to their total level. Its 60 s cache may show the old path for up to a minute.
 - **Onboarding copy changed:** "You can't change your path yet" → "You can change your path later on your profile."
 
 ## Amendments locked 2026-10-05 (PR 4: builder outline rewrite)

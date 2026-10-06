@@ -7,6 +7,7 @@ import { PixelButton } from '@/components/pixel-button';
 import { switchTrack } from '@/lib/actions/switch-track';
 import { PROFILE_TEXT, TRACK_ACCENTS, TRACK_TEXT, TRACKS } from '@/lib/constants';
 import type { SwitchTrackFormState, Track } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 type SwitchError = NonNullable<NonNullable<SwitchTrackFormState>['error']>;
 
@@ -38,8 +39,10 @@ export function PathPanel({ current }: PathPanelProps) {
   const [dirty, setDirty] = useState(false);
   const noteId = useId();
 
-  const formError = state?.error ? FORM_ERROR[state.error] : undefined;
+  // A new pick or a new submit hides the old error.
+  const formError = state?.error && !dirty && !pending ? FORM_ERROR[state.error] : undefined;
   const saved = state?.done === true && !dirty && !pending;
+  const unsaved = dirty && track !== current;
 
   return (
     <Panel title={PROFILE_TEXT.pathPanel} titleAs="h2" className="flex flex-col gap-4 pt-8">
@@ -67,6 +70,7 @@ export function PathPanel({ current }: PathPanelProps) {
               value={t}
               required
               checked={track === t}
+              hint={t === current ? PROFILE_TEXT.pathCurrent : undefined}
               onChange={() => {
                 setTrack(t);
                 setDirty(true);
@@ -91,8 +95,12 @@ export function PathPanel({ current }: PathPanelProps) {
             {formError}
           </p>
         )}
-        <p role="status" className="text-small text-success m-0">
-          {saved ? PROFILE_TEXT.pathSaved : ''}
+        {/* Always mounted (live region); empty:hidden drops the gap when there is nothing to say. */}
+        <p
+          role="status"
+          className={cn('text-small m-0 empty:hidden', saved ? 'text-success' : 'text-text-2')}
+        >
+          {saved ? PROFILE_TEXT.pathSaved : unsaved ? PROFILE_TEXT.pathUnsaved : null}
         </p>
 
         <div>
