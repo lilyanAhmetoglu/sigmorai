@@ -30,3 +30,15 @@ export type OnboardingFormState = {
   error: 'invalid_input' | 'unauthorized' | 'server_error';
   fields?: OnboardingField[];
 } | null;
+
+/**
+ * What deleteAccount (lib/actions/account.ts) returns to useActionState.
+ * null = nothing submitted yet. done = both deletes worked; the form then
+ * signs the browser out and goes home (no server redirect, so the stale
+ * Clerk cookie is cleared). clerk_error = our rows are gone but the sign-in
+ * account is not; a retry works.
+ */
+export type DeleteAccountFormState =
+  | { done: true; error?: undefined }
+  | { done?: undefined; error: 'not_confirmed' | 'unauthorized' | 'server_error' | 'clerk_error' }
+  | null;

@@ -24,6 +24,8 @@ They don't overlap: engineering never makes aesthetic calls, design never makes 
 ```
 app/                Routes (App Router). Pages are thin: read via lib/data, render components.
   api/mentor/       Streamed mentor replies → lib/mentor.
+  api/account/      GET export: the player's data as a JSON download.
+  api/webhooks/     Clerk webhook (user.deleted → erase the users row). Verified, erasure only.
 components/         Design-system primitives, flat (pixel-button.tsx, panel.tsx, xp-bar.tsx, …).
   hud/ scenes/ map/ quest/ …   Area components. Never import the DB or a provider SDK.
 lib/
@@ -35,6 +37,7 @@ lib/
   data/             server-only reads, scoped to auth()'s user.
   actions/          'use server' mutations: Zod → auth() → transaction → revalidatePath.
   grading/          server-only. Case and quick-check grading, award, open check.
+  account/          eraseUser (server-only, one cascading delete) + the pure Clerk webhook handler.
   mentor/           server-only. Every Anthropic call.
 db/                 Drizzle schema + client (see db/CLAUDE.md).
 drizzle/            Generated migrations. Never hand-edit meta/.

@@ -31,3 +31,13 @@ export type Audience = {
   points: readonly string[];
   forWho: string;
 };
+
+/** One section of the privacy page (lib/constants/legal-copy.ts). */
+export type PrivacySection = {
+  /** Anchor id, so a section can be linked. */
+  id: string;
+  heading: string;
+  paragraphs?: readonly string[];
+  /** A definition list: a short term, its text, and an optional outside link after it. */
+  items?: readonly { term: string; text: string; link?: { label: string; href: string } }[];
+};
