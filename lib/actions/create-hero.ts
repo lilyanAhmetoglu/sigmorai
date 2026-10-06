@@ -55,7 +55,10 @@ export async function createHero(
     return { error: 'server_error' };
   }
 
-  // The HUD in every (app) page reads the users row.
+  // The HUD in every (app) page reads the users row. Kept broad on purpose:
+  // it runs once per player, and the redirect must land on a fresh layout.
+  // It also expires the leaderboard cache once (implicit layout tag); fine,
+  // once per player. No tag call: a new hero has 0 XP, so it is on no range.
   revalidatePath('/', 'layout');
   // Outside the try: redirect() throws to navigate.
   redirect(AFTER_ONBOARDING_HREF);

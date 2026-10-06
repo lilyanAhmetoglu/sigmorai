@@ -14,8 +14,9 @@
  */
 import { isClerkAPIResponseError } from '@clerk/nextjs/errors';
 import { auth, clerkClient } from '@clerk/nextjs/server';
+import { revalidateTag } from 'next/cache';
 import { eraseUser } from '@/lib/account/erase';
-import { DELETE_CONFIRM_FIELD, DELETE_CONFIRM_VALUE } from '@/lib/constants';
+import { DELETE_CONFIRM_FIELD, DELETE_CONFIRM_VALUE, LEADERBOARD_CACHE_TAG } from '@/lib/constants';
 import type { DeleteAccountFormState } from '@/lib/types';
 import { dbErrorSummary } from '@/lib/utils';
 
@@ -36,6 +37,15 @@ export async function deleteAccount(
   } catch (err) {
     console.error('[deleteAccount] erase', dbErrorSummary(err));
     return { error: 'server_error' };
+  }
+  // The hero is gone from the board. 'max' marks the cached top list stale
+  // without re-rendering /profile (updateTag would, and bounce to onboarding);
+  // the next board visit fetches it again. The Clerk webhook expires it at once.
+  // Guarded: the row is already gone, so a cache error must not stop the Clerk delete.
+  try {
+    revalidateTag(LEADERBOARD_CACHE_TAG, 'max');
+  } catch (err) {
+    console.error('[deleteAccount] revalidate', err);
   }
 
   try {

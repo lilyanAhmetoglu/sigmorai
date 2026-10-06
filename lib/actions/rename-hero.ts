@@ -16,10 +16,10 @@
  */
 import { auth } from '@clerk/nextjs/server';
 import { and, eq, ne } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { updateTag } from 'next/cache';
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { HERO_NAME_UNIQUE_INDEX } from '@/lib/constants';
+import { HERO_NAME_UNIQUE_INDEX, LEADERBOARD_CACHE_TAG } from '@/lib/constants';
 import { RenameHeroSchema, type RenameHeroFormState } from '@/lib/types';
 import { dbErrorSummary, isUniqueViolation } from '@/lib/utils';
 
@@ -62,7 +62,9 @@ export async function renameHero(
     return { error: 'server_error' };
   }
 
-  // The HUD, profile, leaderboard and every sprite read the name.
-  revalidatePath('/', 'layout');
+  // The leaderboard shows the name: expire its cache. updateTag also re-renders
+  // this page (profile + HUD); every other page is dynamic and reads the new
+  // name (and sprite) on the next visit.
+  updateTag(LEADERBOARD_CACHE_TAG);
   return { done: true };
 }
