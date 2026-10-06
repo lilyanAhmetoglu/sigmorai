@@ -1,6 +1,6 @@
 import 'server-only';
 import { currentUser } from '@clerk/nextjs/server';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { progress, submissions, users, xpEvents } from '@/db/schema';
 
@@ -14,7 +14,7 @@ export async function exportAccount(userId: string) {
   const [clerkUser, userRows, progressRows, submissionRows, xpRows] = await Promise.all([
     // A Clerk outage must not block the export: the email just becomes null.
     currentUser().catch((err: unknown) => {
-      console.error('[exportAccount] currentUser', err);
+      console.error('[exportAccount] currentUser', err instanceof Error ? err.name : typeof err);
       return null;
     }),
     db.select().from(users).where(eq(users.id, userId)).limit(1),
@@ -23,8 +23,16 @@ export async function exportAccount(userId: string) {
       .from(progress)
       .where(eq(progress.userId, userId))
       .orderBy(asc(progress.completedAt)),
+    // Never `results` or `payload.order`/`seed`: they show which answers were
+    // right, which a failed attempt must not reveal (#35).
     db
-      .select()
+      .select({
+        id: submissions.id,
+        exerciseId: submissions.exerciseId,
+        status: submissions.status,
+        answers: sql<number[]>`${submissions.payload}->'answers'`,
+        createdAt: submissions.createdAt,
+      })
       .from(submissions)
       .where(eq(submissions.userId, userId))
       .orderBy(asc(submissions.createdAt)),

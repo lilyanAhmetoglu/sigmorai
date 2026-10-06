@@ -1,4 +1,5 @@
 import type { WebhookEvent } from '@clerk/nextjs/webhooks';
+import { dbErrorSummary } from '@/lib/utils';
 
 /**
  * What the Clerk webhook does with an event that verifyWebhook already
@@ -22,7 +23,7 @@ export async function handleClerkEvent(
     // 0 rows = never onboarded, or the in-app delete got there first. Both fine.
     await erase(userId);
   } catch (err) {
-    console.error('[clerk webhook] erase failed', err);
+    console.error('[clerk webhook] erase failed', dbErrorSummary(err));
     return new Response(null, { status: 500 });
   }
   return new Response(null, { status: 200 });

@@ -55,7 +55,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
       { term: 'Progress', text: 'Each lesson, case and quick check you cleared, with the date.' },
       {
         term: 'Graded answers',
-        text: 'For each case or quick check you submit: the options you picked, whether each one was right, and the time.',
+        text: 'For each case or quick check you submit: the options you picked, whether the attempt passed, and the time.',
       },
       { term: 'XP history', text: 'Each XP award: the amount, the reason and the date.' },
       {

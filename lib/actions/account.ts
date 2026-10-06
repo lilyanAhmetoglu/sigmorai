@@ -17,6 +17,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eraseUser } from '@/lib/account/erase';
 import { DELETE_CONFIRM_FIELD, DELETE_CONFIRM_VALUE } from '@/lib/constants';
 import type { DeleteAccountFormState } from '@/lib/types';
+import { dbErrorSummary } from '@/lib/utils';
 
 export async function deleteAccount(
   _prev: DeleteAccountFormState,
@@ -33,7 +34,7 @@ export async function deleteAccount(
   try {
     await eraseUser(userId);
   } catch (err) {
-    console.error('[deleteAccount] erase', err);
+    console.error('[deleteAccount] erase', dbErrorSummary(err));
     return { error: 'server_error' };
   }
 

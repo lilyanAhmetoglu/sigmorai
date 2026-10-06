@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { ACCOUNT_EXPORT_FILENAME, AUTH_ROUTES } from '@/lib/constants';
 import { exportAccount } from '@/lib/data/account';
+import { dbErrorSummary } from '@/lib/utils';
 
 /**
  * "Download your data" (profile → Your data): every row we hold about the
@@ -25,7 +26,7 @@ export async function GET() {
       },
     });
   } catch (err) {
-    console.error('[account export]', err);
+    console.error('[account export]', dbErrorSummary(err));
     return new Response('Export failed', { status: 500 });
   }
 }
