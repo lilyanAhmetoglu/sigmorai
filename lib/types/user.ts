@@ -73,6 +73,26 @@ export type SwitchTrackFormState =
   | { done?: undefined; error: 'invalid_input' | 'unauthorized' | 'not_onboarded' | 'server_error' }
   | null;
 
+/**
+ * The hero-name form on /profile (lib/actions/rename-hero.ts). Same rules as
+ * onboarding (HeroNameSchema). The user id comes from the session.
+ */
+export const RenameHeroSchema = OnboardingSchema.pick({ heroName: true });
+export type RenameHeroInput = z.infer<typeof RenameHeroSchema>;
+
+/**
+ * What renameHero returns to useActionState. null = nothing submitted yet.
+ * invalid_input = the name broke a HeroNameSchema rule. name_taken = another
+ * hero has this name (any case). not_onboarded = no users row to update.
+ */
+export type RenameHeroFormState =
+  | { done: true; error?: undefined }
+  | {
+      done?: undefined;
+      error: 'invalid_input' | 'name_taken' | 'unauthorized' | 'not_onboarded' | 'server_error';
+    }
+  | null;
+
 /** Which onboarding field failed. The form maps it to fixed copy (ONBOARDING_TEXT). */
 export type OnboardingField = keyof OnboardingInput;
 
