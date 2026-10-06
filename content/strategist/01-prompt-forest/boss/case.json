@@ -1,0 +1,118 @@
+{
+  "id": "strategist/r1/boss/challenge",
+  "title": "A team prompt playbook",
+  "scenario": "You lead sales operations at a software company. Twelve account managers record their customer calls, and an AI assistant turns each recording into a summary. The summaries differ a lot from person to person. Your director asks you to build one shared play for call summaries. The exhibit holds what you know. The numbers are made up for this case.",
+  "exhibit": "BRIEF:\n  12 account managers, about 20 customer calls a week each.\n  Each call is recorded and runs about 45 minutes.\n  A model that accepts audio turns each recording into a summary.\n  The summary goes into the team's notes tool. The manager who made the call reads it before saving.\n  Today each manager pastes a transcript. The team may send the audio file to an audio model instead.\n  Goal: one play that all 12 managers use.\n\nCURRENT TEMPLATE (copied from one manager's chat history):\n  Summarize the call below in our usual style. Add the next step.\n\n  [45-minute call transcript pasted here]\n\nEXAMPLES IN THE DRAFT PLAY (one from each of three managers):\n  Example 1:\n    Customer: Brightdesk. Mood: positive.\n    Next step: send the quote by Friday.\n  Example 2:\n    The customer asked about single sign-on and liked the demo. Marco will send a quote by Friday and book a security call.\n  Example 3:\n    | Topic    | Outcome       |\n    | Pricing  | Wants a quote |\n    | Security | Needs a call  |\n  Drafts from the play come back as a list, a paragraph or a table, with no pattern.\n\nREVIEW PLAN (draft):\n  A senior manager will grade 20 summaries a week with a checklist.\n  The checklist has one line so far: \"The summary is good and useful.\"\n\nAUDIO COST (Gemini API docs, audio understanding):\n  \"Tokens: 32 tokens per second of audio (1 minute = 1,920 tokens)\"\n\nWHERE THE PLAY LIVES:\n  The owner finished the play and saved it as a custom Skill in her own claude.ai account.\n  One manager says: \"Now all 12 of us have it automatically.\"\n",
+  "questions": [
+    {
+      "prompt": "The template puts a 45-minute transcript below the instruction. Which change to the layout fits the vendor guides best?",
+      "options": [
+        {
+          "text": "Write the instruction in capital letters, so that the model cannot miss it above a very long transcript.",
+          "explanation": "Capital letters do not fix the layout. Anthropic's guide says to put long documents near the top and the query at the end."
+        },
+        {
+          "text": "Put the transcript first and the instruction after it, so that the question comes last, after all the context.",
+          "explanation": "Right. Anthropic's guide says to put long documents above the query, and says queries at the end can improve quality by up to 30 percent in tests. Gemini's guide also says to give all the context first and the question at the very end.",
+          "correct": true
+        },
+        {
+          "text": "Move the instruction into the middle of the transcript, at the point where the customer agrees the next step.",
+          "explanation": "A question in the middle of the text gets none of the layout benefit. Both guides put the question at the end, after all the context."
+        },
+        {
+          "text": "Cut the transcript to its first ten minutes, so the instruction sits closer to the start of the text.",
+          "explanation": "Cutting 35 minutes of the call would lose facts the summary needs, such as a next step agreed late in the call. The fix is the order, not the length."
+        }
+      ]
+    },
+    {
+      "prompt": "The three examples came from three managers. Drafts now switch between a list, a paragraph and a table. What is the best fix?",
+      "options": [
+        {
+          "text": "Add five more examples in other formats, so the model can choose the best format for each call.",
+          "explanation": "More formats mean more mixed signals. Gemini's guide asks for a consistent format across all examples."
+        },
+        {
+          "text": "Keep the three examples and add one line: always use the same format as the examples above.",
+          "explanation": "The line cannot work, because the examples do not share one format. The model has no single format to copy."
+        },
+        {
+          "text": "Remove the examples and ask only for a good summary, because examples confuse the model.",
+          "explanation": "Anthropic's guide calls examples one of the most reliable ways to steer format, tone and structure. Without them the model picks a shape on its own."
+        },
+        {
+          "text": "Rewrite all three examples in one shared format, then test the play again on past calls.",
+          "explanation": "Right. Gemini's guide says the structure and formatting of few-shot examples should be the same, to avoid responses in undesired formats. A test on past calls shows whether the drift is gone.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The checklist has only line 1. Which line should replace it?",
+      "options": [
+        {
+          "text": "Lists each next step the customer agreed to, with an owner and a date, in under 150 words.",
+          "explanation": "Right. Anthropic's guide says good criteria are specific and measurable. Every reviewer can check an owner, a date and a word limit the same way.",
+          "correct": true
+        },
+        {
+          "text": "Reads clearly, covers the whole call and sounds as if a skilled account manager wrote it.",
+          "explanation": "Clear, complete and skilled are opinions, so two reviewers will grade the same summary differently. OpenAI's guide names this kind of test vibe-based."
+        },
+        {
+          "text": "Holds enough detail that a colleague never needs to open the recording or ask the manager.",
+          "explanation": "This cannot be measured, and a longer summary is not a better one. It also pushes the summary toward length instead of toward the next step."
+        },
+        {
+          "text": "Looks right to the senior manager at first read, and her gut feeling is the grade for that summary.",
+          "explanation": "A grade by gut feeling is the vibe-based review that OpenAI's evaluation guide lists as an anti-pattern."
+        }
+      ]
+    },
+    {
+      "prompt": "If the team sends the audio instead, about how many audio tokens does one 45-minute call use?",
+      "options": [
+        {
+          "text": "About 28,800 tokens.",
+          "explanation": "This is the count for 15 minutes (15 x 1,920). The call runs 45 minutes."
+        },
+        {
+          "text": "About 57,600 tokens.",
+          "explanation": "This is the count for 30 minutes (30 x 1,920). The call runs 45 minutes."
+        },
+        {
+          "text": "About 86,400 tokens.",
+          "explanation": "Right. 45 minutes x 1,920 tokens a minute = 86,400 tokens. Audio is billed as tokens, so a long call is not free. Check the vendor's live page before you budget.",
+          "correct": true
+        },
+        {
+          "text": "About 115,200 tokens.",
+          "explanation": "This is the count for 60 minutes (60 x 1,920). The call runs 45 minutes."
+        }
+      ]
+    },
+    {
+      "prompt": "A manager says the custom Skill now gives all 12 managers the play. What is the best reply?",
+      "options": [
+        {
+          "text": "No. In claude.ai a custom Skill belongs to one user, so keep the master copy of the play in a shared team folder.",
+          "explanation": "Right. Anthropic's docs say custom Skills in claude.ai are individual to each user and are not shared organization-wide. The master copy should sit where the team controls it.",
+          "correct": true
+        },
+        {
+          "text": "Yes. Custom Skills in claude.ai are shared with the whole organization as soon as one person uploads the Skill.",
+          "explanation": "The docs say the opposite for claude.ai: custom Skills are individual to each user. The API shares Skills across a workspace."
+        },
+        {
+          "text": "Yes, once an admin turns on central management, which lets one admin push the Skill into every manager's account.",
+          "explanation": "The docs say custom Skills in claude.ai cannot be centrally managed by admins."
+        },
+        {
+          "text": "No. Skills work only through the API, so the play must first be rebuilt there before any manager can use it.",
+          "explanation": "Skills also work in claude.ai, where users upload them in settings. The API shares Skills across a workspace, but the managers use claude.ai."
+        }
+      ]
+    }
+  ]
+}

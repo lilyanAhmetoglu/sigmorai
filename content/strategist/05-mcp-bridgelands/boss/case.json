@@ -1,0 +1,118 @@
+{
+  "id": "strategist/r5/boss/challenge",
+  "title": "Pick which integration to build first, and why",
+  "scenario": "You are head of operations at a freight forwarder with 120 staff. The customer team wants its AI assistant connected to company systems. The budget covers one integration this quarter. You must pick the first one and say why. The exhibit holds what you know. All numbers are made up for this case.",
+  "exhibit": "BRIEF:\n  The assistant is used by 25 customer-team agents. Nobody on the team writes code.\n  IT can build and run one integration this quarter.\n\nCANDIDATES (one card each):\n  A. Customer records\n     System: the CRM\n     Read or write: reads and updates records\n     Data that leaves: customer names and call notes\n     Approval: none\n  B. Customs documents\n     System: the company's Dropbox\n     Read or write: reads only\n     Data that leaves: whole customs forms with company registration and personal ID numbers, sent to a third party's server\n     Approval: none\n  C. Shipment tracking\n     System: the carrier's tracking service\n     Read or write: reads only\n     Data that leaves: a shipment number\n     Approval: none\n  D. Delay notices\n     System: company email\n     Read or write: sends email to customers\n     Data that leaves: customer names and delivery details\n     Approval: none\n\nLATER PLAN FOR B:\n  IT plans to use OpenAI's built-in Dropbox connector (a connector_id).\n  The team plans to use a model that OpenAI releases in October 2026.\n\nTRACKING SERVER NOTE:\n  The carrier runs the tracking MCP server. Its notes say: \"We add and rename tools from time to time.\"\n  The team will call it through Anthropic's MCP connector.\n\nCOST SHEET (made up):\n  Today: Claude Sonnet 4.6, 100 million input tokens a month at 1 USD per million.\n  Plan: move to a Claude model 4.7 or later, at the same price per token.\n  Anthropic pricing page: \"This tokenizer produces approximately 30% more tokens for the same text.\"\n  Claude Sonnet 4.6 and earlier models use the previous tokenizer.\n\nMODEL PLAN:\n  The pilot assistant runs on an OpenAI model with \"preview\" in its name.\n  Full rollout is planned for the next 18 months.\n  OpenAI deprecations page: \"Preview models, identified by `preview` in the model name, may be retired with much shorter notice, such as 2 weeks.\"\n",
+  "questions": [
+    {
+      "prompt": "Which candidate is the best first integration?",
+      "options": [
+        {
+          "text": "A: customer records. Updating the CRM saves the most time, and a person can fix a wrong update later on.",
+          "explanation": "A changes records for real, with no approval. A tool that writes to the CRM can change a record that nobody notices is wrong."
+        },
+        {
+          "text": "B: customs documents. It only reads, and staff open these forms more than any other file.",
+          "explanation": "Reading is lower risk than writing, but B sends whole forms with personal ID numbers to a third party. Heavy use does not remove that risk."
+        },
+        {
+          "text": "C: shipment tracking. It only reads, and only a shipment number leaves. The worst case is a wrong status.",
+          "explanation": "Right. On the integration card, C only reads and almost no data leaves. Reading is lower risk than acting, and a wrong status can be fixed with one more lookup.",
+          "correct": true
+        },
+        {
+          "text": "D: delay notices. Customers see the benefit at once, and the team can add approval later if it is needed.",
+          "explanation": "D sends email to customers with approval set to none. Acting is higher risk than reading, and approval should be on from the start."
+        }
+      ]
+    },
+    {
+      "prompt": "What does OpenAI's MCP guide say about the later plan for B?",
+      "options": [
+        {
+          "text": "It is the safe default: built-in connectors are OpenAI's recommended route for Dropbox, and they will stay available.",
+          "explanation": "The guide now marks connectors as legacy. A vendor's own shortcut can change, so check its status before you build a process on it."
+        },
+        {
+          "text": "Avoid new work on it. The connector_id is deprecated for models released after September 1, 2026; use a remote MCP server.",
+          "explanation": "Right. OpenAI's guide says connector_id is deprecated for models released after September 1, 2026, and points to server_url for a remote MCP server. Existing models keep connector support.",
+          "correct": true
+        },
+        {
+          "text": "It is blocked: OpenAI's API has no route to Dropbox for models released after September 2026, so IT must choose another system.",
+          "explanation": "A remote MCP server can reach third-party services. The guide points to server_url as the route to use now."
+        },
+        {
+          "text": "It is fine for the new model, because connectors are deprecated only for models released before September 1, 2026.",
+          "explanation": "The guide says the opposite. Models that exist now keep connector support, and models released after that date do not."
+        }
+      ]
+    },
+    {
+      "prompt": "The carrier may change its tools without telling you. Which control helps most?",
+      "options": [
+        {
+          "text": "Pin the tool list (a beta option in Anthropic's connector) so the assistant keeps the tools you approved.",
+          "explanation": "Right. Anthropic's page says a server can change its tools at any time, and a pinned list keeps what Claude sees from changing mid-conversation. OpenAI's guide also warns that servers may update tool behaviour unexpectedly.",
+          "correct": true
+        },
+        {
+          "text": "Nothing is needed, because the assistant only reads data, so a changed tool cannot cause harm, since it never writes anything.",
+          "explanation": "A server that renames or adds tools can change what the assistant can do. Both vendors warn about tools that change later."
+        },
+        {
+          "text": "Agree Zero Data Retention with the AI vendor, because that stops a server from changing its own tools.",
+          "explanation": "Zero Data Retention is about data kept by the vendor. It does not control a server's tools, and it does not cover the MCP server."
+        },
+        {
+          "text": "Ask the carrier to email the team before each tool change, and review the new tools by hand when that email arrives.",
+          "explanation": "A notice can arrive late or not at all, and the carrier's note only says it changes tools from time to time. A pin keeps the approved list until you decide."
+        }
+      ]
+    },
+    {
+      "prompt": "At the same price per token and for the same text, about what will the monthly input cost be after the move?",
+      "options": [
+        {
+          "text": "About $30.",
+          "explanation": "This is only the extra 30%, not the whole bill. The input still costs its first 100 USD plus the extra."
+        },
+        {
+          "text": "About $100.",
+          "explanation": "A same price per token does not mean the same cost. The newer tokenizer makes more tokens for the same text."
+        },
+        {
+          "text": "About $230.",
+          "explanation": "This adds 130 USD on top of the old 100 USD. The extra 30% applies to the 100 million tokens once."
+        },
+        {
+          "text": "About $130.",
+          "explanation": "Right. 100 million tokens x 1.3 = 130 million tokens, at 1 USD per million = 130 USD. The page says the exact increase depends on the content, so test on your own text.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What should the rollout plan assume about the preview model?",
+      "options": [
+        {
+          "text": "Move to a generally available model before rollout, and keep a test set so a model change can be checked fast.",
+          "explanation": "Right. OpenAI says preview models may be retired with much shorter notice and does not recommend them for business-critical production unless you can migrate on short notice. Generally available models get at least 6 months.",
+          "correct": true
+        },
+        {
+          "text": "Nothing special. OpenAI gives at least 6 months of notice for its models, so there will be time to react.",
+          "explanation": "At least 6 months is for generally available models. Preview models can be retired with much shorter notice, such as 2 weeks."
+        },
+        {
+          "text": "Stay on the preview model, because retirement dates apply only to models that are not in preview, so an 18-month rollout is safe.",
+          "explanation": "Preview models are retired too, and with shorter notice. The page names examples of preview models with retirement dates."
+        },
+        {
+          "text": "Budget one migration in year three, because preview models are retired on a fixed three-year cycle by OpenAI.",
+          "explanation": "There is no three-year cycle. The page says preview models may be retired on notice as short as 2 weeks."
+        }
+      ]
+    }
+  ]
+}

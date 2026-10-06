@@ -1,0 +1,118 @@
+{
+  "id": "strategist/r2/boss/challenge",
+  "title": "Choose and scope a pilot",
+  "scenario": "You lead tenant services at a property company with 6,000 rental flats. The board wants one AI pilot and asks you to choose it and scope it. The exhibit holds what you know. All numbers are made up for this case.",
+  "exhibit": "BRIEF:\n  Tenant services team of 20 people. Staff work from written templates and rules.\n  Phase 2 (later): the agent must write results into the maintenance system.\n  IT will not use a vendor-hosted agent runtime for tenant data: the company runs the agent itself.\n  IT has two engineers. They do not want to write the agent loop from scratch.\n\nTASK LIST (per month):\n  Task                                   Count    Time each   Template and written rules?\n  A. Sort tenant messages by topic       4,000    1 minute    yes\n  B. Draft repair-appointment letters      900    6 minutes   yes\n  C. Check a name against the contract   7,500    20 seconds  yes\n  D. Write a report for a tenants' board    25    2 hours     no, different every time\n\nSCORE CARD (the course score card, filled in by the team; each score 1 to 3, 3 = strong; Risk: 3 = mistakes are cheap and easy to fix):\n                                           Value  Fit  Success  Risk  Ready  Total\n  X. Chat assistant that promises             3    3      3      1     3     13\n     tenants a repair date\n  Y. Draft repair-appointment letters         3    2      2      3     2     12\n  Notes on X: a wrong date means a tenant waits at home, or a broken heater stays unfixed. No person checks the date before it is sent.\n  Notes on Y: an agent reads each letter before it is sent.\n\nVALUE MODEL (idea E: the AI answers rent-balance questions directly, with no agent check):\n  AI answers correctly    saves 4 EUR of agent time\n  AI answers wrongly      tenant calls back, costs 36 EUR\n\nPILOT PLAN DRAFT (for the letters, task Y):\n  Scope      6 weeks, one team of 5 staff\n  Criteria   85% of letters approved with few edits; no wrong date or address in 200 test letters\n  Testing    first on 200 past letters with known good versions\n  Limits     only the 5 pilot staff have access; spend alerts and a hard cap\n  Decision   the steering group will discuss at the end\n",
+  "questions": [
+    {
+      "prompt": "If AI did the task, which task on the list would save the most staff hours a month?",
+      "options": [
+        {
+          "text": "A: sort messages by topic, because 4,000 a month is a high count and the rules are written down.",
+          "explanation": "4,000 x 1 minute is about 67 hours a month. That is less than B."
+        },
+        {
+          "text": "B: draft repair-appointment letters. 900 letters at 6 minutes is the most staff time a month.",
+          "explanation": "Right. 900 x 6 minutes = 5,400 minutes, or 90 hours a month. B also has a fixed template and written rules, so it passes the four signs of good repetition.",
+          "correct": true
+        },
+        {
+          "text": "C: check names against contracts, because 7,500 a month is the highest count on the whole list.",
+          "explanation": "7,500 x 20 seconds is about 42 hours a month. A high count does not decide: do the multiplication."
+        },
+        {
+          "text": "D: write the board reports, because each one takes 2 hours, the longest time on the whole list.",
+          "explanation": "25 x 2 hours is 50 hours a month, and the report has no template. Rare work that differs every time is a poor first target."
+        }
+      ]
+    },
+    {
+      "prompt": "The card puts X above Y by one point. How should you read it?",
+      "options": [
+        {
+          "text": "X wins. Its total of 13 is the highest, and the total is the number that counts on this card.",
+          "explanation": "On the course card, a 1 on success or risk is a warning, even if the total is high. The evidence matters more than the total."
+        },
+        {
+          "text": "Raise the Risk score of X to 3, because the model will give the right date most of the time anyway.",
+          "explanation": "Most of the time is not good enough here. A wrong date costs a tenant a day at home. Do not raise a score without evidence."
+        },
+        {
+          "text": "Drop X for good, because any 1 on the card means that AI can never be used for that task.",
+          "explanation": "A high cost of error does not always mean no. It can mean that the AI drafts and a person decides."
+        },
+        {
+          "text": "X has a warning sign in its 1 on Risk. Fix that first, or let a person approve each date.",
+          "explanation": "Right. On the course card, a 1 on risk is a warning even when the total is high. OpenAI's accuracy guide describes a case where a very costly failure meant the human led and the AI assisted.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "For phase 2, which build path fits the brief best?",
+      "options": [
+        {
+          "text": "A direct model API (Anthropic Messages API or OpenAI Responses API): the most control, because the engineers write the whole agent loop.",
+          "explanation": "This gives the most control, but the engineers would write the loop themselves. The brief says they do not want to."
+        },
+        {
+          "text": "A vendor-hosted agent (Claude Managed Agents or OpenAI Agents API): the vendor hosts and runs the agent loop for the company.",
+          "explanation": "Here the vendor hosts the loop and the runtime. The brief says IT will not use a vendor-hosted runtime for tenant data."
+        },
+        {
+          "text": "An agent SDK (Claude Agent SDK or OpenAI Agents SDK): it provides the loop and tool running, in a process the company operates.",
+          "explanation": "Right. Anthropic says its Agent SDK provides the agent loop and tool execution in a process you operate. OpenAI says its Agents SDK runs inside your application. Both meet the brief.",
+          "correct": true
+        },
+        {
+          "text": "A ready-made ChatGPT workspace agent, set up in the chat builder, so the company needs no developers and hosts nothing.",
+          "explanation": "Workspace agents sit at the far buy end. The vendor runs them, so they do not meet the rule that the company runs the agent itself."
+        }
+      ]
+    },
+    {
+      "prompt": "Idea E needs a share of correct answers to break even. What share is that?",
+      "options": [
+        {
+          "text": "About 90%.",
+          "explanation": "Right. Per 100 answers: 90 x 4 EUR = 360 EUR saved, and 10 x 36 EUR = 360 EUR lost. At 90% the design breaks even, and above 90% it saves money.",
+          "correct": true
+        },
+        {
+          "text": "About 99%.",
+          "explanation": "At 99% the design clearly pays (99 x 4 = 396 EUR saved, 1 x 36 = 36 EUR lost), but it does not need to be that high to break even."
+        },
+        {
+          "text": "About 50%.",
+          "explanation": "Half-way is not break-even. A wrong answer costs 9 times what a right answer saves (36 / 4), so the design needs far more than half right."
+        },
+        {
+          "text": "About 10%.",
+          "explanation": "At 10% right, the design loses badly: 10 x 4 = 40 EUR saved against 90 x 36 = 3,240 EUR lost."
+        }
+      ]
+    },
+    {
+      "prompt": "The plan's last line says the steering group will discuss at the end. What should it say instead?",
+      "options": [
+        {
+          "text": "The steering group meets on a fixed date, hears the team's report and votes on whether the pilot goes on.",
+          "explanation": "A date and a vote do not say which numbers count. Without rules agreed in advance, the same result can be read in different ways."
+        },
+        {
+          "text": "The pilot goes on until the five pilot staff say in a meeting that the draft letters seem to work well.",
+          "explanation": "This is a vibe-based result. Criteria must be specific and measurable, and the stop rule must be written down in advance."
+        },
+        {
+          "text": "Go, change or stop rules with numbers, agreed before day one, such as go if every criterion is met.",
+          "explanation": "Right. The decision rule is written before the pilot starts, so the result decides the next step and not the loudest voice in the room.",
+          "correct": true
+        },
+        {
+          "text": "The vendor reports the result at the end, and the steering group accepts it unless someone objects to it.",
+          "explanation": "The people who own the decision should set the rule in advance. A vendor's report is not a decision rule."
+        }
+      ]
+    }
+  ]
+}
