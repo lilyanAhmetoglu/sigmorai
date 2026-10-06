@@ -30,20 +30,20 @@
       "prompt": "A teammate wants to cancel and resubmit shot-4 and shot-5, because they are THROTTLED. What is the best move?",
       "options": [
         {
-          "text": "Delete both and ask for a different video model.",
+          "text": "Delete both and ask the vendor for a different video model that has no queue.",
           "explanation": "Nothing says the model is the problem. The jobs are waiting for capacity under your limit."
         },
         {
-          "text": "Leave them. THROTTLED is not an error. The jobs are queued behind your rate limit and will proceed on their own.",
+          "text": "Leave them. THROTTLED is not an error. They wait for your rate limit and then run.",
           "explanation": "Right. This is how Runway's primer describes THROTTLED.",
           "correct": true
         },
         {
-          "text": "Treat them as FAILED and tell the client two shots are lost.",
+          "text": "Treat them as FAILED, tell the client two shots are lost, and ask for a refund.",
           "explanation": "They are not failed. Runway says they will proceed on their own."
         },
         {
-          "text": "Cancel and resubmit now. THROTTLED means the job failed.",
+          "text": "Cancel and resubmit now. THROTTLED means the job failed and will not start.",
           "explanation": "Runway says THROTTLED is not an error. A resubmitted job would only queue again."
         }
       ]
@@ -52,20 +52,20 @@
       "prompt": "Shot-9 is a Veo 3.1 job, submitted 4 minutes ago. It still shows done = false. What does that tell you?",
       "options": [
         {
-          "text": "You must submit it again to make it finish faster.",
+          "text": "You must submit it again to make it finish faster, and cancel the first one.",
           "explanation": "A new request starts another job. It does not speed up the one that is running."
         },
         {
-          "text": "The job failed. A job that takes over a minute has failed.",
+          "text": "The job failed, because a job that takes over a minute has failed and must be rerun.",
           "explanation": "Google lists a maximum latency of 6 minutes at peak hours. 4 minutes is inside that range."
         },
         {
-          "text": "Normal so far. Google says Veo latency can reach 6 minutes at peak hours. Keep checking.",
+          "text": "Normal so far. Veo latency can reach 6 minutes at peak hours. Keep checking.",
           "explanation": "Right. Google's limits list a latency from 11 seconds to 6 minutes at peak hours, and the job is polled until done is true.",
           "correct": true
         },
         {
-          "text": "The video is ready but hidden until you refresh the page.",
+          "text": "The video is ready but hidden until you refresh the page or clear the cache.",
           "explanation": "done = false means the job is not finished. Nothing in the docs says the video is waiting."
         }
       ]
@@ -74,20 +74,20 @@
       "prompt": "The studio will run 200 clips overnight. Which setup is best, if the tool supports it?",
       "options": [
         {
-          "text": "Poll as fast as possible all night, so you never miss a result.",
+          "text": "Poll as fast as possible all night with no pause, so you never miss a result.",
           "explanation": "Runway's primer says to poll with backoff rather than a tight loop."
         },
         {
-          "text": "Ask the tool to notify you when jobs finish, for example with a webhook, instead of watching a screen.",
+          "text": "Ask the tool to notify you when jobs finish, for example with a webhook.",
           "explanation": "Right. OpenAI describes webhooks as notifications to an endpoint you control, for example when a batch completes. Being told is calmer than watching for a whole night.",
           "correct": true
         },
         {
-          "text": "Refresh the job page by hand every few minutes.",
+          "text": "Refresh the job page by hand every few minutes and note each status on paper.",
           "explanation": "This is possible but it does not scale to 200 jobs, and it is easy to miss a failure."
         },
         {
-          "text": "Cancel each job and run them again in the morning.",
+          "text": "Cancel each job now and run them again in the morning, when the queue is shorter.",
           "explanation": "Cancelling throws away work for no reason. Jobs can run overnight."
         }
       ]
@@ -96,19 +96,19 @@
       "prompt": "The inbox shows the same OpenAI \"finished\" notice twice, with the same webhook-id. Was the caption job run twice?",
       "options": [
         {
-          "text": "Yes, and you will be billed twice for the job.",
+          "text": "Yes, the job ran twice and you will be billed twice for the same caption job.",
           "explanation": "Nothing in the docs links a duplicate notice to a second run or a second charge."
         },
         {
-          "text": "No. A webhook never sends the same event twice.",
+          "text": "No. A webhook never sends the same event twice, so one of the notices must be fake.",
           "explanation": "OpenAI says in rare cases it may deliver duplicates."
         },
         {
-          "text": "Yes. Two notices always mean two runs.",
+          "text": "Yes. Two notices always mean two runs, even when the webhook-id is the same.",
           "explanation": "OpenAI's docs say duplicate copies of the same event can be delivered."
         },
         {
-          "text": "Not necessarily. OpenAI says it may deliver duplicate copies of an event. The same webhook-id marks it as a duplicate.",
+          "text": "Not necessarily. OpenAI may deliver a duplicate. The same webhook-id marks it.",
           "explanation": "Right. OpenAI says the webhook-id header can be used as an idempotency key to remove duplicates.",
           "correct": true
         }
