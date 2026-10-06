@@ -28,6 +28,7 @@ import {
   TRACKS,
 } from '@/lib/constants';
 import type { ChapterStep, ExerciseRef, RealmId, SideStep, Track } from '@/lib/types';
+import { utcMidnight } from '@/lib/utils';
 
 const alt = (xs: readonly (string | number)[]) => `(?:${xs.join('|')})`;
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
@@ -56,7 +57,7 @@ export const EXERCISE_ID_PATTERN = new RegExp(
 );
 
 function isCalendarDate(date: string): boolean {
-  const d = new Date(`${date}T00:00:00Z`);
+  const d = utcMidnight(date);
   return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(date);
 }
 

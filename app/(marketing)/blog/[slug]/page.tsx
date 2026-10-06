@@ -76,7 +76,7 @@ export default async function BlogPostPage({ params }: PageProps<'/blog/[slug]'>
           {BLOG_TEXT.back}
         </Link>
         <div className="flex flex-col gap-3">
-          <p className="page-eyebrow">
+          <p className="text-small text-text-3 m-0">
             <span className="sr-only">{BLOG_TEXT.publishedLabel} </span>
             <time dateTime={post.date}>{dateLabel(post.date)}</time>
           </p>

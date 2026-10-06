@@ -53,7 +53,7 @@ export const SHELL_TEXT = {
   footerRight: 'LEARN · BUILD · ASCEND',
   footerBlog: 'BLOG',
   footerPrivacy: 'PRIVACY',
-  footerNavLabel: 'Site',
+  footerNavLabel: 'Footer',
 } as const;
 
 export const HUD_TEXT = {

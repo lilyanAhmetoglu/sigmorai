@@ -14,19 +14,18 @@ export const BLOG_META = {
 } as const;
 
 export const BLOG_TEXT = {
-  eyebrow: 'BLOG',
+  eyebrow: 'NEW LEVELS',
   title: 'Blog',
   intro: `Short notes on new ${SITE_NAME} levels. Each post sums up one lesson and links to it. The lesson cites the source pages.`,
   empty: 'No posts yet. New levels get a post here.',
   feed: 'RSS feed',
-  /** Prefix for the screen-reader date line on a post. */
+  /** Screen-reader prefix for a post's date line. */
   publishedLabel: 'Published',
   openLesson: 'Open the lesson',
   sourcesTitle: 'SOURCES',
   sourcesIntro: 'The lesson behind this post cites these pages.',
   back: 'All posts',
   backIcon: '←',
-  notFound: 'There is no post at this address.',
   loadError: "This page didn't load.",
   retry: 'Try again',
 } as const;

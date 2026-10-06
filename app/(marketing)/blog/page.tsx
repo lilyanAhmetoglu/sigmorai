@@ -56,14 +56,15 @@ export default async function BlogPage() {
             {posts.map((post) => (
               <li key={post.slug}>
                 <Panel className="flex flex-col gap-2">
-                  <p className="page-eyebrow">
-                    <time dateTime={post.date}>{dateLabel(post.date)}</time>
-                  </p>
                   <h2 className="font-display text-h4 m-0 leading-tight break-words">
                     <Link href={blogHref(post.slug)} className="inline-flex min-h-11 items-center">
                       {post.frontmatter.title}
                     </Link>
                   </h2>
+                  <p className="text-small text-text-3 order-first m-0">
+                    <span className="sr-only">{BLOG_TEXT.publishedLabel} </span>
+                    <time dateTime={post.date}>{dateLabel(post.date)}</time>
+                  </p>
                   <p className="text-body leading-body text-text-2 m-0">
                     {post.frontmatter.description}
                   </p>
