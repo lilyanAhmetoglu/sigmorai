@@ -12,26 +12,24 @@ import { MarketingHeader } from '@/components/hud/marketing-header';
 import { JsonLd } from '@/components/json-ld';
 import { LessonBody } from '@/components/quest/lesson-body';
 import { SourceList } from '@/components/quest/source-list';
+import { ShareButtons } from '@/components/share-buttons';
 import {
   BLOG_HREF,
   BLOG_RELATED_COUNT,
   BLOG_TEXT,
   blogHref,
   MAIN_CONTENT_ID,
+  SHARE_TEXT,
   SITE_NAME,
   SITE_URL,
 } from '@/lib/constants';
 import { postHeadings, relatedPosts, toBlogCard } from '@/lib/content/blog';
 import { articleJsonLd } from '@/lib/content/json-ld';
 import { ContentError, listBlogPosts, loadBlogPost, loadLesson } from '@/lib/content/load';
+import { socialMetadata } from '@/lib/og/metadata';
 import { dateLabel } from '@/lib/utils';
 
-/** Every post is prerendered at build time; any other slug is a 404. */
-export const dynamicParams = false;
-
-export async function generateStaticParams() {
-  return (await listBlogPosts()).map(({ slug }) => ({ slug }));
-}
+/** Prerendered per post: dynamicParams + generateStaticParams are in layout.tsx (the share image uses them too). */
 
 /** The post and its lesson (for the sources). One read per render: metadata and page share it. */
 const getPost = cache(async (slug: string) => {
@@ -50,10 +48,12 @@ export async function generateMetadata({ params }: PageProps<'/blog/[slug]'>): P
   const data = await getPost(slug);
   if (!data) return {};
   const { title, description } = data.post.frontmatter;
+  const pageTitle = `${title} · ${SITE_NAME}`;
   return {
-    title: `${title} · ${SITE_NAME}`,
+    title: pageTitle,
     description,
     alternates: { canonical: blogHref(slug) },
+    ...socialMetadata({ title: pageTitle, description, url: blogHref(slug), type: 'article' }),
   };
 }
 
@@ -148,6 +148,9 @@ export default async function BlogPostPage({ params }: PageProps<'/blog/[slug]'>
           <aside className="post-aside">
             <PostToc headings={headings} />
             <QuestBox place={place} lesson={post.frontmatter.lesson} />
+            <ShareButtons
+              target={{ url: blogHref(slug), text: SHARE_TEXT.post(post.frontmatter.title) }}
+            />
           </aside>
         </div>
 
