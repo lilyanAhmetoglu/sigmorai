@@ -74,7 +74,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Realms', href: REALMS_HREF, live: true },
   { label: 'World map', href: MAP_HREF, live: true },
   { label: 'Leaderboard', href: LEADERBOARD_HREF, live: true },
-  { label: 'Math Tower', href: MATH_HREF, live: true },
+  { label: 'Blog', href: BLOG_HREF, live: true },
   { label: 'Profile', href: PROFILE_HREF, live: true },
 ];
 
