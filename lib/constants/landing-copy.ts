@@ -1,5 +1,8 @@
 import type { Audience, Track } from '@/lib/types';
 import { REALMS, TRACK_ACCENTS } from './curriculum';
+import { QUICK_CHECK_QUESTIONS } from './content';
+import { CHAPTER_COUNT } from './exercises';
+import { HP_PER_CHALLENGE, XP_REWARDS } from './xp';
 import { SITE_NAME } from './site';
 
 /**
@@ -29,7 +32,27 @@ export const LANDING_TEXT = {
   audienceTitle: 'Pick the path that fits you',
   audienceIntro:
     'Pick the path that matches your job. The realms share names, but each path has its own lessons and cases: builders design systems, strategists decide business cases, creators decide media cases.',
+  howEyebrow: 'HOW IT WORKS',
+  howTitle: 'How you clear a level',
+  /** Numbered steps; the numbers are drawn by CSS, so the words stand alone. */
+  howSteps: [
+    'Read a short lesson. It lists the official sources behind every claim.',
+    `Decide a real case. A failed try costs 1 HP (${HP_PER_CHALLENGE} HP per case, back every day). Clear it for +${XP_REWARDS.challenge} XP and the next chapter opens.`,
+    `Take the quick check: ${QUICK_CHECK_QUESTIONS} questions on the lesson. +${XP_REWARDS['quick-check']} XP, no HP cost.`,
+    `Clear the realm's boss case (+${XP_REWARDS.boss} XP) to earn a certificate you can share.`,
+  ],
+  realmsEyebrow: 'THE MAP',
+  realmsTitle: `${REALMS.length} realms, one world`,
+  /** Keep in step with OPEN_TIERS (curriculum.ts): beginner + intermediate today. */
+  realmsIntro: `Each realm is a course: ${CHAPTER_COUNT} chapters and a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
+  realmsAll: 'Explore all realms',
+  blogEyebrow: 'FROM THE BLOG',
+  blogTitle: 'Latest posts',
+  blogAll: 'Read the blog',
 } as const;
+
+/** How many blog posts the landing page shows. */
+export const LANDING_POST_COUNT = 3;
 
 /**
  * The share image (app/(marketing)/opengraph-image.tsx). The alt repeats the
