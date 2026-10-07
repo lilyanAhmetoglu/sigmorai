@@ -1,0 +1,115 @@
+---
+id: creator/r8/c5/lesson
+title: Incident plan
+minutes: 7
+sources:
+  - kind: docs
+    title: OpenAI docs · Safety best practices
+    url: https://developers.openai.com/api/docs/guides/safety-best-practices
+  - kind: docs
+    title: OpenAI docs · Production best practices
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+  - kind: docs
+    title: OpenAI docs · Deprecations
+    url: https://developers.openai.com/api/docs/deprecations
+  - kind: docs
+    title: Claude docs · Model deprecations
+    url: https://platform.claude.com/docs/en/about-claude/model-deprecations
+  - kind: docs
+    title: Gemini API docs · Deprecations
+    url: https://ai.google.dev/gemini-api/docs/deprecations
+  - kind: docs
+    title: Gemini API docs · Safety and factuality guidance
+    url: https://ai.google.dev/gemini-api/docs/safety-guidance
+---
+
+## Why it matters
+
+At 09:10 someone finds an API key pasted into a public design file. At 11:40 an approved ad is live with a garbled logo. On Friday a video tool stops working for good. Each is an **incident**: something goes wrong in production, and the clock is running.
+
+You do not need to fix them yourself. You need a plan written before they happen, so that nobody argues about who does what.
+
+## What counts as an incident
+
+This list is ours, not a vendor's.
+
+| Kind                | Example                                      |
+| ------------------- | -------------------------------------------- |
+| A secret leaks      | An API key in a public file                  |
+| A bad asset is live | A wrong logo, a wrong claim, a missing label |
+| A tool changes      | A model is retired or an API is shut down    |
+| Someone misuses it  | A fan-facing generator makes an unsafe image |
+| A limit stops work  | A hard spend limit or a rate limit on launch |
+
+## Five steps for any incident
+
+This method is also ours. Use it as a frame.
+
+1. **Spot.** How will you hear about it?
+2. **Contain.** Stop the harm first: pause, revoke, switch off.
+3. **Fix.** Replace the asset, the key or the tool.
+4. **Tell.** Say who needs to know, and who says it.
+5. **Learn.** Change the plan so it is less likely to happen again.
+
+Contain comes before fix. Pausing a bad ad takes a minute. Finding the cause can take a day.
+
+## Spot: plan how you will hear
+
+Google's safety guidance says: "No matter how much you test and mitigate, you can never guarantee perfection, so plan upfront how you'll spot and deal with problems that arise." It suggests a monitored channel for user feedback.
+
+OpenAI says users should have an easy way to report problems, such as a listed email address or a ticket form. That method "should be monitored by a human and responded to as appropriate".
+
+A channel nobody reads is not a plan. Name the person who reads it.
+
+## A leaked key: revoke, replace
+
+OpenAI's guidance is short: if you believe a key "has been exposed, misused, or otherwise compromised, revoke it promptly and replace it with a new key".
+
+OpenAI also describes the normal order for changing a key: create a replacement, update your applications to use it, and revoke the old key "once you've verified that the replacement works". In a leak you may revoke first, because the harm is live. Then replace.
+
+Afterwards, look at the usage page to see what the key did. OpenAI says to keep keys out of code and public repositories, and to use environment variables or a secret manager.
+
+## A tool that goes away
+
+Models and APIs are retired. Vendors give notice, but the notice differs.
+
+- **OpenAI:** generally available models get at least 6 months. Specialized variants get at least 3 months. Preview models "may be retired with much shorter notice, such as 2 weeks". OpenAI does not recommend previews for business-critical work unless you can migrate on short notice.
+- **Claude:** at least 60 days' notice before retirement for publicly released models. "Requests to retired models will fail."
+- **Gemini:** its page lists the earliest possible shutdown dates, and says the exact date will be communicated with advance notice.
+
+A real example: OpenAI told developers on March 24, 2026 that the Videos API and the Sora 2 models would be removed on September 24, 2026. After that date, calls to them cannot work. Retrying does nothing.
+
+What helps:
+
+- **Know what you use.** Claude's Usage page can export a list of usage by API key and model.
+- **Give one person the job of reading the deprecation pages** each month.
+- **Test a replacement before the date.** Claude's page says to test with newer models well before the retirement date.
+- **Be careful with previews.** A model with "preview" in its name can go away fast.
+
+## A bad asset that is live
+
+For a wrong logo or claim, the vendors' docs do not decide. Your plan does. A good first move is to pause the ad or post, swap in the approved master, and tell the people who must know. Chapter 1 told you to keep a master. This is why.
+
+## Someone misuses your tool
+
+If your studio builds something fans can use, OpenAI recommends **safety identifiers**: a string that identifies each user, such as a hash of their email. OpenAI says they give "a stable way to trace activity back to an individual end user" and "reduce the chance that one user's misuse disrupts access for your broader organization". Without them, one bad user can put the whole account at risk.
+
+## Write the plan on one page
+
+This table is ours. Fill it in before launch.
+
+| Trigger                | First action                    | Owner | Who is told |
+| ---------------------- | ------------------------------- | ----- | ----------- |
+| Key leaked             | Revoke it, then replace         | name  | name        |
+| Wrong asset live       | Pause, swap in the master       | name  | name        |
+| Tool retirement notice | Test a replacement, set a date  | name  | name        |
+| User reports misuse    | Check the user, block if needed | name  | name        |
+
+## What this means for your work
+
+- **Write the plan before launch.** Names, not teams.
+- **Contain first.** Stop the harm, then find the cause.
+- **Revoke leaked keys at once.**
+- **Watch the deprecation pages.** A shutdown date is a deadline.
+- **Avoid previews for anything the business needs.**
+- **Keep the master.** It is how you replace a wrong asset fast.

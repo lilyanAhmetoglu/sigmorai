@@ -1,0 +1,85 @@
+---
+id: creator/r8/c2/lesson
+title: Watermarks
+minutes: 6
+sources:
+  - kind: docs
+    title: OpenAI docs · Content provenance
+    url: https://developers.openai.com/api/docs/guides/content-provenance
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: Google AI for Developers · SynthID
+    url: https://ai.google.dev/responsible/docs/safeguards/synthid
+  - kind: docs
+    title: C2PA · Content Credentials explainer (spec 2.2)
+    url: https://c2pa.org/specifications/specifications/2.2/explainer/Explainer.html
+---
+
+## Why it matters
+
+Your studio exports a hero image. A client posts it. Ten days later a stranger posts a screenshot of it with a new caption. Can anyone still tell where it came from?
+
+There are three different "marks" a file can carry. They do different jobs, and they fail in different ways. A designer who mixes them up will promise the client something no tool can keep.
+
+Bootstrap Village, chapter 6, showed the two embedded signals. This chapter adds what each vendor promises, and what you can safely promise a client.
+
+## Three kinds of mark
+
+| Mark                                        | Who it is for | Where it lives                     |
+| ------------------------------------------- | ------------- | ---------------------------------- |
+| **Visible label** (a badge or a corner tag) | People        | Drawn on the picture               |
+| **Metadata** (C2PA Content Credentials)     | Tools         | In the file's data, not the pixels |
+| **Invisible watermark** (SynthID)           | Tools         | Inside the pixels or the sound     |
+
+OpenAI says the three are separate. Its page states: "Visible watermarks and labels are separate from the provenance signals checked by the API." A badge in the corner does not replace a credential. A credential does not replace a badge.
+
+## What the vendors say they add
+
+**Google.** The Gemini image page says: "All generated images include a SynthID watermark." The Veo page says videos made by Veo "are watermarked using SynthID" and can be verified with the SynthID verification platform. Google describes SynthID as a Google DeepMind technology that embeds "digital watermarks directly into AI-generated images, audio, text or video". The watermark is imperceptible to humans.
+
+**OpenAI.** OpenAI's provenance check looks for C2PA Content Credentials on images, and for SynthID on images and audio. OpenAI says the check covers "supported OpenAI signals", and that not all OpenAI-generated content contains a supported signal. Its page does not promise a watermark on every file.
+
+Read each vendor's own page for the model you use. Do not assume that one vendor's mark appears on another vendor's files.
+
+## What moving a file does to each mark
+
+OpenAI's page gives the pattern:
+
+- **Metadata.** "Editing, converting, or sharing a file can remove its metadata."
+- **SynthID.** The watermark is "part of the image or audio itself and may survive some transformations."
+
+Note the word **may**. The page does not say the watermark always survives. It also warns that "compression, cropping, screenshots, metadata removal, and format conversions can erase or weaken a signal."
+
+C2PA adds a link between the two. Its explainer says a soft binding, such as an invisible watermark, can help find a Content Credential after it was removed from the file. So the marks can support each other.
+
+## A watermark is not a wall
+
+Google's SynthID page for text is honest about limits. It says SynthID Text "is not designed to directly stop motivated adversaries from causing harm". It adds that the technique "can make it harder to use AI-generated content for malicious purposes", and that it can be combined with other approaches. That page is about text, but the lesson is general: a watermark makes misuse harder. It does not make misuse impossible.
+
+OpenAI is firm about one rule: "Don't use repeated queries to reverse-engineer, remove, or evade a watermark."
+
+Example: a teammate wants to upload one image 30 times with small edits, to learn which edit hides the mark. That is the use OpenAI asks you not to make.
+
+## Checking a file, step by step
+
+When someone sends you a file and asks "is this ours?":
+
+1. **Ask for the original.** OpenAI says to "verify the original file when possible".
+2. **Check on the vendor's own tool.** OpenAI's check looks for OpenAI's signals. Google points to its SynthID verification platform for Veo videos.
+3. **Read what you get as evidence.** OpenAI says a `detected` result is evidence of a specific signal, "not a complete history of a file". A `not_detected` result is "an absence of detected evidence".
+4. **Add a person.** OpenAI recommends pairing automated decisions with human review in high-stakes workflows.
+
+## What this means for your work
+
+This checklist is ours, not a vendor rule.
+
+- **Use a visible label and the embedded signals together.** They serve different readers.
+- **Do not strip metadata "to save size" without a reason.** Ask your export tool what it keeps.
+- **Keep the original export.** A screenshot or a crop is the worst file to check.
+- **Never promise "every copy can be traced".** Say that signals may survive, and that they may not.
+- **Never try to evade a watermark, and never help a client do it.**
