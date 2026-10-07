@@ -41,6 +41,7 @@ export function pathRealms(map: TrackMap, hrefFor: (slug: string) => string): Pa
     total: realm.chapters.length,
     href: hrefFor(realm.slug),
     current: realm.id === current,
+    specialist: realm.track !== null,
   }));
 }
 

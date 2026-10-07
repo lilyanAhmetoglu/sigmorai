@@ -72,6 +72,8 @@ export const REALMS_TEXT = {
   signIn: 'Sign in',
   /** "REALM 03" */
   number: (number: string) => `REALM ${number}`,
+  /** A specialist realm (one path only) on its card and its "Your path" row: text, not colour only. */
+  pathRealm: 'PATH REALM',
   /** "REALM 03 · INTERMEDIATE" */
   tag: (number: string, tier: Tier) => `REALM ${number} · ${TIER_TEXT[tier]}`,
   /** Catalog meta row: what a realm holds on this path ("6 CHAPTERS + BOSS"). */

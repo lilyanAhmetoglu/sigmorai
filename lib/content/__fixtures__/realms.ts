@@ -1,15 +1,15 @@
 /**
- * Test fixture for specialist realms (path-curriculum spec, PR 1b). No real
- * realm past r8 exists yet, so the engine is tested against this table:
- * today's REALMS plus two specialist rows owned by one track each, with no
- * art. Never imported by app code.
+ * Test fixture for specialist realms (path-curriculum spec, PR 1b). The
+ * engine is tested against this table, not the real one (which ships r9
+ * Canvas Workshop): today's core realms plus two specialist rows owned by
+ * one track each, with no art. Never imported by app code.
  */
-import { MIN_CHAPTERS, REALMS } from '@/lib/constants';
+import { coreRealms, MIN_CHAPTERS } from '@/lib/constants';
 import type { RealmTable, TrackOutline } from '@/lib/types';
 
 /** r9: creator only, intermediate, no art. r10: builder only, beginner, no art. */
 export const SPECIALIST_REALMS: RealmTable = [
-  ...REALMS,
+  ...coreRealms(),
   {
     id: 9,
     slug: 'fixture-canvas',
@@ -31,7 +31,7 @@ export const SPECIALIST_REALMS: RealmTable = [
 ];
 
 /** The core realm ids, in order: r0–r8. */
-export const CORE_IDS = REALMS.map((r) => r.id);
+export const CORE_IDS = coreRealms().map((r) => r.id);
 
 /** One outline entry: realm `id` with `chapters` chapters (c1 … cN). */
 export const realmOutline = (id: number, chapters = MIN_CHAPTERS) => ({

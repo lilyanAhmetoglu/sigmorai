@@ -10,6 +10,14 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (PR 4 devil pass)
+
+- **r9 Canvas Workshop ships with 6 chapters, not 8.** Creator r5 c1/c2/c5 already teach what MCP is, Figma read vs write tools, tool allowlists and OAuth/keys; r9 does not repeat them. Chapters: c1 Canvas to code (design context, metadata, screenshots and why a screenshot alone misleads) · c2 Write to canvas (create/modify tools, beta limits, review before keeping) · c3 Template fills (Canva autofill + Adobe InDesign data merge + Canva MCP brand templates) · c4 Creative APIs (expand, fill, composite inside a layout job: Firefly, OpenAI image edit, Gemini image edit) · c5 Plugins & apps (plugins and in-editor apps vs MCP servers; Canva Developers SDK names) · c6 Export & handoff (export, Code Connect, variables; Enterprise-only endpoints named as such). Each lesson links back to r5 where it builds on it.
+- **r9 sources are docs-host pages, never GitHub repos.** In the build box `github.com` is 403 for curl; `developers.figma.com`, `canva.dev`, `developer.adobe.com`, `modelcontextprotocol.io` and the big-three docs return 200 via curl. Fetch with curl, not WebFetch. Canva URLs are `/docs/apps/mcp/` and `/docs/apps/rest-apis/`.
+- **PR 4 is two PRs.** 4a = REALMS row 9 (`canvas-workshop`, `track: 'creator'`, `tier: 'intermediate'`, `scene: false`), `slotRealms` row r9 → s5, PATH REALM badge (PathList + RealmCard, `PathRealm.specialist`), outline entry with 6 titles, lessons c1–c3 (+ cases and quick checks), `sources.yaml` ids cited. 4b = c4–c6 + `boss/case.json`. Both pass `content:check` alone (chapters ≤ MIN_CHAPTERS may be COMING SOON).
+- **The world-map hero picks a clear side per place** (separate `fix(map)` PR) before 4b.
+- **No other engine change.** Certificates, TrackSwitch hiding, OG fallback, blog topic, sitemap, accent and seed are already owner-aware on canary.
+
 ## Amendments locked 2026-10-07 (PR 3 devil pass)
 
 - **PR 3 is content-only.** Grown-realm CLEARED rule, open rule and 10-node map shipped in PR 1a; PR 3 adds no code. The "one e2e step" becomes one unit test on the real creator outline (realm 1 = 9 chapters, 10 map nodes).
@@ -335,22 +343,22 @@ OpenAI image prompting guide: `https://developers.openai.com/api/docs/guides/ima
 
 Boss: unchanged task. The boss case gets no new question type; its 5 questions may now come from any of the 9 chapters.
 
-### r9 Canvas Workshop: Design tools & MCP (intermediate, 8 chapters)
+### r9 Canvas Workshop: Design tools & MCP (intermediate, 6 chapters)
 
-NPC (draft): Guildmaster Ines. Topic: "Linking an AI assistant to design tools: read, write, export, safely."
+6 chapters, not 8: see "Amendments locked 2026-10-07 (PR 4 devil pass)". The old c1 "Design servers" and c8 "Scopes & access" repeat creator r5 c1/c2/c5 and were dropped. Status F (curl) = fetched with curl on 2026-10-07 and every quoted line grepped in the saved text.
 
-| Ch. | Title            | Teaches                                                                                       | Sources (status)                                                                                      |
-| --- | ---------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| c1  | Design servers   | What a design-tool MCP server gives an assistant; remote vs desktop server; which tools exist | `figma-mcp-guide` (F) · `canva-mcp` (S) · `mcp-spec-repo` (F)                                         |
-| c2  | Read the canvas  | Design context, variables, metadata and screenshots as input; why a screenshot alone misleads | `figma-mcp-tools` (R) · `figma-mcp-guide` (F) · `claude-vision` (F)                                   |
-| c3  | Write to canvas  | Tools that create or change design content; beta limits; review before you keep a change      | `figma-mcp-guide` (F) · `figma-plugins` (S) · `canva-connect-kit` (F)                                 |
-| c4  | Template fills   | Filling brand templates with copy and images at scale                                         | `canva-connect-kit` (F) · `canva-connect` (X) · `firefly-api` (S) — **second vendor weak, see Risks** |
-| c5  | Creative APIs    | Generate, expand, fill and composite as API steps inside a design job                         | `firefly-api` (S) · `openai-image` (R) · `gemini-image` (R)                                           |
-| c6  | Plugins & apps   | Plugins and in-editor apps vs MCP servers: who runs where, what each can touch                | `figma-plugins` (S) · `canva-apps-kit` (F) · `canva-dev-mcp` (S)                                      |
-| c7  | Export & handoff | Exporting assets and linking components to code for developers                                | `figma-rest` (S) · `figma-code-connect` (F) · `canva-connect-kit` (F)                                 |
-| c8  | Scopes & access  | Tokens, OAuth, tool allowlists, seat limits; read-only first                                  | `claude-mcp-connector` (F) · `figma-variables` (S) · `mcp-spec-repo` (F)                              |
+NPC: Guildmaster Ines. Topic: "Design tools with AI: read the canvas, write to it, fill templates, hand off". Builds on r5 (map order: r5 → r9 → r6).
 
-Boss task (draft): "Plan how a small studio links its design tools to an assistant, safely."
+| Ch. | Title            | Teaches                                                                                                                                                           | Sources (status)                                                                                                                                                                                          |
+| --- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| c1  | Canvas to code   | Design context, metadata, variables and screenshots as input; why a screenshot alone misleads; file structure; small selections                                   | Figma MCP tools-and-prompts, mcp-vs-agent, structure-figma-file, avoid-large-frames, trigger-specific-tools · Canva MCP `get-design-content` · Claude vision · OpenAI images-vision (all F, curl) — PR 4a |
+| c2  | Write to canvas  | Figma `use_figma` (Plugin API, Full seat, remote only, current limitations) · Canva editing transactions (start, perform, commit, cancel) · review before keeping | Figma write-to-canvas, tools-and-prompts · Canva MCP editing tools, access, best practices, design edit handoff (all F, curl) — PR 4a                                                                     |
+| c3  | Template fills   | Generate vs template vs fill; named fields; Canva autofill (REST + MCP) and Adobe InDesign Data Merge; plan limits, silent empties, defaults, media, fonts        | Canva REST autofill guide · Canva MCP `autofill-design`, `get-brand-template-dataset`, `search-brand-templates`, best practices, handoff · Adobe InDesign API, Data Merge guide (all F, curl) — PR 4a     |
+| c4  | Creative APIs    | Expand, fill, composite inside a layout job                                                                                                                       | Firefly · OpenAI image edit · Gemini image edit — PR 4b                                                                                                                                                   |
+| c5  | Plugins & apps   | Plugins and in-editor apps vs MCP servers; Canva Developers SDK names                                                                                             | Figma plugins · Canva Developers SDK — PR 4b                                                                                                                                                              |
+| c6  | Export & handoff | Export, Code Connect, variables; Enterprise-only endpoints named as such                                                                                          | Figma REST / Code Connect · Canva export — PR 4b                                                                                                                                                          |
+
+Boss task: "Plan a studio workflow from a design file to filled templates and a developer handoff" (PR 4b). The draft task was dropped: it was close to r5's boss.
 
 ### r10 Reel Hollow: Motion & video (intermediate, 8 chapters)
 

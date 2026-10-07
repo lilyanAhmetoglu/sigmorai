@@ -1,3 +1,4 @@
+import { Badge } from '@/components/badge';
 import { PixelButton } from '@/components/pixel-button';
 import { XPBar } from '@/components/xp-bar';
 import { REALM_STATUS_TEXT, REALMS_TEXT, realmHref, TIER_TEXT } from '@/lib/constants';
@@ -16,9 +17,10 @@ type Props = {
 
 /**
  * A realm in the catalog (design: isRealms card): scene, realm number and
- * tier, name, topic, meta, state, button. A tier-locked realm says "locked"
- * once (the note) and still links to its page: learners may read its chapter
- * list (curriculum spec), only the steps stay shut. Styles: realms.css.
+ * tier, a PATH REALM badge on a specialist realm, name, topic, meta, state,
+ * button. A tier-locked realm says "locked" once (the note) and still links
+ * to its page: learners may read its chapter list (curriculum spec), only the
+ * steps stay shut. Styles: realms.css.
  */
 export function RealmCard({ realm, track }: Props) {
   const locked = realm.status === 'tier-locked';
@@ -31,6 +33,7 @@ export function RealmCard({ realm, track }: Props) {
           <span className="realm-card-tag">{REALMS_TEXT.number(realmNumber(realm.id))}</span>
           <span>{TIER_TEXT[realm.tier]}</span>
         </p>
+        {realm.track !== null && <Badge>{REALMS_TEXT.pathRealm}</Badge>}
         <h2 className="realm-card-name">{realm.name}</h2>
         <p className="realm-card-topic">{realm.topic}</p>
         <p className="realm-card-meta">{REALMS_TEXT.meta(realmChapterCount(realm))}</p>

@@ -43,6 +43,8 @@ export type PathRealm = {
   href: string;
   /** The realm holding the player's next step. */
   current: boolean;
+  /** A specialist realm (r9+, one path only): the row shows a PATH REALM badge. */
+  specialist: boolean;
 };
 
 /** A realm on the world map: its list row plus where it stands. */

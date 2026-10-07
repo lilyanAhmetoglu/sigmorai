@@ -126,6 +126,15 @@ export const REALMS = [
     track: null,
     scene: true,
   },
+  {
+    id: 9,
+    slug: 'canvas-workshop',
+    name: 'Canvas Workshop',
+    npc: 'Guildmaster Ines',
+    tier: 'intermediate',
+    track: 'creator',
+    scene: false,
+  },
 ] as const satisfies readonly RealmRow[];
 
 /** Whether a realm is on this track: a core realm, or a specialist realm the track owns. */

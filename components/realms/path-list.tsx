@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Badge } from '@/components/badge';
-import { MAP_TEXT, REALM_STATUS_TEXT } from '@/lib/constants';
+import { MAP_TEXT, REALM_STATUS_TEXT, REALMS_TEXT } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
 import type { PathRealm } from '@/lib/types';
 import { StatusBadge } from './status-badge';
@@ -15,8 +15,9 @@ type Props = {
 
 /**
  * "Your path": every realm of a path, in path order, as one link per row
- * (number, name, state as icon + word, cleared / total). The world map's
- * text view, also with no JS; the dashboard reuses it (per-path PR 2).
+ * (number, name, PATH REALM on a specialist realm, state as icon + word,
+ * cleared / total). The world map's text view, also with no JS; the
+ * dashboard reuses it (per-path PR 2).
  * Rows are at least 44px. Styles: realms.css.
  */
 export function PathList({ realms, currentTag, labelledBy }: Props) {
@@ -36,6 +37,7 @@ export function PathList({ realms, currentTag, labelledBy }: Props) {
             </span>
             <span className="path-list-name">{realm.name}</span>
             <span className="path-list-meta">
+              {realm.specialist && <Badge>{REALMS_TEXT.pathRealm}</Badge>}
               <StatusBadge text={REALM_STATUS_TEXT[realm.status]} />
               <span className="path-list-count">
                 {MAP_TEXT.progress(realm.cleared, realm.total)}

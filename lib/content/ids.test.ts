@@ -157,17 +157,24 @@ const realOutline = async (track: (typeof TRACKS)[number]) =>
 /**
  * The id list before chapter counts came from the outline (fixed 9 × 6):
  * r0..r8, c1..c6 each step, then the boss. Written out by hand on purpose.
- * `grown` lists the realms that grew past 6 chapters since (realm → count).
+ * `grown` lists the realms that grew past 6 chapters since (realm → count);
+ * `inserted` lists the specialist realms placed right after a core realm.
  */
-const gridIds = (track: string, grown: Record<number, number> = {}) =>
-  range(0, 9).flatMap((realm) => [
-    ...range(1, grown[realm] ?? 6).flatMap((chapter) =>
-      ['lesson', 'challenge', 'quick-check'].map(
-        (step) => `${track}/r${realm}/c${chapter}/${step}`,
+const gridIds = (
+  track: string,
+  grown: Record<number, number> = {},
+  inserted: Record<number, number[]> = {},
+) =>
+  range(0, 9)
+    .flatMap((core) => [core, ...(inserted[core] ?? [])])
+    .flatMap((realm) => [
+      ...range(1, grown[realm] ?? 6).flatMap((chapter) =>
+        ['lesson', 'challenge', 'quick-check'].map(
+          (step) => `${track}/r${realm}/c${chapter}/${step}`,
+        ),
       ),
-    ),
-    `${track}/r${realm}/boss/challenge`,
-  ]);
+      `${track}/r${realm}/boss/challenge`,
+    ]);
 
 /** Realms grown past 6 chapters in each track's committed outline (realm → chapter count). */
 const GROWN: Record<(typeof TRACKS)[number], Record<number, number>> = {
@@ -176,14 +183,21 @@ const GROWN: Record<(typeof TRACKS)[number], Record<number, number>> = {
   creator: { 1: 9 },
 };
 
+/** Specialist realms in each track's committed outline, by the core realm they follow. */
+const INSERTED: Record<(typeof TRACKS)[number], Record<number, number[]>> = {
+  builder: {},
+  strategist: {},
+  creator: { 5: [9] },
+};
+
 describe('trackExerciseIds', () => {
   // A grown realm also needs lib/data/quest.ts to pass the outline count to
   // nextCaseId (it does since creator r1 grew to 9 chapters).
   test.each([...TRACKS])(
-    'regression: %s, from its outline, equals the 9 × 6 grid plus its grown chapters',
+    'regression: %s, from its outline, equals the 9 × 6 grid plus its grown chapters and specialist realms',
     async (track) => {
       expect(trackExerciseIds(track, await realOutline(track))).toEqual(
-        gridIds(track, GROWN[track]),
+        gridIds(track, GROWN[track], INSERTED[track]),
       );
     },
   );
@@ -250,8 +264,10 @@ describe('specialist realms (fixture table: r9 creator, r10 builder)', () => {
     }
   });
 
-  test('with the real REALMS (no row past r8), r9 parses on no track', () => {
-    for (const track of TRACKS) expect(parseExerciseId(`${track}/r9/c1/lesson`)).toBeNull();
+  test('with the real REALMS, r9 (Canvas Workshop) parses on creator only', () => {
+    for (const track of TRACKS) {
+      expect(parseExerciseId(`${track}/r9/c1/lesson`) !== null).toBe(track === 'creator');
+    }
   });
 
   test('trackExerciseIds follows the outline order, specialist realm included', () => {
