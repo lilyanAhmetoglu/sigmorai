@@ -3,9 +3,10 @@
 import { eq, notInArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 import { kbSources, progress, users, xpEvents } from '@/db/schema';
-import { CHAPTER_COUNT, CHAPTER_STEPS, KB_SOURCES_FILE, XP_REWARDS } from '@/lib/constants';
+import { CHAPTER_STEPS, KB_SOURCES_FILE, XP_REWARDS } from '@/lib/constants';
+import { outlineChapterCount } from '@/lib/content/curriculum';
 import { buildExerciseId } from '@/lib/content/ids';
-import { loadKbSources } from '@/lib/content/load';
+import { loadKbSources, loadTrackOutline } from '@/lib/content/load';
 import type { Track, XpReason } from '@/lib/types';
 
 /** Neon branch that must never get demo players (ENGINEERING.md). */
@@ -29,8 +30,12 @@ const DEMOS: Demo[] = [
 
 const demoId = (i: number) => `demo_${String(i + 1).padStart(2, '0')}`;
 
-/** What a demo player has cleared: progress rows and the XP each one earns. */
-function clears({ track, chapters }: Demo) {
+/**
+ * What a demo player has cleared: progress rows and the XP each one earns.
+ * The boss counts only when every chapter of the realm (from the track's
+ * outline) is cleared.
+ */
+function clears({ track, chapters }: Demo, realmChapters: number) {
   const rows: { exerciseId: string; reason?: XpReason }[] = [];
   for (let chapter = 1; chapter <= chapters; chapter++) {
     for (const step of CHAPTER_STEPS) {
@@ -44,7 +49,7 @@ function clears({ track, chapters }: Demo) {
       rows.push({ exerciseId, reason: step });
     }
   }
-  if (chapters === CHAPTER_COUNT) {
+  if (chapters === realmChapters) {
     rows.push({
       exerciseId: buildExerciseId({ area: 'boss', track, realm: DEMO_REALM }),
       reason: 'boss',
@@ -72,7 +77,8 @@ async function seedKbSources() {
 /** Same shape as a real grant: ledger insert (award once) + cache bump in one transaction. */
 async function seedDemo(demo: Demo, i: number) {
   const userId = demoId(i);
-  const done = clears(demo);
+  const outline = await loadTrackOutline(demo.track);
+  const done = clears(demo, outlineChapterCount(outline, DEMO_REALM) ?? 0);
   const events = done.flatMap(({ exerciseId, reason }) =>
     reason ? [{ userId, exerciseId, reason, amount: XP_REWARDS[reason] }] : [],
   );

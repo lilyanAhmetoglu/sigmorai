@@ -1,5 +1,5 @@
 import { Panel } from '@/components/panel';
-import { CHAPTER_COUNT, REALMS_TEXT } from '@/lib/constants';
+import { MIN_CHAPTERS, REALMS_TEXT } from '@/lib/constants';
 
 /** Header and chapter-row placeholders, so nothing jumps. No spinner. */
 export default function Loading() {
@@ -12,7 +12,7 @@ export default function Loading() {
       <div className="bg-surface-2 h-10 w-2/3" />
       <div className="bg-surface-2 h-6 w-1/2" />
       <div className="flex flex-col gap-3">
-        {Array.from({ length: CHAPTER_COUNT + 1 }, (_, i) => (
+        {Array.from({ length: MIN_CHAPTERS + 1 }, (_, i) => (
           <Panel key={i} tone="sunken" padding="sm">
             <div className="h-8" />
           </Panel>

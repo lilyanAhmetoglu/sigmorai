@@ -8,7 +8,7 @@ import type {
 } from '@/lib/types';
 import { QUICK_CHECK_QUESTIONS } from './content';
 import { FRONTIER } from './curriculum';
-import { CHAPTER_COUNT, FRONTIER_AREA, MATH_AREA } from './exercises';
+import { FRONTIER_AREA, MATH_AREA } from './exercises';
 import { SITE_NAME } from './site';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
@@ -293,4 +293,4 @@ export const notOpenText = (previousChapter: number) => `Clear chapter ${previou
 /** NOT_OPEN for Math Tower floor N: floor N−1's quick check is not cleared. */
 export const floorNotOpenText = (previousFloor: number) => `Clear floor ${previousFloor} first.`;
 /** NOT_OPEN for a boss. */
-export const BOSS_NOT_OPEN_TEXT = `Clear all ${CHAPTER_COUNT} chapters first.`;
+export const BOSS_NOT_OPEN_TEXT = 'Clear every chapter in this realm first.';

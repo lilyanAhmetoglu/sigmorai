@@ -1,14 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 import {
-  CHAPTER_COUNT,
   CHAPTER_STEPS,
+  CONTENT_DIR,
   MATH_FLOOR_COUNT,
+  MAX_CHAPTERS,
+  MIN_CHAPTERS,
+  OUTLINE_FILE,
   REALM_COUNT,
   REALMS,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
-import { ExerciseIdSchema, type ExerciseRef } from '@/lib/types';
+import { ExerciseIdSchema, TrackOutlineSchema, type ExerciseRef } from '@/lib/types';
 import {
   buildExerciseId,
   frontierExerciseIds,
@@ -24,11 +27,11 @@ import {
 
 const range = (from: number, count: number) => Array.from({ length: count }, (_, i) => from + i);
 
-/** Every id the current curriculum can produce, plus two Frontier examples. */
+/** Every id the grammar allows (c1–c12 in every realm), plus two Frontier examples. */
 const ALL_REFS: ExerciseRef[] = [
   ...TRACKS.flatMap((track) =>
     range(0, REALM_COUNT).flatMap((realm): ExerciseRef[] => [
-      ...range(1, CHAPTER_COUNT).flatMap((chapter) =>
+      ...range(1, MAX_CHAPTERS).flatMap((chapter) =>
         CHAPTER_STEPS.map((step) => ({ area: 'chapter' as const, track, realm, chapter, step })),
       ),
       { area: 'boss', track, realm },
@@ -54,6 +57,10 @@ describe('exercise ids round-trip', () => {
     [
       'builder/r8/c6/quick-check',
       { area: 'chapter', track: 'builder', realm: 8, chapter: 6, step: 'quick-check' },
+    ],
+    [
+      'creator/r1/c12/quick-check',
+      { area: 'chapter', track: 'creator', realm: 1, chapter: 12, step: 'quick-check' },
     ],
     [
       'strategist/r2/c3/challenge',
@@ -96,7 +103,9 @@ describe('bad ids are rejected', () => {
     'builder/r9/c1/lesson',
     'builder/r00/c1/lesson',
     'builder/r0/c0/lesson',
-    'builder/r0/c7/lesson',
+    'builder/r0/c13/lesson',
+    'builder/r0/c120/lesson',
+    'builder/r99/c1/lesson',
     'builder/r0/c01/lesson',
     'builder/r0/c1/boss',
     'builder/r0/boss/lesson',
@@ -139,10 +148,37 @@ describe('bad ids are rejected', () => {
   });
 });
 
+/** A track's outline as committed in content/ (each realm has MIN_CHAPTERS chapters today). */
+const realOutline = async (track: (typeof TRACKS)[number]) =>
+  TrackOutlineSchema.parse(
+    await Bun.file(`${import.meta.dir}/../../${CONTENT_DIR}/${track}/${OUTLINE_FILE}`).json(),
+  );
+
+/**
+ * The id list before chapter counts came from the outline (fixed 9 × 6):
+ * r0..r8, c1..c6 each step, then the boss. Written out by hand on purpose.
+ */
+const gridIds = (track: string) =>
+  range(0, 9).flatMap((realm) => [
+    ...range(1, 6).flatMap((chapter) =>
+      ['lesson', 'challenge', 'quick-check'].map(
+        (step) => `${track}/r${realm}/c${chapter}/${step}`,
+      ),
+    ),
+    `${track}/r${realm}/boss/challenge`,
+  ]);
+
 describe('trackExerciseIds', () => {
-  test('every chapter step and boss of one track, in map order, all unique', () => {
-    const ids = trackExerciseIds('builder');
-    expect(ids).toHaveLength(REALM_COUNT * (CHAPTER_COUNT * CHAPTER_STEPS.length + 1));
+  test.each([...TRACKS])(
+    'regression: %s, from its outline, equals the 9 × 6 grid id for id',
+    async (track) => {
+      expect(trackExerciseIds(track, await realOutline(track))).toEqual(gridIds(track));
+    },
+  );
+
+  test('every chapter step and boss of one track, in map order, all unique', async () => {
+    const ids = trackExerciseIds('builder', await realOutline('builder'));
+    expect(ids).toHaveLength(REALM_COUNT * (MIN_CHAPTERS * CHAPTER_STEPS.length + 1));
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids[0]).toBe('builder/r0/c1/lesson');
     expect(ids.at(-1)).toBe(`builder/r${REALM_COUNT - 1}/boss/challenge`);
@@ -152,10 +188,17 @@ describe('trackExerciseIds', () => {
 
 describe('realmExerciseIds', () => {
   test('one realm: every chapter step, then the boss', () => {
-    const ids = realmExerciseIds('strategist', 3);
-    expect(ids).toHaveLength(CHAPTER_COUNT * CHAPTER_STEPS.length + 1);
+    const ids = realmExerciseIds('strategist', 3, MIN_CHAPTERS);
+    expect(ids).toHaveLength(MIN_CHAPTERS * CHAPTER_STEPS.length + 1);
     expect(ids[0]).toBe('strategist/r3/c1/lesson');
     expect(ids.at(-1)).toBe('strategist/r3/boss/challenge');
+  });
+
+  test('a 9-chapter realm: c1–c9, then the boss', () => {
+    const ids = realmExerciseIds('creator', 1, 9);
+    expect(ids).toHaveLength(9 * CHAPTER_STEPS.length + 1);
+    expect(ids.at(-2)).toBe('creator/r1/c9/quick-check');
+    expect(ids.at(-1)).toBe('creator/r1/boss/challenge');
   });
 });
 
@@ -237,7 +280,7 @@ describe('parseChapterId', () => {
       'math/f1',
       'builder/r1/c1/lesson',
       'builder/r9/c1',
-      'builder/r1/c7',
+      'builder/r1/c13',
     ]) {
       expect(parseChapterId(id)).toBeNull();
     }
