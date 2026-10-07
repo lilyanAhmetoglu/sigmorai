@@ -10,6 +10,18 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (PR 5 devil pass)
+
+- **r10 Reel Hollow ships with 6 chapters, not 8.** Creator r0 c4/c5, r1 c5/c8, r2 c6 and r3 c5 already teach video limits, video prompt parts, first frame, sound in the prompt, same-character references and cost per second; r10 does not repeat them. Chapters: c1 Camera moves · c2 Keyframes · c3 Longer cuts · c4 Edit a clip · c5 Loops & stills · c6 Reframe & deliver. Each lesson links back to the core chapter it builds on. Cost appears only in the boss `BUDGET:` part, using r0 c5's method.
+- **OpenAI video sources are dropped.** The Sora 2 models and Videos API were shut down on 2026-09-24 (the page says so; r0 c4 already teaches it). `openai-video` and `sora-guide` are not cited in r10. Google is the only big-three video vendor; every r10 chapter cites Google (Veo, or the Vertex guide with its dated note) plus Runway and/or Luma.
+- **Luma joins the source registry** as `luma-docs` → `https://docs.agents.lumalabs.ai` (`trustTier: official`, Luma's own product). Cite only that host. `premiere-extend` stays unreachable (helpx 403) and is dropped.
+- **"Motion graphics" is not taught through Lottie, Rive, After Effects or Figma Smart Animate.** Those pages document no AI system. c5 "Loops & stills" teaches animated brand stills, logos and product turns with image-to-video (Luma loop, Runway Product Ad, Veo image-to-video).
+- **r10 sits on slot s2** (`WORLD_MAP.slotRealms` += `{ slot: 's2', realm: 10 }`), after r2 in the creator outline: `0, 1, 2, 10, 3, 4, 5, 9, 6, 7, 8`. s10, s1 and s4 are kept for r12, r11 and r13.
+- **PR 5 is two PRs.** 5a = `REALMS` row 10 (`reel-hollow`, `track: 'creator'`, `tier: 'intermediate'`, `scene: false`), slot row, outline entry with 6 titles, c1–c3 (+ cases, quick checks), sources cited. 5b = c4–c6 + `boss/case.json`. Tests that list specialist realms are generalised over `REALMS` in 5a, so PRs 6–8 touch no test.
+- **Count line** becomes 3 + 6 + 6 + 8 + 8 + 7 = 38 new creator chapters + 5 bosses (r11–r13 still get their own devil pass).
+- **Build notes from PR 5a (2026-10-07 fetches).** (1) The c6 outline title is "Reframe & export": "Reframe & deliver" is 17 characters, over the 16-character map-pin limit; the id stays `c6`. (2) The outline topic is "Video with AI: camera, keyframes, longer cuts, edits, delivery" (63 characters). (3) The Vertex video prompt guide URL now redirects to the same guide in Google's Gemini Enterprise Agent Platform docs, written for Veo and Gemini Omni Flash; that page no longer shows a "no longer being updated" note, so lessons date it (October 2026) and say it moved, not that it is frozen. (4) Luma's docs today are the "Luma Agents" API with one video model (`ray-3.2`); no camera "concepts" list exists there, so c1 cites Luma's prompt advice and examples only. Luma keyframes are 1–64 (not ≤ 16). (5) On Runway, Gen-4.5 image-to-video takes a first frame only (`position: first`); first + last frames are on other models (Veo 3.1 on Runway: a last frame needs a first frame). c2 teaches it as "check per model".
+- **Review fixes on 5a (content-reviewer, voice-guardian, cto).** (1) r10 moved to s10 after cto review: the s2 → r3 leg crossed r4's island; s2 is kept for r12. A test in `lib/constants/world-map.test.ts` now fails when any trail leg of a committed outline crosses a core realm's island. (2) Each new specialist realm adds one `INSERTED` line in `lib/content/ids.test.ts` (the hand-written regression list); this replaces "PRs 6–8 touch no test" for that one line. (3) One term, "approved still": the boss task becomes "Plan a 15-second product teaser from one approved still: keyframes, extensions, one edit and every delivery format".
+
 ## Amendments locked 2026-10-07 (PR 4 devil pass)
 
 - **r9 Canvas Workshop ships with 6 chapters, not 8.** Creator r5 c1/c2/c5 already teach what MCP is, Figma read vs write tools, tool allowlists and OAuth/keys; r9 does not repeat them. Chapters: c1 Canvas to code (design context, metadata, screenshots and why a screenshot alone misleads) · c2 Write to canvas (create/modify tools, beta limits, review before keeping) · c3 Template fills (Canva autofill + Adobe InDesign data merge + Canva MCP brand templates) · c4 Creative APIs (expand, fill, composite inside a layout job: Firefly, OpenAI image edit, Gemini image edit) · c5 Plugins & apps (plugins and in-editor apps vs MCP servers; Canva Developers SDK names) · c6 Export & handoff (export, Code Connect, variables; Enterprise-only endpoints named as such). Each lesson links back to r5 where it builds on it.
@@ -362,22 +374,22 @@ NPC: Guildmaster Ines. Topic: "Design tools with AI: read, write, fill templates
 
 Boss task: "Plan a studio workflow from a design file to filled templates and a developer handoff" (PR 4b). The draft task was dropped: it was close to r5's boss.
 
-### r10 Reel Hollow: Motion & video (intermediate, 8 chapters)
+### r10 Reel Hollow: Motion & video (intermediate, 6 chapters)
 
-NPC (draft): Lanternist Oto. Topic: "Making and editing short video and motion with generation models."
+6 chapters, not 8: see "Amendments locked 2026-10-07 (PR 5 devil pass)". The old c1 "Video models", c3 "Frames to motion" (first frame), c4 "Same character", c7 "Sound on video" and c8 "Seconds & cost" repeat creator r0 c4/c5, r1 c5 and r3 c5 and were dropped; OpenAI video sources were dropped (API shut down 2026-09-24). Status F (curl) = fetched with curl on 2026-10-07 and every quoted line grepped in the saved text.
 
-| Ch. | Title            | Teaches                                                                               | Sources (status)                                                                                                         |
-| --- | ---------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| c1  | Video models     | Text-to-video vs image-to-video; length, size and model limits per vendor             | `gemini-veo` (R) · `openai-video` (R) · `runway-models` (R)                                                              |
-| c2  | Shot language    | Camera motion, framing and pacing words the guides list                               | `veo-guide` (S) · `sora-guide` (R) · `runway-multishot` (R)                                                              |
-| c3  | Frames to motion | Start from a still; first and last frame; when the still wins over the text           | `gemini-veo` (R) · `runway-refs` (R) · `openai-video` (R)                                                                |
-| c4  | Same character   | Keeping a face, product or style across shots with references                         | `runway-refs` (R) · `gemini-veo` (R) · `sora-guide` (R)                                                                  |
-| c5  | Extend & remix   | Extending a clip and remixing one; what each vendor documents                         | `gemini-veo` (R) · `openai-video` (R) · `premiere-extend` (X)                                                            |
-| c6  | Motion graphics  | Animating brand stills and logos, loops, product turns with image-to-video            | `runway-product-ad` (R) · `gemini-cookbook` (F) · `gemini-veo` (R) — **no official AI motion-graphics tool doc reached** |
-| c7  | Sound on video   | Native audio, dialogue and effects described in the prompt                            | `gemini-veo` (R) · `sora-guide` (R)                                                                                      |
-| c8  | Seconds & cost   | Price per second, drafts before finals, a budget per clip (live pricing pages, dated) | `openai-pricing` (R) · `gemini-pricing` (R) · `runway-models` (R)                                                        |
+NPC (draft): Lanternist Oto. Topic: "Video with AI: camera, keyframes, longer cuts, edits, delivery". Builds on r2 (map order: r2 → r10 → r3).
 
-Boss task (draft): "Plan a 15-second product teaser: shots, frames, sound and budget."
+| Ch. | Title            | Teaches                                                                                                                                                                                                             | Sources (status)                                                                                                                                                                                          |
+| --- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| c1  | Camera moves     | Motion words only: static, pan, tilt, dolly, truck, pedestal, zoom (vs dolly), crane, aerial, handheld, whip pan, arc; rack focus and dolly zoom; camera move vs subject move. r1 c5/c8 hold framing and lens words | Vertex video prompt guide (dated note: now in the Gemini Enterprise Agent Platform docs) · Veo prompt guide · Luma video generation (prompt advice) · Runway Product Ad, Multi-Shot (all F, curl) — PR 5a |
+| c2  | Keyframes        | First frame only, first + last (interpolation), multi-keyframe beats (what holds, what changes); frame index = seconds × 24; validation rules per vendor; one line back to r1 c5                                    | Veo first and last frames, `lastFrame` · Luma start/end frames, keyframes (1–64), validation rules · Runway API reference (`position: first`/`last` per model) (all F, curl) — PR 5a                      |
+| c3  | Longer cuts      | Extend forward and backward, chain by last frame, cut on action, continuity checks at the seam; r0 c4 holds the limits                                                                                              | Veo "Extending Veo videos" and "Prompting for extension" · Luma extend / backward extend · Runway Multi-Shot recipe, API reference (`mode: extend`) (all F, curl) — PR 5a                                 |
+| c4  | Edit a clip      | Edit an existing clip (restyle, refine, keyframed edits)                                                                                                                                                            | Luma video editing · Veo edit · Runway video-to-video — PR 5b                                                                                                                                             |
+| c5  | Loops & stills   | Animated brand stills, logos and product turns with image-to-video                                                                                                                                                  | Luma loop · Runway Product Ad · Veo image-to-video — PR 5b                                                                                                                                                |
+| c6  | Reframe & export | Reframing to new aspect ratios, delivery formats                                                                                                                                                                    | Luma reframing · Runway professional outputs · Veo — PR 5b                                                                                                                                                |
+
+Boss task: "Plan a 15-second product teaser from one hero still: keyframes, extensions, one edit and every delivery format" (PR 5b). Cost appears only in the boss `BUDGET:` part (r0 c5 method). Review note (5a): the task now says "one approved still", not "one hero still" (see the PR 5 amendment).
 
 ### r11 Pigment Bazaar: Image craft per model (beginner, 8 chapters)
 
@@ -429,7 +441,7 @@ NPC (draft): Weaver Hale. Topic: "Tokens, components and rules that keep AI outp
 
 Boss task (draft): "Design the tokens, components and rules an agent reads before it touches a brand."
 
-**Count:** 3 + 8 + 8 + 8 + 8 + 7 = **42 new creator chapters + 5 bosses** (about 130 content files).
+**Count:** 3 + 6 + 6 + 8 + 8 + 7 = **38 new creator chapters + 5 bosses** (about 120 content files; r11–r13 still get their own devil pass).
 
 ## Later: builder and strategist specialist realms (no detail yet)
 

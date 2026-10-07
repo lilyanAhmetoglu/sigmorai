@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   CERT_ACHIEVEMENTS,
   certHref,
+  coreRealms,
   MATH_TOWER_ACHIEVEMENT,
   OPEN_TIERS,
   REALMS,
@@ -98,15 +99,26 @@ describe('earnedAchievements', () => {
 });
 
 describe('achievements per track (path-curriculum spec)', () => {
-  test('regression: every old slug is unchanged, same order; creator-r9 joins its path', () => {
-    const today = ['builder', 'strategist', 'creator'].flatMap((track) =>
-      [0, 1, 2, 3, 4, 5].map((realm) => `${track}-r${realm}`),
-    );
-    expect(CERT_ACHIEVEMENTS.map((a) => a.slug)).toEqual([
-      ...today,
-      'creator-r9',
+  test('regression: every old slug is unchanged, same order; open specialist realms join their path', () => {
+    const old = (track: string) => [0, 1, 2, 3, 4, 5].map((realm) => `${track}-r${realm}`);
+    const owned = (track: string) =>
+      open.filter((r) => r.track === track).map((r) => `${track}-r${r.id}`);
+    const slugs = CERT_ACHIEVEMENTS.map((a) => a.slug);
+    expect(slugs).toEqual([
+      ...['builder', 'strategist', 'creator'].flatMap((track) => [...old(track), ...owned(track)]),
       MATH_TOWER_ACHIEVEMENT,
     ]);
+    // The pre-specialist list, slug for slug, is still there in the same order.
+    const specialist = new Set<number>(open.filter((r) => r.track !== null).map((r) => r.id));
+    const coreOnly = CERT_ACHIEVEMENTS.filter(
+      (a) => a.kind !== 'realm' || !specialist.has(a.realm),
+    );
+    expect(coreOnly.map((a) => a.slug)).toEqual([
+      ...['builder', 'strategist', 'creator'].flatMap(old),
+      MATH_TOWER_ACHIEVEMENT,
+    ]);
+    expect(slugs).toContain('creator-r9');
+    expect(slugs).toContain('creator-r10');
   });
 
   test('a specialist realm has a certificate on its owner track only (fixture table)', () => {
@@ -121,7 +133,7 @@ describe('achievements per track (path-curriculum spec)', () => {
   });
 
   test('the fixture keeps every core slug', () => {
-    const core = realmAchievements().map((a) => a.slug);
+    const core = realmAchievements(coreRealms()).map((a) => a.slug);
     const withSpecialists = realmAchievements(SPECIALIST_REALMS).map((a) => a.slug);
     for (const slug of core) expect(withSpecialists).toContain(slug);
   });

@@ -1,0 +1,111 @@
+---
+id: creator/r10/c2/lesson
+title: Keyframes
+minutes: 8
+sources:
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: Luma Agents docs · Video generation
+    url: https://docs.agents.lumalabs.ai/guides/videos/generation
+  - kind: docs
+    title: Runway API docs · API reference
+    url: https://docs.dev.runwayml.com/api
+  - kind: docs
+    title: Runway API docs · Inputs
+    url: https://docs.dev.runwayml.com/assets/inputs
+---
+
+## Why it matters
+
+A skincare brand wants a 5-second clip. It must start on the closed jar and end on the open jar, with the cream showing. The client has already approved both pictures. A text prompt alone cannot promise those two exact frames.
+
+**Keyframes** solve this. A keyframe is an image the clip must match at a set moment. The model makes the frames in between. Google calls this **interpolation**: "Veo 3.1 lets you create videos using interpolation, or specifying the first and last frames of the video."
+
+Prompt Forest, chapter 5, showed that a video model can start from your image. This chapter plans the frames: how many, at which moment, and what must stay the same.
+
+## Three levels of control
+
+We sort keyframe features into three levels (our grouping). Each step up pins more of the clip.
+
+| Level           | What you pin                | Seen at (October 2026)                   |
+| --------------- | --------------------------- | ---------------------------------------- |
+| 1. First frame  | how the clip starts         | Runway Gen-4.5 image-to-video, Veo, Luma |
+| 2. First + last | how it starts and ends      | Veo 3.1, Luma, some models on Runway     |
+| 3. Many frames  | several moments in the clip | Luma multi-keyframe                      |
+
+**Level 1.** On Runway, the Gen-4.5 image-to-video request has an image `position` field. Its only allowed value is `first`. So it takes a first frame, not a last one.
+
+**Level 2.** Google says first and last frames give "precise control over your shot's composition by letting you define the starting and ending frame". In its example, both frames come from an image model (Nano Banana). The first shows a cat driving a red car on a coast road. The last was made with the prompt "Show what happens when the car takes off from a cliff." Veo makes the clip in between.
+
+**Level 3.** Luma's multi-keyframe mode lets you "pin images at arbitrary positions through the clip, so you choreograph the motion beat by beat instead of hoping a single prompt lands". Luma adds: "the more you anchor, the closer the result tracks your intent."
+
+## Beats and frame numbers
+
+Luma places each keyframe by frame number, not by seconds. The positions sit "in the duration × 24fps grid: 5s → 0–120, 10s → 0–240".
+
+So on Luma's grid the sum is simple: **seconds × 24 = frame number.** (Veo and Runway take no frame numbers.) 2.5 seconds is frame 60. Luma's own example pins three images at `[0, 60, 120]`: start, middle and end of a 5-second clip.
+
+Plan the beats on paper first. This beat sheet is our format:
+
+| Beat | Time  | Frame | What holds                         | What changes           |
+| ---- | ----- | ----- | ---------------------------------- | ---------------------- |
+| 1    | 0.0 s | 0     | jar, label, marble top, left light | lid closed             |
+| 2    | 2.5 s | 60    | same                               | lid half open          |
+| 3    | 5.0 s | 120   | same                               | lid off, cream showing |
+
+The "What holds" column is the important one. Every keyframe image must agree on it. In our view, a label that differs between two keyframes will change shape somewhere in the middle of the clip.
+
+Make every keyframe from one approved still (our advice). Edit the approved still for each beat, as in Prompt Forest, chapter 4. Change only the "What changes" cell.
+
+## Rules that refuse a request
+
+Each vendor has rules. Break one and the request fails before any video is made. Here are the ones we found in October 2026.
+
+**Luma** (`ray-3.2`):
+
+- `keyframes` holds "1–64 guide-frame images". `keyframe_indexes` holds their frame numbers.
+- "The two arrays must be the same length, and you provide both or neither — one without the other is a 400". A 400 is an error: the request is refused.
+- The numbers must be "unique and within range". On a 5-second clip, the largest is 120.
+- `keyframes` is "mutually exclusive with `start_frame`, `end_frame`, and `loop`". Pick one way to pin.
+- `start_frame` and `end_frame` "are not supported with `duration: "10s"`". The multi-keyframe mode does support 10 seconds.
+- A start or end image can be at most "50 MB and 8000 px per side".
+
+**Google Veo:** `lastFrame` "Must be used in combination with the `image` parameter". Google says first and last frames are "available for Veo 3.1 models only".
+
+**Runway** rules change per model:
+
+- Veo 3.1 on Runway takes "a first frame and optionally a last frame". It "does not support generating with only a last frame".
+- MiniMax H3 Max: "A last frame requires a first frame. Each image must be at least 256 pixels on both sides."
+- If an image's shape does not match the output, Runway may "auto-crop your asset from the center". Tool Forge, chapter 4, covered this.
+
+## A pre-flight check
+
+Run this before you send a keyframe job (our checklist):
+
+1. **Mode.** Does this model take a first frame only, first and last, or many keyframes?
+2. **Pairs.** Same number of images and frame numbers?
+3. **Range.** On Luma's grid, is every frame number between 0 and seconds × 24, with no repeats?
+4. **Mixing.** Have you mixed two ways to pin in one request?
+5. **Shape.** Does every image have the output's aspect ratio?
+6. **Holds.** Do all images agree on product, label and light?
+
+## Check the result
+
+The model should land on your images. Check that it did (our advice):
+
+- **Pause on the first and the last frame.** Compare each with your keyframe.
+- **Scrub to each beat.** Frame 60 should look like beat 2.
+- **Watch between beats.** There the model fills in on its own. Look for a label that changes or a shape that bends.
+
+If the middle drifts, add a keyframe there. That is Luma's "the more you anchor" advice in practice.
+
+## What this means for your work
+
+- **Pin what the client approved.** Use first and last frames for fixed starts and ends.
+- **Count in frames on Luma's grid.** Seconds × 24 gives the frame number.
+- **Write a beat sheet:** what holds, what changes, at which frame.
+- **Make all keyframes from one approved still.**
+- **Check the model's rules** before you send. First-only, first-and-last and many-keyframe modes differ by model.
+- **Inspect each beat and the frames between them.**

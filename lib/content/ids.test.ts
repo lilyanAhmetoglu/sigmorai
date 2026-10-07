@@ -183,11 +183,14 @@ const GROWN: Record<(typeof TRACKS)[number], Record<number, number>> = {
   creator: { 1: 9 },
 };
 
-/** Specialist realms in each track's committed outline, by the core realm they follow. */
+/**
+ * Specialist realms in each track's committed outline, by the core realm they
+ * follow. Written by hand on purpose: each new specialist realm adds one entry.
+ */
 const INSERTED: Record<(typeof TRACKS)[number], Record<number, number[]>> = {
   builder: {},
   strategist: {},
-  creator: { 5: [9] },
+  creator: { 2: [10], 5: [9] },
 };
 
 describe('trackExerciseIds', () => {
@@ -264,11 +267,14 @@ describe('specialist realms (fixture table: r9 creator, r10 builder)', () => {
     }
   });
 
-  test('with the real REALMS, r9 (Canvas Workshop) parses on creator only', () => {
-    for (const track of TRACKS) {
-      expect(parseExerciseId(`${track}/r9/c1/lesson`) !== null).toBe(track === 'creator');
-    }
-  });
+  test.each(REALMS.filter((r) => r.track !== null).map((r) => [r.id, r.track] as const))(
+    'with the real REALMS, specialist r%d parses on its owner path (%s) only',
+    (realm, owner) => {
+      for (const track of TRACKS) {
+        expect(parseExerciseId(`${track}/r${realm}/c1/lesson`) !== null).toBe(track === owner);
+      }
+    },
+  );
 
   test('trackExerciseIds follows the outline order, specialist realm included', () => {
     const ids = trackExerciseIds('creator', fixtureOutline(CREATOR_ORDER), T);

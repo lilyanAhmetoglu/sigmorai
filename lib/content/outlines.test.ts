@@ -9,6 +9,7 @@ import {
   MAX_CHAPTERS,
   MIN_CHAPTERS,
   OUTLINE_FILE,
+  REALMS,
   SIDE_STEPS,
   TRACKS,
   trackRealms,
@@ -221,11 +222,18 @@ describe('realm list rule (fixture table: r9 creator, r10 builder)', () => {
     expect(creator.safeParse(outline(MAX_CHAPTERS + 1)).success).toBe(false);
   });
 
-  test('with the real REALMS, r9 (Canvas Workshop) is on creator only', () => {
+  test('with the real REALMS, each specialist realm is on its owner path only', () => {
+    const specialists = REALMS.filter((r) => r.track !== null);
+    expect(specialists.length).toBeGreaterThan(0);
     for (const track of TRACKS) {
-      expect(trackOutlineSchema(track).safeParse(fixtureOutline([...CORE_IDS, 9])).success).toBe(
-        track === 'creator',
-      );
+      const schema = trackOutlineSchema(track);
+      const owned = specialists.filter((r) => r.track === track).map((r) => r.id);
+      expect(schema.safeParse(fixtureOutline([...CORE_IDS, ...owned])).success).toBe(true);
+      for (const other of specialists.filter((r) => r.track !== track)) {
+        expect(schema.safeParse(fixtureOutline([...CORE_IDS, ...owned, other.id])).success).toBe(
+          false,
+        );
+      }
     }
   });
 });
