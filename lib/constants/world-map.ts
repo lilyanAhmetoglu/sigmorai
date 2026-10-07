@@ -21,6 +21,12 @@ export const WORLD_MAP = {
   width: 1024,
   height: 768,
   tile: 16,
+  /**
+   * The Hallucinant fog around the edge of the world: each tile along the
+   * edge is covered min–max art px deep (whole tiles, seeded, so the inner
+   * edge is ragged), drawn from `seed`.
+   */
+  edgeFog: { min: 16, max: 48, seed: 7 },
   /** Core realms (on every path), by realm id. */
   realms: {
     0: { x: 140, y: 640, ...CORE },
@@ -66,6 +72,8 @@ export const WORLD_MAP = {
       name: FRONTIER.name,
       href: FRONTIER_HREF,
       accent: 'neutral',
+      // Near the east edge: its label ends at the land's right edge, so it stays on the map at ½.
+      align: 'end',
       x: 950,
       y: 110,
       ...LANDMARK,
@@ -81,8 +89,12 @@ export const WORLD_MAP = {
  */
 export const ZOOM_STEPS = [0.5, 1, 2] as const;
 
-/** Viewport width (px) from which the overview is zoom 1 instead of ½. Mirrors world-map.css. */
-export const WORLD_OVERVIEW_MIN_WIDTH = 1024;
+/**
+ * Viewport width (px) from which the overview is zoom 1 instead of ½. Mirrors
+ * world-map.css (68rem): the 1024px stage plus the page gutters and box edge
+ * must fit, or zoom 1 would scroll sideways.
+ */
+export const WORLD_OVERVIEW_MIN_WIDTH = 1088;
 
 /** Two markers at zoom ½ are at least this far apart (art px), so 44px targets never overlap. */
 export const WORLD_MIN_ANCHOR_GAP = 96;

@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import type { WorldPlace } from '@/lib/types';
 import { REALMS } from './curriculum';
-import { WORLD_MAP, WORLD_MIN_ANCHOR_GAP, ZOOM_STEPS } from './world-map';
+import { WORLD_MAP_TEXT } from './realms-copy';
+import { WORLD_MAP, WORLD_MIN_ANCHOR_GAP, WORLD_OVERVIEW_MIN_WIDTH, ZOOM_STEPS } from './world-map';
 
 // The geometry rules of the world-map spec (→ Geometry). The art is made to
 // fit these numbers, so a broken rule here means overlapping lands or markers.
@@ -69,5 +70,27 @@ describe('ZOOM_STEPS', () => {
     ).text();
     const found = [...css.matchAll(/\[data-zoom='([^']+)'\]/g)].map((m) => Number(m[1]));
     expect([...new Set(found)].sort()).toEqual([...ZOOM_STEPS].sort());
+  });
+});
+
+describe('world-map.css', () => {
+  test('the overview breakpoint matches WORLD_OVERVIEW_MIN_WIDTH', async () => {
+    const css = await Bun.file(
+      `${import.meta.dir}/../../app/styles/components/world-map.css`,
+    ).text();
+    const rems = [...css.matchAll(/@media \(width >= ([\d.]+)rem\)/g)].map((m) => Number(m[1]));
+    expect(rems.length).toBeGreaterThan(0);
+    for (const rem of rems) expect(rem * 16).toBe(WORLD_OVERVIEW_MIN_WIDTH);
+  });
+});
+
+describe('WORLD_MAP_TEXT.marker', () => {
+  test('starts with the visible number and name, drops the "·", adds the tag', () => {
+    expect(WORLD_MAP_TEXT.marker('01', 'Prompt Forest', 'IN PROGRESS', 2, 7, 'YOU ARE HERE')).toBe(
+      '01 Prompt Forest, in progress, 2 of 7 cleared, you are here',
+    );
+    expect(WORLD_MAP_TEXT.marker('06', 'Eval Arena', 'ADVANCED · LOCKED', 0, 7)).toBe(
+      '06 Eval Arena, advanced locked, 0 of 7 cleared',
+    );
   });
 });

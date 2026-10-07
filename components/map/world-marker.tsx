@@ -17,14 +17,23 @@ export const anchorStyle = ({ x, y }: WorldPlace) =>
 
 /**
  * One realm on the world map: a link to its level map, standing on the
- * realm's anchor. The link is a 44px pin (realm number + state icon); the
+ * realm's anchor. The link is a transparent 44px target; inside it, a small
+ * visible pin (realm number + state icon), so the land shows around it. The
  * tag sits above it and, from zoom 1, the name and the state as a word
- * (StatusBadge) below it. It does not scale with the
- * zoom, so it stays a 44px target. The accessible name says it all: name,
- * state, cleared of total, and the tag. Styles: world-map.css.
+ * (StatusBadge) below it. It does not scale with the zoom. The accessible
+ * name starts with the visible number and name (WCAG 2.5.3), then state,
+ * cleared of total, and the tag. Styles: world-map.css.
  */
 export function WorldMarker({ realm, tag }: Props) {
   const state = REALM_STATUS_TEXT[realm.status];
+  const label = WORLD_MAP_TEXT.marker(
+    realmNumber(realm.id),
+    realm.name,
+    state.label,
+    realm.cleared,
+    realm.total,
+    tag,
+  );
   return (
     <Link
       href={realm.href}
@@ -32,12 +41,14 @@ export function WorldMarker({ realm, tag }: Props) {
       data-accent={realmAccent(realm.id)}
       data-status={realm.status}
       aria-current={realm.current ? 'location' : undefined}
-      aria-label={WORLD_MAP_TEXT.marker(realm.name, state.label, realm.cleared, realm.total, tag)}
+      aria-label={label}
       style={anchorStyle(realm.place)}
     >
-      {realmNumber(realm.id)}
-      <span className="world-marker-icon" aria-hidden="true">
-        {state.icon}
+      <span className="world-marker-pin">
+        {realmNumber(realm.id)}
+        <span className="world-marker-icon" aria-hidden="true">
+          {state.icon}
+        </span>
       </span>
       {tag && <span className="world-marker-tag">{tag}</span>}
       <span className="world-marker-detail">

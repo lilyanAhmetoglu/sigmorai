@@ -15,6 +15,8 @@ export default function Loading() {
       </div>
       <div className="bg-surface-2 h-11 w-60" />
       <WorldMapSkeleton />
+      {/* Hint + zoom row */}
+      <div className="bg-surface-2 h-11" />
       <div className="flex flex-col gap-3">
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="bg-surface-2 h-11" />

@@ -1,17 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { REALMS, WORLD_MAP } from '@/lib/constants';
 import type { RealmStatus, RealmView, TrackMap, WorldGeometry } from '@/lib/types';
-import { realmPlace, worldView } from './world-map';
+import { coastline, edgeFog, realmPlace, shapeSeed, worldView } from './world-map';
 
 /** A realm view with 6 chapters + boss; only the fields worldView reads matter. */
 function realm(id: number, status: RealmStatus, cleared = 0): RealmView {
-  const r = REALMS[id];
+  // Spread the row, so fields REALMS gains later (track, scene) come along.
   return {
-    id: r.id,
-    slug: r.slug,
-    name: r.name,
-    npc: r.npc,
-    tier: r.tier,
+    ...REALMS[id],
     topic: '',
     lore: '',
     status,
@@ -123,5 +119,65 @@ describe('realmPlace', () => {
   test('core realm → its place; unknown realm → null', () => {
     expect(realmPlace(3)).toEqual(WORLD_MAP.realms[3]);
     expect(realmPlace(42)).toBeNull();
+  });
+});
+
+describe('coastline', () => {
+  const places = [
+    ...Object.values(WORLD_MAP.realms),
+    ...WORLD_MAP.landmarks,
+    { x: 100, y: 100, w: 48, h: 48 },
+  ];
+
+  test('stays inside its footprint, on whole tiles from its edges', () => {
+    for (const p of places) {
+      for (let seed = 1; seed <= 20; seed++) {
+        for (const [x, y] of coastline(p, seed)) {
+          expect(x).toBeGreaterThanOrEqual(p.x - p.w / 2);
+          expect(x).toBeLessThanOrEqual(p.x + p.w / 2);
+          expect(y).toBeGreaterThanOrEqual(p.y - p.h / 2);
+          expect(y).toBeLessThanOrEqual(p.y + p.h / 2);
+          expect((x - (p.x - p.w / 2)) % WORLD_MAP.tile === 0 || x === p.x + p.w / 2).toBe(true);
+        }
+      }
+    }
+  });
+
+  test('keeps at least one tile per row', () => {
+    for (const p of places) {
+      const pts = coastline(p, 3);
+      const half = pts.length / 2;
+      for (let i = 0; i < half; i += 2) {
+        const right = pts[i][0];
+        const left = pts[pts.length - 1 - i][0];
+        expect(right - left).toBeGreaterThanOrEqual(WORLD_MAP.tile);
+      }
+    }
+  });
+
+  test('the same seed gives the same shape; realms differ', () => {
+    const p = WORLD_MAP.realms[0];
+    expect(coastline(p, shapeSeed(0))).toEqual(coastline(p, shapeSeed(0)));
+    const shapes = new Set(
+      [0, 1, 2, 3, 4].map((id) => JSON.stringify(coastline(p, shapeSeed(id)))),
+    );
+    expect(shapes.size).toBeGreaterThan(1);
+    expect(shapeSeed('math')).toBe(shapeSeed('math'));
+  });
+});
+
+describe('edgeFog', () => {
+  test('covers every edge tile, min–max deep on whole tiles, the same every time', () => {
+    const rects = edgeFog();
+    const { width, height, tile, edgeFog: fog } = WORLD_MAP;
+    expect(rects).toHaveLength(2 * (width / tile) + 2 * (height / tile));
+    for (const r of rects) {
+      const depth = Math.min(r.w, r.h) === tile ? Math.max(r.w, r.h) : Math.min(r.w, r.h);
+      expect(depth).toBeGreaterThanOrEqual(fog.min);
+      expect(depth).toBeLessThanOrEqual(fog.max);
+      expect(depth % tile).toBe(0);
+    }
+    expect(edgeFog()).toEqual(rects);
+    expect(new Set(rects.map((r) => Math.max(r.w, r.h))).size).toBeGreaterThan(1);
   });
 });

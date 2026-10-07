@@ -13,7 +13,17 @@ export type WorldSlot = WorldPlace & { id: string };
 export type WorldSlotRealm = { slot: string; realm: number };
 
 /** A shared side realm on every path (Math Tower, the Frontier): a plain link, no state. */
-export type WorldLandmark = WorldPlace & { id: string; name: string; href: string; accent: Accent };
+export type WorldLandmark = WorldPlace & {
+  id: string;
+  name: string;
+  href: string;
+  accent: Accent;
+  /** `end`: the label ends at the land's right edge (a landmark near the east edge). */
+  align?: 'end';
+};
+
+/** A rectangle by its top-left corner (art px), e.g. one tile of edge fog. */
+export type WorldRect = { x: number; y: number; w: number; h: number };
 
 export type WorldGeometry = typeof WORLD_MAP;
 
