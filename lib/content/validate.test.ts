@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { CONTENT_DIR } from '@/lib/constants';
 import { isSafeLessonUrl } from './mdx';
-import { lengthGiveaways, validateContent } from './validate';
+import { lengthGiveaways, shapeGiveaways, validateContent } from './validate';
 
 const REAL = path.resolve(import.meta.dir, '../..', CONTENT_DIR);
 const FIXTURE_LESSON = `${import.meta.dir}/__fixtures__/valid/builder/00-bootstrap-village/c1/lesson.mdx`;
@@ -411,5 +411,36 @@ describe('answer length guard', () => {
 
   test('a small gap passes even when the ratio is high', () => {
     expect(lengthGiveaways([q('x'.repeat(10), 'y'.repeat(4))], 'f')).toEqual([]);
+  });
+});
+
+describe('answer shape guard', () => {
+  const q = (right: string, ...wrong: string[]) => ({
+    options: [{ text: right, correct: true }, ...wrong.map((text) => ({ text, correct: false }))],
+  });
+
+  test('fails when only the key ends with a period', () => {
+    const issues = shapeGiveaways([q('Use a cache.', 'Use a queue', 'Use a log')], 'f');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('question 1');
+    expect(issues[0].message).toContain('ends with a period');
+  });
+
+  test('fails when only the key has two sentences', () => {
+    const issues = shapeGiveaways([q('It waits. Then it retries', 'It stops', 'It logs')], 'f');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('two sentences');
+  });
+
+  test('passes when all options end with a period', () => {
+    expect(shapeGiveaways([q('Use a cache.', 'Use a queue.', 'Use a log.')], 'f')).toEqual([]);
+  });
+
+  test('passes when no option does', () => {
+    expect(shapeGiveaways([q('Use a cache', 'Use a queue', 'Use a log')], 'f')).toEqual([]);
+  });
+
+  test('ignores questions where all options are bare numbers', () => {
+    expect(shapeGiveaways([q('3.', '4', '5')], 'f')).toEqual([]);
   });
 });
