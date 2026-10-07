@@ -55,11 +55,11 @@ export const WORLD_MAP = {
   /**
    * Which specialist realm stands on which slot. Each realm's PR adds one row
    * (path-curriculum spec): r9 Canvas Workshop sits by r5 MCP Bridgelands,
-   * r10 Reel Hollow by r2 Tool Forge.
+   * r10 Reel Hollow between r2 Tool Forge and r3 Context Library.
    */
   slotRealms: [
     { slot: 's5', realm: 9 },
-    { slot: 's2', realm: 10 },
+    { slot: 's10', realm: 10 },
   ] as readonly WorldSlotRealm[],
   landmarks: [
     {

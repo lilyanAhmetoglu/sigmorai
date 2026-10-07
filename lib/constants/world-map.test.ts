@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { WorldPlace } from '@/lib/types';
-import { REALMS } from './curriculum';
+import { CONTENT_DIR, OUTLINE_FILE, REALMS } from './curriculum';
+import { TRACKS } from './exercises';
 import { REALMS_TEXT, WORLD_MAP_TEXT } from './realms-copy';
 import { TRACK_TEXT } from './ui-copy';
 import {
@@ -67,6 +68,63 @@ describe('WORLD_MAP geometry', () => {
     expect(new Set(used).size).toBe(used.length);
     for (const slot of used) expect(ids).toContain(slot);
   });
+});
+
+/** Whether the segment a→b enters the footprint rect of `r` (Liang–Barsky clipping). */
+function crosses(a: WorldPlace, b: WorldPlace, r: WorldPlace): boolean {
+  const [dx, dy] = [b.x - a.x, b.y - a.y];
+  const [x0, x1, y0, y1] = [r.x - r.w / 2, r.x + r.w / 2, r.y - r.h / 2, r.y + r.h / 2];
+  const edges: [number, number][] = [
+    [-dx, a.x - x0],
+    [dx, x1 - a.x],
+    [-dy, a.y - y0],
+    [dy, y1 - a.y],
+  ];
+  let [t0, t1] = [0, 1];
+  for (const [p, q] of edges) {
+    if (p === 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    const t = q / p;
+    if (p < 0) t0 = Math.max(t0, t);
+    else t1 = Math.min(t1, t);
+    if (t0 > t1) return false;
+  }
+  return true;
+}
+
+describe('world-map trail', () => {
+  /** Where a realm stands: its core place, or the slot its specialist row names. */
+  const placeOf = (id: number): WorldPlace => {
+    const slot = WORLD_MAP.slotRealms.find((s) => s.realm === id)?.slot;
+    return WORLD_MAP.realms[id] ?? WORLD_MAP.slots.find((s) => s.id === slot)!;
+  };
+
+  test('the crossing check sees a leg through a footprint, and none beside it', () => {
+    const box = { x: 100, y: 100, w: 40, h: 40 };
+    expect(crosses({ ...box, x: 0 }, { ...box, x: 200 }, box)).toBe(true);
+    expect(crosses({ ...box, x: 0, y: 0 }, { ...box, x: 200, y: 0 }, box)).toBe(false);
+  });
+
+  test.each([...TRACKS])(
+    '%s: no leg of the committed outline crosses another core realm’s island',
+    async (track) => {
+      const file = `${import.meta.dir}/../../${CONTENT_DIR}/${track}/${OUTLINE_FILE}`;
+      const ids = ((await Bun.file(file).json()) as { realms: { id: number }[] }).realms.map(
+        (r) => r.id,
+      );
+      const clashes = ids.slice(1).flatMap((to, i) => {
+        const from = ids[i];
+        return Object.keys(WORLD_MAP.realms)
+          .map(Number)
+          .filter((core) => core !== from && core !== to)
+          .filter((core) => crosses(placeOf(from), placeOf(to), WORLD_MAP.realms[core]))
+          .map((core) => `r${from}→r${to} crosses r${core}`);
+      });
+      expect(clashes).toEqual([]);
+    },
+  );
 });
 
 describe('ZOOM_STEPS', () => {
