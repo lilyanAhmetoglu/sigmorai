@@ -2,7 +2,7 @@ import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { CONTENT_DIR } from '@/lib/constants';
+import { CONTENT_DIR, SHARED_CHAPTERS_FILE } from '@/lib/constants';
 import { isSafeLessonUrl } from './mdx';
 import { lengthGiveaways, shapeGiveaways, validateContent } from './validate';
 
@@ -388,6 +388,101 @@ describe('isSafeLessonUrl', () => {
       '/\\evil.example',
     ];
     for (const url of bad) expect(isSafeLessonUrl(url)).toBe(false);
+  });
+});
+
+describe('shared chapters (content/shared-chapters.json)', () => {
+  const same = (id: string, ...members: string[]) => ({ id, kind: 'same', members });
+
+  /** Writes the groups into a copy of content/ and returns the shared-file issues. */
+  async function issuesFor(groups: unknown[]): Promise<string[]> {
+    const root = await copyOfContent();
+    await writeFile(`${root}/${SHARED_CHAPTERS_FILE}`, JSON.stringify({ groups }));
+    const issues = await validateContent(root);
+    expect(issues.every((i) => i.file === SHARED_CHAPTERS_FILE)).toBe(true);
+    return issues.map((i) => i.message);
+  }
+
+  test('good same and covers groups pass', async () => {
+    const covers = {
+      id: 'token-costs',
+      kind: 'covers',
+      deep: 'builder/r0/c6',
+      members: ['builder/r0/c6', 'strategist/r0/c4'],
+    };
+    expect(
+      await issuesFor([same('mcp-basics', 'builder/r5/c1', 'strategist/r5/c2'), covers]),
+    ).toEqual([]);
+  });
+
+  test('a bad member format fails', async () => {
+    const [msg] = await issuesFor([same('x', 'builder/r1/c1', 'strategist/r1/c9')]);
+    expect(msg).toContain('strategist/r1/c9 is not a realm chapter');
+  });
+
+  test('a boss, a Math floor or a Frontier level may not be shared', async () => {
+    const msgs = await issuesFor([
+      same('a', 'builder/r1/boss', 'strategist/r1/c1'),
+      same('b', 'math/f1', 'creator/r1/c1'),
+      same('c', 'frontier/2026-10-05-some-slug', 'creator/r2/c1'),
+    ]);
+    expect(msgs).toEqual([
+      expect.stringContaining('builder/r1/boss is a boss'),
+      expect.stringContaining('math/f1 is a Math floor'),
+      expect.stringContaining('frontier/2026-10-05-some-slug is a Frontier level'),
+    ]);
+  });
+
+  test('a member with a missing case fails', async () => {
+    const root = await copyOfContent();
+    await rm(`${root}/strategist/01-prompt-forest/c1/case.json`);
+    await writeFile(
+      `${root}/${SHARED_CHAPTERS_FILE}`,
+      JSON.stringify({ groups: [same('be-specific', 'builder/r1/c1', 'strategist/r1/c1')] }),
+    );
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.message)).toContain(
+      'group "be-specific": strategist/r1/c1 has no strategist/01-prompt-forest/c1/case.json.',
+    );
+  });
+
+  test('two members on one track fail', async () => {
+    const [msg] = await issuesFor([same('x', 'builder/r1/c1', 'builder/r1/c2')]);
+    expect(msg).toContain('two members are on the builder track');
+  });
+
+  test('a chapter in two groups fails, and so does a reused concept id', async () => {
+    const msgs = await issuesFor([
+      same('x', 'builder/r1/c1', 'strategist/r1/c1'),
+      same('y', 'builder/r1/c1', 'creator/r1/c1'),
+      same('x', 'builder/r2/c1', 'creator/r2/c1'),
+    ]);
+    expect(msgs).toEqual([
+      expect.stringContaining('builder/r1/c1 is already in group "x"'),
+      expect.stringContaining('this concept id is used by another group'),
+    ]);
+  });
+
+  test('a covers group needs a deep member, one of exactly two', async () => {
+    const pair = ['builder/r0/c6', 'strategist/r0/c4'];
+    const noDeep = await issuesFor([{ id: 'a', kind: 'covers', members: pair }]);
+    expect(noDeep).toHaveLength(1);
+    const wrongDeep = await issuesFor([
+      { id: 'a', kind: 'covers', deep: 'creator/r0/c1', members: pair },
+    ]);
+    expect(wrongDeep[0]).toContain('deep must be one of the two members');
+    const three = await issuesFor([
+      { id: 'a', kind: 'covers', deep: pair[0], members: [...pair, 'creator/r0/c1'] },
+    ]);
+    expect(three).toHaveLength(1);
+  });
+
+  test('a same group with one member, an unknown kind or a bad id fails its schema', async () => {
+    expect(await issuesFor([same('x', 'builder/r1/c1')])).toHaveLength(1);
+    expect(await issuesFor([{ id: 'x', kind: 'related', members: [] }])).toHaveLength(1);
+    expect(
+      await issuesFor([same('Be Specific', 'builder/r1/c1', 'strategist/r1/c1')]),
+    ).toHaveLength(1);
   });
 });
 

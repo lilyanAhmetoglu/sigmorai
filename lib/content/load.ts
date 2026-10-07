@@ -12,6 +12,7 @@ import {
   LESSON_FILE,
   OUTLINE_FILE,
   QUICK_CHECK_FILE,
+  SHARED_CHAPTERS_FILE,
 } from '@/lib/constants';
 import {
   BlogFrontmatterSchema,
@@ -20,6 +21,7 @@ import {
   LessonFrontmatterSchema,
   MathOutlineSchema,
   QuickCheckSchema,
+  SharedChaptersFileSchema,
   TrackOutlineSchema,
   type BlogPost,
   type Case,
@@ -27,6 +29,7 @@ import {
   type Lesson,
   type MathOutline,
   type QuickCheck,
+  type SharedChaptersFile,
   type Track,
   type TrackOutline,
 } from '@/lib/types';
@@ -188,13 +191,13 @@ export async function loadKbSources(root = CONTENT_DIR): Promise<KbSource[]> {
   return result.data.sources;
 }
 
-/** Reads an outline.json under the content root and parses it with its schema. */
-async function loadOutline<S extends z.ZodType>(
-  folder: string,
+/** A JSON file at `rel` under the content root, parsed with its schema. Throws ContentError. */
+async function loadContentJson<S extends z.ZodType>(
+  rel: string,
   schema: S,
   root: string,
 ): Promise<z.output<S>> {
-  const abs = contentPath(root, `${folder}/${OUTLINE_FILE}`);
+  const abs = contentPath(root, rel);
   const at = { abs, file: path.relative(process.cwd(), abs) };
   const text = await readText(at);
   let raw: unknown;
@@ -208,6 +211,10 @@ async function loadOutline<S extends z.ZodType>(
   return result.data;
 }
 
+/** Reads an outline.json under the content root and parses it with its schema. */
+const loadOutline = <S extends z.ZodType>(folder: string, schema: S, root: string) =>
+  loadContentJson(`${folder}/${OUTLINE_FILE}`, schema, root);
+
 /** content/<track>/outline.json, validated: topic, lore and chapter titles per realm. */
 export const loadTrackOutline = (track: Track, root = CONTENT_DIR): Promise<TrackOutline> =>
   loadOutline(track, TrackOutlineSchema, root);
@@ -215,6 +222,10 @@ export const loadTrackOutline = (track: Track, root = CONTENT_DIR): Promise<Trac
 /** content/math/outline.json, validated: what each floor covers and its formulas. */
 export const loadMathOutline = (root = CONTENT_DIR): Promise<MathOutline> =>
   loadOutline(MATH_AREA, MathOutlineSchema, root);
+
+/** content/shared-chapters.json, validated: chapter groups that credit each other across tracks. */
+export const loadSharedChapters = (root = CONTENT_DIR): Promise<SharedChaptersFile> =>
+  loadContentJson(SHARED_CHAPTERS_FILE, SharedChaptersFileSchema, root);
 
 // ── Blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx ─────────────────────
 

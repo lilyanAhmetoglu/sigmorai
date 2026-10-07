@@ -103,6 +103,8 @@ export const FRONTIER = { slug: FRONTIER_AREA, name: 'The Frontier' } as const;
 /** Where lessons live, and the per-area outline file inside it. */
 export const CONTENT_DIR = 'content';
 export const OUTLINE_FILE = 'outline.json';
+/** Realm chapters on two tracks that credit each other (docs/plans/shared-chapters-design-plan.md). At the content root. */
+export const SHARED_CHAPTERS_FILE = 'shared-chapters.json';
 /** Public URL base of the level art (public/levels/realm-0N, public/levels/math). */
 export const LEVEL_ART_BASE = '/levels';
 /** The parallax layers of every scene, back to front: `<base>/<layer>.png` (and /public/art/hero-<layer>.png). */
