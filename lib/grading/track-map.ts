@@ -155,7 +155,7 @@ export function playableStep(chapter: Pick<ChapterView, 'status' | 'steps'>): St
   return chapter.status === 'done' ? (chapter.steps[0] ?? null) : null;
 }
 
-/** The dashboard's realms: in progress first, then open, in map order. Never cleared or tier-locked. */
+/** Where `next` is looked for: in progress first, then open, in map order. Never cleared or tier-locked. */
 export function activeRealms(realms: RealmView[], limit = realms.length): RealmView[] {
   const pick = (status: RealmStatus) => realms.filter((r) => r.status === status);
   return [...pick('in-progress'), ...pick('open')].slice(0, limit);
