@@ -15,7 +15,7 @@ import {
   questHref,
   realmRow,
 } from '@/lib/constants';
-import { isRealmOpen, realmAccent } from '@/lib/content/curriculum';
+import { isRealmOpen, outlineChapterCount, realmAccent } from '@/lib/content/curriculum';
 import { buildExerciseId, parseExerciseId, questBackHref, segment } from '@/lib/content/ids';
 import {
   ContentError,
@@ -30,6 +30,7 @@ import { toPublicCase, toPublicQuickCheck } from '@/lib/content/public';
 import { readAttempts } from '@/lib/grading/attempts';
 import { gradedKind, hpNow, nextCaseId, triesLeft } from '@/lib/grading/case';
 import { checkOpen } from '@/lib/grading/open';
+import { trackOutline } from '@/lib/grading/outline';
 import { newSeed, shuffleQuestions } from '@/lib/grading/shuffle';
 import type {
   Accent,
@@ -120,11 +121,15 @@ function npcFor(ref: LessonRef): string | undefined {
 
 /**
  * The step a pass leads to: the next case, or (Math Tower) the next floor's
- * lesson. The Frontier has no order: Continue goes back to its page.
+ * lesson. The Frontier has no order: Continue goes back to its page. A realm's
+ * last chapter is its outline count (6 to 12), so a grown realm's c6 leads to c7.
  */
-function nextStepId(ref: PlayableRef): string | null {
+async function nextStepId(ref: PlayableRef): Promise<string | null> {
   if (ref.area === FRONTIER_AREA) return null;
-  if (ref.area !== MATH_AREA) return nextCaseId(ref);
+  if (ref.area !== MATH_AREA) {
+    const count = outlineChapterCount(await trackOutline(ref.track), ref.realm);
+    return nextCaseId(ref, count ?? undefined);
+  }
   return ref.floor < MATH_FLOOR_COUNT
     ? buildExerciseId({ area: MATH_AREA, floor: ref.floor + 1, step: 'lesson' })
     : null;
@@ -132,7 +137,7 @@ function nextStepId(ref: PlayableRef): string | null {
 
 /** Continue after a pass: the next step if it has content, else the realm or tower page. */
 async function nextHrefFor(ref: PlayableRef, exerciseId: string): Promise<string> {
-  const next = nextStepId(ref);
+  const next = await nextStepId(ref);
   return next && (await hasContent(next)) ? questHref(next) : questBackHref(exerciseId);
 }
 
