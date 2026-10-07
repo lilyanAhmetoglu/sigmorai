@@ -149,13 +149,32 @@
     @apply flex;
   }
 
-  /* Hero: left of the current pin, at its height, so it never covers another
-     realm's pin and is never cut off at the top. Clamped to the stage's left
-     edge. Decoration only: clicks go through to the map. */
+  /* Hero: a 48px avatar next to the current pin, on the side heroSide picks
+     for that place (data-side), so it never hides another pin, a landmark
+     label, or its own tag and name. Left and right sit 16px off the anchor;
+     above and below clear the tag and the name. The offsets are
+     WORLD_HERO.sides (lib/constants/world-map.ts; a test keeps them equal).
+     Clamped to the stage's top-left edge. Decoration only: clicks go through. */
   .world-hero {
     @apply pointer-events-none absolute z-20;
-    left: max(0px, calc(var(--x) * var(--world-z) - --spacing(16)));
-    top: calc(var(--y) * var(--world-z) - --spacing(6));
+    --hero-x: calc(var(--x) * var(--world-z));
+    --hero-y: calc(var(--y) * var(--world-z));
+  }
+  .world-hero[data-side='left'] {
+    left: max(0px, calc(var(--hero-x) - --spacing(16)));
+    top: max(0px, calc(var(--hero-y) - --spacing(6)));
+  }
+  .world-hero[data-side='right'] {
+    left: max(0px, calc(var(--hero-x) + --spacing(4)));
+    top: max(0px, calc(var(--hero-y) - --spacing(6)));
+  }
+  .world-hero[data-side='above'] {
+    left: max(0px, calc(var(--hero-x) - --spacing(6)));
+    top: max(0px, calc(var(--hero-y) - --spacing(25)));
+  }
+  .world-hero[data-side='below'] {
+    left: max(0px, calc(var(--hero-x) - --spacing(6)));
+    top: max(0px, calc(var(--hero-y) + --spacing(18)));
   }
 
   /* Landmark: a plain link with its name (Math Tower, the Frontier), on the

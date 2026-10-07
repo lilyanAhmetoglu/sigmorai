@@ -28,6 +28,9 @@ export type WorldGeometry = typeof WORLD_MAP;
 
 export type ZoomStep = (typeof ZOOM_STEPS)[number];
 
+/** Which side of the current pin the hero stands on (heroSide picks it per place). */
+export type HeroSide = 'left' | 'right' | 'above' | 'below';
+
 /**
  * One realm of a path, as a row of the "Your path" list. The world map and
  * the dashboard (per-path PR 2) both draw this list.
