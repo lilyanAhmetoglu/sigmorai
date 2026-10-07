@@ -1,0 +1,96 @@
+{
+  "id": "creator/r10/c2/challenge",
+  "title": "The jar that opened twice",
+  "scenario": "You make social clips for a small skincare brand. The client approved three stills of a jar: closed, half open and open. Your teammate wrote a 5-second keyframe request and a backup plan, and sent them to you before running anything.\n\nUse the exhibit. The field names and rules are from Luma's and Runway's API docs (October 2026). The brand, the files and the plan are made up for this case.",
+  "exhibit": "REQUEST DRAFT (Luma, made up)\n  model:                  ray-3.2\n  type:                   video\n  video.duration:         5s\n  video.start_frame:      jar-closed.png\n  video.keyframes:        [jar-closed.png, jar-half.png, jar-open.png]\n  video.keyframe_indexes: [0, 60, 130]\n\nBACKUP PLAN (Runway, made up)\n  model:        gen4.5 (image to video)\n  promptImage:  jar-closed.png at position first\n                jar-open.png   at position last\n\nNOTES ON THE STILLS (made up)\n  jar-closed.png  edited from the approved hero still\n  jar-half.png    edited from the approved hero still\n  jar-open.png    a new photo from another shoot; the label text is smaller\n\nRULES (from the docs, short)\n  Luma: keyframe positions sit in the duration x 24fps grid: 5s -> 0-120\n  Luma: keyframes is mutually exclusive with start_frame, end_frame and loop\n  Runway gen4.5 image to video: position is one of first",
+  "questions": [
+    {
+      "prompt": "Which keyframe number in the draft breaks Luma's rules?",
+      "options": [
+        {
+          "text": "0, because Luma frame numbers must start at 1",
+          "explanation": "Luma's own example pins a keyframe at 0. Positions are non-negative."
+        },
+        {
+          "text": "60, because a middle beat is not allowed",
+          "explanation": "Luma's example pins images at 0, 60 and 120. A middle beat is the point of multi-keyframe."
+        },
+        {
+          "text": "130, because a 5-second clip ends at 120",
+          "explanation": "Right. Luma's grid is duration x 24fps, so a 5-second clip runs from 0 to 120.",
+          "correct": true
+        },
+        {
+          "text": "None, because Luma moves numbers into range",
+          "explanation": "Luma says the numbers must be unique and within range. It does not fix them for you."
+        }
+      ]
+    },
+    {
+      "prompt": "Even with the numbers fixed, Luma would refuse the draft. Why?",
+      "options": [
+        {
+          "text": "It sets start_frame and keyframes in one request",
+          "explanation": "Right. Luma says keyframes is mutually exclusive with start_frame, end_frame and loop. The first keyframe at 0 already pins the start.",
+          "correct": true
+        },
+        {
+          "text": "It uses three keyframes in a short 5-second clip",
+          "explanation": "Luma allows 1 to 64 keyframes, and its own example uses three on 5 seconds."
+        },
+        {
+          "text": "It asks for a 5-second clip instead of 10 seconds",
+          "explanation": "5 seconds is Luma's default duration, and multi-keyframe works at 5 or 10 seconds."
+        },
+        {
+          "text": "It uses PNG files instead of hosted video files",
+          "explanation": "Keyframes are images. Luma takes them as a URL, inline data or a file id."
+        }
+      ]
+    },
+    {
+      "prompt": "Look at the Runway backup plan. What is the problem, and what is the fix?",
+      "options": [
+        {
+          "text": "Gen-4.5 needs the last frame listed first, so swap the order of the two images",
+          "explanation": "Order is not the issue. Gen-4.5 image to video does not take a last frame at all."
+        },
+        {
+          "text": "Gen-4.5 takes a first frame only here; pick a model that lists first and last",
+          "explanation": "Right. Runway's reference lists only position first for Gen-4.5. Veo 3.1 on Runway takes a first frame and an optional last frame.",
+          "correct": true
+        },
+        {
+          "text": "Gen-4.5 takes no images; send a text prompt that describes both of the jars",
+          "explanation": "Gen-4.5 image to video does take an image, as the first frame."
+        },
+        {
+          "text": "Nothing; Runway will crop the last image to fit, so the plan can run as it is",
+          "explanation": "Cropping is about shape. It does not add a last-frame mode to a model that lacks one."
+        }
+      ]
+    },
+    {
+      "prompt": "The notes say jar-open.png comes from another shoot and its label is smaller. What should you do?",
+      "options": [
+        {
+          "text": "Keep it, because the model will blend the two label sizes in the middle",
+          "explanation": "A blend is the risk, not the fix. The label would change size during the clip."
+        },
+        {
+          "text": "Remove the label text from all three stills so that nothing can clash",
+          "explanation": "The client approved stills with the label. Removing it changes the product."
+        },
+        {
+          "text": "Add a fourth keyframe at frame 90 to hide the change in label size",
+          "explanation": "More anchors help the model follow you. They do not fix an image that disagrees with the others."
+        },
+        {
+          "text": "Remake the open-jar still from the approved hero, so the label matches",
+          "explanation": "Right. Every keyframe should agree on what holds. Make each one from the same approved still and change only the lid.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

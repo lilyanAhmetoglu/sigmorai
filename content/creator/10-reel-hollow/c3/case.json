@@ -1,0 +1,96 @@
+{
+  "id": "creator/r10/c3/challenge",
+  "title": "Over the hill, in four parts",
+  "scenario": "You are building a 20-second clip for a bike shop: a rider climbs a hill, says one line near the top, and the shop's logo appears on the hilltop. Some parts are made, some are not. Today is Thursday morning.\n\nUse the exhibit. The rules are from Google's Veo page and Luma's video page (October 2026). The shop, the clips and the log are made up for this case.",
+  "exhibit": "PARTS LOG (made up)\n  Clip A   Veo 3.1, 8 s, 720p. Rider climbs.\n           Made Monday 09:00. Not used or extended since.\n  Clip B   Luma ray-3.2, 5 s. Logo on the hilltop.\n           Approved by the client. Generation id kept.\n  Plan     The rider's line \"Almost there\" is spoken in the\n           part after clip A. Clip A ends with no voice.\n  Seam A2  Clip A2 was chained from the last frame of clip A.\n           In A the sun is on her left; in A2 it is on her right.\n\nRULES (from the docs, short)\n  Veo:  you can only extend videos that were generated or\n        referenced in the last two days\n  Veo:  voice is not able to be effectively extended if it's\n        not present in the last 1 second of video\n  Luma: start_frame with a generation id = forward extend\n  Luma: end_frame with a generation id = backward extend",
+  "questions": [
+    {
+      "prompt": "It is Thursday. Can you extend clip A on Veo today?",
+      "options": [
+        {
+          "text": "Yes, because Veo keeps every clip it made for one full week",
+          "explanation": "Veo keeps generated videos for 2 days, and extends only clips generated or referenced in that time."
+        },
+        {
+          "text": "Yes, because extending a clip always resets its 2-day timer",
+          "explanation": "Referencing a clip resets the timer, but only while the clip can still be referenced. Clip A was last used on Monday."
+        },
+        {
+          "text": "No: it was made Monday; remake it, or chain from a saved frame",
+          "explanation": "Right. Veo extends only clips generated or referenced in the last two days. Monday to Thursday is past that.",
+          "correct": true
+        },
+        {
+          "text": "No, because Veo can extend clips that are 4k resolution only",
+          "explanation": "Veo extension works on 720p clips, not 4k ones. The problem here is the age of clip A."
+        }
+      ]
+    },
+    {
+      "prompt": "You need a climb that leads into the approved logo clip B. Which Luma request fits?",
+      "options": [
+        {
+          "text": "A new clip with clip B's id in start_frame, so it plays after B",
+          "explanation": "That is a forward extend. It adds footage after the logo, not before it."
+        },
+        {
+          "text": "A new clip with clip B's id in end_frame, so it plays before B",
+          "explanation": "Right. Luma calls this a backward extend: the prior clip becomes the end, and the new part is added before it.",
+          "correct": true
+        },
+        {
+          "text": "A new clip with clip B's id set as loop, so B plays twice",
+          "explanation": "A loop repeats the clip. It does not add a climb before the logo."
+        },
+        {
+          "text": "A new clip with no id at all, then hope the logo matches B",
+          "explanation": "Without B's id, nothing ties the new part to the approved clip."
+        }
+      ]
+    },
+    {
+      "prompt": "The rider's line is planned for the part after clip A, but clip A ends in silence. What does Google's note suggest?",
+      "options": [
+        {
+          "text": "Make clip A so her voice is already there in its last second",
+          "explanation": "Right. Google says voice can't be effectively extended if it is not present in the last 1 second of the video.",
+          "correct": true
+        },
+        {
+          "text": "Put the whole line in quotes and the extension will add it",
+          "explanation": "Quotes help Veo with speech in a new clip. Google's note is about voice across an extension."
+        },
+        {
+          "text": "Ask for a longer extension so the voice has more time",
+          "explanation": "The length is not the issue. The note is about the last second of the input clip."
+        },
+        {
+          "text": "Turn the sound off on clip A so the voice can start cleanly",
+          "explanation": "This makes the problem worse: there is still no voice in the last second."
+        }
+      ]
+    },
+    {
+      "prompt": "At seam A2, the sun jumps from her left to her right. What is the best next step?",
+      "options": [
+        {
+          "text": "Keep it, because viewers rarely look at the sun during a short clip",
+          "explanation": "A light jump is one of the most visible continuity breaks. Check light at every seam."
+        },
+        {
+          "text": "Remake A2 from the last frame of A, with the light side in the prompt",
+          "explanation": "Right. Fix the part after the seam, chain again from the last good frame, and write the light into the prompt.",
+          "correct": true
+        },
+        {
+          "text": "Flip clip A left to right so its sun matches the sun in clip A2",
+          "explanation": "That also flips the rider's direction and any text, which creates new breaks."
+        },
+        {
+          "text": "Add a whip pan at the seam so the light change is too fast to see",
+          "explanation": "A whip pan blurs the image, but the light is still wrong on both sides of it."
+        }
+      ]
+    }
+  ]
+}
