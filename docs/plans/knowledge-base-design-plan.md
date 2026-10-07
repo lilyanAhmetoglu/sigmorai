@@ -8,6 +8,8 @@
 
 ## Amendments
 
+> **2026-10-07 (SIG-29):** the Frontier is playable (`/frontier`, every chapter open, shared XP, no sample chapter). See `curriculum-design-plan.md` → "Amendments locked 2026-10-07 (SIG-29: the Frontier is playable)".
+
 ## Amendments locked 2026-10-07
 
 The knowledge-sync skill (`.claude/skills/knowledge-sync/SKILL.md`) is **run by hand** by the maintainer. There is **no scheduled routine** and no unattended mode; the 2026-10-06 "routine" wording is dropped. Commit and push follow `git-safety.md` as usual; a human still merges every knowledge-sync PR (the 2026-10-06 rule stands). The skill has `disable-model-invocation: true`, so only the maintainer's `/knowledge-sync` runs it. docs-watch (the GitHub Action on `main`) only opens issues.

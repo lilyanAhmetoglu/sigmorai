@@ -1,5 +1,5 @@
 import type { Accent, ChapterStep, RealmStatus, StepStatus, Tier } from '@/lib/types';
-import { MATH_TOWER } from './curriculum';
+import { FRONTIER, MATH_TOWER } from './curriculum';
 import { CHAPTER_COUNT, MATH_FLOOR_COUNT } from './exercises';
 import { QUEST_ERROR_TEXT } from './ui-copy';
 
@@ -14,6 +14,10 @@ type StatusText = { icon: string; label: string; accent: Accent };
 /** `BUILDER` → `Builder`: a track label inside a sentence. */
 const pathWord = (trackLabel: string) =>
   `${trackLabel.charAt(0)}${trackLabel.slice(1).toLowerCase()}`;
+
+/** The Frontier's empty state, one sentence (its page and the dashboard panel). */
+const FRONTIER_EMPTY =
+  'No chapters yet. We add a chapter when official docs publish something new.';
 
 /** UI form of a tier (design: realms catalog filter). */
 export const TIER_TEXT: Record<Tier, string> = {
@@ -135,6 +139,24 @@ export const DASHBOARD_TEXT = {
     soon: 'The next floor is not built yet. It comes soon.',
     viewTower: 'View the tower',
   },
+  /**
+   * The FRONTIER panel (curriculum plan, amendment 2026-10-07 SIG-29): the
+   * newest chapter not cleared yet, else one sentence. Plain product voice.
+   */
+  frontier: {
+    heading: FRONTIER.name.toUpperCase(),
+    /** "2026-10-05": the chapter's date, same as the chapter card. */
+    date: (date: string) => date,
+    open: (title: string) => `${title} is open.`,
+    openButton: 'Open',
+    /** Screen-reader end of the Open button's name. */
+    openTarget: (title: string) => `: ${title}`,
+    cleared: 'You cleared every Frontier chapter. New chapters come when the docs change.',
+    /** The Frontier read failed; the rest of the dashboard still shows. */
+    error: "The Frontier didn't load.",
+    empty: FRONTIER_EMPTY,
+    viewFrontier: 'View the Frontier',
+  },
   browseAll: 'Browse all',
   browseIcon: '▸',
   stats: 'STATS',
@@ -206,4 +228,32 @@ export const MATH_TEXT = {
   loading: 'Loading the Math Tower',
   error: "The Math Tower didn't load. Try again in a moment.",
   retry: 'Retry',
+} as const;
+
+/**
+ * The Frontier page words (app/(app)/frontier; curriculum plan, amendment
+ * 2026-10-07 SIG-29). Plain product voice: no NPC, no lore.
+ */
+export const FRONTIER_TEXT = {
+  title: FRONTIER.name,
+  eyebrow: 'SIDE REALM · NEW IN THE DOCS',
+  /** Meta description, and the fixed description of every Frontier lesson. */
+  description:
+    'Short chapters on what is new in official AI docs. Open on every path, in any order.',
+  intro:
+    'What is new in official AI docs, newest first. Each chapter is a short lesson and a quick check. Every chapter is open, in any order, on every path.',
+  chaptersHeading: 'CHAPTERS',
+  empty: FRONTIER_EMPTY,
+  minutes: (n: number) => `${n} min`,
+  backIcon: '◂',
+  back: 'All realms',
+  loading: 'Loading the Frontier',
+  error: "The Frontier didn't load. Try again in a moment.",
+  retry: 'Retry',
+} as const;
+
+/** The "Side realms" link row on /realms. */
+export const SIDE_REALMS_TEXT = {
+  heading: 'SIDE REALMS',
+  icon: '▸',
 } as const;

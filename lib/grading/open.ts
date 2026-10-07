@@ -6,6 +6,7 @@ import {
   BOSS_NOT_OPEN_TEXT,
   CHAPTER_COUNT,
   floorNotOpenText,
+  FRONTIER_AREA,
   MATH_AREA,
   notOpenText,
   REALMS,
@@ -31,7 +32,10 @@ import { questFailure as fail } from './failure';
  *
  * Math Tower (amended 2026-10-06): no tier and no realm check. Floor 1 is
  * open; floor N needs floor N−1's quick check cleared (its lesson alone is
- * not enough). Frontier is not handled yet: INVALID_INPUT.
+ * not enough).
+ *
+ * The Frontier (amended 2026-10-07, SIG-29): every chapter is open. No order,
+ * no tier; only the content file must exist.
  */
 
 export type OpenResult = { ok: true; ref: ExerciseRef } | QuestFailure;
@@ -75,8 +79,8 @@ export function decideOpen(ref: ExerciseRef, cleared: ReadonlySet<string>): Open
     }
     return { ok: true, ref };
   }
-  // The Frontier has no open rule yet (its list page comes later).
-  if (ref.area !== 'chapter' && ref.area !== 'boss') return fail('INVALID_INPUT');
+  // Every Frontier chapter is open: no order, no tier (checkOpen already proved the file exists).
+  if (ref.area === FRONTIER_AREA) return { ok: true, ref };
   if (!isRealmOpen(REALMS[ref.realm as RealmId].tier)) return fail('TIER_LOCKED');
   if (cleared.has(ownClear(ref))) return { ok: true, ref };
   if (requiredClears(ref).some((id) => !cleared.has(id))) {

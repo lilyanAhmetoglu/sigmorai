@@ -28,6 +28,7 @@ import { MathOutlineSchema, TrackOutlineSchema, type SharedChaptersFile } from '
 import { headingProblems } from './blog';
 import {
   buildExerciseId,
+  frontierExerciseIds,
   parseBlogFileName,
   parseChapterId,
   parseExerciseId,
@@ -37,6 +38,7 @@ import {
   ContentError,
   contentPath,
   hasContent,
+  listFrontierFolders,
   loadBlogFile,
   loadCase,
   loadKbSources,
@@ -70,13 +72,31 @@ function knownExerciseFiles(frontierFolders: string[]): Map<string, string> {
   for (const { n } of MATH_FLOORS) {
     for (const step of SIDE_STEPS) ids.push(buildExerciseId({ area: MATH_AREA, floor: n, step }));
   }
-  for (const folder of frontierFolders) {
-    for (const step of SIDE_STEPS) {
-      const id = `${FRONTIER_AREA}/${folder}/${step}`;
-      if (parseExerciseId(id)) ids.push(id);
+  ids.push(...frontierExerciseIds(frontierFolders));
+  return new Map(ids.map((id) => [exerciseFile(parseExerciseId(id)!), id]));
+}
+
+const FRONTIER_FOLDER =
+  `a Frontier chapter folder is named <YYYY-MM-DD>-<slug> (a real date, a lowercase ` +
+  `kebab-case slug). Rename the folder.`;
+
+/**
+ * A Frontier chapter holds both its lesson and its quick check
+ * (curriculum plan, amendment 2026-10-07 SIG-29). Extra files are already
+ * "unexpected"; this names the missing one.
+ */
+function frontierMissingFiles(folders: string[], files: string[]): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  for (const id of frontierExerciseIds(folders)) {
+    const rel = exerciseFile(parseExerciseId(id)!);
+    if (!files.includes(rel)) {
+      issues.push({
+        file: rel,
+        message: `a Frontier chapter needs both ${LESSON_FILE} and ${QUICK_CHECK_FILE}: add content/${rel}`,
+      });
     }
   }
-  return new Map(ids.map((id) => [exerciseFile(parseExerciseId(id)!), id]));
+  return issues;
 }
 
 /** The post's file name when `rel` is a well-named blog post (blog/<YYYY-MM-DD>-<slug>.mdx). */
@@ -334,10 +354,9 @@ export async function validateContent(
   const files = await listFiles(abs);
   const official = await officialBases(abs, issues);
 
-  const frontier = files
-    .filter((f) => f.startsWith(`${FRONTIER_AREA}/`))
-    .map((f) => f.split('/')[1]);
-  const exercises = knownExerciseFiles([...new Set(frontier)]);
+  const frontier = await listFrontierFolders(abs);
+  const exercises = knownExerciseFiles(frontier);
+  issues.push(...frontierMissingFiles(frontier, files));
 
   /** slug → the first file that used it: two posts may not share a URL. */
   const blogSlugs = new Map<string, string>();
@@ -372,14 +391,21 @@ export async function validateContent(
     }
     const id = exercises.get(rel);
     if (!id) {
-      issues.push({ file: rel, message: UNEXPECTED });
+      // Only a file inside a badly named chapter folder (frontier/<folder>/<file>)
+      // gets "rename the folder"; a stray file right under frontier/ is just unexpected.
+      const parts = rel.split('/');
+      const [area, folder] = parts;
+      const badFolder = parts.length === 3 && area === FRONTIER_AREA && !frontier.includes(folder);
+      issues.push({ file: rel, message: badFolder ? FRONTIER_FOLDER : UNEXPECTED });
       continue;
     }
     try {
       if (rel.endsWith(LESSON_FILE)) {
         const { frontmatter, body } = await loadLesson(id, abs);
         try {
-          await compileLesson(body);
+          // A Frontier lesson has no NPC, so no <DialogBox> (or any component).
+          const isFrontier = parseExerciseId(id)?.area === FRONTIER_AREA;
+          await compileLesson(body, isFrontier ? { allowedComponents: NO_COMPONENTS } : {});
         } catch (err) {
           issues.push({ file: rel, message: `MDX body: ${(err as Error).message}` });
         }

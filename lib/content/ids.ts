@@ -16,6 +16,7 @@ import {
   CHAPTER_COUNT,
   CHAPTER_STEPS,
   FRONTIER_AREA,
+  FRONTIER_HREF,
   MATH_AREA,
   MATH_FLOOR_COUNT,
   MATH_HREF,
@@ -165,10 +166,24 @@ export function mathExerciseIds(): string[] {
   ).flat();
 }
 
-/** Where a quest's back link goes: its realm page on its track, the tower page, else the catalog. */
+/**
+ * The Frontier exercise ids of these folders (`2026-10-05-some-slug`), folder
+ * by folder (lesson, then quick check). A folder that breaks the grammar has none.
+ */
+export function frontierExerciseIds(folders: readonly string[]): string[] {
+  return folders.flatMap((folder) =>
+    SIDE_STEPS.map((step) => `${FRONTIER_AREA}/${folder}/${step}`).filter(isExerciseId),
+  );
+}
+
+/**
+ * Where a quest's back link goes: its realm page on its track, the tower
+ * page, the Frontier page, else the catalog.
+ */
 export function questBackHref(exerciseId: string): string {
   const ref = parseExerciseId(exerciseId);
   if (ref?.area === MATH_AREA) return MATH_HREF;
+  if (ref?.area === FRONTIER_AREA) return FRONTIER_HREF;
   if (ref?.area !== 'chapter' && ref?.area !== 'boss') return QUEST_BACK_HREF;
   return realmHref(REALMS[ref.realm as RealmId].slug, ref.track);
 }

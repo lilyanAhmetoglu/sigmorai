@@ -109,10 +109,20 @@ describe('Math Tower', () => {
 });
 
 describe('Frontier', () => {
-  test('is not handled yet: INVALID_INPUT', () => {
-    const result = decideOpen(ref('frontier/2026-10-05-some-slug/lesson'), NONE);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.code).toBe('INVALID_INPUT');
+  test('every chapter is open, lesson and quick check, with nothing cleared', () => {
+    for (const id of [
+      'frontier/2026-10-05-some-slug/lesson',
+      'frontier/2026-10-05-some-slug/quick-check',
+      'frontier/2020-01-01-old-slug/quick-check',
+    ]) {
+      expect(decideOpen(ref(id), NONE)).toEqual({ ok: true, ref: ref(id) });
+    }
+  });
+
+  test('needs no clear before it; its own clear is the step itself', () => {
+    const quick = ref('frontier/2026-10-05-some-slug/quick-check');
+    expect(requiredClears(quick)).toEqual([]);
+    expect(ownClear(quick)).toBe('frontier/2026-10-05-some-slug/quick-check');
   });
 });
 

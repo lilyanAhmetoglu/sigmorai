@@ -10,7 +10,7 @@ import {
 import { segment } from '@/lib/content/ids';
 import type { HudState } from './hud';
 import { KebabSlugSchema } from './kb';
-import type { ChapterView, StepView } from './realms';
+import type { ChapterView, StepStatus, StepView } from './realms';
 
 export type Tier = (typeof TIERS)[number];
 export type Realm = (typeof REALMS)[number];
@@ -139,3 +139,40 @@ export type TowerSummary = {
 
 /** The /math page's read (lib/data/math.ts). A visitor has no progress. */
 export type MathPage = { viewer: HudState['status']; floors: FloorView[] };
+
+// ── The Frontier (side realm; curriculum plan, amendment 2026-10-07 SIG-29) ──
+
+/**
+ * One Frontier chapter on disk: `content/frontier/<YYYY-MM-DD>-<slug>/`
+ * (listFrontierChapters). Title and minutes come from its lesson frontmatter.
+ */
+export type FrontierChapter = {
+  /** The folder name: `2026-10-05-some-slug`. */
+  folder: string;
+  /** `YYYY-MM-DD`, a real calendar date. */
+  date: string;
+  slug: string;
+  title: string;
+  minutes: number;
+  lessonId: string;
+  quickCheckId: string;
+};
+
+/**
+ * A Frontier chapter's state and steps (buildFrontierList): lesson, then
+ * quick check; the quick check clears the chapter. Every chapter is open.
+ */
+export type FrontierChapterView = FrontierChapter & { status: StepStatus; steps: StepView[] };
+
+/**
+ * The dashboard's FRONTIER panel (frontierSummary). `open`: `next` is the
+ * newest chapter not cleared yet, with its playable step. `cleared`: every
+ * chapter is done. `empty`: no chapter yet.
+ */
+export type FrontierSummary = {
+  state: 'open' | 'cleared' | 'empty';
+  next: { title: string; date: string; step: StepView } | null;
+};
+
+/** The /frontier page's read (lib/data/frontier.ts), newest first. A visitor has no progress. */
+export type FrontierPage = { viewer: HudState['status']; chapters: FrontierChapterView[] };
