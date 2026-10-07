@@ -1,0 +1,88 @@
+---
+id: creator/r6/c6/lesson
+title: Regression
+minutes: 7
+sources:
+  - kind: blog
+    title: Anthropic · Demystifying evals for AI agents
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+  - kind: docs
+    title: OpenAI docs · Evaluation best practices
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: docs
+    title: OpenAI docs · Deprecations
+    url: https://developers.openai.com/api/docs/deprecations
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+---
+
+## Why it matters
+
+You ran the scorecard once and picked a model. Then the vendor ships a new version, or says a model is now the old one, or your own prompt kit changes. Will last quarter's good results still be good? A **regression test** answers that. It re-runs jobs that already worked and flags anything that got worse.
+
+## Two kinds of tests
+
+Anthropic splits evals into two kinds:
+
+- **Capability evals** ask "What can this agent do well?" They "should start at a low pass rate", so they give the team "a hill to climb".
+- **Regression evals** ask "Does the agent still handle all the tasks it used to?" and "should have a nearly 100% pass rate". A drop signals that something is broken.
+
+Anthropic adds that a capability eval with a high pass rate can "graduate" to become a regression suite.
+
+For a studio: a capability test is a new hard job, such as a transparent-background label on a dark photo. A regression test is a job that works today and must keep working: the packshot with the exact logo, the 9:16 story with the safe zone.
+
+## Feed it with real failures
+
+Anthropic says to look at the bug tracker and support queue. "Converting user-reported failures into test cases ensures your suite reflects actual usage". OpenAI says the same in its own words: grow the eval set over time, and log as you work to find good cases.
+
+Every time a client finds a flaw, ask: what test would have caught this? Add it. Then a flaw you fixed once cannot come back unseen.
+
+## Run it on every change
+
+OpenAI's guide: "Set up continuous evaluation (CE) to run evals on every change, monitor your app to identify new cases of nondeterminism, and grow the eval set over time."
+
+For a studio, our list of changes that should trigger a run:
+
+- A new model, or a new version of the model you use.
+- A change to your prompt kit, style block or reference images.
+- A change to size, quality or filter settings.
+- A vendor update to a moderation or safety model (chapter 5).
+
+Vendors will tell you to move. Google's image page says of Nano Banana 2: "Recommended for all new projects to use Nano Banana 2.1." OpenAI's image guide says that, for new integrations, you should use one of the GPT Image 2.5 models. These notes are a reason to run your test. They are not proof that the new model is better for your jobs.
+
+Anthropic describes the payoff: when a stronger model arrives, teams without evals "face weeks of testing", while teams with evals "can quickly determine the model's strengths, tune their prompts, and upgrade in days".
+
+## The same prompt gives a different image
+
+Image models vary from run to run. Anthropic gives a way to count that. A metric called pass^k "measures the probability that all k trials succeed". It matters most when users expect good results every time. Its example: a 75% pass rate per trial over 3 trials gives about 42%.
+
+Made-up example for a studio. A model gets the logo right 9 times in 10. A client brief needs the logo right in all 3 images of a set.
+
+- All 3 right: 0.9 x 0.9 x 0.9 = 0.729, about 73%.
+- That is 27 sets in 100 with at least one wrong logo, even though each image is right 90% of the time.
+
+So a regression run should repeat each job a few times, and report how often all repeats pass.
+
+## Keep the suite alive
+
+Anthropic warns that "An eval at 100% tracks regressions but provides no signal for improvement." Anthropic says this about capability evals. Your regression list should stay near 100%. When your capability list is always at 100%, move those jobs to the regression list and add harder capability jobs. It also says that "An eval suite is a living artifact that needs ongoing attention and clear ownership to remain useful." Give the suite an owner, and a date each quarter to review it.
+
+## Keep your files
+
+OpenAI is deprecating its Evals platform. Its deprecations page gives these dates: existing evals become read-only on October 31, 2026, and the Evals dashboard and API are scheduled to shut down on November 30, 2026. The same page names a cookbook guide for moving to another tool.
+
+The lesson for a studio: your test jobs, rubric, anchor images and past results are an asset. Keep them as files you own, not only inside one vendor's tool. Then a tool can change and your scorecard stays.
+
+## What this means for your work
+
+- **Keep two lists:** regression jobs that must keep passing, and capability jobs that are still hard.
+- **Turn every client complaint into a test.**
+- **Re-run the suite on every change**: model, prompt kit, settings, filters.
+- **Treat a vendor's "move to the new model" note as a trigger to test.**
+- **Repeat each job and report how often all repeats pass.**
+- **Add harder capability jobs when that list is always at 100%.**
+- **Keep the suite in files you own.**

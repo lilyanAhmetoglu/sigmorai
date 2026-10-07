@@ -1,0 +1,118 @@
+{
+  "id": "creator/r4/c3/challenge",
+  "title": "The reviewer that said yes",
+  "scenario": "A studio uses an agent that makes a 30-second tea ad and a second model that reviews it. You judge the rubric and the loop, using the exhibit. The rubrics and the log are made up for this case.",
+  "exhibit": "RUBRIC DRAFT 1 (written by the agent, made up for this case)\n  - The ad feels premium.\n  - The ad is on brand.\n  - Overall quality is high.\n\nRUBRIC DRAFT 2 (written by the studio, made up for this case)\n  1. The logo is readable in the last 2 seconds.\n  2. The only words on screen are the approved tagline: \"Steep slowly.\"\n  3. The tea box has the same green lid in every shot where it appears.\n  4. No face is visible.\n\nREVIEW LOG (made up)\n  Round 1  maker: ad v1.\n           reviewer, same chat as the maker: \"Looks great. Approved.\"\n  Round 1  (second try) separate reviewer, using draft 2:\n           1 pass   2 pass   3 FAIL (the lid is brown in shot 4)   4 pass\n  Round 2  maker: ad v2.\n           separate reviewer: 1 pass   2 pass   3 pass   4 pass\n  After the pass  the agent makes a last edit to shot 3.\n  Delivery  The agent sends the edited v2 to the client. No review ran\n           after the edit.",
+  "questions": [
+    {
+      "prompt": "Which line in the exhibit is gradeable by two different reviewers, with the same answer?",
+      "options": [
+        {
+          "text": "The ad feels premium, so that a viewer thinks the tea is a high-end product",
+          "explanation": "Premium is a feeling. Two reviewers may disagree, and Claude's docs warn that vague criteria give noisy results."
+        },
+        {
+          "text": "Overall quality is high, which covers the picture, the sound and the story together",
+          "explanation": "This covers too much to score. Claude's docs say each criterion is scored on its own."
+        },
+        {
+          "text": "The logo is readable in the last 2 seconds, which has a plain yes or no answer",
+          "explanation": "Right. Claude's docs prefer explicit criteria, such as a column that holds numbers, over a vague line like \"the data looks good\".",
+          "correct": true
+        },
+        {
+          "text": "The ad is on brand, since the agent already knows the brand better than a person does",
+          "explanation": "On brand is a judgment, and a claim about the agent's knowledge is not a criterion at all."
+        }
+      ]
+    },
+    {
+      "prompt": "In Round 1, a reviewer in the same chat as the maker wrote \"Looks great. Approved.\" What is the best fix?",
+      "options": [
+        {
+          "text": "Use a separate reviewer with its own context and the studio's rubric, as in the second try",
+          "explanation": "Right. Claude's grader runs in a separate context window so the maker's choices do not influence it. In the log, the separate reviewer found the lid problem.",
+          "correct": true
+        },
+        {
+          "text": "Ask the same chat to review again, and this time tell it to be much harsher",
+          "explanation": "The same chat still carries the maker's context. A harsher tone does not give it a rubric."
+        },
+        {
+          "text": "Remove the review step, because a reviewer that approves a bad ad costs more than none",
+          "explanation": "A reviewer with a clear rubric found a real fault. The step is worth keeping, with a better setup."
+        },
+        {
+          "text": "Let the maker's own review stand, because the maker knows the ad better than anyone",
+          "explanation": "The maker's context is exactly what Claude's docs keep away from the grader."
+        }
+      ]
+    },
+    {
+      "prompt": "The reviewer found that the lid is brown in shot 4. What should it send back to the maker?",
+      "options": [
+        {
+          "text": "The words \"Fail. Try again.\", so that the maker has the freedom to find its own way",
+          "explanation": "This tells the maker nothing. Claude's grader returns which criteria passed or failed."
+        },
+        {
+          "text": "A new full storyboard, with the lid problem hidden among ten other small suggestions",
+          "explanation": "A pile of changes hides the one that matters, and risks breaking what already passes."
+        },
+        {
+          "text": "A score out of 10 for the ad, with no note on which line caused the lower score",
+          "explanation": "A score without the failed line gives the maker nothing to change."
+        },
+        {
+          "text": "Line 3 failed: the lid is brown in shot 4, so keep the rest and make the lid green",
+          "explanation": "Right. Name the failed line and the one change, like Google's \"Keep everything the same, but change…\" style of follow-up.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Delivery: the agent sent v2 after a review that came before the last edit to shot 3. What is the problem?",
+      "options": [
+        {
+          "text": "No problem, because a pass stays true for any later version of the same ad",
+          "explanation": "A pass describes the file that was checked. A later edit makes it a different file."
+        },
+        {
+          "text": "The check should have run on the final file, because the pass no longer describes v2",
+          "explanation": "Right. OpenAI's output check is on the final output, before it leaves the system. Here the final file was never checked.",
+          "correct": true
+        },
+        {
+          "text": "The problem is that the reviewer was a model, and a model can never review an ad",
+          "explanation": "A model reviewer is fine for rubric lines. The problem here is what was reviewed and when."
+        },
+        {
+          "text": "The ad should have gone to the client sooner, so the edit would never have been made",
+          "explanation": "Speed is not the issue. The issue is that the delivered file was never checked."
+        }
+      ]
+    },
+    {
+      "prompt": "The client says: \"Run a loop until it decides which of these two ads is more beautiful.\" What do you advise?",
+      "options": [
+        {
+          "text": "Agree, since a loop with a strong model can judge beauty as well as any person can",
+          "explanation": "Anthropic says the pattern fits when there are clear evaluation criteria. Beauty has none here."
+        },
+        {
+          "text": "Write a rubric of 40 lines so that beauty is covered, and run the loop 20 times",
+          "explanation": "More lines do not make taste gradeable. Forty vague lines are still vague."
+        },
+        {
+          "text": "Skip a loop, since nobody can write the criteria and a person picks the ad they prefer",
+          "explanation": "Right. Anthropic says an evaluator loop works with clear criteria and measurable gains. With none, a person chooses.",
+          "correct": true
+        },
+        {
+          "text": "Run the loop only on the logo, and let the client pick the ad on the logo result alone",
+          "explanation": "The question was about which ad is more beautiful. A logo check does not answer it."
+        }
+      ]
+    }
+  ]
+}

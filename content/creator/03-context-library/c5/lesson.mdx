@@ -1,0 +1,103 @@
+---
+id: creator/r3/c5/lesson
+title: Consistent cast
+minutes: 6
+sources:
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: Runway API docs · Reference media guidelines
+    url: https://docs.dev.runwayml.com/recipes/reference-media
+---
+
+## Why it matters
+
+A cereal brand has an otter mascot. It appears in thirty posts and four short videos. A model does not remember the otter between requests. Each request starts new, so a new otter can appear every time.
+
+OpenAI's image guide lists this as a known limit: the model "may occasionally struggle to maintain visual consistency for recurring characters or brand elements across multiple generations". So consistency is something you build and check. This lesson shows how to build a **cast**: the recurring characters of a brand. You decide how they are kept. You do not write the requests.
+
+Prompt Forest, chapter 3 covered style, and chapter 2 covered reference images. Here we apply them to characters that must look the same every time.
+
+## A cast sheet
+
+A **cast sheet** is one page per character. It is our method.
+
+| Part         | Example                                                         |
+| ------------ | --------------------------------------------------------------- |
+| Name         | Pip, the otter mascot                                           |
+| Anchor       | One clear front view, neutral, even light                       |
+| Views        | Side, three-quarter, back, each approved                        |
+| In words     | A fixed description, used in every prompt                       |
+| Never change | Red scarf with a white stripe on the left, black ear tips       |
+| Permission   | Who made it or who it shows, and where the proof is (chapter 6) |
+
+## Start with a clean anchor
+
+Everything else is built from the anchor, so choose it with care. Runway's guide has advice for people and talent references. It is written for Runway's own Recipes. Using it with any tool is our method:
+
+- Use "a clear, well-lit reference with the face visible and unobstructed".
+- "Choose a neutral expression and framing unless you want a specific look carried through."
+
+The second line matters for any character. A photo of a laughing model, lit from one side, will carry that laugh and that shadow into other images. A neutral anchor leaves room to add expression later.
+
+Runway also says to use one subject per reference. So the anchor shows one character, not a group.
+
+## Build the other views from the anchor
+
+Google's image guide has a method for new angles: "You can generate 360-degree views of a character by iteratively prompting for different angles. For best results, include previously generated images in subsequent prompts to maintain consistency. For complex poses, include a reference image of the selected pose."
+
+So the steps are (the check and approve steps are ours):
+
+1. Start from the anchor and ask for one new view, such as a side view.
+2. Compare it with the anchor (Prompt Forest, chapter 6).
+3. If it is right, approve it and add it to the sheet.
+4. Ask for the next view, again giving the earlier images.
+
+Do not use a view before it is approved.
+
+## Say what must not change
+
+Words and pictures work together. Google's guide advises: "Be hyper-specific". Its example: not "fantasy armor" but "ornate elven plate armor, etched with silver leaf patterns, with a high collar and pauldrons shaped like falcon wings."
+
+Write the "Never change" line in that way. "Keep her look" is too vague to check. "Red scarf with a white stripe on the left, black ear tips, cream belly" can be checked at a glance.
+
+For an edit, Google gives a pattern: "Keep everything the same, but change the character's expression to be more serious."
+
+## How many can be in one shot?
+
+Models take a limited number of references, and they are shared with everything else in the shot.
+
+- **Images:** Google's limits note says Nano Banana 2.1 and Nano Banana 2 support character resemblance of up to 4 characters. Its table lists up to 5 for Nano Banana Pro (Prompt Forest, chapter 2).
+- **Video:** Veo 3.1 accepts up to 3 reference images "of a person, character, or product" to preserve the subject's appearance. Those 3 slots are shared. A shot with an otter, a girl and a cereal box already uses all three.
+
+A shot with four things that need references does not fit. Plan the shot list around the slots (this planning habit is ours). Split the shot in two. Or decide which thing the words can carry, such as a simple prop.
+
+Do not put four characters into one collage to save slots. Runway advises against references with several competing subjects, and a collage is exactly that.
+
+## Check for drift
+
+Look at the whole set, not only the last image. A character can change a little each time. After twenty images the scarf is orange.
+
+One habit helps, and it is ours: **always give the approved sheet image, not the latest result.** If you feed each result into the next request, small errors pile up, like a copy of a copy. Google's advice to include earlier images is for building the views. For each new asset, go back to the sheet.
+
+OpenAI's limit above still applies. A good sheet lowers the risk. It does not remove it. Compare new work with the anchor before it ships.
+
+## People are not characters
+
+An invented otter shows no real person. A photo of a real person is different. Runway says: "only use references of people you have permission to depict". It adds: "You are responsible for the rights to any likeness you submit." Chapter 6 shows what to record. This course gives no legal advice.
+
+## What this means for your work
+
+- **One sheet per character.** Name, anchor, views, words, never-change, permission.
+- **A neutral, clear anchor.** Face visible, even light, one subject.
+- **Approve each view.** Build it from the anchor, check it, then add it.
+- **Be specific.** Write the never-change line so a stranger can check it.
+- **Count the slots.** Plan shots around the reference limit.
+- **Return to the sheet.** Do not chain one result into the next.

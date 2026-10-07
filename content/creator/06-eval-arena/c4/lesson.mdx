@@ -1,0 +1,89 @@
+---
+id: creator/r6/c4/lesson
+title: A/B tests
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Define success criteria and build evaluations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests
+  - kind: docs
+    title: OpenAI docs · Evaluation best practices
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: blog
+    title: Anthropic · Demystifying evals for AI agents
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+---
+
+## Why it matters
+
+Your studio uses Model A. A vendor ships Model B and says it is better. An **A/B test** answers the question for your jobs: run the same work through both, judge the results the same way, and compare.
+
+Claude's guide lists A/B testing as a way to "compare performance against a baseline model or earlier version". The old model is your baseline. The new one has to beat it, or at least match it, on the criteria from chapter 1.
+
+## Change one thing
+
+If two things differ, you cannot tell which one caused the result. So keep everything else the same:
+
+- The same test jobs and the same prompts.
+- The same rubric and the same reviewers (chapter 2).
+- The same number of tries per job.
+- The same output size and quality setting.
+
+The last line catches people out. OpenAI's image guide says `size`, `quality` and `background` accept `auto`, where "the model will automatically select the best option based on the prompt". Both GPT Image 2.5 models default to `auto`. If one model picks a lower quality than the other, you are comparing two settings and not two models. Set explicit values for both.
+
+## Choose candidates for the job
+
+You do not need to test every model. Read each vendor's description and ask which ones fit your work. These are vendor claims, so the test decides.
+
+- OpenAI: "Choose Sunburst for workflows where editing precision matters most, and Flare for fast, high-quality everyday image generation."
+- Google describes Nano Banana Pro as "the premium choice for the most complex visual tasks", and Nano Banana 2 Lite as "the fastest and cheapest" model, "not optimized for multiple reference inputs or multi-turn sequential editing".
+
+A studio that edits approved packshots all day has a different shortlist from one that makes 300 quick drafts. If your jobs use many reference images, Google's note about Lite is a reason to leave it out of that test.
+
+## Judge blind, in random order
+
+OpenAI's guide describes a human test: "a randomized, blinded test in which employees, contractors, or outsourced labeling agencies judge the quality of system outputs". For you:
+
+- Hide the model name. Call the images "Left" and "Right".
+- Flip a coin for which model goes on the left for each job.
+- Let reviewers answer "left", "right" or "no difference".
+
+This follows from chapter 3. OpenAI lists position bias for model judges, and a person who sees a label may favour a name they like. Random sides protect both kinds of review.
+
+## Compare cost per image, not price per token
+
+OpenAI says its two GPT Image 2.5 models "share the same price per image output token". It adds: "Equal token rates don't mean equal cost per image: token consumption can differ by model and quality setting." It tells you to use the response's `usage` to measure what your prompts, sizes and quality settings really use.
+
+An example, with made-up usage and the $30 per million output tokens that the guide lists for these models. We leave out text input to keep the sum short.
+
+- Model X uses 4,000 output tokens per image: 4,000 / 1,000,000 x $30 = $0.12.
+- Model Y uses 5,000 output tokens per image: 5,000 / 1,000,000 x $30 = $0.15.
+
+Same rate, different bill. Read the usage from your own test runs.
+
+## Small gaps need more pairs
+
+Anthropic says that big effects can be seen with few tasks, because "this large effect size means small sample sizes suffice". It also says more mature systems "may need larger, more difficult evals to detect smaller effects".
+
+Our reading for a studio: if one model wins 90 of 100 pairs, you are done. If it wins 54 of 100, the gap is small. Do not call it a win. Either test more pairs, or treat it as a tie and let cost, speed and the gates decide. Write that rule down before the run (chapter 1).
+
+## Offline first, live later
+
+You could also switch part of your real posts to the new model and compare results. Anthropic describes A/B testing with real traffic as measuring "actual user outcomes", but "slow; days or weeks to reach significance and requires sufficient traffic". It also "only tests changes you deploy".
+
+A studio with a few posts a week will wait a long time for a clear answer. Run the offline blind test first, and use live testing later, if the new model passes and you have the volume.
+
+## What this means for your work
+
+- **Change one thing**: the model. Fix size, quality, prompts, rubric and tries.
+- **Shortlist by job**, then let the test decide.
+- **Hide the model names and randomise the sides.**
+- **Compare cost per image** from your own usage, not the rate card.
+- **Treat a small gap as a tie** until you have more pairs.
+- **Test offline first.** Live tests need traffic and time.

@@ -1,0 +1,103 @@
+---
+id: creator/r5/c5/lesson
+title: Access & keys
+minutes: 6
+sources:
+  - kind: docs
+    title: Claude docs · MCP connector (beta) · Authentication
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: Claude docs · Workspaces
+    url: https://platform.claude.com/docs/en/manage-claude/workspaces
+  - kind: docs
+    title: Claude connectors docs · Authentication for connectors
+    url: https://claude.com/docs/connectors/building/authentication
+  - kind: docs
+    title: Claude connectors docs · Model Context Protocol (MCP)
+    url: https://claude.com/docs/connectors/building/mcp
+  - kind: docs
+    title: OpenAI docs · MCP servers (Authentication)
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: docs
+    title: OpenAI docs · Production best practices
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+  - kind: docs
+    title: ChatGPT docs · Plugin controls
+    url: https://learn.chatgpt.com/docs/enterprise/apps-and-connectors
+  - kind: docs
+    title: Gemini API docs · Using Gemini API keys
+    url: https://ai.google.dev/gemini-api/docs/api-key
+  - kind: docs
+    title: Gemini API docs · Function calling (Remote MCP)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+## Why it matters
+
+When you link tools, "the key" can mean three different things. Mixing them up is how studios leak access.
+
+1. **The model key.** It lets your app call a model, such as the Claude API or the Gemini API.
+2. **The tool token.** It lets the model's call reach a tool, such as a design file or a scheduler.
+3. **The person's rights in the tool.** What that account may see and do.
+
+This chapter takes them one at a time. You will decide who holds each, and how wide each one is.
+
+## Who holds the tool token
+
+When your own app calls the API, your app carries the tool token.
+
+- **Claude.** The connector takes an `authorization_token`. Anthropic says "API consumers are expected to handle the OAuth flow and obtain the access token prior to making the API call, and to refresh the token as needed."
+- **OpenAI.** "most other MCP servers require authentication. The most common scheme is an OAuth access token." You pass it in the `authorization` field.
+- **Gemini.** The Remote MCP settings have `headers`: "Key-value pairs sent as HTTP headers with every request to the server (for example, authentication tokens)".
+
+So the studio's app is trusted with every token it passes. It must keep them safe.
+
+## Keep keys on the server
+
+Google puts it plainly: "Treat your Gemini API key like a password." Its rules include "Never check API keys into source control" and "Never expose keys client-side in production". Keys in a web or mobile app "can be extracted by users". Google's fix is "a backend proxy server".
+
+OpenAI says the same: avoid "exposing the API keys in your code or in public repositories". It suggests environment variables or a secret service.
+
+Example: a moodboard web page has the model key typed into its script. Anyone can read it. The key belongs on the studio's own server, and the page asks that server.
+
+Google adds a rule for its own keys: "The Gemini API rejects requests from unrestricted standard keys." Keys with explicit restrictions continue to work. Check the page when you set one up, because this is changing.
+
+## One identity or many
+
+A tool can know who is calling, or only which organization.
+
+- With OAuth, each person signs in. Anthropic says a person's "permissions mirror their access on the external service".
+- A static credential is shared. Anthropic offers it as a beta for a limited set of organizations. Its builder guide says "every member's requests carry the same key", so it cannot tell users apart. "If your tools need to act as the individual user, use OAuth instead."
+- OpenAI's admin guide has a similar rule: "For a shared credential, the member also needs permission to use that credential; the external account can differ from their personal account."
+
+Example: a scheduler token is typed once by the studio owner and used by everyone. Every post then looks like it came from the owner. When something goes wrong, you cannot tell who did it.
+
+## Available is not allowed
+
+OpenAI's guide warns: "Making an MCP server or plugin available in ChatGPT doesn't grant access to files, records, or actions in the connected service." Access is a chain. The role, the action settings and the connected account each add a limit.
+
+For each connection, that guide says to record "the business owner, permitted data, approved read or write actions, authentication method, and a support or removal contact". This is a good sheet to copy.
+
+## One workspace per client
+
+Keep keys apart for each client and each stage.
+
+- **Claude.** "API keys can be scoped to a single workspace. In this case, they can only access resources within that workspace." Anthropic suggests separate workspaces for development, staging and production.
+- **OpenAI.** You can create separate projects for staging and production, limit who can open production, and "set custom rate and spend limits per project".
+- **Gemini.** "Every Gemini API key is associated with a Google Cloud project."
+
+Example: Client A and Client B share one workspace and one key. A leak of that key reaches both. With one workspace each, it reaches one.
+
+## Rotate before it expires
+
+OpenAI says: "We strongly recommend setting an expiration date when you create a project API key and establishing a regular key rotation process." The steps: "Before a key expires, create a replacement, update your applications to use it, and revoke the old key once you've verified that the replacement works."
+
+Google's leak checklist is the same shape: make a new key, update the app, disable the old key once the new one works, then check usage.
+
+## What this means for your work
+
+- **Name the three keys** in every connection: model key, tool token, person's rights.
+- **Keep keys on a server.** Never in a page, a chat or a repository.
+- **Prefer personal sign-in** where the tool must know who acted.
+- **One workspace or project per client.**
+- **Set an expiry** and practise the swap.

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { CONTENT_DIR } from '@/lib/constants';
 import { isSafeLessonUrl } from './mdx';
-import { lengthGiveaways, validateContent } from './validate';
+import { lengthGiveaways, shapeGiveaways, validateContent } from './validate';
 
 const REAL = path.resolve(import.meta.dir, '../..', CONTENT_DIR);
 const FIXTURE_LESSON = `${import.meta.dir}/__fixtures__/valid/builder/00-bootstrap-village/c1/lesson.mdx`;
@@ -175,8 +175,13 @@ function post(body = '## Summary\n\nPlain text.', fields: Record<string, string>
 
 describe('blog posts', () => {
   /** Validate the real content plus these posts, with a tiny public/ holding the named covers. */
-  async function postIssues(files: Record<string, string>, covers = ['tokens', 'other']) {
+  async function postIssues(
+    files: Record<string, string>,
+    covers = ['tokens', 'other'],
+    removeFromCopy: string[] = [],
+  ) {
     const root = await copyOfContent();
+    for (const rel of removeFromCopy) await rm(`${root}/${rel}`);
     for (const [name, text] of Object.entries(files)) await Bun.write(`${root}/blog/${name}`, text);
     const pub = await mkdtemp(path.join(tmpdir(), 'sigmorai-public-'));
     pubDirs.push(pub);
@@ -222,12 +227,13 @@ describe('blog posts', () => {
   });
 
   test('a lesson with no file (a stub chapter) fails', async () => {
-    const issues = await postIssues({
-      // A real id whose chapter is not written yet; move it when creator r8 ships.
-      '2026-10-05-tokens.mdx': post(undefined, { lesson: 'creator/r8/c6/lesson' }),
-    });
-    expect(issues).toHaveLength(1);
-    expect(issues[0].message).toContain('has no lesson file');
+    // Every chapter is written now, so the copy deletes one lesson to make a stub.
+    const issues = await postIssues(
+      { '2026-10-05-tokens.mdx': post(undefined, { lesson: 'creator/r8/c6/lesson' }) },
+      undefined,
+      ['creator/08-production-peaks/c6/lesson.mdx'],
+    );
+    expect(issues.some((i) => i.message.includes('has no lesson file'))).toBe(true);
   });
 
   test('a cover that is not a file under public/ fails', async () => {
@@ -411,5 +417,36 @@ describe('answer length guard', () => {
 
   test('a small gap passes even when the ratio is high', () => {
     expect(lengthGiveaways([q('x'.repeat(10), 'y'.repeat(4))], 'f')).toEqual([]);
+  });
+});
+
+describe('answer shape guard', () => {
+  const q = (right: string, ...wrong: string[]) => ({
+    options: [{ text: right, correct: true }, ...wrong.map((text) => ({ text, correct: false }))],
+  });
+
+  test('fails when only the key ends with a period', () => {
+    const issues = shapeGiveaways([q('Use a cache.', 'Use a queue', 'Use a log')], 'f');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('question 1');
+    expect(issues[0].message).toContain('ends with a period');
+  });
+
+  test('fails when only the key has two sentences', () => {
+    const issues = shapeGiveaways([q('It waits. Then it retries', 'It stops', 'It logs')], 'f');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].message).toContain('two sentences');
+  });
+
+  test('passes when all options end with a period', () => {
+    expect(shapeGiveaways([q('Use a cache.', 'Use a queue.', 'Use a log.')], 'f')).toEqual([]);
+  });
+
+  test('passes when no option does', () => {
+    expect(shapeGiveaways([q('Use a cache', 'Use a queue', 'Use a log')], 'f')).toEqual([]);
+  });
+
+  test('ignores questions where all options are bare numbers', () => {
+    expect(shapeGiveaways([q('3.', '4', '5')], 'f')).toEqual([]);
   });
 });

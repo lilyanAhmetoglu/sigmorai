@@ -1,0 +1,96 @@
+{
+  "id": "creator/r8/c1/challenge",
+  "title": "Four files, four check results",
+  "scenario": "A client asks what your studio can say about four files in the campaign folder. You read the provenance check for each one. The file list, the names and the results are our own, made up for this case. The fields follow OpenAI's provenance check.",
+  "exhibit": "Check results for the c2pa entry of each file (made up for this case):\n\n  File  What it is                                        validation_state  issuer             outcome\n  F1    Hero.png, exported from an OpenAI image model,     trusted           OpenAI OpCo, LLC   detected\n        never edited\n  F2    Banner.png, F1 resized in an app that drops        not_present       -                  not_detected\n        metadata\n  F3    Promo.png, made with another company's tool        valid             Other Studio Ltd   not_detected\n  F4    Poster.png, damaged during a file transfer         invalid           -                  not_detected\n\nDraft caption for F1 (client): \"Real tent, real storm, no tricks.\"",
+  "questions": [
+    {
+      "prompt": "Which file can you describe as made with an OpenAI image model, using only this check?",
+      "options": [
+        {
+          "text": "F1, because a trusted manifest names OpenAI and records an AI-generation step",
+          "explanation": "Right. OpenAI's page says detected needs a trusted or valid manifest that names OpenAI and includes an AI-generation action.",
+          "correct": true
+        },
+        {
+          "text": "F3, because a valid manifest from any issuer means OpenAI made the file",
+          "explanation": "A valid manifest can come from another company. The issuer here is Other Studio Ltd, and the outcome is not_detected."
+        },
+        {
+          "text": "F2, because it was made from F1 and so it carries the same credential",
+          "explanation": "F2 has no manifest. The app dropped the metadata, so this check cannot link F2 to F1."
+        },
+        {
+          "text": "F4, because even a damaged manifest still counts as proof of the tool",
+          "explanation": "OpenAI says not to treat an invalid manifest as reliable provenance evidence."
+        }
+      ]
+    },
+    {
+      "prompt": "The client says: \"F2 has no credentials, so we cannot trust our own banner.\" What fits best?",
+      "options": [
+        {
+          "text": "Agree, because C2PA says that a file without credentials should never be trusted",
+          "explanation": "C2PA says the opposite. It answers \"Maybe\" and does not want files without credentials to be universally less trusted."
+        },
+        {
+          "text": "Disagree, because C2PA says files without credentials should not be universally less trusted",
+          "explanation": "Right. C2PA answers \"Maybe\" and says adding provenance is optional. Trust also depends on the source, and here the source is your own studio.",
+          "correct": true
+        },
+        {
+          "text": "Agree, because a missing manifest proves that an AI model made the banner file",
+          "explanation": "A missing manifest proves nothing about how a file was made."
+        },
+        {
+          "text": "Disagree, because only AI images ever carry credentials and F2 is a plain banner",
+          "explanation": "Credentials can be added to any media, and F2 was made from an AI image."
+        }
+      ]
+    },
+    {
+      "prompt": "F1 is trusted. Is the draft caption \"Real tent, real storm, no tricks\" safe to use?",
+      "options": [
+        {
+          "text": "Safe, because a trusted credential shows that the picture is true",
+          "explanation": "C2PA says provenance alone cannot tell you whether content is true, accurate or factual."
+        },
+        {
+          "text": "Safe, because a signed file cannot show a made-up scene at all",
+          "explanation": "A signature protects the record from change. It says nothing about whether the scene is real."
+        },
+        {
+          "text": "Not safe, because the credential records an AI step that the caption denies",
+          "explanation": "Right. The credential shows how F1 was made, and it was made by an AI model. It cannot make a false caption true.",
+          "correct": true
+        },
+        {
+          "text": "Unrelated, because a credential only holds data about the person who clicked export",
+          "explanation": "Assertions describe the origin and edits of the file, including the use of AI. They are about the file, so they relate directly to the caption."
+        }
+      ]
+    },
+    {
+      "prompt": "F3 has validation_state valid, yet the outcome is not_detected. What is the best reading?",
+      "options": [
+        {
+          "text": "Valid means the file holds no AI content, so there was nothing left to detect",
+          "explanation": "Valid describes the manifest, not the content. A valid manifest can record an AI step."
+        },
+        {
+          "text": "The manifest is broken, so the check could not read the credential in F3 at all",
+          "explanation": "Valid means the manifest was read and checked. A broken one would show invalid."
+        },
+        {
+          "text": "The check counts only OpenAI credentials, so F3's manifest from another issuer fails it",
+          "explanation": "Right. OpenAI's page says a third-party manifest gives not_detected, while issuer and validation_state can still describe it.",
+          "correct": true
+        },
+        {
+          "text": "The check skips PNG files from other tools, so no result for F3 can be trusted",
+          "explanation": "PNG is a supported format, and F1 is a PNG too. The reason is the issuer."
+        }
+      ]
+    }
+  ]
+}
