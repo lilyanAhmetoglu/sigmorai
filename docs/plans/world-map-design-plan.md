@@ -10,6 +10,19 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (devil pass, PR 1)
+
+- **Zoom steps are ½, 1, 2 only.** ½ draws `world-512.png` (offline box-downscale) at 1:1; 1 and 2 draw `world.png`. ¼, 3 and 4 are dropped: 3×/4× mix pixel scales with the 2× level art (level-art amendment 2026-10-04), and ¼ was a non-link thumbnail with its own code path. Overview = ½ under 1024px wide, else 1.
+- **The map box is a native scroll box, like the level map.** Drag, wheel, scrollbars, arrow keys and clamping come from the browser. No Pointer Events pan, no custom pinch, no Ctrl/⌘+wheel, no wheel hint, no `touch-action: none`, no `+ − 0` keys. Zoom = two 44px PixelButtons in one small client component (`data-zoom` on the box, scroll kept on the centre). Centring reuses `ScrollToCurrent` (selector prop, both axes).
+- **Footprints are rectangles** `{ x, y, w, h }` centred on the anchor, not polygons.
+- **No hero and no tag when `map.next` is null** (every realm cleared, or nothing live).
+- **No skip link, no `role="group"`, no `role="status"` zoom label.** The box is a labelled `<section>`; the zoom level is visible text.
+- **`heroName` comes from `getViewer().stats`**; `RealmsPage` gains `heroName: string | null`. No new reader.
+- **Markers are a new `WorldMarker`** (Link + `StatusBadge` + `REALM_STATUS_TEXT`), not a `LevelNode` variant.
+- **The "Your path" list lives in `components/realms/path-list.tsx`**; the dashboard (per-path PR 2) reuses it. The per-path spec gets a dated line.
+- **Copy:** `/map/<slug>` title becomes "<Realm> · Level map · Sigmorai"; `MAP_TEXT.description` has no hard-coded count. `DESIGN.md` line about "only the level map scrolls sideways" gets "the level map and the world map scroll inside their boxes".
+- **Order:** PR 1 lands after per-path PR 1a (merged). It does not need 1b. PR 3 island prompts 14–18 are rendered only when each creator realm ships.
+
 <!-- New decisions are appended here as:
 ## Amendments locked YYYY-MM-DD
 - ...
