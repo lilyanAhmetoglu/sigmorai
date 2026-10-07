@@ -1,5 +1,5 @@
 import { Panel } from '@/components/panel';
-import { DASHBOARD_TEXT } from '@/lib/constants';
+import { coreRealms, DASHBOARD_TEXT } from '@/lib/constants';
 
 /** Panel-shaped placeholders in the dashboard layout, so nothing jumps. No spinner. */
 export default function Loading() {
@@ -16,10 +16,11 @@ export default function Loading() {
         <Panel tone="sunken">
           <div className="h-28" />
         </Panel>
-        {/* "YOUR PATH": one row per core realm (the list's rows are 44px). */}
-        <div className="flex flex-col gap-3">
-          {Array.from({ length: 9 }, (_, i) => (
-            <div key={i} className="bg-surface-2 h-11" />
+        {/* "YOUR PATH": the section head, then one row per core realm (rows are 44px). */}
+        <div className="bg-surface-2 h-11 w-1/2" />
+        <div className="flex flex-col gap-2">
+          {coreRealms().map((realm) => (
+            <div key={realm.id} className="bg-surface-2 h-11" />
           ))}
         </div>
       </div>
