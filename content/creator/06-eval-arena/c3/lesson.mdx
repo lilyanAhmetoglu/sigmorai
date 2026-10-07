@@ -1,0 +1,94 @@
+---
+id: creator/r6/c3/lesson
+title: Model graders
+minutes: 8
+sources:
+  - kind: docs
+    title: Claude docs · Define success criteria and build evaluations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests
+  - kind: docs
+    title: OpenAI docs · Evaluation best practices
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: docs
+    title: OpenAI docs · Graders
+    url: https://developers.openai.com/api/docs/guides/graders
+  - kind: blog
+    title: Anthropic · Demystifying evals for AI agents
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+  - kind: docs
+    title: OpenAI docs · Deprecations
+    url: https://developers.openai.com/api/docs/deprecations
+---
+
+## Why it matters
+
+Scoring 200 images by hand takes a person most of a day. A **model grader** is a second model that looks at each image and applies your rubric. It is fast and it never gets tired. It can also be wrong in ways that look confident.
+
+Prompt Forest, chapter 6, listed what a vision model gets wrong when it looks at an image. This chapter assumes you know those limits. The question here is how to check a grader before you trust its scores.
+
+## Three ways to grade
+
+Claude's guide ranks the options by speed and reliability:
+
+- **Code-based grading** is the "fastest and most reliable", but it "lacks nuance".
+- **Human grading** is the "most flexible and high quality, but slow and expensive". The guide says to avoid it if possible.
+- **LLM-based grading** is "fast and flexible, scalable and suitable for complex judgment". The guide adds: "Test to ensure reliability first then scale."
+
+Anthropic's post adds the weak points of a model grader: it is "non-deterministic", "more expensive than code" and "requires calibration with human graders for accuracy". Use code for what code can check, such as file size and format. Use a model for what needs looking, and people to calibrate it.
+
+## Three shapes of judging
+
+OpenAI's guide lists how a model judge can work:
+
+- **Pairwise comparison:** show two outputs and ask which is better on given criteria.
+- **Single answer grading:** score one output on its own.
+- **Reference-guided grading:** give the judge a gold-standard output to compare with.
+
+It also says "Use pairwise comparison or pass/fail for more reliability", and "LLMs are better at discriminating between options". A question like "Does the label read exactly Fernhill?" is more reliable than "Rate this image from 1 to 100".
+
+## Write the grader prompt like a rubric
+
+Claude's tips for an LLM grader:
+
+- "Have detailed, clear rubrics". Its example is a rule that either holds or does not.
+- Ask for a plain output: only "correct" or "incorrect", or a scale of 1 to 5.
+- "Encourage reasoning": use a grader with thinking turned on, so it reasons before it scores. OpenAI agrees: reasoning before scoring "improves eval performance".
+
+Anthropic adds two more tips. First, "give the LLM a way out", such as an instruction to return "Unknown" when it lacks the information. Second, grade each dimension with its own judge. In its words: grade each dimension "with an isolated LLM-as-judge rather than using one to grade all dimensions".
+
+For a candle image, that means one judge call for the logo line, one for the label line and one for the extra-objects line. Each returns pass, fail or unknown, plus a one-sentence reason.
+
+## Known biases
+
+OpenAI lists two challenges for a model judge: "Position bias (response order), verbosity bias (preferring longer responses)". The guide says that models tend to favour longer responses, so you should control for length. Images have no word count, so we cannot say verbosity bias carries over. Position bias is easy to test, though. Show each pair of images in both orders. If the judge keeps picking whichever image came first, its pick tells you about the order.
+
+## Calibrate against people
+
+OpenAI says to "use human feedback to calibrate automated scoring". Its advice for scaling: "Once the LLM judge reaches a point where it's faster, cheaper, and consistently agrees with human annotations, scale up."
+
+OpenAI's graders page gives a method. Pick answers that people have ranked from best to worst, and check that the model grader gives the same order. It also warns that a model that learns to exploit a grader can score well with the grader while scoring poorly with expert people.
+
+A simple calibration, with made-up numbers. A person and a judge both mark 30 images pass or fail on the logo line. The person passes 20 and fails 10. The judge agrees on 18 of the 20 passes and on 4 of the 10 fails.
+
+- Agreement: (18 + 4) / 30 = 73%.
+- The judge passed 24 images. The person passed 20.
+- It passed 6 of the 10 images the person failed.
+
+The overall number hides where the judge is wrong. Here it lets bad images through. Read the judge's reasons on the images it got wrong, fix the prompt, and run the check again. Anthropic says: "You won't know if your graders are working well unless you read the transcripts and grades from many trials."
+
+## Same image, different grade
+
+Anthropic lists model graders as "Non-deterministic". If the same image passes on Monday and fails on Tuesday, that is a known trait, not a mystery. Run the grader on the same set two or three times. If the grades change a lot, the rubric line is too loose.
+
+## Tool note
+
+OpenAI says it is deprecating graders and the Evals platform. Its deprecations page gives the Evals dates: read-only on October 31, 2026, and scheduled to shut down on November 30, 2026. The ideas here do not depend on one platform. Keep your rubric, your anchor images and your human labels in files you own.
+
+## What this means for your work
+
+- **Use code first, a model judge second, people to calibrate.**
+- **Ask narrow yes-or-no questions**, one judge per rubric line, with an "unknown" option.
+- **Ask for a short reason before the verdict.**
+- **Show pairs in both orders** to test for position bias.
+- **Check the judge on images people have already marked**, and look at where it differs, not only the overall agreement.
+- **Do not scale up until the judge agrees with people** consistently.
