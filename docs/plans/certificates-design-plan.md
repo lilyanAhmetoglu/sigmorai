@@ -2,6 +2,15 @@
 
 > The contract for shareable certificates (Notion SIG-47): what a certificate proves, what is public, and how it is built in two PRs.
 
+## Amendments locked 2026-10-07 (PR 2)
+
+> Amendments locked 2026-10-07 (PR 2, CTO review). Layered on the block below; it stays as written.
+>
+> - The owner's own profile certificates panel may read `public_id` (`getOwnCertificates` in `lib/data/certificates.ts`, auth()'s user only): the player needs their own links. Leaderboard and HUD reads still never select it.
+> - The download is a separate `certificate.png` route (`/cert/<public_id>/<achievement>/certificate.png`), sent as an attachment with `no-store`. It uses the same renderer as the OG image (`lib/og/certificate-image.tsx`). Reason: the OG image URL carries a build hash, so the page can't link to it reliably.
+> - Credential id = `<public_id>-<achievement>`. Unique per player and achievement; it shows nothing the URL doesn't.
+> - ~~Assert `public_id` in the export test.~~ Dropped: no export test exists. The export still selects the whole users row.
+
 ## Amendments locked 2026-10-07
 
 > Amendments locked 2026-10-07 (devil + db-architect, before the first draft)
@@ -22,7 +31,7 @@
 
 ## Status
 
-**STATUS: PR 1 (schema) in review. Track: all.** Nothing user-facing ships until PR 2.
+**STATUS: PR 1 (schema) merged; PR 2 (feature) in review. Track: all.**
 
 ## The plan
 
@@ -41,7 +50,7 @@
 - Profile panel: list cleared achievements, copy link, LinkedIn fields.
 - Four async states on every new screen: loading, empty, error, success.
 - Tests: id parsing, same 404 for the three bad cases, no private field in the view, achievement mapping.
-- The data export already includes `public_id` (it selects the whole users row); add an assertion in the export test.
+- The data export already includes `public_id` (it selects the whole users row). ~~Add an assertion in the export test.~~ (Dropped, see PR 2 amendments.)
 - Privacy page: add "Certificate pages are public: anyone with the link can see them." when the pages ship.
 
 ## Out of scope

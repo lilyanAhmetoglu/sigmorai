@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId, useState, useSyncExternalStore } from 'react';
+import { useCanCopy } from '@/components/use-can-copy';
 import { PixelButton } from '@/components/pixel-button';
 import {
   SHARE_COPIED_MS,
@@ -28,7 +29,6 @@ type Props = {
 type Status = 'idle' | 'copied' | 'copy-failed';
 
 const noSubscribe = () => () => {};
-const canCopy = () => typeof navigator !== 'undefined' && !!navigator.clipboard?.writeText;
 const canNativeShare = () =>
   typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
@@ -49,7 +49,7 @@ export function ShareButtons({
   className,
 }: Props) {
   const headingId = useId();
-  const copyOk = useSyncExternalStore(noSubscribe, canCopy, () => false);
+  const copyOk = useCanCopy();
   const nativeOk = useSyncExternalStore(noSubscribe, canNativeShare, () => false);
   const [status, setStatus] = useState<Status>('idle');
 

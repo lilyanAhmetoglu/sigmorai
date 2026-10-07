@@ -91,7 +91,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
       },
       {
         term: 'Public id',
-        text: 'A random public id, used only in your certificate links.',
+        text: 'A random public id, used only in your certificate links. Certificate pages are public: anyone with the link can see them. A certificate page shows your hero name, the path, what you cleared and the date, never your email, XP or level.',
       },
     ],
   },
