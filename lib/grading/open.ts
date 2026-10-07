@@ -7,14 +7,16 @@ import {
   floorNotOpenText,
   FRONTIER_AREA,
   MATH_AREA,
+  isRealmOnTrack,
   notOpenText,
   REALMS,
+  realmRow,
 } from '@/lib/constants';
 import { isRealmOpen, outlineChapterCount } from '@/lib/content/curriculum';
 import { buildExerciseId, parseExerciseId } from '@/lib/content/ids';
 import { hasContent } from '@/lib/content/load';
 import { applyCredit, withCreditors } from '@/lib/content/shared';
-import type { ExerciseRef, QuestFailure, RealmId, Track } from '@/lib/types';
+import type { ExerciseRef, QuestFailure, RealmTable, Track } from '@/lib/types';
 import { sharedGroups } from './credit';
 import { questFailure as fail } from './failure';
 import { trackOutline } from './outline';
@@ -43,34 +45,41 @@ import { trackOutline } from './outline';
 
 export type OpenResult = { ok: true; ref: ExerciseRef } | QuestFailure;
 
-const challengeId = (track: Track, realm: number, chapter: number) =>
-  buildExerciseId({ area: 'chapter', track, realm, chapter, step: 'challenge' });
+const challengeId = (track: Track, realm: number, chapter: number, table: RealmTable) =>
+  buildExerciseId({ area: 'chapter', track, realm, chapter, step: 'challenge' }, table);
 
 /**
  * The exercise ids that must have a progress row before `ref` opens. Pure.
  * `chapterCount` is the realm's chapter count in its track's outline (the
  * boss needs every one); the Math Tower and the Frontier ignore it.
+ * `table` (here and below): test seam: app code never passes `table`.
  */
-export function requiredClears(ref: ExerciseRef, chapterCount: number): string[] {
+export function requiredClears(
+  ref: ExerciseRef,
+  chapterCount: number,
+  table: RealmTable = REALMS,
+): string[] {
   if (ref.area === MATH_AREA) {
     return ref.floor === 1
       ? []
       : [buildExerciseId({ area: MATH_AREA, floor: ref.floor - 1, step: 'quick-check' })];
   }
   if (ref.area === 'chapter') {
-    return ref.chapter === 1 ? [] : [challengeId(ref.track, ref.realm, ref.chapter - 1)];
+    return ref.chapter === 1 ? [] : [challengeId(ref.track, ref.realm, ref.chapter - 1, table)];
   }
   if (ref.area === 'boss') {
-    return Array.from({ length: chapterCount }, (_, i) => challengeId(ref.track, ref.realm, i + 1));
+    return Array.from({ length: chapterCount }, (_, i) =>
+      challengeId(ref.track, ref.realm, i + 1, table),
+    );
   }
   return [];
 }
 
 /** The id whose clear keeps `ref` open: a chapter step's case, else the id itself. Pure. */
-export function ownClear(ref: ExerciseRef): string {
+export function ownClear(ref: ExerciseRef, table: RealmTable = REALMS): string {
   return ref.area === 'chapter'
-    ? challengeId(ref.track, ref.realm, ref.chapter)
-    : buildExerciseId(ref);
+    ? challengeId(ref.track, ref.realm, ref.chapter, table)
+    : buildExerciseId(ref, table);
 }
 
 /**
@@ -81,9 +90,10 @@ export function decideOpen(
   ref: ExerciseRef,
   cleared: ReadonlySet<string>,
   chapterCount: number,
+  table: RealmTable = REALMS,
 ): OpenResult {
   if (ref.area === MATH_AREA) {
-    if (requiredClears(ref, chapterCount).some((id) => !cleared.has(id))) {
+    if (requiredClears(ref, chapterCount, table).some((id) => !cleared.has(id))) {
       return fail('NOT_OPEN', floorNotOpenText(ref.floor - 1));
     }
     return { ok: true, ref };
@@ -92,9 +102,12 @@ export function decideOpen(
   if (ref.area === FRONTIER_AREA) return { ok: true, ref };
   // The grammar allows c1–c12; this realm's outline may have fewer.
   if (ref.area === 'chapter' && ref.chapter > chapterCount) return fail('INVALID_INPUT');
-  if (!isRealmOpen(REALMS[ref.realm as RealmId].tier)) return fail('TIER_LOCKED');
-  if (cleared.has(ownClear(ref))) return { ok: true, ref };
-  if (requiredClears(ref, chapterCount).some((id) => !cleared.has(id))) {
+  // The grammar only parses a realm the track has; a ref built by hand may not.
+  const realm = realmRow(ref.realm, table);
+  if (!realm || !isRealmOnTrack(realm, ref.track)) return fail('INVALID_INPUT');
+  if (!isRealmOpen(realm.tier)) return fail('TIER_LOCKED');
+  if (cleared.has(ownClear(ref, table))) return { ok: true, ref };
+  if (requiredClears(ref, chapterCount, table).some((id) => !cleared.has(id))) {
     return fail(
       'NOT_OPEN',
       ref.area === 'boss' ? bossNotOpenText(chapterCount) : notOpenText(ref.chapter - 1),

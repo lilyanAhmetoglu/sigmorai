@@ -17,7 +17,7 @@ import {
   QUICK_CHECK_FILE,
   BOSS_STEP,
 } from '@/lib/constants';
-import type { ExerciseRef, RealmId } from '@/lib/types';
+import type { ExerciseRef } from '@/lib/types';
 import { realmFolder } from './curriculum';
 import { segment } from './ids';
 
@@ -32,11 +32,9 @@ function fileFor(step: string): string {
 function folderOf(ref: ExerciseRef): string {
   switch (ref.area) {
     case 'chapter':
-      return [ref.track, realmFolder(ref.realm as RealmId), segment('chapter', ref.chapter)].join(
-        '/',
-      );
+      return [ref.track, realmFolder(ref.realm), segment('chapter', ref.chapter)].join('/');
     case 'boss':
-      return [ref.track, realmFolder(ref.realm as RealmId), BOSS_SEGMENT].join('/');
+      return [ref.track, realmFolder(ref.realm), BOSS_SEGMENT].join('/');
     case MATH_AREA:
       return [MATH_AREA, segment('floor', ref.floor)].join('/');
     case FRONTIER_AREA:

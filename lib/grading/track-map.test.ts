@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { MIN_CHAPTERS, REALMS } from '@/lib/constants';
+import {
+  CORE_IDS,
+  CREATOR_ORDER,
+  fixtureOutline,
+  SPECIALIST_REALMS,
+} from '@/lib/content/__fixtures__/realms';
 import type { FrontierChapter, RealmView, TrackOutline } from '@/lib/types';
 import {
   activeRealms,
@@ -12,6 +18,7 @@ import {
   levelStatus,
   playableStep,
   realmChapterCount,
+  realmNeighbours,
   towerSummary,
 } from './track-map';
 
@@ -402,5 +409,79 @@ describe('shared-chapters credit on the map', () => {
   test('a real clear has no creditedFrom', () => {
     const view = realm(map(ALL_LIVE, new Set([caseId(0, 1)])).realms, 0);
     expect(view.chapters[0].creditedFrom).toBeUndefined();
+  });
+});
+
+describe('buildTrackMap: the outline is the map (fixture table: r9 creator)', () => {
+  const T = SPECIALIST_REALMS;
+  const creator = (cleared = NONE) =>
+    buildTrackMap('creator', fixtureOutline(CREATOR_ORDER), NONE, cleared, new Map(), T);
+
+  test('today: core realms only, in id order, each a core realm with art', () => {
+    const { realms } = map(NONE, NONE);
+    expect(realms.map((r) => r.id)).toEqual(CORE_IDS);
+    expect(realms.every((r) => r.track === null && r.scene)).toBe(true);
+  });
+
+  test('walks the outline order, not the REALMS order', () => {
+    expect(creator().realms.map((r) => r.id)).toEqual(CREATOR_ORDER);
+  });
+
+  test('a specialist realm carries its owner and its missing art', () => {
+    const r9 = realm(creator().realms, 9);
+    expect(r9).toMatchObject({ slug: 'fixture-canvas', track: 'creator', scene: false });
+    expect(r9.chapters).toHaveLength(MIN_CHAPTERS + 1);
+    expect(r9.chapters.at(-1)!.steps[0].exerciseId).toBe('creator/r9/boss/challenge');
+  });
+
+  test('its boss clears after every chapter case and the boss itself', () => {
+    const cases = Array.from({ length: MIN_CHAPTERS }, (_, i) => `creator/r9/c${i + 1}/challenge`);
+    const r9 = realm(creator(new Set([...cases, 'creator/r9/boss/challenge'])).realms, 9);
+    expect(r9.status).toBe('cleared');
+  });
+
+  test('a realm the outline leaves out is not on the map', () => {
+    const { realms } = buildTrackMap(
+      'strategist',
+      fixtureOutline(CORE_IDS),
+      NONE,
+      NONE,
+      new Map(),
+      T,
+    );
+    expect(realms.map((r) => r.id)).not.toContain(9);
+  });
+});
+
+describe('realmNeighbours', () => {
+  const { realms } = buildTrackMap(
+    'creator',
+    fixtureOutline(CREATOR_ORDER),
+    NONE,
+    NONE,
+    new Map(),
+    SPECIALIST_REALMS,
+  );
+  const ids = (id: number) => {
+    const { prev, after } = realmNeighbours(realms, id);
+    return [prev?.id ?? null, after?.id ?? null];
+  };
+
+  test('prev and next follow the outline order', () => {
+    expect(ids(9)).toEqual([1, 2]);
+    expect(ids(1)).toEqual([0, 9]);
+    expect(ids(2)).toEqual([9, 3]);
+  });
+
+  test('the first and last realm have one neighbour; an unknown realm none', () => {
+    expect(ids(0)).toEqual([null, 1]);
+    expect(ids(8)).toEqual([7, null]);
+    expect(ids(42)).toEqual([null, null]);
+  });
+
+  test('today (core realms only) it is the realm number ± 1', () => {
+    const today = map(NONE, NONE).realms;
+    expect(realmNeighbours(today, 4).prev?.id).toBe(3);
+    expect(realmNeighbours(today, 4).after?.id).toBe(5);
   });
 });

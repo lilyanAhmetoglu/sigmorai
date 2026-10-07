@@ -13,10 +13,10 @@ import {
   QUEST_ERROR_TEXT,
   QUEST_TEXT,
   questHref,
-  REALMS,
+  realmRow,
 } from '@/lib/constants';
 import { isRealmOpen, realmAccent } from '@/lib/content/curriculum';
-import { buildExerciseId, parseExerciseId, questBackHref } from '@/lib/content/ids';
+import { buildExerciseId, parseExerciseId, questBackHref, segment } from '@/lib/content/ids';
 import {
   ContentError,
   hasContent,
@@ -39,7 +39,6 @@ import type {
   GradedKind,
   Lesson,
   LessonViewer,
-  RealmId,
 } from '@/lib/types';
 import { nextUtcDayStart } from '@/lib/xp/day';
 import { getHudState } from './hud';
@@ -100,7 +99,8 @@ function tagFor(ref: PlayableRef, step: keyof typeof STEP_TAG): string {
   if (ref.area === FRONTIER_AREA) {
     return `${QUEST_TEXT.frontierArea} · ${ref.date} · ${STEP_TAG[step]}`;
   }
-  const realm = REALMS[ref.realm as RealmId].name.toUpperCase();
+  // The grammar only parses a realm with a REALMS row; the fallback is `R9`, never a crash.
+  const realm = (realmRow(ref.realm)?.name ?? segment('realm', ref.realm)).toUpperCase();
   const where = ref.area === 'boss' ? QUEST_TEXT.bossTag : QUEST_TEXT.chapterTag(ref.chapter);
   return `${realm} · ${where} · ${STEP_TAG[step]}`;
 }
@@ -108,14 +108,14 @@ function tagFor(ref: PlayableRef, step: keyof typeof STEP_TAG): string {
 function accentFor(ref: PlayableRef): Accent {
   if (ref.area === MATH_AREA) return 'math';
   if (ref.area === FRONTIER_AREA) return 'neutral';
-  return realmAccent(ref.realm as RealmId);
+  return realmAccent(ref.realm);
 }
 
 /** The lesson's NPC. The Frontier has none (no DialogBox, no lore). */
 function npcFor(ref: LessonRef): string | undefined {
   if (ref.area === MATH_AREA) return MATH_TOWER.npc;
   if (ref.area === FRONTIER_AREA) return undefined;
-  return REALMS[ref.realm as RealmId].npc;
+  return realmRow(ref.realm)?.npc;
 }
 
 /**
@@ -207,7 +207,7 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
   if (!ref || !(await hasContent(exerciseId))) return { kind: 'not-found' };
   if (
     (ref.area === 'chapter' || ref.area === 'boss') &&
-    !isRealmOpen(REALMS[ref.realm as RealmId].tier)
+    !isRealmOpen(realmRow(ref.realm)?.tier ?? 'advanced')
   ) {
     return { kind: 'locked', message: QUEST_ERROR_TEXT.TIER_LOCKED };
   }
@@ -321,7 +321,9 @@ async function lessonPage(ref: LessonRef, exerciseId: string): Promise<QuestPage
 async function lessonDescription(ref: LessonRef): Promise<string> {
   if (ref.area === MATH_AREA) return (await loadMathOutline()).floors[ref.floor - 1].covers;
   if (ref.area === FRONTIER_AREA) return FRONTIER_TEXT.description;
-  return (await loadTrackOutline(ref.track)).realms[ref.realm].topic;
+  // The outline lists realms in map order, not by number: find by id.
+  const realm = (await loadTrackOutline(ref.track)).realms.find((r) => r.id === ref.realm);
+  return realm?.topic ?? realmRow(ref.realm)?.name ?? '';
 }
 
 /** Title, description and canonical for any lesson (realm, Math Tower, Frontier); null otherwise. */

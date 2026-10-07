@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { MIN_CHAPTERS, REALMS } from '@/lib/constants';
 import { parseExerciseId } from '@/lib/content/ids';
 import type { ExerciseRef } from '@/lib/types';
+import { SPECIALIST_REALMS } from '@/lib/content/__fixtures__/realms';
 import { decideOpen, ownClear, requiredClears } from './open';
 
 const ref = (id: string): ExerciseRef => {
@@ -199,5 +200,31 @@ describe('a cleared or credited chapter is always open (shared chapters)', () =>
     expect(ownClear(ref('builder/r1/c2/lesson'))).toBe('builder/r1/c2/challenge');
     expect(ownClear(ref('builder/r1/boss/challenge'))).toBe('builder/r1/boss/challenge');
     expect(ownClear(ref('math/f2/lesson'))).toBe('math/f2/lesson');
+  });
+});
+
+describe('specialist realms (fixture table: r9 creator, r10 builder)', () => {
+  const T = SPECIALIST_REALMS;
+  const fixtureRef = (id: string): ExerciseRef => parseExerciseId(id, T)!;
+
+  test('the owner track opens chapter 1; the boss needs every chapter case', () => {
+    expect(decideOpen(fixtureRef('creator/r9/c1/lesson'), NONE, N, T).ok).toBe(true);
+    const boss = fixtureRef('creator/r9/boss/challenge');
+    expect(requiredClears(boss, N, T)).toEqual([...allChallenges('creator', 9)]);
+    expect(decideOpen(boss, NONE, N, T).ok).toBe(false);
+    expect(decideOpen(boss, allChallenges('creator', 9), N, T).ok).toBe(true);
+  });
+
+  test('a hand-built ref for a realm the track does not have is INVALID_INPUT', () => {
+    const wrong: ExerciseRef = {
+      area: 'chapter',
+      track: 'builder',
+      realm: 9,
+      chapter: 1,
+      step: 'lesson',
+    };
+    const result = decideOpen(wrong, NONE, N, T);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('INVALID_INPUT');
   });
 });

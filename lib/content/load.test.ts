@@ -2,7 +2,7 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
-import { REALM_COUNT, TRACKS } from '@/lib/constants';
+import { TRACKS, trackRealms } from '@/lib/constants';
 import { CaseSchema, LessonFrontmatterSchema, QuickCheckSchema } from '@/lib/types';
 import {
   ContentError,
@@ -186,7 +186,7 @@ describe('loadTrackOutline', () => {
   test('reads and validates the real outline of each track', async () => {
     for (const track of TRACKS) {
       const outline = await loadTrackOutline(track);
-      expect(outline.realms).toHaveLength(REALM_COUNT);
+      expect(outline.realms).toHaveLength(trackRealms(track).length);
     }
   });
 

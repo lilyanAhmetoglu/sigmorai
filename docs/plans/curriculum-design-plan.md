@@ -240,6 +240,8 @@ No realm id, tier or track name is typed as a loose string anywhere else. Pages,
 | `CHAPTERS_PER_REALM` | `6` (matches the 6 flags in `design/assets/levels/layout.json`; node 7 is the boss)                             |
 | `FRONTIER`           | `{ slug: 'frontier', name: 'The Frontier' }`. Working name. No tier, no chapter count; accent reuses `neutral`. |
 
+> **Amended 2026-10-07 (path curriculum, PR 1b):** each `REALMS` row also has `track` (`null` = a core realm, on every path; a track = a specialist realm, on that path only) and `scene` (has level art). The 9 rows above are the core realms. A path's realm list is its outline: the core realms in order plus its own specialist realms (r9 and up, numbers global). There is no `REALM_COUNT` any more. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
+
 > **Amended 2026-10-07:** `CHAPTERS_PER_REALM` (`CHAPTER_COUNT`) is replaced by `MIN_CHAPTERS = 6` / `MAX_CHAPTERS = 12`. A 6-chapter realm keeps the design's node columns; other counts are spread evenly. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 
 `id` is a number, `0`–`8`. One helper turns it into the content folder (`00-bootstrap-village`), the art path (`public/levels/realm-00`) and the accent token (`--realm-0`). Nothing else builds these strings.
@@ -325,6 +327,7 @@ _Note 2026-10-05: `progress` has no `status` column (it is one row per cleared e
 - **Quick check has its own XP reason** in `xp_events` (amount in `lib/constants`, set by the step-5 spec).
 - **Chapter status is derived:** a chapter folder with a lesson MDX is live. No folder = "Coming soon", with no route.
 - A `bun test` reads the outlines from disk and parses them with Zod. It fails if a track has ≠ 9 realms, a realm has ≠ 6 chapters, an id is unknown, or a chapter folder is not in its outline.
+  > **Amended 2026-10-07 (path curriculum, PR 1b):** "≠ 9 realms" is now: every core realm exactly once and in order, plus only that track's own specialist realms, no realm twice. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
   > **Amended 2026-10-07:** a realm may have 6 to 12 chapters; fewer than 6 or more than 12 fails. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 - **`devil` review: done (this pass). `db-architect`: needed at step 3** — `level_announcements` must point at a Frontier chapter (devil pass on the Frontier). It is needed again when the paywall adds entitlements.
 

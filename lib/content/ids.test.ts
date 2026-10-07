@@ -6,12 +6,12 @@ import {
   MAX_CHAPTERS,
   MIN_CHAPTERS,
   OUTLINE_FILE,
-  REALM_COUNT,
   REALMS,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
-import { ExerciseIdSchema, TrackOutlineSchema, type ExerciseRef } from '@/lib/types';
+import { ExerciseIdSchema, trackOutlineSchema, type ExerciseRef } from '@/lib/types';
+import { CORE_IDS, CREATOR_ORDER, fixtureOutline, SPECIALIST_REALMS } from './__fixtures__/realms';
 import {
   buildExerciseId,
   frontierExerciseIds,
@@ -30,7 +30,7 @@ const range = (from: number, count: number) => Array.from({ length: count }, (_,
 /** Every id the grammar allows (c1–c12 in every realm), plus two Frontier examples. */
 const ALL_REFS: ExerciseRef[] = [
   ...TRACKS.flatMap((track) =>
-    range(0, REALM_COUNT).flatMap((realm): ExerciseRef[] => [
+    CORE_IDS.flatMap((realm): ExerciseRef[] => [
       ...range(1, MAX_CHAPTERS).flatMap((chapter) =>
         CHAPTER_STEPS.map((step) => ({ area: 'chapter' as const, track, realm, chapter, step })),
       ),
@@ -84,7 +84,7 @@ describe('exercise ids round-trip', () => {
   });
 
   test(`all ${ALL_REFS.length} curriculum ids`, () => {
-    const ids = ALL_REFS.map(buildExerciseId);
+    const ids = ALL_REFS.map((ref) => buildExerciseId(ref));
     expect(new Set(ids).size).toBe(ids.length);
     for (const [i, id] of ids.entries()) expect(parseExerciseId(id)).toEqual(ALL_REFS[i]);
   });
@@ -131,11 +131,11 @@ describe('bad ids are rejected', () => {
   });
 
   test.each([
-    { area: 'chapter', track: 'builder', realm: REALM_COUNT, chapter: 1, step: 'lesson' },
+    { area: 'chapter', track: 'builder', realm: REALMS.length, chapter: 1, step: 'lesson' },
     { area: 'chapter', track: 'builder', realm: -1, chapter: 1, step: 'lesson' },
     { area: 'chapter', track: 'builder', realm: 1.5, chapter: 1, step: 'lesson' },
     { area: 'chapter', track: 'builder', realm: 0, chapter: 0, step: 'lesson' },
-    { area: 'boss', track: 'builder', realm: REALM_COUNT },
+    { area: 'boss', track: 'builder', realm: REALMS.length },
     { area: 'math', floor: MATH_FLOOR_COUNT + 1, step: 'lesson' },
     { area: 'frontier', date: '2026-02-30', slug: 'x', step: 'lesson' },
     { area: 'frontier', date: '2026-10-05', slug: 'Not A Slug', step: 'lesson' },
@@ -150,7 +150,7 @@ describe('bad ids are rejected', () => {
 
 /** A track's outline as committed in content/ (each realm has MIN_CHAPTERS chapters today). */
 const realOutline = async (track: (typeof TRACKS)[number]) =>
-  TrackOutlineSchema.parse(
+  trackOutlineSchema(track).parse(
     await Bun.file(`${import.meta.dir}/../../${CONTENT_DIR}/${track}/${OUTLINE_FILE}`).json(),
   );
 
@@ -180,11 +180,76 @@ describe('trackExerciseIds', () => {
 
   test('every chapter step and boss of one track, in map order, all unique', async () => {
     const ids = trackExerciseIds('builder', await realOutline('builder'));
-    expect(ids).toHaveLength(REALM_COUNT * (MIN_CHAPTERS * CHAPTER_STEPS.length + 1));
+    expect(ids).toHaveLength(CORE_IDS.length * (MIN_CHAPTERS * CHAPTER_STEPS.length + 1));
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids[0]).toBe('builder/r0/c1/lesson');
-    expect(ids.at(-1)).toBe(`builder/r${REALM_COUNT - 1}/boss/challenge`);
+    expect(ids.at(-1)).toBe(`builder/r${CORE_IDS.at(-1)}/boss/challenge`);
     expect(ids.every((id) => id.startsWith('builder/'))).toBe(true);
+  });
+});
+
+describe('specialist realms (fixture table: r9 creator, r10 builder)', () => {
+  const T = SPECIALIST_REALMS;
+
+  test('an owned specialist realm parses on its owner track only', () => {
+    expect(parseExerciseId('creator/r9/c1/lesson', T)).toEqual({
+      area: 'chapter',
+      track: 'creator',
+      realm: 9,
+      chapter: 1,
+      step: 'lesson',
+    });
+    expect(parseExerciseId('creator/r9/boss/challenge', T)).toEqual({
+      area: 'boss',
+      track: 'creator',
+      realm: 9,
+    });
+    expect(parseExerciseId('builder/r10/c12/challenge', T)).toMatchObject({ realm: 10 });
+    for (const id of [
+      'builder/r9/c1/lesson',
+      'strategist/r9/c1/lesson',
+      'strategist/r9/boss/challenge',
+      'creator/r10/c1/lesson',
+      'creator/r11/c1/lesson',
+      'creator/r9/c13/lesson',
+      'creator/r99/c1/lesson',
+    ]) {
+      expect(parseExerciseId(id, T)).toBeNull();
+    }
+  });
+
+  test('r1 and r10 do not clash', () => {
+    expect(parseExerciseId('creator/r1/c1/lesson', T)).toMatchObject({ realm: 1 });
+    expect(parseExerciseId('builder/r1/c1/lesson', T)).toMatchObject({ realm: 1 });
+    expect(parseExerciseId('builder/r10/c1/lesson', T)).toMatchObject({ realm: 10 });
+  });
+
+  test('build throws for a realm the track does not have', () => {
+    expect(buildExerciseId({ area: 'boss', track: 'creator', realm: 9 }, T)).toBe(
+      'creator/r9/boss/challenge',
+    );
+    expect(() => buildExerciseId({ area: 'boss', track: 'builder', realm: 9 }, T)).toThrow(
+      RangeError,
+    );
+  });
+
+  test('every old id still parses with the fixture table, the same way', () => {
+    for (const ref of ALL_REFS) {
+      const id = buildExerciseId(ref);
+      expect(parseExerciseId(id, T)).toEqual(parseExerciseId(id));
+    }
+  });
+
+  test('with the real REALMS (no row past r8), r9 parses on no track', () => {
+    for (const track of TRACKS) expect(parseExerciseId(`${track}/r9/c1/lesson`)).toBeNull();
+  });
+
+  test('trackExerciseIds follows the outline order, specialist realm included', () => {
+    const ids = trackExerciseIds('creator', fixtureOutline(CREATOR_ORDER), T);
+    const realms = ids.map((id) => Number(id.split('/')[1].slice(1)));
+    expect([...new Set(realms)]).toEqual(CREATOR_ORDER);
+    expect(ids).toContain('creator/r9/c6/quick-check');
+    expect(() => trackExerciseIds('builder', fixtureOutline(CREATOR_ORDER), T)).toThrow(RangeError);
   });
 });
 
