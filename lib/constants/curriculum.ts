@@ -144,6 +144,15 @@ export const REALMS = [
     track: 'creator',
     scene: false,
   },
+  {
+    id: 11,
+    slug: 'pigment-bazaar',
+    name: 'Pigment Bazaar',
+    npc: 'Dyer Sabe',
+    tier: 'beginner',
+    track: 'creator',
+    scene: false,
+  },
 ] as const satisfies readonly RealmRow[];
 
 /** Whether a realm is on this track: a core realm, or a specialist realm the track owns. */

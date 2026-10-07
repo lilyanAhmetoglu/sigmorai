@@ -62,9 +62,10 @@ describe('realm lists per track (fixture table: r9 creator, r10 builder)', () =>
         ...REALMS.filter((r) => r.track === track),
       ]);
     }
-    // r9 Canvas Workshop and r10 Reel Hollow stay creator only.
+    // r9 Canvas Workshop, r10 Reel Hollow and r11 Pigment Bazaar stay creator only.
     expect(trackRealms('creator')).toContain(REALMS[9]);
     expect(trackRealms('creator')).toContain(REALMS[10]);
+    expect(trackRealms('creator')).toContain(REALMS[11]);
   });
 
   test('a track gets the core realms plus only the specialist realms it owns', () => {
@@ -132,8 +133,9 @@ describe('realm paths', () => {
     },
   );
 
-  test('folders of the real realms with no art yet (r9, r10)', () => {
+  test('folders of the real realms with no art yet (r9, r10, r11)', () => {
     expect(realmFolder(9)).toBe('09-canvas-workshop');
     expect(realmFolder(10)).toBe('10-reel-hollow');
+    expect(realmFolder(11)).toBe('11-pigment-bazaar');
   });
 });

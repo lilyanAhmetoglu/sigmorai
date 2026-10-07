@@ -119,6 +119,7 @@ describe('achievements per track (path-curriculum spec)', () => {
     ]);
     expect(slugs).toContain('creator-r9');
     expect(slugs).toContain('creator-r10');
+    expect(slugs).toContain('creator-r11');
   });
 
   test('a specialist realm has a certificate on its owner track only (fixture table)', () => {
