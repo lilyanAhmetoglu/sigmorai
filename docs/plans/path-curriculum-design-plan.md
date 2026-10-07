@@ -10,6 +10,14 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (PR 3 devil pass)
+
+- **PR 3 is content-only.** Grown-realm CLEARED rule, open rule and 10-node map shipped in PR 1a; PR 3 adds no code. The "one e2e step" becomes one unit test on the real creator outline (realm 1 = 9 chapters, 10 map nodes).
+- **Fetch with curl, not WebFetch.** WebFetch still blocks some vendor hosts; curl via the agent proxy reaches them. Content PRs fetch sources with curl.
+- **`veo-rewriter` is dropped** (URL redirects to a page with no rewriter content). "Prompt rewriters" is an aside in c9 citing OpenAI `revised_prompt` only; not a chapter pillar.
+- **`imagen-guide` may be cited** for its vocabulary tables, with a dated note (Google marks Vertex docs "no longer being updated"). Citing it needs one new official entry in `content/sources.yaml` for `https://docs.cloud.google.com/vertex-ai/generative-ai/docs`. Lessons cite URLs; "only ids cited" means "add a base-URL entry only for a host a lesson cites".
+- **c7–c9 teach what c1–c6 do not.** c1 already covers the shot checklist, negative space and text-in-image; c3 covers palette. c7–c9 reference those and go deeper. c8 is renamed "Framing & format". Boss case stays unchanged.
+
 ## Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")
 
 These override the sections below where they disagree.
@@ -301,11 +309,13 @@ Realm names and NPCs below are **drafts** for voice-guardian. Titles ≤ 16 char
 
 Why: the maintainer says designer prompts are not technical prompts. r1 c1–c6 already cover shot, reference, style, edit, video and review. The new chapters name the visual vocabulary and the difference from text prompting.
 
-| Ch. | Title          | Teaches                                                                                                         | Sources (status)                                                 |
-| --- | -------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| c7  | Light & colour | Naming light (time of day, direction, quality) and palette in a prompt; what each vendor's guide lists          | `imagen-guide` (S) · `openai-image` (R) · `gemini-image` (R)     |
-| c8  | Composition    | Framing, camera angle, lens, aspect ratio, empty space for copy; what the model can and cannot hold             | `imagen-guide` (S) · `gemini-image` (R) · `openai-image` (R)     |
-| c9  | Design vs text | Why a design prompt describes what is seen, not steps to follow; prompt rewriters; when text-prompt habits fail | `claude-prompting` (F) · `imagen-guide` (S) · `veo-rewriter` (S) |
+| Ch. | Title            | Teaches                                                                                                                                                                          | Sources (status)                                                                                                                                       |
+| --- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| c7  | Light & colour   | Light words by part (quality, direction, setup, time of day) and colour words the guides show; a light change vs a colour change in multi-turn edits. Palette basics stay in c3. | `imagen-guide` (F, curl) · `gemini-image` (F, curl) · OpenAI image prompting guide (F, curl)                                                           |
+| c8  | Framing & format | Camera distance, position and lens/focal length; aspect ratio per use and each vendor's limits; the composition-control caveat. Negative space stays in c1 (one line).           | `imagen-guide` (F, curl) · `gemini-image` (F, curl) · `openai-image` (F, curl) · OpenAI image prompting guide (F, curl)                                |
+| c9  | Design vs text   | A text prompt (explicit, structured, examples) next to an image prompt (describe what is seen; negatives differ by vendor); aside: OpenAI `revised_prompt`                       | `claude-prompting` (F, curl) · `gemini-image` (F, curl) · `openai-image` (F, curl) · OpenAI image prompting guide (F, curl) · `imagen-guide` (F, curl) |
+
+OpenAI image prompting guide: `https://developers.openai.com/api/docs/guides/image-prompting` (under the existing `openai-docs` entry).
 
 Boss: unchanged task. The boss case gets no new question type; its 5 questions may now come from any of the 9 chapters.
 
