@@ -10,6 +10,17 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (PR 6 devil pass)
+
+- **r11 Pigment Bazaar ships with 6 chapters, not 8.** r1 c1/c3/c4/c7/c9, r2 c1/c2 and r0 c1/c4/c5 already teach prompt dialects, chat editing, the order form (size, quality, background), text-in-image caveats and model choice; r11 does not repeat them. Chapters: c1 Model dialects · c2 Hex & palettes · c3 Text & layout · c4 Seeds & steps · c5 Styles & tuning · c6 Open weights. Each lesson links back to the core chapter it builds on. "Pick per job" lives in the boss, not in a chapter.
+- **Midjourney and Stability are dropped from r11.** `docs.midjourney.com` is 403 and `www.midjourney.com/docs` is an empty JS shell; `platform.stability.ai/docs` is a JS shell with no text. Neither can pass a fresh fetch. Imagen is shut down (Google's page says so); the Vertex guide stays a dated word list only.
+- **New image vendors join the registry when cited:** `bfl-docs` (docs.bfl.ai), `ideogram-docs` (docs.ideogram.ai), `ideogram-api-docs` (developer.ideogram.ai), `recraft-docs` (www.recraft.ai/docs), `huggingface-diffusers-docs` (huggingface.co/docs/diffusers). Adobe custom models cite `developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/custom-models/` (helpx is 403). Each is official for its own product and never the only vendor in a lesson.
+- **"Open models" uses two vendors:** Hugging Face diffusers docs + BFL FLUX.2 [klein] docs. Risk closed.
+- **r11 owns "style from references vs a trained model".** r13 c5 "Brand models" is narrowed or dropped at the PR 8 devil pass; it must not re-teach custom models.
+- **r11 sits on slot s1** (`slotRealms` += `{ slot: 's1', realm: 11 }`), after r1 in the creator outline: `0, 1, 11, 2, 10, 3, 4, 5, 9, 6, 7, 8`. s2 and s4 are kept for r12 and r13 (this replaces the PR 5 slot sentence: r10 is on s10, r11 on s1, s2 → r12, s4 → r13). `ids.test.ts` INSERTED gains `1: [11]`.
+- **PR 6 is two PRs.** 6a = `REALMS` row 11 (`pigment-bazaar`, `track: 'creator'`, `tier: 'beginner'`, `scene: false`), slot row, outline entry with 6 titles, c1–c3 (+ cases, quick checks), new source ids. 6b = c4–c6 + `boss/case.json`.
+- **Count line** becomes 3 + 6 + 6 + 6 + 8 + 7 = 36 new creator chapters + 5 bosses.
+
 ## Amendments locked 2026-10-07 (PR 5 devil pass)
 
 - **r10 Reel Hollow ships with 6 chapters, not 8.** Creator r0 c4/c5, r1 c5/c8, r2 c6 and r3 c5 already teach video limits, video prompt parts, first frame, sound in the prompt, same-character references and cost per second; r10 does not repeat them. Chapters: c1 Camera moves · c2 Keyframes · c3 Longer cuts · c4 Edit a clip · c5 Loops & stills · c6 Reframe & deliver. Each lesson links back to the core chapter it builds on. Cost appears only in the boss `BUDGET:` part, using r0 c5's method.
@@ -392,22 +403,22 @@ NPC (draft): Lanternist Oto. Topic: "Video with AI: camera, keyframes, longer cu
 
 Boss task: "Plan a 15-second product teaser from one hero still: keyframes, extensions, one edit and every delivery format" (PR 5b). Cost appears only in the boss `BUDGET:` part (r0 c5 method). Review note (5a): the task now says "one approved still", not "one hero still" (see the PR 5 amendment).
 
-### r11 Pigment Bazaar: Image craft per model (beginner, 8 chapters)
+### r11 Pigment Bazaar: Image craft per model (beginner, 6 chapters)
 
-NPC (draft): Dyer Sabe. Topic: "The same brief, written for different image models."
+6 chapters, not 8: see "Amendments locked 2026-10-07 (PR 6 devil pass)". The old c2 "Chat editing", c3 "Keyword prompts", c4 "Parameters", c6 "Text in images" and c8 "Pick per job" repeat creator r0 c1/c4/c5, r1 c1/c3/c4/c7/c9 and r2 c1/c2, or lean on Midjourney and Stability pages that cannot be fetched. Status F (curl) = fetched with curl on 2026-10-07 and every quoted line grepped in the saved text.
 
-| Ch. | Title           | Teaches                                                                                         | Sources (status)                                                                    |
-| --- | --------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| c1  | Model dialects  | Why one prompt gives different results on different models; sentence prompts vs keyword prompts | `openai-image` (R) · `imagen-guide` (S) · `gemini-image` (R)                        |
-| c2  | Chat editing    | Models you edit in conversation, turn by turn                                                   | `openai-image` (R) · `gemini-image` (R) · `gemini-cookbook` (F)                     |
-| c3  | Keyword prompts | Keyword and modifier prompts; what to leave out                                                 | `imagen-guide` (S) · `mj-style-ref` (S) · `stability-api` (X)                       |
-| c4  | Parameters      | Size, aspect ratio, quality, seed: settings outside the prompt                                  | `openai-image` (R) · `gemini-image` (R) · `mj-params` (X) · `stability-api` (X)     |
-| c5  | Style refs      | Style references and brand-trained models                                                       | `mj-style-ref` (S) · `firefly-custom-models` (S) · `gemini-image` (R)               |
-| c6  | Text in images  | Headlines and labels inside the image; checking spelling                                        | `openai-image` (R) · `imagen-guide` (S) · `openai-image-prompting` (F, body unread) |
-| c7  | Open models     | Open-weight image models and what running them yourself changes                                 | `diffusers-repo` (F) · `diffusers-docs` (X)                                         |
-| c8  | Pick per job    | Choosing a model per asset: quality, text, edits, price, rights                                 | `openai-pricing` (R) · `gemini-pricing` (R) · `firefly-api` (S)                     |
+NPC (draft): Dyer Sabe. Topic: "Image craft per model: colours, text, seeds, styles, open weights". Builds on r1 (map order: r1 → r11 → r2).
 
-Boss task (draft): "Choose a model and a prompt style for each asset in a launch kit."
+| Ch. | Title           | Teaches                                                                                                                                                                                                                         | Sources (status)                                                                                                                                                                                                  |
+| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| c1  | Model dialects  | One brief on five models: prose, positive scene description, FLUX positives and inputs by position, Ideogram plain language or JSON, Recraft raster vs SVG; prompt rewriters per model. r1 c9 holds the text-vs-image table     | OpenAI image prompting · Gemini image generation · BFL prompting basics, technical parameters · Ideogram prompting basics, image settings · Recraft models, V4 prompting, enhance prompt (all F, curl) — PR 6a    |
+| c2  | Hex & palettes  | Hex codes tied to objects in the prompt; Ideogram `color_palette` (image and per element) and the 3.0 palette setting; Recraft `controls.colors` (RGB, weights); check the colour. r1 c7 holds the OpenAI/Gemini colour words   | BFL hex colour prompting · Ideogram JSON prompting, models, image settings · Recraft endpoints, colour palettes (all F, curl) — PR 6a                                                                             |
+| c3  | Text & layout   | Quote the words, place them, describe the type, spell letter by letter; Ideogram JSON `text`/`desc`/`bbox`; FLUX layout boxes; Recraft `text_layout` (V3 only); typography-tuned FLUX.2 [flex]. r0 c1 and r1 c1 hold the caveat | OpenAI image prompting · Gemini image generation · Ideogram text in images, JSON prompting · BFL layout prompts, bounding boxes, typography, FLUX.2 [flex] · Recraft endpoints, adding text (all F, curl) — PR 6a |
+| c4  | Seeds & steps   | Seeds and inference steps: which models have them, what repeats and what does not                                                                                                                                               | Ideogram image settings · BFL · Hugging Face diffusers — PR 6b                                                                                                                                                    |
+| c5  | Styles & tuning | Style from references vs a trained model                                                                                                                                                                                        | Recraft styles · Ideogram custom models · Adobe Firefly custom models · BFL FLUX.2 [klein] training — PR 6b                                                                                                       |
+| c6  | Open weights    | Open-weight image models and what running them yourself changes                                                                                                                                                                 | Hugging Face diffusers docs · BFL FLUX.2 [klein] — PR 6b                                                                                                                                                          |
+
+Boss task: "Write one launch brief as prompts and settings for four different image models, and mark which outputs need a human check" (PR 6b; no trailing period, it is the boss title verbatim)
 
 ### r12 Echo Caverns: Voice & audio (beginner, 8 chapters)
 
@@ -442,7 +453,7 @@ NPC (draft): Weaver Hale. Topic: "Tokens, components and rules that keep AI outp
 
 Boss task (draft): "Design the tokens, components and rules an agent reads before it touches a brand."
 
-**Count:** 3 + 6 + 6 + 8 + 8 + 7 = **38 new creator chapters + 5 bosses** (about 120 content files; r11–r13 still get their own devil pass).
+**Count:** 3 + 6 + 6 + 6 + 8 + 7 = **36 new creator chapters + 5 bosses** (r12 and r13 still get their own devil pass).
 
 ## Later: builder and strategist specialist realms (no detail yet)
 

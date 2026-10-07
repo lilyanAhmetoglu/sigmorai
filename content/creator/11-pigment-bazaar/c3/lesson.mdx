@@ -1,0 +1,123 @@
+---
+id: creator/r11/c3/lesson
+title: Text & layout
+minutes: 9
+sources:
+  - kind: docs
+    title: OpenAI docs · GPT Image prompting guide
+    url: https://developers.openai.com/api/docs/guides/image-prompting
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: Ideogram docs · Text in images
+    url: https://docs.ideogram.ai/prompting/text-in-images
+  - kind: docs
+    title: Ideogram docs · JSON prompting
+    url: https://docs.ideogram.ai/prompting/json-prompting
+  - kind: docs
+    title: Black Forest Labs docs · Style, aesthetics & text (FLUX 3)
+    url: https://docs.bfl.ai/guides/prompting_unified_style
+  - kind: docs
+    title: Black Forest Labs docs · Layout prompts (FLUX 3)
+    url: https://docs.bfl.ai/guides/prompting_layout
+  - kind: docs
+    title: Black Forest Labs docs · Bounding boxes with FLUX 3 Image
+    url: https://docs.bfl.ai/flux_3/flux3_image_bounding_boxes
+  - kind: docs
+    title: Black Forest Labs docs · FLUX.2 overview
+    url: https://docs.bfl.ai/flux_2/flux2_overview
+  - kind: docs
+    title: Recraft docs · Endpoints (text layout)
+    url: https://www.recraft.ai/docs/api-reference/endpoints
+  - kind: docs
+    title: Recraft docs · Adding text to an image
+    url: https://www.recraft.ai/docs/recraft-studio/image-generation/working-with-text-and-prompts/adding-text-to-an-image
+---
+
+## Why it matters
+
+A bakery wants a poster: the headline "Rye Days", the date "SAT 12 OCT" and a small line "Fresh from 7am". All three must be spelled right and sit in the right place.
+
+Bootstrap Village, chapter 1, and Prompt Forest, chapter 1, gave the warning: models can get text wrong, so read every letter. This chapter is the next step. It shows how to write text so each model has its best chance, and how to place it with boxes.
+
+## Four moves the guides give
+
+The vendors use different words for these four moves. The first three are in several guides; the fourth is Ideogram's.
+
+1. **Quote the exact words.** OpenAI: "Put required wording in quotes". Ideogram: "Anything inside quotation marks is text to render." FLUX: "Put every string in quotation marks, with the capitalization and punctuation you want".
+2. **Say where it goes.** OpenAI says to "describe its position and typography". Ideogram: "Say where it appears." FLUX: "Place each block in the frame".
+3. **Describe the type.** Gemini: be clear about "the font style (descriptively)". FLUX: "Give weight, case, color, and character".
+4. **Keep it short.** Ideogram: "Each extra word raises the odds of a typo or a dropped letter."
+
+Ideogram adds one more: "Mention the text early." Text near the start "comes out more reliably than text added at the end."
+
+## Spell it, count it, fence it
+
+OpenAI's guide has three extra habits worth using with any model (our view):
+
+- **Spell it.** "Spell unusual words or brand names letter by letter when needed." For example: "the headline "Rye Days", spelled R-Y-E D-A-Y-S".
+- **Count it.** Its ad example says "Render the tagline exactly once".
+- **Fence it.** "Ask for no extra text, then check spelling and legibility in the output."
+
+It also says to "Compare medium or high quality for small text, dense information, or multiple fonts."
+
+## Describe the font
+
+Ideogram is direct: "You can't pick a font by name. Ideogram doesn't load real fonts". Describe "the weight, shape and mood of the letters instead", like "bold sans-serif" (letters without the small feet at the ends of the strokes) or "thin and refined formal script".
+
+FLUX treats a name differently. Its guide says: "A font name works as a comparison: "a bold, white sans-serif typeface reminiscent of Helvetica or Inter"". So on FLUX, describe the type and add a name only as a comparison.
+
+On Ideogram, write "tall, condensed, bold sans-serif capitals in cream" rather than a font's brand name (our example). If the exact brand font matters, set the text in your design tool.
+
+## Place text with boxes
+
+Sentences place text roughly. Ideogram says: "Plain text gets you close, but the layout can shift from one run to the next."
+
+For exact places, some models take a **bounding box**: four numbers that mark a rectangle on the image. Each vendor writes the numbers in its own order.
+
+| Vendor (October 2026)    | Where the box goes                       | Number order and scale                                      |
+| ------------------------ | ---------------------------------------- | ----------------------------------------------------------- |
+| Ideogram 4.5 and 4.0     | JSON element with `text`, `desc`, `bbox` | `[y_min, x_min, y_max, x_max]`, 0 to 1000                   |
+| FLUX 3 Image             | Layout element with `id`, `bbox`, `desc` | `[top, left, bottom, right]`, 0 to 1000                     |
+| Recraft V3 and V3 Vector | `text_layout` list, one word per entry   | four corner points, each `[x, y]`, 0 to 1 from the top-left |
+
+Look at the order. Ideogram and FLUX put the **top edge first**. Recraft gives **points with x first**. A box copied from one tool to another lands in the wrong place (our warning). FLUX's own fix list says to check that the "coordinates use y before x".
+
+## The three formats, in practice
+
+**Ideogram JSON.** Each text block is an element with `"type": "text"`, the exact words in `text`, and the look in `desc`. Its jazz-poster example puts the headline in `[30, 50, 140, 950]`: a wide strip near the top.
+
+**FLUX layout.** "A layout prompt combines a caption with a JSON array of elements." The caption names each element by its id. For text, "Quote the words and specify case, color, type style, and alignment." FLUX adds: "Boxes guide composition rather than clipping content." Choose `aspect_ratio` before you place boxes, because the grid "stretches with the frame".
+
+**Recraft text layout.** It works on "Recraft V3 and Recraft V3 Vector models only". Each entry is "A single word", from a fixed character list. Recraft Studio's notes say "Characters in different cases (like "B" and "b") are treated as the same symbol." They also say V3 "does not handle very small text reliably". So "Fresh from 7am" is three entries, and small lines are risky (our reading).
+
+For the bakery headline on Ideogram (our example):
+
+```json
+{
+  "type": "text",
+  "bbox": [40, 80, 180, 920],
+  "text": "Rye Days",
+  "desc": "Bold cream serif capitals across the top"
+}
+```
+
+## A model tuned for type
+
+BFL's FLUX.2 overview lists its [flex] model under "Specialized for typography" and says it is for text and small details. If a page names a model for text, try it on text-heavy assets (our advice). Still check every letter.
+
+## When the text is wrong
+
+Ideogram's fix list, in order: generate again; "Swap long or unusual words for shorter ones"; then fix just the text in its editor. Its tip: "It's often easier to keep an image whose text is right and fix the scene around it than the other way round."
+
+Know the limits too. Ideogram says long passages should be added "later in a design tool". It also says "Non-Latin scripts and accented letters can come out wrong or not at all."
+
+## What this means for your work
+
+- **Quote, place, describe, keep short.** Use the four moves the guides give.
+- **Spell brand names letter by letter**, and ask for the text exactly once.
+- **Describe the type.** On Ideogram, never name a font; on FLUX, a name works only as a comparison.
+- **Use boxes for exact places**, and check each vendor's number order.
+- **Put long copy in your design tool**, not in the model.
+- **Proof-read every letter.** Boxes place text; they don't spell it.
