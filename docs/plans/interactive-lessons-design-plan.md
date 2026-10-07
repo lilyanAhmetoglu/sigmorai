@@ -10,10 +10,20 @@ Before Phase 1 starts: maintainer approval of this spec, the `devil` gate, and *
 
 ## Amendments
 
-<!-- New decisions are appended here as:
-## Amendments locked YYYY-MM-DD
-- ...
--->
+## Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")
+
+These override the sections below where they disagree.
+
+- **No step-in-URL and no saved "Show all".** Reload opens step 1; "Show all" lasts for the visit. Why: both forced an inline script that must parse the hash; no lesson uses `#` links.
+- **No inline anti-flash script.** The server renders step 1 visible and the rest `hidden`; one `<noscript><style>` un-hides the steps and hides the controls. Why: no flash and no JS in a string. A static CSP already ships (`lib/security/headers.ts`); the Risks line "none today" was wrong.
+- **Try it no-reuse rule = exact match after normalising** (lowercase, digits and punctuation out, spaces collapsed) of the question against every graded prompt, and of the right option against every graded correct option, in all of `content/`. The Jaccard 0.6 rule is dropped (false positives, untuned number). `content-reviewer` catches paraphrases.
+- **Component rules live in `lessonBodyProblems`** (`lib/content/mdx.tsx`), so the page and `content:check` share one check. `validate.ts` holds only the cross-file no-reuse rule.
+- **No `next/dynamic`, no `lazy.tsx`, no chunk-load error boundary.** Widgets import directly; the error box is for a bad prop only. The acceptance line "their JS loads only on lessons that use them" is removed. Why: two tiny widgets.
+- **Reuse `postHeadings`** (`lib/content/blog.ts`) for the step list and `QUEST_TEXT.continue` for the button. New copy keys: `stepBack`, `finish`, `showAll`, `showSteps`, `stepLabel`, `stepAnnounce`.
+- **Finish focuses the "Lesson done" panel** by a fixed id on `.lesson-done` (its first button or link).
+- **Token estimate maths** lives in `lib/utils/token-estimate.ts` (pure, `bun test`).
+- **Phases 2–3 wait for the per-path curriculum P0** (each track gets its own realm list and chapter counts) and name pilots by exercise id, not folder path. Phase 1 may land first: it touches no content files.
+- **Design:** derived from the current lesson screen and tokens (no Claude Design pass was available). The `ui-ux-reviewer` pass on the Phase 1 preview stands in for design sign-off until the maintainer reviews it.
 
 ---
 
