@@ -1,0 +1,117 @@
+---
+id: creator/r10/c5/lesson
+title: Loops & stills
+minutes: 8
+sources:
+  - kind: docs
+    title: Luma Agents docs · Video generation
+    url: https://docs.agents.lumalabs.ai/guides/videos/generation
+  - kind: docs
+    title: Gemini API docs · Generate and edit videos with Gemini Omni Flash
+    url: https://ai.google.dev/gemini-api/docs/omni
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: Runway API docs · Product Ad recipe
+    url: https://docs.dev.runwayml.com/recipes/product-ad
+  - kind: docs
+    title: Runway API docs · API reference
+    url: https://docs.dev.runwayml.com/api
+---
+
+## Why it matters
+
+A coffee roaster has one approved still of its new bag. It wants three short clips from it: a slow loop for the web header, a product turn for social, and a logo card for the end of an ad.
+
+The still is approved. The motion is not. This chapter is about adding motion to one approved still without losing what the client approved.
+
+Prompt Forest, chapter 5, showed that a video model can start from an image. Tool Forge, chapter 6, showed how Runway's Product Ad recipe runs. Here we choose which motion fits a still, and how to keep its look.
+
+## When a still beats text
+
+Our rule: start from a still when the look is already approved. A text prompt alone draws a new bag every time.
+
+The vendors point the same way:
+
+- **Google Veo** uses "the input image as the initial frame". Google says to pick the image "closest to what you envision as the first scene".
+- **Runway's Product Ad tips** say to "let the product images define what the product looks like".
+- **Google's Omni page** lists product shots, illustrations and photographs as image-to-video inputs.
+
+Text is still the better start when nothing is approved yet and you want ideas (our advice).
+
+## Say how the image is used
+
+Models use your image in different ways (October 2026):
+
+| Model                         | How the image is used                    |
+| ----------------------------- | ---------------------------------------- |
+| Veo 3.1                       | the first frame                          |
+| Runway Gen-4.5 image to video | the first frame (`position: first` only) |
+| Luma `ray-3.2`                | `start_frame`, `end_frame`, or both      |
+| Gemini Omni Flash             | the model decides, based on your prompt  |
+
+Google says that for Omni, "Depending on your prompt, the model will decide how to use the image." So say it. Google's own line is: "Use this image as the starting frame."
+
+Then describe the motion. Google warns that vague prompts like "make it move" "produce less compelling results than detailed descriptions of the camera movement, subject motion, and environmental effects".
+
+## Loops that don't jump
+
+A **seamless loop** is a clip whose end flows back into its start. It can repeat with no visible jump, which suits a web header.
+
+**Luma.** Set `video.loop: true`. Luma says it "generates a seamlessly looping video". The rules:
+
+- `loop` is for new videos only (`type: "video"`). An edit rejects it.
+- It is rejected with `duration: "10s"`, `hdr`, `end_frame` or `keyframes`.
+- So a loop from your still is: `start_frame` set to the approved still, `loop: true`, 5 seconds, no HDR.
+
+**Google Omni.** Use the same image as the first and the last frame: `[# Sources <FIRST_FRAME>@Image1 <LAST_FRAME>@Image1]`. Google says this creates "a video that loops". Its guiding line is: "Use this image as the first frame and the last frame."
+
+For any other model, check its reference for a loop setting before you promise a loop (our advice).
+
+## Motion that can come back
+
+A loop must end where it began. So choose motion that returns (our advice):
+
+- **Loops well:** steam rising from a cup, a slow light sweep, leaves moving in a light wind.
+- **Loops badly:** a dolly in. The camera ends closer than it started, so the repeat jumps back.
+
+Chapter 1 sorted moves into "turn" and "travel". A camera that travels rarely loops. Write it into the prompt: "Static shot. The bag does not move. Steam rises from the cup beside it."
+
+Check a loop by playing it three times in a row. Watch the join. Does the steam jump? Does a shadow snap back?
+
+## Product turns
+
+A **product turn** shows a product from more than one side. Chapter 1 asked: who moves? Decide first. Is the bag on a turntable, or does the camera arc around it?
+
+A front-only still does not show the back of the bag. In our reading, the model must invent it. Runway's Product Ad tips ask for reference images "from multiple angles — front, back, and sides". Runway adds: "The first image is used as the primary product reference".
+
+So approve a side and a back view as stills first (Context Library, chapter 5, built views this way). On Luma, you can pin the approved front at frame 0 and the approved side at frame 120 of a 5-second clip (chapter 2).
+
+If the client approved only the front, keep the turn small: a slow quarter arc shows depth without the back (our advice).
+
+## Logos and brand cards
+
+A logo needs exact letters. Prompt Forest, chapter 4, said to finish exact things by hand.
+
+Our advice for a logo card:
+
+- **Animate around the logo.** Use a light sweep, or a slow push in on the background. Keep the logo itself still.
+- **Or leave it out.** Animate a clean card with no logo, then place the real logo file in your editor.
+- **Name the text.** If the model will draw text, Google says "it can help to define what it should say".
+- **Check every frame.** Letters can bend in the middle of a clip, not only at the ends.
+
+## What holds in a still
+
+Chapter 2's beat sheet works here too. List what holds (logo, label, colours, the bag's shape) and what may move (steam, light, background). Then write the holds into the prompt: "The bag and its label do not move or change."
+
+Compare the clip with the approved still at the first frame, the middle and the end (our advice).
+
+## What this means for your work
+
+- **Start from the approved still** when the look is set.
+- **Say how the image is used:** first frame, last frame or reference.
+- **Loop with a tool that supports it:** Luma `loop`, or the same first and last frame on Omni.
+- **Pick motion that can come back** to where it began.
+- **Plan turns** with approved side and back views.
+- **Keep logos exact:** animate around them, or add them in the editor.
