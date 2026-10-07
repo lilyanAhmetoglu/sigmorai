@@ -1,12 +1,17 @@
 import { describe, expect, test } from 'bun:test';
-import { MIN_CHAPTERS, REALMS } from '@/lib/constants';
+import { CONTENT_DIR, MIN_CHAPTERS, OUTLINE_FILE, REALMS } from '@/lib/constants';
 import {
   CORE_IDS,
   CREATOR_ORDER,
   fixtureOutline,
   SPECIALIST_REALMS,
 } from '@/lib/content/__fixtures__/realms';
-import type { FrontierChapter, RealmView, TrackOutline } from '@/lib/types';
+import {
+  type FrontierChapter,
+  type RealmView,
+  type TrackOutline,
+  trackOutlineSchema,
+} from '@/lib/types';
 import {
   activeRealms,
   bossTitle,
@@ -90,6 +95,16 @@ describe('buildTrackMap', () => {
     expect(r0(cases(MIN_CHAPTERS)).chapters.at(-1)!.status).toBe('locked');
     expect(r0(cases(NINE - 1)).chapters.at(-1)!.status).toBe('locked');
     expect(r0(cases(NINE)).chapters.at(-1)!.status).toBe('open');
+  });
+
+  test('the real creator outline: realm 1 has 9 chapters, so its map has 10 nodes', async () => {
+    const file = `${import.meta.dir}/../../${CONTENT_DIR}/creator/${OUTLINE_FILE}`;
+    const creator = trackOutlineSchema('creator').parse(await Bun.file(file).json());
+    const forest = realm(buildTrackMap('creator', creator, NONE, NONE).realms, 1);
+
+    expect(realmChapterCount(forest)).toBe(9);
+    expect(forest.chapters).toHaveLength(10);
+    expect(forest.chapters.at(-1)).toMatchObject({ chapter: null, title: bossTitle(REALMS[1]) });
   });
 
   test('a visitor: chapter 1 open, chapter 2 locked, boss locked', () => {

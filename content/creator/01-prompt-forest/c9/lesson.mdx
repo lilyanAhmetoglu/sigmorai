@@ -1,0 +1,84 @@
+---
+id: creator/r1/c9/lesson
+title: Design vs text
+minutes: 8
+sources:
+  - kind: docs
+    title: Claude docs · Prompting best practices
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: OpenAI docs · GPT Image prompting guide
+    url: https://developers.openai.com/api/docs/guides/image-prompting
+  - kind: docs
+    title: Google Cloud Vertex AI docs · Prompt and image attribute guide (Imagen)
+    url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/image/img-gen-prompt-guide
+---
+
+## Why it matters
+
+Many designers learn prompting in a chat tool first. Some of those habits help with images. Some of them fail. This chapter puts a text prompt and an image prompt side by side, so you can see which habits to keep.
+
+A text prompt asks for words: an answer, a list, a plan. An image prompt asks for a picture. So it must say what the picture shows.
+
+## What carries over
+
+Three habits work in both. Chapter 1 showed the first two.
+
+- **Be clear and explicit.** Anthropic's guide says Claude "responds well to clear, explicit instructions". Google's image guide says "Be hyper-specific".
+- **Say the goal.** Anthropic says to give "context or motivation behind your instructions". Google says "Provide context and intent", for example "Create a logo for a high-end, minimalist skincare brand".
+- **Say what to do, not what not to do.** Anthropic's heading is "Tell Claude what to do instead of what not to do". Google calls the image version "semantic negative prompts".
+
+## Side by side
+
+| Part           | Text prompt (Anthropic's guide)                                   | Image prompt (Google and OpenAI guides)                                                                                |
+| -------------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| What you write | "Be specific about the desired output format and constraints."    | "Describe visible details. Name materials, lighting, colors, and the visual medium." (OpenAI)                          |
+| Steps          | Numbered steps "when the order or completeness of steps matters." | A scene description. Google uses steps only to build a complex scene: "First, create a background… Then… Finally…"     |
+| Structure      | XML tags such as `<instructions>`, `<context>` and `<input>`      | Any readable format; for complex requests, "scene, subject, details, and constraints, using labeled sections" (OpenAI) |
+| Examples       | "Include 3–5 examples", wrapped in `<example>` tags               | Reference images, each with a number and a role (chapter 2)                                                            |
+
+Look at the steps row. In a text prompt, steps tell the model what to do. In Google's image example, each step is still a thing you can see: a misty forest, a stone altar, a glowing sword. That is the main difference (our reading). An image prompt describes the picture, even when it uses steps.
+
+OpenAI says many formats work: "Short prompts, descriptive paragraphs, JSON-like structures, instructions, and tags can all express the same intent." Pick "the format that makes the requirements easiest to read and update rather than relying on special syntax". So XML tags are a Claude habit, not a rule for image models.
+
+## Negatives differ by vendor
+
+This is where a habit from one tool can fail in another.
+
+- **Google Gemini:** describe the scene in positive words. Not "no cars", but "an empty, deserted street with no signs of traffic".
+- **OpenAI:** state exclusions plainly. Its examples end with lines like "No extra text, no watermarks, no unrelated logos."
+- **Google's older Imagen models:** a separate negative prompt. Its guide says to "plainly describe what you don't want to see", like "wall, frame", and to avoid "no walls" or "don't show walls".
+
+The last item is from Google's Vertex AI image prompt guide (October 2026). Google marks the Vertex AI docs as "no longer being updated", and the Gemini API page says Imagen models are shut down there. It still shows the point: one vendor's negative rule is not another's. Read the guide for the model you use.
+
+## A prompt translated
+
+Here is a chat-style prompt for a product photo:
+
+> You are a senior designer. Step 1: pick a nice background. Step 2: place the mug. Step 3: make it pop. Don't make it boring.
+
+It has a role, steps and a ban. None of it says what the picture shows. Here is the same idea as an image prompt, built on Google's product template:
+
+> A high-resolution, studio-lit product photograph of a matte black ceramic mug on a polished concrete surface. Three-point softbox lighting with soft, diffused highlights. A slightly elevated 45-degree angle. Plain warm-grey background. Square image.
+
+Every sentence names something you can see.
+
+## Aside: the model may rewrite your prompt
+
+OpenAI's docs say that with the image generation tool in the Responses API, "the mainline model (for example, gpt-5.5) will automatically revise your prompt for improved performance". You can read the new version in the `revised_prompt` field.
+
+The docs' sample `revised_prompt` describes a cat and an otter "depicted in a warm, heartwarming style". A revision can add words like these. So read the revised prompt next to each result. If it added a style or a detail you didn't want, write that part yourself, more clearly (our advice).
+
+## What this means for your work
+
+- **Keep the chat habits that carry over.** Be explicit, give the goal, say what you want.
+- **Describe the picture, not the process.** Even steps should name things you can see.
+- **Use any format you can maintain.** Tags are optional for image models.
+- **Learn each vendor's negative rule.** Positive scene, plain exclusions, or a separate field.
+- **Read the revised prompt** when the tool shows one.
