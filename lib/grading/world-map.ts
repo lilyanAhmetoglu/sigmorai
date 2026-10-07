@@ -1,5 +1,6 @@
 import { mapHref, WORLD_MAP } from '@/lib/constants';
 import type {
+  PathRealm,
   RealmView,
   TrackMap,
   TrailSegment,
@@ -26,6 +27,24 @@ export function realmPlace(id: number, geometry: WorldGeometry = WORLD_MAP): Wor
 }
 
 /**
+ * The "Your path" rows of one path, in path order. `hrefFor` picks where a
+ * row links: the world map sends it to the level map, the dashboard to the
+ * realm page (per-path PR 2). `current` marks the realm holding `map.next`.
+ */
+export function pathRealms(map: TrackMap, hrefFor: (slug: string) => string): PathRealm[] {
+  const current = map.next?.realm ?? null;
+  return map.realms.map((realm: RealmView): PathRealm => ({
+    id: realm.id,
+    name: realm.name,
+    status: realm.status,
+    cleared: realm.cleared,
+    total: realm.chapters.length,
+    href: hrefFor(realm.slug),
+    current: realm.id === current,
+  }));
+}
+
+/**
  * `linkTrack` keeps `?track=` on the marker links only when the page got one
  * (like the realm pages), so a player's own map has clean URLs.
  */
@@ -35,15 +54,9 @@ export function worldView(
   linkTrack?: Track,
 ): WorldView {
   const current = map.next?.realm ?? null;
-  const realms = map.realms.map((realm: RealmView): WorldRealm => ({
-    id: realm.id,
-    name: realm.name,
-    status: realm.status,
-    cleared: realm.cleared,
-    total: realm.chapters.length,
-    href: mapHref(realm.slug, linkTrack),
-    current: realm.id === current,
-    place: realmPlace(realm.id, geometry),
+  const realms = pathRealms(map, (slug) => mapHref(slug, linkTrack)).map((row): WorldRealm => ({
+    ...row,
+    place: realmPlace(row.id, geometry),
   }));
 
   // Neighbours in path order; a realm with no place is skipped, not a gap.

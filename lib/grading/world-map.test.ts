@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { REALMS, WORLD_MAP } from '@/lib/constants';
 import type { RealmStatus, RealmView, TrackMap, WorldGeometry } from '@/lib/types';
-import { coastline, edgeFog, realmPlace, shapeSeed, worldView } from './world-map';
+import { coastline, edgeFog, pathRealms, realmPlace, shapeSeed, worldView } from './world-map';
 
 /** A realm view with 6 chapters + boss; only the fields worldView reads matter. */
 function realm(id: number, status: RealmStatus, cleared = 0): RealmView {
@@ -32,6 +32,15 @@ function trackMap(statuses: RealmStatus[], next: number | null): TrackMap {
 }
 
 const NINE_OPEN: RealmStatus[] = REALMS.map(() => 'open');
+
+describe('pathRealms', () => {
+  test('rows use the given href builder, in path order, with the current realm marked', () => {
+    const rows = pathRealms(trackMap(NINE_OPEN, 2), (slug) => `/realms/${slug}`);
+    expect(rows.map((r) => r.id)).toEqual(REALMS.map((r) => r.id));
+    expect(rows.map((r) => r.href)).toEqual(REALMS.map((r) => `/realms/${r.slug}`));
+    expect(rows.filter((r) => r.current).map((r) => r.id)).toEqual([REALMS[2].id]);
+  });
+});
 
 describe('worldView', () => {
   test('one realm per path realm, in path order, each placed, with its link and totals', () => {

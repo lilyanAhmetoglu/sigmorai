@@ -5,7 +5,6 @@ import { cache } from 'react';
 import { db } from '@/db';
 import { progress } from '@/db/schema';
 import {
-  DASHBOARD_REALM_LIMIT,
   DEFAULT_TRACK,
   FRONTIER_AREA,
   MATH_AREA,
@@ -20,7 +19,6 @@ import { applyCredit, creditorsForTrack, type Credit } from '@/lib/content/share
 import { sharedGroups } from '@/lib/grading/credit';
 import { trackOutline } from '@/lib/grading/outline';
 import {
-  activeRealms,
   buildTowerMap,
   buildTrackMap,
   clearedLevels,
@@ -253,8 +251,6 @@ export type Dashboard =
       status: 'ready';
       stats: HudStats;
       map: TrackMap;
-      /** In-progress then open realms, capped for the "Your realms" row. */
-      active: RealmView[];
       /** Chapters and bosses cleared on the player's track. */
       levelsCleared: number;
       /** The Math Tower panel and MATH FLOORS stat. */
@@ -273,7 +269,6 @@ export async function getDashboard(): Promise<Dashboard> {
     status: 'ready',
     stats: viewer.stats,
     map,
-    active: activeRealms(map.realms, DASHBOARD_REALM_LIMIT),
     levelsCleared: clearedLevels(map.realms),
     tower: towerSummary(floors),
   };

@@ -8,6 +8,10 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (dashboard path list, per-path PR 2)
+
+- **Supersedes "up to `DASHBOARD_REALM_LIMIT` (3) active realms"** (2026-10-05 block below). `/dashboard` now lists every realm of the player's path in "YOUR PATH" (`components/realms/path-list.tsx`, shared with `/map`), with a "View on world map" link to `/map`. `DASHBOARD_REALM_LIMIT` is deleted. See `docs/plans/path-curriculum-design-plan.md` → PR 2.
+
 ## Amendments locked 2026-10-07 (SIG-29: the Frontier is playable)
 
 - **Route `/frontier`** (`app/(app)/frontier`, public like `/math`): a newest-first list of chapters (title, date, `minutes`, state). With no chapter it shows one plain empty-state panel ("No chapters yet. We add a chapter when official docs publish something new.") and nothing else. No scene art, no NPC, accent `neutral`, site-default OG image.
