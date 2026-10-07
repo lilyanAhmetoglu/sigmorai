@@ -10,6 +10,7 @@ import {
   type BodyKind,
   type StepComponents,
 } from '@/lib/content/mdx';
+import type { Accent } from '@/lib/types';
 import { LessonStepSection, LessonStepper } from './lesson-stepper';
 
 type Props = {
@@ -22,6 +23,8 @@ type Props = {
    * A Frontier lesson has none: then the body may use no component at all.
    */
   npc?: string;
+  /** A lesson's realm (or tower) colour: the step bar's lit cells. */
+  accent?: Accent;
 };
 
 /** A focusable, named region, so a keyboard user can scroll a wide code block sideways. */
@@ -38,17 +41,15 @@ function textOf(node: ReactNode): string {
 }
 
 /**
- * A blog post's `##` heading, with the anchor the "On this page" list links
- * to (lib/content/blog.ts → postHeadings uses the same headingId).
+ * A `##` heading with its anchor id: the blog's "On this page" links and a
+ * lesson step's name (aria-labelledby) both use it (lib/content/blog.ts →
+ * postHeadings uses the same headingId).
  */
 const h2 = ({ children, ...props }: ComponentProps<'h2'>) => (
   <h2 {...props} id={headingId(textOf(children).replace(/\s+/g, ' ').trim())}>
     {children}
   </h2>
 );
-
-/** A lesson's `##` heading: the anchor id, and focusable (not tabbable) so a step move can focus it. */
-const lessonH2 = (props: ComponentProps<'h2'>) => h2({ ...props, tabIndex: -1 });
 
 /** One step of a lesson (lib/content/mdx.tsx → lessonSteps), numbered from 1. */
 const LessonStep = ({ step, children }: { step?: string; children?: ReactNode }) => (
@@ -59,9 +60,12 @@ const LessonStep = ({ step, children }: { step?: string; children?: ReactNode })
  * With no JavaScript every step shows and the step controls hide. It sits in
  * @layer base, beside Tailwind's preflight `[hidden] { display: none !important }`,
  * so the more specific selector wins (an unlayered !important would lose).
+ * content-visibility undoes hidden="until-found"; the margin replaces the
+ * steps mode's missing gap (lesson.css).
  */
 const NO_SCRIPT_STEPS =
-  '@layer base { .lesson-steps .lesson-step[hidden] { display: flex !important; } ' +
+  '@layer base { .lesson-steps .lesson-step[hidden] { display: flex !important; content-visibility: visible !important; } ' +
+  '.lesson-steps .lesson-step + .lesson-step { margin-top: calc(var(--spacing) * 4); } ' +
   '.lesson-steps .lesson-steps-head, .lesson-steps .lesson-steps-controls { display: none !important; } }';
 
 /** What a lesson's tags render as. <DialogBox> always speaks as the lesson's NPC. */
@@ -74,7 +78,7 @@ function lessonComponents(npc: string | undefined): StepComponents {
     }),
     LessonStep,
     pre,
-    h2: lessonH2,
+    h2,
   };
 }
 
@@ -84,7 +88,7 @@ function lessonComponents(npc: string | undefined): StepComponents {
  * A lesson with LESSON_MIN_STEPS or more `##` sections is shown one step at
  * a time (interactive-lessons spec, Phase 1). Styles: lesson.css.
  */
-export async function LessonBody({ body, kind, npc }: Props) {
+export async function LessonBody({ body, kind, npc, accent }: Props) {
   if (kind === 'blog') {
     const content = await renderLesson(body, { pre, h2 }, { kind: 'blog' });
     return <div className="lesson-body">{content}</div>;
@@ -100,7 +104,9 @@ export async function LessonBody({ body, kind, npc }: Props) {
       <noscript>
         <style>{NO_SCRIPT_STEPS}</style>
       </noscript>
-      <LessonStepper steps={steps}>{content}</LessonStepper>
+      <LessonStepper steps={steps} accent={accent}>
+        {content}
+      </LessonStepper>
     </>
   );
 }

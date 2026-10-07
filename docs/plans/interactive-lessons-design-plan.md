@@ -24,6 +24,7 @@ These override the sections below where they disagree.
 - **Token estimate maths** lives in `lib/utils/token-estimate.ts` (pure, `bun test`).
 - **Phases 2–3 wait for the per-path curriculum P0** (each track gets its own realm list and chapter counts) and name pilots by exercise id, not folder path. Phase 1 may land first: it touches no content files.
 - **Design:** derived from the current lesson screen and tokens (no Claude Design pass was available). The `ui-ux-reviewer` pass on the Phase 1 preview stands in for design sign-off until the maintainer reviews it.
+- Acceptance lines on the URL hash, saved Show-all and the inline script, and the inline-script Risk, are void. Show all/Show steps is a label-swap button (no aria-pressed); the live region says 'Step n of N' and 'All N steps shown.'; the last button reads 'Go to Lesson done'. (Phase 1 review: a step move focuses the step's `<section>`, named by its `##` heading, so Back to step 1 includes the intro; the step bar uses the page's realm accent; hidden steps use `hidden="until-found"` where the browser supports it, so find-in-page opens the matching step. This replaces the Risks line "left for later".)
 
 ---
 
@@ -78,8 +79,8 @@ Same stepper, inside the left column. The "Lesson done" panel stays sticky on th
 
 ### Show all
 
-- **Show all** shows every step as one long page (today's view), with no Back / Continue. The button then reads **Show steps** (`aria-pressed`).
-- The choice is saved per browser (`localStorage`, in try/catch). If storage fails, the default is steps. It is a convenience only, never stored on the server.
+- **Show all** shows every step as one long page (today's view), with no Back / Continue. The button then reads **Show steps** (a label swap, no `aria-pressed`). The live region says "All N steps shown." or "Step n of N".
+- The choice lasts for the visit only. Nothing is saved, in the browser or on the server.
 - Going back to steps keeps the step the learner was on.
 
 ### Where you are
@@ -266,12 +267,13 @@ Three PRs into `canary`. Each one ships alone and is useful alone. Each one need
 
 ## Acceptance criteria
 
-- [ ] Every lesson with 3+ `##` sections opens on step 1 (or the step in the hash), with `STEP n/N`, Back, Continue, and Finish on the last step.
+- [ ] Every lesson with 3+ `##` sections opens on step 1, with `STEP n/N` (realm accent), Back, Continue, and **Go to Lesson done** on the last step.
+- [ ] A move focuses the new step's section (named by its heading); the live region says "Step n of N".
 - [ ] Lesson text and order are unchanged. No lesson file was edited for Phase 1.
 - [ ] With JS disabled, every step is visible and no control is shown.
-- [ ] No flash: a JS user never sees all steps first and then one.
-- [ ] Show all / Show steps works, keeps the current step, and is remembered per browser; a storage error falls back to steps.
-- [ ] Reload on `#<heading-id>` opens that step. Continue and Back add no history entries.
+- [ ] No flash: the server HTML shows step 1 only, with no inline script.
+- [ ] Show all / Show steps works, keeps the current step, says "All N steps shown." / "Step n of N", and lasts for the visit only.
+- [ ] Find in page finds text in a hidden step and opens that step (browsers with `hidden="until-found"`).
 - [ ] "Lesson done" works at any step and is never pressed for the learner. XP for a lesson is still +10, once.
 - [ ] Try it: instant mark (colour AND icon + word), why text, Try again, no network request (checked in the network tab), works with JS off via `<details>`.
 - [ ] `content:check` fails a Try it that copies or near-copies any graded prompt, or whose right option equals a graded correct option in the same chapter.

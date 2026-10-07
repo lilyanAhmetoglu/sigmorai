@@ -58,20 +58,21 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   // The signed-in a11y check (a11y.spec.ts covers the public routes).
   await expectNoViolations(page);
 
-  // Lesson: one step at a time. Continue moves focus to each step's heading;
-  // Finish on the last step moves it to "Lesson done", which still needs a press.
+  // Lesson: one step at a time. Continue moves focus to each step (named by
+  // its heading); the last button moves it to "Lesson done", which still needs a press.
   await page.goto(`${QUEST}/lesson`);
   const stepTitles = lessonStepTitles(CHAPTER_DIR);
   const progress = page.getByRole('progressbar', { name: QUEST_TEXT.stepLabel });
   await expect(progress).toHaveAttribute('aria-valuenow', '1');
   for (const title of stepTitles.slice(1)) {
     await page.getByRole('button', { name: QUEST_TEXT.continue, exact: true }).click();
-    await expect(page.getByRole('heading', { level: 2, name: title })).toBeFocused();
+    await expect(page.getByRole('heading', { level: 2, name: title, exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: title, exact: true })).toBeFocused();
   }
   await expect(progress).toHaveAttribute('aria-valuenow', String(stepTitles.length));
-  await page.getByRole('button', { name: QUEST_TEXT.finish }).click();
-  // Lesson done: one button, +10 XP once.
-  const lessonDone = page.getByRole('button', { name: QUEST_TEXT.lessonDone });
+  await page.getByRole('button', { name: QUEST_TEXT.finish, exact: true }).click();
+  // Lesson done: one button, +10 XP once. Exact: "Go to Lesson done" contains the same words.
+  const lessonDone = page.getByRole('button', { name: QUEST_TEXT.lessonDone, exact: true });
   await expect(lessonDone).toBeFocused();
   await lessonDone.click();
   await expect(page.getByText(QUEST_TEXT.lessonCleared(XP_REWARDS.lesson))).toBeVisible();

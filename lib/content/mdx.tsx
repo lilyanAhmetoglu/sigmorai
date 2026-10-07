@@ -23,8 +23,6 @@ import * as runtime from 'react/jsx-runtime';
 
 /** The one component a lesson body may use. The renderer must supply it. */
 export const LESSON_COMPONENTS = ['DialogBox'] as const;
-export type LessonComponents = Record<(typeof LESSON_COMPONENTS)[number], MDXComponents[string]> &
-  MDXComponents;
 
 /** A blog post body: plain Markdown only, so no NPC <DialogBox>. */
 export const NO_COMPONENTS = [] as const;

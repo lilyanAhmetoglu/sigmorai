@@ -26,6 +26,9 @@ type Props = {
   nextHref: string;
 };
 
+/** The panel's name (its LESSON bar). One panel per page, so a fixed id is safe. */
+const TITLE_ID = `${LESSON_DONE_ID}-title`;
+
 /** The last press. The XP comes from the server's reply, never from here. */
 type Outcome = { kind: 'done'; xp: XpOutcome } | { kind: 'error'; message: string };
 
@@ -85,11 +88,17 @@ export function LessonDone({ exerciseId, title, viewer, nextHref }: Props) {
   const awarded = outcome?.kind === 'done' ? outcome.xp.awarded : 0;
 
   return (
-    // The id and tabIndex: the lesson stepper's Finish moves focus here (or to its first control).
-    <section id={LESSON_DONE_ID} tabIndex={-1} className="lesson-done" aria-busy={pending}>
+    // The id and tabIndex: the lesson stepper's last button moves focus here (or to its first control).
+    <section
+      id={LESSON_DONE_ID}
+      tabIndex={-1}
+      aria-labelledby={TITLE_ID}
+      className="lesson-done"
+      aria-busy={pending}
+    >
       <div className="quest-case">
         <div className="quest-case-bar">
-          <span>{QUEST_TEXT.lessonPanel}</span>
+          <span id={TITLE_ID}>{QUEST_TEXT.lessonPanel}</span>
         </div>
         <div className="quest-case-body">
           <div ref={buttons} className="quest-buttons">

@@ -139,7 +139,7 @@ function LessonPage({ page, back }: LessonPageProps) {
             items={[
               {
                 label: QUEST_TEXT.lessonTab,
-                content: <LessonBody body={lesson.body} kind="lesson" npc={npc} />,
+                content: <LessonBody body={lesson.body} kind="lesson" npc={npc} accent={accent} />,
               },
               { label: QUEST_TEXT.sourcesTab, content: <SourceList sources={sources} /> },
             ]}

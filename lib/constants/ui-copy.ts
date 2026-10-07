@@ -235,14 +235,15 @@ export const QUEST_TEXT = {
   lessonNoReply: 'No reply from the server. Reload the page and try again.',
   // Lesson steps (interactive-lessons spec, Phase 1). The forward button reuses `continue`.
   stepBack: 'Back',
-  finish: 'Finish',
+  finish: 'Go to Lesson done',
   showAll: 'Show all',
   showSteps: 'Show steps',
   /** The progress bar's label; XPBar adds "n/N". */
   stepLabel: 'STEP',
-  /** Read out by the live region after a move. */
-  stepAnnounce: (step: number, total: number, title: string) =>
-    `Step ${step} of ${total}: ${title}`,
+  /** Read out by the live region after a move (focus on the step then reads its heading). */
+  stepAnnounce: (step: number, total: number) => `Step ${step} of ${total}`,
+  /** Read out after Show all. */
+  allShown: (total: number) => `All ${total} steps shown.`,
   /** Accessible name of a scrollable code block in a lesson. */
   codeExample: 'Code example',
   saving: 'Saving…',
