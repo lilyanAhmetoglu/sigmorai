@@ -5,18 +5,25 @@ import { ContinueCard } from '@/components/dashboard/continue-card';
 import { DailyQuest } from '@/components/dashboard/daily-quest';
 import { DashboardStats } from '@/components/dashboard/dashboard-stats';
 import { FrontierPanel } from '@/components/dashboard/frontier-panel';
-import { RealmTile } from '@/components/dashboard/realm-tile';
 import { TowerPanel } from '@/components/dashboard/tower-panel';
-import { Panel } from '@/components/panel';
-import { AUTH_ROUTES, DASHBOARD_TEXT, ONBOARDING_HREF, REALMS_HREF } from '@/lib/constants';
+import { PathList } from '@/components/realms/path-list';
+import {
+  AUTH_ROUTES,
+  DASHBOARD_TEXT,
+  MAP_HREF,
+  ONBOARDING_HREF,
+  realmHref,
+  WORLD_MAP_TEXT,
+} from '@/lib/constants';
 import { getFrontierSummary } from '@/lib/data/frontier';
 import { getDashboard } from '@/lib/data/realms';
+import { pathRealms } from '@/lib/grading/world-map';
 import type { FrontierSummary } from '@/lib/types';
 
 export const metadata: Metadata = { title: `${DASHBOARD_TEXT.title} · Sigmorai` };
 
 const CONTINUE_ID = 'dashboard-continue';
-const REALMS_ID = 'dashboard-realms';
+const PATH_HEADING_ID = 'your-path';
 
 /** The FRONTIER panel's summary, or null when its read fails (the panel says so). */
 async function readFrontier(): Promise<FrontierSummary | null> {
@@ -30,8 +37,9 @@ async function readFrontier(): Promise<FrontierSummary | null> {
 
 /**
  * The player's home (Sigmorai App.dc.html → isDash): the next open step on
- * their track, their stats and their active realms. Every state is computed
- * on the server (lib/data/realms.ts).
+ * their track, their stats and their whole path ("YOUR PATH", the same list
+ * as the world map; rows link to the realm page, as the old tiles did).
+ * Every state is computed on the server (lib/data/realms.ts).
  * The Math Tower panel and MATH FLOORS stat come from the same read; the
  * FRONTIER panel from the Frontier's own read (lib/data/frontier.ts), done
  * only for a ready player. A Frontier failure shows in its panel only.
@@ -41,7 +49,7 @@ export default async function DashboardPage() {
   if (page.status === 'signed-out') redirect(AUTH_ROUTES.signIn);
   if (page.status === 'onboarding') redirect(ONBOARDING_HREF);
 
-  const { stats, map, active, levelsCleared, tower } = page;
+  const { stats, map, levelsCleared, tower } = page;
   const frontier = await readFrontier();
 
   return (
@@ -59,29 +67,21 @@ export default async function DashboardPage() {
           <ContinueCard next={map.next} realms={map.realms} />
         </section>
 
-        <section aria-labelledby={REALMS_ID} className="flex flex-col gap-3">
+        <section aria-labelledby={PATH_HEADING_ID} className="flex flex-col gap-3">
           <div className="section-head">
-            <h2 id={REALMS_ID} className="page-eyebrow">
-              {DASHBOARD_TEXT.realmsHeading}
+            <h2 id={PATH_HEADING_ID} className="page-eyebrow">
+              {WORLD_MAP_TEXT.pathHeading}
             </h2>
-            <Link href={REALMS_HREF} className="section-link">
-              {DASHBOARD_TEXT.browseAll}
+            <Link href={MAP_HREF} className="section-link">
+              {DASHBOARD_TEXT.viewWorldMap}
               <span aria-hidden="true">{DASHBOARD_TEXT.browseIcon}</span>
             </Link>
           </div>
-          {active.length > 0 ? (
-            <ul className="tile-grid">
-              {active.map((realm) => (
-                <li key={realm.id}>
-                  <RealmTile realm={realm} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Panel tone="sunken">
-              <p className="text-body leading-body m-0">{DASHBOARD_TEXT.noActiveRealms}</p>
-            </Panel>
-          )}
+          <PathList
+            realms={pathRealms(map, (slug) => realmHref(slug))}
+            currentTag={WORLD_MAP_TEXT.youAreHere}
+            labelledBy={PATH_HEADING_ID}
+          />
         </section>
       </div>
 

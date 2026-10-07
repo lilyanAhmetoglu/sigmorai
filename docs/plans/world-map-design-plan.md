@@ -351,7 +351,7 @@ Notes:
 - [ ] 360px: no sideways page scroll; the box pans inside itself.
 - [ ] No canvas, no map library, no new hex, zero radius, no gradient. No old realm art reused.
 - [ ] Geometry tests pass: anchors inside the grid, no footprint overlap, ≥ 96 art px between anchors, every core realm placed, every assigned slot exists once, every track-owned `REALMS` row has a slot (after per-path 1b).
-- [ ] `/map/<slug>` has a "◂ World map" back link. The dashboard "Your path" list (per-path PR 2) links to `/map` ("View on world map"), in whichever PR lands second.
+- [x] `/map/<slug>` has a "◂ World map" back link. The dashboard "Your path" list (per-path PR 2) links to `/map` ("View on world map"), in whichever PR lands second.
 - [ ] PR 3: asset sizes inside the budget; a phone at overview downloads only `world-256.png`.
 - [ ] typecheck, lint, test, build green; axe passes on `/map` signed out.
 

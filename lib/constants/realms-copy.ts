@@ -113,8 +113,8 @@ export const DASHBOARD_TEXT = {
   continueHeading: 'CONTINUE LEARNING',
   nothingOpen: 'Nothing new is open on your path right now.',
   nothingOpenHint: 'The next chapters are not built yet. They come soon.',
-  realmsHeading: 'YOUR REALMS',
-  noActiveRealms: 'You cleared every open realm. Browse all realms to replay one.',
+  /** The link under "YOUR PATH" (WORLD_MAP_TEXT.pathHeading) to the world map. */
+  viewWorldMap: 'View on world map',
   /** Stat labels (design: isDash STATS). Only stats with real data. */
   streak: 'DAY STREAK',
   levelsCleared: 'LEVELS CLEARED',

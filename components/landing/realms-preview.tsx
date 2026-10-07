@@ -17,9 +17,9 @@ type Props = {
  * "The map" (design: landing → POPULAR REALMS): every realm of the beginner
  * path as a small tile,
  * scene + number + tier + name + topic. The whole tile links to the realm
- * page (public, so visitors can read the chapter list). Not dashboard/RealmTile:
- * that one needs a RealmView with the player's progress. Styles: realms.css
- * (.realm-tile) + landing.css.
+ * page (public, so visitors can read the chapter list). It needs no player
+ * progress (the dashboard shows the path as a list: realms/PathList).
+ * Styles: realms.css (.realm-tile) + landing.css.
  */
 export function RealmsPreview({ outline }: Props) {
   return (

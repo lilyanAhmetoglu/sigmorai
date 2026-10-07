@@ -16,11 +16,10 @@ export default function Loading() {
         <Panel tone="sunken">
           <div className="h-28" />
         </Panel>
-        <div className="card-grid">
-          {[0, 1, 2].map((i) => (
-            <Panel key={i} tone="sunken">
-              <div className="h-40" />
-            </Panel>
+        {/* "YOUR PATH": one row per core realm (the list's rows are 44px). */}
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 9 }, (_, i) => (
+            <div key={i} className="bg-surface-2 h-11" />
           ))}
         </div>
       </div>

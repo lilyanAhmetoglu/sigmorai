@@ -36,9 +36,6 @@ export const STEP_STATUSES = ['done', 'open', 'locked', 'tier-locked', 'soon'] a
 /** State of a whole realm. Open-tier realms are open from day one (spec → devil pass). */
 export const REALM_STATUSES = ['cleared', 'in-progress', 'open', 'tier-locked'] as const;
 
-/** How many realm cards the dashboard shows before "Browse all". */
-export const DASHBOARD_REALM_LIMIT = 3;
-
 /**
  * Every realm, sorted by id with no gap (so `REALMS[id]` is realm `id`).
  * `id` is the realm number, global across paths; helpers derive folder, art

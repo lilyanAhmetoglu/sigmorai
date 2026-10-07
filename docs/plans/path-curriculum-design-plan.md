@@ -10,6 +10,16 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (devil pass, PR 2)
+
+- **PR 2 adds no component and no CSS.** The dashboard renders `components/realms/path-list.tsx` with the shipped `.path-list` styles. `components/dashboard/realm-tile.tsx`, `.tile-grid`, `DASHBOARD_REALM_LIMIT`, `Dashboard.active`, `DASHBOARD_TEXT.realmsHeading` and `noActiveRealms` are deleted. `activeRealms` stays (it picks `next` in `buildTrackMap`). `.realm-tile*` CSS stays (the landing uses it).
+- **Rows link to the realm page** (`realmHref`), as on the old tiles. A pure `pathRealms(map, hrefFor)` in `lib/grading/world-map.ts`, extracted from `worldView`, builds the rows for both pages.
+- **No tier label on rows.** The PATH REALM badge waits for PR 4 (first specialist realm) and goes on `PathList`, so the map and the dashboard both get it.
+- **Section head = heading `WORLD_MAP_TEXT.pathHeading` ("YOUR PATH") + one link "View on world map" → `/map`.** "Browse all" stays only in the Continue card's empty state. Current-row tag = `WORLD_MAP_TEXT.youAreHere`.
+- **`dashboard/loading.tsx` shows row placeholders**, not three tiles.
+- **Gates: devil → cto.** The list and its copy were reviewed in #137; axe on `/dashboard` already runs in e2e.
+- `curriculum-design-plan.md` gets a dated line superseding "up to `DASHBOARD_REALM_LIMIT` (3) active realms"; the world-map spec's acceptance line about the dashboard link is ticked.
+
 ## Amendments locked 2026-10-07 (world map, SIG-59)
 
 - **The "Your path" list is `components/realms/path-list.tsx`**, built by the world map PR 1 (`docs/plans/world-map-design-plan.md`). PR 2 here reuses it on the dashboard instead of a new `components/dashboard/path-list.tsx`, and adds a "View on world map" link to `/map`. One list, two pages.
