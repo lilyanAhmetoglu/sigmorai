@@ -1,0 +1,96 @@
+{
+  "id": "creator/r11/c3/challenge",
+  "title": "The poster that spelled the shop wrong",
+  "scenario": "A bookshop called Quillon Books holds an author night. You make the poster with image models. Your teammate tried three tools and wrote down what happened.\n\nUse the exhibit. The shop, the prompts and the notes are made up for this case. The field names are from the vendors' docs in October 2026.",
+  "exhibit": "BRIEF (made up)\n  Headline:  QUILLON NIGHTS\n  Line 2:    Author night, Friday 8pm\n  Font:      the shop uses Garamond Premier on its sign\n\nTRY 1, OpenAI GPT Image 2.5\n  Prompt: \"Poster for a bookshop author night with the headline Quillon Nights and the date\"\n  Note:   headline came out as \"QUILON NIGHTS\"; a second, made-up slogan appeared at the bottom.\n\nTRY 2, Ideogram 4.5, JSON element (part)\n  { \"type\": \"text\", \"bbox\": [40, 80, 180, 920], \"text\": \"QUILLON NIGHTS\", \"desc\": \"Garamond Premier, cream\" }\n  Note:   placement good; the letters look like a generic serif, not the sign.\n\nTRY 3, Recraft V3, text_layout (part)\n  [ { \"text\": \"Author night\", \"bbox\": [40, 80, 180, 920] } ]",
+  "questions": [
+    {
+      "prompt": "Try 1 misspelled the shop and added a slogan. Which rewrite follows OpenAI's guide best?",
+      "options": [
+        {
+          "text": "The headline \"QUILLON NIGHTS\", spelled Q-U-I-L-L-O-N, once, no other text",
+          "explanation": "Right. OpenAI says to quote the wording, spell brand names letter by letter, and ask for no extra text.",
+          "correct": true
+        },
+        {
+          "text": "The headline Quillon Nights in big letters, and make it really, really clear",
+          "explanation": "The words are not in quotes and not spelled out, and nothing stops the extra slogan."
+        },
+        {
+          "text": "Any headline about books and nights that fits the poster, in a nice serif",
+          "explanation": "This gives up the exact wording. The brief needs the shop's name spelled right."
+        },
+        {
+          "text": "The headline QUILLON NIGHTS, then a list of slogans the model may add too",
+          "explanation": "This invites more text. OpenAI says to ask for no extra text and then check the output."
+        }
+      ]
+    },
+    {
+      "prompt": "Try 2: the client wants the exact Garamond Premier look from the sign. What is the best plan?",
+      "options": [
+        {
+          "text": "Keep the font name in desc, since Ideogram loads the named font file",
+          "explanation": "Ideogram says it doesn't load real fonts and you can't pick a font by name."
+        },
+        {
+          "text": "Describe the letters in desc, and set the exact font in a design tool",
+          "explanation": "Right. Ideogram says to describe weight, shape and mood instead of a font name. An exact brand font is a design-tool job.",
+          "correct": true
+        },
+        {
+          "text": "Move the font name to the start of the prompt, so it carries more weight",
+          "explanation": "Text early helps the words to render, but Ideogram still cannot load a named font."
+        },
+        {
+          "text": "Add the font name to the palette list, next to the hex colours in JSON",
+          "explanation": "color_palette holds hex colours only. It cannot carry a font."
+        }
+      ]
+    },
+    {
+      "prompt": "Try 3 copied the Ideogram box into Recraft. Why will that box not work there as it is?",
+      "options": [
+        {
+          "text": "Recraft boxes use pixels, so the numbers must be the image's real size",
+          "explanation": "Recraft's coordinates are relative, with (0, 0) top-left and (1, 1) bottom-right, not pixels."
+        },
+        {
+          "text": "Recraft boxes use the same order but need a scale from 0 to 100",
+          "explanation": "Recraft does not use Ideogram's order or a 0–100 scale. It uses four [x, y] points from 0 to 1."
+        },
+        {
+          "text": "Recraft takes four [x, y] corner points from 0 to 1, not y-first edges",
+          "explanation": "Right. Ideogram writes [y_min, x_min, y_max, x_max] from 0 to 1000. Recraft wants four points, x first, relative from 0 to 1.",
+          "correct": true
+        },
+        {
+          "text": "Recraft boxes only work when the image is square, so set 1:1 first",
+          "explanation": "Recraft's text layout page does not limit boxes to square images."
+        }
+      ]
+    },
+    {
+      "prompt": "Try 3 also puts \"Author night\" in one text_layout entry. What does Recraft's reference say about that?",
+      "options": [
+        {
+          "text": "It is fine: each entry can hold a full line of text with spaces",
+          "explanation": "Recraft says the text field must be a single word."
+        },
+        {
+          "text": "Each entry is one word, so \"Author\" and \"night\" need their own box",
+          "explanation": "Right. Recraft's text layout says each element is an individual word with its own bounding box.",
+          "correct": true
+        },
+        {
+          "text": "It works, but only if the line is placed in the middle of the image",
+          "explanation": "Position is not the problem. The text field must hold a single word."
+        },
+        {
+          "text": "Text layout is for Recraft V4 only, so the model must change first",
+          "explanation": "It is the other way round: Recraft says text layout works on V3 and V3 Vector only."
+        }
+      ]
+    }
+  ]
+}
