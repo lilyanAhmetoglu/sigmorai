@@ -1,0 +1,96 @@
+{
+  "id": "creator/r1/c9/challenge",
+  "title": "The chat prompt that drew a piggy bank",
+  "scenario": "You are a product designer. You write Claude prompts every day, so you wrote the first onboarding illustration for a budgeting app the same way. You sent it through OpenAI's image generation tool in the Responses API.\n\nThe result looks nothing like the brief. The exhibit shows your prompt, the result, the revised prompt the API returned and the brief.",
+  "exhibit": "Your prompt\n  <role>You are an expert illustrator.</role>\n  <instructions>\n    1. Think about what makes onboarding feel friendly.\n    2. Choose a good composition.\n    3. Don't use dark colours. Don't add text.\n  </instructions>\n  <context>Screen 1 of a budgeting app's onboarding.</context>\n\nWhat came back\n  A watercolour piggy bank in a garden, pastel colours,\n  the word \"Welcome!\" hand-lettered across the top.\n\nrevised_prompt (from the image generation call)\n  \"A whimsical watercolor illustration of a smiling piggy bank\n   in a sunny garden, soft pastel colors, with the word\n   'Welcome!' in hand-lettered script at the top.\"\n\nBrief from the product team\n  Flat vector style, bold clean outlines. Brand teal and coral\n  on white. One person holding a phone. No words in the image:\n  the app adds the copy.",
+  "questions": [
+    {
+      "prompt": "What is the main reason the result missed the brief?",
+      "options": [
+        {
+          "text": "Image models can't read XML tags, so the model threw away the whole prompt and drew at random.",
+          "explanation": "OpenAI's guide says tags, instructions and other formats can all express the same intent. The tags were not the problem."
+        },
+        {
+          "text": "The role line was too short. A longer role would have told the model which style the team wanted.",
+          "explanation": "A role line says nothing about the picture. The style, colours and subject were never named."
+        },
+        {
+          "text": "The prompt lists steps to think through and two bans, but never says what the picture shows.",
+          "explanation": "Right. OpenAI's guide says to describe visible details: materials, lighting, colours and the visual medium. The prompt names none of them.",
+          "correct": true
+        },
+        {
+          "text": "OpenAI's image models can't make flat vector art, so the model had to fall back to watercolour.",
+          "explanation": "Nothing in the docs says that. OpenAI's own logo example asks for clean, vector-like shapes."
+        }
+      ]
+    },
+    {
+      "prompt": "What should you do with the revised_prompt in the exhibit?",
+      "options": [
+        {
+          "text": "Ignore it. It is only a log line for OpenAI's engineers and has no effect on your image.",
+          "explanation": "OpenAI's docs say the mainline model revises your prompt automatically, and you can read the revision in this field."
+        },
+        {
+          "text": "Read it next to the result. It added watercolour and the word, so state the style and no text yourself.",
+          "explanation": "Right. The revision shows the words the image was made from. Where it filled a gap with the wrong choice, write that part yourself.",
+          "correct": true
+        },
+        {
+          "text": "Copy it as your next prompt word for word, because the model already improved it for you once.",
+          "explanation": "The revision added a style and text that break the brief. Copying it keeps both mistakes."
+        },
+        {
+          "text": "Delete the image and start again, because a revised prompt means the request failed on the server.",
+          "explanation": "A revised prompt is normal. OpenAI's docs say the tool revises prompts for improved performance."
+        }
+      ]
+    },
+    {
+      "prompt": "Later the team moves this set to a Gemini image model. How should \"Don't use dark colours\" be rewritten?",
+      "options": [
+        {
+          "text": "\"NO DARK COLOURS. NO DARK COLOURS. NO DARK COLOURS.\" at the start and the end of the prompt",
+          "explanation": "Repeating a ban adds no detail about the colours you want."
+        },
+        {
+          "text": "A separate negative prompt field with the words \"dark, black, shadow\" in it, as Imagen's guide shows",
+          "explanation": "That is the rule in Google's older Imagen guide. Gemini's guide asks for a positive scene description instead."
+        },
+        {
+          "text": "\"A bright, light palette: brand teal and coral on a plain white background\" in the scene description",
+          "explanation": "Right. Gemini's guide says to use semantic negative prompts: describe the intended scene in positive words.",
+          "correct": true
+        },
+        {
+          "text": "Leave it out. Gemini models only use light colours, so there is no need to say anything about it",
+          "explanation": "No guide says that. If you don't name the colours, the model picks them."
+        }
+      ]
+    },
+    {
+      "prompt": "Which rewrite fits the brief best as an image prompt?",
+      "options": [
+        {
+          "text": "\"A flat vector illustration of one person holding a phone, smiling. Bold, clean outlines. Teal and coral on white. No text.\"",
+          "explanation": "Right. It names the medium, the subject, the line style and the colours, and it states the exclusion plainly, as OpenAI's examples do.",
+          "correct": true
+        },
+        {
+          "text": "\"You are the world's best illustrator. Think step by step about friendly onboarding, then draw the best possible picture.\"",
+          "explanation": "This is still a process and a role. It never says what the picture shows."
+        },
+        {
+          "text": "\"Step 1: choose a style. Step 2: choose colours. Step 3: choose a subject. Step 4: check the result. Step 5: draw it.\"",
+          "explanation": "These steps hand every choice back to the model. Google's step example names a visible thing in every step."
+        },
+        {
+          "text": "\"A friendly, welcoming, modern, clean, delightful, on-brand, beautiful onboarding illustration that users will love.\"",
+          "explanation": "These are mood and praise words. The model still has to guess the medium, the subject and the colours."
+        }
+      ]
+    }
+  ]
+}

@@ -174,9 +174,9 @@ describe('nextCaseId', () => {
       chapter,
       step: 'challenge',
     });
-    expect(nextCaseId(c(1))).toBe('strategist/r2/c2/challenge');
-    expect(nextCaseId(c(6))).toBe('strategist/r2/boss/challenge');
-    expect(nextCaseId({ area: 'boss', track: 'strategist', realm: 2 })).toBeNull();
+    expect(nextCaseId(c(1), 6)).toBe('strategist/r2/c2/challenge');
+    expect(nextCaseId(c(6), 6)).toBe('strategist/r2/boss/challenge');
+    expect(nextCaseId({ area: 'boss', track: 'strategist', realm: 2 }, 6)).toBeNull();
   });
 
   test('a 9-chapter realm: c6 leads to c7, c9 to the boss', () => {
@@ -192,6 +192,6 @@ describe('nextCaseId', () => {
   });
 
   test('a Math Tower floor opens no case', () => {
-    expect(nextCaseId({ area: 'math', floor: 1, step: 'quick-check' })).toBeNull();
+    expect(nextCaseId({ area: 'math', floor: 1, step: 'quick-check' }, 6)).toBeNull();
   });
 });

@@ -148,7 +148,7 @@ describe('bad ids are rejected', () => {
   });
 });
 
-/** A track's outline as committed in content/ (each realm has MIN_CHAPTERS chapters today). */
+/** A track's outline as committed in content/ (creator r1 has 9 chapters; every other realm 6). */
 const realOutline = async (track: (typeof TRACKS)[number]) =>
   trackOutlineSchema(track).parse(
     await Bun.file(`${import.meta.dir}/../../${CONTENT_DIR}/${track}/${OUTLINE_FILE}`).json(),
@@ -157,10 +157,11 @@ const realOutline = async (track: (typeof TRACKS)[number]) =>
 /**
  * The id list before chapter counts came from the outline (fixed 9 × 6):
  * r0..r8, c1..c6 each step, then the boss. Written out by hand on purpose.
+ * `grown` lists the realms that grew past 6 chapters since (realm → count).
  */
-const gridIds = (track: string) =>
+const gridIds = (track: string, grown: Record<number, number> = {}) =>
   range(0, 9).flatMap((realm) => [
-    ...range(1, 6).flatMap((chapter) =>
+    ...range(1, grown[realm] ?? 6).flatMap((chapter) =>
       ['lesson', 'challenge', 'quick-check'].map(
         (step) => `${track}/r${realm}/c${chapter}/${step}`,
       ),
@@ -168,13 +169,22 @@ const gridIds = (track: string) =>
     `${track}/r${realm}/boss/challenge`,
   ]);
 
+/** Realms grown past 6 chapters in each track's committed outline (realm → chapter count). */
+const GROWN: Record<(typeof TRACKS)[number], Record<number, number>> = {
+  builder: {},
+  strategist: {},
+  creator: { 1: 9 },
+};
+
 describe('trackExerciseIds', () => {
-  // This is also the guard for nextCaseId's MIN_CHAPTERS default in
-  // lib/data/quest.ts; when this fails, pass the outline count there.
+  // A grown realm also needs lib/data/quest.ts to pass the outline count to
+  // nextCaseId (it does since creator r1 grew to 9 chapters).
   test.each([...TRACKS])(
-    'regression: %s, from its outline, equals the 9 × 6 grid id for id',
+    'regression: %s, from its outline, equals the 9 × 6 grid plus its grown chapters',
     async (track) => {
-      expect(trackExerciseIds(track, await realOutline(track))).toEqual(gridIds(track));
+      expect(trackExerciseIds(track, await realOutline(track))).toEqual(
+        gridIds(track, GROWN[track]),
+      );
     },
   );
 
