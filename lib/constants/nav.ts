@@ -48,8 +48,11 @@ export const realmsHref = (track: Track) => `${REALMS_HREF}?${TRACK_PARAM}=${tra
 export const MATH_HREF = '/math';
 /** The Frontier: the side realm of dated chapters on new docs (app/(app)/frontier). */
 export const FRONTIER_HREF = '/frontier';
-/** The world map: `/map` sends the player to the realm they are in. */
+/** The world map (app/(app)/map/(world)): every realm of a path as a land on one map. */
 export const MAP_HREF = '/map';
+/** The world map, plus `?track=` when a track is given. */
+export const worldMapHref = (track?: Track) =>
+  `${MAP_HREF}${track ? `?${TRACK_PARAM}=${track}` : ''}`;
 /** One realm's level map: `/map/<slug>`, plus `?track=` when a track is given. */
 export const mapHref = (slug: string, track?: Track) =>
   `${MAP_HREF}/${slug}${track ? `?${TRACK_PARAM}=${track}` : ''}`;

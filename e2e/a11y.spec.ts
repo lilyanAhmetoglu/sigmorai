@@ -10,6 +10,7 @@ const PUBLIC_ROUTES = [
   '/',
   '/leaderboard',
   '/frontier',
+  '/map',
   '/blog',
   '/blog/be-specific',
   '/quest/strategist/r0/c1/lesson',

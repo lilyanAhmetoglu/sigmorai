@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DialogBox } from '@/components/dialog-box';
 import { LevelMap } from '@/components/map/level-map';
@@ -15,6 +16,8 @@ import {
   REALMS_TEXT,
   realmsHref,
   TRACK_PARAM,
+  WORLD_MAP_TEXT,
+  worldMapHref,
 } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
 import { getRealmMeta, getRealmPage } from '@/lib/data/realms';
@@ -63,6 +66,10 @@ export default async function MapRealmPage({ params, searchParams }: PageProps<'
       className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6"
       data-accent={realmAccent(realm.id)}
     >
+      <Link href={worldMapHref(query[TRACK_PARAM] ? track : undefined)} className="realm-back">
+        <span aria-hidden="true">{WORLD_MAP_TEXT.backIcon}</span>
+        {WORLD_MAP_TEXT.back}
+      </Link>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
           <p className="realm-tag">{REALMS_TEXT.tag(realmNumber(realm.id), realm.tier)}</p>

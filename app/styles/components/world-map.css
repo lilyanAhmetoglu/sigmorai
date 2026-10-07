@@ -1,0 +1,154 @@
+/*
+ * World map (world-map spec): a native scroll box, like the level map, that
+ * holds the world stage at one zoom step (ZOOM_STEPS: ½, 1, 2 screen px per
+ * art px). The page itself never scrolls sideways; the box does.
+ *
+ * --world-z is the zoom. The overview needs no JS: ½ under 1024px wide
+ * (WORLD_OVERVIEW_MIN_WIDTH), else 1. The zoom buttons set data-zoom on the
+ * box, which wins. The stage is the 1024×768 grid × --world-z; the SVG art
+ * scales with it. Markers, landmarks and the hero sit at anchor × --world-z
+ * and keep their own size (44px targets at every step).
+ *
+ * The placeholder world uses tokens only: sea byte-700, shallows byte-600,
+ * land surface-3 with a coast in the realm tint, fog a dithered ink-400
+ * checker. No gradient, zero radius, hard shadows.
+ */
+@layer components {
+  .world-map {
+    @apply bg-ink-950 shadow-panel m-0.75 grid overflow-auto;
+    --world-z: 0.5;
+    /* Never taller than the stage, never more than most of the screen. */
+    height: min(70dvh, calc(var(--world-h) * var(--world-z)));
+    scrollbar-color: var(--ink-500) var(--ink-950);
+  }
+  @media (width >= 64rem) {
+    .world-map {
+      --world-z: 1;
+    }
+  }
+  .world-map[data-zoom='0.5'] {
+    --world-z: 0.5;
+  }
+  .world-map[data-zoom='1'] {
+    --world-z: 1;
+  }
+  .world-map[data-zoom='2'] {
+    --world-z: 2;
+  }
+
+  /* margin: auto centres a stage smaller than the box and stays 0 when it overflows. */
+  .world-map-stage {
+    @apply relative m-auto;
+    width: calc(var(--world-w) * var(--world-z));
+    height: calc(var(--world-h) * var(--world-z));
+  }
+  .world-map-art {
+    @apply absolute inset-0 block size-full;
+  }
+  .world-sea {
+    fill: var(--byte-700);
+  }
+  .world-shallows {
+    fill: var(--byte-600);
+  }
+  .world-land {
+    fill: var(--surface-3);
+    stroke: var(--tint);
+    stroke-width: 4;
+    stroke-linejoin: miter;
+  }
+  .world-land[data-status='tier-locked'] {
+    fill: var(--surface-2);
+  }
+  .world-fog {
+    fill: url(#world-fog);
+  }
+  .world-fog-dot {
+    fill: var(--ink-400);
+  }
+  /* Trail: square dots on an ink underlay. Solid once its first realm is cleared. */
+  .world-trail-under {
+    stroke: var(--ink-950);
+    stroke-width: 10;
+  }
+  .world-trail-line {
+    stroke: var(--ink-200);
+    stroke-width: 6;
+    stroke-dasharray: 12 12;
+  }
+  .world-trail[data-cleared] .world-trail-line {
+    stroke: var(--spark-500);
+    stroke-dasharray: none;
+  }
+
+  /* Anything placed by anchor: centred on (x, y) × zoom. */
+  .world-markers,
+  .world-landmarks {
+    @apply m-0 list-none p-0;
+  }
+  .world-marker,
+  .world-landmark {
+    @apply absolute z-10 -translate-x-1/2 -translate-y-1/2;
+    left: calc(var(--x) * var(--world-z));
+    top: calc(var(--y) * var(--world-z));
+  }
+
+  /* Marker: the link is the 44px pin on the anchor; the tag sits above it,
+     the name and state word below it (from zoom 1). */
+  .world-marker {
+    @apply text-text-on-accent font-hud text-hud shadow-notch inset-shadow-bevel grid size-11 place-items-center no-underline;
+    @apply bg-(--tint);
+  }
+  .world-marker[data-status='tier-locked'] {
+    @apply bg-ink-700 text-ink-300;
+  }
+  .world-marker-icon {
+    @apply bg-ink-950 text-ink-100 font-hud text-micro shadow-notch absolute -right-2 -bottom-2 px-1 leading-none;
+  }
+  .world-marker-tag,
+  .world-marker-detail {
+    @apply bg-ink-950 shadow-notch absolute left-1/2 w-max -translate-x-1/2;
+  }
+  .world-marker-tag {
+    @apply bg-xp text-text-on-accent font-hud text-micro tracking-hud bottom-[calc(100%+--spacing(2))] px-2 py-1 whitespace-nowrap;
+  }
+  .world-marker-detail {
+    @apply text-text-1 top-[calc(100%+--spacing(3))] hidden max-w-40 flex-col items-center gap-1 px-2 py-1;
+  }
+  .world-marker-name {
+    @apply font-hud text-micro tracking-hud text-center leading-tight uppercase;
+  }
+  /* The detail shows from zoom 1 (overview on a wide screen, or zoomed in). */
+  @media (width >= 64rem) {
+    .world-marker-detail {
+      @apply flex;
+    }
+  }
+  .world-map[data-zoom='0.5'] .world-marker-detail {
+    @apply hidden;
+  }
+  .world-map[data-zoom='1'] .world-marker-detail,
+  .world-map[data-zoom='2'] .world-marker-detail {
+    @apply flex;
+  }
+
+  /* Hero: stands above the current marker's tag (pin 44px, tag ~24px, gaps). */
+  .world-hero {
+    @apply absolute z-20 -translate-x-1/2;
+    left: calc(var(--x) * var(--world-z));
+    top: calc(var(--y) * var(--world-z) - --spacing(25));
+  }
+
+  /* Landmark: a plain link with its name (Math Tower, the Frontier). */
+  .world-landmark {
+    @apply bg-ink-950 text-text-1 font-hud text-micro tracking-hud flex min-h-11 items-center px-3 text-center whitespace-nowrap uppercase no-underline;
+    box-shadow:
+      var(--notch-outline),
+      inset 0 -4px 0 0 var(--tint);
+  }
+
+  /* Under the box: the hint, then "Your path". */
+  .world-map-hint {
+    @apply text-small leading-body text-text-2 m-0;
+  }
+}
