@@ -53,7 +53,7 @@ export const PRIVACY_TEXT = {
   eyebrow: 'LEGAL',
   title: 'Privacy',
   updatedLabel: 'Last updated',
-  updated: '6 October 2026',
+  updated: '7 October 2026',
   intro: `This page says what ${SITE_NAME} stores about you, why, who processes it, and how to get a copy or delete it.`,
 } as const;
 
@@ -84,6 +84,10 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
       {
         term: 'Account id',
         text: 'The id Clerk gives your sign-in account. It links these rows to you.',
+      },
+      {
+        term: 'Public id',
+        text: 'A random public id, used only in your certificate links.',
       },
     ],
   },
