@@ -39,6 +39,7 @@ These win over any later section of this spec that says otherwise (PR 2–5 belo
 
 - **Name: Creator.** Track id `creator`. For designers who make images, video, audio, social posts and multimedia with AI.
 - **Same 9 realms, same world map, same NPCs, same level art.** The Math Tower and the Frontier are shared, like today.
+  > **Amended 2026-10-07:** the 9 realms are now the shared core. The creator path can add its own specialist realms (r9 and up, creator only), and a realm can have 6 to 12 chapters. A specialist realm has no level art until its own art PR (flat `neutral` scene). See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 - **Own chapters.** Each realm has 6 creator chapters + 1 boss. Shared ideas (tokens, context, tools, agents, evals) are taught from a creator angle: prompting image and video models, reference images, style consistency, generation APIs, multimodal input, content provenance (C2PA), rights and safety policies, cost per generation, batch pipelines, review loops, brand kits as context.
 - **Official docs only** as sources: OpenAI image/video/audio docs, Google Gemini/Imagen/Veo docs, Anthropic vision docs, the C2PA spec, Adobe docs, and similar. **Vendor-neutral:** a concept cites at least 2 vendors where it can.
 - **No learner writes code.** Every chapter ends in a graded scenario case + a quick check, like the other two tracks.

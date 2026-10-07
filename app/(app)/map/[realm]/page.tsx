@@ -46,7 +46,8 @@ export async function generateMetadata({ params }: PageProps<'/map/[realm]'>): P
 
 /**
  * One realm's level map (Sigmorai App.dc.html → isMap): header with the
- * previous / next realm, the track switch, the Start / Continue button, the
+ * previous / next realm (in the track's outline order), the track switch
+ * (core realms only), the Start / Continue button, the
  * level strip and the realm's NPC. Public; a visitor sees no progress.
  * Not built yet (follow-up ticket): hero walk and Hallucinant ghosts, the
  * selected-level card, the NEW LEVEL banner, the ALL REALMS grid (/realms
@@ -57,9 +58,8 @@ export default async function MapRealmPage({ params, searchParams }: PageProps<'
   const page = await getRealmPage(slug, query[TRACK_PARAM]);
   if (!page) notFound();
 
-  const { viewer, realm, track, next } = page;
-  const prev = REALMS[realm.id - 1];
-  const after = REALMS[realm.id + 1];
+  // prev / after follow the track's outline order (path-curriculum spec).
+  const { viewer, realm, track, next, prev, after } = page;
 
   return (
     <div
@@ -106,7 +106,10 @@ export default async function MapRealmPage({ params, searchParams }: PageProps<'
       </header>
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <TrackSwitch current={track} hrefFor={(t) => mapHref(realm.slug, t)} />
+        {/* A specialist realm is on one path only: no path switch. */}
+        {realm.track === null && (
+          <TrackSwitch current={track} hrefFor={(t) => mapHref(realm.slug, t)} />
+        )}
         {next && (
           <PixelButton href={questHref(next.step.exerciseId)}>
             <RealmActionLabel status={realm.status} name={realm.name} />

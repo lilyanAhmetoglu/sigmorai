@@ -5,8 +5,10 @@ import {
   MATH_TOWER_ACHIEVEMENT,
   OPEN_TIERS,
   REALMS,
+  realmAchievements,
   TRACKS,
 } from '@/lib/constants';
+import { SPECIALIST_REALMS } from '@/lib/content/__fixtures__/realms';
 import {
   achievementToExerciseId,
   earnedAchievements,
@@ -90,5 +92,31 @@ describe('earnedAchievements', () => {
   test('utcDayString never shifts a day', () => {
     expect(utcDayString(new Date('2026-10-07T00:00:00Z'))).toBe('2026-10-07');
     expect(utcDayString(new Date('2026-10-07T23:59:59.999Z'))).toBe('2026-10-07');
+  });
+});
+
+describe('achievements per track (path-curriculum spec)', () => {
+  test('regression: today’s slug list is unchanged, slug for slug, same order', () => {
+    const today = ['builder', 'strategist', 'creator'].flatMap((track) =>
+      [0, 1, 2, 3, 4, 5].map((realm) => `${track}-r${realm}`),
+    );
+    expect(CERT_ACHIEVEMENTS.map((a) => a.slug)).toEqual([...today, MATH_TOWER_ACHIEVEMENT]);
+  });
+
+  test('a specialist realm has a certificate on its owner track only (fixture table)', () => {
+    const slugs = realmAchievements(SPECIALIST_REALMS).map((a) => a.slug);
+    expect(slugs).toContain('creator-r9');
+    expect(slugs).toContain('builder-r10');
+    for (const slug of ['builder-r9', 'strategist-r9', 'creator-r10', 'strategist-r10']) {
+      expect(slugs).not.toContain(slug);
+    }
+    const r9 = realmAchievements(SPECIALIST_REALMS).find((a) => a.slug === 'creator-r9')!;
+    expect(r9).toMatchObject({ title: 'Fixture Canvas cleared', pathLabel: 'CREATOR PATH' });
+  });
+
+  test('the fixture keeps every core slug', () => {
+    const core = realmAchievements().map((a) => a.slug);
+    const withSpecialists = realmAchievements(SPECIALIST_REALMS).map((a) => a.slug);
+    for (const slug of core) expect(withSpecialists).toContain(slug);
   });
 });

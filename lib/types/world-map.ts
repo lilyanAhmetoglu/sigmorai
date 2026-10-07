@@ -1,5 +1,4 @@
 import type { WORLD_MAP, ZOOM_STEPS } from '@/lib/constants';
-import type { RealmId } from './curriculum';
 import type { RealmStatus } from './realms';
 import type { Accent } from './ui';
 
@@ -34,7 +33,8 @@ export type ZoomStep = (typeof ZOOM_STEPS)[number];
  * the dashboard (per-path PR 2) both draw this list.
  */
 export type PathRealm = {
-  id: RealmId;
+  /** The realm number (global across paths). */
+  id: number;
   name: string;
   status: RealmStatus;
   /** Chapters and boss cleared, out of `total`. */
@@ -53,8 +53,8 @@ export type WorldRealm = PathRealm & {
 
 /** The trail between two neighbours in path order. Solid once `from` is cleared. */
 export type TrailSegment = {
-  from: RealmId;
-  to: RealmId;
+  from: number;
+  to: number;
   cleared: boolean;
   a: WorldPlace;
   b: WorldPlace;
@@ -66,5 +66,5 @@ export type WorldView = {
   /** Slots with no realm on this path: drawn as fog, no label, no link. */
   fog: WorldSlot[];
   /** The realm holding the next step, or null (nothing open: no hero, no tag). */
-  current: RealmId | null;
+  current: number | null;
 };

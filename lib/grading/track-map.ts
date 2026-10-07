@@ -5,6 +5,7 @@ import {
   MATH_AREA,
   MATH_FLOORS,
   REALMS,
+  realmRow,
   SIDE_STEPS,
 } from '@/lib/constants';
 import { isRealmOpen } from '@/lib/content/curriculum';
@@ -18,8 +19,9 @@ import type {
   FrontierSummary,
   LevelStatus,
   NextStep,
-  Realm,
+  RealmRow,
   RealmStatus,
+  RealmTable,
   RealmView,
   StepStatus,
   StepView,
@@ -42,11 +44,17 @@ import { decideOpen } from './open';
  * `chapterCount`: the realm's chapter count in its track's outline (the boss
  * needs every one). 0 for the Math Tower and the Frontier (no realm chapters).
  */
-type Sets = { live: ReadonlySet<string>; cleared: ReadonlySet<string>; chapterCount: number };
+type Sets = {
+  live: ReadonlySet<string>;
+  cleared: ReadonlySet<string>;
+  chapterCount: number;
+  /** Test seam: app code never passes `table` (REALMS is the default). */
+  table?: RealmTable;
+};
 type Credited = ReadonlyMap<string, Track>;
 
 /** "Boss · Bootstrap Village" (curriculum spec: the boss name is derived). */
-export const bossTitle = (realm: Pick<Realm, 'name'>) => `Boss · ${realm.name}`;
+export const bossTitle = (realm: Pick<RealmRow, 'name'>) => `Boss · ${realm.name}`;
 
 /** A realm view's chapter count on its track (its boss row not counted). */
 export const realmChapterCount = (realm: Pick<RealmView, 'chapters'>): number =>
@@ -56,9 +64,9 @@ export const realmChapterCount = (realm: Pick<RealmView, 'chapters'>): number =>
 function stepStatus(
   ref: ExerciseRef,
   id: string,
-  { live, cleared, chapterCount }: Sets,
+  { live, cleared, chapterCount, table = REALMS }: Sets,
 ): StepStatus {
-  const open = decideOpen(ref, cleared, chapterCount);
+  const open = decideOpen(ref, cleared, chapterCount, table);
   if (!open.ok && open.code === 'TIER_LOCKED') return 'tier-locked';
   if (cleared.has(id)) return 'done';
   if (!live.has(id)) return 'soon';
@@ -66,7 +74,7 @@ function stepStatus(
 }
 
 function stepView(ref: ExerciseRef, sets: Sets): StepView {
-  const exerciseId = buildExerciseId(ref);
+  const exerciseId = buildExerciseId(ref, sets.table);
   const step = ref.area === 'boss' ? BOSS_STEP : ref.step;
   return { step, exerciseId, status: stepStatus(ref, exerciseId, sets) };
 }
@@ -84,13 +92,13 @@ function chapterStatus(steps: StepView[], caseStep: StepView): StepStatus {
 
 function chapterViews(
   track: Track,
-  realm: Realm,
+  realm: RealmRow,
   titles: string[],
-  { live, cleared }: Omit<Sets, 'chapterCount'>,
+  { live, cleared, table }: Omit<Sets, 'chapterCount'>,
   credited: Credited,
 ): ChapterView[] {
   // Every outlined chapter (6 to 12): the boss needs all of them.
-  const sets: Sets = { live, cleared, chapterCount: titles.length };
+  const sets: Sets = { live, cleared, chapterCount: titles.length, table };
   const chapters = titles.map((title, i): ChapterView => {
     const chapter = i + 1;
     const steps = CHAPTER_STEPS.map((step) =>
@@ -108,7 +116,7 @@ function chapterViews(
   ];
 }
 
-function realmStatus(realm: Realm, chapters: ChapterView[]): RealmStatus {
+function realmStatus(realm: RealmRow, chapters: ChapterView[]): RealmStatus {
   if (!isRealmOpen(realm.tier)) return 'tier-locked';
   if (chapters.at(-1)?.status === 'done') return 'cleared';
   if (chapters.some((c) => c.steps.some((s) => s.status === 'done'))) return 'in-progress';
@@ -158,8 +166,11 @@ export const clearedLevels = (realms: RealmView[]): number =>
   realms.reduce((sum, r) => sum + r.cleared, 0);
 
 /**
- * `cleared` already holds the credited cases (applyCredit); `credited` says
- * which ones were credited and from which track, for the chapter label.
+ * A track's map, realm by realm in its outline's order (the path's map
+ * order: core and specialist realms mixed; path-curriculum spec). A realm
+ * not in the outline is not on the map. `cleared` already holds the
+ * credited cases (applyCredit); `credited` says which ones were credited and
+ * from which track, for the chapter label. `table`: test seam: app code never passes `table`.
  */
 export function buildTrackMap(
   track: Track,
@@ -167,10 +178,13 @@ export function buildTrackMap(
   live: ReadonlySet<string>,
   cleared: ReadonlySet<string>,
   credited: Credited = new Map(),
+  table: RealmTable = REALMS,
 ): TrackMap {
-  const sets = { live, cleared };
-  const realms = REALMS.map((realm): RealmView => {
-    const { topic, lore, chapters: outlined } = outline.realms[realm.id];
+  const sets = { live, cleared, table };
+  const realms = outline.realms.map(({ id, topic, lore, chapters: outlined }): RealmView => {
+    // The outline schema proved every id is a row on this track.
+    const realm = realmRow(id, table);
+    if (!realm) throw new RangeError(`Realm r${id} is in the ${track} outline but not in REALMS`);
     const chapters = chapterViews(
       track,
       realm,
@@ -184,6 +198,8 @@ export function buildTrackMap(
       name: realm.name,
       npc: realm.npc,
       tier: realm.tier,
+      track: realm.track,
+      scene: realm.scene,
       topic,
       lore,
       status: realmStatus(realm, chapters),
@@ -193,6 +209,16 @@ export function buildTrackMap(
   });
   // Continue where the player already is: in-progress realms before fresh ones.
   return { track, realms, next: firstOpenStep(activeRealms(realms)) };
+}
+
+/** A realm's neighbours on the map: the realms before and after it in the track's outline order. */
+export function realmNeighbours(
+  realms: readonly RealmView[],
+  id: number,
+): { prev: RealmView | null; after: RealmView | null } {
+  const i = realms.findIndex((r) => r.id === id);
+  if (i === -1) return { prev: null, after: null };
+  return { prev: realms[i - 1] ?? null, after: realms[i + 1] ?? null };
 }
 
 /**

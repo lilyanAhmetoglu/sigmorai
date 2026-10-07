@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { CERT_ACHIEVEMENT_SLUGS } from '@/lib/constants';
-import type { RealmId } from './curriculum';
 import type { Track } from './exercise';
 
 /** One achievement a certificate can prove (CERT_ACHIEVEMENTS in lib/constants/certificates.ts). */
@@ -15,7 +14,7 @@ export type CertAchievement = {
   pathLabel: string;
   /** The Name field copied into LinkedIn. */
   linkedInName: string;
-} & ({ kind: 'realm'; track: Track; realm: RealmId } | { kind: 'math'; floor: number });
+} & ({ kind: 'realm'; track: Track; realm: number } | { kind: 'math'; floor: number });
 
 /** An achievement slug from outside (the `/cert/[id]/[achievement]` param) → a known slug. */
 export const AchievementSchema = z.enum(CERT_ACHIEVEMENT_SLUGS as [string, ...string[]]);
