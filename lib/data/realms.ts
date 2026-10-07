@@ -173,10 +173,16 @@ async function mapFor(param: unknown, resolve: (picked: Track) => Track = (t) =>
   const viewer = await getViewer();
   const track = resolve(pickTrack(param, viewer));
   const map = await getTrackMap(track, viewer.status === 'ready' ? viewer.userId : null);
-  return { viewer: viewer.status, map };
+  const heroName = viewer.status === 'ready' ? viewer.stats.heroName : null;
+  return { viewer: viewer.status, map, heroName };
 }
 
-export type RealmsPage = { viewer: Viewer['status']; map: TrackMap };
+export type RealmsPage = {
+  viewer: Viewer['status'];
+  map: TrackMap;
+  /** The world map hero's sprite seed. Null for a visitor or a player still in onboarding. */
+  heroName: string | null;
+};
 
 export const getRealmsPage = (trackParam: unknown): Promise<RealmsPage> => mapFor(trackParam);
 

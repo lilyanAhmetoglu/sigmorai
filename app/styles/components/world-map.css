@@ -1,0 +1,196 @@
+/*
+ * World map (world-map spec): a native scroll box, like the level map, that
+ * holds the world stage at one zoom step (ZOOM_STEPS: ½, 1, 2 screen px per
+ * art px). The page itself never scrolls sideways; the box does.
+ *
+ * --world-z is the zoom. The overview needs no JS: ½ under 68rem (1088px,
+ * WORLD_OVERVIEW_MIN_WIDTH), else 1. The zoom buttons set data-zoom on the
+ * box, which changes --world-z only; the box height follows the overview
+ * (--world-z-overview), so zooming never makes the page jump. The stage is
+ * the 1024×768 grid × --world-z; the SVG art scales with it. Markers,
+ * landmarks and the hero sit at anchor × --world-z and keep their own size
+ * (44px targets at every step).
+ *
+ * The placeholder world uses tokens only: sea byte-700 with sparse byte-600
+ * waves, islands with a parchment-400 beach, mint-700 land and a coastline
+ * in the realm tint, fog a dithered ink-400 checker. No gradient, zero
+ * radius, hard shadows.
+ */
+@layer components {
+  .world-map {
+    @apply bg-ink-950 shadow-panel m-0.75 grid overflow-auto;
+    --world-z-overview: 0.5;
+    --world-z: var(--world-z-overview);
+    /* Never taller than the overview stage, never more than most of the screen. */
+    height: min(70svh, calc(var(--world-h) * var(--world-z-overview)));
+    scrollbar-color: var(--ink-500) var(--ink-950);
+  }
+  @media (width >= 68rem) {
+    .world-map {
+      --world-z-overview: 1;
+    }
+  }
+  .world-map[data-zoom='0.5'] {
+    --world-z: 0.5;
+  }
+  .world-map[data-zoom='1'] {
+    --world-z: 1;
+  }
+  .world-map[data-zoom='2'] {
+    --world-z: 2;
+  }
+
+  /* margin: auto centres a stage smaller than the box and stays 0 when it overflows. */
+  .world-map-stage {
+    @apply relative m-auto;
+    width: calc(var(--world-w) * var(--world-z));
+    height: calc(var(--world-h) * var(--world-z));
+  }
+  .world-map-art {
+    @apply absolute inset-0 block size-full;
+  }
+  .world-sea {
+    fill: var(--byte-700);
+  }
+  .world-waves {
+    fill: url(#world-waves);
+  }
+  .world-wave {
+    fill: var(--byte-600);
+  }
+  .world-beach {
+    fill: var(--parchment-400);
+  }
+  .world-land {
+    fill: var(--mint-700);
+    stroke: var(--tint);
+    stroke-width: 4;
+    stroke-linejoin: miter;
+  }
+  [data-status='tier-locked'] > .world-land {
+    fill: var(--ink-600);
+  }
+  .world-fog {
+    fill: url(#world-fog);
+  }
+  .world-fog-dot {
+    fill: var(--ink-400);
+  }
+  /* Trail: square dots on an ink underlay. Solid once its first realm is cleared. */
+  .world-trail-under,
+  .world-trail-line {
+    stroke-linecap: square;
+  }
+  .world-trail-under {
+    stroke: var(--ink-950);
+    stroke-width: 10;
+  }
+  .world-trail-line {
+    stroke: var(--ink-200);
+    stroke-width: 6;
+    stroke-dasharray: 12 12;
+  }
+  .world-trail[data-cleared] .world-trail-line {
+    stroke: var(--spark-500);
+    stroke-dasharray: none;
+  }
+
+  /* Anything placed by anchor: centred on (x, y) × zoom. */
+  .world-markers,
+  .world-landmarks {
+    @apply m-0 list-none p-0;
+  }
+  .world-marker {
+    @apply absolute z-10 -translate-x-1/2 -translate-y-1/2;
+    left: calc(var(--x) * var(--world-z));
+    top: calc(var(--y) * var(--world-z));
+  }
+
+  /* Marker: the link is a transparent 44px target on the anchor, holding a
+     28px pin; the tag sits above it, the name and state word below it (from
+     zoom 1). */
+  .world-marker {
+    @apply grid size-11 place-items-center no-underline;
+  }
+  .world-marker-pin {
+    @apply text-text-on-accent font-hud text-micro shadow-notch inset-shadow-bevel relative grid size-7 place-items-center;
+    @apply bg-(--tint);
+  }
+  .world-marker[data-status='tier-locked'] .world-marker-pin {
+    @apply bg-ink-700 text-ink-300;
+  }
+  .world-marker-icon {
+    @apply bg-ink-950 text-ink-100 font-hud text-micro shadow-notch absolute -right-2.5 -bottom-2.5 px-0.5 leading-none;
+  }
+  .world-marker-tag,
+  .world-marker-detail {
+    @apply bg-ink-950 shadow-notch absolute left-1/2 w-max -translate-x-1/2;
+  }
+  .world-marker-tag {
+    @apply bg-xp text-text-on-accent font-hud text-micro tracking-hud bottom-[calc(100%+--spacing(0.5))] px-2 py-1 whitespace-nowrap;
+  }
+  .world-marker-detail {
+    @apply text-text-1 top-[calc(100%+--spacing(1))] hidden flex-col items-center gap-1 px-2 py-1 whitespace-nowrap;
+  }
+  .world-marker-name {
+    @apply font-hud text-micro tracking-hud text-center leading-tight uppercase;
+  }
+  /* The detail shows from zoom 1 (overview on a wide screen, or zoomed in). */
+  @media (width >= 68rem) {
+    .world-marker-detail {
+      @apply flex;
+    }
+  }
+  .world-map[data-zoom='0.5'] .world-marker-detail {
+    @apply hidden;
+  }
+  .world-map[data-zoom='1'] .world-marker-detail,
+  .world-map[data-zoom='2'] .world-marker-detail {
+    @apply flex;
+  }
+
+  /* Hero: left of the current pin, at its height, so it never covers another
+     realm's pin and is never cut off at the top. Clamped to the stage's left
+     edge. Decoration only: clicks go through to the map. */
+  .world-hero {
+    @apply pointer-events-none absolute z-20;
+    left: max(0px, calc(var(--x) * var(--world-z) - --spacing(16)));
+    top: calc(var(--y) * var(--world-z) - --spacing(6));
+  }
+
+  /* Landmark: a plain link with its name (Math Tower, the Frontier), on the
+     island's south shore, so the island itself stays visible. */
+  .world-landmark {
+    @apply absolute z-10 -translate-x-1/2;
+    left: calc(var(--x) * var(--world-z));
+    top: calc((var(--y) + var(--half-h)) * var(--world-z) - --spacing(3));
+  }
+  .world-landmark {
+    @apply bg-ink-950 text-text-1 font-hud text-micro tracking-hud shadow-notch flex min-h-11 items-center border-b-4 border-(--tint) px-3 text-center whitespace-nowrap uppercase no-underline;
+  }
+  /* Near the east edge: the label ends at the land's right edge, so it stays
+     on the stage at zoom ½. */
+  .world-landmark[data-align='end'] {
+    @apply -translate-x-full;
+    left: calc((var(--x) + var(--half-w)) * var(--world-z));
+  }
+
+  /* Under the box: the hint and the zoom buttons, then the path list. */
+  .world-map-bar {
+    @apply flex flex-wrap items-center justify-between gap-3;
+  }
+  .world-map-hint {
+    @apply text-small leading-body text-text-2 m-0 min-w-0 flex-1;
+  }
+  /* Two square 44px buttons around the zoom label; the empty row before
+     hydration keeps the same height, so nothing jumps. */
+  .world-zoom {
+    @apply flex min-h-11 items-center gap-2;
+  }
+  .world-zoom > .pixel-button {
+    @apply size-11 flex-none px-0;
+  }
+  .world-zoom-label {
+    @apply bg-ink-950 text-ink-100 font-hud text-micro tracking-hud shadow-notch px-3 py-2.5;
+  }
+}

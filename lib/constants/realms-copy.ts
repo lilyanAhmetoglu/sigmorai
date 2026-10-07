@@ -183,10 +183,10 @@ export const DASHBOARD_TEXT = {
   retry: 'Retry',
 } as const;
 
-/** World map words (Sigmorai App.dc.html → isMap). */
+/** Level map words, one realm's side view (Sigmorai App.dc.html → isMap). */
 export const MAP_TEXT = {
-  /** "Bootstrap Village · World map · Sigmorai" */
-  title: (realmName: string) => `${realmName} · World map · Sigmorai`,
+  /** "Bootstrap Village · Level map · Sigmorai" */
+  title: (realmName: string) => `${realmName} · Level map · Sigmorai`,
   description: (realmName: string) =>
     `The ${realmName} level map: every chapter and the boss, built from official docs.`,
   realmNav: 'Other realms',
@@ -204,8 +204,60 @@ export const MAP_TEXT = {
   chapterList: 'Chapter list',
   /** The realm page's link to its map. */
   viewOnMap: 'View on map',
-  loading: 'Loading the map',
-  error: "The map didn't load. Try again in a moment.",
+  loading: 'Loading the level map',
+  error: "The level map didn't load. Try again in a moment.",
+  retry: 'Retry',
+} as const;
+
+/** `0.5` → `½`: a zoom step as text. */
+const zoomWord = (zoom: number) => (zoom === 0.5 ? '½' : String(zoom));
+
+/**
+ * World map words (app/(app)/map/(world); world-map spec). Plain product
+ * voice: no NPC, no lore. A state is always an icon AND a word.
+ */
+export const WORLD_MAP_TEXT = {
+  title: 'World map',
+  metaTitle: 'World map · Sigmorai',
+  description:
+    'The world of Sigmorai: every realm on your path, what you cleared and where you are.',
+  /** "STRATEGIST PATH" */
+  eyebrow: (trackLabel: string) => `${trackLabel} PATH`,
+  intro: 'Each land is a realm on your path. Open a land to see its level map.',
+  /** The map box (a labelled section). */
+  mapLabel: 'World map',
+  hint: 'Scroll or swipe to move around the map. Zoom with + and −.',
+  /**
+   * "03 Prompt Forest, in progress, 2 of 7 cleared, you are here": starts with
+   * the visible number and name (WCAG 2.5.3); the "·" in a state word is dropped.
+   */
+  marker: (
+    number: string,
+    name: string,
+    state: string,
+    cleared: number,
+    total: number,
+    tag?: string,
+  ) =>
+    `${number} ${name}, ${state.replace(/\s*·\s*/g, ' ').toLowerCase()}, ${cleared} of ${total} cleared${tag ? `, ${tag.toLowerCase()}` : ''}`,
+  /** On the current realm, for a player with a hero. */
+  youAreHere: 'YOU ARE HERE',
+  /** On the first open realm, for a visitor. */
+  startHere: 'START HERE',
+  /** The list heading: "YOUR PATH" for a player, "REALMS ON THIS PATH" for a visitor. */
+  pathHeading: 'YOUR PATH',
+  pathHeadingVisitor: 'REALMS ON THIS PATH',
+  /** The level map's link back to the world map. */
+  backIcon: '◂',
+  back: 'World map',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  zoomInIcon: '+',
+  zoomOutIcon: '−',
+  /** "ZOOM ½×" */
+  zoomLabel: (zoom: number) => `ZOOM ${zoomWord(zoom)}×`,
+  loading: 'Loading the world map',
+  error: "The world map didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;
 

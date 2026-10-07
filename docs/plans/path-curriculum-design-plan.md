@@ -10,6 +10,11 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (world map, SIG-59)
+
+- **The "Your path" list is `components/realms/path-list.tsx`**, built by the world map PR 1 (`docs/plans/world-map-design-plan.md`). PR 2 here reuses it on the dashboard instead of a new `components/dashboard/path-list.tsx`, and adds a "View on world map" link to `/map`. One list, two pages.
+- **A specialist realm needs a world-map slot when it ships:** one `{ slot, realm }` row in `WORLD_MAP.slotRealms` (`lib/constants/world-map.ts`). A test fails if a `REALMS` row has neither a core place nor a slot.
+
 ## Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")
 
 These override the sections below where they disagree.

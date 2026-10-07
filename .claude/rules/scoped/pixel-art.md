@@ -35,6 +35,13 @@ From the build prompt and `design/ui_kits/webapp/Sigmorai App.dc.html`. Port, do
 - Parallax is CSS scroll-driven (`level-map.css`), no rAF loop. Reduced motion or no support → 1:1 scroll.
 - Later (follow-up ticket): click a flag → hero walks there in 800ms with `steps(16)`, flipped when moving left, and the scroller follows. Reduced motion → jump, no walk.
 
+## World map (`components/map/world-map.tsx`, 2026-10-07)
+
+- `/map`: one top-down world, every realm of a path as a land (`docs/plans/world-map-design-plan.md`). Geometry (anchors, rectangle footprints, slots, landmarks) only in `WORLD_MAP` (`lib/constants/world-map.ts`); the art fits it.
+- A native scroll box, like the level map. Zoom steps `ZOOM_STEPS` = ½, 1, 2 only (`data-zoom` on the box); the overview needs no JS (½ under 1024px, else 1). No canvas, no pan/zoom library.
+- Markers are real 44px links that do not scale with the zoom; the art, trail, fog and hero are `aria-hidden`. The "Your path" list under the box is the text view.
+- Until the Higgsfield art lands, the world is a token-coloured SVG placeholder. Never reuse level art.
+
 ## The UI is not pixel art
 
 Pixel fonts are for headings, HUD and buttons only. Reading text is Atkinson Hyperlegible. Panels and buttons use the token bevels and hard shadows; they are not drawn on canvas.

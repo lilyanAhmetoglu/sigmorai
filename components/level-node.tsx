@@ -25,7 +25,7 @@ type LinkProps = BaseProps & Omit<ComponentProps<typeof Link>, 'href'> & { href:
 type Props = ButtonProps | LinkProps;
 
 /**
- * A stop on the world map path. Locked stays focusable (aria-disabled) so the
+ * A stop on a realm's level map (/map/<slug>). Locked stays focusable (aria-disabled) so the
  * lock is announced, and its clicks are ignored. A locked node is never a
  * link, even with `href`. Styles: level-node.css.
  */
