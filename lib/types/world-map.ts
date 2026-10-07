@@ -1,4 +1,5 @@
 import type { WORLD_MAP, ZOOM_STEPS } from '@/lib/constants';
+import type { Track } from './exercise';
 import type { RealmStatus } from './realms';
 import type { Accent } from './ui';
 
@@ -46,8 +47,8 @@ export type PathRealm = {
   href: string;
   /** The realm holding the player's next step. */
   current: boolean;
-  /** A specialist realm (r9+, one path only): the row shows a PATH REALM badge. */
-  specialist: boolean;
+  /** The owner: null = a core realm; a track = a specialist realm (r9+), badged "<PATH> ONLY". */
+  track: Track | null;
 };
 
 /** A realm on the world map: its list row plus where it stands. */

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { StatusBadge } from '@/components/realms/status-badge';
-import { REALM_STATUS_TEXT, WORLD_MAP_TEXT } from '@/lib/constants';
+import { REALM_STATUS_TEXT, REALMS_TEXT, TRACK_TEXT, WORLD_MAP_TEXT } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
 import type { WorldPlace, WorldRealm } from '@/lib/types';
 
@@ -22,7 +22,8 @@ export const anchorStyle = ({ x, y }: WorldPlace) =>
  * tag sits above it and, from zoom 1, the name and the state as a word
  * (StatusBadge) below it. It does not scale with the zoom. The accessible
  * name starts with the visible number and name (WCAG 2.5.3), then state,
- * cleared of total, and the tag. Styles: world-map.css.
+ * cleared of total, and the tag; a specialist realm adds "creator only"
+ * after its name. Styles: world-map.css.
  */
 export function WorldMarker({ realm, tag }: Props) {
   const state = REALM_STATUS_TEXT[realm.status];
@@ -33,6 +34,7 @@ export function WorldMarker({ realm, tag }: Props) {
     realm.cleared,
     realm.total,
     tag,
+    realm.track ? REALMS_TEXT.pathRealm(TRACK_TEXT[realm.track].label) : undefined,
   );
   return (
     <Link
