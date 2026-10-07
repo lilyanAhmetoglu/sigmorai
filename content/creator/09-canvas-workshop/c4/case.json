@@ -1,8 +1,8 @@
 {
   "id": "creator/r9/c4/challenge",
   "title": "One bottle, every size",
-  "scenario": "You lead design at a juice brand. The bottle photo for the summer campaign is approved. A developer's script sends it to Adobe's Firefly API to make every size, a new background and a beach scene.\n\nUse the exhibit. Operation names, settings, mask rules and limits are from Adobe's docs. The brand, the files and the log are made up for this case.",
-  "exhibit": "SOURCE (made up)\n  bottle_hero.png   square, approved by the client\n  The label text must not change in any version.\n\nFILL TEST (made up)\n  mask_v1.png: bottle painted WHITE, background painted BLACK\n  Prompt: \"a sunny beach background\"\n  Result: the beach is missing, and the bottle label now reads \"JUCE\"\n\nSCENE REQUEST (made up)\n  The client sends beach_scene.jpg, a background it already owns.\n  The bottle must go into it, label exactly as in the photo.\n\nBATCH LOG (made up)\n  09:00  script starts 30 expand jobs at the same time\n  09:00  jobs 1-4 accepted\n  09:00  jobs 5-30: HTTP 429 Too Many Requests\n\nWEB BANNER (made up)\n  Expand to 3:1. The headline sits on the RIGHT half of the banner.\n  Request: placement.alignment.horizontal = \"right\"\n  Result: the bottle sits under the headline; the new image is on the left\n\nVENDOR LINES (from the docs)\n  Adobe masks: \"Black areas are protected.\" \"White areas are exposed.\"\n  Adobe limit: \"4 requests per minute (RPM)\" per organization\n  Adobe placement: controls \"how an image is positioned and sized in the final generation\"",
+  "scenario": "You lead design at a juice brand. The bottle photo for the summer campaign is approved. A developer's script sends it to Adobe's Firefly API to make every size, a new background and a beach scene.\n\nUse the exhibit. Operation names, settings, mask rules and limits are from Adobe's and OpenAI's docs. The brand, the files and the log are made up for this case.",
+  "exhibit": "SOURCE (made up)\n  bottle_hero.png   square, approved by the client\n  The label text must not change in any version.\n\nFILL TEST (made up)\n  mask_v1.png: bottle painted WHITE, background painted BLACK\n  Prompt: \"a sunny beach background\"\n  Result: the beach is missing, and the bottle label now reads \"JUCE\"\n\nSCENE REQUEST (made up)\n  The client sends beach_scene.jpg, a background it already owns.\n  The bottle must go into it, label exactly as in the photo.\n\nBATCH LOG (made up)\n  09:00  script starts 30 expand jobs at the same time\n  09:00  jobs 1-4 accepted\n  09:00  jobs 5-30: HTTP 429 Too Many Requests\n\nWEB BANNER (made up)\n  Expand to 3:1. The headline sits on the RIGHT half of the banner.\n  Request: placement.alignment.horizontal = \"right\"\n  Result: the bottle sits under the headline; the new image is on the left\n\nVENDOR LINES (from the docs)\n  Adobe masks: \"Black areas are protected.\" \"White areas are exposed.\"\n  OpenAI masks: \"The mask image must also contain an alpha channel.\"\n  Adobe limit: \"4 requests per minute (RPM)\" per organization\n  Adobe placement: controls \"how an image is positioned and sized in the final generation\"",
   "questions": [
     {
       "prompt": "Why did the fill test change the bottle label and leave the background as it was?",
@@ -21,8 +21,8 @@
           "explanation": "No page says this. Fill edits the white area of the mask, whatever is in it."
         },
         {
-          "text": "Firefly cannot read PNG masks, so it ignored the mask and edited the whole image",
-          "explanation": "Adobe's tutorial uses PNG masks. The mask worked; its colours were swapped."
+          "text": "The mask had no alpha channel, which Firefly needs, just like OpenAI's edits endpoint",
+          "explanation": "The alpha channel rule is OpenAI's. Adobe's rule is colour: black is protected, white is exposed."
         }
       ]
     },
