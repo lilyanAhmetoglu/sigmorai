@@ -29,6 +29,10 @@ import { SITE_NAME } from './site';
  *   "Unsubscribed" globally, but does not delete it
  *   (resend.com/docs/dashboard/contacts/managing-unsubscribe-list). We send
  *   only the email address (lib/newsletter/resend.ts).
+ * - Share buttons (SIG-48): plain links to linkedin.com, x.com and
+ *   facebook.com share pages (components/share-buttons.tsx). No network
+ *   script, widget or pixel loads on our pages; nothing is sent until the
+ *   visitor clicks. The UTM tags end up in the page URL Web Analytics records.
  * - To check on the first deploy: DevTools → Application → Cookies on
  *   sigmorai.com shows no cookie from either script.
  *
@@ -53,7 +57,7 @@ export const PRIVACY_TEXT = {
   eyebrow: 'LEGAL',
   title: 'Privacy',
   updatedLabel: 'Last updated',
-  updated: '6 October 2026',
+  updated: '7 October 2026',
   intro: `This page says what ${SITE_NAME} stores about you, why, who processes it, and how to get a copy or delete it.`,
 } as const;
 
@@ -143,6 +147,15 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
       'We use Vercel Web Analytics and Vercel Speed Insights. They count page views and measure how fast pages load. They work for every visitor, signed in or not. Web Analytics uses no cookies. Speed Insights records anonymous timing data only.',
       'Web Analytics records, for each page view: the page address, the site you came from, your country, region and city, your browser, your operating system, and your device type (phone, tablet or computer). Speed Insights records the page address, your country, your browser, operating system and device type, plus how fast the page loaded and your network type (for example 4g).',
       'Vercel does not link these records to you or to your IP address. To count unique visitors, it makes a one-way code (a hash) from your request and deletes it after 24 hours. We see totals only, never one person.',
+    ],
+  },
+  {
+    id: 'share-buttons',
+    heading: 'Share buttons',
+    paragraphs: [
+      'The LinkedIn, X and Facebook buttons are plain links. We load no script, widget or tracking pixel from these networks, so they learn nothing from your visit to our pages. When you click one, your browser opens that network’s own share page, and that network’s privacy policy applies there. We send the network nothing ourselves.',
+      'Copy link and Share… use your own browser: the link goes to your clipboard or your device’s share menu, not to us.',
+      'Shared links end with tags like utm_source=linkedin&utm_medium=social&utm_campaign=share. They only say which button made the link. Our visit statistics (see above) see them as part of the page address, so we can count visits that came from shares. They are not linked to you.',
     ],
   },
   {

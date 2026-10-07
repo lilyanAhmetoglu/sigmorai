@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { HpMeter } from '@/components/hp-meter';
 import { QUEST_TEXT } from '@/lib/constants';
-import type { AnswerSheet, AnswerViewer, HpValue } from '@/lib/types';
+import type { AnswerSheet, AnswerViewer, HpValue, ShareTarget } from '@/lib/types';
 import { AnswerButtons } from './answer-buttons';
 import { AnswerQuestion } from './answer-question';
 import { ClearedPanel } from './cleared-panel';
@@ -16,6 +16,8 @@ type Props = {
   nextHref: string;
   /** "Read the lesson again" after a fail; null when there is no lesson. */
   lessonHref: string | null;
+  /** What the cleared panel shares (the realm or tower page). */
+  share?: ShareTarget;
 };
 
 /** The one-line result, read out by the live region. */
@@ -41,6 +43,7 @@ export function AnswerForm({
   viewer: initialViewer,
   nextHref,
   lessonHref,
+  share,
 }: Props) {
   const quest = useAnswers({ sheet: initialSheet, viewer: initialViewer });
   const { sheet, viewer, outcome, graded, hp } = quest;
@@ -99,7 +102,7 @@ export function AnswerForm({
           />
         </div>
       </div>
-      {quest.clearedNow && <ClearedPanel xp={quest.clearedNow.awarded} />}
+      {quest.clearedNow && <ClearedPanel xp={quest.clearedNow.awarded} share={share} />}
       <QuestToasts items={quest.toasts} onDismiss={quest.dismissToast} />
     </section>
   );

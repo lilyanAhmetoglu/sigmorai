@@ -9,7 +9,7 @@ import { LessonBody } from '@/components/quest/lesson-body';
 import { LessonDone } from '@/components/quest/lesson-done';
 import { SourceList } from '@/components/quest/source-list';
 import { Tabs } from '@/components/tabs';
-import { QUEST_TEXT, SITE_NAME } from '@/lib/constants';
+import { QUEST_TEXT, SHARE_TEXT, SITE_NAME } from '@/lib/constants';
 import { parseExerciseId, questBackHref } from '@/lib/content/ids';
 import { getLessonMeta, getQuestPage, type QuestPage as QuestPageData } from '@/lib/data/quest';
 
@@ -104,6 +104,7 @@ export default async function QuestPage({ params }: PageProps<'/quest/[...exerci
           viewer={viewer}
           nextHref={nextHref}
           lessonHref={lessonHref}
+          share={{ url: back.href, text: SHARE_TEXT.cleared(sheet.title) }}
         />
       </div>
     </div>

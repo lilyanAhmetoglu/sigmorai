@@ -1,7 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { ImageResponse } from 'next/og';
-import { LANDING_TEXT, LEVEL_ART_LAYERS, SHARE_IMAGE, SITE_NAME } from '@/lib/constants';
+import { LANDING_TEXT, OG_CONTENT_TYPE, OG_SIZE, SHARE_IMAGE, SITE_NAME } from '@/lib/constants';
+import { HeroArt, loadHeroLayers, loadLogo, OG_COLORS, ogImage } from '@/lib/og/og-card';
 
 /**
  * The share image for the public pages (Open Graph; Twitter falls back to it).
@@ -9,68 +7,20 @@ import { LANDING_TEXT, LEVEL_ART_LAYERS, SHARE_IMAGE, SITE_NAME } from '@/lib/co
  * page's own `openGraph` object; at the root that object would drop it.
  * The hero art layers are drawn at their native 1920×640 (1×, so no resampling
  * and no blur), centred and bottom-aligned in the 1200×630 frame. No request
- * data, so Next renders it once at build time.
+ * data, so Next renders it once at build time. Blog posts have their own
+ * (blog/[slug]/opengraph-image.tsx). Fonts, colours and art: lib/og/og-card.tsx.
  */
 
 export const alt = SHARE_IMAGE.alt;
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
-
-/** Native size of public/art/hero-*.png. */
-const ART = { width: 1920, height: 640 };
-const { colors } = SHARE_IMAGE;
-
-// Paths are spelled out under fixed folders so the build traces only these
-// files, not the whole project.
-const toDataUri = (data: string, mime: string) => `data:${mime};base64,${data}`;
+export const size = OG_SIZE;
+export const contentType = OG_CONTENT_TYPE;
 
 export default async function Image() {
-  const [layers, logo, regular, bold] = await Promise.all([
-    Promise.all(
-      LEVEL_ART_LAYERS.map((layer) =>
-        readFile(join(process.cwd(), 'public', 'art', `hero-${layer}.png`), 'base64'),
-      ),
-    ),
-    readFile(join(process.cwd(), 'public', 'logo', 'sigmorai-mark.svg'), 'base64'),
-    // Pixelify Sans is the display font (design/tokens/typography.css). Satori needs woff/ttf, not woff2.
-    readFile(
-      join(
-        process.cwd(),
-        'node_modules',
-        '@fontsource',
-        'pixelify-sans',
-        'files',
-        'pixelify-sans-latin-500-normal.woff',
-      ),
-    ),
-    readFile(
-      join(
-        process.cwd(),
-        'node_modules',
-        '@fontsource',
-        'pixelify-sans',
-        'files',
-        'pixelify-sans-latin-700-normal.woff',
-      ),
-    ),
-  ]);
+  const [layers, logo] = await Promise.all([loadHeroLayers(), loadLogo()]);
 
-  return new ImageResponse(
+  return ogImage(
     <div style={{ display: 'flex', position: 'relative', width: '100%', height: '100%' }}>
-      {layers.map((src, i) => (
-        <img
-          key={LEVEL_ART_LAYERS[i]}
-          src={toDataUri(src, 'image/png')}
-          alt=""
-          width={ART.width}
-          height={ART.height}
-          style={{
-            position: 'absolute',
-            left: (size.width - ART.width) / 2,
-            top: size.height - ART.height,
-          }}
-        />
-      ))}
+      <HeroArt layers={layers} />
       <div
         style={{
           position: 'absolute',
@@ -81,30 +31,23 @@ export default async function Image() {
           gap: 24,
           width: 800,
           padding: 40,
-          background: colors.surface,
-          border: `4px solid ${colors.outline}`,
-          boxShadow: `8px 8px 0 0 ${colors.outline}`,
-          color: colors.text,
+          background: OG_COLORS.surface,
+          border: `4px solid ${OG_COLORS.outline}`,
+          boxShadow: `8px 8px 0 0 ${OG_COLORS.outline}`,
+          color: OG_COLORS.text,
           fontFamily: 'Pixelify Sans',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <img src={toDataUri(logo, 'image/svg+xml')} alt="" width={64} height={64} />
+          <img src={logo} alt="" width={64} height={64} />
           <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.1 }}>
             {SITE_NAME.toUpperCase()}
           </div>
         </div>
-        <div style={{ fontSize: 48, fontWeight: 500, lineHeight: 1.1, color: colors.accent }}>
+        <div style={{ fontSize: 48, fontWeight: 500, lineHeight: 1.1, color: OG_COLORS.accent }}>
           {LANDING_TEXT.title}
         </div>
       </div>
     </div>,
-    {
-      ...size,
-      fonts: [
-        { name: 'Pixelify Sans', data: regular, weight: 500, style: 'normal' },
-        { name: 'Pixelify Sans', data: bold, weight: 700, style: 'normal' },
-      ],
-    },
   );
 }
