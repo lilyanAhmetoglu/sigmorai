@@ -14,10 +14,14 @@ const nextConfig: NextConfig = {
   // lib/content loaders read content/ from disk at runtime; ship it with every server route.
   // The share images read art and fonts via process.cwd() (lib/og/og-card.tsx), which the
   // tracer can't follow. They are prerendered, but ship the files in case one renders on demand.
+  // The certificate image (and its certificate.png download) is per player and always renders
+  // on demand: it needs the logo and fonts.
   outputFileTracingIncludes: {
     '/*': ['./content/**/*'],
     '/realms/*/opengraph-image*': [...OG_FILES, './public/levels/**/*'],
     '/blog/*/opengraph-image*': [...OG_FILES, './public/blog/covers/**/*'],
+    '/cert/*/*/opengraph-image*': OG_FILES,
+    '/cert/*/*/certificate.png': OG_FILES,
   },
   // The image optimizer serves only the blog covers. Everything else is `unoptimized` (pixel art must not blur).
   images: { localPatterns: [{ pathname: '/blog/covers/**' }] },
