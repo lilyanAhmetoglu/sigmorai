@@ -11,8 +11,9 @@ const TEXT = DASHBOARD_TEXT.tower;
  * The dashboard MATH TOWER panel (design: isDash aside): the player's next
  * open floor and a Climb button to its playable step. When nothing is open,
  * a sentence says why (all cleared, or the next floor is not built). Both
- * states link to /math: the header no longer does (Blog took its slot). The sentence carries the state, never the colour only. Plain
- * product voice. Styles: realms.css.
+ * states link to /math: the header no longer does (Blog took its slot). The
+ * sentence carries the state, never the colour only. Plain product voice.
+ * Styles: realms.css.
  */
 export function TowerPanel({ tower }: Props) {
   const { next } = tower;

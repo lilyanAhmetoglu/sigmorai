@@ -12,7 +12,7 @@ export function MarketingHeader() {
     <header className="site-header">
       <div className="site-header-bar justify-between">
         <SiteLogo />
-        <LandingCta size="sm">{null}</LandingCta>
+        <LandingCta size="sm" />
       </div>
     </header>
   );
