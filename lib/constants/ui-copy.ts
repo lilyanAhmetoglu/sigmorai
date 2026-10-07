@@ -8,7 +8,7 @@ import type {
 } from '@/lib/types';
 import { QUICK_CHECK_QUESTIONS } from './content';
 import { FRONTIER } from './curriculum';
-import { CHAPTER_COUNT, FRONTIER_AREA, MATH_AREA } from './exercises';
+import { FRONTIER_AREA, MATH_AREA } from './exercises';
 import { SITE_NAME } from './site';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
@@ -233,6 +233,17 @@ export const QUEST_TEXT = {
   lessonCleared: (xp: number) => `+${xp} XP · LESSON DONE`,
   /** completeLesson's reply was lost. No HP is involved, so a retry is safe (award once). */
   lessonNoReply: 'No reply from the server. Reload the page and try again.',
+  // Lesson steps (interactive-lessons spec, Phase 1). The forward button reuses `continue`.
+  stepBack: 'Back',
+  finish: 'Go to Lesson done',
+  showAll: 'Show all',
+  showSteps: 'Show steps',
+  /** The progress bar's label; XPBar adds "n/N". */
+  stepLabel: 'STEP',
+  /** Read out by the live region after a move (focus on the step then reads its heading). */
+  stepAnnounce: (step: number, total: number) => `Step ${step} of ${total}`,
+  /** Read out after Show all. */
+  allShown: (total: number) => `All ${total} steps shown.`,
   /** Accessible name of a scrollable code block in a lesson. */
   codeExample: 'Code example',
   saving: 'Saving…',
@@ -292,5 +303,5 @@ export const QUEST_TEXT = {
 export const notOpenText = (previousChapter: number) => `Clear chapter ${previousChapter} first.`;
 /** NOT_OPEN for Math Tower floor N: floor N−1's quick check is not cleared. */
 export const floorNotOpenText = (previousFloor: number) => `Clear floor ${previousFloor} first.`;
-/** NOT_OPEN for a boss. */
-export const BOSS_NOT_OPEN_TEXT = `Clear all ${CHAPTER_COUNT} chapters first.`;
+/** NOT_OPEN for a boss: every chapter of its realm (the count comes from the track's outline). */
+export const bossNotOpenText = (chapters: number) => `Clear all ${chapters} chapters first.`;

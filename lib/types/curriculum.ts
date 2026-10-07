@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import {
-  CHAPTER_COUNT,
   MATH_FLOOR_COUNT,
+  MAX_CHAPTERS,
+  MIN_CHAPTERS,
   REALM_COUNT,
   type MATH_FLOORS,
   REALMS,
@@ -35,7 +36,8 @@ const RealmOutlineSchema = z
     lore: Text,
     chapters: z
       .array(ChapterOutlineSchema)
-      .length(CHAPTER_COUNT)
+      .min(MIN_CHAPTERS)
+      .max(MAX_CHAPTERS)
       .refine((cs) => cs.every((c, i) => c.id === segment('chapter', i + 1)), {
         message: 'chapter ids must run c1, c2, … in order',
       }),

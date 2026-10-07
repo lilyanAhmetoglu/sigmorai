@@ -2,6 +2,7 @@ import { PixelButton } from '@/components/pixel-button';
 import { XPBar } from '@/components/xp-bar';
 import { REALM_STATUS_TEXT, REALMS_TEXT, realmHref, TIER_TEXT } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
+import { realmChapterCount } from '@/lib/grading/track-map';
 import type { RealmView, Track } from '@/lib/types';
 import { RealmActionLabel } from './realm-action-label';
 import { RealmScene } from './realm-scene';
@@ -32,7 +33,7 @@ export function RealmCard({ realm, track }: Props) {
         </p>
         <h2 className="realm-card-name">{realm.name}</h2>
         <p className="realm-card-topic">{realm.topic}</p>
-        <p className="realm-card-meta">{REALMS_TEXT.meta}</p>
+        <p className="realm-card-meta">{REALMS_TEXT.meta(realmChapterCount(realm))}</p>
         {locked ? (
           <p className="realm-card-note">{REALMS_TEXT.lockedNote}</p>
         ) : (

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { CHAPTER_COUNT, REALMS } from '@/lib/constants';
+import { MIN_CHAPTERS, REALMS } from '@/lib/constants';
 import type { FrontierChapter, RealmView, TrackOutline } from '@/lib/types';
 import {
   activeRealms,
@@ -11,6 +11,7 @@ import {
   frontierSummary,
   levelStatus,
   playableStep,
+  realmChapterCount,
   towerSummary,
 } from './track-map';
 
@@ -19,7 +20,7 @@ const outline: TrackOutline = {
     id: r.id,
     topic: `topic ${r.id}`,
     lore: `lore ${r.id}`,
-    chapters: Array.from({ length: CHAPTER_COUNT }, (_, i) => ({
+    chapters: Array.from({ length: MIN_CHAPTERS }, (_, i) => ({
       id: `c${i + 1}`,
       title: `Chapter ${i + 1}`,
     })),
@@ -35,7 +36,7 @@ const bossId = (realm: number) => `strategist/r${realm}/boss/challenge`;
 /** Every step of realm 0 and the advanced realm has content. */
 const ALL_LIVE = new Set(
   [0, ADVANCED].flatMap((realm) => [
-    ...Array.from({ length: CHAPTER_COUNT }, (_, i) => [
+    ...Array.from({ length: MIN_CHAPTERS }, (_, i) => [
       `strategist/r${realm}/c${i + 1}/lesson`,
       caseId(realm, i + 1),
       quickId(realm, i + 1),
@@ -53,8 +54,35 @@ describe('buildTrackMap', () => {
   test('one realm per REALMS row, 6 chapters + the boss each', () => {
     const { realms } = map(NONE, NONE);
     expect(realms.map((r) => r.id)).toEqual(REALMS.map((r) => r.id));
-    for (const r of realms) expect(r.chapters).toHaveLength(CHAPTER_COUNT + 1);
+    for (const r of realms) expect(r.chapters).toHaveLength(MIN_CHAPTERS + 1);
     expect(realms[0].chapters.at(-1)).toMatchObject({ chapter: null, title: bossTitle(REALMS[0]) });
+  });
+
+  test('a 9-chapter realm: 9 chapters + the boss, and the boss needs all 9 cases', () => {
+    const NINE = 9;
+    const grown: TrackOutline = {
+      realms: outline.realms.map((r) =>
+        r.id !== 0
+          ? r
+          : {
+              ...r,
+              chapters: Array.from({ length: NINE }, (_, i) => ({
+                id: `c${i + 1}`,
+                title: `Chapter ${i + 1}`,
+              })),
+            },
+      ),
+    };
+    const live = new Set([...Array.from({ length: NINE }, (_, i) => caseId(0, i + 1)), bossId(0)]);
+    const cases = (n: number) => new Set(Array.from({ length: n }, (_, i) => caseId(0, i + 1)));
+    const r0 = (cleared: Set<string>) =>
+      realm(buildTrackMap('strategist', grown, live, cleared).realms, 0);
+
+    expect(r0(NONE).chapters).toHaveLength(NINE + 1);
+    expect(realmChapterCount(r0(NONE))).toBe(NINE);
+    expect(r0(cases(MIN_CHAPTERS)).chapters.at(-1)!.status).toBe('locked');
+    expect(r0(cases(NINE - 1)).chapters.at(-1)!.status).toBe('locked');
+    expect(r0(cases(NINE)).chapters.at(-1)!.status).toBe('open');
   });
 
   test('a visitor: chapter 1 open, chapter 2 locked, boss locked', () => {
@@ -90,12 +118,12 @@ describe('buildTrackMap', () => {
 
   test('the boss clears the realm', () => {
     const cleared = new Set([
-      ...Array.from({ length: CHAPTER_COUNT }, (_, i) => caseId(0, i + 1)),
+      ...Array.from({ length: MIN_CHAPTERS }, (_, i) => caseId(0, i + 1)),
       bossId(0),
     ]);
     const r0 = realm(map(ALL_LIVE, cleared).realms, 0);
     expect(r0.status).toBe('cleared');
-    expect(r0.cleared).toBe(CHAPTER_COUNT + 1);
+    expect(r0.cleared).toBe(MIN_CHAPTERS + 1);
   });
 
   test('an advanced realm is tier-locked everywhere, with content and with old clears', () => {
@@ -210,7 +238,7 @@ describe('playableStep', () => {
   });
 
   test('the boss links to its one step once open', () => {
-    const cleared = new Set(Array.from({ length: CHAPTER_COUNT }, (_, i) => caseId(0, i + 1)));
+    const cleared = new Set(Array.from({ length: MIN_CHAPTERS }, (_, i) => caseId(0, i + 1)));
     const boss = realm(map(ALL_LIVE, cleared).realms, 0).chapters.at(-1)!;
     expect(playableStep(boss)?.exerciseId).toBe(bossId(0));
   });

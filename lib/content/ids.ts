@@ -13,13 +13,13 @@ import {
   BLOG_POST_EXT,
   BOSS_SEGMENT,
   BOSS_STEP,
-  CHAPTER_COUNT,
   CHAPTER_STEPS,
   FRONTIER_AREA,
   FRONTIER_HREF,
   MATH_AREA,
   MATH_FLOOR_COUNT,
   MATH_HREF,
+  MAX_CHAPTERS,
   QUEST_BACK_HREF,
   REALM_COUNT,
   REALMS,
@@ -28,7 +28,7 @@ import {
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
-import type { ChapterStep, ExerciseRef, RealmId, SideStep, Track } from '@/lib/types';
+import type { ChapterStep, ExerciseRef, RealmId, SideStep, Track, TrackOutline } from '@/lib/types';
 import { utcMidnight } from '@/lib/utils';
 
 const alt = (xs: readonly (string | number)[]) => `(?:${xs.join('|')})`;
@@ -40,7 +40,9 @@ export const segment = (kind: keyof typeof SEGMENT_PREFIX, n: number | string) =
 
 const TRACK = alt(TRACKS);
 const REALM = segment('realm', alt(range(0, REALM_COUNT)));
-const CHAPTER = segment('chapter', alt(range(1, CHAPTER_COUNT)));
+// Any chapter a realm may have. Whether this realm really has it is the
+// outline's job (checkOpen), not the grammar's.
+const CHAPTER = segment('chapter', alt(range(1, MAX_CHAPTERS)));
 const FLOOR = segment('floor', alt(range(1, MATH_FLOOR_COUNT)));
 const DATE = String.raw`\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])`;
 /** A lowercase kebab-case slug (Frontier, blog, sources.yaml and concept ids). */
@@ -142,10 +144,13 @@ export function parseBlogFileName(name: string): { date: string; slug: string } 
   return { date: match[1], slug: match[2] };
 }
 
-/** Every exercise id of one realm on one track: each chapter step, then the boss. */
-export function realmExerciseIds(track: Track, realm: number): string[] {
+/**
+ * Every exercise id of one realm on one track: each chapter step, then the
+ * boss. `chapterCount` is the realm's chapter count in that track's outline.
+ */
+export function realmExerciseIds(track: Track, realm: number, chapterCount: number): string[] {
   const ids: string[] = [];
-  for (let chapter = 1; chapter <= CHAPTER_COUNT; chapter++) {
+  for (let chapter = 1; chapter <= chapterCount; chapter++) {
     for (const step of CHAPTER_STEPS) {
       ids.push(buildExerciseId({ area: 'chapter', track, realm, chapter, step }));
     }
@@ -154,9 +159,11 @@ export function realmExerciseIds(track: Track, realm: number): string[] {
   return ids;
 }
 
-/** Every realm exercise id of one track, realm by realm in map order. */
-export function trackExerciseIds(track: Track): string[] {
-  return Array.from({ length: REALM_COUNT }, (_, realm) => realmExerciseIds(track, realm)).flat();
+/** Every realm exercise id of one track, realm by realm in its outline's order. */
+export function trackExerciseIds(track: Track, outline: TrackOutline): string[] {
+  return outline.realms.flatMap((realm) =>
+    realmExerciseIds(track, realm.id, realm.chapters.length),
+  );
 }
 
 /** Every Math Tower exercise id, floor by floor (lesson, then quick check). */

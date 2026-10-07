@@ -1,6 +1,5 @@
 import {
   BOSS_STEP,
-  CHAPTER_COUNT,
   CHAPTER_STEPS,
   FRONTIER_AREA,
   MATH_AREA,
@@ -39,15 +38,27 @@ import { decideOpen } from './open';
  * Server Actions run, so a page can't show "open" where an action refuses.
  */
 
-type Sets = { live: ReadonlySet<string>; cleared: ReadonlySet<string> };
+/**
+ * `chapterCount`: the realm's chapter count in its track's outline (the boss
+ * needs every one). 0 for the Math Tower and the Frontier (no realm chapters).
+ */
+type Sets = { live: ReadonlySet<string>; cleared: ReadonlySet<string>; chapterCount: number };
 type Credited = ReadonlyMap<string, Track>;
 
 /** "Boss · Bootstrap Village" (curriculum spec: the boss name is derived). */
 export const bossTitle = (realm: Pick<Realm, 'name'>) => `Boss · ${realm.name}`;
 
+/** A realm view's chapter count on its track (its boss row not counted). */
+export const realmChapterCount = (realm: Pick<RealmView, 'chapters'>): number =>
+  realm.chapters.filter((c) => c.chapter !== null).length;
+
 /** Order of precedence: tier lock, done, no content, chapter lock, open. */
-function stepStatus(ref: ExerciseRef, id: string, { live, cleared }: Sets): StepStatus {
-  const open = decideOpen(ref, cleared);
+function stepStatus(
+  ref: ExerciseRef,
+  id: string,
+  { live, cleared, chapterCount }: Sets,
+): StepStatus {
+  const open = decideOpen(ref, cleared, chapterCount);
   if (!open.ok && open.code === 'TIER_LOCKED') return 'tier-locked';
   if (cleared.has(id)) return 'done';
   if (!live.has(id)) return 'soon';
@@ -75,10 +86,12 @@ function chapterViews(
   track: Track,
   realm: Realm,
   titles: string[],
-  sets: Sets,
+  { live, cleared }: Omit<Sets, 'chapterCount'>,
   credited: Credited,
 ): ChapterView[] {
-  const chapters = titles.slice(0, CHAPTER_COUNT).map((title, i): ChapterView => {
+  // Every outlined chapter (6 to 12): the boss needs all of them.
+  const sets: Sets = { live, cleared, chapterCount: titles.length };
+  const chapters = titles.map((title, i): ChapterView => {
     const chapter = i + 1;
     const steps = CHAPTER_STEPS.map((step) =>
       stepView({ area: 'chapter', track, realm: realm.id, chapter, step }, sets),
@@ -192,7 +205,7 @@ export function buildTowerMap(
   live: ReadonlySet<string>,
   cleared: ReadonlySet<string>,
 ): FloorState[] {
-  const sets = { live, cleared };
+  const sets = { live, cleared, chapterCount: 0 };
   return MATH_FLOORS.map((floor): FloorState => {
     const steps = SIDE_STEPS.map((step) =>
       stepView({ area: MATH_AREA, floor: floor.n, step }, sets),
@@ -236,7 +249,7 @@ export function buildFrontierList(
   live: ReadonlySet<string>,
   cleared: ReadonlySet<string>,
 ): FrontierChapterView[] {
-  const sets = { live, cleared };
+  const sets = { live, cleared, chapterCount: 0 };
   return chapters.map((chapter): FrontierChapterView => {
     const steps = SIDE_STEPS.map((step) =>
       stepView({ area: FRONTIER_AREA, date: chapter.date, slug: chapter.slug, step }, sets),

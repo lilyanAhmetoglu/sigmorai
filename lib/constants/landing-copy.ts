@@ -1,7 +1,6 @@
 import type { Audience, Track } from '@/lib/types';
 import { REALMS, TRACK_ACCENTS } from './curriculum';
 import { QUICK_CHECK_QUESTIONS } from './content';
-import { CHAPTER_COUNT } from './exercises';
 import { HP_PER_CHALLENGE, XP_REWARDS } from './xp';
 import { SITE_NAME } from './site';
 
@@ -44,7 +43,7 @@ export const LANDING_TEXT = {
   realmsEyebrow: 'THE MAP',
   realmsTitle: `${REALMS.length} realms, one world`,
   /** Keep in step with OPEN_TIERS (curriculum.ts): beginner + intermediate today. */
-  realmsIntro: `Each realm is a course: ${CHAPTER_COUNT} chapters and a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
+  realmsIntro: `Each realm is a course: its chapters, then a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
   realmsAll: 'Explore all realms',
   blogEyebrow: 'FROM THE BLOG',
   blogTitle: 'Latest posts',

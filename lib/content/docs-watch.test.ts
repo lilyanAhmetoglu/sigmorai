@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { CONTENT_DIR } from '@/lib/constants';
 import type { DocsWatchState, DocsWatchTarget, KbSource } from '@/lib/types';
 import {
   citedPages,
@@ -41,7 +42,7 @@ const SOURCES: KbSource[] = [
 
 describe('citedPages', () => {
   test('track + Frontier lessons, keyed by urlKey, each lesson once', async () => {
-    const cited = await citedPages(FIXTURES);
+    const cited = await citedPages(FIXTURES, CONTENT_DIR);
     expect(Object.fromEntries(cited)).toEqual({
       'platform.claude.com/docs/en/prompting': [
         'builder/r0/c1/lesson',
@@ -52,7 +53,7 @@ describe('citedPages', () => {
   });
 
   test('no frontier folder is fine', async () => {
-    const cited = await citedPages(`${import.meta.dir}/__fixtures__/valid`);
+    const cited = await citedPages(`${import.meta.dir}/__fixtures__/valid`, CONTENT_DIR);
     expect([...cited.keys()]).toEqual(['platform.claude.com/docs']);
   });
 });

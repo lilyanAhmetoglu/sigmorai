@@ -1,4 +1,4 @@
-import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
@@ -68,6 +68,56 @@ describe('broken content is caught, with the file name', () => {
     data.realms[0].chapters.pop();
     await writeFile(file, JSON.stringify(data));
     expect((await validateContent(root)).map((i) => i.file)).toEqual(['builder/outline.json']);
+  });
+
+  test('a chapter folder past the outline count names the realm range from the outline', async () => {
+    const root = await copyOfContent();
+    const c7 = 'builder/00-bootstrap-village/c7';
+    await cp(`${root}/${C1}`, `${root}/${c7}`, { recursive: true });
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file).sort()).toEqual(
+      ['case.json', 'lesson.mdx', 'quick-check.json'].map((f) => `${c7}/${f}`),
+    );
+    for (const { message } of issues) {
+      expect(message).toContain('unexpected file');
+      expect(message).toContain('<track>/<NN-realm>/c1–c6 or boss');
+    }
+  });
+
+  /** Adds a 7th chapter to builder realm 0's outline. */
+  async function growBuilderRealm0(root: string) {
+    const file = `${root}/builder/outline.json`;
+    const data = await Bun.file(file).json();
+    data.realms[0].chapters.push({ id: 'c7', title: 'Grown chapter' });
+    await writeFile(file, JSON.stringify(data));
+  }
+
+  test('a grown realm: an outline chapter past 6 without its files fails', async () => {
+    const root = await copyOfContent();
+    await growBuilderRealm0(root);
+    const c7 = 'builder/00-bootstrap-village/c7';
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual(
+      ['lesson.mdx', 'case.json', 'quick-check.json'].map((f) => `${c7}/${f}`),
+    );
+    expect(issues[0].message).toBe(
+      `Chapter 7 is in builder/outline.json. A chapter past 6 needs lesson.mdx, case.json and quick-check.json. Add content/${c7}/lesson.mdx, or remove the chapter from the outline.`,
+    );
+  });
+
+  test('a grown realm with all three files for its new chapter passes', async () => {
+    const root = await copyOfContent();
+    await growBuilderRealm0(root);
+    // Chapter 1's three files as chapter 7, with their ids moved to c7.
+    for (const name of ['lesson.mdx', 'case.json', 'quick-check.json']) {
+      const text = await Bun.file(`${root}/${C1}/${name}`).text();
+      await mkdir(`${root}/builder/00-bootstrap-village/c7`, { recursive: true });
+      await writeFile(
+        `${root}/builder/00-bootstrap-village/c7/${name}`,
+        text.replaceAll('builder/r0/c1/', 'builder/r0/c7/'),
+      );
+    }
+    expect(await validateContent(root)).toEqual([]);
   });
 
   test('a lesson citing a page that is not under an official source', async () => {
@@ -513,9 +563,16 @@ describe('shared chapters (content/shared-chapters.json)', () => {
     ).toEqual([]);
   });
 
-  test('a bad member format fails', async () => {
+  test("a member past its realm's chapter count fails (c9 in a 6-chapter realm)", async () => {
     const [msg] = await issuesFor([same('x', 'builder/r1/c1', 'strategist/r1/c9')]);
-    expect(msg).toContain('strategist/r1/c9 is not a realm chapter');
+    expect(msg).toBe(
+      'group "x": strategist/r1/c9 is past the realm\'s chapter count (c1–c6 in strategist/outline.json).',
+    );
+  });
+
+  test('a bad member format fails', async () => {
+    const [msg] = await issuesFor([same('x', 'builder/r1/c1', 'strategist/r1/c13')]);
+    expect(msg).toContain('strategist/r1/c13 is not a realm chapter');
   });
 
   test('a boss, a Math floor or a Frontier level may not be shared', async () => {
