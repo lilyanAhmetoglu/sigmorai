@@ -1,14 +1,17 @@
 import { z } from 'zod';
 import {
+  coreRealms,
+  isRealmOnTrack,
   MATH_FLOOR_COUNT,
   MAX_CHAPTERS,
   MIN_CHAPTERS,
-  REALM_COUNT,
   type MATH_FLOORS,
   REALMS,
+  realmRow,
   type TIERS,
 } from '@/lib/constants';
 import { segment } from '@/lib/content/ids';
+import type { Track } from './exercise';
 import type { HudState } from './hud';
 import { KebabSlugSchema } from './kb';
 import type { ChapterView, StepStatus, StepView } from './realms';
@@ -16,6 +19,24 @@ import type { ChapterView, StepStatus, StepView } from './realms';
 export type Tier = (typeof TIERS)[number];
 export type Realm = (typeof REALMS)[number];
 export type RealmId = Realm['id'];
+
+/**
+ * One row of a realm table (REALMS, or a test fixture), its fields widened.
+ * `track`: the owner (`null` = a core realm, on every path; a track = a
+ * specialist realm, on that path only). `scene`: the realm has level art.
+ * Path-curriculum spec, amendments 2026-10-07.
+ */
+export type RealmRow = {
+  readonly id: number;
+  readonly slug: string;
+  readonly name: string;
+  readonly npc: string;
+  readonly tier: Tier;
+  readonly track: Track | null;
+  readonly scene: boolean;
+};
+/** A realm table: REALMS, or a test fixture with specialist rows. */
+export type RealmTable = readonly RealmRow[];
 export type MathFloor = (typeof MATH_FLOORS)[number];
 
 const Text = z.string().trim().min(1);
@@ -23,15 +44,13 @@ const Text = z.string().trim().min(1);
 /** A chapter's id is its folder name and the chapter segment of its exercise ids (`c1`). */
 const ChapterOutlineSchema = z.object({ id: Text, title: Text }).strict();
 
-/** A realm number from outside (route param, parsed id) → a known RealmId. */
-export const RealmIdSchema = z.literal(REALMS.map((r) => r.id));
-
 /** A realm slug from outside (the `/realms/[realm]` route param) → a known slug. */
 export const RealmSlugSchema = z.literal(REALMS.map((r) => r.slug));
 
 const RealmOutlineSchema = z
   .object({
-    id: RealmIdSchema,
+    // Checked against the realm table by the realm-list rule (outlineRealmIssues).
+    id: z.number().int().nonnegative(),
     topic: Text,
     lore: Text,
     chapters: z
@@ -46,18 +65,54 @@ const RealmOutlineSchema = z
   })
   .strict();
 
-/** content/<track>/outline.json. Realm i has id i. */
-export const TrackOutlineSchema = z
-  .object({
-    realms: z
-      .array(RealmOutlineSchema)
-      .length(REALM_COUNT)
-      .refine((rs) => rs.every((r, i) => r.id === i), {
-        message: 'realm ids must run 0, 1, … in order',
+/**
+ * What is wrong with a track outline's realm list (path-curriculum spec,
+ * amendments 2026-10-07). Pure. The rule: every core realm exactly once and
+ * in id order; specialist realms anywhere between them, but only the ones
+ * this track owns; no realm twice; no realm without a row in the table.
+ */
+export function outlineRealmIssues(
+  ids: readonly number[],
+  track: Track,
+  realms: readonly RealmRow[] = REALMS,
+): string[] {
+  const issues: string[] = [];
+  const seen = new Set<number>();
+  for (const id of ids) {
+    if (seen.has(id)) issues.push(`realm r${id} is listed twice`);
+    seen.add(id);
+    const row = realmRow(id, realms);
+    if (!row) issues.push(`realm r${id} has no REALMS row`);
+    else if (!isRealmOnTrack(row, track)) {
+      issues.push(`realm r${id} belongs to the ${row.track} path, not ${track}`);
+    }
+  }
+  const core = coreRealms(realms).map((r) => r.id);
+  const listed = ids.filter((id) => core.includes(id));
+  if (listed.join() !== core.join()) {
+    const expected = core.map((id) => segment('realm', id)).join(', ');
+    issues.push(`the core realms must each appear once, in this order: ${expected}`);
+  }
+  return issues;
+}
+
+/**
+ * content/<track>/outline.json. `realms` order is the map order for this
+ * path: the core realms in id order, with this track's specialist realms
+ * anywhere between them. `table` is REALMS, or a test fixture.
+ */
+export const trackOutlineSchema = (track: Track, table: readonly RealmRow[] = REALMS) =>
+  z
+    .object({
+      realms: z.array(RealmOutlineSchema).superRefine((rs, ctx) => {
+        const ids = rs.map((r) => r.id);
+        for (const message of outlineRealmIssues(ids, track, table)) {
+          ctx.addIssue({ code: 'custom', message });
+        }
       }),
-  })
-  .strict();
-export type TrackOutline = z.infer<typeof TrackOutlineSchema>;
+    })
+    .strict();
+export type TrackOutline = z.infer<ReturnType<typeof trackOutlineSchema>>;
 
 /** A formula and its plain-words version for screen readers. */
 const FormulaSchema = z.object({ math: Text, text: Text }).strict();

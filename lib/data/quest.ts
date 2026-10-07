@@ -321,7 +321,9 @@ async function lessonPage(ref: LessonRef, exerciseId: string): Promise<QuestPage
 async function lessonDescription(ref: LessonRef): Promise<string> {
   if (ref.area === MATH_AREA) return (await loadMathOutline()).floors[ref.floor - 1].covers;
   if (ref.area === FRONTIER_AREA) return FRONTIER_TEXT.description;
-  return (await loadTrackOutline(ref.track)).realms[ref.realm].topic;
+  // The outline lists realms in map order, not by number: find by id.
+  const realm = (await loadTrackOutline(ref.track)).realms.find((r) => r.id === ref.realm);
+  return realm?.topic ?? REALMS[ref.realm as RealmId].name;
 }
 
 /** Title, description and canonical for any lesson (realm, Math Tower, Frontier); null otherwise. */

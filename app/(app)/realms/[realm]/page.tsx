@@ -100,7 +100,10 @@ export default async function RealmPage({ params, searchParams }: PageProps<'/re
       </header>
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <TrackSwitch current={track} hrefFor={(t) => realmHref(realm.slug, t)} />
+        {/* A specialist realm is on one path only: no path switch. */}
+        {realm.track === null && (
+          <TrackSwitch current={track} hrefFor={(t) => realmHref(realm.slug, t)} />
+        )}
         {viewer === 'signed-out' && <SignInNote />}
       </div>
 

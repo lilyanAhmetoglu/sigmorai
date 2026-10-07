@@ -1,5 +1,5 @@
 import type { REALM_STATUSES, STEP_STATUSES } from '@/lib/constants';
-import type { RealmId, Tier } from './curriculum';
+import type { Tier } from './curriculum';
 import type { ChapterStep, Track } from './exercise';
 
 export type StepStatus = (typeof STEP_STATUSES)[number];
@@ -19,11 +19,16 @@ export type ChapterView = {
 };
 
 export type RealmView = {
-  id: RealmId;
+  /** The realm number (global across paths; r9 and up are specialist realms). */
+  id: number;
   slug: string;
   name: string;
   npc: string;
   tier: Tier;
+  /** The owner: null = a core realm (on every path); a track = a specialist realm (that path only). */
+  track: Track | null;
+  /** The realm has level art; false → a flat `neutral` scene. */
+  scene: boolean;
   topic: string;
   lore: string;
   status: RealmStatus;
@@ -33,7 +38,7 @@ export type RealmView = {
 };
 
 /** The step "Continue" opens: the first open step on the track, in map order. */
-export type NextStep = { realm: RealmId; chapter: number | null; step: StepView };
+export type NextStep = { realm: number; chapter: number | null; step: StepView };
 
 /** A whole track for one player (or a visitor: no progress). */
 export type TrackMap = { track: Track; realms: RealmView[]; next: NextStep | null };

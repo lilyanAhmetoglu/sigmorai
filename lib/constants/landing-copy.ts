@@ -1,5 +1,5 @@
 import type { Audience, Track } from '@/lib/types';
-import { REALMS, TRACK_ACCENTS } from './curriculum';
+import { coreRealms, TRACK_ACCENTS } from './curriculum';
 import { QUICK_CHECK_QUESTIONS } from './content';
 import { HP_PER_CHALLENGE, XP_REWARDS } from './xp';
 import { SITE_NAME } from './site';
@@ -10,7 +10,8 @@ import { SITE_NAME } from './site';
  * (landing screen, TR table). Only claims the curriculum backs up.
  */
 
-const beginnerRealms = REALMS.filter((realm) => realm.tier === 'beginner');
+// The core realms: every path has them (specialist realms are on one path only).
+const beginnerRealms = coreRealms().filter((realm) => realm.tier === 'beginner');
 const firstRealm = beginnerRealms[0];
 const lastRealm = beginnerRealms[beginnerRealms.length - 1];
 
@@ -41,7 +42,7 @@ export const LANDING_TEXT = {
     `Clear the realm's boss case (+${XP_REWARDS.boss} XP) to earn a certificate you can share.`,
   ],
   realmsEyebrow: 'THE MAP',
-  realmsTitle: `${REALMS.length} realms, one world`,
+  realmsTitle: `${coreRealms().length} realms, one world`,
   /** Keep in step with OPEN_TIERS (curriculum.ts): beginner + intermediate today. */
   realmsIntro: `Each realm is a course: its chapters, then a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
   realmsAll: 'Explore all realms',

@@ -19,7 +19,7 @@ Every exercise has one id. Helpers: `lib/content/ids.ts` (`buildExerciseId`, `pa
 | Math Tower floor | `math/f1/lesson` · `quick-check`                       |
 | Frontier level   | `frontier/2026-10-05-some-slug/lesson` · `quick-check` |
 
-Realms `r0`–`r8`, chapters `c1`–`c6`, floors `f1`–`f8` (counts in `lib/constants/exercises.ts`). Slugs are lowercase kebab-case.
+Realms: `r0`–`r8` are the core realms, on every path. A specialist realm (`r9` and up) belongs to one path: its `REALMS` row in `lib/constants/curriculum.ts` has `track: '<owner>'`, and its id parses only on that track (`creator/r9/…`, never `builder/r9/…`). Realm numbers are global and never reused or renumbered. A path's realm list and map order is its `outline.json`: every core realm once and in order, plus only its own specialist realms. Chapters `c1`–`cN`, where N is that realm's chapter count in the track's outline (6 to 12; a chapter past 6 needs all three files). Floors `f1`–`f8`. A realm never shrinks: removing a chapter orphans progress. A new specialist realm ships with `scene: false` (flat `neutral` scene) until its own art PR. Slugs are lowercase kebab-case.
 
 **Ids are forever.** They are stored in `progress`, `submissions` and `xp_events`. Renaming one loses players' progress and lets them earn the XP again. Fix a title, never an id.
 

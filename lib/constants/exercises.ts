@@ -6,8 +6,6 @@
 /** The learner paths. Also users.track (CHECK in db/schema/users.ts). */
 export const TRACKS = ['builder', 'strategist', 'creator'] as const;
 
-/** Realms r0..r8 per track. */
-export const REALM_COUNT = 9;
 /**
  * Chapters per realm: c1..cN, where N comes from that track's outline
  * (path-curriculum spec, amendments 2026-10-07). A realm has at least

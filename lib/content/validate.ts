@@ -25,10 +25,11 @@ import {
   SHARED_CHAPTERS_FILE,
   SIDE_STEPS,
   TRACKS,
+  trackRealms,
 } from '@/lib/constants';
 import {
   MathOutlineSchema,
-  TrackOutlineSchema,
+  trackOutlineSchema,
   type SharedChaptersFile,
   type Track,
   type TrackOutline,
@@ -94,12 +95,13 @@ async function loadOutlines(root: string): Promise<Outlines> {
 
 /**
  * A track's realm ids, chapters from its outline. A track whose outline did
- * not load allows up to MAX_CHAPTERS, so its files are not flagged twice.
+ * not load allows up to MAX_CHAPTERS in each realm the track has (core +
+ * its own specialist realms), so its files are not flagged twice.
  */
 const trackIds = (track: Track, outline: TrackOutline | null): string[] =>
   outline
     ? trackExerciseIds(track, outline)
-    : REALMS.flatMap((realm) => realmExerciseIds(track, realm.id, MAX_CHAPTERS));
+    : trackRealms(track).flatMap((realm) => realmExerciseIds(track, realm.id, MAX_CHAPTERS));
 
 /** Every exercise file the outlines and the id grammar allow, keyed by path → id. Frontier folders come from disk. */
 function knownExerciseFiles(outlines: Outlines, frontierFolders: string[]): Map<string, string> {
@@ -478,8 +480,9 @@ export async function validateContent(
       await checkOutline(abs, rel, MathOutlineSchema, issues);
       continue;
     }
-    if ((TRACKS as readonly string[]).some((t) => rel === `${t}/${OUTLINE_FILE}`)) {
-      await checkOutline(abs, rel, TrackOutlineSchema, issues);
+    const outlineTrack = TRACKS.find((t) => rel === `${t}/${OUTLINE_FILE}`);
+    if (outlineTrack) {
+      await checkOutline(abs, rel, trackOutlineSchema(outlineTrack), issues);
       continue;
     }
     const id = exercises.get(rel);

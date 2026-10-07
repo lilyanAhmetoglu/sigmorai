@@ -24,7 +24,7 @@ import {
   MathOutlineSchema,
   QuickCheckSchema,
   SharedChaptersFileSchema,
-  TrackOutlineSchema,
+  trackOutlineSchema,
   type BlogPost,
   type Case,
   type ExerciseRef,
@@ -221,7 +221,7 @@ const loadOutline = <S extends z.ZodType>(folder: string, schema: S, root: strin
 
 /** content/<track>/outline.json, validated: topic, lore and chapter titles per realm. */
 export const loadTrackOutline = (track: Track, root = CONTENT_DIR): Promise<TrackOutline> =>
-  loadOutline(track, TrackOutlineSchema, root);
+  loadOutline(track, trackOutlineSchema(track), root);
 
 /** content/math/outline.json, validated: what each floor covers and its formulas. */
 export const loadMathOutline = (root = CONTENT_DIR): Promise<MathOutline> =>
