@@ -13,6 +13,7 @@ import {
   buildExerciseId,
   isExerciseId,
   parseBlogFileName,
+  parseChapterId,
   parseExerciseId,
   mathExerciseIds,
   questBackHref,
@@ -198,6 +199,28 @@ describe('parseBlogFileName', () => {
       '2026-10-06-xmdx',
     ]) {
       expect(parseBlogFileName(name)).toBeNull();
+    }
+  });
+});
+
+describe('parseChapterId', () => {
+  test('a realm chapter without its step parses', () => {
+    expect(parseChapterId('strategist/r1/c3')).toEqual({
+      track: 'strategist',
+      realm: 1,
+      chapter: 3,
+    });
+  });
+
+  test('a boss, a Math floor, a full exercise id or a bad shape is null', () => {
+    for (const id of [
+      'builder/r1/boss',
+      'math/f1',
+      'builder/r1/c1/lesson',
+      'builder/r9/c1',
+      'builder/r1/c7',
+    ]) {
+      expect(parseChapterId(id)).toBeNull();
     }
   });
 });

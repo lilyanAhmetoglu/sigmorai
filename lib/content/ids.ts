@@ -42,7 +42,8 @@ const REALM = segment('realm', alt(range(0, REALM_COUNT)));
 const CHAPTER = segment('chapter', alt(range(1, CHAPTER_COUNT)));
 const FLOOR = segment('floor', alt(range(1, MATH_FLOOR_COUNT)));
 const DATE = String.raw`\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])`;
-const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*';
+/** A lowercase kebab-case slug (Frontier, blog, sources.yaml and concept ids). */
+export const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*';
 /** Length of `YYYY-MM-DD` at the start of a Frontier segment. */
 const DATE_LENGTH = 10;
 
@@ -86,6 +87,18 @@ export function parseExerciseId(id: string): ExerciseRef | null {
   const realm = indexOf(second);
   if (third === BOSS_SEGMENT) return { area: 'boss', track, realm };
   return { area: 'chapter', track, realm, chapter: indexOf(third), step: fourth as ChapterStep };
+}
+
+/**
+ * A realm chapter without its step (`builder/r1/c1`, a shared-chapters member)
+ * → its ref, or null for anything else (a boss, a Math floor, a bad shape).
+ */
+export function parseChapterId(
+  id: string,
+): { track: Track; realm: number; chapter: number } | null {
+  const ref = parseExerciseId(`${id}/${CHAPTER_STEPS[0]}`);
+  if (ref?.area !== 'chapter') return null;
+  return { track: ref.track, realm: ref.realm, chapter: ref.chapter };
 }
 
 export const isExerciseId = (id: string): boolean => parseExerciseId(id) !== null;

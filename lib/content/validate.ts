@@ -24,14 +24,15 @@ import {
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
-import {
-  MathOutlineSchema,
-  SharedChaptersFileSchema,
-  TrackOutlineSchema,
-  type SharedChaptersFile,
-} from '@/lib/types';
+import { MathOutlineSchema, TrackOutlineSchema, type SharedChaptersFile } from '@/lib/types';
 import { headingProblems } from './blog';
-import { buildExerciseId, parseBlogFileName, parseExerciseId, trackExerciseIds } from './ids';
+import {
+  buildExerciseId,
+  parseBlogFileName,
+  parseChapterId,
+  parseExerciseId,
+  trackExerciseIds,
+} from './ids';
 import {
   ContentError,
   contentPath,
@@ -41,6 +42,7 @@ import {
   loadKbSources,
   loadLesson,
   loadQuickCheck,
+  loadSharedChapters,
 } from './load';
 import { compileLesson, NO_COMPONENTS } from './mdx';
 import { exerciseFile } from './paths';
@@ -257,9 +259,9 @@ const NOT_SHAREABLE = {
  * (docs/plans/shared-chapters-design-plan.md, Content contract): every member
  * is a live realm chapter (lesson, case and quick check on disk), never a
  * boss, Math floor or Frontier level; a group has one member per track; a
- * chapter and a concept id are each used by one group only. Exported for tests.
+ * chapter and a concept id are each used by one group only.
  */
-export async function sharedChapterProblems(
+async function sharedChapterProblems(
   data: SharedChaptersFile,
   root: string,
   rel: string = SHARED_CHAPTERS_FILE,
@@ -284,17 +286,17 @@ export async function sharedChapterProblems(
         );
       } else owner.set(member, group.id);
 
-      // A chapter parses with any step; a boss with BOSS_STEP; Math and Frontier with a side step.
-      const ref =
-        parseExerciseId(`${member}/${BOSS_STEP}`) ?? parseExerciseId(`${member}/${SIDE_STEPS[0]}`);
+      const ref = parseChapterId(member);
       if (!ref) {
-        push(group.id, `${member} is not a realm chapter. Write it as <track>/r<N>/c<N>.`);
-        continue;
-      }
-      if (ref.area !== 'chapter') {
+        // Not a chapter: name what it is (a boss parses with BOSS_STEP; Math and Frontier with a side step).
+        const other =
+          parseExerciseId(`${member}/${BOSS_STEP}`) ??
+          parseExerciseId(`${member}/${SIDE_STEPS[0]}`);
         push(
           group.id,
-          `${member} is ${NOT_SHAREABLE[ref.area]}. Only realm chapters may be shared.`,
+          other && other.area !== 'chapter'
+            ? `${member} is ${NOT_SHAREABLE[other.area]}. Only realm chapters may be shared.`
+            : `${member} is not a realm chapter. Write it as <track>/r<N>/c<N>.`,
         );
         continue;
       }
@@ -303,7 +305,7 @@ export async function sharedChapterProblems(
       }
       tracks.add(ref.track);
       for (const step of CHAPTER_STEPS) {
-        const id = buildExerciseId({ ...ref, step });
+        const id = buildExerciseId({ area: 'chapter', ...ref, step });
         if (!(await hasContent(id, root))) {
           push(group.id, `${member} has no ${exerciseFile(parseExerciseId(id)!)}.`);
         }
@@ -313,21 +315,14 @@ export async function sharedChapterProblems(
   return issues;
 }
 
-/** Parses content/shared-chapters.json with its schema, then checks its rules. */
+/** Loads content/shared-chapters.json with its schema, then checks its rules. */
 async function checkSharedChapters(abs: string, rel: string, issues: ContentIssue[]) {
-  let raw: unknown;
   try {
-    raw = JSON.parse(await readFile(path.join(abs, rel), 'utf8'));
+    const data = await loadSharedChapters(abs);
+    issues.push(...(await sharedChapterProblems(data, abs, rel)));
   } catch (err) {
-    issues.push({ file: rel, message: `cannot parse (${(err as Error).message})` });
-    return;
+    issues.push({ file: rel, message: detail(err) });
   }
-  const result = SharedChaptersFileSchema.safeParse(raw);
-  if (!result.success) {
-    issues.push({ file: rel, message: z.prettifyError(result.error) });
-    return;
-  }
-  issues.push(...(await sharedChapterProblems(result.data, abs, rel)));
 }
 
 export async function validateContent(
