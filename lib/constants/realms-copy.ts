@@ -11,6 +11,10 @@ import { QUEST_ERROR_TEXT } from './ui-copy';
 
 type StatusText = { icon: string; label: string; accent: Accent };
 
+/** `BUILDER` → `Builder`: a track label inside a sentence. */
+const pathWord = (trackLabel: string) =>
+  `${trackLabel.charAt(0)}${trackLabel.slice(1).toLowerCase()}`;
+
 /** UI form of a tier (design: realms catalog filter). */
 export const TIER_TEXT: Record<Tier, string> = {
   beginner: 'BEGINNER',
@@ -54,8 +58,7 @@ export const REALMS_TEXT = {
   title: 'Realms',
   eyebrow: 'ALL REALMS',
   /** "Explore realms · Builder path" (the label comes in caps). */
-  heading: (trackLabel: string) =>
-    `Explore realms · ${trackLabel.charAt(0)}${trackLabel.slice(1).toLowerCase()} path`,
+  heading: (trackLabel: string) => `Explore realms · ${pathWord(trackLabel)} path`,
   /** Meta description of the catalog. */
   description: `Every Sigmorai realm on every path: ${CHAPTER_COUNT} chapters and a boss each, built from official docs.`,
   intro: `Every realm is a course: ${CHAPTER_COUNT} chapters and a boss, built from official docs.`,
@@ -77,6 +80,8 @@ export const REALMS_TEXT = {
   chapters: 'CHAPTERS',
   chapterLabel: (n: number) => `Chapter ${n}`,
   bossLabel: 'Boss battle',
+  /** Under a chapter a shared chapter on another path cleared (shared-chapters spec). */
+  creditedFrom: (trackLabel: string) => `Cleared on the ${pathWord(trackLabel)} path`,
   bossGlyph: 'B',
   /** Chapter row chevron, closed / open (follows <details open>). */
   chevronClosed: '▸',

@@ -1,12 +1,14 @@
 import 'server-only';
 import { auth } from '@clerk/nextjs/server';
-import { and, eq, like } from 'drizzle-orm';
+import { and, eq, inArray, like } from 'drizzle-orm';
 import { cache } from 'react';
 import { db } from '@/db';
 import { progress } from '@/db/schema';
 import { DASHBOARD_REALM_LIMIT, DEFAULT_TRACK, MATH_AREA, REALMS, TRACKS } from '@/lib/constants';
 import { mathExerciseIds, realmExerciseIds, trackExerciseIds } from '@/lib/content/ids';
 import { hasContent, loadTrackOutline } from '@/lib/content/load';
+import { applyCredit, creditorsForTrack, type Credit } from '@/lib/content/shared';
+import { sharedGroups } from '@/lib/grading/credit';
 import {
   activeRealms,
   buildTowerMap,
@@ -102,13 +104,37 @@ export const getTowerFloors = cache(async (userId: string | null): Promise<Floor
   return buildTowerMap(live, cleared);
 });
 
+/**
+ * This track's clears plus the credit from shared chapters on other tracks
+ * (shared-chapters spec): it reads only the other tracks' cases that can
+ * credit one here, then adds the credit in memory.
+ */
+async function trackClears(userId: string, track: Track): Promise<Credit> {
+  const groups = await sharedGroups();
+  const others = creditorsForTrack(track, groups);
+  const [own, rows] = await Promise.all([
+    clearedIds(userId, track),
+    others.length
+      ? db
+          .select({ id: progress.exerciseId })
+          .from(progress)
+          .where(and(eq(progress.userId, userId), inArray(progress.exerciseId, others)))
+      : Promise.resolve([]),
+  ]);
+  for (const r of rows) own.add(r.id);
+  return applyCredit(own, groups);
+}
+
+const noClears = (): Promise<Credit> =>
+  Promise.resolve({ cleared: new Set<string>(), creditedFrom: new Map() });
+
 const getTrackMap = cache(async (track: Track, userId: string | null): Promise<TrackMap> => {
-  const [outline, live, cleared] = await Promise.all([
+  const [outline, live, credit] = await Promise.all([
     loadTrackOutline(track),
     liveIds(track),
-    userId ? clearedIds(userId, track) : Promise.resolve(new Set<string>()),
+    userId ? trackClears(userId, track) : noClears(),
   ]);
-  return buildTrackMap(track, outline, live, cleared);
+  return buildTrackMap(track, outline, live, credit.cleared, credit.creditedFrom);
 });
 
 /** `?track=` if valid, else the player's own track, else the beginner path. */
@@ -118,7 +144,7 @@ function pickTrack(param: unknown, viewer: Viewer): Track {
   return viewer.status === 'ready' ? viewer.stats.track : DEFAULT_TRACK;
 }
 
-/** Progress is per track (the track is in every id), so any track shows the player's own clears. */
+/** Progress is per track (the track is in every id), so any track shows the player's own clears and credit. */
 async function mapFor(param: unknown) {
   const viewer = await getViewer();
   const track = pickTrack(param, viewer);

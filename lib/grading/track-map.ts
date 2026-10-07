@@ -36,6 +36,7 @@ import { decideOpen } from './open';
  */
 
 type Sets = { live: ReadonlySet<string>; cleared: ReadonlySet<string> };
+type Credited = ReadonlyMap<string, Track>;
 
 /** "Boss · Bootstrap Village" (curriculum spec: the boss name is derived). */
 export const bossTitle = (realm: Pick<Realm, 'name'>) => `Boss · ${realm.name}`;
@@ -66,14 +67,22 @@ function chapterStatus(steps: StepView[], caseStep: StepView): StepStatus {
   return 'locked';
 }
 
-function chapterViews(track: Track, realm: Realm, titles: string[], sets: Sets): ChapterView[] {
+function chapterViews(
+  track: Track,
+  realm: Realm,
+  titles: string[],
+  sets: Sets,
+  credited: Credited,
+): ChapterView[] {
   const chapters = titles.slice(0, CHAPTER_COUNT).map((title, i): ChapterView => {
     const chapter = i + 1;
     const steps = CHAPTER_STEPS.map((step) =>
       stepView({ area: 'chapter', track, realm: realm.id, chapter, step }, sets),
     );
     const caseStep = steps.find((s) => s.step === BOSS_STEP)!;
-    return { chapter, title, status: chapterStatus(steps, caseStep), steps };
+    const status = chapterStatus(steps, caseStep);
+    const creditedFrom = status === 'done' ? credited.get(caseStep.exerciseId) : undefined;
+    return { chapter, title, status, steps, ...(creditedFrom && { creditedFrom }) };
   });
   const boss = stepView({ area: 'boss', track, realm: realm.id }, sets);
   return [
@@ -131,11 +140,16 @@ export function activeRealms(realms: RealmView[], limit = realms.length): RealmV
 export const clearedLevels = (realms: RealmView[]): number =>
   realms.reduce((sum, r) => sum + r.cleared, 0);
 
+/**
+ * `cleared` already holds the credited cases (applyCredit); `credited` says
+ * which ones were credited and from which track, for the chapter label.
+ */
 export function buildTrackMap(
   track: Track,
   outline: TrackOutline,
   live: ReadonlySet<string>,
   cleared: ReadonlySet<string>,
+  credited: Credited = new Map(),
 ): TrackMap {
   const sets = { live, cleared };
   const realms = REALMS.map((realm): RealmView => {
@@ -145,6 +159,7 @@ export function buildTrackMap(
       realm,
       outlined.map((c) => c.title),
       sets,
+      credited,
     );
     return {
       id: realm.id,

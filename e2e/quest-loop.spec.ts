@@ -1,4 +1,5 @@
 import { clerk } from '@clerk/testing/playwright';
+import { neon } from '@neondatabase/serverless';
 import { expect, test, type Page } from '@playwright/test';
 import {
   HP_PER_CHALLENGE,
@@ -6,12 +7,19 @@ import {
   LEADERBOARD_TEXT,
   ONBOARDING_TEXT,
   QUEST_TEXT,
+  REALMS,
+  REALMS_TEXT,
+  realmHref,
+  STEP_STATUS_TEXT,
   TRACK_TEXT,
   XP_REWARDS,
 } from '@/lib/constants';
 import { expectNoViolations } from './axe';
 import { answersFor, type Answer } from './content';
 import { E2E_EMAIL, heroNameFor, testUserId } from './test-user';
+
+// The second test needs the hero the first one onboards: a failed loop skips it.
+test.describe.configure({ mode: 'serial' });
 
 const CHAPTER_DIR = 'strategist/00-bootstrap-village/c1';
 const QUEST = '/quest/strategist/r0/c1';
@@ -79,4 +87,46 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   await page.goto('/leaderboard');
   const mine = page.getByRole('listitem').filter({ hasText: hero });
   await expect(mine).toContainText(LEADERBOARD_TEXT.you);
+});
+
+// Shared chapters (token-costs: builder r0 c6 covers strategist r0 c4). Runs
+// after the loop above, which onboarded the test user. Builder chapters 1–5
+// are seeded as cleared so chapter 6's case is open; the e2e branch only.
+test('a case cleared on the builder path credits its strategist twin', async ({ page }) => {
+  const userId = await testUserId();
+  const sql = neon(process.env.DATABASE_URL!);
+  for (let c = 1; c <= 5; c++) {
+    await sql.query(
+      'insert into progress (user_id, exercise_id) values ($1, $2) on conflict do nothing',
+      [userId, `builder/r0/c${c}/challenge`],
+    );
+  }
+  const result = page.getByRole('status').filter({ hasText: /correct/ });
+
+  await page.goto('/');
+  await clerk.signIn({ page, emailAddress: E2E_EMAIL });
+
+  // The deep case, on the builder path: a real clear, full XP.
+  await page.goto('/quest/builder/r0/c6/challenge');
+  await pick(page, answersFor('builder/00-bootstrap-village/c6', 'case.json'), 'right');
+  await submit(page);
+  await expect(result).toContainText(QUEST_TEXT.passed);
+  await expect(page.getByText(QUEST_TEXT.cleared(XP_REWARDS.challenge))).toBeVisible();
+
+  // The strategist realm page shows its twin as cleared, and says where.
+  await page.goto(realmHref(REALMS[0].slug, 'strategist'));
+  await expect(page.getByText(REALMS_TEXT.creditedFrom(TRACK_TEXT.builder.label))).toBeVisible();
+  // The lock follows the credit: chapter 5 opens (chapters 1–3 are not done).
+  const c5 = page
+    .getByRole('listitem')
+    .filter({ hasText: REALMS_TEXT.chapterLabel(5) })
+    .first();
+  await expect(c5).toContainText(STEP_STATUS_TEXT.open.label);
+
+  // The twin's case is a replay: no HP, no XP.
+  await page.goto('/quest/strategist/r0/c4/challenge');
+  await expect(page.getByText(QUEST_TEXT.replayNote)).toBeVisible();
+  await pick(page, answersFor('strategist/00-bootstrap-village/c4', 'case.json'), 'right');
+  await submit(page);
+  await expect(page.getByText(QUEST_TEXT.passedReplay)).toBeVisible();
 });

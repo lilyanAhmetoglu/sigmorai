@@ -8,6 +8,7 @@ import {
   REALMS_TEXT,
   STEP_STATUS_TEXT,
   STEP_TEXT,
+  TRACK_TEXT,
 } from '@/lib/constants';
 import type { ChapterView, StepView } from '@/lib/types';
 import { LockGlyph } from '@/components/lock-glyph';
@@ -98,6 +99,11 @@ export function ChapterList({ chapters, nextId }: Props) {
                   {REALMS_TEXT.chevronOpen}
                 </span>
                 {hint && <span className="chapter-hint">{hint}</span>}
+                {chapter.creditedFrom && (
+                  <span className="chapter-hint">
+                    {REALMS_TEXT.creditedFrom(TRACK_TEXT[chapter.creditedFrom].label)}
+                  </span>
+                )}
               </summary>
               <ul className="chapter-steps">
                 {chapter.steps.map((step) => (

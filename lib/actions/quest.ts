@@ -150,9 +150,9 @@ async function submitAnswers(
           createdAt: now,
         });
       }
-      // A replay pass still keeps the streak; award-once makes its XP 0.
+      // A replay pass still keeps the streak and pays 0 XP (a credited case too).
       const xp = graded.passed
-        ? await recordClear(tx, userId, exerciseId, clearReason(open.ref), now)
+        ? await recordClear(tx, userId, exerciseId, clearReason(open.ref), now, !start.replay)
         : null;
       return {
         ok: true as const,
@@ -198,7 +198,8 @@ export async function completeLesson(input: unknown): Promise<CompleteLessonResu
       if (refused) return refused;
       const open = await checkOpen(tx, userId, exerciseId);
       if (!open.ok) return open;
-      const xp = await recordClear(tx, userId, exerciseId, 'lesson', new Date());
+      // Lessons are never credited; award-once makes a second press 0 XP.
+      const xp = await recordClear(tx, userId, exerciseId, 'lesson', new Date(), true);
       return { ok: true as const, xp };
     });
   } catch (error) {
