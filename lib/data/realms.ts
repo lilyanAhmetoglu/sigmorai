@@ -4,7 +4,14 @@ import { and, eq, inArray, like } from 'drizzle-orm';
 import { cache } from 'react';
 import { db } from '@/db';
 import { progress } from '@/db/schema';
-import { DASHBOARD_REALM_LIMIT, DEFAULT_TRACK, MATH_AREA, REALMS, TRACKS } from '@/lib/constants';
+import {
+  DASHBOARD_REALM_LIMIT,
+  DEFAULT_TRACK,
+  type FRONTIER_AREA,
+  MATH_AREA,
+  REALMS,
+  TRACKS,
+} from '@/lib/constants';
 import { mathExerciseIds, realmExerciseIds, trackExerciseIds } from '@/lib/content/ids';
 import { hasContent, loadTrackOutline } from '@/lib/content/load';
 import { applyCredit, creditorsForTrack, type Credit } from '@/lib/content/shared';
@@ -80,10 +87,14 @@ export function liveIds(area: LiveArea): Promise<Set<string>> {
 }
 
 /**
- * Every exercise of this track (or the tower) the user cleared. The area is
- * the id's first segment. Shared with lib/data/math.ts.
+ * Every exercise of this track (or the tower, or the Frontier) the user
+ * cleared. The area is the id's first segment. Shared with lib/data/math.ts
+ * and lib/data/frontier.ts.
  */
-export async function clearedIds(userId: string, area: LiveArea): Promise<Set<string>> {
+export async function clearedIds(
+  userId: string,
+  area: LiveArea | typeof FRONTIER_AREA,
+): Promise<Set<string>> {
   const rows = await db
     .select({ id: progress.exerciseId })
     .from(progress)

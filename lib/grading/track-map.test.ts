@@ -1,12 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { CHAPTER_COUNT, REALMS } from '@/lib/constants';
-import type { RealmView, TrackOutline } from '@/lib/types';
+import type { FrontierChapter, RealmView, TrackOutline } from '@/lib/types';
 import {
   activeRealms,
   bossTitle,
+  buildFrontierList,
   buildTowerMap,
   buildTrackMap,
   clearedLevels,
+  frontierSummary,
   levelStatus,
   playableStep,
   towerSummary,
@@ -292,6 +294,59 @@ describe('towerSummary', () => {
 
   test('no live floors at all: state soon, 0 of 0', () => {
     expect(summary(NONE, NONE)).toEqual({ state: 'soon', next: null, cleared: 0, live: 0 });
+  });
+});
+
+describe('buildFrontierList + frontierSummary', () => {
+  const chapter = (date: string, slug: string): FrontierChapter => ({
+    folder: `${date}-${slug}`,
+    date,
+    slug,
+    title: `Title ${slug}`,
+    minutes: 5,
+    lessonId: `frontier/${date}-${slug}/lesson`,
+    quickCheckId: `frontier/${date}-${slug}/quick-check`,
+  });
+  /** Newest first, as listFrontierChapters returns them. */
+  const CHAPTERS = [chapter('2026-10-06', 'newer'), chapter('2026-10-05', 'older')];
+  const LIVE = new Set(CHAPTERS.flatMap((c) => [c.lessonId, c.quickCheckId]));
+  const list = (cleared: Set<string>) => buildFrontierList(CHAPTERS, LIVE, cleared);
+
+  test('a visitor: every chapter open at its lesson, order kept', () => {
+    const views = list(NONE);
+    expect(views.map((v) => [v.folder, v.status])).toEqual([
+      ['2026-10-06-newer', 'open'],
+      ['2026-10-05-older', 'open'],
+    ]);
+    expect(views[0].steps.map((s) => s.step)).toEqual(['lesson', 'quick-check']);
+    expect(playableStep(views[1])?.exerciseId).toBe('frontier/2026-10-05-older/lesson');
+  });
+
+  test('the quick check clears a chapter; the lesson alone does not', () => {
+    const lessonOnly = list(new Set([CHAPTERS[0].lessonId]));
+    expect(lessonOnly[0].status).toBe('open');
+    expect(playableStep(lessonOnly[0])?.exerciseId).toBe(CHAPTERS[0].quickCheckId);
+    expect(list(new Set([CHAPTERS[0].quickCheckId]))[0].status).toBe('done');
+  });
+
+  test('a chapter with no live step is soon', () => {
+    const live = new Set([CHAPTERS[0].lessonId]);
+    const views = buildFrontierList(CHAPTERS, live, NONE);
+    expect(views.map((v) => v.status)).toEqual(['open', 'soon']);
+  });
+
+  test('summary: the newest chapter not cleared, at its playable step', () => {
+    expect(frontierSummary(list(NONE))).toEqual({
+      state: 'open',
+      next: { title: 'Title newer', date: '2026-10-06', step: list(NONE)[0].steps[0] },
+    });
+    const s = frontierSummary(list(new Set([CHAPTERS[0].quickCheckId])));
+    expect(s.next?.step.exerciseId).toBe(CHAPTERS[1].lessonId);
+  });
+
+  test('summary: every chapter cleared, or no chapter at all', () => {
+    expect(frontierSummary(list(LIVE))).toEqual({ state: 'cleared', next: null });
+    expect(frontierSummary([])).toEqual({ state: 'empty', next: null });
   });
 });
 

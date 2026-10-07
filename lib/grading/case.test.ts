@@ -117,6 +117,11 @@ describe('gradedKind', () => {
     expect(kind('math/f8/quick-check')).toBe('quick-check');
     expect(kind('math/f1/lesson')).toBeNull();
   });
+
+  test('a Frontier quick check is a quick check; its lesson is not graded', () => {
+    expect(kind('frontier/2026-10-05-some-slug/quick-check')).toBe('quick-check');
+    expect(kind('frontier/2026-10-05-some-slug/lesson')).toBeNull();
+  });
 });
 
 describe('XP', () => {
@@ -151,6 +156,12 @@ describe('XP', () => {
   test('a Math Tower lesson and quick check map to lesson and quick-check', () => {
     expect(clearReason({ area: 'math', floor: 2, step: 'lesson' })).toBe('lesson');
     expect(clearReason({ area: 'math', floor: 2, step: 'quick-check' })).toBe('quick-check');
+  });
+
+  test('a Frontier lesson and quick check earn the usual lesson and quick-check XP', () => {
+    const at = { area: 'frontier', date: '2026-10-05', slug: 'some-slug' } as const;
+    expect(clearReason({ ...at, step: 'lesson' })).toBe('lesson');
+    expect(clearReason({ ...at, step: 'quick-check' })).toBe('quick-check');
   });
 });
 

@@ -4,10 +4,12 @@ import { redirect } from 'next/navigation';
 import { ContinueCard } from '@/components/dashboard/continue-card';
 import { DailyQuest } from '@/components/dashboard/daily-quest';
 import { DashboardStats } from '@/components/dashboard/dashboard-stats';
+import { FrontierPanel } from '@/components/dashboard/frontier-panel';
 import { RealmTile } from '@/components/dashboard/realm-tile';
 import { TowerPanel } from '@/components/dashboard/tower-panel';
 import { Panel } from '@/components/panel';
 import { AUTH_ROUTES, DASHBOARD_TEXT, ONBOARDING_HREF, REALMS_HREF } from '@/lib/constants';
+import { getFrontierSummary } from '@/lib/data/frontier';
 import { getDashboard } from '@/lib/data/realms';
 
 export const metadata: Metadata = { title: `${DASHBOARD_TEXT.title} · Sigmorai` };
@@ -19,11 +21,11 @@ const REALMS_ID = 'dashboard-realms';
  * The player's home (Sigmorai App.dc.html → isDash): the next open step on
  * their track, their stats and their active realms. Every state is computed
  * on the server (lib/data/realms.ts).
- * The Math Tower panel and MATH FLOORS stat come from the same read.
- * Not built yet: the Frontier shortcut.
+ * The Math Tower panel and MATH FLOORS stat come from the same read; the
+ * FRONTIER panel from the Frontier's own read (lib/data/frontier.ts).
  */
 export default async function DashboardPage() {
-  const page = await getDashboard();
+  const [page, frontier] = await Promise.all([getDashboard(), getFrontierSummary()]);
   if (page.status === 'signed-out') redirect(AUTH_ROUTES.signIn);
   if (page.status === 'onboarding') redirect(ONBOARDING_HREF);
 
@@ -74,6 +76,7 @@ export default async function DashboardPage() {
         <DashboardStats streak={stats.streak} levelsCleared={levelsCleared} tower={tower} />
         <DailyQuest streak={stats.streak} activeToday={stats.activeToday} />
         <TowerPanel tower={tower} />
+        <FrontierPanel frontier={frontier} />
       </aside>
     </div>
   );

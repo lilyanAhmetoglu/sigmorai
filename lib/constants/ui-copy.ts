@@ -8,7 +8,7 @@ import type {
 } from '@/lib/types';
 import { QUICK_CHECK_QUESTIONS } from './content';
 import { FRONTIER } from './curriculum';
-import { CHAPTER_COUNT, MATH_AREA } from './exercises';
+import { CHAPTER_COUNT, FRONTIER_AREA, MATH_AREA } from './exercises';
 import { SITE_NAME } from './site';
 import { HERO_NAME_MAX, HERO_NAME_MIN } from './users';
 
@@ -212,12 +212,12 @@ export const QUEST_TEXT = {
   clearedBody: 'Added to your total. Press Continue to go on.',
   notifications: 'Notifications',
   noticeHeading: 'Quest',
-  notAvailable: 'This step is not available yet.',
-  notAvailableHint: `${FRONTIER.name} steps open later.`,
   // Tags: "BOOTSTRAP VILLAGE · CHAPTER 1 · CASE"
   chapterTag: (n: number) => `CHAPTER ${n}`,
   // "MATH TOWER · FLOOR 2 · QUICK CHECK"
   floorTag: (n: number) => `FLOOR ${n}`,
+  // "THE FRONTIER · 2026-10-05 · LESSON"
+  frontierArea: FRONTIER.name.toUpperCase(),
   bossTag: 'BOSS',
   lessonTag: 'LESSON',
   // Lesson page: LESSON | SOURCES tabs, then the "Lesson done" panel.
@@ -275,10 +275,14 @@ export const QUEST_TEXT = {
   /** The action may have finished (and spent HP) before the reply was lost. */
   noReply: 'No reply from the server. Reload the page to see your HP and result.',
   locked: 'LOCKED',
-  /** The back link (questBackHref): the realm page, or the tower page for a Math Tower floor. */
+  /** The back link (questBackHref): the realm page, the tower page, or the Frontier page. */
   backIcon: '◂',
   back: (area: ExerciseRef['area'] | undefined) =>
-    area === MATH_AREA ? 'Back to tower' : 'Back to realm',
+    area === MATH_AREA
+      ? 'Back to tower'
+      : area === FRONTIER_AREA
+        ? 'Back to the Frontier'
+        : 'Back to realm',
   loading: 'Loading the quest',
   loadError: "The quest didn't load. Try again in a moment.",
   retry: 'Retry',
