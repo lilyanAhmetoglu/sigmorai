@@ -54,9 +54,11 @@ describe('specialist realms (real r9 Canvas Workshop on the creator path)', () =
     next: { realm: 0, chapter: 1, step },
   };
 
-  test('pathRealms marks only the specialist row (PATH REALM badge)', () => {
+  test('pathRealms carries the owner only on the specialist row ("CREATOR ONLY" badge)', () => {
     const rows = pathRealms(creator, (slug) => `/realms/${slug}`);
-    expect(rows.filter((r) => r.specialist).map((r) => r.id)).toEqual([9]);
+    expect(rows.filter((r) => r.track !== null).map((r) => [r.id, r.track])).toEqual([
+      [9, 'creator'],
+    ]);
   });
 
   test('r9 stands on its slot, which is no longer fog; the trail runs r5 → r9 → r6', () => {

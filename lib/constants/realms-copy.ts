@@ -72,8 +72,12 @@ export const REALMS_TEXT = {
   signIn: 'Sign in',
   /** "REALM 03" */
   number: (number: string) => `REALM ${number}`,
-  /** A specialist realm (one path only) on its card and its "Your path" row: text, not colour only. */
-  pathRealm: 'PATH REALM',
+  /**
+   * A specialist realm (one path only) on its card, its "Your path" row and
+   * its world-map marker name: "CREATOR ONLY" (from TRACK_TEXT's label).
+   * Text, not colour only.
+   */
+  pathRealm: (trackLabel: string) => `${trackLabel} ONLY`,
   /** "REALM 03 · INTERMEDIATE" */
   tag: (number: string, tier: Tier) => `REALM ${number} · ${TIER_TEXT[tier]}`,
   /** Catalog meta row: what a realm holds on this path ("6 CHAPTERS + BOSS"). */
@@ -240,8 +244,10 @@ export const WORLD_MAP_TEXT = {
     cleared: number,
     total: number,
     tag?: string,
+    /** "CREATOR ONLY" on a specialist realm (REALMS_TEXT.pathRealm). */
+    only?: string,
   ) =>
-    `${number} ${name}, ${state.replace(/\s*·\s*/g, ' ').toLowerCase()}, ${cleared} of ${total} cleared${tag ? `, ${tag.toLowerCase()}` : ''}`,
+    `${number} ${name}${only ? `, ${only.toLowerCase()}` : ''}, ${state.replace(/\s*·\s*/g, ' ').toLowerCase()}, ${cleared} of ${total} cleared${tag ? `, ${tag.toLowerCase()}` : ''}`,
   /** On the current realm, for a player with a hero. */
   youAreHere: 'YOU ARE HERE',
   /** On the first open realm, for a visitor. */
