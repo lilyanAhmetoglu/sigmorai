@@ -19,6 +19,11 @@
 - **c7–c9 teach what c1–c6 do not.** c1 already covers the shot checklist, negative space and text-in-image; c3 covers palette. c7–c9 reference those and go deeper. c8 is renamed "Framing & format". Boss case stays unchanged.
 - **Correction: one code fix shipped in PR 3.** `nextStepId` (lib/data/quest.ts) now reads the realm's chapter count from the outline; without it Continue after c6 pointed at the locked boss.
 
+## Amendments locked 2026-10-07 (world map, SIG-59)
+
+- **The "Your path" list is `components/realms/path-list.tsx`**, built by the world map PR 1 (`docs/plans/world-map-design-plan.md`). PR 2 here reuses it on the dashboard instead of a new `components/dashboard/path-list.tsx`, and adds a "View on world map" link to `/map`. One list, two pages.
+- **A specialist realm needs a world-map slot when it ships:** one `{ slot, realm }` row in `WORLD_MAP.slotRealms` (`lib/constants/world-map.ts`). A test fails if a `REALMS` row has neither a core place nor a slot.
+
 ## Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")
 
 These override the sections below where they disagree.

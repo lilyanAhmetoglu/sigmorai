@@ -16,7 +16,7 @@ When this file and `design/` disagree, `design/` wins; fix this file.
 - Zero border-radius. Hard offset shadows only (`shadow-notch`, `shadow-drop`, `bevel`, `bevel-pressed`), never blur.
 - No gradients, except the text-legibility fade over canvas scenes.
 - Fonts: Pixelify Sans (display), Silkscreen (HUD), Atkinson Hyperlegible (all reading text), JetBrains Mono (code). Ligatures off.
-- Focus ring: 3px Spark `#FFC53D`. Tap targets ≥ 44px. Every layout reflows to phone width; only the level map scrolls sideways.
+- Focus ring: 3px Spark `#FFC53D`. Tap targets ≥ 44px. Every layout reflows to phone width; the page never scrolls sideways: the level map and the world map scroll inside their boxes (2026-10-07, world map).
 - Pixel art scales by whole numbers, `image-rendering: pixelated`.
 
 ## Voice

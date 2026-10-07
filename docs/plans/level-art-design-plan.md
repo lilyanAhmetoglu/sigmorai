@@ -8,6 +8,11 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (world map, SIG-59)
+
+- **`/map` is the world map, not a redirect.** It shows every realm of a path as a land on one top-down map (`docs/plans/world-map-design-plan.md`). This replaces "/map → redirect to the player's current realm" (2026-10-05). `/map/<slug>` stays the realm's level map and gets a "◂ World map" back link; its title reads "<Realm> · Level map · Sigmorai".
+- **World art is its own set** (sea, continents, landmarks, fog, islands; prompts in the world-map spec, PR 3), on a 1024×768 art grid at 1×, shown at ½, 1 or 2. Until it exists the world is a token-coloured SVG placeholder. No level art is reused.
+
 ## Amendments locked 2026-10-05 (level map, SIG-15)
 
 - The map is DOM, not canvas. /map/[realm] (and /map → redirect to the player's current realm) renders the four PNG layers via RealmScene in a 2048×480 horizontally scrolling box (exact 2×), with seven LevelNode links on top. Why: the design file already uses <img> + buttons; canvas would only remove accessibility.
