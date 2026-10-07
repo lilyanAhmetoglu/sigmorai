@@ -226,7 +226,7 @@ export const WORLD_MAP_TEXT = {
   intro: 'Each land is a realm. The lands on your path are lit. Open a land to see its level map.',
   /** The map box (a labelled section). */
   mapLabel: 'World map',
-  hint: 'Drag or scroll to move around the map.',
+  hint: 'Scroll or swipe to move around the map. Use + and − to zoom.',
   /** "Prompt Forest, in progress, 2 of 7 cleared, you are here" */
   marker: (name: string, state: string, cleared: number, total: number, tag?: string) =>
     `${name}, ${state.toLowerCase()}, ${cleared} of ${total} cleared${tag ? `, ${tag.toLowerCase()}` : ''}`,

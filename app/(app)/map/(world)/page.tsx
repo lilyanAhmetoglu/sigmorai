@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { WorldMap } from '@/components/map/world-map';
+import { WORLD_MAP_BOX_ID, WorldMap } from '@/components/map/world-map';
+import { ZoomControls } from '@/components/map/zoom-controls';
 import { PathList } from '@/components/realms/path-list';
 import { SignInNote } from '@/components/realms/sign-in-note';
 import { TrackSwitch } from '@/components/realms/track-switch';
@@ -47,7 +48,10 @@ export default async function WorldMapPage({ searchParams }: PageProps<'/map'>) 
 
       <div className="flex flex-col gap-2">
         <WorldMap view={view} heroName={heroName} />
-        <p className="world-map-hint">{WORLD_MAP_TEXT.hint}</p>
+        <div className="world-map-bar">
+          <p className="world-map-hint">{WORLD_MAP_TEXT.hint}</p>
+          <ZoomControls boxId={WORLD_MAP_BOX_ID} />
+        </div>
       </div>
 
       <section aria-labelledby={PATH_HEADING_ID} className="flex flex-col gap-3">

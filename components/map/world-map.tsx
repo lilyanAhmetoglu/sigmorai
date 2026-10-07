@@ -4,7 +4,11 @@ import { PixelAvatar } from '@/components/pixel-avatar';
 import { WORLD_MAP, WORLD_MAP_TEXT } from '@/lib/constants';
 import { realmAccent } from '@/lib/content/curriculum';
 import type { WorldPlace, WorldRealm, WorldView } from '@/lib/types';
+import { ScrollToCurrent } from './scroll-to-current';
 import { anchorStyle, WorldMarker } from './world-marker';
+
+/** The current realm's marker: centred in the box on load. */
+const CURRENT_SELECTOR = '.world-marker[aria-current="location"]';
 
 type Props = {
   view: WorldView;
@@ -65,8 +69,9 @@ type Placed = WorldRealm & { place: WorldPlace };
  * landmarks and the hero do not (world-map.css positions them by anchor ×
  * zoom), so they stay 44px targets. Everything drawn is decoration
  * (aria-hidden); the markers are the links, and the "Your path" list under
- * the box is the text view. The zoom (data-zoom) is world-map.css's job: with
- * no JS the box shows the overview.
+ * the box is the text view. ZoomControls sets data-zoom on the box and
+ * world-map.css does the rest; with no JS the box shows the overview. On
+ * load the box centres the current realm (ScrollToCurrent).
  */
 export function WorldMap({ view, heroName }: Props) {
   const placed = view.realms.filter((r): r is Placed => r.place !== null);
@@ -163,6 +168,12 @@ export function WorldMap({ view, heroName }: Props) {
           ))}
         </ul>
       </div>
+      {/* Keyed on the current realm: a new one re-runs the centring. */}
+      <ScrollToCurrent
+        key={current?.id ?? 'none'}
+        scrollerId={WORLD_MAP_BOX_ID}
+        selector={CURRENT_SELECTOR}
+      />
     </section>
   );
 }
