@@ -1,0 +1,124 @@
+---
+id: creator/r9/c5/lesson
+title: Plugins vs MCP
+minutes: 8
+sources:
+  - kind: docs
+    title: Figma developer docs · Compare the Figma APIs
+    url: https://developers.figma.com/compare-apis/
+  - kind: docs
+    title: Figma developer docs · Plugins introduction
+    url: https://developers.figma.com/docs/plugins/
+  - kind: docs
+    title: Figma developer docs · Making network requests (plugins)
+    url: https://developers.figma.com/docs/plugins/making-network-requests/
+  - kind: docs
+    title: Figma developer docs · Plugin manifest
+    url: https://developers.figma.com/docs/plugins/manifest/
+  - kind: docs
+    title: Figma developer docs · Working in Dev Mode (plugins)
+    url: https://developers.figma.com/docs/plugins/working-in-dev-mode/
+  - kind: docs
+    title: Figma developer docs · Publishing (plugins)
+    url: https://developers.figma.com/docs/plugins/publishing/
+  - kind: docs
+    title: Figma developer docs · Figma MCP server introduction
+    url: https://developers.figma.com/docs/figma-mcp-server/
+  - kind: docs
+    title: Canva developer docs · Canva Developers SDK documentation
+    url: https://www.canva.dev/docs/apps/
+  - kind: docs
+    title: Canva developer docs · Apps inside Canva
+    url: https://www.canva.dev/docs/apps/apps-inside-canva/
+  - kind: docs
+    title: Canva developer docs · Intents
+    url: https://www.canva.dev/docs/apps/intents/
+  - kind: docs
+    title: Canva developer docs · Apps (platform concepts)
+    url: https://www.canva.dev/docs/apps/platform-concepts-apps/
+  - kind: docs
+    title: Canva developer docs · Canva for AI assistants (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/
+  - kind: docs
+    title: Canva developer docs · REST APIs
+    url: https://www.canva.dev/docs/apps/rest-apis/
+  - kind: docs
+    title: Canva developer docs · duplicatePage (preview API)
+    url: https://www.canva.dev/docs/apps/api/preview/design-duplicate-page/
+---
+
+## Why it matters
+
+Your team wants a button that swaps placeholder photos for approved ones from the brand library. Someone says: "Build a plugin." Someone else says: "Just connect an MCP server." Both can work. They start in different places and see different things.
+
+MCP Bridgelands taught what an MCP server is and how to scope one. This chapter puts servers next to plugins and in-editor apps, so you can pick.
+
+## Figma: four ways in
+
+Figma's "Compare the Figma APIs" page names three APIs. Its MCP server is a fourth way in. The quotes are Figma's.
+
+| Way in     | Who or what starts it                                                      | What it can touch                                              |
+| ---------- | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Plugin API | a user with the file open; "the plugin is reading or writing to that file" | "Can only read and edit the current file that a user has open" |
+| Widget API | a user adds it; it stays: it "persists on the canvas"                      | the file it was added to                                       |
+| REST API   | a script or schedule; "Figma does not need to be open"                     | many files, but "largely read-only"                            |
+| MCP server | an AI agent, through an MCP client                                         | design context for code, and writes "back to the canvas"       |
+
+The REST API's write exceptions are short: "Comments and Comment Reactions", "Variables" and "Dev Resources". Chapter 6 uses the variables part.
+
+## What a Figma plugin is
+
+Figma says plugins "run in files and perform one or more actions". You build them with JavaScript and HTML. A plugin can open its own window, an `<iframe>` (a small web page inside Figma), for its controls.
+
+The rules that shape a plugin:
+
+- **A person starts it.** Actions "must be initiated by the user". "Users can only run one plugin and one action at a time."
+- **No background work.** "It's not possible to build plugins that run in the background."
+- **Only what is in the file.** A plugin sees styles and components "currently in the file, or have been imported into the file". It cannot see the file's comments, permissions or version history; Figma points to the REST API for those.
+- **Network access can be limited.** In `manifest.json` (the plugin's settings file), a `networkAccess` key holds `allowedDomains`. Then "Your plugin can only access the domains that you specify". Figma "recommends that your plugin only allows domains that are needed". A `reasoning` line is required for `"*"` (any domain) or for a local server. Figma's test starts with `"none"`, which blocks every call with a CSP error (content-security-policy: the browser refused the request). Then you "remove "none" and add the domains that your plugin requires".
+- **Dev Mode is read-only.** Plugins there "won't be able to edit the contents of the document". They are for inspection and code generation.
+
+Plan updates with care. Once Figma approves a plugin, "you can publish any updates immediately". And "It's not possible for users to revert to a previous version". So a bad update reaches every user at once. The fix: "If you need to roll back any changes, you can republish an earlier version of the plugin."
+
+## Canva: one SDK, three surfaces
+
+Canva has new names for its developer products. Its docs say: "The Canva Apps SDK, Connect APIs, and MCP are now unified in the Canva Developers SDK." Everything you build is now an "app". An app is built for one or more of three **surfaces** (places where it runs).
+
+| Old name     | Now                                                |
+| ------------ | -------------------------------------------------- |
+| Apps SDK     | the Apps inside Canva surface                      |
+| Connect APIs | the Canva REST APIs, for "Canva for your platform" |
+| Canva MCP    | the Canva for AI assistants surface                |
+
+- **Apps inside Canva** run "in the Canva editor, in an iframe". They can import content, add elements to a design, and automate design tasks.
+- **Canva for your platform** runs "on your own infrastructure and calls the Canva REST APIs".
+- **Canva for AI assistants** connects to the Canva MCP server, so users can "create, edit, and export designs by asking for it in the AI tools they already use".
+
+Apps inside Canva are built with **intents**. An intent is "a contract that lets Canva discover your app" and show it "wherever that capability is relevant". In plain words: you say what your app can do, and Canva decides where to offer it. "All new apps must implement at least one intent." The docs list four: Content Publisher, Data Connector, Design Editor and URL Expander.
+
+You can share an app "publicly through the Apps Marketplace" or "privately with members of your team". One warning about preview APIs (APIs that are not final yet). Canva's REST APIs page, for Canva for your platform, says: "Public apps that use preview APIs or features will not pass the review process." For apps inside Canva, a preview API page such as duplicatePage says: "You can't release public apps using this API until it's stable."
+
+## Who starts the work
+
+In our words: a plugin or an app inside the editor starts with a person in the file. An MCP server starts with an AI assistant calling its tools. A REST script starts with nobody there.
+
+Example (ours). "Swap the photos in this layout now" fits a plugin or an app inside Canva. "Make five posts from this brief" fits an assistant with an MCP server. "Check every brand file each night" fits the REST API. A Figma plugin cannot do the nightly job, because it cannot run in the background.
+
+You can also mix them. In Canva, "a single app can be built for more than one" surface. In Figma, a plugin "can also call the REST API" to reach other files.
+
+## Before you build a plugin
+
+Figma's publishing page has a checklist for a "second 80% of the work". Some of its questions:
+
+- "The user has nothing selected?"
+- "A component selected? Are you alright with the change propagating to potentially hundreds of instances?"
+
+A photo-swap plugin meets both (our view). Write down the answer to each before the first line of code (our advice).
+
+## What this means for your work
+
+- **Ask who starts the work:** a person, an assistant or a script.
+- **A plugin works on the open file only,** and never in the background.
+- **Use Canva's new names:** Developers SDK, with three surfaces.
+- **Answer Figma's edge-case questions** before you build.
+- **Plan updates with care.** Approved plugin updates reach everyone at once.

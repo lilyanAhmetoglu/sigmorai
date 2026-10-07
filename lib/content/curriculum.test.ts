@@ -28,7 +28,7 @@ describe('curriculum constants', () => {
     expect(REALMS.filter((r) => r.track !== null).every((r) => r.id >= 9)).toBe(true);
   });
 
-  test('r9 Canvas Workshop: creator only, no art yet (flat neutral scene)', () => {
+  test('r9 Canvas Workshop: creator only, no art yet (flat surface-3 scene)', () => {
     expect(REALMS[9]).toMatchObject({ slug: 'canvas-workshop', track: 'creator', scene: false });
   });
 
