@@ -22,9 +22,14 @@ describe('curriculum constants', () => {
     expect(REALMS.map((r): number => r.id)).toEqual([...Array(REALMS.length).keys()]);
   });
 
-  test('today: 9 core realms (track null), every one with art', () => {
+  test('9 core realms (track null), every one with art; specialist rows start at r9', () => {
     expect(coreRealms().map((r) => r.id)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
-    expect(REALMS.every((r) => r.track === null && r.scene)).toBe(true);
+    expect(coreRealms().every((r) => r.scene)).toBe(true);
+    expect(REALMS.filter((r) => r.track !== null).every((r) => r.id >= 9)).toBe(true);
+  });
+
+  test('r9 Canvas Workshop: creator only, no art yet (flat neutral scene)', () => {
+    expect(REALMS[9]).toMatchObject({ slug: 'canvas-workshop', track: 'creator', scene: false });
   });
 
   test('one floor row per floor, n = position + 1', () => {
@@ -50,8 +55,10 @@ describe('isRealmOpen', () => {
 describe('realm lists per track (fixture table: r9 creator, r10 builder)', () => {
   const T = SPECIALIST_REALMS;
 
-  test('today every track has exactly the core realms', () => {
-    for (const track of TRACKS) expect(trackRealms(track)).toEqual(coreRealms());
+  test('real table: builder and strategist have the core realms; creator adds r9', () => {
+    expect(trackRealms('builder')).toEqual(coreRealms());
+    expect(trackRealms('strategist')).toEqual(coreRealms());
+    expect(trackRealms('creator')).toEqual([...coreRealms(), REALMS[9]]);
   });
 
   test('a track gets the core realms plus only the specialist realms it owns', () => {
@@ -104,7 +111,15 @@ describe('realm paths', () => {
     expect(existsSync(`${PUBLIC_DIR}${MATH_ART}`)).toBe(true);
   });
 
-  test.each(REALMS.map((r) => r.id))('art folder for realm %d exists in public/', (id) => {
-    expect(existsSync(`${PUBLIC_DIR}${realmArt(id)}`)).toBe(true);
+  test.each(REALMS.filter((r) => r.scene).map((r) => r.id))(
+    'art folder for realm %d exists in public/',
+    (id) => {
+      expect(existsSync(`${PUBLIC_DIR}${realmArt(id)}`)).toBe(true);
+    },
+  );
+
+  test('a real realm with no art yet has no art path and its own folder', () => {
+    expect(realmArt(9)).toBeNull();
+    expect(realmFolder(9)).toBe('09-canvas-workshop');
   });
 });

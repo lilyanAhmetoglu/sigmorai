@@ -1,0 +1,96 @@
+{
+  "id": "creator/r9/c1/challenge",
+  "title": "The price card that lost its tokens",
+  "scenario": "You are the product designer at a small savings app. A developer built the new price card with an AI assistant. The card looks close, but the code has hard-coded colours, odd spacing and a new button instead of the shared one.\n\nUse the exhibit. The tool names are from Figma's tool list. The app, the file and the log are made up for this case.",
+  "exhibit": "WHAT THE DEVELOPER SENT (made up)\n  A PNG screenshot of the pricing page, pasted into the chat.\n  Prompt: \"Build this card in React.\"\n\nWHAT CAME BACK (made up)\n  color: #1F7A4D        (the file uses the variable brand/green-600)\n  padding: 14px         (the file uses the variable space/16)\n  <button className=\"green-btn\">   (the file uses the Button component)\n\nTHE FIGMA FILE TODAY (made up)\n  Page \"Pricing\": 1 frame, 240 layers\n  Layer names: Frame1268, Group5, Rectangle 12\n  Two fills are raw hex, not variables\n\nREAD TOOLS ON THE DESIGN SERVER (from Figma's tool list)\n  get_design_context   Design context for a layer or selection\n  get_metadata         Sparse XML outline of a selection\n  get_variable_defs    Variables and styles used in a selection\n  get_screenshot       Screenshot of a selection",
+  "questions": [
+    {
+      "prompt": "Why did the code get #1F7A4D and not the brand/green-600 variable?",
+      "options": [
+        {
+          "text": "The model drops variable names on purpose, because short hex codes make the code smaller",
+          "explanation": "No vendor page says this. The model never saw the variable name in the first place."
+        },
+        {
+          "text": "A screenshot holds only pixels, so the variable name never reached the model at all",
+          "explanation": "Right. OpenAI's vision page says the model doesn't process file names or metadata. The token name lives in the file, not in the picture.",
+          "correct": true
+        },
+        {
+          "text": "The design context tool always returns hex codes, and it cannot return any token names",
+          "explanation": "The developer never called a design tool. And Figma has get_variable_defs to return variables and styles."
+        },
+        {
+          "text": "The PNG was too small to show colour, so the model had to make up a random green",
+          "explanation": "The green is close, so the colour was visible. What was missing is the name behind the colour."
+        }
+      ]
+    },
+    {
+      "prompt": "You want the developer to get the real colour and spacing tokens for the card. Which call fits best?",
+      "options": [
+        {
+          "text": "get_screenshot of the card again, at a larger size, so the model can read the colours better",
+          "explanation": "A bigger picture still has no token names. Figma uses the screenshot for layout fidelity, next to the structured context."
+        },
+        {
+          "text": "get_metadata of the whole page, because the outline lists every colour token in the file",
+          "explanation": "Figma says metadata holds basic properties such as IDs, names, types, position and sizes. It is an outline, not a token list."
+        },
+        {
+          "text": "get_variable_defs on the card, with a prompt that asks for the variable names and values",
+          "explanation": "Right. Figma says this tool returns the variables and styles used in a selection, and it suggests naming what you want in the prompt.",
+          "correct": true
+        },
+        {
+          "text": "Paste the brand guide PDF into the chat, so the model can match each hex to a name later",
+          "explanation": "That asks the model to guess a match from a picture again. The file already holds the exact names."
+        }
+      ]
+    },
+    {
+      "prompt": "The developer selects the whole Pricing page (240 layers). The answer comes back cut off. What is the best next step?",
+      "options": [
+        {
+          "text": "Try the same full-page request again later, when the server is less busy and faster",
+          "explanation": "Figma says large selections can cause errors or incomplete responses. The size is the problem, not the time."
+        },
+        {
+          "text": "Turn off get_screenshot, because the picture is what makes every response too long",
+          "explanation": "Figma says to turn the screenshot off only for token limits. The selection is still far too large."
+        },
+        {
+          "text": "Ask the model to guess the missing part, since the first half of the page looks fine",
+          "explanation": "A guess is how the hex codes got in. Missing context means missing structure."
+        },
+        {
+          "text": "Get the metadata outline first, then ask for design context one small part at a time",
+          "explanation": "Right. Figma says to work on smaller sections or components, and to use the outline to break a large design down.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Which change to the Figma file helps the most before the next handoff?",
+      "options": [
+        {
+          "text": "Use components, variables for every fill and space, and clear names like PriceCard",
+          "explanation": "Right. Figma's file checklist asks for components, variables and intent-driven names, so the assistant knows what each part is.",
+          "correct": true
+        },
+        {
+          "text": "Export one large, sharp screenshot of the page and pin it to the top of the file",
+          "explanation": "A sharper picture still has no names. The vision pages say images may be resized and spatial detail is weak."
+        },
+        {
+          "text": "Flatten the card into one image layer, so the model sees a single clean shape",
+          "explanation": "This removes the structure the tools read. The assistant then has even less to work with."
+        },
+        {
+          "text": "Write a long chat message that lists every colour and every space by hand",
+          "explanation": "A hand-typed list goes stale and can be wrong. The variables in the file are the source of truth."
+        }
+      ]
+    }
+  ]
+}

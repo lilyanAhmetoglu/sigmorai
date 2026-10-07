@@ -23,8 +23,10 @@ const open = REALMS.filter((r) => (OPEN_TIERS as readonly string[]).includes(r.t
 const locked = REALMS.filter((r) => !(OPEN_TIERS as readonly string[]).includes(r.tier));
 
 describe('achievements', () => {
-  test('one per open-tier realm per track, plus the Math Tower', () => {
-    expect(CERT_ACHIEVEMENTS).toHaveLength(TRACKS.length * open.length + 1);
+  test('one per open-tier realm per track it is on, plus the Math Tower', () => {
+    const core = open.filter((r) => r.track === null);
+    const specialist = open.filter((r) => r.track !== null);
+    expect(CERT_ACHIEVEMENTS).toHaveLength(TRACKS.length * core.length + specialist.length + 1);
     expect(new Set(CERT_ACHIEVEMENTS.map((a) => a.slug)).size).toBe(CERT_ACHIEVEMENTS.length);
   });
 
@@ -96,11 +98,15 @@ describe('earnedAchievements', () => {
 });
 
 describe('achievements per track (path-curriculum spec)', () => {
-  test('regression: today’s slug list is unchanged, slug for slug, same order', () => {
+  test('regression: every old slug is unchanged, same order; creator-r9 joins its path', () => {
     const today = ['builder', 'strategist', 'creator'].flatMap((track) =>
       [0, 1, 2, 3, 4, 5].map((realm) => `${track}-r${realm}`),
     );
-    expect(CERT_ACHIEVEMENTS.map((a) => a.slug)).toEqual([...today, MATH_TOWER_ACHIEVEMENT]);
+    expect(CERT_ACHIEVEMENTS.map((a) => a.slug)).toEqual([
+      ...today,
+      'creator-r9',
+      MATH_TOWER_ACHIEVEMENT,
+    ]);
   });
 
   test('a specialist realm has a certificate on its owner track only (fixture table)', () => {

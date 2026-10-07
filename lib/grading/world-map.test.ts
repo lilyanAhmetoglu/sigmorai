@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { REALMS, WORLD_MAP } from '@/lib/constants';
+import { coreRealms, REALMS, WORLD_MAP } from '@/lib/constants';
 import type { RealmStatus, RealmView, TrackMap, WorldGeometry } from '@/lib/types';
 import { coastline, edgeFog, pathRealms, realmPlace, shapeSeed, worldView } from './world-map';
 
@@ -21,34 +21,65 @@ function realm(id: number, status: RealmStatus, cleared = 0): RealmView {
   };
 }
 
+/** The core realms (r0–r8): every path has them, in id order. */
+const CORE = coreRealms();
+
 const step = { step: 'lesson' as const, exerciseId: 'x', status: 'open' as const };
 
 function trackMap(statuses: RealmStatus[], next: number | null): TrackMap {
   return {
     track: 'builder',
     realms: statuses.map((s, id) => realm(id, s, s === 'cleared' ? 7 : 0)),
-    next: next === null ? null : { realm: REALMS[next].id, chapter: 1, step },
+    next: next === null ? null : { realm: CORE[next].id, chapter: 1, step },
   };
 }
 
-const NINE_OPEN: RealmStatus[] = REALMS.map(() => 'open');
+const NINE_OPEN: RealmStatus[] = CORE.map(() => 'open');
 
 describe('pathRealms', () => {
   test('rows use the given href builder, in path order, with the current realm marked', () => {
     const rows = pathRealms(trackMap(NINE_OPEN, 2), (slug) => `/realms/${slug}`);
-    expect(rows.map((r) => r.id)).toEqual(REALMS.map((r) => r.id));
-    expect(rows.map((r) => r.href)).toEqual(REALMS.map((r) => `/realms/${r.slug}`));
-    expect(rows.filter((r) => r.current).map((r) => r.id)).toEqual([REALMS[2].id]);
+    expect(rows.map((r) => r.id)).toEqual(CORE.map((r) => r.id));
+    expect(rows.map((r) => r.href)).toEqual(CORE.map((r) => `/realms/${r.slug}`));
+    expect(rows.filter((r) => r.current).map((r) => r.id)).toEqual([CORE[2].id]);
+  });
+});
+
+describe('specialist realms (real r9 Canvas Workshop on the creator path)', () => {
+  // Creator map order: r9 sits between r5 and r6 (content/creator/outline.json).
+  const ORDER = [0, 1, 2, 3, 4, 5, 9, 6, 7, 8];
+  const creator: TrackMap = {
+    track: 'creator',
+    realms: ORDER.map((id) => realm(id, 'open')),
+    next: { realm: 0, chapter: 1, step },
+  };
+
+  test('pathRealms carries the owner only on the specialist row ("CREATOR ONLY" badge)', () => {
+    const rows = pathRealms(creator, (slug) => `/realms/${slug}`);
+    expect(rows.filter((r) => r.track !== null).map((r) => [r.id, r.track])).toEqual([
+      [9, 'creator'],
+    ]);
+  });
+
+  test('r9 stands on its slot, which is no longer fog; the trail runs r5 → r9 → r6', () => {
+    const view = worldView(creator);
+    const slot = WORLD_MAP.slotRealms.find((s) => s.realm === 9)!.slot;
+    expect(view.realms.find((r) => r.id === 9)!.place).toEqual(
+      WORLD_MAP.slots.find((s) => s.id === slot)!,
+    );
+    expect(view.fog.map((s) => s.id)).not.toContain(slot);
+    expect(view.trail.map((s) => [s.from, s.to])).toContainEqual([5, 9]);
+    expect(view.trail.map((s) => [s.from, s.to])).toContainEqual([9, 6]);
   });
 });
 
 describe('worldView', () => {
   test('one realm per path realm, in path order, each placed, with its link and totals', () => {
     const view = worldView(trackMap(NINE_OPEN, 0));
-    expect(view.realms.map((r) => r.id)).toEqual(REALMS.map((r) => r.id));
+    expect(view.realms.map((r) => r.id)).toEqual(CORE.map((r) => r.id));
     for (const r of view.realms) {
       expect(r.place).toEqual(WORLD_MAP.realms[r.id]);
-      expect(r.href).toBe(`/map/${REALMS[r.id].slug}`);
+      expect(r.href).toBe(`/map/${CORE[r.id].slug}`);
       expect(r.total).toBe(7);
     }
   });
@@ -63,11 +94,11 @@ describe('worldView', () => {
     statuses[0] = 'cleared';
     statuses[1] = 'in-progress';
     const view = worldView(trackMap(statuses, 1));
-    expect(view.trail).toHaveLength(REALMS.length - 1);
+    expect(view.trail).toHaveLength(CORE.length - 1);
     expect(view.trail.map((s) => [s.from, s.to])).toEqual(
-      REALMS.slice(1).map((r, i) => [REALMS[i].id, r.id]),
+      CORE.slice(1).map((r, i) => [CORE[i].id, r.id]),
     );
-    expect(view.trail.map((s) => s.cleared)).toEqual([true, ...REALMS.slice(2).map(() => false)]);
+    expect(view.trail.map((s) => s.cleared)).toEqual([true, ...CORE.slice(2).map(() => false)]);
     expect(view.trail[0].a).toEqual(WORLD_MAP.realms[0]);
     expect(view.trail[0].b).toEqual(WORLD_MAP.realms[1]);
   });
@@ -82,7 +113,7 @@ describe('worldView', () => {
   test('no next step → no current realm', () => {
     const view = worldView(
       trackMap(
-        REALMS.map(() => 'cleared'),
+        CORE.map(() => 'cleared'),
         null,
       ),
     );
@@ -91,7 +122,7 @@ describe('worldView', () => {
     expect(view.trail.every((s) => s.cleared)).toBe(true);
   });
 
-  test('every slot is fog while no specialist realm uses one', () => {
+  test('on a path with no specialist realm, every slot is fog', () => {
     const view = worldView(trackMap(NINE_OPEN, 0));
     expect(view.fog).toEqual([...WORLD_MAP.slots]);
   });
@@ -120,7 +151,7 @@ describe('worldView', () => {
     const view = worldView(trackMap(NINE_OPEN, 0), geometry);
     expect(view.realms[1].place).toBeNull();
     expect(view.trail[0]).toMatchObject({ from: 0, to: 2 });
-    expect(view.trail).toHaveLength(REALMS.length - 2);
+    expect(view.trail).toHaveLength(CORE.length - 2);
   });
 });
 

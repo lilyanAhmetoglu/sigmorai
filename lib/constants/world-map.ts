@@ -53,10 +53,10 @@ export const WORLD_MAP = {
     { id: 's10', x: 380, y: 420, ...SLOT },
   ] as readonly WorldSlot[],
   /**
-   * Which specialist realm stands on which slot. Empty until the first
-   * specialist realm ships (per-path PR 1b); each realm's PR adds one row.
+   * Which specialist realm stands on which slot. Each realm's PR adds one row
+   * (path-curriculum spec): r9 Canvas Workshop sits by r5 MCP Bridgelands.
    */
-  slotRealms: [] as readonly WorldSlotRealm[],
+  slotRealms: [{ slot: 's5', realm: 9 }] as readonly WorldSlotRealm[],
   landmarks: [
     {
       id: 'math',

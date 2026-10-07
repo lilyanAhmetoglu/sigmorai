@@ -50,10 +50,11 @@ function subfolders(dir: string): string[] {
 describe.each([...TRACKS])('%s outline', (track) => {
   const load = async () => trackOutlineSchema(track).parse(await readOutline(track));
 
-  test('parses, with one entry per realm the track has, in order (today: r0–r8)', async () => {
-    const { realms } = await load();
-    expect(realms.map((r) => r.id)).toEqual(trackRealms(track).map((r) => r.id));
-    expect(realms.map((r) => r.id)).toEqual(CORE_IDS);
+  test('parses, with one entry per realm the track has; core realms in order', async () => {
+    const ids = (await load()).realms.map((r) => r.id);
+    // Map order is the outline: a specialist realm may sit between core realms.
+    expect([...ids].sort((a, b) => a - b)).toEqual(trackRealms(track).map((r) => r.id));
+    expect(ids.filter((id) => (CORE_IDS as readonly number[]).includes(id))).toEqual(CORE_IDS);
   });
 
   test('every exercise id it implies is valid', async () => {
@@ -220,10 +221,10 @@ describe('realm list rule (fixture table: r9 creator, r10 builder)', () => {
     expect(creator.safeParse(outline(MAX_CHAPTERS + 1)).success).toBe(false);
   });
 
-  test('with the real REALMS, r9 is unknown on every track', () => {
+  test('with the real REALMS, r9 (Canvas Workshop) is on creator only', () => {
     for (const track of TRACKS) {
       expect(trackOutlineSchema(track).safeParse(fixtureOutline([...CORE_IDS, 9])).success).toBe(
-        false,
+        track === 'creator',
       );
     }
   });

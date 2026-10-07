@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { CONTENT_DIR, MIN_CHAPTERS, OUTLINE_FILE, REALMS } from '@/lib/constants';
+import { CONTENT_DIR, coreRealms, MIN_CHAPTERS, OUTLINE_FILE, REALMS } from '@/lib/constants';
 import {
   CORE_IDS,
   CREATOR_ORDER,
@@ -28,7 +28,7 @@ import {
 } from './track-map';
 
 const outline: TrackOutline = {
-  realms: REALMS.map((r) => ({
+  realms: coreRealms().map((r) => ({
     id: r.id,
     topic: `topic ${r.id}`,
     lore: `lore ${r.id}`,
@@ -63,9 +63,9 @@ const map = (live: Set<string>, cleared: Set<string>) =>
 const realm = (realms: RealmView[], id: number) => realms.find((r) => r.id === id)!;
 
 describe('buildTrackMap', () => {
-  test('one realm per REALMS row, 6 chapters + the boss each', () => {
+  test('one realm per core realm (strategist owns none), 6 chapters + the boss each', () => {
     const { realms } = map(NONE, NONE);
-    expect(realms.map((r) => r.id)).toEqual(REALMS.map((r) => r.id));
+    expect(realms.map((r) => r.id)).toEqual(coreRealms().map((r) => r.id));
     for (const r of realms) expect(r.chapters).toHaveLength(MIN_CHAPTERS + 1);
     expect(realms[0].chapters.at(-1)).toMatchObject({ chapter: null, title: bossTitle(REALMS[0]) });
   });
@@ -432,7 +432,7 @@ describe('buildTrackMap: the outline is the map (fixture table: r9 creator)', ()
   const creator = (cleared = NONE) =>
     buildTrackMap('creator', fixtureOutline(CREATOR_ORDER), NONE, cleared, new Map(), T);
 
-  test('today: core realms only, in id order, each a core realm with art', () => {
+  test('a path with no specialist realm: core realms only, in id order, each with art', () => {
     const { realms } = map(NONE, NONE);
     expect(realms.map((r) => r.id)).toEqual(CORE_IDS);
     expect(realms.every((r) => r.track === null && r.scene)).toBe(true);
@@ -494,7 +494,7 @@ describe('realmNeighbours', () => {
     expect(ids(42)).toEqual([null, null]);
   });
 
-  test('today (core realms only) it is the realm number ± 1', () => {
+  test('on a path with core realms only it is the realm number ± 1', () => {
     const today = map(NONE, NONE).realms;
     expect(realmNeighbours(today, 4).prev?.id).toBe(3);
     expect(realmNeighbours(today, 4).after?.id).toBe(5);

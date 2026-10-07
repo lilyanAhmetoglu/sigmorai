@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import type { WorldPlace } from '@/lib/types';
 import { REALMS } from './curriculum';
-import { WORLD_MAP_TEXT } from './realms-copy';
+import { REALMS_TEXT, WORLD_MAP_TEXT } from './realms-copy';
+import { TRACK_TEXT } from './ui-copy';
 import {
   HERO_SIDES,
   heroClear,
@@ -154,6 +155,14 @@ describe('WORLD_MAP_TEXT.marker', () => {
     );
     expect(WORLD_MAP_TEXT.marker('06', 'Eval Arena', 'ADVANCED · LOCKED', 0, 7)).toBe(
       '06 Eval Arena, advanced locked, 0 of 7 cleared',
+    );
+  });
+
+  test('a specialist realm says its path right after the name', () => {
+    const only = REALMS_TEXT.pathRealm(TRACK_TEXT.creator.label);
+    expect(only).toBe('CREATOR ONLY');
+    expect(WORLD_MAP_TEXT.marker('09', 'Canvas Workshop', 'OPEN', 0, 7, undefined, only)).toBe(
+      '09 Canvas Workshop, creator only, open, 0 of 7 cleared',
     );
   });
 });
