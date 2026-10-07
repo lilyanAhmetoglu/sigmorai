@@ -64,7 +64,10 @@ export const leaderboardHref = (range: LeaderboardRange) =>
 export const AFTER_ONBOARDING_HREF = DASHBOARD_HREF;
 
 /**
- * The in-app nav, in the design's order (Sigmorai App.dc.html → navItems).
+ * The in-app nav, in the design's order (Sigmorai App.dc.html → navItems),
+ * except Blog takes the design's MATH TOWER slot (maintainer, 2026-10-07):
+ * the tower is a dashboard shortcut now. The design export still says MATH
+ * TOWER until the next Claude Design pass.
  * `live: false` until the route exists. Only live items show, so there are
  * no dead links and no rows of "soon" text. Flip it to true in the PR that
  * adds the page.
@@ -74,7 +77,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Realms', href: REALMS_HREF, live: true },
   { label: 'World map', href: MAP_HREF, live: true },
   { label: 'Leaderboard', href: LEADERBOARD_HREF, live: true },
-  { label: 'Math Tower', href: MATH_HREF, live: true },
+  { label: 'Blog', href: BLOG_HREF, live: true },
   { label: 'Profile', href: PROFILE_HREF, live: true },
 ];
 

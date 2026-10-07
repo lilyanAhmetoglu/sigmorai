@@ -8,6 +8,10 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (header)
+
+- **Blog takes the Math Tower's header slot** (maintainer: the header holds meaningful items and must include Blog). The Math Tower is no longer a nav item. It stays reachable from the dashboard Math Tower panel (a "View the tower" link in every state) and keeps its `/math` routes and certificate. Later it becomes a chapter of the Scientist path. This replaces "a nav item + a dashboard shortcut" for the tower below; the Frontier's nav slot is decided when the Frontier ships.
+
 ## Amendments locked 2026-10-06 (bosses)
 
 - **A boss is a `case.json`, same schema as a chapter case.** `CaseSchema`, `loadCase`, the quest page, `submitCase`, the open check and the map already handle `<track>/r<N>/boss/challenge`. No new format, no code. Supersedes "Out of scope: boss format" and the "Stub: … bosses" row (2026-10-05).

@@ -14,14 +14,14 @@ type Props = {
   size: ButtonSize;
   /** Where a signed-in visitor goes. Default: the dashboard. */
   signedInHref?: string;
-  /** The signed-out CTAs. Server-rendered, so the static page ships them. */
-  children: ReactNode;
+  /** The signed-out CTAs. Server-rendered, so the static page ships them. None: show nothing. */
+  children?: ReactNode;
 };
 
 /**
- * Swaps the landing CTAs for "Continue quest" once Clerk loads and finds a
- * session, so / stays static. /dashboard sends a player who has not onboarded
- * on to /onboarding.
+ * Swaps the signed-out CTAs for "Continue quest" once Clerk loads and finds a
+ * session, so public pages (/, /blog, /privacy) stay static. /dashboard sends
+ * a player who has not onboarded on to /onboarding.
  */
 export function LandingCta({ size, signedInHref = DASHBOARD_HREF, children }: Props) {
   const { isLoaded, isSignedIn } = useAuth();
