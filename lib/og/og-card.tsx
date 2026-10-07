@@ -176,7 +176,7 @@ export function OgCard({ logo, background, eyebrow, title, line }: CardProps) {
           display: 'flex',
           flexDirection: 'column',
           gap: 20,
-          maxWidth: 820,
+          width: 820,
           padding: 36,
           background: colors.surface,
           border: `4px solid ${colors.outline}`,
