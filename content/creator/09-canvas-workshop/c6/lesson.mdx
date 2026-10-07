@@ -1,0 +1,122 @@
+---
+id: creator/r9/c6/lesson
+title: Export & handoff
+minutes: 8
+sources:
+  - kind: docs
+    title: Figma developer docs · What the MCP sends vs. what the agent does
+    url: https://developers.figma.com/docs/figma-mcp-server/mcp-vs-agent/
+  - kind: docs
+    title: Figma developer docs · Write to canvas
+    url: https://developers.figma.com/docs/figma-mcp-server/write-to-canvas/
+  - kind: docs
+    title: Figma developer docs · Figma files endpoints (GET image)
+    url: https://developers.figma.com/docs/rest-api/file-endpoints/
+  - kind: docs
+    title: Figma developer docs · Tools and prompts
+    url: https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/
+  - kind: docs
+    title: Canva developer docs · export-design (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/tools/export-design/
+  - kind: docs
+    title: Canva developer docs · get-export-formats (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/tools/get-export-formats/
+  - kind: docs
+    title: Canva developer docs · MCP tools and rate limits
+    url: https://www.canva.dev/docs/apps/mcp/tools/
+  - kind: docs
+    title: Canva developer docs · Design edit handoff
+    url: https://www.canva.dev/docs/apps/mcp/workflows/design-edit/
+  - kind: docs
+    title: Figma developer docs · Code Connect introduction
+    url: https://developers.figma.com/docs/code-connect/
+  - kind: docs
+    title: Figma developer docs · Comparing Code Connect UI and Code Connect CLI
+    url: https://developers.figma.com/docs/code-connect/comparing-cc/
+  - kind: docs
+    title: Figma developer docs · Code Connect integration (Figma MCP server)
+    url: https://developers.figma.com/docs/figma-mcp-server/code-connect-integration/
+  - kind: docs
+    title: Figma developer docs · Variables (REST API)
+    url: https://developers.figma.com/docs/rest-api/variables/
+  - kind: docs
+    title: Figma developer docs · Variables endpoints (REST API)
+    url: https://developers.figma.com/docs/rest-api/variables-endpoints/
+---
+
+## Why it matters
+
+The design is approved. Now two groups need it. The social team needs files. The developers need code that uses your real components.
+
+Export gives files. A handoff gives meaning: which component, which token, which link to open. Chapter 1 quoted Figma: its server won't know your conventions "unless you provide that information through Code Connect, variables or prompts". This chapter sets those up.
+
+## Export: files out
+
+**Figma REST API.** The GET image endpoint "Renders images from a file". You pass node IDs (the IDs of layers), a `format` (`jpg`, `png`, `svg` or `pdf`) and a `scale` "between 0.01 and 4". Three facts to plan around:
+
+- "The image assets will expire after 30 days."
+- "Images up to 32 megapixels can be exported. Any images that are larger will be scaled down."
+- The answer "may contain values that are null". A null means "rendering of that specific node has failed", for example "a node that is invisible or has 0% opacity".
+
+For SVG, `svg_outline_text` is on by default. Outlined text "looks exactly the same" as in Figma. Real `<text>` stays selectable, but "visual accuracy is not guaranteed".
+
+**Figma MCP server.** The `download_assets` tool gives two things for each layer: an "Export render" and the "Raw source images", the original photos placed in it. "Up to 20 nodes can be passed per call." Figma's rule: use `get_screenshot` to see a design, and `download_assets` to "save, deliver, or transfer an asset".
+
+**Canva MCP server.** First, `get-export-formats` tells you "which export file types an existing design supports, and which of its pages are available in each type". Then `export-design` returns download links. These are signed URLs (links with a built-in key that stop working later). Canva warns: "Signed export URLs expire. Use them immediately, and don't store or share them." The plan matters too. On Free plans, export is "Standard quality". "Canva Pro and above" adds "lossless PNG, transparent backgrounds, and premium element export". A design with premium elements "may fail with license_required".
+
+Example (ours). You export 12 social cards from Figma. The answer holds 11 links and one null. That card was hidden. Count the files before you send anything.
+
+Chapter 2 gave Canva's rule: "Don't end the workflow at export." Canva calls an export "a delivery mechanism, not a handoff". It says to "Always offer the edit URL alongside or before an export".
+
+## Code Connect: components to code
+
+Figma calls Code Connect "a bridge between your codebase and Figma's Dev Mode". It connects "components in your repositories directly to components in your design files". It is "Available on a Dev or Full seat on the Organization, and Enterprise plans".
+
+There are two ways to set it up.
+
+|              | Code Connect CLI                             | Code Connect UI                                     |
+| ------------ | -------------------------------------------- | --------------------------------------------------- |
+| Who          | "developer-focused"                          | for "accessibility and collaboration"               |
+| Where        | "runs locally in your repository"            | "runs entirely within Figma", in files or libraries |
+| Gives the AI | "property mapping and dynamic code examples" | component path and name, plus your instructions     |
+
+"Property mapping" links a Figma property to a code prop. In Figma's template example, the `Size` value `Large` becomes `large` in code. The UI "doesn't yet support property mapping or dynamic examples". It can connect to your GitHub repository to find component paths and names.
+
+**What the AI agent gets.** When a frame uses connected components, the MCP server adds `<CodeConnectSnippet>` wrappers. Each holds the design properties, "Import statements", the "Component snippet" and any "Instructions" you added. With the UI, you write those with "Add instructions for MCP", for example accessibility rules.
+
+Example. Chapter 1's price card came back with a new `green-btn` button. Figma's own template example imports `import { Button } from "components/Button"`. With your Button connected, the `<CodeConnectSnippet>` for it carries the "Import statements" for your real Button.
+
+Two rules from Figma's pages:
+
+- **Connect the core first.** "Start by connecting the most frequently used components in your design system."
+- **Keep it current.** "When component APIs change in your codebase, update the corresponding Code Connect mappings."
+
+Chapter 2 named one write limit here: "Components must be manually published before Code Connect completes".
+
+## Variables: tokens in sync
+
+Your colour and spacing tokens live as Figma variables. The Variables REST API can query, create, update and delete them. Figma says you can use it to "Sync design system source of truth to and from Figma".
+
+This one is **Enterprise-only**. Figma's intro says: "To use this API, you must have a Full seat in an Enterprise org; guests cannot use the API." Its own table is more exact. Reading (GET) is open to "Any organization member" of an Enterprise org, with "View access" to the file. Writing (POST) needs "Full seats, admins" and "Edit access". One more rule: after an update through the API, "you will need to publish the variables before they can be used in other files".
+
+Chapter 1's `get_variable_defs` is a different, read-only way in. Through the MCP server, it returns "the variables and styles used in your Figma selection".
+
+## A handoff pack
+
+This checklist is ours.
+
+1. **Edit links.** One per design, so people can open the source.
+2. **Files.** Downloaded at once and stored by you, because links expire.
+3. **A file count.** Exports match the list, with no nulls.
+4. **Code Connect** for the core components, with instructions.
+5. **Tokens.** Synced through the API, or listed with `get_variable_defs`.
+6. **Notes.** What was generated (chapter 4), and who approved it.
+
+## What this means for your work
+
+- **Export is delivery, not handoff.** Send the edit link too.
+- **Download right away.** Figma image links last 30 days; Canva says to use its links immediately.
+- **Check for nulls and missing pages** before you send.
+- **Connect your core components** so the AI uses your real code.
+- **Name the plan.** The Variables REST API is Enterprise-only.
+- **Keep mappings current** when the code changes.
