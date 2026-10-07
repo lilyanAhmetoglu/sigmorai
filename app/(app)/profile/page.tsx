@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { Panel } from '@/components/panel';
 import { PixelAvatar } from '@/components/pixel-avatar';
+import { CertificatesErrorBoundary } from '@/components/profile/certificates-error';
+import { CertificatesPanel, CertificatesSkeleton } from '@/components/profile/certificates-panel';
 import { DataPanel } from '@/components/profile/data-panel';
 import { NamePanel } from '@/components/profile/name-panel';
 import { PathPanel } from '@/components/profile/path-panel';
@@ -22,8 +25,8 @@ export const metadata: Metadata = { title: `${PROFILE_TEXT.title} · Sigmorai` }
  * The player's profile (Sigmorai App.dc.html → profile screen): sprite, hero
  * name, track, level and XP. Reads the same cached query as the HUD.
  * Then "Hero name" (rename; the sprite follows the name), "Your path"
- * (switch path) and "Your data":
- * download and delete (GDPR).
+ * (switch path), "Certificates" (earned certificates, streamed in) and
+ * "Your data": download and delete (GDPR).
  * Not built yet: photo upload (sprite only for now) and realm progress.
  */
 export default async function ProfilePage() {
@@ -63,6 +66,12 @@ export default async function ProfilePage() {
       <NamePanel current={heroName} />
 
       <PathPanel current={track} />
+
+      <CertificatesErrorBoundary>
+        <Suspense fallback={<CertificatesSkeleton />}>
+          <CertificatesPanel />
+        </Suspense>
+      </CertificatesErrorBoundary>
 
       <DataPanel />
     </div>

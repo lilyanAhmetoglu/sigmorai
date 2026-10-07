@@ -3,15 +3,30 @@ import { BoardRow } from '@/components/leaderboard/board-row';
 import { RangeSwitch } from '@/components/leaderboard/range-switch';
 import { ViewerRank } from '@/components/leaderboard/viewer-rank';
 import { Panel } from '@/components/panel';
-import { LEADERBOARD_HREF, LEADERBOARD_TEXT, RANGE_PARAM } from '@/lib/constants';
+import { ShareButtons } from '@/components/share-buttons';
+import {
+  LEADERBOARD_HREF,
+  LEADERBOARD_TEXT,
+  leaderboardHref,
+  RANGE_PARAM,
+  SHARE_RANGE_TEXT,
+  SHARE_TEXT,
+  SITE_NAME,
+} from '@/lib/constants';
 import { getLeaderboard } from '@/lib/data/leaderboard';
+import { socialMetadata } from '@/lib/og/metadata';
 import { parseLeaderboardRange } from '@/lib/xp/leaderboard';
 
 // Relative URLs resolve against metadataBase (app/layout.tsx).
 export const metadata: Metadata = {
-  title: `${LEADERBOARD_TEXT.title} · Sigmorai`,
+  title: `${LEADERBOARD_TEXT.title} · ${SITE_NAME}`,
   description: LEADERBOARD_TEXT.description,
   alternates: { canonical: LEADERBOARD_HREF },
+  ...socialMetadata({
+    title: `${LEADERBOARD_TEXT.title} · ${SITE_NAME}`,
+    description: LEADERBOARD_TEXT.description,
+    url: LEADERBOARD_HREF,
+  }),
 };
 
 /**
@@ -25,6 +40,12 @@ export default async function LeaderboardPage({ searchParams }: PageProps<'/lead
   const range = parseLeaderboardRange(params[RANGE_PARAM]);
   const { rows, viewer } = await getLeaderboard(range);
   const rangeLabel = LEADERBOARD_TEXT.ranges[range];
+  // A ranked viewer shares their own place in this range; everyone else shares the board.
+  const ownRank =
+    viewer.status === 'ranked' ? viewer.row.rank : rows.find((row) => row.isViewer)?.rank;
+  const share = ownRank
+    ? { url: leaderboardHref(range), text: SHARE_TEXT.rank(ownRank, SHARE_RANGE_TEXT[range]) }
+    : { url: LEADERBOARD_HREF, text: SHARE_TEXT.leaderboard };
 
   return (
     <div className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6">
@@ -59,6 +80,8 @@ export default async function LeaderboardPage({ searchParams }: PageProps<'/lead
       {!(rows.length === 0 && viewer.status === 'no-xp') && (
         <ViewerRank viewer={viewer} range={range} />
       )}
+
+      <ShareButtons target={share} />
     </div>
   );
 }
