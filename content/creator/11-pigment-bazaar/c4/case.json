@@ -2,7 +2,7 @@
   "id": "creator/r11/c4/challenge",
   "title": "Same picture, blue mug",
   "scenario": "A ceramics studio picked one draft for its autumn mug launch. Now it wants small changes without losing that picture. Your teammate tried four fixes on four tools and wrote down what happened.\n\nUse the exhibit. The studio, the prompts and the notes are made up for this case. The field names are from the vendors' docs in October 2026.",
-  "exhibit": "APPROVED DRAFT (made up)\n  Ideogram 4.5, Image app\n  Prompt: \"A stoneware mug in sage green on a linen cloth, morning window light\"\n  Seed:   184467   (Magic Prompt off, all other settings saved)\n\nFIX 1, Ideogram 4.5, Image app\n  Plan:  get the same picture with the mug in blue\n\nFIX 2, Ideogram 3.0, Image app\n  Same prompt, same seed 184467\n  Note:  the cloth, the light and the angle are all different.\n\nFIX 3, own GPU, diffusers (part)\n  generator = torch.Generator(device=\"cpu\").manual_seed(7)\n  for size in sizes:\n      image = pipeline(prompt, generator=generator).images[0]\n  Note:  each size shows a different picture.\n\nFIX 4, Gemini (Nano Banana)\n  Client: \"Send me the seed so we can make the same image again later.\"",
+  "exhibit": "APPROVED DRAFT (made up)\n  Ideogram 4.5, Image app\n  Prompt: \"A stoneware mug in sage green on a linen cloth, morning window light\"\n  Seed:   184467   (Magic Prompt off, all other settings saved)\n\nFIX 1, Ideogram 4.5, Image app\n  Plan:  get the same picture with the mug in blue\n\nFIX 2, Ideogram 3.0, Image app\n  Same prompt, same seed 184467\n  Note:  the cloth, the light and the angle are all different.\n\nFIX 3, own GPU, diffusers (part)\n  generator = torch.Generator(device=\"cpu\").manual_seed(7)\n  for _ in range(4):\n      image = pipeline(prompt, generator=generator).images[0]\n  Note:  each run shows a different picture.\n\nFIX 4, Gemini (Nano Banana)\n  Client: \"Send me the seed so we can make the same image again later.\"",
   "questions": [
     {
       "prompt": "Fix 1: the studio wants the approved picture with the mug in blue. What is the best plan on Ideogram?",
@@ -18,7 +18,7 @@
         },
         {
           "text": "Keep seed 184467 but rewrite the prompt fully in new words, with the mug in blue",
-          "explanation": "The seed repeats a result only with the same prompt. A full rewrite gives a new picture."
+          "explanation": "Ideogram says changing a key idea in the prompt gives a different image, even with the same seed. A full rewrite changes far more than one word."
         },
         {
           "text": "Keep the prompt and seed but turn Magic Prompt on so the model adds the blue for you",
@@ -49,7 +49,7 @@
       ]
     },
     {
-      "prompt": "Fix 3 set seed 7 once, but each size shows a different picture. What is the fix?",
+      "prompt": "Fix 3 set seed 7 once, but each run shows a different picture. What is the fix?",
       "options": [
         {
           "text": "Move the generator to the GPU so the seed is read more carefully",
@@ -74,21 +74,21 @@
       "prompt": "Fix 4: the client wants a Gemini seed for later. What is your honest answer?",
       "options": [
         {
-          "text": "Gemini prints the seed under each image, so we copy it from there",
-          "explanation": "Gemini's image page lists no seed field. There is nothing to copy."
+          "text": "Gemini prints the seed under each image it makes, so we copy it from there",
+          "explanation": "Gemini's image guide lists no seed field, so this lesson has no source for a seed shown under an image."
         },
         {
-          "text": "Any seed works on every model, so we reuse 184467 from Ideogram",
+          "text": "Any seed works on every model, so we just reuse seed 184467 from Ideogram here",
           "explanation": "A seed is tied to its model. Ideogram says a new model gives a new image even with the same seed."
         },
         {
-          "text": "Gemini's page has no seed; we edit the approved image in the chat",
-          "explanation": "Right. Gemini's guide lists no seed and calls multi-turn conversation the recommended way to iterate on images.",
+          "text": "The image guide gives no seed for repeats; we save the file and edit it in the chat",
+          "explanation": "Right. Gemini's image guide lists no seed, and the API's decoding seed is not described as a way to repeat an image. The guide calls multi-turn conversation the recommended way to iterate.",
           "correct": true
         },
         {
-          "text": "We set seed in the request; Gemini will then reject any new change",
-          "explanation": "Gemini's image page documents no seed field, so this plan has no source."
+          "text": "We set the API's decoding seed, and Gemini will then repeat the image exactly",
+          "explanation": "Google's API reference has a decoding seed, but the image guide doesn't say it repeats an image. A promise of an exact repeat has no source."
         }
       ]
     }

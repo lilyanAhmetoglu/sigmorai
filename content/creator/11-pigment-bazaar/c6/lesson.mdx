@@ -22,6 +22,9 @@ sources:
     title: Hugging Face diffusers docs · Legacy checkpoints (safety checker)
     url: https://huggingface.co/docs/diffusers/en/using-diffusers/legacy_checkpoints
   - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
     title: Gemini API docs · Image generation (Nano Banana)
     url: https://ai.google.dev/gemini-api/docs/image-generation
 ---
@@ -42,17 +45,17 @@ BFL's FLUX.2 page, in October 2026:
 - "[klein] 9B is available under the **FLUX Non-Commercial License**."
 - "Download from Hugging Face."
 
-There are also **Base** versions of [klein]. BFL says they are for "fine-tuning, LoRA training, research, and custom pipelines", and "They are not offered on the public API." So some models exist only as downloads.
+There are also **Base** versions of [klein]. BFL says they are for "fine-tuning, LoRA training, research, and custom pipelines" (fine-tuning means more training on your own images), and "They are not offered on the public API." So some models exist only as downloads.
 
 ## Read the licence first
 
 A **licence** is the legal text that says what you may do with the weights (our plain gloss). The names on BFL's page tell you where to look:
 
-| Model (October 2026)          | Licence on BFL's page       |
-| ----------------------------- | --------------------------- |
-| FLUX.2 [klein] 4B and 4B Base | Apache 2.0                  |
-| FLUX.2 [klein] 9B and 9B Base | FLUX Non-Commercial License |
-| FLUX.2 [dev]                  | "Free (non-commercial)"     |
+| Model (October 2026)          | Licence on BFL's page (for [dev]: its pricing row) |
+| ----------------------------- | -------------------------------------------------- |
+| FLUX.2 [klein] 4B and 4B Base | Apache 2.0                                         |
+| FLUX.2 [klein] 9B and 9B Base | FLUX Non-Commercial License                        |
+| FLUX.2 [dev]                  | "Free (non-commercial)"                            |
 
 For a paid client job, a licence with "non-commercial" in its name is a stop sign. Read the full text, or ask whoever handles your contracts, before you use it (our advice). Free to download is not the same as free to use for work.
 
@@ -60,7 +63,7 @@ Some downloads are also **gated**: you need to log in before you can get them (o
 
 ## The parts of a pipeline
 
-On an API you send a prompt and get an image. On your own machine you load a **pipeline**. Diffusers says a pipeline "packages the pieces of a diffusion model (text encoder, scheduler, UNet or DiT, and VAE) into one class".
+On an API you send a prompt and get an image. On your own machine you load a **pipeline**. Diffusers says a pipeline "packages the pieces of a diffusion model (text encoder, scheduler, UNet or DiT, and VAE) into one class". UNet and DiT are two kinds of main model (our gloss).
 
 The diffusers page for FLUX.2 lists its parts. Here they are in plain words (our glosses, with the page's own wording in quotes):
 
@@ -79,18 +82,18 @@ Check the hardware before you promise anything. What the pages say, in October 2
 
 - **BFL:** [klein] gives "sub-second inference", and "4B runs on consumer GPUs (~13GB VRAM)". **VRAM** is the memory on the graphics card.
 - **Diffusers:** "Flux2 can be quite expensive to run on consumer hardware devices."
-- **Less memory:** diffusers can load a model in 4-bit "To use less memory".
+- **Less memory:** diffusers can load a model in 4-bit (a smaller number format that uses less memory) "To use less memory".
 - **First run:** after a speed-up called compile, "The first generate after compile is a cold start and is slow. Later generates are faster."
 
 So test on your real machine with your real image size before you plan a deadline (our advice).
 
 ## What you get, and what you lose
 
-On an API, the vendor runs checks and adds labels for you. On your own machine, you get only what the pipeline includes.
+Two APIs show what a vendor can add. OpenAI's image guide says: "All prompts and generated images are filtered in accordance with our content policy." Google's says: "All generated images include a SynthID watermark." On your own machine, you get only what the pipeline includes.
 
-**Safety checks.** Diffusers has a safety checker "for older Stable Diffusion checkpoints". It says: "Newer models such as Qwen-Image do not have this checker." The FLUX.2 parts list above has no safety checker either (our reading of the list). Diffusers also says it and Hugging Face "strongly recommend keeping the safety filter enabled in all public-facing circumstances".
+**Safety checks.** Diffusers has a safety checker "for older Stable Diffusion checkpoints". It says: "Newer models such as Qwen-Image do not have this checker." The FLUX.2 parts list above has no safety checker either (our reading of the list). For Stable Diffusion, diffusers warns that it and Hugging Face "strongly recommend keeping the safety filter enabled in all public-facing circumstances". That warning is about Stable Diffusion, but the idea is worth keeping for any public app (our advice).
 
-**Watermarks.** On Google's API, "All generated images include a SynthID watermark." The FLUX.2 pipeline lists no watermark step (our reading). So your own images carry no vendor label by default. If your client needs one, plan it yourself.
+**Watermarks.** Gemini images carry SynthID, as quoted above. Your own images may carry no vendor label (our reading): the FLUX.2 parts list names no watermark step. If your client needs one, plan it yourself.
 
 The rules still apply. Bootstrap Village, chapter 6, covers vendor policies and provenance labels. The licence and the law still apply too.
 
@@ -98,12 +101,12 @@ The rules still apply. Bootstrap Village, chapter 6, covers vendor policies and 
 
 Our advice, built from the pages above:
 
-| You need                                   | Lean                                        |
-| ------------------------------------------ | ------------------------------------------- |
-| No setup, checks and labels done for you   | An API                                      |
-| A Base model for your own LoRA             | Download (Base is not on BFL's public API)  |
-| Many images, a strong GPU, a clear licence | Your own machine, after a real speed test   |
-| A public app where anyone types a prompt   | An API, or add your own safety checks first |
+| You need                                   | Lean                                       |
+| ------------------------------------------ | ------------------------------------------ |
+| No setup; a vendor filter or label         | An API that documents one (OpenAI, Gemini) |
+| A Base model for your own LoRA             | Download (Base is not on BFL's public API) |
+| Many images, a strong GPU, a clear licence | Your own machine, after a real speed test  |
+| A public app where anyone types a prompt   | An API with a filter, or your own checks   |
 
 ## What this means for your work
 
