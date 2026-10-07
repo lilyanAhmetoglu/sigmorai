@@ -139,6 +139,38 @@ export function lengthGiveaways(questions: QuestionLike[], file: string): Conten
   return issues;
 }
 
+const BARE_NUMBER = /^[\d.,\s%$+-]+$/;
+const endsWithPeriod = (t: string) => t.trim().endsWith('.');
+const hasTwoSentences = (t: string) => t.includes('. ');
+
+/**
+ * Questions whose right option gives itself away by sentence shape: only it
+ * ends with a period, or only it holds two sentences (". "). Questions whose
+ * options are all bare numbers are skipped.
+ */
+export function shapeGiveaways(questions: QuestionLike[], file: string): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  questions.forEach((q, i) => {
+    const right = q.options.find((o) => o.correct);
+    if (!right) return;
+    const wrong = q.options.filter((o) => !o.correct);
+    if (q.options.every((o) => BARE_NUMBER.test(o.text.trim()))) return;
+    const tells: [string, (t: string) => boolean][] = [
+      ['ends with a period', endsWithPeriod],
+      ['has two sentences', hasTwoSentences],
+    ];
+    for (const [label, has] of tells) {
+      if (has(right.text) && !wrong.some((o) => has(o.text))) {
+        issues.push({
+          file,
+          message: `question ${i + 1}: only the correct option ${label}. Give every option the same sentence shape.`,
+        });
+      }
+    }
+  });
+  return issues;
+}
+
 /** The site's static folder, where a post's `cover` path points. */
 const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
 
@@ -268,9 +300,15 @@ export async function validateContent(
           }
         }
       } else if (rel.endsWith(CASE_FILE)) {
-        issues.push(...lengthGiveaways((await loadCase(id, abs)).questions, rel));
+        {
+          const qs = (await loadCase(id, abs)).questions;
+          issues.push(...lengthGiveaways(qs, rel), ...shapeGiveaways(qs, rel));
+        }
       } else {
-        issues.push(...lengthGiveaways((await loadQuickCheck(id, abs)).questions, rel));
+        {
+          const qs = (await loadQuickCheck(id, abs)).questions;
+          issues.push(...lengthGiveaways(qs, rel), ...shapeGiveaways(qs, rel));
+        }
       }
     } catch (err) {
       issues.push({ file: rel, message: detail(err) });
