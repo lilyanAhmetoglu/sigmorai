@@ -1,0 +1,96 @@
+{
+  "id": "creator/r12/c1/challenge",
+  "title": "A spring sale voice-over, three ways",
+  "scenario": "You make a 30-second spring sale video for a small plant shop. The shop wants a warm, upbeat voice-over in English, and later in Spanish. Your teammate tried the opening line on three speech services and wrote down what came back.\n\nUse the exhibit. The shop, the requests and the results are made up for this case. The model names are from the vendors' pages in October 2026.",
+  "exhibit": "DRAFT REQUESTS AND RESULTS (made up)\n\n  1. OpenAI speech endpoint\n     model: tts-1-hd\n     voice: coral\n     instructions: \"Warm and upbeat, like a friendly shop owner.\"\n     input: \"Spring is here, and so is our sale.\"\n     Result: clear, but the delivery sounds the same as with no instructions.\n\n  2. ElevenLabs, Eleven v4\n     text: \"Spring is here, she said cheerfully, and so is our sale.\"\n     Result: the voice says the words \"she said cheerfully\" out loud.\n\n  3. Gemini 3.8 Flash TTS\n     style: a 180-word \"Director's Notes\" block: age, accent, mood,\n            pace, and \"do not switch speaker identity\" twice.\n     Result: the voice sounds a little different in every take.\n\n  4. Gemini 3.8 Flash TTS, Spanish script\n     text: \"La primavera llegó... <suspiro> y también nuestras ofertas.\"\n     Result: no sigh where the script marks one.",
+  "questions": [
+    {
+      "prompt": "Request 1: the instructions seem to do nothing. What is the most likely cause?",
+      "options": [
+        {
+          "text": "The instructions are too short, so the model needs a longer paragraph",
+          "explanation": "OpenAI's reference gives no minimum length. The model is the problem: instructions do not work with tts-1-hd."
+        },
+        {
+          "text": "The tts-1-hd model ignores instructions, so switch to gpt-4o-mini-tts",
+          "explanation": "Right. OpenAI's API reference says instructions do not work with tts-1 or tts-1-hd. The guide shows them with gpt-4o-mini-tts.",
+          "correct": true
+        },
+        {
+          "text": "The coral voice ignores instructions, so switch to the voice marin",
+          "explanation": "OpenAI's reference ties the limit to the model, not to the voice. tts-1-hd ignores instructions with any voice."
+        },
+        {
+          "text": "The speed is still 1.0, so set it to 4.0 to make the voice upbeat",
+          "explanation": "Speed changes how fast the voice talks, not its mood. And instructions still do not work on tts-1-hd."
+        }
+      ]
+    },
+    {
+      "prompt": "Request 2: Eleven v4 says \"she said cheerfully\" out loud. What is the best fix?",
+      "options": [
+        {
+          "text": "Write more description, such as \"she said very, very cheerfully\"",
+          "explanation": "ElevenLabs says descriptive text is spoken out by the model. More of it means more words to cut."
+        },
+        {
+          "text": "Wrap the line in an SSML break tag so the model reads it as a pause",
+          "explanation": "ElevenLabs says Eleven v4 and v3 do not support SSML break tags. It would not fix the mood either."
+        },
+        {
+          "text": "Remove those words and start the line with an audio tag like [cheerfully]",
+          "explanation": "Right. Eleven v4 uses audio tags in square brackets to direct delivery. ElevenLabs says plain descriptive text, by contrast, is spoken out.",
+          "correct": true
+        },
+        {
+          "text": "Keep the words and set the speed to 1.2 so they pass more quickly",
+          "explanation": "The words are still spoken, only faster. Speed does not remove text from the take."
+        }
+      ]
+    },
+    {
+      "prompt": "Request 3: the Gemini voice drifts between takes. Which change fits Google's guide?",
+      "options": [
+        {
+          "text": "Add \"maintain identical timbre\" to the style block a third time",
+          "explanation": "Google says not to add instructions like \"maintain identical timbre\": extra prompt text increases drift."
+        },
+        {
+          "text": "Move the whole block into the text, so the model reads it first",
+          "explanation": "Gemini 3.8 TTS treats the text as a verbatim transcript. The block would be spoken."
+        },
+        {
+          "text": "Pick or design a voice with those traits and keep style short or empty",
+          "explanation": "Right. Google says long Director's Notes blocks are the most common cause of drift. Put fixed traits in the voice and use short style strings.",
+          "correct": true
+        },
+        {
+          "text": "Make the style block longer, with more detail on age and accent",
+          "explanation": "Google says not to put age or permanent accent changes in style, and long blocks cause drift."
+        }
+      ]
+    },
+    {
+      "prompt": "Request 4: the Spanish script marks a sigh with a Spanish tag. What does Google's guide say to do?",
+      "options": [
+        {
+          "text": "Keep the script in Spanish and write the tag in English, as <sigh>",
+          "explanation": "Right. Google says that for a non-English transcript you should continue to use English inline tags for best results.",
+          "correct": true
+        },
+        {
+          "text": "Translate the whole script to English and dub it into Spanish later",
+          "explanation": "Gemini's TTS models speak many languages. Google's fix is only the tag language, not the script."
+        },
+        {
+          "text": "Move the sigh into the style field as \"sighs once in the middle\"",
+          "explanation": "Google puts a one-moment sound inline in the text with angle brackets. style is for delivery across a whole turn."
+        },
+        {
+          "text": "Write the sigh as a word in the text, such as \"ay\", for the model",
+          "explanation": "Gemini reads the text as a verbatim transcript, so a word is spoken as a word. Google's guide uses tags for sighs."
+        }
+      ]
+    }
+  ]
+}
