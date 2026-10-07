@@ -15,7 +15,7 @@ import {
   XP_REWARDS,
 } from '@/lib/constants';
 import { expectNoViolations } from './axe';
-import { answersFor, type Answer } from './content';
+import { answersFor, lessonStepTitles, type Answer } from './content';
 import { E2E_EMAIL, heroNameFor, testUserId } from './test-user';
 
 // The second test needs the hero the first one onboards: a failed loop skips it.
@@ -58,9 +58,22 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   // The signed-in a11y check (a11y.spec.ts covers the public routes).
   await expectNoViolations(page);
 
-  // Lesson: one button, +10 XP once.
+  // Lesson: one step at a time. Continue moves focus to each step's heading;
+  // Finish on the last step moves it to "Lesson done", which still needs a press.
   await page.goto(`${QUEST}/lesson`);
-  await page.getByRole('button', { name: QUEST_TEXT.lessonDone }).click();
+  const stepTitles = lessonStepTitles(CHAPTER_DIR);
+  const progress = page.getByRole('progressbar', { name: QUEST_TEXT.stepLabel });
+  await expect(progress).toHaveAttribute('aria-valuenow', '1');
+  for (const title of stepTitles.slice(1)) {
+    await page.getByRole('button', { name: QUEST_TEXT.continue, exact: true }).click();
+    await expect(page.getByRole('heading', { level: 2, name: title })).toBeFocused();
+  }
+  await expect(progress).toHaveAttribute('aria-valuenow', String(stepTitles.length));
+  await page.getByRole('button', { name: QUEST_TEXT.finish }).click();
+  // Lesson done: one button, +10 XP once.
+  const lessonDone = page.getByRole('button', { name: QUEST_TEXT.lessonDone });
+  await expect(lessonDone).toBeFocused();
+  await lessonDone.click();
   await expect(page.getByText(QUEST_TEXT.lessonCleared(XP_REWARDS.lesson))).toBeVisible();
 
   // Case, first try: every answer wrong costs 1 HP and shows only the count.

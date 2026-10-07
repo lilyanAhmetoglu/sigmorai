@@ -18,6 +18,7 @@ import * as runtime from 'react/jsx-runtime';
  *   - every link is https:, relative or #anchor (no javascript:, data:, http:);
  *   - no images: no lesson needs one yet (SIG-27).
  * The components themselves are passed in by the caller (components/quest).
+ * A lesson (not a blog post) is then grouped into steps (`lessonSteps`).
  */
 
 /** The one component a lesson body may use. The renderer must supply it. */
@@ -27,6 +28,18 @@ export type LessonComponents = Record<(typeof LESSON_COMPONENTS)[number], MDXCom
 
 /** A blog post body: plain Markdown only, so no NPC <DialogBox>. */
 export const NO_COMPONENTS = [] as const;
+
+/**
+ * The element `lessonSteps` wraps each `##` section of a lesson in
+ * (interactive-lessons spec, Phase 1). An author can never write it: the body
+ * rules run first and refuse any component not on the allowlist.
+ */
+export const LESSON_STEP = 'LessonStep';
+/** What a lesson renderer must supply: the step wrapper, plus any allowed component. */
+export type StepComponents = Record<typeof LESSON_STEP, MDXComponents[string]> & MDXComponents;
+
+/** A lesson is grouped into steps; a blog post stays one plain page with no components. */
+export type BodyKind = 'lesson' | 'blog';
 
 /** Which components a body may use. Defaults to the lesson's. */
 export type BodyOptions = { allowedComponents?: readonly string[] };
@@ -196,34 +209,79 @@ export async function compileLesson(body: string, options: BodyOptions = {}): Pr
   await compile(body, { remarkPlugins: [lessonRules(options)] });
 }
 
+/** The mdast node `lessonSteps` makes: a <LessonStep step="n"> around one section. */
+function stepNode(step: number, children: BodyNode[]): BodyNode {
+  return {
+    type: 'mdxJsxFlowElement',
+    name: LESSON_STEP,
+    attributes: [{ type: 'mdxJsxAttribute', name: 'step', value: String(step) }],
+    children,
+  };
+}
+
+/**
+ * Remark plugin, lessons only, run after the body rules: one <LessonStep
+ * step="n"> (1-based) per top-level `##` heading and everything up to the
+ * next one. Text before the first `##` (the intro) joins step 1. A body with
+ * no `##` is left as it is. Nothing is added or dropped, only grouped. The
+ * page counts the same headings with postHeadings (lib/content/blog.ts).
+ */
+export function lessonSteps() {
+  return (tree: BodyNode) => {
+    const children = tree.children ?? [];
+    const starts = children.flatMap((node, i) =>
+      node.type === 'heading' && node.depth === 2 ? [i] : [],
+    );
+    if (starts.length === 0) return;
+    tree.children = starts.map((start, i) =>
+      stepNode(i + 1, children.slice(i === 0 ? 0 : start, starts[i + 1] ?? children.length)),
+    );
+  };
+}
+
 /**
  * One compile per body per request (generateMetadata and the page may both
  * ask). `allowed` is a joined string so the cache key is a value, not an array.
  */
-const evaluateLesson = cache(async (body: string, allowed: string): Promise<MDXContent> => {
-  const allowedComponents = allowed ? allowed.split(',') : [];
-  const mod = await evaluate(body, {
-    ...runtime,
-    development: false,
-    baseUrl: import.meta.url,
-    remarkPlugins: [lessonRules({ allowedComponents })],
-  });
-  return mod.default;
-});
+const evaluateLesson = cache(
+  async (body: string, allowed: string, kind: BodyKind): Promise<MDXContent> => {
+    const allowedComponents = allowed ? allowed.split(',') : [];
+    const mod = await evaluate(body, {
+      ...runtime,
+      development: false,
+      baseUrl: import.meta.url,
+      remarkPlugins: [
+        lessonRules({ allowedComponents }),
+        ...(kind === 'lesson' ? [lessonSteps] : []),
+      ],
+    });
+    return mod.default;
+  },
+);
 
-/** A lesson body, with the caller's components (DialogBox at least). */
-export async function renderLesson(body: string, components: LessonComponents): Promise<ReactNode>;
-/** Any body with its own component allowlist (a blog post: NO_COMPONENTS). */
+/**
+ * A lesson body, grouped into steps. `components` must supply LessonStep and
+ * every allowed component (DialogBox for a realm lesson; a Frontier lesson
+ * has no NPC, so it passes NO_COMPONENTS).
+ */
+export async function renderLesson(
+  body: string,
+  components: StepComponents,
+  options: { kind: 'lesson'; allowedComponents?: readonly string[] },
+): Promise<ReactNode>;
+/** A blog post body: plain Markdown, no components, no steps. */
 export async function renderLesson(
   body: string,
   components: MDXComponents,
-  options: Required<BodyOptions>,
+  options: { kind: 'blog' },
 ): Promise<ReactNode>;
 export async function renderLesson(
   body: string,
   components: MDXComponents,
-  { allowedComponents = LESSON_COMPONENTS }: BodyOptions = {},
+  options: { kind: BodyKind; allowedComponents?: readonly string[] },
 ): Promise<ReactNode> {
-  const Content = await evaluateLesson(body, allowedComponents.join(','));
+  const allowed =
+    options.kind === 'blog' ? NO_COMPONENTS : (options.allowedComponents ?? LESSON_COMPONENTS);
+  const Content = await evaluateLesson(body, allowed.join(','), options.kind);
   return <Content components={components} />;
 }

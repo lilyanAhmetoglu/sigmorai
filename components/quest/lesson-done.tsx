@@ -7,6 +7,7 @@ import {
   AUTH_ROUTES,
   AUTH_TEXT,
   HUD_TEXT,
+  LESSON_DONE_ID,
   ONBOARDING_HREF,
   QUEST_ERROR_TEXT,
   QUEST_TEXT,
@@ -84,7 +85,8 @@ export function LessonDone({ exerciseId, title, viewer, nextHref }: Props) {
   const awarded = outcome?.kind === 'done' ? outcome.xp.awarded : 0;
 
   return (
-    <section className="lesson-done" aria-busy={pending}>
+    // The id and tabIndex: the lesson stepper's Finish moves focus here (or to its first control).
+    <section id={LESSON_DONE_ID} tabIndex={-1} className="lesson-done" aria-busy={pending}>
       <div className="quest-case">
         <div className="quest-case-bar">
           <span>{QUEST_TEXT.lessonPanel}</span>

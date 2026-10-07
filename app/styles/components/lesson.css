@@ -57,6 +57,40 @@
   }
 
   /*
+   * Lesson steps (interactive-lessons spec, Phase 1): STEP n/N bar and Show all
+   * on top, one section at a time, Back / Continue below. Under sm the two
+   * buttons share one row, half width each. Each step keeps the body's gap.
+   * scroll-mt clears the sticky header (lg) when a step scrolls into view.
+   */
+  .lesson-steps {
+    @apply max-w-reading flex min-w-0 flex-col gap-4;
+  }
+  .lesson-steps-head {
+    @apply flex flex-wrap items-end justify-between gap-3;
+  }
+  .lesson-steps-bar {
+    @apply min-w-0 flex-[1_1_12rem];
+  }
+  .lesson-steps-toggle {
+    @apply ml-auto;
+  }
+  .lesson-step {
+    @apply flex min-w-0 scroll-mt-24 flex-col gap-4;
+  }
+  .lesson-step > * {
+    @apply m-0;
+  }
+  .lesson-steps-controls {
+    @apply grid grid-cols-2 gap-2 sm:flex sm:justify-between;
+  }
+  /* A step slides in only after a move, and only when motion is allowed. */
+  @media (prefers-reduced-motion: no-preference) {
+    .lesson-steps[data-mode='steps'][data-moved] .lesson-step:not([hidden]) {
+      animation: lesson-step-in var(--dur-3) var(--ease-snap);
+    }
+  }
+
+  /*
    * The "Lesson done" column. Sticky from lg up (the header is sticky there
    * too), so the button stays in view on a long lesson; static on a phone.
    * The design's top: 76px has no token: top-20 (5 × --spacing) clears the header.
@@ -80,5 +114,12 @@
   }
   .lesson-source-host {
     @apply font-code text-small text-text-3 break-all;
+  }
+}
+
+@keyframes lesson-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(--spacing(1));
   }
 }

@@ -233,6 +233,16 @@ export const QUEST_TEXT = {
   lessonCleared: (xp: number) => `+${xp} XP · LESSON DONE`,
   /** completeLesson's reply was lost. No HP is involved, so a retry is safe (award once). */
   lessonNoReply: 'No reply from the server. Reload the page and try again.',
+  // Lesson steps (interactive-lessons spec, Phase 1). The forward button reuses `continue`.
+  stepBack: 'Back',
+  finish: 'Finish',
+  showAll: 'Show all',
+  showSteps: 'Show steps',
+  /** The progress bar's label; XPBar adds "n/N". */
+  stepLabel: 'STEP',
+  /** Read out by the live region after a move. */
+  stepAnnounce: (step: number, total: number, title: string) =>
+    `Step ${step} of ${total}: ${title}`,
   /** Accessible name of a scrollable code block in a lesson. */
   codeExample: 'Code example',
   saving: 'Saving…',
