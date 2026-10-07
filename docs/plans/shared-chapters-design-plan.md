@@ -4,16 +4,25 @@
 
 ## Status
 
-**STATUS: Draft, waiting for maintainer approval. Build step: cross-cutting. Track: all (builder, strategist, creator; scientist later).**
+**STATUS: Approved 2026-10-07 (maintainer), devil pass applied. Build step: cross-cutting. Track: all (builder, strategist, creator; scientist later).**
 
 **SCHEMA:** no schema change and no progress-row migration. Not `SCHEMA REVIEW REQUIRED` (see Data model). If the maintainer picks the rejected "concept id in the DB" option, it becomes `SCHEMA REVIEW REQUIRED`.
 
 ## Amendments
 
-<!-- New decisions are appended here as:
-## Amendments locked YYYY-MM-DD
-- ...
--->
+## Amendments locked 2026-10-07 (devil pass, maintainer approved)
+
+These override the sections below where they disagree.
+
+- **Direction (maintainer):** each path keeps its own chapter list; matching pairs give credit. No merged lesson files, no "related" pairs.
+- **A cleared or credited exercise is always open.** `checkOpen` treats the exercise's own clear (or its crediting sibling) as open, so a credited chapter can be replayed even when the chapter before it is not done. Without this, DONE chapters showed "locked" on the quest page.
+- **Credit is for the case only.** Lessons and quick checks differ per path and pay their own small XP. This drops the step-to-step mapping and the `completeLesson` change.
+- **`recordClear` takes an `award` flag from the action** (`!replay`, decided by `readAttempts` inside the existing `users` row lock). No second progress read. A credited replay writes a progress row and no XP row (so "every progress row has its XP row" is no longer true; harmless).
+- **Ship the 6 open-realm pairs.** The 3 advanced pairs (model graders, handoffs, rate limits) are added when the advanced tier opens.
+- **Two PRs:** PR 1 `content` (list file, schema, `content:check` rules + walker whitelist, content-reviewer); PR 2 `quest` (credit + the "Cleared on the <Path> path" label in the chapter list only; no level-map tooltip, no quest-header label).
+- **Drop the prod count query.** We never claw back, so the number changes nothing.
+- **Wording:** revalidation uses `refresh()` / `updateTag`, not `revalidatePath`; `content/shared-chapters.json` is whitelisted in the content walker (`lib/content/validate.ts`), its file name lives in `lib/constants` next to `OUTLINE_FILE`.
+- **Pure helper shape:** one helper returns `{ cleared, creditedFrom }`; e2e uses `?track=` on the realm page, no track switch.
 
 ---
 
