@@ -2,7 +2,7 @@
   "id": "creator/r9/c5/challenge",
   "title": "Four requests, four ways in",
   "scenario": "You run the design team at a stationery brand. Four requests reach you in one week. Each one needs some code, and you must say where it should live: a plugin, an app inside Canva, an MCP server or a REST API script.\n\nUse the exhibit. API names, surfaces and rules are from Figma's and Canva's docs. The brand, the people and the requests are made up for this case.",
-  "exhibit": "REQUEST 1 (made up), from the brand lead\n  \"Every night, check all 300 Figma files for raw hex colours, and\n   email me a list in the morning. Nobody will be online.\"\n\nREQUEST 2 (made up), from marketing\n  \"Our team writes briefs in an AI assistant. We want to say 'make\n   five Canva posts from this brief' right there.\"\n\nREQUEST 3 (made up), from a designer\n  A Figma plugin that swaps placeholder photos for photos from the\n  brand library at assets.example.com. First test: every network call\n  is blocked with a CSP error. The manifest has no networkAccess entry.\n\nREQUEST 4 (made up), from a developer\n  A public Canva app for the Apps Marketplace. One feature uses an\n  API that Canva marks as a preview.\n\nDOC LINES (from the docs)\n  Figma plugins: \"It's not possible to build plugins that run in the background.\"\n  Figma REST API: \"Figma does not need to be open and a user does not need to be present.\"\n  Canva: \"The Canva Apps SDK, Connect APIs, and MCP are now unified in the Canva Developers SDK.\"",
+  "exhibit": "REQUEST 1 (made up), from the brand lead\n  \"Every night, check all 300 Figma files for raw hex colours, and\n   email me a list in the morning. Nobody will be online.\"\n\nREQUEST 2 (made up), from marketing\n  \"Our team writes briefs in an AI assistant. We want to say 'make\n   five Canva posts from this brief' right there.\"\n\nREQUEST 3 (made up), from a designer\n  A Figma plugin that swaps placeholder photos for photos from the\n  brand library at assets.example.com. First test: every network call\n  is blocked with a CSP error. The manifest has networkAccess with\n  allowedDomains: [\"none\"].\n\nREQUEST 4 (made up), from a developer\n  A public Canva app for the Apps Marketplace. One feature uses an\n  API that Canva marks as a preview.\n\nDOC LINES (from the docs)\n  Figma plugins: \"It's not possible to build plugins that run in the background.\"\n  Figma REST API: \"Figma does not need to be open and a user does not need to be present.\"\n  Canva: \"The Canva Apps SDK, Connect APIs, and MCP are now unified in the Canva Developers SDK.\"",
   "questions": [
     {
       "prompt": "Where should the nightly check in request 1 live?",
@@ -13,7 +13,7 @@
         },
         {
           "text": "A widget on each file's canvas, which checks the colours whenever it is refreshed",
-          "explanation": "A widget acts only on the file where it's inserted, and someone has to open it."
+          "explanation": "A widget lives on one file's canvas. It cannot cover 300 files, and nobody is in the file at night."
         },
         {
           "text": "A REST API script on a schedule, since Figma need not be open and nobody need be there",
@@ -30,7 +30,7 @@
       "prompt": "Which Canva surface fits request 2 best?",
       "options": [
         {
-          "text": "Apps inside Canva, because the app runs in an iframe in the side panel of the editor",
+          "text": "Apps inside Canva, because the app runs in an iframe inside the Canva editor itself",
           "explanation": "That surface reaches users while they design in Canva. Marketing works in an AI assistant."
         },
         {
@@ -49,24 +49,24 @@
       ]
     },
     {
-      "prompt": "In request 3, every network call is blocked. What should the designer's developer fix first?",
+      "prompt": "In request 3, every network call is blocked with a CSP error (content-security-policy: the browser refused the request). What should the developer fix?",
       "options": [
         {
-          "text": "Add networkAccess to the manifest, with assets.example.com in allowedDomains",
-          "explanation": "Right. Figma says to list the domains your plugin calls under allowedDomains in networkAccess.",
+          "text": "Replace \"none\" with assets.example.com in allowedDomains in the manifest",
+          "explanation": "Right. Figma's guide says to remove \"none\" and add the domains that your plugin requires to the allowedDomains list.",
           "correct": true
         },
         {
-          "text": "Move all of the code into Dev Mode, since only Dev Mode plugins may use a network",
-          "explanation": "Figma's plugin pages list network calls for normal plugins too. Dev Mode is read-only."
+          "text": "Move all of the code into Dev Mode, since Dev Mode plugins skip the domain list",
+          "explanation": "No page says this. Dev Mode plugins are read-only, and the block comes from \"none\"."
         },
         {
-          "text": "Run the plugin twice at the same time, so one copy loads and the other one edits",
+          "text": "Run the plugin twice at the same time, so one copy loads and one copy edits",
           "explanation": "Figma says users can only run one plugin and one action at a time."
         },
         {
-          "text": "Turn the plugin into a widget, because widgets have no rules for network requests",
-          "explanation": "No page says this. The CSP error points to the plugin's own network list."
+          "text": "Add \"none\" a second time, so the list allows every domain the plugin calls",
+          "explanation": "\"none\" is what blocks the calls. With networkAccess, a plugin can only access the domains you specify."
         }
       ]
     },
@@ -75,19 +75,19 @@
       "options": [
         {
           "text": "It ships at once, because preview APIs are Canva's newest and most stable features",
-          "explanation": "Canva says preview APIs may change without notice and are not for production."
+          "explanation": "A Canva preview API page says you can't release public apps using it until it's stable."
         },
         {
           "text": "It ships, but Canva marks the app as a preview app in the marketplace for a year",
-          "explanation": "No page describes this. Canva says such an app will not pass review."
+          "explanation": "No page describes this. Canva says you can't release a public app that uses it."
         },
         {
           "text": "It ships once the team adds a second intent, which unlocks the preview features",
           "explanation": "Intents decide where Canva shows an app. They do not unlock preview APIs."
         },
         {
-          "text": "It fails review, because public apps that use preview APIs will not pass the review",
-          "explanation": "Right. Canva says public apps that use preview APIs or features will not pass the review process.",
+          "text": "It fails review, because a public app can't use a preview API until it is stable",
+          "explanation": "Right. Canva's preview API page says: you can't release public apps using this API until it's stable.",
           "correct": true
         }
       ]

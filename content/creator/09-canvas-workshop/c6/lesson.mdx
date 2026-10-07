@@ -62,7 +62,7 @@ For SVG, `svg_outline_text` is on by default. Outlined text "looks exactly the s
 
 **Figma MCP server.** The `download_assets` tool gives two things for each layer: an "Export render" and the "Raw source images", the original photos placed in it. "Up to 20 nodes can be passed per call." Figma's rule: use `get_screenshot` to see a design, and `download_assets` to "save, deliver, or transfer an asset".
 
-**Canva MCP server.** First, `get-export-formats` tells you "which export file types an existing design supports, and which of its pages are available in each type". Then `export-design` returns download links. Canva warns: "Signed export URLs expire. Use them immediately, and don't store or share them." The plan matters too. On Free plans, export is "Standard quality". "Canva Pro and above" adds "lossless PNG, transparent backgrounds, and premium element export". A design with premium elements "may fail with license_required".
+**Canva MCP server.** First, `get-export-formats` tells you "which export file types an existing design supports, and which of its pages are available in each type". Then `export-design` returns download links. These are signed URLs (links with a built-in key that stop working later). Canva warns: "Signed export URLs expire. Use them immediately, and don't store or share them." The plan matters too. On Free plans, export is "Standard quality". "Canva Pro and above" adds "lossless PNG, transparent backgrounds, and premium element export". A design with premium elements "may fail with license_required".
 
 Example (ours). You export 12 social cards from Figma. The answer holds 11 links and one null. That card was hidden. Count the files before you send anything.
 
@@ -84,7 +84,7 @@ There are two ways to set it up.
 
 **What the AI agent gets.** When a frame uses connected components, the MCP server adds `<CodeConnectSnippet>` wrappers. Each holds the design properties, "Import statements", the "Component snippet" and any "Instructions" you added. With the UI, you write those with "Add instructions for MCP", for example accessibility rules.
 
-Example. Chapter 1's price card came back with a new `green-btn` button. Figma's own template example imports `import { Button } from "components/Button"`. With your Button connected, the agent sees your real Button and its import (our reading of Figma's pages).
+Example. Chapter 1's price card came back with a new `green-btn` button. Figma's own template example imports `import { Button } from "components/Button"`. With your Button connected, the `<CodeConnectSnippet>` for it carries the "Import statements" for your real Button.
 
 Two rules from Figma's pages:
 
@@ -97,7 +97,7 @@ Chapter 2 named one write limit here: "Components must be manually published bef
 
 Your colour and spacing tokens live as Figma variables. The Variables REST API can query, create, update and delete them. Figma says you can use it to "Sync design system source of truth to and from Figma".
 
-This one is **Enterprise-only**. "To use this API, you must have a Full seat in an Enterprise org; guests cannot use the API." Reading needs "View access" to the file. Writing needs "Full seats, admins" and "Edit access". One more rule: after an update through the API, "you will need to publish the variables before they can be used in other files".
+This one is **Enterprise-only**. Figma's intro says: "To use this API, you must have a Full seat in an Enterprise org; guests cannot use the API." Its own table is more exact. Reading (GET) is open to "Any organization member" of an Enterprise org, with "View access" to the file. Writing (POST) needs "Full seats, admins" and "Edit access". One more rule: after an update through the API, "you will need to publish the variables before they can be used in other files".
 
 Chapter 1's `get_variable_defs` is a different, read-only way in. Through the MCP server, it returns "the variables and styles used in your Figma selection".
 

@@ -13,6 +13,9 @@ sources:
     title: Figma developer docs · Making network requests (plugins)
     url: https://developers.figma.com/docs/plugins/making-network-requests/
   - kind: docs
+    title: Figma developer docs · Plugin manifest
+    url: https://developers.figma.com/docs/plugins/manifest/
+  - kind: docs
     title: Figma developer docs · Working in Dev Mode (plugins)
     url: https://developers.figma.com/docs/plugins/working-in-dev-mode/
   - kind: docs
@@ -39,6 +42,9 @@ sources:
   - kind: docs
     title: Canva developer docs · REST APIs
     url: https://www.canva.dev/docs/apps/rest-apis/
+  - kind: docs
+    title: Canva developer docs · duplicatePage (preview API)
+    url: https://www.canva.dev/docs/apps/api/preview/design-duplicate-page/
 ---
 
 ## Why it matters
@@ -62,17 +68,17 @@ The REST API's write exceptions are short: "Comments and Comment Reactions", "Va
 
 ## What a Figma plugin is
 
-Figma says plugins "extend the functionality of Figma's editors". They "run in files and perform one or more actions". You build them with JavaScript and HTML. A plugin can open its own window, an `<iframe>` (a small web page inside Figma), for its controls.
+Figma says plugins "run in files and perform one or more actions". You build them with JavaScript and HTML. A plugin can open its own window, an `<iframe>` (a small web page inside Figma), for its controls.
 
 The rules that shape a plugin:
 
 - **A person starts it.** Actions "must be initiated by the user". "Users can only run one plugin and one action at a time."
 - **No background work.** "It's not possible to build plugins that run in the background."
-- **Only what is in the file.** A plugin sees styles and components "currently in the file, or have been imported into the file". It sees only fonts the editor can reach. It cannot see the file's comments, permissions or version history; Figma points to the REST API for those.
-- **Network calls are listed.** In the plugin's settings file you list the web addresses it may call, under `allowedDomains`, with a `reasoning` field.
+- **Only what is in the file.** A plugin sees styles and components "currently in the file, or have been imported into the file". It cannot see the file's comments, permissions or version history; Figma points to the REST API for those.
+- **Network access can be limited.** In `manifest.json` (the plugin's settings file), a `networkAccess` key holds `allowedDomains`. Then "Your plugin can only access the domains that you specify". Figma "recommends that your plugin only allows domains that are needed". A `reasoning` line is required for `"*"` (any domain) or for a local server. Figma's test starts with `"none"`, which blocks every call with a CSP error (content-security-policy: the browser refused the request). Then you "remove "none" and add the domains that your plugin requires".
 - **Dev Mode is read-only.** Plugins there "won't be able to edit the contents of the document". They are for inspection and code generation.
 
-Two facts for planning updates. Once Figma approves a plugin, "you can publish any updates immediately". And "It's not possible for users to revert to a previous version". So a bad update reaches every user at once.
+Plan updates with care. Once Figma approves a plugin, "you can publish any updates immediately". And "It's not possible for users to revert to a previous version". So a bad update reaches every user at once. The fix: "If you need to roll back any changes, you can republish an earlier version of the plugin."
 
 ## Canva: one SDK, three surfaces
 
@@ -90,15 +96,11 @@ Canva has new names for its developer products. Its docs say: "The Canva Apps SD
 
 Apps inside Canva are built with **intents**. An intent is "a contract that lets Canva discover your app" and show it "wherever that capability is relevant". In plain words: you say what your app can do, and Canva decides where to offer it. "All new apps must implement at least one intent." The docs list four: Content Publisher, Data Connector, Design Editor and URL Expander.
 
-You can share an app "publicly through the Apps Marketplace" or "privately with members of your team". One warning for public apps: "Public apps that use preview APIs or features will not pass the review process."
+You can share an app "publicly through the Apps Marketplace" or "privately with members of your team". One warning about preview APIs (APIs that are not final yet). Canva's REST APIs page, for Canva for your platform, says: "Public apps that use preview APIs or features will not pass the review process." For apps inside Canva, a preview API page such as duplicatePage says: "You can't release public apps using this API until it's stable."
 
 ## Who starts the work
 
-Here is the main difference, in our words.
-
-- **Plugin or app inside the editor:** a person in the file clicks it. It works on that file, now.
-- **MCP server:** an AI assistant calls its tools. The person talks to the assistant, often outside the editor.
-- **REST API:** a script runs it. Nobody needs to be there.
+In our words: a plugin or an app inside the editor starts with a person in the file. An MCP server starts with an AI assistant calling its tools. A REST script starts with nobody there.
 
 Example (ours). "Swap the photos in this layout now" fits a plugin or an app inside Canva. "Make five posts from this brief" fits an assistant with an MCP server. "Check every brand file each night" fits the REST API. A Figma plugin cannot do the nightly job, because it cannot run in the background.
 
@@ -110,10 +112,8 @@ Figma's publishing page has a checklist for a "second 80% of the work". Some of 
 
 - "The user has nothing selected?"
 - "A component selected? Are you alright with the change propagating to potentially hundreds of instances?"
-- "what happens if the font for that text layer is missing?"
-- "what happens if the user is temporary offline when they run your plugin?"
 
-A photo-swap plugin meets all four (our view). Write down the answer to each before the first line of code (our advice).
+A photo-swap plugin meets both (our view). Write down the answer to each before the first line of code (our advice).
 
 ## What this means for your work
 

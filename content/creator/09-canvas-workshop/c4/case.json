@@ -1,8 +1,8 @@
 {
   "id": "creator/r9/c4/challenge",
   "title": "One bottle, every size",
-  "scenario": "You lead design at a juice brand. The bottle photo for the summer campaign is approved. A developer's script sends it to Adobe's Firefly API to make every size. A teammate also tries a wide banner with OpenAI's image API.\n\nUse the exhibit. Operation names, mask rules and limits are from Adobe's and OpenAI's docs. The brand, the files and the log are made up for this case.",
-  "exhibit": "SOURCE (made up)\n  bottle_hero.png   square, approved by the client\n  The label text must not change in any version.\n\nFILL TEST (made up)\n  mask_v1.png: bottle painted WHITE, background painted BLACK\n  Prompt: \"a sunny beach background\"\n  Result: the beach is missing, and the bottle label now reads \"JUCE\"\n\nSCENE REQUEST (made up)\n  The client sends beach_scene.jpg, a background it already owns.\n  The bottle must go into it, label exactly as in the photo.\n\nBATCH LOG (made up)\n  09:00  script starts 30 expand jobs at the same time\n  09:00  jobs 1-4 accepted\n  09:00  jobs 5-30: HTTP 429 Too Many Requests\n\nTEAMMATE (made up)\n  OpenAI image edit, size 2048x512, request rejected\n\nVENDOR LINES (from the docs)\n  Adobe masks: \"Black areas are protected.\" \"White areas are exposed.\"\n  Adobe limit: \"4 requests per minute (RPM)\" per organization\n  OpenAI sizes: \"the aspect ratio must be between 1:3 and 3:1\"",
+  "scenario": "You lead design at a juice brand. The bottle photo for the summer campaign is approved. A developer's script sends it to Adobe's Firefly API to make every size, a new background and a beach scene.\n\nUse the exhibit. Operation names, settings, mask rules and limits are from Adobe's docs. The brand, the files and the log are made up for this case.",
+  "exhibit": "SOURCE (made up)\n  bottle_hero.png   square, approved by the client\n  The label text must not change in any version.\n\nFILL TEST (made up)\n  mask_v1.png: bottle painted WHITE, background painted BLACK\n  Prompt: \"a sunny beach background\"\n  Result: the beach is missing, and the bottle label now reads \"JUCE\"\n\nSCENE REQUEST (made up)\n  The client sends beach_scene.jpg, a background it already owns.\n  The bottle must go into it, label exactly as in the photo.\n\nBATCH LOG (made up)\n  09:00  script starts 30 expand jobs at the same time\n  09:00  jobs 1-4 accepted\n  09:00  jobs 5-30: HTTP 429 Too Many Requests\n\nWEB BANNER (made up)\n  Expand to 3:1. The headline sits on the RIGHT half of the banner.\n  Request: placement.alignment.horizontal = \"right\"\n  Result: the bottle sits under the headline; the new image is on the left\n\nVENDOR LINES (from the docs)\n  Adobe masks: \"Black areas are protected.\" \"White areas are exposed.\"\n  Adobe limit: \"4 requests per minute (RPM)\" per organization\n  Adobe placement: controls \"how an image is positioned and sized in the final generation\"",
   "questions": [
     {
       "prompt": "Why did the fill test change the bottle label and leave the background as it was?",
@@ -71,24 +71,24 @@
       ]
     },
     {
-      "prompt": "Why was the teammate's 2048x512 request rejected, and what is a good fix?",
+      "prompt": "The banner bottle landed under the headline. What should the developer change?",
       "options": [
         {
-          "text": "It is 4:1, outside OpenAI's 1:3 to 3:1 range; make 3:1, then fit it in the design tool",
-          "explanation": "Right. Both sides are multiples of 16, but 4:1 is wider than 3:1. A 1536x512 image fits the rules.",
+          "text": "Set placement alignment to horizontal left, so the new image fills the right side",
+          "explanation": "Right. Adobe's placement setting decides where the photo sits in the new frame. Pinned left, the new area is on the right, under the headline.",
           "correct": true
         },
         {
-          "text": "The width is not a multiple of 16, so add a few pixels until it becomes 2050 wide",
-          "explanation": "2048 is a multiple of 16. 2050 is not, so this would break that rule."
+          "text": "Paint the right half black in a mask, so Expand can never put the bottle there",
+          "explanation": "Black protects pixels from edits. Where the photo sits in the new frame is what placement controls."
         },
         {
-          "text": "OpenAI only accepts square sizes, so ask for 1024x1024 and stretch it to a banner",
-          "explanation": "OpenAI lists landscape and portrait sizes too, and custom sizes such as 1536x864."
+          "text": "Use Precise Composite, because only a composite can move a photo in its frame",
+          "explanation": "Precise Composite places an object into a background. This job needs the placement setting."
         },
         {
-          "text": "The edge is too long, because OpenAI never allows an edge longer than 1536 pixels",
-          "explanation": "OpenAI's limit is 3840 pixels on an edge. 2048 is under it."
+          "text": "Upload the photo again, because an old upload ID makes the photo sit on the right",
+          "explanation": "Upload IDs are valid for 7 days. The ID's age does not decide where the photo sits."
         }
       ]
     }
