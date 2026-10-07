@@ -294,3 +294,30 @@ describe('towerSummary', () => {
     expect(summary(NONE, NONE)).toEqual({ state: 'soon', next: null, cleared: 0, live: 0 });
   });
 });
+
+describe('shared-chapters credit on the map', () => {
+  const credited = new Map([[caseId(0, 4), 'builder' as const]]);
+  const r0 = () =>
+    realm(
+      buildTrackMap('strategist', outline, ALL_LIVE, new Set([caseId(0, 4)]), credited).realms,
+      0,
+    );
+
+  test('a credited chapter is done, says where it was cleared, and its steps open', () => {
+    const c4 = r0().chapters[3];
+    expect(c4.status).toBe('done');
+    expect(c4.creditedFrom).toBe('builder');
+    expect(c4.steps.find((s) => s.step === 'lesson')?.status).toBe('open');
+  });
+
+  test('the next chapter opens; the realm counts the credited chapter', () => {
+    const view = r0();
+    expect(view.chapters[4].status).toBe('open');
+    expect(view.cleared).toBe(1);
+  });
+
+  test('a real clear has no creditedFrom', () => {
+    const view = realm(map(ALL_LIVE, new Set([caseId(0, 1)])).realms, 0);
+    expect(view.chapters[0].creditedFrom).toBeUndefined();
+  });
+});

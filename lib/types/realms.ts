@@ -14,6 +14,8 @@ export type ChapterView = {
   title: string;
   status: StepStatus;
   steps: StepView[];
+  /** Done only by credit from a shared chapter on this track (shared-chapters spec): "Cleared on the … path". */
+  creditedFrom?: Track;
 };
 
 export type RealmView = {

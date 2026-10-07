@@ -12,6 +12,9 @@ import { xpOutcome } from './case';
  * in Phase C, quick check). Runs inside the caller's transaction:
  *   progress row (once) → xp_events row (award once) → users.xp += amount
  *   only if that row was new → streak + last_active_at (any pass, replays too).
+ * `award` false (a replay, decided by readAttempts inside the user-row lock)
+ * skips the XP row: a case credited by a shared chapter writes its progress
+ * row and pays nothing, so one idea pays once (shared-chapters spec).
  */
 export async function recordClear(
   tx: Tx,
@@ -19,6 +22,7 @@ export async function recordClear(
   exerciseId: string,
   reason: XpReason,
   now: Date,
+  award: boolean,
 ): Promise<XpOutcome> {
   const [user] = await tx
     .select({ xp: users.xp, streak: users.streak, lastActiveAt: users.lastActiveAt })
@@ -32,11 +36,13 @@ export async function recordClear(
 
   const amount = XP_REWARDS[reason];
   // Award once: xp_events_award_once_idx (user, exercise, reason). No row back = already earned.
-  const inserted = await tx
-    .insert(xpEvents)
-    .values({ userId, exerciseId, reason, amount, createdAt: now })
-    .onConflictDoNothing()
-    .returning({ id: xpEvents.id });
+  const inserted = award
+    ? await tx
+        .insert(xpEvents)
+        .values({ userId, exerciseId, reason, amount, createdAt: now })
+        .onConflictDoNothing()
+        .returning({ id: xpEvents.id })
+    : [];
   const awarded = inserted.length > 0 ? amount : 0;
 
   await tx
