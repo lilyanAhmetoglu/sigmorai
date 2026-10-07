@@ -1,0 +1,106 @@
+---
+id: strategist/r6/c5/lesson
+title: A/B pilots
+minutes: 8
+sources:
+  - kind: docs
+    title: Claude docs · Define success criteria and build evaluations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests
+  - kind: blog
+    title: Anthropic Engineering · Demystifying evals for AI agents
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy (How much accuracy is good enough)
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+  - kind: docs
+    title: OpenAI docs · Evaluation best practices
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+---
+
+## Why it matters
+
+Evals tell you if the AI does a task well on a test set. They do not tell you if real people get better results. For that you need a pilot: a small, planned trial in real work. The best pilot compares two groups at the same time. One group uses the AI. The other works as before. That is an **A/B test**.
+
+This chapter covers where the pilot fits, how to run it fairly, and how to read the result.
+
+## Where a pilot fits
+
+Anthropic's post on evals lists several ways to understand how an AI system performs: automated evals, production monitoring, A/B testing, user feedback, transcript review and human studies. It says no single method catches every issue, and the most effective teams combine them.
+
+It also says when to use each one:
+
+- **Automated evals** are most useful before launch and in CI/CD (the automatic checks that run on each change). They run on each change and model upgrade as the first line of defense.
+- **Production monitoring** starts after launch. It catches drift (real-world input changing over time) and failures nobody expected.
+- **A/B testing** validates significant changes once you have enough traffic.
+
+So the order is: evals first, then a pilot with real users. Do not use real users to find problems that a cheap test would have caught.
+
+## What an A/B test is good for
+
+Anthropic's post lists the strengths and limits of A/B testing:
+
+- It compares variants with real user traffic.
+- It measures actual user outcomes, such as retention and task completion.
+- It controls for confounds. A **confound** is another reason why two groups differ.
+- It is slow: the post says days or weeks to reach significance, and it needs sufficient traffic.
+- It only tests changes you deploy.
+- It gives less signal on the "why" unless you also read transcripts.
+
+Anthropic's success-criteria guide also lists A/B testing as a way to measure: compare against a baseline model or an earlier version. OpenAI's accuracy guide describes the same idea for a customer service pilot. The team measured human and AI side by side: customer satisfaction, decision accuracy on reviewed cases and time to resolution.
+
+## Six rules for a fair pilot
+
+Neither vendor's page spells out these rules. They are standard practice, and they are ours.
+
+**1. Pick the question and the numbers first.** Use the success sheet from chapter 1 and the KPI card from chapter 3. Write down the main metric, the guard numbers and what result means "go", "fix" or "stop". Do it before the pilot starts.
+
+**2. Assign people by chance.** Do not let people choose. Volunteers are often your keenest staff. Managers tend to pick their best people. Either way, the AI group was already better. Draw names at random, or split by a coin toss.
+
+**3. Run both groups at the same time.** Seasons, product launches and holidays change results. Comparing December with September measures the calendar as much as the tool. Comparing a group with its own past has the same problem.
+
+**4. Change one thing.** If the AI group also gets a new script and a new bonus, you can't say which one caused the result.
+
+**5. Plan the length and size.** Anthropic's post says A/B tests need days or weeks and enough traffic. A pilot of 12 people for 3 days can show a big gap by luck. Decide the number of people and days before you start. Do not stop on the first good day.
+
+**6. Look at the guard numbers.** A main metric can rise while something else gets worse. OpenAI's pilot kept human control where a failure was very costly, using decision accuracy to decide. Check complaints, errors and later outcomes, not only the headline number.
+
+Example: an insurer tests an AI note-taking tool with 40 claims handlers. Twenty handlers, chosen by random draw, use it for six weeks. Twenty do not. The team plans to compare claims closed per week, and to watch reopened claims.
+
+## Keep the pilot connected to your evals
+
+Do not drop your test set when the pilot starts. OpenAI's evaluation guide says evaluation is continuous: run evals on every change, monitor your app and grow the eval set over time. It also says to log everything, so you can mine the logs for good eval cases.
+
+A pilot is a source of new test cases. Every real failure in the pilot should become a test.
+
+## Read the result
+
+Answer four questions:
+
+1. **How big is the gap?** Give the numbers for both groups, not just "better".
+2. **Could luck explain it?** With few people or days, the answer may be yes. Say so.
+3. **Did a guard number get worse?** If so, the gain may not be worth it.
+4. **Why did it happen?** Anthropic's post says A/B tests give less signal on the "why". Read a sample of transcripts before you decide.
+
+Example: the AI group closes 30% more claims, but reopened claims have tripled. That is not a clear win. It is a reason to fix the notes and test again.
+
+## A pilot plan
+
+This card is a tool for this course:
+
+| Item                   | Example                            |
+| ---------------------- | ---------------------------------- |
+| Question               | Does the tool raise claims closed? |
+| Groups                 | 20 and 20 handlers, random draw    |
+| Period                 | Same 6 weeks                       |
+| Main metric            | Claims closed per handler per week |
+| Guard numbers          | Reopened claims, complaints        |
+| Go / fix / stop        | Written before the start           |
+| Who reads transcripts? | Team lead, 20 claim notes a week   |
+
+## Key points
+
+- Run evals first; use a pilot to measure real outcomes.
+- Assign people by chance and run both groups over the same weeks.
+- Fix the metric, the guard numbers, the size and the length before the start.
+- A/B tests are slow and need enough traffic; do not stop on a lucky day.
+- Read transcripts to learn why, and turn pilot failures into tests.

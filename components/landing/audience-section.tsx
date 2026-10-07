@@ -1,8 +1,22 @@
+import { LandingCta } from '@/components/landing/landing-cta';
 import { Panel } from '@/components/panel';
 import { PixelButton } from '@/components/pixel-button';
-import { AUDIENCES, AUTH_ROUTES, AUTH_TEXT, LANDING_TEXT } from '@/lib/constants';
+import {
+  AUDIENCES,
+  AUTH_ROUTES,
+  AUTH_TEXT,
+  LANDING_TEXT,
+  onboardingHref,
+  signUpHref,
+} from '@/lib/constants';
 
-/** "Who it is for": one Panel per audience (beginner, business, tech), then a closing Start free. Styles: landing.css. */
+/**
+ * "Who it is for": one Panel per audience (beginner, business, tech, media),
+ * each with its own start button, then a closing Start free. A card's button
+ * signs up into onboarding with its track chosen; signed in, it goes to
+ * onboarding with that track (a player who already has a hero moves on to the
+ * dashboard). Styles: landing.css.
+ */
 export function AudienceSection() {
   return (
     <section className="landing-section" aria-labelledby="audience-title">
@@ -25,6 +39,11 @@ export function AudienceSection() {
                 ))}
               </ul>
               <p className="landing-for-who">{audience.forWho}</p>
+              <div className="landing-audience-cta">
+                <LandingCta size="md" signedInHref={onboardingHref(audience.track)}>
+                  <PixelButton href={signUpHref(audience.track)}>{audience.cta}</PixelButton>
+                </LandingCta>
+              </div>
             </Panel>
           </li>
         ))}

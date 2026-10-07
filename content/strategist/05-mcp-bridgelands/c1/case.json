@@ -1,0 +1,96 @@
+{
+  "id": "strategist/r5/c1/challenge",
+  "title": "The sales assistant that wanted every key",
+  "scenario": "You are a sales operations manager at a furniture wholesaler with 90 sales reps. The team wants its AI assistant to work with the company's systems, not only answer from its general knowledge.\n\nAn eager vendor sent a proposal. The sales director asks you to review it before Friday. The exhibit shows the proposal.",
+  "exhibit": "Integration proposal (made-up example data)\n\nGoal: \"Let the assistant do everything a sales rep can do.\"\n\n#  System          What the assistant could do               Approval\n1  CRM             search accounts, read deal notes          none\n2  CRM             change deal values, close deals           none\n3  Email           send emails to clients as the rep         none\n4  Price list      read current prices                       none\n5  Order system    look up order status                      none\n\nVendor note: \"The model runs these actions directly inside your\nsystems, so no extra software is needed on your side.\"\n\nPlan: build a separate custom link for each of your 2 AI apps\nto each of the 4 systems.",
+  "questions": [
+    {
+      "prompt": "The vendor note says the model runs the actions directly inside your systems. What is the accurate picture?",
+      "options": [
+        {
+          "text": "Correct: modern models log in to business systems and click through them like a user.",
+          "explanation": "Both vendors' docs describe a structured request that an application runs. The model doesn't operate the system itself."
+        },
+        {
+          "text": "Correct for your own tools: once you define a function, the model runs it inside your system.",
+          "explanation": "Anthropic's page says client tools, which you define, run in your application. Your code runs them, not the model."
+        },
+        {
+          "text": "The model returns a structured tool call, and an application runs it and sends back the result.",
+          "explanation": "Right. Anthropic's tool use page and OpenAI's function calling guide both describe this round trip. The application is where limits and checks live.",
+          "correct": true
+        },
+        {
+          "text": "The model sends plain text, and a person on the vendor's team types it into each system.",
+          "explanation": "The docs describe a structured call that software runs, not manual work by the vendor."
+        }
+      ]
+    },
+    {
+      "prompt": "Which rows carry the highest risk, and why?",
+      "options": [
+        {
+          "text": "Rows 2 and 3: they change records or send email, so a mistake has a real effect.",
+          "explanation": "Right. The MCP spec's examples put taking actions (like writing data) under tools, apart from data for context. A wrong read shows bad data; a wrong write changes the world.",
+          "correct": true
+        },
+        {
+          "text": "Rows 1 and 4: they read the most data, so they cost the most and are the riskiest.",
+          "explanation": "Reading has risks too, but rows 2 and 3 can change deals or contact clients. Those effects are harder to undo."
+        },
+        {
+          "text": "Row 5 only: order data is the most sensitive data that a sales team ever handles.",
+          "explanation": "Order status is a lookup. Changing deal values and emailing clients have bigger effects."
+        },
+        {
+          "text": "All five rows carry the same risk, because the same model is used for every one.",
+          "explanation": "The model is the same, but the effect of each action is not. Reading and changing data carry different risk."
+        }
+      ]
+    },
+    {
+      "prompt": "Every row says \"Approval: none\". What change fits the sources best?",
+      "options": [
+        {
+          "text": "Keep no approvals, so the reps save time; review the logs at the end of each quarter.",
+          "explanation": "A quarterly review finds a wrong email to a client months too late. The MCP spec says there should always be a human who can deny tool calls."
+        },
+        {
+          "text": "Require approval for every read and every write, and remove the CRM search entirely.",
+          "explanation": "This blocks the useful, low-risk part. The lesson's rule is to match approval to the risk of the action."
+        },
+        {
+          "text": "Ask the model in the prompt to \"be careful with deals and emails\" instead of approvals.",
+          "explanation": "An instruction is not a control. The docs describe approval as a setting in the system, not a request to the model."
+        },
+        {
+          "text": "Require a person to approve rows 2 and 3 before they run, and let the reads run directly.",
+          "explanation": "Right. OpenAI's MCP guide lets the developer require explicit approval for tool calls, and the MCP spec says a human should be able to deny them.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The plan builds a separate custom link for each AI app to each system. What does Anthropic's post on code execution with MCP suggest?",
+      "options": [
+        {
+          "text": "Custom links per pair are best, because each link can be tuned to one app.",
+          "explanation": "The post describes one custom integration per pairing as the problem: it causes duplicated effort and is hard to scale."
+        },
+        {
+          "text": "Use a shared protocol such as MCP, so the work isn't repeated for every pair.",
+          "explanation": "Right. The post says custom integrations for each pairing create duplicated effort, and that implementing MCP once unlocks an ecosystem of integrations.",
+          "correct": true
+        },
+        {
+          "text": "Connect only one AI app to one system, because more links always mean less safety.",
+          "explanation": "The post doesn't say to limit the number of connections. It says to stop building a custom one for every pair."
+        },
+        {
+          "text": "Skip integrations and paste data from each system into the chat by hand each day.",
+          "explanation": "That doesn't scale for 90 reps and goes out of date fast. The post's answer is a shared protocol."
+        }
+      ]
+    }
+  ]
+}

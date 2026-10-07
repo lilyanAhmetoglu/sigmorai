@@ -1,0 +1,95 @@
+---
+id: creator/r3/c4/lesson
+title: Long media
+minutes: 6
+sources:
+  - kind: docs
+    title: Gemini API docs · Video understanding
+    url: https://ai.google.dev/gemini-api/docs/video-understanding
+  - kind: docs
+    title: Gemini API docs · Audio understanding
+    url: https://ai.google.dev/gemini-api/docs/audio
+  - kind: docs
+    title: OpenAI docs · Speech to text
+    url: https://developers.openai.com/api/docs/guides/speech-to-text
+  - kind: docs
+    title: Claude docs · Prompting best practices
+    url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
+---
+
+## Why it matters
+
+Clients send long things. A 90-minute interview with the founder. A two-hour film of an event. A brand library holds talks, shoots and old commercials. A model should be able to use them, but it cannot simply "watch everything".
+
+There are three problems: **size** (will it fit?), **detail** (what does the model miss?) and **finding** (where is the moment you need?). This lesson gives a plan for each. You will not write the request. You will decide how the media is cut, read and indexed.
+
+Realm 0, chapter 2 covered what audio and video cost by the second. Realm 2, chapter 4 covered how files get into a request. This lesson is about the plan around them.
+
+## Turn sound into text first
+
+Speech is easier to work with as text. Any text model can then read it, and search (chapter 3) can find it.
+
+- **OpenAI:** ask for the `diarized_json` response format. You get segments with `speaker`, `start` and `end`. For audio longer than 30 seconds, OpenAI says to set `chunking_strategy`.
+- **Google:** Gemini can transcribe audio itself. Its example asks for timestamps for each segment in the format MM:SS. Google lists a maximum of 9.5 hours of audio per prompt.
+
+Example: a 90-minute interview becomes a transcript with a speaker name and a start time on every line. Now "what did she say about the bottle cap?" is a text question.
+
+## Size: cut before you send
+
+OpenAI's transcription API accepts files up to 25 MB. For larger recordings, OpenAI says to use a compressed audio format or split the file into chunks of 25 MB or less. It adds: "Avoid splitting in the middle of a sentence, which can remove context and reduce accuracy." So cut at pauses.
+
+Example: an 86 MB recording needs at least four chunks. Cut each one at a pause between speakers, not at an exact size.
+
+Google's video page recommends its Files API for large files (100 MB or more) and for long videos (10 minutes or more).
+
+## Video: how the model reads it
+
+Google's docs say that video input is sampled at 1 frame per second by default. This "works well for most content", but "may miss details in videos with rapid motion or quick scene changes". You can set your own sampling rate with an `fps` setting. For example, `0.5` is one frame every two seconds. You can also clip a video with a start and an end offset. Google says clipping and a custom `fps` work only in static mode.
+
+Length has limits too. Google says models with a 1M context window can process videos up to 3 hours long by default (at low media resolution), or up to 1 hour long at high media resolution. So detail and length trade against each other.
+
+Google also describes two ways to read video. **Static** reads frames at a fixed rate. **Agentic** lets the model move around the video and load only what it needs. Google says to start with agentic for long videos or questions about specific moments, and to use static for short clips (under 5 minutes) or when frame-level precision matters. Only some Gemini models support agentic mode, so check the page.
+
+If your model takes no video, cut frames yourself. Prompt Forest, chapter 6 did this for review.
+
+## Ask for time, then check it
+
+Google says you can ask about points in a video with timestamps of the form MM:SS. You can also ask the model to give timestamps for key moments.
+
+A timestamp is a pointer, not a proof. It is our habit to open the file at that time and look or listen before the moment goes into a deliverable. A timestamp can be off, and a model that samples one frame per second can miss quick changes.
+
+## Long text: documents first, question last
+
+A transcript is a long document. Anthropic's prompting guide has advice for inputs of 20k+ tokens:
+
+- "Put longform data at the top" of the prompt, above the question and instructions.
+- With several documents, wrap each one in `<document>` tags with a source.
+- "Ground responses in quotes": ask the model to quote the relevant parts first, then answer.
+
+Example order: the transcript, then "Quote the lines about the bottle cap. Then list the three strongest for a social post."
+
+## Make a moment sheet
+
+A 2-hour film is a poor library entry. Nobody needs "the film". They need "the dock scene at 41:20".
+
+A **moment sheet** is a table with one row per moment. It is our method, and it feeds the search in chapter 3.
+
+| Field   | Example                                |
+| ------- | -------------------------------------- |
+| Asset   | founder-interview.mp3                  |
+| In, out | 41:20 to 41:58                         |
+| What    | Founder explains the bottle cap design |
+| Quote   | A short line, copied from the file     |
+| Who     | Speaker name, if the person agreed     |
+| Check   | Opened and confirmed by a person       |
+
+Write the "Who" and "Check" columns carefully. A voice or a face in the library also has a rights record (chapter 6).
+
+## What this means for your work
+
+- **Text first for speech.** Transcripts with speakers and times.
+- **Cut at pauses.** Keep each chunk inside the file limit.
+- **Know the sampling.** One frame a second can miss fast action. Raise `fps` or clip the interval that matters.
+- **Mind the length limits.** High detail means shorter chunks.
+- **Documents first, question last.** Ask for quotes.
+- **Verify every timestamp.** Then add it to the moment sheet.

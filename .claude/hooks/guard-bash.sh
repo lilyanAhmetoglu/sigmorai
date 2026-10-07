@@ -113,9 +113,10 @@ seg_matches_q() {
   grep -qE "$1" <<<"$segments_q"
 }
 
-# ── 1. Merging / closing PRs and deleting releases — never Claude's call ──────
-if seg_matches '^gh\s+(pr\s+(merge|close)|release\s+delete)(\s|$)'; then
-  deny "BLOCKED: humans merge and close PRs in this repo, never Claude (git-safety.md). Open the PR and report the URL + CI status instead. If you really want this, run it yourself: ! ${short_cmd}"
+# ── 1. Closing PRs and deleting releases — never without a fresh yes ─────────
+# Merging is allowed (git-safety.md rule 3: green, reviewed PRs into canary).
+if seg_matches '^gh\s+(pr\s+close|release\s+delete)(\s|$)'; then
+  deny "BLOCKED: closing a PR or deleting a release needs a fresh, explicit approval (git-safety.md). If you really want this, run it yourself: ! ${short_cmd}"
 fi
 
 # The same through the raw REST/GraphQL API. The knowledge-sync routine

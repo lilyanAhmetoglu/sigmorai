@@ -1,4 +1,4 @@
-import type { Audience } from '@/lib/types';
+import type { Audience, Track } from '@/lib/types';
 import { REALMS, TRACK_ACCENTS } from './curriculum';
 import { SITE_NAME } from './site';
 
@@ -15,7 +15,7 @@ const lastRealm = beginnerRealms[beginnerRealms.length - 1];
 export const LANDING_META = {
   title: `${SITE_NAME}: learn AI engineering as a pixel-art RPG`,
   description:
-    'Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people and developers.',
+    'Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people, developers and designers.',
 } as const;
 
 export const LANDING_TEXT = {
@@ -24,11 +24,11 @@ export const LANDING_TEXT = {
   continueQuest: 'Continue quest',
   eyebrow: 'AI ENGINEERING · PIXEL-ART RPG',
   title: 'Start your AI engineering adventure.',
-  lede: `Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work.`,
+  lede: `Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work, or how to make AI media.`,
   audienceEyebrow: 'WHO IT IS FOR',
   audienceTitle: 'Pick the path that fits you',
   audienceIntro:
-    'Both paths cross the same nine realms. Builders clear levels by deciding how to design the system. Strategists clear them by deciding real business cases.',
+    'Pick the path that matches your job. The realms share names, but each path has its own lessons and cases: builders design systems, strategists decide business cases, creators decide media cases.',
 } as const;
 
 /**
@@ -50,23 +50,27 @@ export const SHARE_IMAGE = {
   },
 } as const;
 
-/** "Who it is for" cards, in the ticket's order: beginner, business, tech. */
+/** "Who it is for" cards, in order: beginner, business, tech, media. */
 export const AUDIENCES: readonly Audience[] = [
   {
     id: 'beginner',
+    track: 'strategist',
+    cta: 'Start as a beginner',
     label: 'NEW TO AI',
     accent: 'success',
     title: 'For total beginners',
     body: `No AI background needed. Realms ${firstRealm.id}–${lastRealm.id} are beginner level. Pick the strategist path when you sign up. You start with what a model is, what it can and can't do, and what it costs.`,
     points: [
       'One short lesson per chapter, then a case and a quick check',
-      'No code on either path',
+      'No code on any path',
       'The Math Tower explains the maths, floor by floor',
     ],
     forWho: 'STUDENTS · GRADUATES · ANYONE WHO USES AI AT WORK',
   },
   {
     id: 'strategist',
+    track: 'strategist',
+    cta: 'Start the strategist path',
     label: 'STRATEGIST',
     accent: TRACK_ACCENTS.strategist,
     title: 'For business people',
@@ -80,6 +84,8 @@ export const AUDIENCES: readonly Audience[] = [
   },
   {
     id: 'builder',
+    track: 'builder',
+    cta: 'Start the builder path',
     label: 'BUILDER',
     accent: TRACK_ACCENTS.builder,
     title: 'For technical people',
@@ -91,4 +97,26 @@ export const AUDIENCES: readonly Audience[] = [
     ],
     forWho: 'DEVELOPERS · DATA SCIENTISTS · ML ENGINEERS',
   },
+  {
+    id: 'creator',
+    track: 'creator',
+    cta: 'Start the creator path',
+    label: 'CREATOR',
+    accent: TRACK_ACCENTS.creator,
+    title: 'For designers and creators',
+    body: 'Designers, art directors and social teams. Every level ends with a real media case to decide.',
+    points: [
+      'How image, video and audio models work',
+      'Prompts, brand kits and keeping one style',
+      'Rights, labels and what each asset costs',
+    ],
+    forWho: 'DESIGNERS · ART DIRECTORS · SOCIAL · MARKETING',
+  },
 ];
+
+/** A track's own landing card (not the beginner one), for its "who it is for" line in onboarding. */
+export const audienceFor = (track: Track): Audience => {
+  const audience = AUDIENCES.find((a) => a.id === track);
+  if (!audience) throw new Error(`No landing card for track ${track}`);
+  return audience;
+};

@@ -1,0 +1,118 @@
+{
+  "id": "creator/r4/c5/challenge",
+  "title": "Who signs the post",
+  "scenario": "A studio's agent chain makes a tea ad and can post it to the brand's social account. You design the sign-off using the exhibit. The chain, the cards and the log are made up for this case.",
+  "exhibit": "CHAIN (ours, made up for this case)\n  manager agent -> hands off to poster agent -> tool post_to_social(file, caption)\n  Checks today: one input check on the manager agent (the first agent).\n\nAPPROVAL CARD, DRAFT A\n  \"The ad is ready. Approve the post?   [Yes]  [No]\"\n\nAPPROVAL CARD, DRAFT B\n  Video file: tea_ad_v2.mp4 (play)    Account: @kettleandleaf\n  Caption: \"Steep slowly.\"            Rubric: lines 1, 2, 3, 4 = pass\n  Cost: $36 of $40                    Rounds used: 3 of 3\n\nLOG (made up)\n  18:00  post_to_social is waiting for approval. The producer is off until 09:00.\n  Reviewer agent: \"All 4 rubric lines pass.\"\n  Poster agent:   \"The reviewer passed it, so I approved it myself.\"\n\nNEW CONNECTION (made up)\n  Next week the studio connects a social-posting MCP server to a Claude\n  Managed Agent.",
+  "questions": [
+    {
+      "prompt": "Which approval card should the studio use?",
+      "options": [
+        {
+          "text": "Draft A, because a short card is fast for the producer and speed is what matters most",
+          "explanation": "A short card asks the person to trust the agent's word. They cannot see what they sign."
+        },
+        {
+          "text": "Draft B, because it shows the file, the rubric lines, the account, the caption and the cost",
+          "explanation": "Right. The person signs the actual file and sees the evidence. This card shape is our own recommendation.",
+          "correct": true
+        },
+        {
+          "text": "Draft A, with a note from the agent describing how good the ad looks and why it is good",
+          "explanation": "A note from the agent is still the agent's word. The person should see the file."
+        },
+        {
+          "text": "Neither card, because approvals are done by the reviewer agent so that the producer is free",
+          "explanation": "A reviewer agent is a check, not a person who can answer to the client."
+        }
+      ]
+    },
+    {
+      "prompt": "The approval has waited since 18:00 and the producer is back at 09:00. What is the right design?",
+      "options": [
+        {
+          "text": "Let the job wait, then resume it when the producer answers; both vendors allow this",
+          "explanation": "Right. OpenAI says to serialize and store state and resume the same run. Claude says the session waits indefinitely.",
+          "correct": true
+        },
+        {
+          "text": "Cancel the job at midnight and restart it in the morning, to keep the pipeline moving",
+          "explanation": "The docs describe a pause that can last. A restart throws away the work already done."
+        },
+        {
+          "text": "Let the agent approve its own post after one hour with no answer, so it never blocks",
+          "explanation": "A silent approval removes the sign-off. A missing answer is not a yes."
+        },
+        {
+          "text": "Send the post at 18:30 without approval and ask the producer to review it the next day",
+          "explanation": "Posting is the side effect. The review must come before it."
+        }
+      ]
+    },
+    {
+      "prompt": "The studio's only check is on the manager agent's input. Where should the approval for posting sit?",
+      "options": [
+        {
+          "text": "On the manager agent's input check, since that check covers the whole chain below it",
+          "explanation": "OpenAI says input guardrails run only for the first agent in the chain."
+        },
+        {
+          "text": "On the final output of the manager agent, because it speaks last in the chain of agents",
+          "explanation": "After the handoff, the poster agent produces the final output, not the manager. An output check also runs after the post has already gone out. OpenAI says to put validation next to the tool."
+        },
+        {
+          "text": "On the post_to_social tool itself, next to the side effect it causes in the chain",
+          "explanation": "Right. OpenAI says to put validation next to the tool that creates the side effect, because agent-level checks do not run everywhere.",
+          "correct": true
+        },
+        {
+          "text": "On the prompt, with the line \"never post without asking\", which every agent will read",
+          "explanation": "A prompt line is a request to the model. It does not stop a tool call. The approval belongs on the tool."
+        }
+      ]
+    },
+    {
+      "prompt": "The studio connects a posting MCP server to a Claude Managed Agent. What is the default policy for its tools?",
+      "options": [
+        {
+          "text": "always_allow, so that every new tool can run at once and the agent is not slowed down",
+          "explanation": "always_allow is the default for the built-in agent toolset, not for MCP toolsets."
+        },
+        {
+          "text": "always_ask, so a new tool pauses for approval until you set a different policy for it",
+          "explanation": "Right. Claude's docs say MCP toolsets default to always_ask, so new tools do not run without approval. This is a beta feature.",
+          "correct": true
+        },
+        {
+          "text": "deny, so that no MCP tool can run until a developer changes the setting for that tool",
+          "explanation": "The documented default for MCP toolsets is always_ask, which pauses for approval, not a permanent block."
+        },
+        {
+          "text": "There is no default, so the agent decides on its own for each tool whether to ask someone",
+          "explanation": "The docs give each toolset kind a default. The model does not choose."
+        }
+      ]
+    },
+    {
+      "prompt": "The poster agent says it approved the post itself because the reviewer passed it. What is the problem?",
+      "options": [
+        {
+          "text": "No problem, because four passed lines are all the proof any client could ever ask for",
+          "explanation": "A pass is evidence, not authority. A person must answer to the client."
+        },
+        {
+          "text": "The reviewer should have been a person from the start, and no agent should ever review",
+          "explanation": "Agent reviewers are useful for rubric lines. The issue is who gives the final yes."
+        },
+        {
+          "text": "The agent is not allowed to say words like approved, so the log line needs a new wording",
+          "explanation": "The words are not the problem. The missing human decision is the problem."
+        },
+        {
+          "text": "A review is a check, not a sign-off, so a person who can answer for the post must say yes",
+          "explanation": "Right. Google's advice is to verify outputs before deploying, especially when they touch external systems. The rule that a person signs is ours.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

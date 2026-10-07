@@ -1,8 +1,10 @@
 import 'server-only';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import {
+  ANSWER_LENGTH_MAX_RATIO,
+  ANSWER_LENGTH_MIN_GAP,
   BLOG_AREA,
   BOSS_SEGMENT,
   CASE_FILE,
@@ -20,6 +22,7 @@ import {
   TRACKS,
 } from '@/lib/constants';
 import { MathOutlineSchema, TrackOutlineSchema } from '@/lib/types';
+import { headingProblems } from './blog';
 import { buildExerciseId, parseBlogFileName, parseExerciseId, trackExerciseIds } from './ids';
 import {
   ContentError,
@@ -112,15 +115,78 @@ async function officialBases(root: string, issues: ContentIssue[]): Promise<stri
   }
 }
 
+type QuestionLike = { options: { text: string; correct: boolean }[] };
+
+/**
+ * Questions whose right option gives itself away by length: it is the single
+ * longest, more than ANSWER_LENGTH_MAX_RATIO longer than the next-longest
+ * option and at least ANSWER_LENGTH_MIN_GAP characters longer. Ties pass.
+ */
+export function lengthGiveaways(questions: QuestionLike[], file: string): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  questions.forEach((q, i) => {
+    const right = q.options.find((o) => o.correct);
+    if (!right) return;
+    const next = Math.max(...q.options.filter((o) => !o.correct).map((o) => o.text.length));
+    const gap = right.text.length - next;
+    if (gap >= ANSWER_LENGTH_MIN_GAP && gap > next * ANSWER_LENGTH_MAX_RATIO) {
+      issues.push({
+        file,
+        message: `question ${i + 1}: the correct option is the longest (${right.text.length} chars vs ${next} for the next). Make the options a similar length.`,
+      });
+    }
+  });
+  return issues;
+}
+
+const BARE_NUMBER = /^[\d.,\s%$+-]+$/;
+const endsWithPeriod = (t: string) => t.trim().endsWith('.');
+const hasTwoSentences = (t: string) => t.includes('. ');
+
+/**
+ * Questions whose right option gives itself away by sentence shape: only it
+ * ends with a period, or only it holds two sentences (". "). Questions whose
+ * options are all bare numbers are skipped.
+ */
+export function shapeGiveaways(questions: QuestionLike[], file: string): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  questions.forEach((q, i) => {
+    const right = q.options.find((o) => o.correct);
+    if (!right) return;
+    const wrong = q.options.filter((o) => !o.correct);
+    if (q.options.every((o) => BARE_NUMBER.test(o.text.trim()))) return;
+    const tells: [string, (t: string) => boolean][] = [
+      ['ends with a period', endsWithPeriod],
+      ['has two sentences', hasTwoSentences],
+    ];
+    for (const [label, has] of tells) {
+      if (has(right.text) && !wrong.some((o) => has(o.text))) {
+        issues.push({
+          file,
+          message: `question ${i + 1}: only the correct option ${label}. Give every option the same sentence shape.`,
+        });
+      }
+    }
+  });
+  return issues;
+}
+
+/** The site's static folder, where a post's `cover` path points. */
+const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
+
 /**
  * A blog post: frontmatter schema, a body with no components (no NPC
- * DialogBox), a linked lesson that exists, and a slug no other post uses.
+ * DialogBox), unique heading anchors (the "On this page" list), a linked
+ * lesson that exists, a slug no other post uses, and (when set) a cover
+ * file under public/ that no other post uses.
  */
 async function checkBlogPost(
   abs: string,
   rel: string,
   name: string,
   slugs: Map<string, string>,
+  covers: Map<string, string>,
+  publicDir: string,
   issues: ContentIssue[],
 ) {
   const { slug } = parseBlogFileName(name)!;
@@ -138,6 +204,28 @@ async function checkBlogPost(
     } catch (err) {
       issues.push({ file: rel, message: `MDX body: ${(err as Error).message}` });
     }
+    for (const message of headingProblems(body)) issues.push({ file: rel, message });
+    const { cover } = frontmatter;
+    if (cover !== `/blog/covers/${slug}.webp`) {
+      issues.push({
+        file: rel,
+        message: `cover must be /blog/covers/${slug}.webp (named after the slug), not ${cover}.`,
+      });
+    }
+    const used = covers.get(cover);
+    if (used) {
+      issues.push({
+        file: rel,
+        message: `cover ${cover} is already used by ${used}. Each post needs its own cover.`,
+      });
+    } else covers.set(cover, rel);
+    const isFile = await stat(path.join(publicDir, cover)).then(
+      (s) => s.isFile(),
+      () => false,
+    );
+    if (!isFile) {
+      issues.push({ file: rel, message: `cover ${cover} is not a file under public/.` });
+    }
     if (!(await hasContent(frontmatter.lesson, abs))) {
       issues.push({
         file: rel,
@@ -149,7 +237,10 @@ async function checkBlogPost(
   }
 }
 
-export async function validateContent(root: string = CONTENT_DIR): Promise<ContentIssue[]> {
+export async function validateContent(
+  root: string = CONTENT_DIR,
+  publicDir: string = PUBLIC_DIR,
+): Promise<ContentIssue[]> {
   const abs = contentPath(root, '.');
   const issues: ContentIssue[] = [];
   const files = await listFiles(abs);
@@ -162,6 +253,8 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
 
   /** slug → the first file that used it: two posts may not share a URL. */
   const blogSlugs = new Map<string, string>();
+  /** cover path → the first post that used it: a cover is never reused. */
+  const blogCovers = new Map<string, string>();
 
   for (const area of [...TRACKS, MATH_AREA]) {
     const rel = `${area}/${OUTLINE_FILE}`;
@@ -174,7 +267,7 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
     if (rel === KB_SOURCES_NAME || rel.endsWith(CONTENT_NOTES_FILE)) continue;
     const post = blogPostName(rel);
     if (post) {
-      await checkBlogPost(abs, rel, post, blogSlugs, issues);
+      await checkBlogPost(abs, rel, post, blogSlugs, blogCovers, publicDir, issues);
       continue;
     }
     if (rel === `${MATH_AREA}/${OUTLINE_FILE}`) {
@@ -206,8 +299,17 @@ export async function validateContent(root: string = CONTENT_DIR): Promise<Conte
             });
           }
         }
-      } else if (rel.endsWith(CASE_FILE)) await loadCase(id, abs);
-      else await loadQuickCheck(id, abs);
+      } else if (rel.endsWith(CASE_FILE)) {
+        {
+          const qs = (await loadCase(id, abs)).questions;
+          issues.push(...lengthGiveaways(qs, rel), ...shapeGiveaways(qs, rel));
+        }
+      } else {
+        {
+          const qs = (await loadQuickCheck(id, abs)).questions;
+          issues.push(...lengthGiveaways(qs, rel), ...shapeGiveaways(qs, rel));
+        }
+      }
     } catch (err) {
       issues.push({ file: rel, message: detail(err) });
     }

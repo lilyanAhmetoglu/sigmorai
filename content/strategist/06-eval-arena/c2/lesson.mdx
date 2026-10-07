@@ -1,0 +1,73 @@
+---
+id: strategist/r6/c2/lesson
+title: Quality evals
+minutes: 8
+sources:
+  - kind: docs
+    title: Claude docs · Define success criteria and build evaluations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests
+  - kind: docs
+    title: OpenAI docs · Evaluation best practices
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: blog
+    title: Anthropic Engineering · Demystifying evals for AI agents
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+---
+
+## Why it matters
+
+OpenAI's evaluation guide starts with a warning: generative AI is variable. A model can give different output for the same input. So normal software testing is not enough. You need **evals** that judge the output itself.
+
+You now have success criteria (chapter 1). This chapter is about the test: which questions to ask, and who or what grades the answers.
+
+## A quick recap
+
+You met the three kinds of grader in realm 1 (Prompt Forest): code checks, human graders and model graders (LLM-as-a-judge). Here we use them on business work. Use code checks where you can, a model judge where you must, and people to check both. Give a model judge a clear rubric and a fixed result, such as "correct" or "incorrect".
+
+## Model judges have biases
+
+OpenAI's guide names two known problems with model judges:
+
+- **Position bias:** the judge is affected by the order of the answers it compares.
+- **Verbosity bias:** the judge prefers longer answers.
+
+Its advice: use pairwise comparison or pass/fail for more reliability, control for response length, and use clear, detailed rubrics.
+
+Most important, check the judge against people. OpenAI's guide says to scale up only when the judge is faster, cheaper and consistently agrees with human annotations. Anthropic's post says model graders should be closely calibrated with human experts. It also suggests letting the judge answer "Unknown" when it lacks information.
+
+## Build the test set from real work
+
+You don't need a huge test set to start. Anthropic's post says 20 to 50 simple tasks drawn from real failures is a great start. Good places to look are the checks you already do by hand before a release, your bug tracker and your support queue.
+
+Three rules from the same post:
+
+1. **Write clear tasks.** A good task is one where two domain experts would reach the same pass or fail verdict on their own.
+2. **Balance the set.** Test cases where a behaviour should happen and cases where it shouldn't. Its example: if you only test whether an assistant searches the web when it should, it may start to search for almost everything.
+3. **Keep a reference answer.** A known good output shows that the task can be solved and that the grader works.
+
+Anthropic's guide adds one more point: more questions with slightly weaker automated grading beat fewer questions graded by hand.
+
+## Run it more than once
+
+Because output varies, one run can mislead. Anthropic's post explains a measure called **pass^k**: the chance that all k tries succeed. If one try succeeds 75% of the time, the chance that 3 tries in a row all succeed is about 42%. The post says this matters most for customer-facing agents, where users expect the same good result every time.
+
+## Read the answers, not only the score
+
+A score can be wrong because the test is wrong. Anthropic's post gives an example: one model first scored 42% on a public benchmark. A researcher then found grading bugs. One example was a rule that marked "96.12" wrong because it expected many more decimal places. After fixes, the score was 95%.
+
+The post's rule: don't take eval scores at face value until someone reads the details and some transcripts. Failures should seem fair.
+
+## Two kinds of test suite
+
+The post separates two uses:
+
+- **Capability (quality) evals** ask "What can it do well?" They should start with a low pass rate, so there is room to improve.
+- **Regression evals** ask "Does it still handle everything it used to?" They should pass nearly 100% of the time. A drop means something broke.
+
+## Key points
+
+- Use code checks where you can, model judges where you must, and people to check both.
+- Give model judges clear rubrics and fixed outputs; watch for position and length bias.
+- Trust a model judge only after it agrees with human graders.
+- Start with 20 to 50 real tasks, balanced, with clear pass or fail rules.
+- Run tests more than once, and read transcripts before you trust a score.

@@ -8,6 +8,7 @@ import { ChapterList } from '@/components/realms/chapter-list';
 import { RealmActionLabel } from '@/components/realms/realm-action-label';
 import { RealmScene } from '@/components/realms/realm-scene';
 import { SignInNote } from '@/components/realms/sign-in-note';
+import { ShareButtons } from '@/components/share-buttons';
 import { StatusBadge } from '@/components/realms/status-badge';
 import { TrackSwitch } from '@/components/realms/track-switch';
 import {
@@ -16,24 +17,19 @@ import {
   questHref,
   REALM_STATUS_TEXT,
   realmHref,
-  REALMS,
   REALMS_TEXT,
   realmsHref,
+  SHARE_TEXT,
+  SITE_NAME,
   TRACK_PARAM,
 } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
 import { getRealmMeta, getRealmPage } from '@/lib/data/realms';
+import { socialMetadata } from '@/lib/og/metadata';
 
 const CHAPTERS_ID = 'realm-chapters';
 
-/**
- * Every realm slug is known up front. The page reads searchParams, so it still
- * renders per request; the real 404 status for a bad slug comes from layout.tsx.
- */
-export const dynamicParams = false;
-export function generateStaticParams() {
-  return REALMS.map((realm) => ({ realm: realm.slug }));
-}
+// dynamicParams + generateStaticParams live in layout.tsx, so the share image route gets them too.
 
 /**
  * Unique title, description and canonical per realm; noindex until one of its
@@ -46,10 +42,12 @@ export async function generateMetadata({
   const { realm: slug } = await params;
   const meta = await getRealmMeta(slug);
   if (!meta) return {};
+  const title = `${meta.name} · ${SITE_NAME}`;
   return {
-    title: `${meta.name} · Sigmorai`,
+    title,
     description: meta.description,
     alternates: { canonical: realmHref(slug) },
+    ...socialMetadata({ title, description: meta.description, url: realmHref(slug) }),
     robots: meta.indexable ? undefined : { index: false },
   };
 }
@@ -123,6 +121,12 @@ export default async function RealmPage({ params, searchParams }: PageProps<'/re
         </section>
         <aside className="flex min-w-0 flex-[1_1_16rem] flex-col gap-4">
           <DialogBox speaker={realm.npc}>{realm.lore}</DialogBox>
+          <ShareButtons
+            target={{
+              url: realmHref(realm.slug, track),
+              text: SHARE_TEXT.realm(realm.name, realm.topic),
+            }}
+          />
         </aside>
       </div>
     </div>

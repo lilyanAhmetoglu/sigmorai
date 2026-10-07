@@ -1,0 +1,118 @@
+{
+  "id": "builder/r1/boss/challenge",
+  "title": "Design an extraction prompt: schema, examples and validation for structured data",
+  "scenario": "A parts shop turns customer return emails into records for its returns system, and a script reads each model reply. In a 50-email test run, some dates come back in the wrong form and the reason changes between runs of the same email. The shop also needs to cut input cost and to prove where each stored value came from. The returns lead wants a design before launch. Use the exhibit.",
+  "exhibit": "BRIEF:\n  Return-request emails for a parts shop: 2,000 a day, each under 300 tokens.\n  Fields: order_id (\"A-\" and 6 digits), reason (one value from a fixed list), pickup_date (YYYY-MM-DD).\n  Every request sends the same rules and examples plus one email. The team wants a lower input bill.\n  Vendor not final. Claude and OpenAI are both on the shortlist.\n\nPROMPT (draft 1):\n  <email>{email_text}</email>\n\n  Extract the return request as JSON.\n  order_id: the order number.\n  reason: the main reason for the return (damaged, wrong_item, late or other).\n  pickup_date: write dates as YYYY-MM-DD.\n\n  <examples>\n  <example>\n  Email: Order A-104233 arrived with a cracked lid. Please collect it on 3 March.\n  Output: {\"order_id\": \"A-104233\", \"reason\": \"damaged\", \"pickup_date\": \"2026-03-03\"}\n  </example>\n  <example>\n  Email: You sent the wrong filter for A-998120. Pick up on 14 March, please.\n  Output: {\"order_id\": \"A-998120\", \"reason\": \"wrong_item\", \"pickup_date\": \"14 March 2026\"}\n  </example>\n  </examples>\n\nTRACE (one email, sent twice with draft 1):\n  Email: Order A-104233 came a week late and the lid is cracked. Collect it on 3 March.\n  Run 1: {\"order_id\": \"A-104233\", \"reason\": \"damaged\", \"pickup_date\": \"2026-03-03\"}\n  Run 2: {\"order_id\": \"A-104233\", \"reason\": \"late\", \"pickup_date\": \"2026-03-03\"}\n\nTEST RESULTS (50 test emails, draft 1):\n  pickup_date written as YYYY-MM-DD:                      32 replies\n  pickup_date in another form, e.g. \"14 March 2026\":      18 replies\n\nREVIEW NOTES:\n  Returns lead: \"I want to see why the model chose each reason.\"\n  Teammate (using Claude with structured outputs): \"Add a reasoning property to the schema that holds the model's step-by-step reasoning.\"\n  Legal: \"Every value we store must be traceable to the words in the email.\"",
+  "questions": [
+    {
+      "prompt": "Run 1 and run 2 give different reasons for the same email. What is the best fix to the prompt?",
+      "options": [
+        {
+          "text": "Change reason to a list, so the model can return every reason it sees and the system picks one later.",
+          "explanation": "The returns system takes one reason from a fixed list. A list does not remove the unclear rule. It moves the problem into the system that reads the reply."
+        },
+        {
+          "text": "Say which reason wins when several apply: damaged, then wrong_item, then late; other only if none fit.",
+          "explanation": "Right. 'Main reason' is an ambiguous term, and the model guesses what it means. The Gemini docs say to explicitly explain ambiguous terms, and a clear rule gives the same answer on every run.",
+          "correct": true
+        },
+        {
+          "text": "Change the line to 'choose the single most important reason and keep it short'.",
+          "explanation": "This is still open. Most important to whom: the customer, the shop or the courier? The model has to guess again."
+        },
+        {
+          "text": "Add 'Do not pick the wrong reason, and double-check your choice before answering.'",
+          "explanation": "This names no target. It does not say what makes a reason right, so the model still has to guess."
+        }
+      ]
+    },
+    {
+      "prompt": "18 of 50 replies write the date in the wrong form. What is the cause and the fix?",
+      "options": [
+        {
+          "text": "Add 'IMPORTANT: ISO dates only!!!' in capitals at the top of the prompt, and keep both examples as they are.",
+          "explanation": "Shouting does not remove the conflict. The second example still shows another date form, and the model copies what the examples show."
+        },
+        {
+          "text": "Models cannot write ISO dates reliably, so ask for day, month and year as three separate numbers.",
+          "explanation": "The test results show 32 of 50 replies already have the right form. The model can write it. The prompt contradicts itself."
+        },
+        {
+          "text": "Add 20 more examples in the same style, so the single wrong date form is outweighed by the rest.",
+          "explanation": "The wrong example stays in the set. The Gemini docs also warn that too many examples can make the model overfit to them."
+        },
+        {
+          "text": "The second example shows '14 March 2026' against the rule, so fix it so all examples follow the rule.",
+          "explanation": "Right. The Gemini docs say the formatting of few-shot examples should be the same to avoid undesired formats. Here the examples also disagree with the instruction, so the model has two signals.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The team wants to cut input cost with prompt caching. What should it change in the prompt order?",
+      "options": [
+        {
+          "text": "Put the email first, because the Claude docs say documents go above the instructions.",
+          "explanation": "That advice is for long inputs of 20k tokens or more. These emails are under 300 tokens, and a changing email at the start means the repeated text no longer sits at the start."
+        },
+        {
+          "text": "Wrap the rules in tags and keep the order. Order has no effect on cost.",
+          "explanation": "Order does matter for caching. OpenAI advises keeping the content you use over and over at the beginning of the prompt."
+        },
+        {
+          "text": "Put the rules and examples first and the email last.",
+          "explanation": "Right. OpenAI advises keeping content you expect to reuse at the beginning of the prompt to get the most from prompt caching. Here the rules and examples repeat on every request, and the email changes.",
+          "correct": true
+        },
+        {
+          "text": "Put the email between the rules and the examples.",
+          "explanation": "The examples would then come after the changing email. Only text that repeats at the start of the prompt can be reused."
+        }
+      ]
+    },
+    {
+      "prompt": "On Claude, how should the team answer the request to show why the model chose each reason?",
+      "options": [
+        {
+          "text": "Add a short explanation property to the schema, one sentence for each reason.",
+          "explanation": "Right. The Claude docs say a property that asks for step-by-step reasoning may lead to a reasoning_extraction refusal, and to ask for a short explanation instead.",
+          "correct": true
+        },
+        {
+          "text": "Add the reasoning property as proposed. A schema can hold any text field.",
+          "explanation": "The Claude docs warn that such a property may lead to a reasoning_extraction refusal. A refusal reply may not match the schema."
+        },
+        {
+          "text": "Start the reply with {\"reasoning\": using a prefilled assistant message.",
+          "explanation": "Prefilled replies on the last assistant turn return a 400 error on Claude 4.6 models and later. The docs point to structured outputs instead."
+        },
+        {
+          "text": "Turn off structured outputs and ask for the JSON, with the reasoning property, in the prompt.",
+          "explanation": "The Claude docs say that without structured outputs Claude can generate malformed JSON or miss required fields, and the property still asks for step-by-step reasoning."
+        }
+      ]
+    },
+    {
+      "prompt": "Which design lets the code check the legal rule that each stored value comes from the email?",
+      "options": [
+        {
+          "text": "Add a confidence number from 0 to 1 to each field and store only values above 0.9 in the system; a person reviews the rest.",
+          "explanation": "A score from the model is not a pointer to the text. Nothing in it can be checked against the email."
+        },
+        {
+          "text": "Add a field with the exact email words behind each value, then check in code that they appear in the email and flag a value with no match.",
+          "explanation": "Right. The Claude docs suggest finding a supporting quote for each claim and retracting a claim that has none. A text match in code makes this a check that does not depend on the model.",
+          "correct": true
+        },
+        {
+          "text": "Run each extraction twice and store a value only when both runs return exactly the same text; if they differ, run it a third time.",
+          "explanation": "Two runs can agree on the same wrong value. Agreement does not show that the words are in the email."
+        },
+        {
+          "text": "Store the model's full reply and the email text together with the record, as proof of the extraction, and keep both for seven years.",
+          "explanation": "This stores the model's claim. It does not show where in the email the claim comes from."
+        }
+      ]
+    }
+  ]
+}

@@ -3,9 +3,11 @@ import Link from 'next/link';
 import { FloorCard } from '@/components/math/floor-card';
 import { RealmScene } from '@/components/realms/realm-scene';
 import { SignInNote } from '@/components/realms/sign-in-note';
-import { MATH_HREF, MATH_TEXT, REALMS_HREF, SITE_NAME } from '@/lib/constants';
+import { ShareButtons } from '@/components/share-buttons';
+import { MATH_HREF, MATH_TEXT, REALMS_HREF, SHARE_TEXT, SITE_NAME } from '@/lib/constants';
 import { MATH_ART } from '@/lib/content/curriculum';
 import { getMathPage } from '@/lib/data/math';
+import { socialMetadata } from '@/lib/og/metadata';
 
 const FLOORS_ID = 'math-floors';
 
@@ -14,6 +16,11 @@ export const metadata: Metadata = {
   title: `${MATH_TEXT.title} · ${SITE_NAME}`,
   description: MATH_TEXT.description,
   alternates: { canonical: MATH_HREF },
+  ...socialMetadata({
+    title: `${MATH_TEXT.title} · ${SITE_NAME}`,
+    description: MATH_TEXT.description,
+    url: MATH_HREF,
+  }),
 };
 
 /**
@@ -56,6 +63,8 @@ export default async function MathPage() {
           ))}
         </ol>
       </section>
+
+      <ShareButtons target={{ url: MATH_HREF, text: SHARE_TEXT.math }} />
     </div>
   );
 }

@@ -8,10 +8,12 @@
 import type { Accent, Track } from '@/lib/types';
 import { FRONTIER_AREA, MATH_AREA } from './exercises';
 
-/** Track chip colour, from the design's TR table (builder = ember, strategist = spark). */
+/** Track chip colour, from the design's TR table (builder = ember, strategist = spark;
+ * creator = info until the design pass adds its own token). */
 export const TRACK_ACCENTS: Record<Track, Accent> = {
   builder: 'accent',
   strategist: 'xp',
+  creator: 'info',
 };
 
 /** UI labels are the upper-case form (BEGINNER / INTERMEDIATE / ADVANCED). */
@@ -37,7 +39,7 @@ export const REALM_STATUSES = ['cleared', 'in-progress', 'open', 'tier-locked'] 
 /** How many realm cards the dashboard shows before "Browse all". */
 export const DASHBOARD_REALM_LIMIT = 3;
 
-/** Shared by both tracks. `id` is the realm number; helpers derive folder, art and accent. */
+/** Shared by every track. `id` is the realm number; helpers derive folder, art and accent. */
 export const REALMS = [
   {
     id: 0,

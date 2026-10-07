@@ -1,0 +1,105 @@
+---
+id: strategist/r5/c6/lesson
+title: Lock-in
+minutes: 8
+sources:
+  - kind: docs
+    title: MCP specification · Overview
+    url: https://modelcontextprotocol.io/specification/2026-07-28
+  - kind: docs
+    title: Claude Code docs · Connect Claude Code to tools via MCP
+    url: https://code.claude.com/docs/en/mcp
+  - kind: docs
+    title: Claude docs · MCP connector
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: OpenAI docs · MCP servers and connectors
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: docs
+    title: Claude docs · Model deprecations
+    url: https://platform.claude.com/docs/en/about-claude/model-deprecations
+  - kind: docs
+    title: OpenAI docs · Deprecations
+    url: https://developers.openai.com/api/docs/deprecations
+  - kind: docs
+    title: OpenAI docs · Data controls in the OpenAI platform
+    url: https://developers.openai.com/api/docs/guides/your-data
+---
+
+## Why it matters
+
+**Lock-in** means switching away from a vendor would be slow or costly. Some lock-in is fine. A good vendor deal can be worth it. The risk is not knowing how deep you are in until you need to move.
+
+The need to move comes sooner than most people expect. Models are retired, prices change and rules about data change. This chapter shows where lock-in hides in an AI integration, and how to keep a way out.
+
+## Where lock-in hides
+
+Think of an integration as four layers. Each one can tie you to a vendor.
+
+1. **The model.** Prompts are tuned to one model's habits. A new model may answer differently.
+2. **The tool connection.** The way your systems are exposed to the model.
+3. **Vendor-only features.** Built-in tools, connectors and settings that only one vendor offers.
+4. **Your data.** Conversation history, logs and settings that live on the vendor's side.
+
+The four layers are our own framework for this course. The rest of the chapter uses vendor docs to show real examples of each.
+
+## Layer 2: an open protocol helps
+
+The MCP specification calls MCP "an open protocol" that gives a standard way to connect language-model apps with outside data and tools. Anthropic's Claude Code docs call it an "open source standard" and say MCP servers "aren't specific to Claude Code": a server's setup notes may be written for Claude Desktop, Cursor or another MCP client. OpenAI's guide says its API can use any remote server that implements MCP.
+
+So a tool connection built as an MCP server is not tied to one AI vendor. Switching vendors means changing the client side, not rebuilding the connection to your CRM (customer system).
+
+Example: a retailer's order lookup is built once as an MCP server. A Claude-based assistant and an OpenAI-based assistant can both call it.
+
+The standard still moves. The spec has dated versions, and the version this course cites is 2026-07-28. It also defines optional extensions that need support from both client and server. The Claude Code docs say the older SSE connection type is deprecated, and recommend HTTP servers. Open does not mean frozen. Plan for upkeep.
+
+## Layer 3: vendor features are not equal
+
+Even with an open protocol, the way each vendor offers it differs.
+
+- Anthropic's MCP connector page marks the feature as **beta**. Its table says it is not available on Amazon Bedrock or Google Cloud, though it works on the Claude API and some other platforms. Anthropic also deprecated an earlier version of this feature.
+- OpenAI's guide describes "connectors" too: built-in support for specific services such as Dropbox and Gmail. That is OpenAI's own feature, so a design that depends on it needs rework elsewhere. The guide now marks them legacy: `connector_id` is deprecated for models released after September 1, 2026.
+
+Rule of thumb: use vendor features where they save real money or time, and write down each one you use. That list is your exit cost.
+
+## Layer 1: models are retired
+
+Both vendors retire models on a schedule, and both say so in their docs.
+
+- Anthropic's page says it "regularly retires older ones" and that applications "may need occasional updates." It gives at least 60 days' notice before retirement for publicly released models. Requests to a retired model "will fail."
+- OpenAI's page says each deprecated model gets a shut-down date, after which it "will no longer be accessible." It lists notice of at least 6 months for generally available models, at least 3 months for specialised variants, and much shorter notice for preview models, such as 2 weeks.
+
+Examples from the pages: Anthropic lists `claude-sonnet-4-5-20250929` as deprecated on September 30, 2026, with retirement on November 30, 2026 and `claude-sonnet-5-5` as the recommended replacement. OpenAI lists GPT-5.3-Codex for removal from the API on April 1, 2027. (Both pages checked on 2026-10-06.)
+
+Two lessons for a leader:
+
+- **Budget for a migration.** Over a three-year contract, expect at least one forced model change. The notice periods differ, so check the current page for the model you use.
+- **Be ready to test.** Anthropic's page advises testing replacements "well before the retirement date" and offers a usage export (Console, Usage, Export) that shows which models each API key still uses. A fixed set of sample tasks with approved answers lets you compare an old and a new model in a day. Keep that set in your own files. (The sample set is our suggestion.)
+
+Anthropic's page adds that its retirement dates apply to its own platforms, and that Amazon Bedrock and Google Cloud set their own schedules. If you buy a model through a cloud provider, read that provider's dates.
+
+## Layer 4: keep your own copy of your data
+
+OpenAI's data controls page says that when the Responses API `store` setting is on, response data is stored for at least 30 days. With Zero Data Retention, `store` is always treated as false. So the vendor's storage is a temporary working area, not your archive.
+
+Keep your own copy of what the business needs: conversation logs you are allowed to keep, tool definitions, prompts, and your test set. Check your privacy rules first. Don't keep personal data longer than the law allows.
+
+## A portable layer
+
+You don't need to build a big abstraction. A small portable layer, which is our suggestion, is often enough:
+
+- **Tools as MCP servers**, owned by you.
+- **One internal place** where prompts and model names are set, not copied into ten apps.
+- **A test set** you can run against any model.
+- **Your own logs.**
+- **A list of vendor-only features** in use, each with a rough cost to replace.
+
+Example: a team keeps its model name in one setting and its prompts in one file. When Sonnet 4.5 retires, they change the setting, run the test set, and review the differences.
+
+## Key points
+
+- Lock-in has layers: model, tool connection, vendor features and data.
+- MCP is an open protocol that several AI clients support, but vendors still differ in how they support it.
+- Models retire. Plan and budget for at least one migration per contract.
+- Keep your own tools, prompts, test set and logs.
+- Write down every vendor-only feature you use. It is your exit cost.

@@ -1,0 +1,99 @@
+---
+id: builder/r4/c4/lesson
+title: Subagents
+minutes: 10
+sources:
+  - kind: docs
+    title: Subagents in the SDK (Claude Code docs)
+    url: https://code.claude.com/docs/en/agent-sdk/subagents
+  - kind: docs
+    title: Create custom subagents (Claude Code docs)
+    url: https://code.claude.com/docs/en/sub-agents
+  - kind: blog
+    title: How we built our multi-agent research system (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+  - kind: blog
+    title: Effective context engineering for AI agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+  - kind: docs
+    title: Orchestration and handoffs (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: repo
+    title: Agent orchestration (openai/openai-agents-python)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md
+  - kind: repo
+    title: Handoffs (openai/openai-agents-python)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/handoffs.md
+---
+
+One agent with one context window can only hold so much. A subagent is a second agent that the main agent starts for a focused job. It works in its own context and sends back a short result. Used well, it keeps the main agent's context clean. Used badly, it multiplies your token bill.
+
+## What a subagent is
+
+The Claude docs: "Subagents are separate agent instances that your main agent can spawn to handle focused subtasks." Claude starts them through a tool called `Agent`.
+
+The key property is context isolation. The subagent's "intermediate tool calls and results stay inside the subagent; only its final message returns to the parent." Anthropic's context engineering post gives the size: a subagent "might explore extensively, using tens of thousands of tokens or more, but returns only a condensed, distilled summary of its work (often 1,000-2,000 tokens)."
+
+Example: a subagent reads 40 files to find where a setting is used. The main agent gets back one paragraph with three file paths, not 40 files.
+
+## Four reasons to use one
+
+The Claude Agent SDK docs list four benefits:
+
+- **Context isolation:** exploration stays out of the main conversation.
+- **Parallelization:** independent subtasks "finish in the time of the slowest one rather than the sum of all of them".
+- **Specialized instructions:** each subagent gets its own system prompt, without adding noise to the main one.
+- **Tool restrictions:** a `doc-reviewer` with only Read and Grep "can analyze but never accidentally modify" files.
+
+A subagent definition holds a `description` (when to use it), a `prompt` (its system prompt), and optional fields such as `tools`, `model` and `maxTurns`. Claude decides when to delegate "based on the task and each subagent's `description`", so write descriptions that are clear and specific.
+
+## The subagent only knows what you tell it
+
+Unless it is a fork, a subagent starts without the parent's conversation. The Claude docs: "The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt."
+
+Anthropic learned this the hard way in its research system. Short tasks like "research the semiconductor shortage" were often too vague: subagents "misinterpreted the task or performed the exact same searches as other agents." Their rule: each subagent needs "an objective, an output format, guidance on the tools and sources to use, and clear task boundaries."
+
+Example of a better delegation:
+
+```text
+Objective: list chip supply problems in the car industry, 2021 only.
+Do not cover 2025 supply chains; another agent has that.
+Sources: news and company reports. 5 to 10 searches.
+Output: bullet list, one line per problem, with a source URL each.
+```
+
+## Two OpenAI patterns: handoff or tool
+
+The OpenAI Agents SDK gives two ways to involve a second agent. The first question is "who owns the final user-facing answer".
+
+| Pattern         | What happens                               |
+| --------------- | ------------------------------------------ |
+| Handoffs        | "Control moves to the specialist agent"    |
+| Agents as tools | "The manager keeps ownership of the reply" |
+
+A handoff is shown to the model as a tool. For an agent named `Refund Agent`, "the tool would be named `transfer_to_refund_agent`". Use a handoff when the specialist should answer the user directly. Use `as_tool()` when a manager should combine results, or when the specialist does a "bounded task like summarization or classification". You can mix both.
+
+Claude subagents return their result to the parent, which then writes the answer. In our terms, that is closest to OpenAI's agents-as-tools pattern.
+
+## Subagents cost tokens
+
+Parallel work is not free. In Anthropic's research system data, "agents typically use about 4× more tokens than chat interactions, and multi-agent systems use about 15× more tokens than chats."
+
+The same post says where the cost pays off: "valuable tasks that involve heavy parallelization, information that exceeds single context windows, and interfacing with numerous complex tools." It also says where it doesn't: domains where all agents must share the same context, or with "many dependencies between agents", are not a good fit today, and "most coding tasks involve fewer truly parallelizable tasks than research."
+
+OpenAI gives the same advice from the other side: "Start with one agent whenever you can." Splitting too early "creates more prompts, more traces, and more approval surfaces without necessarily making the workflow better."
+
+## Scale effort to the task
+
+Anthropic's lead agent got explicit rules in its prompt: simple fact-finding needs "just 1 agent with 3-10 tool calls", comparisons "2-4 subagents with 10-15 calls each", and complex research "more than 10 subagents with clearly divided responsibilities." Without such rules, early versions spent too much on simple questions.
+
+The Claude SDK adds hard caps. A subagent can spawn its own subagents, so one prompt "can grow into a tree of agents". You can cap nesting depth (default: 3 layers), how many run at once, and total spend. Subagent spend counts toward `max_budget_usd`.
+
+## Key points
+
+- A subagent has its own context and returns only its final message, often a 1,000 to 2,000 token summary.
+- Use one for context isolation, parallel work, special instructions or fewer tools.
+- It sees only the prompt you pass. Give it an objective, an output format, tools or sources, and boundaries.
+- OpenAI: a handoff moves control to the specialist; agents as tools keep the manager in charge.
+- Multi-agent systems used about 15× the tokens of chat in Anthropic's data. Start with one agent.
+- Cap depth, concurrency and spend.

@@ -1,0 +1,110 @@
+---
+id: builder/r5/c3/lesson
+title: Resources
+minutes: 9
+sources:
+  - kind: docs
+    title: Resources (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server/resources
+  - kind: docs
+    title: Server features overview (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server
+  - kind: docs
+    title: Tools (Model Context Protocol)
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server/tools
+  - kind: docs
+    title: Connect Claude Code to tools via MCP (Claude Code docs)
+    url: https://code.claude.com/docs/en/mcp
+  - kind: docs
+    title: MCP connector (Claude docs)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: repo
+    title: Model context protocol (MCP) (OpenAI Agents SDK docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md
+---
+
+Tools let the model do things. Resources let a server share data: a file, a database schema, a project README. In realm 3 you pulled context into the prompt with retrieval. MCP resources are a standard way for a server to offer that context, so the host can decide what to include.
+
+## What a resource is
+
+The spec says resources "allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information." Each resource has a URI, for example `file:///project/src/main.rs`.
+
+A resource definition holds:
+
+- `uri`: the unique identifier.
+- `name`, plus an optional `title` for display.
+- optional `description`, `mimeType` and `size` in bytes.
+
+The content is either text (a `text` field) or binary data (a base64 `blob` field).
+
+## Who decides: the application
+
+The control model from chapter 1 matters most here. Resources are **application-driven**: "host applications determining how to incorporate context based on their needs". The spec gives three examples:
+
+- a tree or list view where the user picks resources;
+- search and filter over the available resources;
+- automatic inclusion, "based on heuristics or the AI model's selection".
+
+Compare this with tools. The model calls a tool when it decides to. A resource reaches the model when the app or the user puts it there. The spec says the protocol does not mandate any one interface.
+
+## The four messages
+
+- `resources/list`: what resources exist. It supports pagination.
+- `resources/read`: get the content of one URI. A server may return several contents for one read, for example the files in a directory.
+- `resources/templates/list`: parameterized resources, using URI templates (RFC 6570). Example from the spec: `file:///{path}`.
+- `subscriptions/listen` with `resourceSubscriptions`: watch specific URIs. The server sends `notifications/resources/updated` when one changes.
+
+Templates are useful when the list would be huge. A CRM can't list a million customer records, but it can publish one template such as `crm://customers/{id}` and let the client fill in the id. That example is ours; the spec's template example is the file one above.
+
+## URI schemes
+
+The spec names some standard schemes and allows custom ones:
+
+- `https://`: only when the client can fetch the resource directly from the web, without the MCP server. For anything else, the spec says servers should prefer another scheme or a custom one.
+- `file://`: anything that behaves like a filesystem. It does not need to map to a real filesystem.
+- `git://`: Git version control.
+- Custom schemes, which must follow RFC 3986.
+
+## Annotations help the host choose
+
+Resources can carry annotations:
+
+- `audience`: `"user"`, `"assistant"` or both.
+- `priority`: from 0.0 to 1.0. 1 means "effectively required", 0 means "entirely optional".
+- `lastModified`: an ISO 8601 timestamp.
+
+The spec says clients can use them to filter by audience, decide which resources to include in context, and sort by recency. Example: a README with `audience: ["user"]` is shown in the UI, but the host may leave it out of the model's context.
+
+## Tools can point to resources
+
+A tool result can include a `resource_link` (a URI the client can fetch) or an embedded `resource` with its content. The spec notes that links returned by tools are not guaranteed to appear in `resources/list`. So a search tool can return links to five matching documents, and the client reads only the ones it needs.
+
+## Errors and safety
+
+If a resource doesn't exist, the server must return a JSON-RPC error with code `-32602` (Invalid Params). It must not return an empty `contents` array, because that is ambiguous: empty file, or missing file? Clients should also accept `-32002`, the code earlier protocol versions used.
+
+The security list is short:
+
+- Servers must validate all resource URIs.
+- Access controls should be in place for sensitive resources.
+- Servers must sanitize file paths to prevent directory traversal attacks when serving `file://` resources.
+
+Example: a request for `file:///project/../../etc/passwd` must not escape the project folder.
+
+## How hosts use resources
+
+Support differs by product, so check before you design around resources:
+
+- **Claude Code:** type `@` to see resources from connected servers next to files. Reference one as `@server:protocol://resource/path`, for example `@github:issue://123`. Claude Code fetches it and includes it as an attachment. It also gives Claude tools to list and read resources when servers support them.
+- **Claude API MCP connector:** it supports only tool calls. If you run your own MCP client, the Anthropic SDK has helpers that turn an MCP resource into a content block or a file for upload.
+- **OpenAI Agents SDK:** local MCP server classes expose `list_resources()` and `list_resource_templates()`. They are explicitly paginated: you pass `nextCursor` back as `cursor` to get the next page.
+
+## Key points
+
+- A resource is data identified by a URI: text or a base64 blob.
+- Resources are application-controlled. The host or user decides what enters the context.
+- `resources/list`, `resources/read`, `resources/templates/list`, plus subscriptions for updates.
+- Use templates for large, parameterized sets. Use `https://` only when the client can fetch the URL itself.
+- Missing resource: error `-32602`, never an empty `contents` array.
+- Validate URIs and block directory traversal on `file://` resources.
+- Support differs: Claude Code uses @ mentions; the Claude API connector needs your own client for resources; the OpenAI Agents SDK lists them page by page.

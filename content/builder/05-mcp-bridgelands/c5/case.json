@@ -1,0 +1,118 @@
+{
+  "id": "builder/r5/c5/challenge",
+  "title": "The laptop server goes live",
+  "scenario": "A data team built an MCP server for its analytics warehouse. It started as a local stdio server for Claude Code. Now three more apps want it: a feature on the Claude API, an OpenAI Responses API app, and an agent on the OpenAI Agents SDK. The warehouse sits behind the company firewall. You review the team's notes (exhibit).",
+  "exhibit": "MADE-UP EXAMPLE\n\nv1  stdio server (Claude Code)\n  start-up code:  print(\"connected to warehouse\")\n  client log:     could not parse message from server\n\nv2  Claude API request\n  mcp_servers: [ { type: \"url\",\n                   url: \"http://10.0.4.12:8080/mcp\",\n                   name: \"warehouse\" } ]\n  tools: [ { type: \"mcp_toolset\", mcp_server_name: \"warehouse\" } ]\n  -> request rejected\n\nv2  HTTP server settings (first draft, tested on a developer laptop)\n  bind:          0.0.0.0:8080\n  Origin check:  none\n  auth:          none\n\nOpenAI Responses API app\n  security team: \"No public endpoint for the warehouse.\"\n\nOpenAI Agents SDK agent\n  list_tools() runs on every agent run: +600 ms\n  tool definitions change about once a month",
+  "questions": [
+    {
+      "prompt": "Why does the v1 client fail to parse messages from the stdio server?",
+      "options": [
+        {
+          "text": "stdio servers must send each message as an HTTP POST.",
+          "explanation": "HTTP POST is the Streamable HTTP transport. stdio uses one JSON-RPC message per line on the standard streams."
+        },
+        {
+          "text": "The client must restart the server before every message it sends.",
+          "explanation": "The client restarts a stdio server only if it exits unexpectedly, not before each message."
+        },
+        {
+          "text": "The start-up `print` writes non-MCP text to `stdout`; logs belong on `stderr`.",
+          "explanation": "Right. The spec says a stdio server must not write anything to `stdout` that is not a valid MCP message, and may log to `stderr`.",
+          "correct": true
+        },
+        {
+          "text": "stdio servers may not write anything at all to stdout or stderr during start-up.",
+          "explanation": "They may, on `stderr`. Only `stdout` is reserved for MCP messages."
+        }
+      ]
+    },
+    {
+      "prompt": "Why does the Claude API reject the v2 request?",
+      "options": [
+        {
+          "text": "The connector needs a public HTTP server whose `url` starts with `https://`.",
+          "explanation": "Right. The Claude docs say the server must be publicly exposed through HTTP and the `url` must start with `https://`. A private `http://` address fails both.",
+          "correct": true
+        },
+        {
+          "text": "The connector only accepts stdio servers that run on the same machine as the client.",
+          "explanation": "The opposite: the Claude docs say local stdio servers cannot be connected directly."
+        },
+        {
+          "text": "The `name` must match the server's tool names, or the request is rejected.",
+          "explanation": "The `name` must be referenced by exactly one `mcp_toolset`. It is not matched against tool names."
+        },
+        {
+          "text": "Port 8080 is not allowed; MCP must use port 443 for every remote server it reaches.",
+          "explanation": "The documented requirements are a public HTTP server and an `https://` URL. No port rule is documented."
+        }
+      ]
+    },
+    {
+      "prompt": "Which change to the v2 HTTP server settings follows the Streamable HTTP spec?",
+      "options": [
+        {
+          "text": "Keep 0.0.0.0 and no auth, because the firewall protects the server from outside callers.",
+          "explanation": "The spec warns that without these protections, attackers could use DNS rebinding to reach local MCP servers from remote websites."
+        },
+        {
+          "text": "Switch to the older HTTP+SSE transport, which has security built in by default.",
+          "explanation": "HTTP+SSE is deprecated, and new implementations should not adopt it. It adds no such protection."
+        },
+        {
+          "text": "Turn off SSE responses and send only JSON.",
+          "explanation": "The response format is not the risk here. The gaps are the Origin check, the bind address and authentication."
+        },
+        {
+          "text": "Validate the `Origin` header, bind to 127.0.0.1 when local, and require authentication.",
+          "explanation": "Right. These are the spec's three security rules for Streamable HTTP. An invalid `Origin` must get HTTP 403.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The security team allows no public endpoint. How can the OpenAI Responses API app still reach the warehouse server?",
+      "options": [
+        {
+          "text": "Paste the private IP into `server_url`; the API can reach private networks directly.",
+          "explanation": "OpenAI's guide describes remote servers as servers on the public Internet. Private servers use a different option."
+        },
+        {
+          "text": "Use Secure MCP Tunnel, which connects a private server without public exposure.",
+          "explanation": "Right. OpenAI's MCP guide offers Secure MCP Tunnel for private, on-premises or firewalled servers, referenced with `tunnel_id`.",
+          "correct": true
+        },
+        {
+          "text": "Run the server over stdio and point the API at the script path.",
+          "explanation": "The Responses API works with remote servers over Streamable HTTP or HTTP/SSE. It does not launch local scripts."
+        },
+        {
+          "text": "Export the warehouse to a public bucket and connect that instead.",
+          "explanation": "That moves private data to a public place, which is exactly what the security team wants to avoid."
+        }
+      ]
+    },
+    {
+      "prompt": "In the Agents SDK agent, `list_tools()` adds 600 ms on every run, and tools change about once a month. What fits the SDK docs?",
+      "options": [
+        {
+          "text": "Remove the tool list and hard-code tool names in the prompt.",
+          "explanation": "The model needs the tool definitions to call tools. Caching keeps them without the extra call."
+        },
+        {
+          "text": "Switch the agent to the deprecated SSE transport, which is faster at listing the tools.",
+          "explanation": "The SDK docs say to keep SSE only for legacy servers. Transport is not the fix for list latency."
+        },
+        {
+          "text": "Set `cache_tools_list` to true, and call `invalidate_tools_cache()` on tool changes.",
+          "explanation": "Right. The SDK docs say to enable it only when tool definitions do not change often, and to invalidate the cache to force a fresh list.",
+          "correct": true
+        },
+        {
+          "text": "Call `list_tools()` twice, so the second call is warm.",
+          "explanation": "Two calls cost more time than one. The SDK has a cache option for this."
+        }
+      ]
+    }
+  ]
+}

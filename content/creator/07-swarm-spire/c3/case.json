@@ -1,0 +1,96 @@
+{
+  "id": "creator/r7/c3/challenge",
+  "title": "What goes in the handoff?",
+  "scenario": "A producer passes work to a visual maker in a studio that makes localised ads. You review how the work is handed over. The notes and the chat contents are our own examples, made up for this case. Use the exhibit.",
+  "exhibit": "SET-UP (made up for this case):\n  The studio uses OpenAI's Agents SDK. The producer must answer for all\n  50 final files. The Visual maker is a helper that the producer can call.\n\nHANDOFF NOTES (made up for this case):\n  Note A  \"Make the German ad. See the chat above.\"\n  Note B  \"Goal: one 9:16 PNG for market DE. Done: tagline approved, in\n          tea-de-copy.txt. Inputs: master-layout.png. Must hold: green lid,\n          logo bottom right. Return: tea-de-9x16.png.\"\n\nTHE PRODUCER'S CHAT HOLDS (made up for this case):\n  The client price list for all markets, the approved tagline and two\n  rejected taglines.\n\nCHECKER REPORT (made up for this case, returned to the producer as a message):\n  6 rubric lines failed. Line 3: the lid is brown in shots 4 and 7.\n  The producer's message to the person: \"A few small issues.\"",
+  "questions": [
+    {
+      "prompt": "The Visual maker is called as a tool by the producer. Which note should the producer send, and why?",
+      "options": [
+        {
+          "text": "Note A, because the helper can read the producer's chat, so a short note is enough",
+          "explanation": "A helper called as a tool does not inherit the parent's chat. Note A points to a chat it cannot see."
+        },
+        {
+          "text": "Note A, because a short note leaves the helper free to pick the best layout for itself",
+          "explanation": "The layout is fixed in master-layout.png. Freedom here would only add mistakes."
+        },
+        {
+          "text": "Note B, because a tool-helper does not inherit the chat, so the note carries every fact",
+          "explanation": "Right. OpenAI says the parent run's conversation state is not inherited automatically. The note is all the helper has.",
+          "correct": true
+        },
+        {
+          "text": "Neither note, because the helper should get the full chat so that no fact is ever missing",
+          "explanation": "The full chat holds the client price list, which this helper does not need. Send a note with what it needs."
+        }
+      ]
+    },
+    {
+      "prompt": "The producer must answer for all 50 files. Which pattern fits best?",
+      "options": [
+        {
+          "text": "A handoff, because control should move to each specialist and stay with it from then on",
+          "explanation": "With a handoff, control moves to the specialist. Here the producer must stay in charge."
+        },
+        {
+          "text": "Agents as a tool for the first helper, and then handoffs for every helper after that one",
+          "explanation": "The docs do not say to switch patterns like this. Choose by who should own the reply."
+        },
+        {
+          "text": "Either pattern, because OpenAI says both give the same owner for the final reply",
+          "explanation": "OpenAI says the two patterns differ in who owns the reply."
+        },
+        {
+          "text": "An agent used as a tool, because the manager keeps ownership of the reply to the client",
+          "explanation": "Right. OpenAI says the manager keeps ownership of the reply when specialists are called as tools.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The team switches to handoffs. The Visual maker would now see the whole chat, including the price list. What can the team do?",
+      "options": [
+        {
+          "text": "Set an input filter, so that the next agent gets only the parts of the history it needs",
+          "explanation": "Right. OpenAI says you can change what the next agent sees with an input filter.",
+          "correct": true
+        },
+        {
+          "text": "Nothing, because a handoff passes the whole history and that cannot be changed",
+          "explanation": "OpenAI documents input filters that change what the next agent receives."
+        },
+        {
+          "text": "Turn on nested handoff history, because it removes sensitive data from the summary",
+          "explanation": "OpenAI says nested handoff history does not redact sensitive data."
+        },
+        {
+          "text": "Tell the Visual maker in the note to ignore the price list, so that the data stays private",
+          "explanation": "The agent and its model provider still receive the history. OpenAI says to treat them as recipients."
+        }
+      ]
+    },
+    {
+      "prompt": "The producer tells the person \"A few small issues.\" How do you keep the checker's detail?",
+      "options": [
+        {
+          "text": "Trust the summary, because a short message is as useful as a list of six failed lines",
+          "explanation": "The person cannot act on \"a few small issues\". The failed line and the fix are lost."
+        },
+        {
+          "text": "Ask the producer to report only the line numbers, since the details can be guessed later",
+          "explanation": "Numbers alone lose what failed and what to change. Guessing wastes a round."
+        },
+        {
+          "text": "Ask the checker to save its report as a file, and tell the producer to quote it in full",
+          "explanation": "Right. A parent can shorten what a helper reports. Claude's docs say this about subagents, and say to include an instruction to keep output word for word. A saved file keeps the full list.",
+          "correct": true
+        },
+        {
+          "text": "Give the checker the producer's chat, so that it can see what the person has been told",
+          "explanation": "That does not change what the producer writes to the person. The report is still summarised."
+        }
+      ]
+    }
+  ]
+}

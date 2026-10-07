@@ -1,0 +1,100 @@
+---
+id: builder/r6/c4/lesson
+title: Guardrails
+minutes: 9
+sources:
+  - kind: docs
+    title: Mitigate jailbreaks and prompt injections (Claude docs)
+    url: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks
+  - kind: docs
+    title: Reduce prompt leak (Claude docs)
+    url: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-prompt-leak
+  - kind: docs
+    title: Guardrails and human review (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/guardrails-approvals
+  - kind: repo
+    title: Guardrails (OpenAI Agents SDK docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/guardrails.md
+  - kind: docs
+    title: Moderation (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/moderation
+  - kind: docs
+    title: Safety and factuality guidance (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/safety-guidance
+  - kind: docs
+    title: Safety settings (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/safety-settings
+  - kind: docs
+    title: Safety best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/safety-best-practices
+---
+
+Chapters 1 to 3 measured the system from the outside. A guardrail is different: it is a check that runs inside the system, on every request. Realm 2 covered prompt injection, and realm 4 covered stop conditions, blocking vs parallel guardrails and approvals. This chapter recaps those briefly and focuses on what is new: choosing the checker, and testing it.
+
+## Three places to check
+
+OpenAI's Agents SDK has three kinds of guardrail. Its guide gives each one a job:
+
+| Guardrail | Job, in OpenAI's words                                            |
+| --------- | ----------------------------------------------------------------- |
+| Input     | "Block disallowed user requests before the main model runs"       |
+| Output    | "Validate or redact the final output before it leaves the system" |
+| Tool      | "Check arguments or results around a function tool call"          |
+
+The Claude docs describe the same three places without the names. They pre-screen user input, screen tool outputs before Claude acts on them, and filter Claude's output (the prompt leak page calls this post-processing).
+
+## A small model as the checker
+
+Both vendors use the same pattern: a fast, cheap model checks the request, so the big model's work can be stopped, or never started, when the check fails.
+
+- Claude docs: use a lightweight model to pre-screen user input "before it reaches your main conversation" (their example is Claude Haiku 4.5). Structured outputs force the answer into a simple classification, for example a JSON object with one boolean field, `is_harmful`.
+- OpenAI Agents SDK: you can "run a guardrail with a fast/cheap model. If the guardrail detects malicious usage, it can immediately raise an error, saving time and money."
+
+In the SDK, a failing check sets a tripwire. The runner raises an exception and stops the agent, so your app can answer the user in its own words.
+
+OpenAI also offers a ready-made checker. The Moderation endpoint is free, and it can return scores for the input and the generated output. Gemini's guide describes the same idea: "trained classifiers" label each prompt with potential harms, and the app picks a response by label, such as a pre-scripted reply.
+
+## Rules or models
+
+Not every check needs a model. A rule is fast, free and exact. The OpenAI SDK guide shows a tool guardrail that rejects a call when the arguments contain `sk-`, the start of an API key. The Claude docs suggest regular expressions or keyword filters on output, and add that "a prompted LLM" can filter for "more nuanced leaks".
+
+Rules have a cost. Gemini's guide warns that blocking by a static list "can have unintended results such as targeting a particular group that commonly uses vocabulary in the blocklist."
+
+A simple way to choose: use a rule when the bad thing has an exact shape, such as a key, an ID or a banned phrase. Use a model when it depends on meaning, such as "is this off topic?". This rule of thumb is ours, not a vendor rule.
+
+## Block first, or run in parallel (realm 4, chapter 2)
+
+Input guardrails can run in parallel with the agent (the default) or in blocking mode. In parallel mode, "the agent may have already consumed tokens and executed tools before being cancelled." In blocking mode, "the agent never executes". Output guardrails "always run after the agent completes", so the agent's work is already done.
+
+## Guardrails don't run everywhere (realm 4, chapter 6)
+
+Input guardrails run only for the first agent in the chain, and output guardrails only for the agent that gives the final output. OpenAI's advice: "Put validation next to the tool that creates the side effect." Example: a refund limit belongs on the `issue_refund` tool itself.
+
+## Guardrails make mistakes too
+
+A guardrail can fail in two directions: it lets a bad request through, or it blocks a good one. Test both. This is the idea from chapters 1 and 2 (two-sided tasks, TPR and TNR), applied to the checker. The pairing is our own framing.
+
+The vendor docs show why:
+
+- Claude docs: leak-proofing "can add complexity that may degrade performance in other parts of the task". Their advice: use it only when "absolutely necessary", test thoroughly, and "Try monitoring techniques first, like output screening and post-processing".
+- OpenAI Moderation: "A refusal or other safety-aware response can still trigger a flag if it discusses harmful content." So "Treat moderation scores as signals for your application's policy, not as an automatic blocking decision."
+- Gemini: content is blocked "based on the probability of content being unsafe and not the severity". The guide says to decide the minimum acceptable safety numbers before testing, and, when several metrics trade off, you "may want to focus on worst-case performance across your evaluation set rather than average performance."
+
+Example: a topic guardrail catches 96 of 100 off-topic requests. That sounds good. But if it also blocks 30 of 100 normal refund questions, customers will leave. You need both numbers.
+
+## When a guardrail trips
+
+Decide the response in advance. The Gemini guide lists two options: an error message or a pre-scripted reply, or a retry, because "sometimes the same prompt will elicit different outputs". The Claude docs add one more: for users who repeatedly trigger the same refusal, consider throttling or banning them. Log every trip. The Claude docs also say to analyze outputs regularly "for signs of successful injection".
+
+## No single layer
+
+The Claude docs end with "Chain safeguards": combine strategies. The cheapest layer is a narrow interface. OpenAI says limiting output tokens "helps reduce the chance of misuse", and that validated dropdown fields can be more secure than open text.
+
+## Key points
+
+- Guardrails check input, output and tool calls, automatically, on every run.
+- A small, fast model with a structured answer is the common checker. Use plain rules for exact patterns.
+- Block before the agent starts when it can cause side effects. Parallel saves time but may be too late.
+- Agent-level guardrails don't cover every step. Put the check next to the tool that causes the side effect.
+- Test a guardrail in both directions: what it misses and what it wrongly blocks.
+- Decide what happens on a trip, and layer checks. No single one is complete.

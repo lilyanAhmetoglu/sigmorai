@@ -1,0 +1,96 @@
+{
+  "id": "builder/r8/c2/challenge",
+  "title": "One hundred twenty thousand tickets",
+  "scenario": "A software company wants to label 120,000 old support tickets with a topic, using the Claude Message Batches API. A teammate wrote the first plan and ran a small test. You review the plan before the real run (exhibit).",
+  "exhibit": "(made-up example data)\n\nPLAN v1\n  job:        label 120,000 old tickets with a topic\n  submit:     one Message Batch with 120,000 requests\n  read:       results file, in file order, paired with tickets by line number\n\nTEST OUTPUT (input order was ticket-1, ticket-2, ticket-3)\n  line 1  custom_id: ticket-3  result.type: succeeded\n  line 2  custom_id: ticket-1  result.type: succeeded\n  line 3  custom_id: ticket-2  result.type: succeeded\n\nPLAN v2: two batches of 60,000. Batch 1 has ended.\n  succeeded: 59,412\n  errored:      380\n  canceled:       0\n  expired:      208\n\nCACHE\n  every request starts with the same 2,000-token label guide,\n  marked with identical cache_control blocks (5-minute cache)\n  cache hit rate across batch 1: 70%",
+  "questions": [
+    {
+      "prompt": "Plan v1 sends 120,000 requests in one Claude batch. What should the team do?",
+      "options": [
+        {
+          "text": "Keep one batch. Only the 24-hour expiry limits how big it can be.",
+          "explanation": "A Claude batch is also limited by request count and size. Whichever limit is reached first applies."
+        },
+        {
+          "text": "Turn on stream: true so the 120,000 results arrive in pieces.",
+          "explanation": "stream: true is not supported in batch requests. Batch results come back as a single file."
+        },
+        {
+          "text": "Split it: one Claude batch holds 100,000 requests or 256 MB.",
+          "explanation": "Right. Whichever limit is reached first applies, so plan v2 uses two batches of 60,000.",
+          "correct": true
+        },
+        {
+          "text": "Switch to OpenAI's Batch API, whose per-batch limit is higher.",
+          "explanation": "OpenAI allows up to 50,000 requests per batch, which is lower than Claude's 100,000."
+        }
+      ]
+    },
+    {
+      "prompt": "In the test output, the lines are not in input order. How should the code pair results with tickets?",
+      "options": [
+        {
+          "text": "By custom_id, because batch results can come back in any order.",
+          "explanation": "Right. Claude says results may not match the input order and tells you to always use custom_id.",
+          "correct": true
+        },
+        {
+          "text": "By line number, after sorting the tickets by id before they are sent.",
+          "explanation": "Sorting the input does not set the output order. Results can still come back in any order."
+        },
+        {
+          "text": "By line number, after cutting the batches to 100 requests each.",
+          "explanation": "Small batches have no ordering guarantee either. The order of results is not tied to batch size."
+        },
+        {
+          "text": "By line number, with a hand check of a few results for each batch.",
+          "explanation": "A spot check can miss the problem. Matching by custom_id removes the risk instead of sampling it."
+        }
+      ]
+    },
+    {
+      "prompt": "Batch 1 ended with the counts in the exhibit. What is the right next step?",
+      "options": [
+        {
+          "text": "Rerun all 60,000 requests, because one failure spoils the batch.",
+          "explanation": "Claude says the failure of one request does not affect the others. 59,412 requests already succeeded."
+        },
+        {
+          "text": "Do nothing. Claude retries errored and expired requests by itself.",
+          "explanation": "Claude's batch advice is to implement your own retry logic for failed requests. Nothing is retried for you."
+        },
+        {
+          "text": "Resubmit only the 208 expired requests, since errored ones cannot be retried.",
+          "explanation": "Errored requests include server errors, which can be retried. Invalid requests need a fix first, then a retry."
+        },
+        {
+          "text": "Fix any invalid requests, then resubmit only the 588 failed ids.",
+          "explanation": "Right. 380 errored plus 208 expired is 588. Those were not billed, and the rest are done.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The cache hit rate is 70%, not 100%. What do the Claude docs say?",
+      "options": [
+        {
+          "text": "Expect 100%, because Anthropic guarantees every cache read in a batch.",
+          "explanation": "The docs say cache hits in a batch are best-effort, with typical hit rates from 30% to 98%."
+        },
+        {
+          "text": "Hits are best-effort in a batch, so use identical blocks and the 1-hour cache.",
+          "explanation": "Right. Requests run concurrently in any order. A batch can take longer than 5 minutes, so the docs suggest the 1-hour cache.",
+          "correct": true
+        },
+        {
+          "text": "Keep the 5-minute cache, since every read refreshes it, and hits will reach 100%.",
+          "explanation": "A batch can take longer than 5 minutes, and hits stay best-effort. The docs point to the 1-hour cache for batches."
+        },
+        {
+          "text": "Add a unique timestamp to each request so the cache spreads out its work.",
+          "explanation": "A changing value at the start breaks the shared prefix (realm 3, chapter 4). Hits would fall, not rise."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,101 @@
+---
+id: creator/r5/c1/lesson
+title: Connect tools
+minutes: 6
+sources:
+  - kind: docs
+    title: MCP docs · What is the Model Context Protocol?
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+  - kind: docs
+    title: MCP docs · Architecture overview
+    url: https://modelcontextprotocol.io/docs/learn/architecture
+  - kind: docs
+    title: Claude docs · MCP connector (beta)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: Claude docs · MCP tunnels (research preview)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-tunnels/overview
+  - kind: docs
+    title: OpenAI docs · MCP servers
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: docs
+    title: OpenAI docs · Secure MCP Tunnel
+    url: https://developers.openai.com/api/docs/guides/secure-mcp-tunnels
+  - kind: docs
+    title: Gemini API docs · Function calling (Remote MCP)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+## Why it matters
+
+Until now, every tool in your studio was a separate door. The image maker had one, the file store had another, and the design app had a third. Each door needed its own set-up work.
+
+**MCP** is a shared door shape. Your job is not to build it. Your job is to decide which tools get connected, how each one is reached, and who can reach it.
+
+## What MCP is
+
+The MCP site says: "MCP (Model Context Protocol) is an open-source standard for connecting AI applications to external systems." It adds a picture: "Think of MCP like a USB-C port for AI applications."
+
+Three words matter:
+
+- **Host.** The AI app, such as Claude Code, Claude Desktop or Visual Studio Code.
+- **Client.** A part inside the host. The host makes "one MCP client for each MCP server".
+- **Server.** A program that gives context or tools to the client.
+
+Example: a design tool's server lets an AI app read a layout. Another server lets it fetch a file from the studio library. One host, two clients, two servers.
+
+## Local or remote
+
+The MCP architecture page says a server is a "server" wherever it runs. Two kinds are common:
+
+- **Local.** Runs on the same machine as the host, over a transport called STDIO. These "typically serve a single MCP client".
+- **Remote.** Runs on the internet, over Streamable HTTP. These "will typically serve many MCP clients".
+
+Example: a small server on Mina's laptop that reads her drafts folder is local. A server that a design vendor hosts for all its customers is remote.
+
+## What each vendor's API can reach
+
+Now the question for your studio: when your own app calls a model, which servers can that model reach? Each vendor's page gives a different answer.
+
+- **Claude, MCP connector (beta).** It connects "to remote MCP servers directly from the Messages API without a separate MCP client". The server "must be publicly exposed through HTTP" and can use Streamable HTTP or SSE. "Local STDIO servers cannot be connected directly." Also, "only tool calls are currently supported" from the MCP feature set.
+- **OpenAI, MCP tool.** Remote servers can be "any server on the public Internet". The Responses API works with Streamable HTTP or HTTP/SSE servers.
+- **Gemini, Interactions API (Remote MCP).** It "only works with Streamable HTTP servers. SSE (Server-Sent Events) servers are not supported."
+
+Here is a summary built from those lines. The table is ours.
+
+| Server                  | Claude connector (beta)   | OpenAI MCP tool | Gemini Interactions API |
+| ----------------------- | ------------------------- | --------------- | ----------------------- |
+| Public, Streamable HTTP | Yes                       | Yes             | Yes                     |
+| Public, SSE only        | Yes                       | Yes             | No                      |
+| Private network         | Tunnel (research preview) | Tunnel          | Not on this page        |
+| Server on a laptop      | Not directly (STDIO)      | Tunnel          | Not on this page        |
+
+"Not on this page" means the cited page does not describe it. It does not mean "impossible".
+
+## When a server must stay private
+
+Some servers must not sit on the public internet. A studio's brand library is a common case. Two vendors offer a tunnel for this. OpenAI also lists "a developer machine" as a place its tunnel can reach.
+
+OpenAI's Secure MCP Tunnel "connects a local or private MCP server without exposing it to the public internet". An MCP tunnel is "an outbound-only connection from a host inside your network".
+
+Anthropic's MCP tunnels use "an outbound-only connection" too, so you do not "open inbound firewall ports". Anthropic marks tunnels as a research preview. They are provided "as-is", and Anthropic "may modify or discontinue MCP tunnels at any time". Plan for that before a client depends on one.
+
+## What it costs
+
+OpenAI says that with its MCP tool "you only pay for tokens used when importing tool definitions or making tool calls. No additional fees apply per tool call." So a server with many tools costs more tokens, even before it does any work. Chapter 2 shows how to cut the list.
+
+## Four questions for every tool
+
+This checklist is ours.
+
+1. **Where does it run?** Your laptop, your office network, or a vendor's cloud.
+2. **Which transport does it speak?** Streamable HTTP is accepted by all three vendors on this page.
+3. **Who must reach it?** One vendor's API, or all three.
+4. **Is any part beta or preview?** Write that down. It can change.
+
+## What this means for your work
+
+- **Draw the map first.** One line per tool: where it runs and which vendors must reach it.
+- **Prefer Streamable HTTP.** It is the one transport all three pages accept.
+- **Keep private things private.** Use a tunnel, not an open port.
+- **Mark every beta.** A research preview is not a promise.

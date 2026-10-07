@@ -1,0 +1,97 @@
+---
+id: creator/r7/c6/lesson
+title: Cost control
+minutes: 7
+sources:
+  - kind: blog
+    title: Anthropic · How we built our multi-agent research system
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+  - kind: blog
+    title: Anthropic · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: docs
+    title: Claude docs · Agent SDK · Subagents
+    url: https://platform.claude.com/docs/en/agent-sdk/subagents
+  - kind: docs
+    title: Claude docs · Batch processing
+    url: https://platform.claude.com/docs/en/build-with-claude/batch-processing
+  - kind: repo
+    title: OpenAI Agents SDK (Python) · Running agents
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md
+  - kind: docs
+    title: OpenAI docs · Pricing
+    url: https://developers.openai.com/api/docs/pricing
+  - kind: docs
+    title: Gemini API docs · Pricing
+    url: https://ai.google.dev/gemini-api/docs/pricing
+---
+
+## Why it matters
+
+The client says: "Fifty versions. Budget is fixed." A team of helpers can spend money fast, and the bill comes after the work. Cost control means you know the number before the first request, and you have a brake for when the real number drifts.
+
+Cost per asset and the batch discount were covered in Bootstrap Village. Stop rules for one loop were covered in Agent Citadel. This lesson joins them into a plan for a whole run.
+
+## Helpers use more tokens
+
+Anthropic shares numbers from its own research system. "In our data, agents typically use about 4× more tokens than chat interactions, and multi-agent systems use about 15× more tokens than chats." It concludes that for economic viability, multi-agent systems need "tasks where the value of the task is high enough to pay for the increased performance."
+
+Those are Anthropic's figures for its research work, not a rule for ad studios. The point is the direction. Each extra helper adds its own prompts and its own model calls. A fixed pipeline with a few well-briefed roles costs less than a crowd of helpers.
+
+## The budget table
+
+This method is ours. One row for each kind of spend. Each row is **items × tries × price per try**.
+
+Example for 30 ad versions (all numbers made up for this lesson):
+
+| Line                | Calculation          | Cost       |
+| ------------------- | -------------------- | ---------- |
+| Localise copy       | 6 markets × $0.10    | $0.60      |
+| Make images (batch) | 30 × 2 tries × $0.05 | $3.00      |
+| Check images        | 60 checks × $0.02    | $1.20      |
+| Producer agent run  | 1 run × $4.00        | $4.00      |
+| **Sum**             |                      | **$8.80**  |
+| Reserve, 25%        |                      | $2.20      |
+| **Plan total**      |                      | **$11.00** |
+
+Re-add it yourself. Notice two things. The image tries count tries, not keepers: two tries per version, so 60 checks. And the producer agent is the largest line, because the agent decides how long it runs.
+
+## Real prices, with dates
+
+Use the live pricing page for the price per try, and write the date next to it. On 2026-10-07, Google's pricing page lists Nano Banana 2.1 images at $0.0336 for a 1K image on Standard, and $0.0168 on Batch. On the same date, OpenAI's pricing page lists GPT Image 2.5 image output at $30.00 per 1M tokens on Standard and $15.00 on Batch. These prices will change. The method will not.
+
+## Why the reserve
+
+Claude's batch docs say: "Because of high throughput and concurrent processing, batches may go slightly over your Workspace's configured spend limit." A limit set in an account is not a wall for a batch. Keep a reserve in the plan, so a small overrun still fits in the client's number. The reserve percent is your choice. Write it down.
+
+## Caps at three levels
+
+Our view: a cap at one level is not enough.
+
+1. **Each item.** A maximum number of tries. Two tries for each image in the example.
+2. **Each batch.** Send a pilot first (Chapter 4). Then send the rest.
+3. **The whole run.** A money limit that ends the work.
+
+The tools differ. In Claude's Agent SDK, Claude "decides on its own when to spawn a subagent and how many to spawn", and a subagent can spawn its own, "so one prompt can grow into a tree of agents." The docs list three caps. Depth defaults to 3 layers. Concurrency defaults to 20 subagents at once. Spend is "No limit" by default, and you can set one with `max_budget_usd` in Python or `maxBudgetUsd` in TypeScript. At the spend cap, the SDK "refuses to spawn more subagents", stops background subagents that are still running, and ends the query with an `error_max_budget_usd` result. The docs say that on earlier releases some limits are missing or default differently, so check your version.
+
+OpenAI's Agents SDK has a different brake. If a run goes past the `max_turns` value you set, it raises `MaxTurnsExceeded`. Agent Citadel covered this: each pass of the SDK's loop calls the model once, and `max_turns` caps the passes.
+
+So ask your tool's owner: **what is the money limit, and who set it?** If the answer is "none", the cap is you.
+
+## Put an effort rule in the brief
+
+Anthropic found that agents "struggle to judge appropriate effort for different tasks". So it put scaling rules in its prompts. Its examples: simple fact-finding needs 1 agent with 3 to 10 tool calls, and direct comparisons might need 2 to 4 helpers. Write the same kind of rule into the producer's brief: how many helpers, how many tries, and when to stop and ask.
+
+## Cheaper where it is easy
+
+Chapter 2 covered using a smaller model for easy roles. Anthropic's routing example sends easy, common work "to smaller, cost-efficient models". Our reading: use the cheap role for simple checks, and keep the strong role for judgment. Run a pilot to see if the cheap one is good enough.
+
+## What this means for your work
+
+- **Write the budget table before the first request.** Items × tries × price.
+- **Date every price.** Take it from the live page.
+- **Add a reserve.** Batches can run a little over.
+- **Cap tries, batches and the whole run.**
+- **Find the money limit in your tool.** Do not assume one exists.
+- **Count helpers, not only images.** The agent line is the one that moves.
+- **Add the sum yourself.**

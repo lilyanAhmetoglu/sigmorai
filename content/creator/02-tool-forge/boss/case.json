@@ -1,0 +1,118 @@
+{
+  "id": "creator/r2/boss/challenge",
+  "title": "Plan the steps from a client brief to a delivered video",
+  "scenario": "A bike-bell brand orders a 16-second vertical video ad. You plan the chain from the brief to the delivered file, and you decide what each hand-off must do. Use the exhibit. The notes are made up for this case; the vendor lines are copied from the docs.",
+  "exhibit": "BRIEF:\n  Client: Spoke & Co, bike bells. Deliverable: one 16-second vertical (9:16)\n         video ad. Due Friday 12:00.\n  Inputs: a confidential PDF brief about an unreleased bell, 6 product photos,\n         the logo.\n  Chain (ours): brief -> shot list -> hero still -> two 8-second clips ->\n         voice-over -> review -> delivery.\n\nNOTES (made up for this case):\n  Brief:     Step 1 uploads the PDF to the studio's one shared Claude workspace,\n             with the Files API. Freelancers on a rival client's job (Gear Bros)\n             hold API keys for the same workspace.\n  Stills:    A test run sent 20 OpenAI image requests. All 20 came back OK. The\n             project folder has no image files.\n  Chat:      The producer's chat assistant can call make_clip(seconds, ...) for\n             Veo 3.1. It just called make_clip(seconds=15). The studio's own\n             app would run the call.\n  Schedule:  Thursday 17:00, 30 still variants go to the Gemini batch API.\n             The client call is Friday 09:00.\n  Retries:   The video tool already retries 429 and 503 errors by itself. A\n             developer adds a second loop around it: \"retry up to 5 times\".\n\nVENDOR LINES (copied from the docs):\n  Anthropic Files API: \"Uploaded files are accessible to your entire workspace,\n         not scoped to an end user, conversation, or session.\"\n  OpenAI image guide: \"The Image API returns base64-encoded image data.\"\n  Google function calling, best practices: \"Validate function calls before executing.\"\n  Google Veo docs, clip length: 4, 6 or 8 seconds.\n  Google image docs, batch: \"You get higher rate limits in exchange for a\n         turnaround of up to 24 hours.\"\n  OpenAI rate limits: \"If you manage retries in your application, disable SDK\n         retries or account for them in those limits so nested retry loops don't\n         multiply requests.\"",
+  "questions": [
+    {
+      "prompt": "The brief PDF sits in a Claude workspace that rival freelancers have keys for. What is the problem, and what is the fix?",
+      "options": [
+        {
+          "text": "Nothing. A file is visible only to the end user and the conversation that uploaded it.",
+          "explanation": "Anthropic says the opposite: uploaded files are not scoped to an end user, conversation or session. They are open to the whole workspace."
+        },
+        {
+          "text": "Files are open to every key for the workspace. Keep each client's files in a separate workspace.",
+          "explanation": "Right. Anthropic says uploaded files are accessible to your entire workspace. So the confidential brief should live in a workspace the rival's freelancers cannot use.",
+          "correct": true
+        },
+        {
+          "text": "The upload is deleted after 48 hours, so the freelancers could not reach it for long, and the risk ends by itself.",
+          "explanation": "That is a different vendor's rule. Anthropic says uploaded files persist until you delete them, or until an expiry you set."
+        },
+        {
+          "text": "Rename the file with a code name. A key can see only file names, not what is inside a file, so it stays hidden.",
+          "explanation": "A key with access to the workspace can use the files themselves. A code name does not hide the content."
+        }
+      ]
+    },
+    {
+      "prompt": "The test run says OK for all 20 stills, but the folder has no image files. What is the best explanation?",
+      "options": [
+        {
+          "text": "The vendor keeps each image in its dashboard, and the team must download them from there by hand.",
+          "explanation": "The image comes back in the response itself, as data. It is not parked in a dashboard waiting for a download."
+        },
+        {
+          "text": "Requests made in a conversation never return image data to the studio, only a link to the chat window.",
+          "explanation": "The response carries the image data. OpenAI says the Image API returns base64-encoded image data, so a step that saves it to a file has to be built."
+        },
+        {
+          "text": "The quality was set to low, and the vendor does not return images made at low quality.",
+          "explanation": "Low quality is a normal setting for quick drafts. It still returns an image, so it does not explain the empty folder."
+        },
+        {
+          "text": "The response holds the image as base64 data, not a file, so someone must add a step to save it.",
+          "explanation": "Right. OpenAI says the Image API returns base64-encoded image data. Saving the file is a separate step in the chain, and nobody built it.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The assistant called make_clip(seconds=15), and the Veo 3.1 clip lengths are 4, 6 or 8 seconds. What should the studio's app do?",
+      "options": [
+        {
+          "text": "Check the call against the allowed lengths before running it. A tool call is only a request.",
+          "explanation": "Right. Google lists \"Validate function calls before executing\" as a best practice. The model asks, and your app checks the request before it runs.",
+          "correct": true
+        },
+        {
+          "text": "Run it as it is. The video tool will cut a 15-second request down to a valid length by itself.",
+          "explanation": "Nothing in the docs says it will fix a wrong value for you. A bad value can fail, or waste a render, if nobody checks."
+        },
+        {
+          "text": "Run it as it is. The model knows the tool's limits well, so its values do not need a check.",
+          "explanation": "The model only writes the request. It can be wrong, so the app checks it. This is the reason for validating calls."
+        },
+        {
+          "text": "Have a person approve every make_clip call first, the same way as for a tool that posts to social media.",
+          "explanation": "A person belongs before a send tool, such as posting. A make tool only creates a draft, and a wrong call costs a little time. A check in code is enough."
+        }
+      ]
+    },
+    {
+      "prompt": "The 30 still variants go to the Gemini batch API on Thursday at 17:00, and the client call is Friday at 09:00. What do you tell the producer?",
+      "options": [
+        {
+          "text": "The stills will be ready by 09:00, because 16 hours is less than the 24 hours the vendor lists.",
+          "explanation": "The 24 hours is the longest time a batch can take, not a promise of speed. A batch can still be running at 09:00."
+        },
+        {
+          "text": "Batch jobs finish in minutes. Promise the stills for the call, and use the spare hours for review.",
+          "explanation": "Google says a batch has a turnaround of up to 24 hours. It is built for work that can wait, not for minutes."
+        },
+        {
+          "text": "A batch can take up to 24 hours, so it may miss the call. Send must-see stills as standard calls.",
+          "explanation": "Right. Batch trades speed for higher rate limits. Work needed at a set time should not wait in a queue that can take a day.",
+          "correct": true
+        },
+        {
+          "text": "Check the batch job every second all night. Constant checking makes the job finish sooner.",
+          "explanation": "Checking does not speed up a job. It only adds requests, and constant polling is not how a job should be watched."
+        }
+      ]
+    },
+    {
+      "prompt": "A developer adds a retry loop of 5 tries around a video tool that already retries 429 and 503 errors. What do you flag?",
+      "options": [
+        {
+          "text": "No risk. More retries only mean more finished clips, so a higher number of tries is always better.",
+          "explanation": "More retries are not always better. Each failure can add requests and cost, and retries are meant to be capped in attempts and in total time."
+        },
+        {
+          "text": "Two retry loops multiply requests. Ask what the tool already retries, and cap tries and time.",
+          "explanation": "Right. OpenAI warns that nested retry loops multiply requests, and says to limit both the attempts and the total time spent retrying.",
+          "correct": true
+        },
+        {
+          "text": "The extra loop is needed, because the vendors' SDKs never retry a 429 or a 503 error by themselves.",
+          "explanation": "OpenAI says its official SDKs automatically retry eligible 429 and 503 responses. A second loop on top of that is why requests multiply."
+        },
+        {
+          "text": "The only risk is cost, and failed requests are always free, so the extra loop is safe to add.",
+          "explanation": "Failed requests are not always free. Runway charges the same credits for a moderated request as for a good one, and OpenAI says unsuccessful requests count toward your per-minute limit."
+        }
+      ]
+    }
+  ]
+}

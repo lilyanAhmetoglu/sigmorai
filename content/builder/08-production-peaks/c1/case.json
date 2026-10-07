@@ -1,0 +1,96 @@
+{
+  "id": "builder/r8/c1/challenge",
+  "title": "The launch-day 429s",
+  "scenario": "A company runs a support assistant on the Claude API. A nightly backfill job shares the same organization. After a launch email the team reads its logs (exhibit) and has to fix four problems before the next send.",
+  "exhibit": "(made-up example data)\n\nLOG 1: 09:01 to 09:04, live answers\n  traffic:       20 requests/min -> 800 requests/min in 2 minutes\n  org limit:     5,000 requests/min\n  09:03  429 rate_limit_error, retry-after: 7\n         anthropic-ratelimit-requests-remaining: 4,200\n         anthropic-ratelimit-input-tokens-remaining: 1,650,000\n         anthropic-ratelimit-output-tokens-remaining: 310,000\n\nLOG 2: 23:10, nightly backfill\n  workspace:     Default (live chat and backfill both run here)\n  backfill:      200 workers in parallel, no delay\n  23:10  live chat requests get 429 rate_limit_error\n\nLOG 3: 02:40, summary job\n  429 rate_limit_error\n  details.error_code: enforced_spend_limit_reached\n  retry-after header: none\n  job behaviour: 6 attempts with backoff, then fail\n\nLOG 4: retry settings\n  SDK client:    default retries (2)\n  our wrapper:   retries 5 times after each failed SDK call",
+  "questions": [
+    {
+      "prompt": "In log 1, 4,200 of 5,000 requests were still left, yet a 429 came. What is the best explanation?",
+      "options": [
+        {
+          "text": "The headers are not reliable, so the 4,200 value means nothing.",
+          "explanation": "The header shows the remaining requests and is the real figure. It tells you the request limit was not used up."
+        },
+        {
+          "text": "A sharp rise in usage can hit acceleration limits below the stated limits.",
+          "explanation": "Right. Claude warns that a sharp increase in usage can cause 429 errors from acceleration limits. Ramp up gradually.",
+          "correct": true
+        },
+        {
+          "text": "5,000 per minute is enforced at about 83 per second, and 800 is above that.",
+          "explanation": "800 per minute is about 13 per second, far below 83. The burst rule is real, but it does not explain this log."
+        },
+        {
+          "text": "It is the monthly spend cap, which also returns 429 with a retry-after header.",
+          "explanation": "A spend-cap 429 has no retry-after header and carries the error code enforced_spend_limit_reached. This one has retry-after: 7."
+        }
+      ]
+    },
+    {
+      "prompt": "In log 2, the backfill makes live chat fail. Which fix keeps chat safe?",
+      "options": [
+        {
+          "text": "Add a second API key in the same workspace for the backfill.",
+          "explanation": "Limits are set per organization and workspace, not per key. A second key in the same workspace shares the same room."
+        },
+        {
+          "text": "Let the live chat retry more times, so it gets through eventually.",
+          "explanation": "More retries add load, and failed requests count toward the limit. The backfill still takes all the room."
+        },
+        {
+          "text": "Set a lower limit on the Default workspace, where both jobs run.",
+          "explanation": "Claude says you can't set limits on the default workspace. The jobs have to be in separate workspaces first."
+        },
+        {
+          "text": "Move the backfill to its own workspace with a lower rate limit.",
+          "explanation": "Right. Workspace limits protect other workspaces from overuse. Organization-wide limits still apply, so cut the backfill's parallel workers too.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "In log 3, what should the summary job do with this 429?",
+      "options": [
+        {
+          "text": "Stop retrying and alert a person to raise the limit.",
+          "explanation": "Right. A spend-cap 429 has no retry-after and keeps failing until access resumes. Retries only add noise.",
+          "correct": true
+        },
+        {
+          "text": "Retry with a longer backoff, because every 429 clears in time.",
+          "explanation": "This 429 does not clear until access resumes, which can be days away. Longer waits do not change that."
+        },
+        {
+          "text": "Send the same request with another API key in the same organization.",
+          "explanation": "The spend cap applies to the whole organization, so a different key hits the same wall."
+        },
+        {
+          "text": "Add random jitter to the six attempts so they spread out.",
+          "explanation": "Jitter helps with temporary limits, where clients retry at the same moment. It cannot lift a spend cap."
+        }
+      ]
+    },
+    {
+      "prompt": "Using log 4, at most how many API requests can one failing user action send?",
+      "options": [
+        {
+          "text": "6 requests.",
+          "explanation": "That counts only the wrapper's tries: 1 first try plus 5 retries. Each of those tries is itself several SDK requests."
+        },
+        {
+          "text": "8 requests.",
+          "explanation": "That adds the SDK's 2 retries to the wrapper's 5 and the first try. The two layers multiply; they do not add."
+        },
+        {
+          "text": "18 requests.",
+          "explanation": "Right. The wrapper makes 6 tries (1 plus 5). Each try is up to 3 SDK requests (1 plus 2). 6 times 3 is 18. Use one retry layer and cap total time. OpenAI says the same: disable SDK retries or count them, so nested loops don't multiply requests.",
+          "correct": true
+        },
+        {
+          "text": "21 requests.",
+          "explanation": "That would be 7 wrapper tries of 3 requests each. The wrapper makes 6 tries (1 plus 5), so the total is 18."
+        }
+      ]
+    }
+  ]
+}

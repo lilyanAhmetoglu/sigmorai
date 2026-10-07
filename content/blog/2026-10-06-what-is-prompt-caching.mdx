@@ -1,0 +1,87 @@
+---
+title: What is prompt caching? How it works and how to hit it
+description: How prompt caching works on Claude, OpenAI and Gemini, a worked cost example with the math, and a checklist for getting real cache hits.
+lesson: builder/r3/c4/lesson
+cover: /blog/covers/what-is-prompt-caching.webp
+---
+
+Prompt caching is a way for a model provider to reuse the work it already did on the start of your prompt. When a new request begins with exactly the same tokens as an earlier one (the same tools, system prompt and documents), the provider reads that prefix from a cache instead of processing it again. Cache reads cost much less than normal input tokens, and caching does not change the answer. The one rule that matters: put what stays the same first and what changes last.
+
+## How it works
+
+While a model reads input, it computes intermediate states, called key-value (KV) states. OpenAI's docs describe caching as keeping that state for "a reusable prefix: the unchanged tokens at the beginning of a prompt." A later request with the same prefix reuses the saved state.
+
+The match must be exact, and it runs from the very start of the prompt:
+
+- **Claude:** the cache covers `tools`, then `system`, then `messages`, in that order. A change at any level invalidates that level and everything after it.
+- **OpenAI:** "Cache reuse requires the entire rendered prefix to match."
+- **Gemini:** to raise the chance of a hit, put "large and common contents at the beginning" of the prompt.
+
+The output does not change. Claude's docs say the response "is identical to what you would get if prompt caching were not used." Caching changes the price and the speed, not the answer.
+
+## How to turn it on
+
+The three vendors start from different defaults:
+
+- **Claude:** you opt in. Add one `cache_control` field at the top of the request (automatic caching), or place `cache_control` on up to 4 individual blocks (explicit breakpoints).
+- **OpenAI:** prompt caching is enabled by default on supported models. On GPT-5.6 and later you can also mark breakpoints with `prompt_cache_breakpoint`.
+- **Gemini:** implicit caching is enabled by default for Gemini 2.5 and newer models.
+
+## A worked cost example
+
+A shop's FAQ bot sends the same 4,000-token FAQ with every request, then a short user question. Say it handles 1,000 questions, close enough together that the cache never expires. Prices below are in "base input token units", so they work for any model.
+
+Without caching, the FAQ alone costs:
+
+- 1,000 requests × 4,000 tokens = **4,000,000 units**
+
+With Claude's 5-minute cache, on a model with the 0.1 read rate (a write costs 1.25 times the base price, a read 0.1 times):
+
+- 1 cache write: 4,000 × 1.25 = 5,000 units
+- 999 cache reads: 999 × 4,000 × 0.1 = 399,600 units
+- Total: 5,000 + 399,600 = **404,600 units**, about 10% of the uncached cost (404,600 ÷ 4,000,000 = 0.101)
+
+OpenAI's docs show the same shape at a smaller scale: across ten requests, one write and nine reads cost 2.15 times one full pass, "compared with 10× without caching." On OpenAI, cache writes cost 1.25 times the uncached rate on GPT-5.6 and later, and reads at 0.1 times on most models (0.05 times on GPT-6.1 Sol).
+
+Two things can break this math. First, entries expire: Claude's default lifetime is 5 minutes, refreshed for free each time the cache is read (a 1-hour option costs 2 times on write). OpenAI keeps a prefix for at least 30 minutes on GPT-5.6 and later. If your traffic has long gaps, you pay for more writes. Second, the prompt must be long enough. Short prefixes are not cached at all:
+
+| Vendor | Minimum cacheable prompt (examples)                                 |
+| ------ | ------------------------------------------------------------------- |
+| Claude | 512 tokens on Opus 5.5 and Sonnet 5.5; 4,096 on Haiku 4.5           |
+| OpenAI | 1,024 tokens on GPT-5.6 and later                                   |
+| Gemini | 4,096 tokens on Gemini 3.5 Flash; 2,048 on Gemini 2.5 Flash and Pro |
+
+Below the minimum, Claude runs the request without caching, and "no error is returned". So a prompt that is too short fails silently.
+
+## The most common mistake: a changing line at the top
+
+Here are two layouts for the same request:
+
+```text
+Bad:   [Request id: 8f3a-1c92] [4,000-token FAQ] [question]
+Good:  [4,000-token FAQ] [Request id: 8f3a-1c92] [question]
+```
+
+In the bad layout, the first line is different on every request, so the prefix never matches and the FAQ is never read from the cache. OpenAI gives the same advice: put "timestamps, user-specific content, or other dynamic content" at the end.
+
+There is a second form of this trap with explicit breakpoints. If you put the breakpoint on a block that changes on every request, Claude's docs warn: "You pay for a fresh cache write on every request and never get a read." Mark the last block that stays the same instead. OpenAI lists the same trap under "A shared prefix is not always a cached prefix."
+
+## Checklist: getting real cache hits
+
+1. **Order the prompt from stable to changing.** Tools, then instructions, then reference documents, then anything with a date, a user id or the question.
+2. **Remove hidden changes from the prefix.** A timestamp, a random request id or a reordered tool list breaks the match.
+3. **Check the minimum length** for your model. A prefix under the minimum is never cached.
+4. **On Claude, opt in** with `cache_control`, and place any explicit breakpoint on the last block that stays the same.
+5. **Match your traffic to the lifetime.** Rare requests mean more cache writes.
+6. **Read the usage numbers, every time you change the prompt:**
+   - Claude: `cache_creation_input_tokens` (written) and `cache_read_input_tokens` (read). Both 0 means nothing was cached.
+   - OpenAI: `usage.input_tokens_details.cached_tokens` and `cache_write_tokens`.
+   - Gemini: `usage.total_cached_tokens`.
+
+Example check: deploy a prompt change, send the same request twice within a minute, and confirm the second response shows a non-zero cache read. If it shows only writes, something before your breakpoint changes between requests.
+
+## Why it matters
+
+In a real product, the expensive part of the prompt is often the part that never changes: the system prompt, the tool definitions, the policy documents. Caching lets you pay for that part once per cache lifetime, not once per request. It also rewards a clean prompt layout, which makes the prompt easier to read and test.
+
+The lesson goes further on breakpoints, lifetimes per model and the rates per model, and ends with a graded case where you fix a cache that never hits.

@@ -1,0 +1,81 @@
+---
+id: creator/r0/c3/lesson
+title: Multimodal input
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Vision
+    url: https://platform.claude.com/docs/en/build-with-claude/vision
+  - kind: docs
+    title: Claude docs · Models overview
+    url: https://platform.claude.com/docs/en/models/overview
+  - kind: docs
+    title: OpenAI docs · Images and vision
+    url: https://developers.openai.com/api/docs/guides/images-vision
+  - kind: docs
+    title: OpenAI docs · Audio and voice
+    url: https://developers.openai.com/api/docs/guides/audio
+  - kind: docs
+    title: Gemini API docs · Image understanding
+    url: https://ai.google.dev/gemini-api/docs/image-understanding
+  - kind: docs
+    title: Gemini API docs · Audio understanding
+    url: https://ai.google.dev/gemini-api/docs/audio
+---
+
+## Why it matters
+
+A model that can **read** your media is a second pair of eyes. It can check 50 product shots for the logo, compare a draft with the brand guide, or turn a client's voice memo into notes. This is called **multimodal input**: you give the model an image or a sound, and it answers in text. This lesson covers what to send, how, and where models still get it wrong.
+
+## What the models can read
+
+- **Images.** Claude, OpenAI and Gemini models all read images. Anthropic's model overview says all current Claude models support text and image input. Google lists captioning, classification, visual question answering, object detection and segmentation.
+- **Audio.** Gemini can describe, summarize and transcribe audio, tell speakers apart, and detect emotion in speech and music. Its docs say it also understands non-speech sounds, like birdsong and sirens. OpenAI points you to its transcription API for "a transcript of an audio file".
+
+Example: a client sends a 4-minute voice memo with feedback on your storyboard. An audio-capable model can turn it into a list of changes with timestamps. You still listen to the parts that matter.
+
+## How you send an image
+
+Claude and OpenAI accept an image in three ways: as a web **URL**, as **base64** (the image packed into text), or as a **file ID** from a files upload. You rarely do this by hand. Your tool or developer does. But the choice matters for long chats.
+
+Claude's docs explain why: in a long chat, every turn sends the whole history again. A base64 image is re-sent each turn. An uploaded file is sent once and then referenced by its ID.
+
+## Limits differ by vendor
+
+| Vendor | File types                        | Images per request             | Other limits                            |
+| ------ | --------------------------------- | ------------------------------ | --------------------------------------- |
+| Claude | JPEG, PNG, GIF, WebP              | up to 600 (100 on some models) | 8000×8000 px max; 10 MB per image (API) |
+| OpenAI | PNG, JPEG, WEBP, non-animated GIF | up to 1,500                    | up to 512 MB per request                |
+| Gemini | PNG, JPEG, WEBP, HEIC, HEIF       | up to 3,600 image files        | 20 MB per request for inline data       |
+
+Two small traps for designers:
+
+- **Animated GIFs.** Claude uses only the first frame. OpenAI accepts only non-animated GIFs.
+- **HEIC from phones.** Gemini lists HEIC. Claude and OpenAI do not list it, so convert phone photos to JPEG first.
+
+## The order of image and text
+
+Even the order of your prompt differs by vendor:
+
+- Claude's docs say Claude "works best when images come before text".
+- Gemini's tips say, for a single image with text, "place the text prompt before the image".
+
+When you send several images, Claude's docs suggest a label before each one: "Image 1:", "Image 2:". Then you can say "Is the logo in Image 2 the same blue as in Image 1?"
+
+## Where models get it wrong
+
+The vendors list the weak spots. Plan your checks around them.
+
+- **Small, rotated or blurry images.** Claude "might hallucinate or make mistakes" on low-quality, rotated, or very small images under 200 pixels. OpenAI lists small text and rotated text as limits. Gemini says to check that images are correctly rotated.
+- **Counting.** Claude gives "approximate counts". OpenAI lists approximate counts of objects as a limit.
+- **Non-Latin text.** OpenAI lists text in non-Latin alphabets, such as Japanese or Korean, as a limit.
+- **Naming people.** Claude "cannot be used to name people in images and refuses to do so."
+- **Spotting AI images.** Claude "cannot determine whether an image is AI-generated". Don't use it as a fake detector.
+
+Example: a retail team asks "How many cans are on this shelf?" for 30 phone photos. The model's numbers are estimates. If the exact count matters, a person counts.
+
+## What this means for your work
+
+- **Prepare the files.** Rotate, crop to the detail, convert odd formats, keep images clear.
+- **Ask for checks, not perfect numbers.** "Is the logo visible: yes or no?" is a better job than "count every item".
+- **Keep a person on the high-stakes calls.** Claude's docs say not to use it for tasks that need perfect precision without human oversight.

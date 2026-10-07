@@ -1,0 +1,96 @@
+{
+  "id": "builder/r6/c3/challenge",
+  "title": "Ship it, it's only three points",
+  "scenario": "A support-agent team rewrote its prompt to improve partial refunds. They ran both suites once and wrote a note recommending release. You review the numbers before anyone clicks deploy (exhibit).",
+  "exhibit": "(made-up example data)\n\nRUN: prompt v7 vs v6, 1 trial per task\n  capability suite, partial refunds:   30% -> 52%\n  regression suite, 120 tasks:         100% -> 97%   (4 tasks newly failing)\n  cost per task:                       $0.04 -> $0.09\n  model setting:                       \"support-model-latest\" (alias)\n\nTASK cancel-order-31\n  per-trial success rate: about 80%\n  customers need it to work every time\n\nTEAM NOTE\n  \"Capability is up 22 points. Regression is only 3 points down. Ship it.\"",
+  "questions": [
+    {
+      "prompt": "The regression suite fell from 100% to 97%. How should the team read this?",
+      "options": [
+        {
+          "text": "It is normal noise, so a 3-point drop on a regression suite is fine.",
+          "explanation": "Anthropic says regression evals should have a nearly 100% pass rate, and a drop means something is broken. Noise is possible with one trial, but the answer is more trials and a look at the 4 tasks, not a shrug."
+        },
+        {
+          "text": "The capability gain cancels the drop, so the net result is positive.",
+          "explanation": "The two suites answer different questions. A gain on new skills does not pay for breaking old ones."
+        },
+        {
+          "text": "Something broke, so look at the 4 tasks that now fail before release.",
+          "explanation": "Right. Anthropic: regression evals should pass at nearly 100%, and a drop signals that something is broken. Run more trials to confirm, then fix.",
+          "correct": true
+        },
+        {
+          "text": "The 4 tasks are too hard, so move them to the capability suite.",
+          "explanation": "Tasks graduate from capability to regression when they pass reliably. Moving failing tasks the other way just hides a regression."
+        }
+      ]
+    },
+    {
+      "prompt": "Cost per task went from $0.04 to $0.09. What should the team do with this number?",
+      "options": [
+        {
+          "text": "Ignore it. Cost is a billing matter, not an eval matter.",
+          "explanation": "Anthropic says evals give you baselines for latency, token usage, cost per task and error rates, so cost belongs in the eval run."
+        },
+        {
+          "text": "Keep it as a baseline next to quality and compare it on every run.",
+          "explanation": "Right. Anthropic lists cost per task and latency as things you can track on a fixed bank of tasks. A doubled cost is a change worth catching.",
+          "correct": true
+        },
+        {
+          "text": "Accept it, since quality is the only thing a regression suite tracks.",
+          "explanation": "A suite can track more than quality. Anthropic names latency, token usage, cost and error rates as free baselines."
+        },
+        {
+          "text": "Wait for the monthly invoice, which is more exact than any eval.",
+          "explanation": "An invoice arrives after release. A baseline in the eval run shows the change before users see it."
+        }
+      ]
+    },
+    {
+      "prompt": "The model setting is a `latest` alias. What do the vendor docs support?",
+      "options": [
+        {
+          "text": "Pin a specific version, and run the suite before any upgrade.",
+          "explanation": "Right. Claude model IDs stay constant, OpenAI snapshots lock a version, and Gemini says most production apps should use a specific stable model. Treat an upgrade as a change and test it.",
+          "correct": true
+        },
+        {
+          "text": "Keep the alias, because the vendor tests every update on your tasks.",
+          "explanation": "Vendors cannot test your tasks. Gemini says a `latest` alias is hot-swapped with each new release."
+        },
+        {
+          "text": "Pin the model, then skip the suite, since a pinned model cannot change.",
+          "explanation": "The Claude docs say infrastructure updates can still cause minor differences in behavior. The suite is how you notice."
+        },
+        {
+          "text": "Move to the newest preview model, because previews are the most stable.",
+          "explanation": "Gemini says preview models are deprecated with at least 2 weeks notice. A stable model is the one the docs advise for production."
+        }
+      ]
+    },
+    {
+      "prompt": "Customers need cancel-order-31 to work every time. About 80% of trials pass. What is pass^3?",
+      "options": [
+        {
+          "text": "About 99%, because at least one of three trials passes.",
+          "explanation": "That is pass@3: at least one success in k trials. It rises with k, and it does not show whether the task works every time."
+        },
+        {
+          "text": "About 80%, because pass^3 is the average of the three trials.",
+          "explanation": "pass^3 is not an average. It needs all three trials to pass, so the chances multiply and the number falls."
+        },
+        {
+          "text": "About 64%, because only the first two trials matter.",
+          "explanation": "pass^3 needs all three trials to succeed, so the third counts too."
+        },
+        {
+          "text": "About 51%: 0.8 x 0.8 x 0.8 is the chance all three pass.",
+          "explanation": "Right. Anthropic's example is the same: 75% per trial gives about 42% for pass^3. This metric matters when users expect reliable behavior every time.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

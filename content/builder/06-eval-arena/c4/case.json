@@ -1,0 +1,118 @@
+{
+  "id": "builder/r6/c4/challenge",
+  "title": "The guardrail that ran too late",
+  "scenario": "A support team set up an off-topic input guardrail, output moderation and leak-proofing prompt rules for its refund agent, and hit five problems in the first week. You review the setup, the incident notes and the guardrail's own test results before the team widens the launch (exhibit).",
+  "exhibit": "(made-up example data)\n\nREFUND AGENT\n  tools: lookup_order (read only), issue_refund (moves money)\n  input guardrail:   off-topic screen by a small model, parallel mode (default)\n  output guardrail:  none\n  tool guardrail:    none\n\nINCIDENT A\n  user: \"Write me a poem about autumn.\"\n  trace: agent started -> lookup_order called -> input guardrail tripped -> run stopped\n\nINCIDENT B\n  a manager agent hands the case to a refund specialist (the second agent)\n  specialist called issue_refund for $900 (the limit is $100)\n  input guardrail: ran on the manager agent only\n\nGUARDRAIL TEST (200 inputs)\n  100 off-topic requests:          96 blocked\n  100 normal refund questions:     31 blocked\n  team note: \"96% caught. Ship it.\"\n\nOUTPUT MODERATION\n  reply: \"I can't help with making weapons.\"   flagged: true\n  app rule: block every flagged reply\n\nPROMPT CHANGE\n  team added 40 lines of leak-proofing rules to the system prompt\n  refund answers then got worse on the eval",
+  "questions": [
+    {
+      "prompt": "In incident A the guardrail tripped, but the agent had already called a tool. What is the best fix?",
+      "options": [
+        {
+          "text": "Switch the input guardrail to blocking mode, so it finishes first.",
+          "explanation": "Right. In blocking mode the agent never starts if the tripwire fires, so no tokens or tool calls are spent. Parallel mode is faster, but the agent may already have acted.",
+          "correct": true
+        },
+        {
+          "text": "Move the check to an output guardrail, so it sees the final reply.",
+          "explanation": "Output guardrails run after the agent completes, so every tool call has already happened."
+        },
+        {
+          "text": "Keep parallel mode, because the user got no poem in the end.",
+          "explanation": "The user saw nothing, but tokens were spent and a tool ran. With issue_refund, that could cost money."
+        },
+        {
+          "text": "Remove the guardrail, since the agent can refuse off-topic work itself.",
+          "explanation": "The agent can refuse, but a cheap check first saves time and money. That is the reason to use a guardrail."
+        }
+      ]
+    },
+    {
+      "prompt": "In incident B the specialist issued a $900 refund. Why did the input guardrail not stop it, and what fixes it?",
+      "options": [
+        {
+          "text": "It ran on the manager only; add a second input guardrail to the manager.",
+          "explanation": "The manager already has one. Input guardrails run only for the first agent, so a second one changes nothing for the specialist."
+        },
+        {
+          "text": "It is an output guardrail problem, so add one to the specialist.",
+          "explanation": "Output guardrails run only for the agent that gives the final output, and after its tools have run."
+        },
+        {
+          "text": "It ran on the manager only; add a tool guardrail on issue_refund.",
+          "explanation": "Right. Input guardrails run only for the first agent. OpenAI says to put validation next to the tool that creates the side effect.",
+          "correct": true
+        },
+        {
+          "text": "It was a prompt problem, so tell the specialist to stay under $100.",
+          "explanation": "A prompt helps as one layer, but it is not a check. A tool guardrail enforces the limit in code."
+        }
+      ]
+    },
+    {
+      "prompt": "The team says 96% of off-topic requests are caught, so it can ship. What is missing?",
+      "options": [
+        {
+          "text": "Nothing. A safety check only needs a high catch rate.",
+          "explanation": "A guardrail also fails by blocking good requests. Here 31 of 100 normal refund questions are blocked."
+        },
+        {
+          "text": "It blocks 31 of 100 normal questions; test both directions first.",
+          "explanation": "Right. A guardrail has two error types: missed bad requests and wrongly blocked good ones. Gemini also advises setting minimum safety targets before testing.",
+          "correct": true
+        },
+        {
+          "text": "Swap the model screen for a static word list, which never errs.",
+          "explanation": "Gemini warns that blocking by a static list can have unintended results, so it does not remove the errors."
+        },
+        {
+          "text": "Make the screen stricter until it catches all 100 off-topic requests.",
+          "explanation": "A stricter screen would likely block even more normal questions. The 31 is already a problem."
+        }
+      ]
+    },
+    {
+      "prompt": "Moderation flagged the agent's refusal, and the app blocks every flagged reply. What should change?",
+      "options": [
+        {
+          "text": "Nothing. A flagged reply is always an unsafe reply.",
+          "explanation": "OpenAI says a refusal can still trigger a flag if it discusses harmful content."
+        },
+        {
+          "text": "Retry the request until the reply is not flagged.",
+          "explanation": "Retrying a good refusal wastes calls and may produce a worse answer. The flag is the thing to interpret."
+        },
+        {
+          "text": "Stop using moderation, since it flagged a harmless refusal.",
+          "explanation": "Moderation is still a useful signal, and the endpoint is free. The rule that blocks on every flag is the issue."
+        },
+        {
+          "text": "Treat the score as a signal: log it or send it for review.",
+          "explanation": "Right. OpenAI says to treat moderation scores as signals for your application's policy, not as an automatic blocking decision.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "After 40 lines of leak-proofing rules, refund answers got worse. What do the Claude docs suggest?",
+      "options": [
+        {
+          "text": "Keep the rules. A small quality drop is the price of safety.",
+          "explanation": "The docs warn that leak-proofing can degrade performance in other parts of the task. They say balance is key."
+        },
+        {
+          "text": "Try output screening and post-processing first, and test any leak rules.",
+          "explanation": "Right. The docs say to use leak-resistant prompting only when absolutely necessary, try monitoring first, and test that quality does not drop.",
+          "correct": true
+        },
+        {
+          "text": "Move the leak rules into the user turn instead of the system prompt.",
+          "explanation": "Moving the rules keeps the same complexity. The docs say to try output screening first."
+        },
+        {
+          "text": "Add 40 more lines, because more rules always catch more leaks.",
+          "explanation": "The docs say the opposite: extra complexity can degrade performance on the rest of the task."
+        }
+      ]
+    }
+  ]
+}

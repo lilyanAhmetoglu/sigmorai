@@ -1,0 +1,96 @@
+{
+  "id": "builder/r4/c6/challenge",
+  "title": "Read-only, they said",
+  "scenario": "Three teams ask you to review their agent permissions after a bad week. One runs a headless Claude Agent SDK bot on a shared build server, one set rules for Claude Code in a team repo, and one runs a refund agent on the OpenAI Agents SDK (exhibit).",
+  "exhibit": "1) RELEASE-NOTES BOT  (Claude Agent SDK, headless, shared build server)\n   allowed_tools:   [\"Read\", \"Grep\"]\n   permission_mode: \"bypassPermissions\"\n   10-04  Bash: rm -rf build/cache\n   10-04  Bash: git push origin main\n\n2) TEAM REPO  .claude/settings.json\n   \"deny\":  [\"Bash(git push *)\"]\n   \"allow\": [\"Bash(git push origin feature/*)\"]\n   developer: \"Why is git push origin feature/login blocked?\"\n\n3) REFUND AGENT  (OpenAI Agents SDK)\n   manager agent -> billing specialist via as_tool()\n   input guardrail on manager: blocks abusive messages\n   issue_refund: function tool, no approval setting\n   10-05  specialist called read_attachment; the file held a\n          hidden instruction; specialist then refunded EUR 900",
+  "questions": [
+    {
+      "prompt": "The bot's allowed tools were only Read and Grep. Why could it run Bash?",
+      "options": [
+        {
+          "text": "Grep secretly runs through Bash, so allowing Grep allowed Bash.",
+          "explanation": "Grep is its own tool. The cause is how the mode treats tools that are not in the allow list."
+        },
+        {
+          "text": "`allowed_tools` pre-approves listed tools; `bypassPermissions` approves the rest.",
+          "explanation": "Right. The SDK docs: `allowed_tools=[\"Read\"]` with `bypassPermissions` still approves every tool, including Bash, Write and Edit.",
+          "correct": true
+        },
+        {
+          "text": "Headless runs ignore `allowed_tools` and use the server's defaults.",
+          "explanation": "The SDK reads the options you pass. The list did work: it just doesn't limit what this mode approves."
+        },
+        {
+          "text": "`allowed_tools` is not enough: the bot also needed `disallowedTools` for Bash in its options.",
+          "explanation": "Unlisted tools are not blocked by default. They fall to the permission mode, and here `bypassPermissions` approved them. A deny rule would help, but the cause is the mode, so the fix is the mode."
+        }
+      ]
+    },
+    {
+      "prompt": "What is the right fix for the bot, per the Claude Agent SDK docs?",
+      "options": [
+        {
+          "text": "Keep `bypassPermissions` and add \"never use Bash\" to the system prompt of the bot.",
+          "explanation": "A prompt line is a request. The mode would still approve any Bash call the model makes."
+        },
+        {
+          "text": "Switch to `acceptEdits` so only edits run without asking.",
+          "explanation": "`acceptEdits` auto-approves file edits and filesystem commands like `rm`, and a headless bot has no one to answer other prompts."
+        },
+        {
+          "text": "Use `dontAsk` with the same `allowedTools`; anything that would prompt is denied.",
+          "explanation": "Right. The docs pair `allowedTools` with `dontAsk` for a locked-down agent: listed tools run, and a call that would prompt is denied. A bare `Bash` in `disallowedTools` would remove the tool too.",
+          "correct": true
+        },
+        {
+          "text": "Switch to `plan` mode so the bot can only look at the files and never change anything.",
+          "explanation": "`plan` mode explores and plans, and edits are never auto-approved. It is for review with a person. A headless job that must finish needs `dontAsk` with `allowedTools`."
+        }
+      ]
+    },
+    {
+      "prompt": "Team 2 asks why `git push origin feature/login` is blocked. What is the answer?",
+      "options": [
+        {
+          "text": "The more specific allow rule should win over the broad deny; this is a bug.",
+          "explanation": "The docs say rule specificity doesn't change the order. It is the documented behavior."
+        },
+        {
+          "text": "Allow rules only work for Read and Edit, not for Bash.",
+          "explanation": "Bash rules like `Bash(npm *)` are a normal use of allow rules."
+        },
+        {
+          "text": "The command needs a `canUseTool` callback to run.",
+          "explanation": "The call never reaches that step. A deny rule matched first and blocked it."
+        },
+        {
+          "text": "Deny is checked first and matches, so the narrower allow never applies.",
+          "explanation": "Right. Rules are evaluated deny, then ask, then allow, and the first match wins. An allow rule can't carve an exception out of a deny rule.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "How should team 3 stop unreviewed refunds?",
+      "options": [
+        {
+          "text": "Add a second input guardrail on the manager agent.",
+          "explanation": "Input guardrails run only for the first agent in the chain. The hidden text arrived later, as a tool result inside the specialist's work."
+        },
+        {
+          "text": "Set `needs_approval` on `issue_refund`, then resume the paused run from `state`.",
+          "explanation": "Right. The run pauses with an interruption instead of executing the tool, and OpenAI says to put validation next to the tool that creates the side effect.",
+          "correct": true
+        },
+        {
+          "text": "Ask the specialist in its prompt to double-check large refunds before it calls the tool.",
+          "explanation": "The prompt is what the hidden instruction already overrode. The check must sit in code at the tool."
+        },
+        {
+          "text": "Turn the specialist into a handoff so it owns the reply.",
+          "explanation": "Who owns the reply does not change whether the refund tool runs without review."
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,16 @@
 import { notFound } from 'next/navigation';
+import { REALMS } from '@/lib/constants';
 import { RealmSlugSchema } from '@/lib/types';
+
+/**
+ * Every realm slug is known up front. Here, not in page.tsx, so the child
+ * routes get them too: the share image (opengraph-image.tsx) is prerendered
+ * once per realm. The page reads searchParams, so it still renders per request.
+ */
+export const dynamicParams = false;
+export function generateStaticParams() {
+  return REALMS.map((realm) => ({ realm: realm.slug }));
+}
 
 /**
  * Checks the slug before any loading.tsx starts streaming, so an unknown

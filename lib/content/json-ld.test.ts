@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { articleJsonLd, serializeJsonLd, siteJsonLd } from './json-ld';
+import { articleJsonLd, blogJsonLd, serializeJsonLd, siteJsonLd } from './json-ld';
 
 const SITE = 'https://sigmorai.com';
 
@@ -33,5 +33,20 @@ describe('serializeJsonLd', () => {
     const json = serializeJsonLd({ '@context': 'https://schema.org', name: '</script><x>' });
     expect(json).not.toContain('<');
     expect(JSON.parse(json).name).toBe('</script><x>');
+  });
+});
+
+describe('blogJsonLd', () => {
+  test('a Blog with its publisher and one BlogPosting per post', () => {
+    const data = blogJsonLd(
+      [{ date: '2026-10-06', slug: 'be-specific', frontmatter: { title: 'T', description: 'D' } }],
+      SITE,
+    );
+    expect(data).toMatchObject({
+      '@type': 'Blog',
+      url: `${SITE}/blog`,
+      publisher: { '@type': 'Organization', '@id': `${SITE}/#organization` },
+      blogPost: [{ '@type': 'BlogPosting', headline: 'T', url: `${SITE}/blog/be-specific` }],
+    });
   });
 });

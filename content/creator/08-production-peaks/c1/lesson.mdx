@@ -1,0 +1,85 @@
+---
+id: creator/r8/c1/lesson
+title: Provenance
+minutes: 6
+sources:
+  - kind: docs
+    title: C2PA · Content Credentials explainer (spec 2.2)
+    url: https://c2pa.org/specifications/specifications/2.2/explainer/Explainer.html
+  - kind: docs
+    title: C2PA · Content Credentials
+    url: https://c2pa.org
+  - kind: docs
+    title: OpenAI docs · Content provenance
+    url: https://developers.openai.com/api/docs/guides/content-provenance
+  - kind: docs
+    title: YouTube Help · Disclosing use of GenAI content
+    url: https://support.google.com/youtube/answer/14328491
+  - kind: docs
+    title: TikTok Newsroom · Partnering with our industry to advance AI transparency and literacy
+    url: https://newsroom.tiktok.com/en-us/partnering-with-our-industry-to-advance-ai-transparency-and-literacy
+---
+
+## Why it matters
+
+A brand posts 40 AI images. A journalist asks: "Where did this image come from?" Your best answer is a record inside the file. That record only helps if it survives, and if you read it correctly.
+
+Bootstrap Village, chapter 6, introduced Content Credentials. This lesson goes one step further. It shows what is inside one, how to read a check result, and what a credential can never tell you.
+
+## What is inside a Content Credential
+
+C2PA calls the record a **Content Credential**. Its technical name is a C2PA Manifest. The explainer describes it as a "cryptographically bound structure that records an asset's provenance".
+
+A credential holds **assertions**. These are statements about the file: where it came from, what was done to it, and whether AI was used. Each action can be done by a person or by an AI system. When AI did it, the credential marks it as AI.
+
+The credential is **signed** with the key of the software or hardware that did the work. The signature protects the record from silent change.
+
+If you build a banner from three images, each source image is an **ingredient**. C2PA records each ingredient, and its own credential, in the banner's history. The result is a family tree of provenance.
+
+## Tamper-evident is not the same as true
+
+C2PA says any change to the file or to the credential, "however insignificant", stops the pieces from matching. So a change can be seen. That is what **tamper-evident** means.
+
+It does not mean the picture is true. The explainer says provenance "cannot tell you whether the digital content is true, accurate or factual". Credentials show information that is well-formed and untampered. They do not judge it.
+
+Example: a credential on a tent image says "made with AI". A caption that says "real tent, real storm" is still false. The credential even shows why.
+
+## Reading a check result
+
+OpenAI offers a provenance check for images. For each image it returns a c2pa entry. Read these fields:
+
+| Field              | Values                                       | What it tells you                                   |
+| ------------------ | -------------------------------------------- | --------------------------------------------------- |
+| `validation_state` | `trusted`, `valid`, `invalid`, `not_present` | The state of the manifest                           |
+| `issuer`           | a name, when known                           | Who issued it                                       |
+| `outcome`          | `detected` or `not_detected`                 | Whether OpenAI AI-generation credentials were found |
+
+Three rules from OpenAI's page:
+
+- `detected` needs a `trusted` or `valid` manifest that names OpenAI as issuer and includes an AI-generation action.
+- A manifest from another company gives `not_detected`. The `issuer` and `validation_state` can still describe it.
+- "Don't treat an `invalid` manifest as reliable provenance evidence."
+
+So `not_detected` does not always mean "no credentials". The file may carry a good manifest from someone else. OpenAI also says to check the issuer before you name a provider.
+
+## Missing or incomplete credentials
+
+Should you distrust a file with no credentials? The C2PA explainer answers: "Maybe." Adding provenance is optional. C2PA says it does not want a two-tier world where files without credentials are "universally less trusted". Trust also depends on the source.
+
+Provenance is also not always complete. If a tool that does not know C2PA crops a file, the credential may not record the crop. If the file later goes into a tool that does know C2PA, the new signer "implicitly attests" to that crop.
+
+Credentials can be removed. That is why C2PA describes **durable** credentials. A hard binding (a hash) is joined by a **soft binding**, such as an invisible watermark or a fingerprint lookup. The soft binding helps find the credential in cloud storage even after it was removed from the file. Chapter 2 covers watermarks.
+
+## Platforms read them
+
+Credentials are not only for journalists. In May 2024, TikTok said it was launching the ability to read Content Credentials, so it could label AI content made on other platforms. YouTube says it may add an AI label to content that contains C2PA metadata. So a credential can cause a label on your post. Chapter 3 covers labels.
+
+## What this means for your work
+
+This checklist is ours, not a vendor rule.
+
+- **Keep one master.** Save the original export, with its credentials, in a safe place.
+- **Test your export path.** Ask which step drops metadata, and fix it if you can.
+- **Read all three fields.** Check `validation_state`, `issuer` and `outcome`, not only the outcome.
+- **Never write a claim a credential disproves.** A credential says how a file was made, not whether your caption is true.
+- **Do not distrust a file only for a missing credential.** Look at the source and the master.

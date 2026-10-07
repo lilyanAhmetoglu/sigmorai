@@ -1,0 +1,96 @@
+{
+  "id": "builder/r4/c5/challenge",
+  "title": "Customer 207's notes",
+  "scenario": "A software company uses agent memory in three places: a support agent with the Claude memory tool, a sales assistant on the OpenAI Agents SDK, and a coding agent in its main repo. You audit all three (exhibit).",
+  "exhibit": "1) SUPPORT AGENT  (Claude API + memory tool)\n   storage: one folder per customer, /memories/<customer_id>/\n   handler: real_path = \"/data\" + input.path   (no other checks)\n   log 10-02  view    /memories/c_481/../c_207/notes.md\n              -> returned customer c_207's notes to customer c_481\n   log 10-03  create  /memories/c_481/payment.md\n              text: \"card 4111 1111 1111 1111, exp 09/28\"\n\n2) SALES ASSISTANT  (OpenAI Agents SDK, one SQLiteSession per user)\n   user u_88: 14 months of chat, 9,400 stored items\n   each run loads all items; cost per reply up 6x since March\n\n3) MAIN REPO  (coding agent)\n   CLAUDE.md: 640 lines\n   line 12:  Use npm for installs.\n   line 418: Use Bun. Never use npm.",
+  "questions": [
+    {
+      "prompt": "How should the support agent's handler stop the 10-02 leak?",
+      "options": [
+        {
+          "text": "Tell Claude in the system prompt to stay inside its own folder and never use `../` paths.",
+          "explanation": "A prompt asks; it does not enforce. A crafted path can still reach the handler, which must check it."
+        },
+        {
+          "text": "Resolve every path to its canonical form and reject any that leaves the allowed folder.",
+          "explanation": "Right. The memory tool docs say to validate every path in every command, resolve it to its canonical form and reject traversal sequences like `../`.",
+          "correct": true
+        },
+        {
+          "text": "Rename the folders to random ids so they are hard to guess, and hide the base path.",
+          "explanation": "Hidden names do not fix the hole. Any path with `../` still escapes the folder once a name is known."
+        },
+        {
+          "text": "Turn on memory expiration so old notes are deleted.",
+          "explanation": "Expiration limits how long files live. It does not stop a bad path from reading another folder today."
+        }
+      ]
+    },
+    {
+      "prompt": "On 10-03, a card number was written to memory. What do the memory tool docs recommend?",
+      "options": [
+        {
+          "text": "Nothing: Claude refuses to write sensitive data, so this cannot happen in a real run.",
+          "explanation": "The docs say Claude usually refuses. Usually is not always, and the log shows it happened."
+        },
+        {
+          "text": "Encrypt the folder, then keep storing card numbers in memory for later sessions.",
+          "explanation": "Encryption protects storage at rest, but the card number would still be read back into the context later."
+        },
+        {
+          "text": "Turn off the memory tool for all customers.",
+          "explanation": "That removes the feature instead of fixing the write path. The docs give a narrower fix."
+        },
+        {
+          "text": "Add validation in the handler that strips sensitive data before it writes the file.",
+          "explanation": "Right. For stronger guarantees than Claude's usual refusal, the docs say to strip sensitive data before your handler writes.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The sales assistant loads 9,400 items each run. Which change fits the OpenAI Agents SDK docs?",
+      "options": [
+        {
+          "text": "Set `SessionSettings(limit=N)` so each run retrieves only the latest N items.",
+          "explanation": "Right. The default, `limit=None`, retrieves all session items. A limit caps retrieval without changing what the session stores.",
+          "correct": true
+        },
+        {
+          "text": "Keep the session and also pass `previous_response_id` on each run, to link the turns.",
+          "explanation": "A session cannot be combined with `previous_response_id` in the same run, and mixing both can duplicate context."
+        },
+        {
+          "text": "Delete the session after every reply, so each run starts empty.",
+          "explanation": "That fixes cost by removing memory completely. The user would lose the conversation they came back for."
+        },
+        {
+          "text": "Move the 9,400 items into the agent's instructions.",
+          "explanation": "That loads the same tokens on every run, in a place that is even harder to trim."
+        }
+      ]
+    },
+    {
+      "prompt": "The coding agent sometimes uses npm and sometimes Bun. What do the Claude Code docs point to?",
+      "options": [
+        {
+          "text": "A model with a bigger context window, so all 640 lines fit.",
+          "explanation": "The lines already load. The problems are length, which reduces adherence, and two rules that conflict."
+        },
+        {
+          "text": "Repeat line 418 three times so it wins.",
+          "explanation": "Repetition does not remove the conflict. The docs say to review the files and remove outdated or conflicting instructions."
+        },
+        {
+          "text": "Delete line 12 and cut the file below 200 lines.",
+          "explanation": "Right. With contradicting instructions Claude may pick one arbitrarily, and files over 200 lines consume more context and reduce adherence.",
+          "correct": true
+        },
+        {
+          "text": "Move all 640 lines into auto memory instead.",
+          "explanation": "Auto memory is for notes Claude writes itself, and only its first 200 lines or 25KB load per session."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "id": "creator/r8/c4/challenge",
+  "title": "Launch morning at 60 images a minute",
+  "scenario": "A studio plans to generate its launch images on the Gemini API. You check the plan against the limits. Use the exhibit. The campaign, the limits, the log and the budget are made up for this case. The vendor lines are copied from the docs.",
+  "exhibit": "PLAN (made up for this case):\n  Fernleaf spring campaign. 2,400 image variants must be live at 10:00.\n  The team starts at 09:30, in the project fernleaf-prod, at full speed from the first second.\n\nLIMITS for fernleaf-prod (made up for this case):\n  RPM 100 requests per minute | IPM 60 images per minute | RPD 4,000 requests per day\n\nLOG, minute 09:41 (made up for this case):\n  58 requests sent. The 58 requests asked for 72 images in total. Result: 429 errors.\n\nREHEARSAL (made up for this case):\n  On Tuesday a tester used a second API key, created inside fernleaf-prod.\n\nBUDGET (made up for this case), for the studio's OpenAI project that writes the captions:\n  Monthly budget $1,200. Set-up under review: spend alert at $900 and hard spend limit at $1,200.\n\nVENDOR LINES (copied from the docs):\n  Gemini: \"Your usage is evaluated against each limit, and exceeding any of them will trigger a rate limit error.\"\n  Gemini: \"Rate limits are applied per project, not per API key.\"\n  OpenAI: a spend alert \"Sends a notification; API traffic continues\". A hard spend limit means affected API requests \"return a `429` error\".\n  OpenAI: a `slow_down` error \"can occur even when your traffic is within its requests-per-minute and tokens-per-minute limits.\"\n  Claude: \"ramp up your traffic gradually and maintain consistent usage patterns.\"",
+  "questions": [
+    {
+      "prompt": "Why did minute 09:41 fail, when only 58 requests were sent against an RPM of 100?",
+      "options": [
+        {
+          "text": "The 72 images passed the limit of 60 a minute, so one meter alone can cause an error",
+          "explanation": "Right. Gemini says exceeding any of the limits triggers an error. IPM counts images, and 72 is more than 60.",
+          "correct": true
+        },
+        {
+          "text": "The RPM limit was lowered during the minute, so the 429 comes from a changed limit",
+          "explanation": "Nothing in the log shows a changed limit. The numbers show an IPM problem."
+        },
+        {
+          "text": "The first 58 requests were fine, so the 429 means the vendor service was overloaded",
+          "explanation": "An overload is a different error. This log breaks a limit that the exhibit gives."
+        },
+        {
+          "text": "The daily limit of 4,000 was already used up, so every later request is refused",
+          "explanation": "The log does not say that. Only 58 requests had been sent in that minute."
+        }
+      ]
+    },
+    {
+      "prompt": "Using the limits, what is true about the plan to have all 2,400 images live at 10:00, starting at 09:30?",
+      "options": [
+        {
+          "text": "It works, because 2,400 images fit into 30 minutes at 100 requests per minute",
+          "explanation": "The IPM limit counts images, not requests. At 60 images per minute the limit is lower than the plan needs."
+        },
+        {
+          "text": "It works if the team sends requests faster than the limit for a few minutes",
+          "explanation": "Going over a limit gives errors, not extra speed."
+        },
+        {
+          "text": "It cannot work, because 2,400 images at 60 a minute need at least 40 minutes",
+          "explanation": "Right. 2,400 divided by 60 is 40 minutes, and the plan has 30. Generate before launch day, or start earlier.",
+          "correct": true
+        },
+        {
+          "text": "It cannot work, because the daily limit of 4,000 is less than the 2,400 images",
+          "explanation": "4,000 is more than 2,400. The limit that matters is IPM."
+        }
+      ]
+    },
+    {
+      "prompt": "The team plans to go from nothing to 60 images a minute in the first second. What is the better plan?",
+      "options": [
+        {
+          "text": "Keep the plan, because staying under 60 images per minute is the only rule that counts",
+          "explanation": "OpenAI says slow_down can occur even within the per-minute limits, because of how fast traffic rose."
+        },
+        {
+          "text": "Raise the pace in steps and keep it steady, because vendors warn a sharp rise can fail",
+          "explanation": "Right. Claude says to ramp up gradually, and OpenAI says a sudden rise can trigger slow_down within the limits. Gemini's page does not describe this, so treat it as good practice for any vendor.",
+          "correct": true
+        },
+        {
+          "text": "Send the first 30 requests as one burst, then slow down once errors appear",
+          "explanation": "A burst is the pattern the vendors warn about. Errors would show up before the pace is fixed."
+        },
+        {
+          "text": "Double the pace every minute until errors appear, then step back a little",
+          "explanation": "This finds the limit by hitting it. Launch traffic should be ramped on a plan, and rehearsed before the day."
+        }
+      ]
+    },
+    {
+      "prompt": "The caption project runs on OpenAI. What should the studio know about its alert at $900 and hard limit at $1,200?",
+      "options": [
+        {
+          "text": "Both controls are the same, so one of them can be dropped without any change at all",
+          "explanation": "They are different. One warns, and the other stops."
+        },
+        {
+          "text": "The alert stops traffic at $900 as well, so the campaign is fully safe up to $900",
+          "explanation": "A spend alert sends a notification and traffic continues."
+        },
+        {
+          "text": "The hard limit only sends an email at $1,200, and requests keep working after that",
+          "explanation": "A hard limit stops the affected requests with a 429 error."
+        },
+        {
+          "text": "The alert only warns, and the hard limit returns 429 errors that stop the traffic",
+          "explanation": "Right. OpenAI says the alert keeps traffic running, and affected requests return a 429 at a hard limit. Decide who acts on the alert.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "On Tuesday, a tester used a second API key created inside fernleaf-prod. What does that mean for the limits?",
+      "options": [
+        {
+          "text": "The second key has its own limits, so the test cannot touch the live campaign",
+          "explanation": "Gemini says limits apply per project, not per API key."
+        },
+        {
+          "text": "The second key halves the limits, because each key gets half of the project's share",
+          "explanation": "Nothing in the docs splits a limit between keys. They share the project's limit."
+        },
+        {
+          "text": "The key shares the project's limits, so rehearse in a separate staging project",
+          "explanation": "Right. Gemini counts limits per project, and OpenAI suggests staging projects with their own limits.",
+          "correct": true
+        },
+        {
+          "text": "Limits are counted per person, so only the tester's own use of the key counts",
+          "explanation": "Limits are set per project or organization, not per person."
+        }
+      ]
+    }
+  ]
+}

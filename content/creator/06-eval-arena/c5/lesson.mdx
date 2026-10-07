@@ -1,0 +1,92 @@
+---
+id: creator/r6/c5/lesson
+title: Safety checks
+minutes: 8
+sources:
+  - kind: docs
+    title: OpenAI docs · Moderation
+    url: https://developers.openai.com/api/docs/guides/moderation
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: Gemini API docs · Safety settings
+    url: https://ai.google.dev/gemini-api/docs/safety-settings
+  - kind: docs
+    title: Gemini API docs · Safety and factuality guidance
+    url: https://ai.google.dev/gemini-api/docs/safety-guidance
+  - kind: docs
+    title: Claude docs · Vision
+    url: https://platform.claude.com/docs/en/build-with-claude/vision
+  - kind: blog
+    title: Anthropic · Demystifying evals for AI agents
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+---
+
+## Why it matters
+
+A beautiful image that your client cannot publish is a failed image. Safety is a gate in your scorecard, next to the logo and the label. Realm 0, chapter 6 covered the rules: rights, policies and provenance. This chapter is about testing a model against them, and about what the safety tools do and do not tell you.
+
+## Make safety a number
+
+Chapter 1 showed Claude's rate-style criterion for safety. Google adds a habit: "think about the minimum acceptable levels of safety metrics before testing". Then you can compare results with a line you set in advance, not one you invent after seeing them.
+
+Google's safety guide names two kinds of testing:
+
+- **Safety benchmarking:** metrics that reflect how your application could be unsafe, tested on an evaluation set. Google warns about over-relying on "off the shelf" approaches. It says you will likely need your own test sets.
+- **Adversarial testing:** "proactively trying to break your application". It tells you to "select test data that is most likely to elicit problematic output", including rare cases and edge cases.
+
+## Layer 1: the vendor's filters
+
+OpenAI's image guide says all prompts and generated images "are filtered in accordance with our content policy". Its `moderation` parameter has two values: `auto` (the default), which is "standard filtering", and `low`, which is "less restrictive filtering".
+
+Google's Gemini API has adjustable safety filters for four categories: harassment, hate speech, sexually explicit and dangerous. It also has "built-in protections against core harms, such as content that endangers child safety", which "are always blocked and cannot be adjusted". A detail to know: the API blocks "based on the probability of content being unsafe and not the severity". So test with your own examples.
+
+For an A/B test (chapter 4), use the same safety settings on both models. If one model runs with less strict filtering, a difference in blocked prompts may come from the setting.
+
+## Layer 2: a moderation check
+
+OpenAI's moderation model, `omni-moderation-latest`, accepts text and images. The guide says the endpoint is free to use and image files can be up to 20 MB.
+
+Read the results with care:
+
+- **A zero is not always a clean bill.** Some categories are "Text only", such as harassment, hate and illicit. The guide says that if you send only images, the model "will return a score of 0 for these unsupported categories". Our fix: send the image together with its prompt or caption, so the text categories have text to score.
+- **Scores are signals.** OpenAI says to "Treat moderation scores as signals for your application's policy, not as an automatic blocking decision." Start with `flagged`, then use the categories and scores for logging, routing and review queues.
+- **Scores can drift.** OpenAI plans to keep upgrading the underlying model, so "custom policies that rely on `category_scores` may need recalibration over time". Chapter 6 shows how to catch that.
+
+OpenAI also says not to send known or suspected child sexual abuse material to the Moderation API, because it is not designed for that. Follow the vendor's separate child-safety guidance for that risk.
+
+## Layer 3: people
+
+Claude's vision docs say: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight." Google's guide says that plans should include monitoring, because "you can never guarantee perfection". A person should look at flagged images, and at a sample of the images that were not flagged.
+
+Anthropic describes why layers help. It compares evaluation to the Swiss Cheese Model: "no single evaluation layer catches every issue", and with several methods, "failures that slip through one layer are caught by another."
+
+## Test with three sets
+
+Our design, following Google's adversarial testing advice:
+
+- **Everyday set:** normal briefs.
+- **Edge set:** briefs that can go wrong without bad intent, such as a request for "a tough-looking crowd" or a real brand name.
+- **Adversarial set:** briefs written to push the model past its limits.
+
+Google also notes that "LLMs are known to sometimes produce different outputs for the same input prompt", so a single round may miss problems.
+
+Report each set on its own. Google says that with several metrics, "you may want to focus on worst-case performance across your evaluation set rather than average performance." Here are made-up numbers and a made-up target of 98% on every set:
+
+| Set         | Images | Safe | Rate |
+| ----------- | ------ | ---- | ---- |
+| Everyday    | 300    | 300  | 100% |
+| Edge        | 100    | 93   | 93%  |
+| Adversarial | 50     | 38   | 76%  |
+
+All together, 431 of 450 are safe, which is 95.8%. That looks close to the target. But two sets are far below it, and the adversarial set is at 76%. The scorecard should say fail.
+
+## What this means for your work
+
+- **Set a safety target before you test**, for every set.
+- **Use the same filter settings on both models.**
+- **Treat a moderation zero with care.** Send the text with the image.
+- **Use scores to route images to people**, not to decide alone.
+- **Build everyday, edge and adversarial sets**, and report each one.
+- **Judge safety by the worst set**, not the average.

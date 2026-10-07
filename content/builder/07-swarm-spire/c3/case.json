@@ -1,0 +1,96 @@
+{
+  "id": "builder/r7/c3/challenge",
+  "title": "The plan that vanished",
+  "scenario": "A consulting firm built a due-diligence assistant. A lead agent splits a company check into three worker tasks and writes the final report. It runs on the OpenAI Agents SDK. After four bad days, you review how state moves through the system (exhibit). The firm, the system and every number are made up for this case.",
+  "exhibit": "STATE LAYOUT (made up for this case)\n  plan                 lives only in the lead agent's context\n  worker results       3 workers each return a table as plain text\n                       to the lead (about 12,000 tokens each, 36,000 total)\n  run context object   {user_id, db_handle, vendor_api_key}\n  RunState             saved to a database row while a human approval is pending\n  writer agent         called by the lead as a tool (as_tool)\n\nINCIDENT LOG (made up)\n  10-02  Long run. After the context was cut, the lead started steps\n         that were already finished.\n  10-03  Worker 2 returned a correct table. The final report showed\n         two wrong numbers from that table.\n  10-04  Security found vendor_api_key inside the saved approval rows.\n  10-05  User said in turn 3: \"The report is for a European audience.\"\n         The writer agent produced a report for a US audience.",
+  "questions": [
+    {
+      "prompt": "On 10-02 the lead repeated finished steps after a context cut. Which change fits Anthropic's Research design?",
+      "options": [
+        {
+          "text": "Raise the model's output limit so the plan fits in the next reply.",
+          "explanation": "A bigger output limit does not keep the plan across a context cut. The plan still lives only in the window."
+        },
+        {
+          "text": "Save the plan to external memory, and read it back when needed.",
+          "explanation": "Right. Anthropic's lead saves its plan to Memory because a context that passes 200,000 tokens is truncated, and the plan must be kept.",
+          "correct": true
+        },
+        {
+          "text": "Ask each worker to repeat the plan back at the end of its table.",
+          "explanation": "Workers only see their own brief. A repeated plan in their output also adds tokens and does not persist anywhere."
+        },
+        {
+          "text": "Restart the whole run from the beginning each time a cut happens.",
+          "explanation": "Anthropic says restarts are expensive and that they built systems that resume from where the agent was."
+        }
+      ]
+    },
+    {
+      "prompt": "On 10-03 correct worker numbers turned wrong in the report. Which fix targets that cause?",
+      "options": [
+        {
+          "text": "Tell the lead in its prompt to copy every table word for word.",
+          "explanation": "A prompt asks the model to be careful, but the copy still goes through the lead's context and can still lose or change data."
+        },
+        {
+          "text": "Add a fourth worker whose only job is to proofread the lead.",
+          "explanation": "This adds cost and one more model that can copy wrongly. The numbers still travel through the lead as text."
+        },
+        {
+          "text": "Merge all three workers into one agent so no table is passed along.",
+          "explanation": "That removes the parallel workers and puts all the work into one window. It does not fix how results are passed."
+        },
+        {
+          "text": "Have workers store tables in files and return only the file paths.",
+          "explanation": "Right. Anthropic describes passing lightweight references back to the coordinator, which avoids loss from the game of telephone.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "On 10-04 an API key was found in saved approval rows. What fits the OpenAI Agents SDK docs?",
+      "options": [
+        {
+          "text": "Keep the key out of the context object and load it where the tool runs.",
+          "explanation": "Right. The docs say to avoid putting secrets in the run context if you persist or send serialized state, because runtime data is saved with it.",
+          "correct": true
+        },
+        {
+          "text": "Move the key into the prompt, so the model keeps it instead of the context.",
+          "explanation": "A prompt is sent to the model and also lands in the history. That spreads the secret further, not less."
+        },
+        {
+          "text": "Rely on the fact that the context object is never sent to the LLM.",
+          "explanation": "That is true, but the problem here is storage. Serialized state saved for later holds runtime data, which can include the context."
+        },
+        {
+          "text": "Give every nested agent its own copy of the context with the key inside.",
+          "explanation": "By default nested runs share app state. More copies of a secret mean more places it can leak, not fewer."
+        }
+      ]
+    },
+    {
+      "prompt": "On 10-05 the writer ignored the European audience. What does the SDK documentation suggest?",
+      "options": [
+        {
+          "text": "Set `max_turns` higher on the writer so it can find the user's message.",
+          "explanation": "The turn limit does not give the writer access to the parent's messages. They are not part of its run."
+        },
+        {
+          "text": "Store the audience in the run context, because the model reads it there.",
+          "explanation": "The run context is not sent to the LLM. The model cannot read the audience from it unless a tool returns it."
+        },
+        {
+          "text": "Pass the audience in the tool input, or share one session.",
+          "explanation": "Right. The parent's conversation state is not inherited by a nested run. You pass the fact in the input or explicitly share the same session.",
+          "correct": true
+        },
+        {
+          "text": "Enable `input_filter` on the writer so it can see the earlier messages.",
+          "explanation": "`input_filter` changes history on a handoff. The writer is called as a tool, so a handoff filter does not apply."
+        }
+      ]
+    }
+  ]
+}

@@ -9,7 +9,7 @@ Content auditor for Sigmorai. Report only, do NOT fix. **A wrong fact in a lesso
 
 **Follow `.claude/skills/validate-content/SKILL.md` step by step.** It is the procedure: deterministic check, changed files only, claim list, WebFetch each cited page, supported / not supported / not found, one report per file. The checks below are what the procedure enforces.
 
-There is no code in this product (no-code pivot, 2026-10-05). Both tracks end each chapter and boss in a graded case. A `challenge.json`, starter code or hidden tests in `content/` is a blocker. The exercise id keeps the segment `challenge` for the graded case (`builder/r0/c1/challenge`); that is correct. Only the file `challenge.json` is gone.
+There is no code in this product (no-code pivot, 2026-10-05). Every track ends each chapter and boss in a graded case. A `challenge.json`, starter code or hidden tests in `content/` is a blocker. The exercise id keeps the segment `challenge` for the graded case (`builder/r0/c1/challenge`); that is correct. Only the file `challenge.json` is gone.
 
 ## Checks
 
@@ -31,7 +31,7 @@ There is no code in this product (no-code pivot, 2026-10-05). Both tracks end ea
 - **Source rule:** at least 1 Anthropic page and at least 1 OpenAI page where both document the concept. Missing one of them is a **blocker**. Google and MCP spec pages are optional. Community repos and community blogs are examples only, never the only source of a claim. Official vendor engineering posts (e.g. pages under `anthropic.com/engineering` or `openai.com/index`) count as official. A claim with no official page is a blocker.
 - The content only claims what the sources say. Flag any API name, parameter, model id, default, limit or behaviour you can't find in the cited page. Quote the line.
 
-**Case (`case.json`, both tracks)**
+**Case (`case.json`, every track)**
 
 - Scenario is realistic and self-contained; vendor-neutral or cites at least 2 vendors. Optional `exhibit` is a trace, schema, prompt or config. No code task.
 - 3–5 questions, exactly 4 options each, one `correct` (the schema enforces counts).

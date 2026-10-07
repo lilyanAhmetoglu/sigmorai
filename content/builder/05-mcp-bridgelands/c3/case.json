@@ -1,0 +1,118 @@
+{
+  "id": "builder/r5/c3/challenge",
+  "title": "Forty thousand contracts",
+  "scenario": "A legal team built an MCP server that shares signed contracts as resources. Their assistant runs its own MCP client and passes contracts to Claude with the Anthropic SDK helpers. Lawyers report slow start-up, confusing answers about missing contracts, and a security scan found one bad read. The team now wants to drop its own client and move to the Claude API MCP connector. You review the server's behavior (exhibit).",
+  "exhibit": "MADE-UP EXAMPLE\n\nresources/list\n  -> 40,000 entries, one per contract, every time\n  uri example: https://contracts.internal/c/88123\n               (reachable only from inside the server's network)\n\nresources/read  uri: https://contracts.internal/c/99999\n  -> { \"contents\": [] }        # contract 99999 does not exist\n\nSECURITY SCAN\n  resources/read  uri: file:///contracts/../secrets/api-keys.txt\n  -> returned the file\n\nPROPOSED SETUP\n  Claude API MCP connector, mcp_servers: [ contracts-server ]\n  team expects: \"Claude will still read contract resources\"",
+  "questions": [
+    {
+      "prompt": "Listing 40,000 contracts on every `resources/list` is slow. Which design fits the MCP spec best?",
+      "options": [
+        {
+          "text": "Return the full text of every contract in one big `resources/read` call for the client.",
+          "explanation": "That makes the problem bigger: the client still gets everything, now with all the content."
+        },
+        {
+          "text": "Remove `resources/list` and let the model guess contract URIs by itself.",
+          "explanation": "Guessed URIs fail or hit the wrong contract. The spec gives a standard way to describe parameterized resources."
+        },
+        {
+          "text": "Publish a resource template like `contract://{id}`; the client fills in the id.",
+          "explanation": "Right. Resource templates expose parameterized resources with URI templates, so the server does not have to list every item.",
+          "correct": true
+        },
+        {
+          "text": "Turn every contract into its own tool, one tool per contract.",
+          "explanation": "40,000 tools would be far worse for the tool list. Contracts are data, which is what resources are for."
+        }
+      ]
+    },
+    {
+      "prompt": "Contract 99999 does not exist, and the server returns an empty `contents` array. What does the spec require?",
+      "options": [
+        {
+          "text": "A JSON-RPC error with code `-32602` (Invalid Params).",
+          "explanation": "Right. The spec says a missing resource must return `-32602` and must not return an empty `contents` array.",
+          "correct": true
+        },
+        {
+          "text": "An empty array is correct, because there is no content.",
+          "explanation": "The spec forbids it: an empty array is ambiguous between an empty resource and a missing one."
+        },
+        {
+          "text": "A text content block that says \"not found\".",
+          "explanation": "That looks like a real contract whose text is \"not found\". The spec asks for an error instead."
+        },
+        {
+          "text": "A `resource_link` to the closest existing contract.",
+          "explanation": "Silently swapping in another contract is dangerous for a legal team. The spec asks for an error."
+        }
+      ]
+    },
+    {
+      "prompt": "The URIs use `https://contracts.internal/...`, which only the server can reach. What does the spec advise?",
+      "options": [
+        {
+          "text": "Keep `https://`, because the contracts travel over HTTPS and look like web pages.",
+          "explanation": "The scheme is not about the network. The spec reserves `https://` for resources the client can fetch from the web on its own."
+        },
+        {
+          "text": "Switch to `git://`, because contracts change over time.",
+          "explanation": "`git://` is for Git version control. Contracts in a document store are not a Git repository."
+        },
+        {
+          "text": "Leave the scheme out and use bare ids such as `88123`.",
+          "explanation": "Each resource is identified by a URI. A bare number is not one."
+        },
+        {
+          "text": "Use another or a custom scheme, since the client cannot fetch these URLs itself.",
+          "explanation": "Right. The spec says to use `https://` only when the client can load the resource directly, and to prefer another or a custom scheme otherwise.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The security scan read `file:///contracts/../secrets/api-keys.txt`. What must the server do?",
+      "options": [
+        {
+          "text": "Nothing; the client should never send such a URI, so the server can safely trust it.",
+          "explanation": "The server cannot rely on its clients. The spec puts URI validation on the server."
+        },
+        {
+          "text": "Mark the secrets file with `audience: [\"user\"]` so models do not see it.",
+          "explanation": "Annotations are hints for display and context choice. They do not stop a read."
+        },
+        {
+          "text": "Validate every resource URI and sanitize paths to block directory traversal.",
+          "explanation": "Right. The spec says servers must validate all resource URIs and must sanitize file paths to prevent directory traversal on `file://` resources.",
+          "correct": true
+        },
+        {
+          "text": "Give the secrets file a `priority` of 0.",
+          "explanation": "Priority says how important a resource is. It is not an access control."
+        }
+      ]
+    },
+    {
+      "prompt": "The team expects Claude, through the Claude API MCP connector, to read contract resources. What do the Claude docs say?",
+      "options": [
+        {
+          "text": "The connector reads resources automatically, as soon as the server lists them in its catalog.",
+          "explanation": "The docs list a limitation: of the MCP feature set, only tool calls are supported."
+        },
+        {
+          "text": "The connector supports only tool calls; for resources, run your own MCP client.",
+          "explanation": "Right. The docs point to client-side helpers that turn an MCP resource into a content block or a file when you manage your own client.",
+          "correct": true
+        },
+        {
+          "text": "Resources work if the server is reached over stdio instead.",
+          "explanation": "The docs say local stdio servers cannot be connected to the connector directly. And it still supports only tool calls."
+        },
+        {
+          "text": "Resources work if each contract has `priority` 1.0.",
+          "explanation": "Annotations do not change what the connector supports."
+        }
+      ]
+    }
+  ]
+}

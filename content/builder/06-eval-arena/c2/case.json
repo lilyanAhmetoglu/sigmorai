@@ -1,0 +1,96 @@
+{
+  "id": "builder/r6/c2/challenge",
+  "title": "The judge who passed everyone",
+  "scenario": "A bank's support assistant is graded by a model judge, so the team doesn't have to read every answer. They want to use the judge's scores to decide each release. Before they do, you look at how the judge was set up and tested (exhibit).",
+  "exhibit": "(made-up example data)\n\nJUDGE A (single answer)\n  prompt: \"Rate this answer from 1 to 10 for quality,\n           tone, policy compliance and accuracy.\"\n\nJUDGE B (pairwise)\n  prompt: \"Here are two answers. Which is better? Reply 1 or 2.\"\n\nCALIBRATION of judge A vs two bank experts (200 answers)\n  experts:  190 pass, 10 fail\n  judge A:  200 pass, 0 fail\n  team note: \"95% agreement, ready to ship\"\n\nJUDGE B on 500 pairs\n  picks the answer shown first:  81%\n  picks the longer answer:       84%",
+  "questions": [
+    {
+      "prompt": "The team says judge A is 95% accurate and ready. What do you say?",
+      "options": [
+        {
+          "text": "Ready. 95% agreement with the experts is a strong result.",
+          "explanation": "The 95% hides that the judge passed everything. The Cookbook's example is the same: an always-pass judge can be 95% accurate and find no failures."
+        },
+        {
+          "text": "Not ready. It needs 99% accuracy before release decisions.",
+          "explanation": "A higher accuracy target misses the point. On a set with few failures, accuracy can stay high while the judge finds none of them."
+        },
+        {
+          "text": "Not ready. It caught 0 of 10 failures, so check its TPR and TNR.",
+          "explanation": "Right. The OpenAI Cookbook measures how well a judge finds failures (TPR) and passes (TNR). Here TPR is zero.",
+          "correct": true
+        },
+        {
+          "text": "Ready, because it agreed with the experts on all 190 passes.",
+          "explanation": "Agreeing on passes is only the TNR. A judge that never says fail is useless as a release gate."
+        }
+      ]
+    },
+    {
+      "prompt": "How should judge A's prompt be redesigned?",
+      "options": [
+        {
+          "text": "One judge per dimension, each with a rubric and an \"Unknown\" option.",
+          "explanation": "Right. Anthropic recommends an isolated judge per dimension and a way out such as \"Unknown\". The Claude docs ask for detailed rubrics and specific outputs.",
+          "correct": true
+        },
+        {
+          "text": "Keep one judge but widen the scale to 1–100 for more detail.",
+          "explanation": "A wider scale adds no rubric. The Claude docs suggest a clear output such as correct/incorrect or 1 to 5, and OpenAI recommends pass/fail for reliability."
+        },
+        {
+          "text": "Remove the criteria and let the judge use its own sense of quality.",
+          "explanation": "Both vendors say the opposite: rubrics must be clear and detailed. Anthropic says vague rubrics produce inconsistent judgments."
+        },
+        {
+          "text": "Replace the judge with experts who read every single answer.",
+          "explanation": "The Claude docs call human grading slow and expensive: \"Avoid if possible.\" Use experts to calibrate the judge instead."
+        }
+      ]
+    },
+    {
+      "prompt": "What do judge B's numbers show?",
+      "options": [
+        {
+          "text": "The judge works. Longer answers are usually more complete.",
+          "explanation": "The judge also prefers whatever is shown first, which has nothing to do with quality. These are known biases, not a quality signal."
+        },
+        {
+          "text": "Model judges can't be used. Switch every check to exact match.",
+          "explanation": "Exact match lacks nuance and can't grade open answers like these. The judge needs fixing, not removing."
+        },
+        {
+          "text": "Nothing to fix: the biases average out over 500 pairs.",
+          "explanation": "A bias pushes every pair the same way, so more pairs don't cancel it."
+        },
+        {
+          "text": "Position bias and verbosity bias, which OpenAI names for judges.",
+          "explanation": "Right. OpenAI lists position bias (response order) and verbosity bias (preferring longer responses) as challenges for model judges.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "One check should be done by code, not by a model. Which one?",
+      "options": [
+        {
+          "text": "Whether the answer showed empathy for the customer.",
+          "explanation": "Empathy has no exact right answer. Anthropic's example grades it with an LLM rubric."
+        },
+        {
+          "text": "Whether the refund tool was called with an amount of at most 100.",
+          "explanation": "Right. A tool name and a number limit have one right answer. Anthropic lists tool call verification as a code-based method: fast, cheap and objective.",
+          "correct": true
+        },
+        {
+          "text": "Whether the explanation of the decision was clear.",
+          "explanation": "Clarity is a judgment call. That is where a model grader with a rubric fits."
+        },
+        {
+          "text": "Whether the answer was grounded in the policy the tool returned.",
+          "explanation": "Anthropic's example puts this in an LLM rubric. Checking that meaning matches a source needs judgment, not string matching."
+        }
+      ]
+    }
+  ]
+}

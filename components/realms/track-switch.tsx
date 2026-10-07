@@ -9,7 +9,7 @@ type Props = {
 };
 
 /**
- * Builder / strategist switch (design: trackTabs). Links, not tabs: each
+ * Path switch (design: trackTabs). Links, not tabs: each
  * track is its own URL, so it works with no client JS. Styles: realms.css.
  */
 export function TrackSwitch({ current, hrefFor }: Props) {

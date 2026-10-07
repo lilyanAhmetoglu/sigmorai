@@ -33,7 +33,7 @@ bash_cmd() { printf '%s' "$1" | jq -Rs '{tool_name:"Bash",tool_input:{command:.}
 write_file() { printf '%s' "${2-}" | jq -Rs --arg p "$1" '{tool_name:"Write",tool_input:{file_path:$p,content:.}}'; }
 
 echo "guard-bash.sh — must DENY"
-assert deny guard-bash.sh "$(bash_cmd 'gh pr merge 12')"                      "gh pr merge"
+assert deny guard-bash.sh "$(bash_cmd 'gh pr close 12')"                      "gh pr close"
 assert deny guard-bash.sh "$(bash_cmd 'gh pr close 12')"                      "gh pr close"
 assert deny guard-bash.sh "$(bash_cmd 'gh release delete v1.0.0')"            "gh release delete"
 assert deny guard-bash.sh "$(bash_cmd 'git push --force origin feat/x')"      "git push --force"
@@ -69,6 +69,7 @@ echo "guard-bash.sh — must ALLOW"
 assert allow guard-bash.sh "$(bash_cmd 'git add app/page.tsx lib/xp/level.ts')" "git add exact paths"
 assert allow guard-bash.sh "$(bash_cmd 'git commit -m "feat(care): x"')"      "normal commit"
 assert allow guard-bash.sh "$(bash_cmd 'git push -u origin feat/thing')"      "push feature branch"
+assert allow guard-bash.sh "$(bash_cmd 'gh pr merge 12 --merge')"          "gh pr merge (git-safety rule 3)"
 assert allow guard-bash.sh "$(bash_cmd 'git status -sb')"                     "git status"
 assert allow guard-bash.sh "$(bash_cmd 'git log --oneline -5')"               "git log"
 assert allow guard-bash.sh "$(bash_cmd 'gh pr create --base main')"           "gh pr create"
@@ -126,9 +127,9 @@ big_keys=$(yes 'const example = "sk_live_abcdefghijklmno"' | head -20000)
 assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'const k = "sk_live_abcdefghijklmno"\n%s' "$big_keys")")"        "live key on line 1, then many allow-listed key lines"
 assert deny guard-write.sh "$(write_file 'lib/x.ts' "$(printf 'NEXT_PUBLIC_ANTHROPIC_API_KEY=abc\n%s' "$big_file")")"           "NEXT_PUBLIC_ secret on line 1 of a huge file"
 
-assert deny guard-bash.sh "$(bash_cmd "gh pr merge 12; ${big_tail}")"  "gh pr merge ahead of a huge command (reason embeds the command)"
+assert deny guard-bash.sh "$(bash_cmd "gh pr close 12; ${big_tail}")"  "gh pr close ahead of a huge command (reason embeds the command)"
 
-reason_len=$(printf '%s' "$(bash_cmd "gh pr merge 12; ${big_tail}")" | bash "$HOOKS/guard-bash.sh" | jq -r '.hookSpecificOutput.permissionDecisionReason' | wc -c)
+reason_len=$(printf '%s' "$(bash_cmd "gh pr close 12; ${big_tail}")" | bash "$HOOKS/guard-bash.sh" | jq -r '.hookSpecificOutput.permissionDecisionReason' | wc -c)
 if [ "$reason_len" -lt 1024 ]; then
   pass=$((pass+1)); printf '  \033[32m✓\033[0m huge denied command → short reason (%s bytes)\n' "$reason_len"
 else

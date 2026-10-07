@@ -21,7 +21,7 @@ import type { ExerciseRef, RealmId } from '@/lib/types';
 import { realmFolder } from './curriculum';
 import { segment } from './ids';
 
-/** Which file a step reads. The `challenge` step is a graded case on both tracks. */
+/** Which file a step reads. The `challenge` step is a graded case on every track. */
 function fileFor(step: string): string {
   if (step === 'lesson') return LESSON_FILE;
   if (step === 'quick-check') return QUICK_CHECK_FILE;

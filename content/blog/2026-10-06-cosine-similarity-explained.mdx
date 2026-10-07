@@ -1,0 +1,82 @@
+---
+title: What is cosine similarity? Embeddings worked by hand
+description: Cosine similarity scores how closely two embeddings point the same way. The math with small numbers, why the dot product can mislead, and when they match.
+lesson: math/f1/lesson
+cover: /blog/covers/cosine-similarity-explained.webp
+---
+
+Cosine similarity is a score for how alike two vectors are, based only on the direction they point. You take the dot product of the two vectors and divide it by both of their lengths. The result is between −1 and 1: 1 means the same direction, 0 means nothing in common, −1 means opposite. Similarity search uses it to rank text: each text becomes an embedding (a long list of numbers), and the chunks whose embeddings score highest against the question come first.
+
+## Embeddings are vectors
+
+A vector is an ordered list of numbers. `(2, 1)` is a vector with 2 numbers, or 2 dimensions. The OpenAI docs: "An embedding is a vector (list) of floating point numbers." The only difference is size. By default, OpenAI's `text-embedding-3-small` returns 1536 numbers per text. Anthropic does not offer its own embedding model; the Claude docs use Voyage AI, and most Voyage models there, such as `voyage-4`, return 1024 numbers by default.
+
+You can't draw 1536 dimensions, but the math is the same in 2. So this post uses 2-number vectors you can check with a calculator.
+
+## The three formulas
+
+- **Length:** square each number, add them, take the square root. `||(2, 1)|| = √(4 + 1) = √5 ≈ 2.236`.
+- **Dot product:** multiply position by position, then add. `(2, 1)·(1, 6) = 2×1 + 1×6 = 8`.
+- **Cosine similarity:** `cos(a, b) = a·b / (||a|| × ||b||)`.
+
+## A worked ranking
+
+The query embedding is `q = (2, 1)`. Four documents:
+
+| Document         | Dot product with q | Length       | Cosine                           |
+| ---------------- | ------------------ | ------------ | -------------------------------- |
+| A = `(0.8, 0.4)` | 1.6 + 0.4 = 2.0    | √0.8 ≈ 0.894 | 2.0 / (2.236 × 0.894) ≈ **1.00** |
+| B = `(1, 6)`     | 2 + 6 = 8          | √37 ≈ 6.083  | 8 / (2.236 × 6.083) ≈ **0.59**   |
+| C = `(−1, 2)`    | −2 + 2 = 0         | √5 ≈ 2.236   | 0 / 5 = **0**                    |
+| D = `(−2, −1)`   | −4 − 1 = −5        | √5 ≈ 2.236   | −5 / 5 = **−1**                  |
+
+Rank by dot product and B wins with 8, far ahead of A with 2. Rank by cosine and A wins with 1.00, B comes second with 0.59.
+
+Which is right? A is exactly `q` scaled down to 0.4 times its size: it points the same way. B points mostly along the second number, a different direction. B only wins the dot product because its numbers are bigger. That is the weakness of the raw dot product: it grows with length, even when the direction is off. Cosine divides the length out, so only direction counts. C is at a right angle to `q` and scores 0. D points the opposite way and scores −1.
+
+## Which score do the vendors recommend?
+
+The OpenAI docs say: "The distance between two vectors measures their relatedness. Small distances suggest high relatedness and large distances suggest low relatedness." On the choice of score: "We recommend cosine similarity. The choice of distance function typically doesn't matter much."
+
+That second sentence has a reason, and it is worth remembering.
+
+## Length 1 makes cosine and dot product the same
+
+A vector with length 1 is called normalized. If both vectors have length 1, the bottom of the cosine formula is 1 × 1 = 1, so the cosine is just the dot product.
+
+Check it with the table above. Divide `q` and B by their lengths:
+
+- `q / 2.236 ≈ (0.894, 0.447)`
+- `B / 6.083 ≈ (0.164, 0.986)`
+- dot product: `0.894 × 0.164 + 0.447 × 0.986 ≈ 0.147 + 0.441 = 0.588`
+
+That is B's cosine from the table, about 0.59.
+
+Two vendors state this for their own embeddings:
+
+- **OpenAI:** "OpenAI embeddings are normalized to length 1", so cosine similarity can be computed slightly faster with just a dot product, and cosine similarity and Euclidean distance give identical rankings.
+- **Voyage AI** (in the Claude docs): embeddings are normalized to length 1, so cosine similarity is equivalent to dot-product similarity, "while the latter can be computed more quickly". The Claude docs' search example ranks documents with NumPy's `np.dot` for this reason.
+
+## In code
+
+With normalized embeddings, ranking is one dot product per chunk:
+
+```python
+import numpy as np
+
+# doc_vectors: one row per chunk, each already length 1
+# query_vector: the question's embedding, length 1
+scores = doc_vectors @ query_vector      # one dot product per row
+top_5 = np.argsort(scores)[::-1][:5]    # highest scores first
+```
+
+If your vectors are not length 1, divide each by its length first, or use the full cosine formula.
+
+## Checklist
+
+1. Know whether your embeddings are normalized. OpenAI's and Voyage's are.
+2. If they are, use the dot product: same ranking as cosine, less work.
+3. If you shorten stored vectors (keep fewer dimensions), normalize them again. The Claude docs give this step for Voyage embeddings.
+4. Rank by score, then check a few results by eye. A high score means "points the same way", not "is correct".
+
+The Math Tower floor behind this post walks through the same formulas step by step, with a 3-dimension example and a short quick check.

@@ -1,0 +1,99 @@
+---
+id: creator/r0/c5/lesson
+title: Cost per asset
+minutes: 8
+sources:
+  - kind: docs
+    title: Claude docs · Batch processing
+    url: https://platform.claude.com/docs/en/build-with-claude/batch-processing
+  - kind: docs
+    title: OpenAI docs · Pricing
+    url: https://developers.openai.com/api/docs/pricing
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: OpenAI docs · Batch API
+    url: https://developers.openai.com/api/docs/guides/batch
+  - kind: docs
+    title: Gemini API docs · Pricing
+    url: https://ai.google.dev/gemini-api/docs/pricing
+  - kind: docs
+    title: Gemini API docs · Batch API
+    url: https://ai.google.dev/gemini-api/docs/batch-api
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+---
+
+## Why it matters
+
+A client asks: "How much for 40 social images and 6 short clips?" You need a number before you start. This lesson shows a method to get it from the vendor's pricing page. The method lasts. The prices do not.
+
+All prices below are copied from the vendors' pages, checked on 2026-10-06. They change, so always open the live page before you quote a client.
+
+## Find the unit
+
+Every pricing page bills a **unit**. The unit differs by model:
+
+| What you make                | Unit on the pricing page          | Example                                      |
+| ---------------------------- | --------------------------------- | -------------------------------------------- |
+| Image (Gemini Nano Banana)   | image output tokens               | Nano Banana 2.1: $30 per 1M tokens           |
+| Image (OpenAI GPT Image)     | image output tokens               | GPT Image 2.5 models: $30 per 1M tokens      |
+| Video (Google Veo 3.1)       | seconds of video                  | Veo 3.1 Fast at 1080p: $0.12 per second      |
+| Voice (Gemini 3.8 Flash TTS) | audio tokens, also shown per 10 s | $0.00225 per 10 s of audio (until 2026 ends) |
+| Transcript (OpenAI)          | minutes of audio (estimated cost) | gpt-transcribe: $0.0045 per minute           |
+
+## Turn the unit into a cost per asset
+
+This is Sigmorai's method, not a vendor rule:
+
+1. **Units per asset.** How many tokens, seconds or minutes does one asset use?
+2. **Price per unit.** Read it from the pricing page.
+3. **Multiply.** Units × price = cost of one try.
+
+**Image example.** Google's pricing page says a 1K Nano Banana 2.1 image uses 1,120 tokens. 1,120 × $30 / 1,000,000 = **$0.0336**. A 4K image uses 2,520 tokens, so it costs $0.0756. Google's page shows these per-image numbers too.
+
+**Video example.** Veo 3.1 Fast costs $0.12 per second at 1080p. One 8-second clip = 8 × $0.12 = **$0.96**. The same clip on Veo 3.1 (the standard model) is 8 × $0.40 = $3.20. Google's Veo docs add that "4k videos are also more expensive".
+
+## Same rate does not mean same cost
+
+OpenAI's two GPT Image 2.5 models, `gpt-image-2.5-sunburst` and `gpt-image-2.5-flare`, have the same token rates. But OpenAI's guide warns: "Equal token rates don't mean equal cost per image: token consumption can differ by model and quality setting."
+
+So for OpenAI, the size and the **quality** setting change the token count. The guide gives a calculator and an example table for earlier models. For `gpt-image-2` (an earlier model) at 1024×1024, one image costs about $0.006 at low quality, $0.053 at medium and $0.211 at high. For the 2.5 models, use the calculator or a test run.
+
+Other things add to an OpenAI image bill:
+
+- **Input.** The final cost adds the input text tokens, and input image tokens when you edit an image.
+- **Partial images.** If you stream previews, "each partial image will incur an additional 100 image output tokens".
+
+The best check is a test run. OpenAI's guide says to use the response's usage to measure tokens for your prompts, sizes and quality settings.
+
+## Count the tries, not only the keepers
+
+You rarely keep the first result. Your budget must cover every try.
+
+Sigmorai's rule: **cost per kept asset = cost per try × tries per keeper.** Example: you keep about 1 clip in 3. At $0.96 per try, each kept clip costs about $2.88. Measure your own ratio on a small test before a big job.
+
+One good detail: Veo's docs say you are not charged if a video is blocked from generating. Google's pricing page says the same: "You will only be charged if your video is successfully generated."
+
+## Wait a day, pay half
+
+OpenAI and Google offer a **Batch API** for image generation: you send many requests at once and collect the results later.
+
+- **OpenAI:** a "50% cost discount", and each batch "completes within 24 hours". Image generation and image edits are on the list of batch endpoints.
+- **Gemini:** batch is "priced at 50% of the standard interactive API cost", with a 24-hour target turnaround. Its docs suggest batch for making a lot of Nano Banana images.
+- **Anthropic:** the Message Batches API is also "cutting costs by 50%". Claude makes text, not media, so use it for batch reviews of images, not for making them.
+
+Example: on batch, a 1K Nano Banana 2.1 image costs $0.0168, not $0.0336. Use batch for work that can wait a day, like 40 social images for next week. Don't use it for an image the client needs this afternoon.
+
+## Prices have dates
+
+Prices change, and sometimes the page tells you when. Google's page lists Gemini 3.8 Flash TTS audio at $0.00225 per 10 seconds "through December 31, 2026", and $0.0045 per 10 seconds "starting January 1, 2027". A 2027 voice-over budget built on today's rate covers only half the real cost.
+
+## What this means for your work
+
+- **Write the date next to every price** in your quote.
+- **Price the try, then the keeper.** A small test run gives you both numbers.
+- **Draft cheap, finish big.** 1K drafts and Fast video for ideas; 4K and the standard model only for finals.
+- **Batch what can wait.** It halves the price of image generation at both vendors. Check the pricing page: not every model has a batch price.

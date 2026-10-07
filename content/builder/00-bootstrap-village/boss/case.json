@@ -1,0 +1,118 @@
+{
+  "id": "builder/r0/boss/challenge",
+  "title": "Size a support assistant: pick the model, set limits and estimate the monthly bill",
+  "scenario": "A ferry operator will launch a booking-help chat assistant in four weeks. Customers type questions and sometimes attach a screenshot of their booking. The vendor and model are not final. A 200-chat pilot has run, and the budget owner wants a sizing note before launch: which model, which limits and what monthly bill. Use the exhibit. The prices in it are made up for this case, not a real price list.",
+  "exhibit": "BRIEF:\n  Booking-help chat, text plus optional screenshot.\n  Traffic: 5,000 conversations a day, 30 days a month.\n  Vendor not final. Both Claude and OpenAI are on the shortlist.\n\nPILOT (200 test chats, run on the launch model; app resends the full chat with every request):\n  estimate made earlier from word counts:    4,000 input tokens / conversation\n  usage blocks, averaged over the pilot:     6,000 input and 600 output tokens / conversation\n  averages are per conversation: all requests in the chat added up\n  screenshots: 1 chat in 4; 4000x3000 photo, sent as base64, kept in the chat\n\nTRACE (one long pilot chat, 8 turns, usage per request; most pilot chats are shorter):\n  turn 1   input  1,300   output 90\n  turn 4   input  2,500   output 85\n  turn 8   input  4,700   output 95\n\nLIMITS SEEN:\n  max_tokens is 150. 12% of replies end with stop_reason = max_tokens.\n  At peak: HTTP 429 with retry-after: 8. The app retries at once, 5 times.\n\nMODELS (test set: 100 real past chats; quality bar = 90 correct answers)\n  Model S   93 / 100   $2 per 1M input tokens    $10 per 1M output tokens   (made up)\n  Model L   96 / 100   $10 per 1M input tokens   $50 per 1M output tokens   (made up)",
+  "questions": [
+    {
+      "prompt": "The earlier word-count estimate says 4,000 input tokens per conversation. The pilot usage blocks say 6,000. Which number goes into the bill?",
+      "options": [
+        {
+          "text": "6,000. It comes from the usage blocks of real calls on the launch model.",
+          "explanation": "Right. A word count is a plan, and usage is what happened. A token count belongs to one model, and the pilot ran on the launch model, so these numbers apply.",
+          "correct": true
+        },
+        {
+          "text": "4,000. Word counts are exact for English text, so the earlier estimate is right.",
+          "explanation": "The 0.75-words rule is a rough guide. It also misses parts of a real request, such as tool definitions and the resent chat history."
+        },
+        {
+          "text": "5,000, the average of the two numbers.",
+          "explanation": "Averaging a guess with a measurement gives a number with no basis. The measured number is the one to use."
+        },
+        {
+          "text": "Neither. Wait for the first invoice.",
+          "explanation": "You can measure before launch. The pilot already gives real usage numbers, so no one has to pay first to find out."
+        }
+      ]
+    },
+    {
+      "prompt": "Input grows from 1,300 tokens on turn 1 to 4,700 on turn 8. A teammate proposes linking turns by response id (an OpenAI option) \"so the bill stops growing\". What is true?",
+      "options": [
+        {
+          "text": "The bill still grows, because OpenAI bills all earlier input tokens in the chain, so cap or summarise old turns.",
+          "explanation": "Right. The growth comes from history, and linking by id changes what you send, not what you pay. Capping history length or summarising old turns cuts input tokens.",
+          "correct": true
+        },
+        {
+          "text": "The bill stops growing, because the vendor stores the history and only the new message is billed as input.",
+          "explanation": "OpenAI states that even with previous_response_id, all previous input tokens in the chain are billed as input tokens."
+        },
+        {
+          "text": "It works the same way on Claude, so the vendor choice does not matter.",
+          "explanation": "The Claude Messages API is stateless: you send the full history each time. Linking by id is an OpenAI option, not a Claude one."
+        },
+        {
+          "text": "The bill stops growing after the first 10 turns.",
+          "explanation": "There is no such cut-off. Every earlier turn in the chain is still billed as input."
+        }
+      ]
+    },
+    {
+      "prompt": "A screenshot stays in the chat as a 4000x3000 base64 photo. Which change cuts the cost most without losing what the booking needs?",
+      "options": [
+        {
+          "text": "Convert each screenshot to a PDF first. A PDF page costs much less than an image does.",
+          "explanation": "A PDF page costs text tokens plus image tokens, so it is not cheaper than sending the image."
+        },
+        {
+          "text": "Resize it to the detail a booking needs, upload it once and reference it by file ID.",
+          "explanation": "Right. Image tokens are billed as input on every turn the image stays in the chat, so resizing to the detail you need cuts the cost. Claude and OpenAI both accept file IDs: they do not cut tokens, but they keep later requests small instead of resending the image bytes.",
+          "correct": true
+        },
+        {
+          "text": "Keep full size and base64. Vendors cache images for free.",
+          "explanation": "The Claude docs warn that base64 sends the full image bytes on every turn. Nothing in the cited docs says images are free to resend."
+        },
+        {
+          "text": "Send the screenshot on turn 1 only. The model remembers it for later turns.",
+          "explanation": "The APIs are stateless. If a later turn needs the image, your system must send it again, or a file ID for it."
+        }
+      ]
+    },
+    {
+      "prompt": "Replies are cut at max_tokens 150, and 429 errors appear at peak with retry-after: 8. Which fix fits both?",
+      "options": [
+        {
+          "text": "Set max_tokens to the full context window on every call, and retry each 429 at once with no delay at all.",
+          "explanation": "On OpenAI the rate limit counts the larger of max_tokens and the estimated request size, so a huge cap on every call uses the limit up fast. Instant retries ignore retry-after."
+        },
+        {
+          "text": "Turn on streaming. It removes the output cap and the rate limit.",
+          "explanation": "Streaming changes when the user sees the first words. The model still writes the same reply, and the output cap and rate limits still apply."
+        },
+        {
+          "text": "Raise max_tokens for long answers (or continue), and on a 429 wait the retry-after time, then back off.",
+          "explanation": "Right. stop_reason max_tokens means the cap cut the reply, so raise it or continue the reply. For a 429, Claude sends a retry-after header that says how long to wait, and OpenAI recommends exponential backoff with jitter and honouring Retry-After.",
+          "correct": true
+        },
+        {
+          "text": "Lower max_tokens so replies end sooner, and show an error on every 429.",
+          "explanation": "A lower cap cuts more replies. A 429 is a temporary limit, so waiting and retrying is the right answer, not a permanent error."
+        }
+      ]
+    },
+    {
+      "prompt": "Use the smallest model that passes the quality bar, and the pilot averages. What is the monthly bill?",
+      "options": [
+        {
+          "text": "About $90.",
+          "explanation": "This is the daily cost: 5,000 chats at 6,000 input and 600 output tokens is $60 plus $30. A month has 30 of these days."
+        },
+        {
+          "text": "About $13,500.",
+          "explanation": "Model L is not needed. Model S scores 93 of 100, above the bar of 90, so Model S is the smallest model that passes."
+        },
+        {
+          "text": "About $2,700.",
+          "explanation": "Right. Input: 5,000 x 6,000 = 30M tokens x $2 = $60. Output: 5,000 x 600 = 3M tokens x $10 = $30. That is $90 a day, so about $2,700 a month.",
+          "correct": true
+        },
+        {
+          "text": "About $1,800.",
+          "explanation": "Input alone is $60 a day, or $1,800 a month. Output tokens are billed too, at a higher price per token."
+        }
+      ]
+    }
+  ]
+}

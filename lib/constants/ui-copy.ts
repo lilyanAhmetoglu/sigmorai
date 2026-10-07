@@ -95,6 +95,10 @@ export const TRACK_TEXT: Record<Track, { label: string; short: string }> = {
     label: 'STRATEGIST',
     short: 'You judge real business cases: use cases, ROI, rules.',
   },
+  creator: {
+    label: 'CREATOR',
+    short: 'You judge real media cases: prompts, brand kits, rights.',
+  },
 };
 
 const HERO_NAME_RULE = `${HERO_NAME_MIN}–${HERO_NAME_MAX} characters: letters, numbers, spaces and . ' _ -`;
@@ -112,8 +116,10 @@ export const ONBOARDING_TEXT = {
   heroNameTaken: 'Another hero already has this name. Pick a different one.',
   path: 'Choose your path',
   beginnerHint:
-    'No code on either path. New to AI, or using it at work? Pick strategist. Want to design AI systems? Pick builder.',
+    'No code on any path. New to AI, or using it at work? Pick strategist. Want to design AI systems? Pick builder. Make images, video or audio? Pick creator.',
   trackError: 'Pick a path.',
+  /** Under each path: what its first realm teaches. Realm names are shared; topics are not. */
+  firstTopic: (topic: string) => `Realm 0 teaches: ${topic}`,
   submitNote: 'You can change your path later on your profile. Your hero name is public.',
   submit: 'Start',
   submitting: 'Saving…',

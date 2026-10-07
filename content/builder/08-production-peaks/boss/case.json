@@ -1,0 +1,118 @@
+{
+  "id": "builder/r8/boss/challenge",
+  "title": "Plan a production rollout: rate limits, batching, monitoring, secrets and a fallback model",
+  "scenario": "A software company will launch a support assistant next week. Live chat runs on the OpenAI API, a nightly labelling job runs on the Claude Message Batches API, and a fallback model is planned. The first rollout plan and trial logs show five weak spots. You review them in the exhibit.",
+  "exhibit": "(made-up example data)\n\nBRIEF:\n  Live chat: OpenAI API. Nightly ticket labelling: Claude Message Batches API.\n  A fallback model on another vendor is planned for outages.\n\nRATE LIMITS (launch test):\n  Retry wrapper: on a 429, wait 1 s, then 2 s, then 4 s, then give up. It ignores Retry-After.\n  300 workers got a 429 at the same moment, each with Retry-After: 20.\n  All 300 retried together after 1 s, 2 s and 4 s, and got a 429 every time.\n\nBATCH (first trial):\n  50,000 requests sent at 22:00.\n  At 04:10 the batch ended. All 50,000 results are \"errored\".\n  Each error says: params.max_tokens: field required.\n  The team saw no error when it sent the batch.\n\nMONITORING (one live call):\n  Measured by our client:  9.0 s, 1 attempt\n  Response header openai-processing-ms:  1200\n\nKEYS (OpenAI project key, expires in 3 days), rotation plan:\n  step 1  revoke the old key\n  step 2  create a new key\n  step 3  deploy the new key to the app (takes about 10 minutes)\n\nFALLBACK (draft):\n  The second model's limit: 400,000 input tokens per minute.\n  Live traffic at peak: 1,000,000 input tokens per minute.\n  The plan has never been run at peak load.",
+  "questions": [
+    {
+      "prompt": "All 300 workers kept hitting the 429. How should the retry wrapper change?",
+      "options": [
+        {
+          "text": "Keep doubling the wait but start at 10 s, so that the workers all retry a little later than before.",
+          "explanation": "Retry-After: 20 is a minimum, so the first retry at 10 s is still too early. With no random delay, the workers also still retry in step."
+        },
+        {
+          "text": "Add 300 more workers, so that some of them get through while the others are waiting for their retries.",
+          "explanation": "More workers add load to the same limit. OpenAI also says unsuccessful requests count toward your per-minute limit."
+        },
+        {
+          "text": "Wait at least the Retry-After time plus a small random delay, and cap the attempts and the total retry time.",
+          "explanation": "Right. OpenAI says to treat Retry-After as a minimum, add a small random delay so clients don't retry together, and limit both attempts and total retry time.",
+          "correct": true
+        },
+        {
+          "text": "Retry at once, up to 20 times, because a request that fails is cheap and one of them will pass.",
+          "explanation": "Failed requests count toward the limit, so fast retries make the jam worse."
+        }
+      ]
+    },
+    {
+      "prompt": "All 50,000 results came back errored six hours later. What should the team do before the next run?",
+      "options": [
+        {
+          "text": "Test one request of the same shape on the Messages API first; batch validation errors appear only at the end.",
+          "explanation": "Right. Claude checks each request's params asynchronously and returns validation errors when the whole batch has ended. Its advice is to verify the request shape with the Messages API first.",
+          "correct": true
+        },
+        {
+          "text": "Treat it as an outage of the Batches API, since a bad request would have been rejected when the batch was sent.",
+          "explanation": "Claude validates params asynchronously, so a bad request is not rejected at send time. The error says max_tokens is missing, so the request is wrong."
+        },
+        {
+          "text": "Set stream: true on the requests, so that the first errors show up while the batch is still running.",
+          "explanation": "stream: true is not supported in batch requests. Results come back as a single file."
+        },
+        {
+          "text": "Wait for another day, because Claude retries errored batch requests by itself until they succeed.",
+          "explanation": "Claude says to build your own retry logic. An invalid request would fail again anyway."
+        }
+      ]
+    },
+    {
+      "prompt": "The call took 9.0 s on the client, but openai-processing-ms is 1200. What do the numbers suggest?",
+      "options": [
+        {
+          "text": "OpenAI spent the full 9.0 s on the call, so the best fix is to move the chat to a smaller, faster model.",
+          "explanation": "The header shows 1.2 s of OpenAI processing. A smaller model could trim part of that, but most of the delay is elsewhere."
+        },
+        {
+          "text": "About 7.8 s was spent outside OpenAI's processing, so check the network, app server and queues first.",
+          "explanation": "Right. OpenAI's reference describes the header only as \"Time taken processing your API request\". The other 7.8 s (9.0 minus 1.2) was outside that processing: on the network, in your app, or waiting before or after it.",
+          "correct": true
+        },
+        {
+          "text": "The two numbers must match, so the header is wrong and the client's 9.0 s is the only number to trust.",
+          "explanation": "They measure different things. The client time includes the network and your own code; the header covers OpenAI's processing only."
+        },
+        {
+          "text": "The delay is output length, so ask for shorter replies. That cuts the 1.2 s of processing to near zero.",
+          "explanation": "Output length lives inside the 1.2 s. It cannot explain the other 7.8 s, which happened outside OpenAI's processing."
+        }
+      ]
+    },
+    {
+      "prompt": "The rotation plan revokes the old key first. What does OpenAI's guide suggest instead?",
+      "options": [
+        {
+          "text": "Revoke the old key first, so that nobody can use it, then create the new one and deploy it quickly.",
+          "explanation": "That leaves about 10 minutes of failed requests. OpenAI revokes the old key only after the new one is verified."
+        },
+        {
+          "text": "Set a shorter expiry date on the old key, and let it end by itself after the new key is deployed.",
+          "explanation": "The guide's step is to revoke the old key once the replacement works, not to wait for it to expire."
+        },
+        {
+          "text": "Create the new key and keep the old one active for another 30 days as a spare in case of trouble.",
+          "explanation": "A spare key that stays active is an extra secret that can leak. The guide revokes the old key once the new one is verified."
+        },
+        {
+          "text": "Create the replacement, update the app to use it, and revoke the old key once the replacement works.",
+          "explanation": "Right. OpenAI's steps keep both keys valid during the switch, so there is no gap with a dead key.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "If OpenAI fails at peak and all traffic moves to the second model, what happens, and what should the team do?",
+      "options": [
+        {
+          "text": "The fallback pool has its own limit and takes 40% of peak. Test it at peak and plan for the other 60%.",
+          "explanation": "Right. 400,000 of 1,000,000 tokens per minute is 40%. A fallback sends load to a pool with its own limits (our rule: test it at peak), so plan a queue or a busy message for the rest.",
+          "correct": true
+        },
+        {
+          "text": "Nothing, because a fallback has no limits of its own when it is only used as a backup for the main model.",
+          "explanation": "Every model pool has its own limits. At peak, 600,000 tokens per minute would hit the 400,000 limit."
+        },
+        {
+          "text": "The fallback takes 60% of peak. The team only needs to raise the retry count on the main model.",
+          "explanation": "400,000 of 1,000,000 is 40%, not 60%. More retries add load and do not add capacity."
+        },
+        {
+          "text": "The fallback copes, because a backup model always has a higher limit than the model it backs up.",
+          "explanation": "The exhibit shows a lower limit, 400,000 against a 1,000,000 peak. Limits vary by model and tier."
+        }
+      ]
+    }
+  ]
+}

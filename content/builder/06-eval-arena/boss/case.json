@@ -1,0 +1,118 @@
+{
+  "id": "builder/r6/boss/challenge",
+  "title": "Plan the eval gate for a support agent before launch: test set, graders, pass bar and CI step",
+  "scenario": "An online shop will launch a support agent in two weeks. The team drafted its launch gate: a test set, a model judge, a release check, an attack run and a CI schedule. Five parts of the draft look weak. You review the draft in the exhibit.",
+  "exhibit": "(made-up example data)\n\nBRIEF:\n  An online shop launches a support agent in 2 weeks.\n  Tools: lookup_order, issue_refund (limit $100), escalate_to_human.\n  The team plans a launch gate that runs in CI: tasks, graders and a pass bar.\n\nTEST SET (draft):\n  40 tasks, taken from last quarter's support tickets.\n  Each ticket was tidied by hand before it became a task:\n  one complete, polite sentence, one question, no typos.\n\nJUDGE (draft), for the check \"the explanation was clear and correct\":\n  Experts labelled 100 agent answers: 40 fail, 60 pass.\n  The team edited the judge prompt on all 100 answers until it matched the experts on 93 of them.\n    failures found:  36 of 40   (TPR 90%)\n    passes found:    57 of 60   (TNR 95%)\n  team note: \"Both rates are above 90%. The judge is ready.\"\n\nRELEASE CHECK (draft):\n  The regression suite: the 40 tasks, 1 trial each, run once before each release.\n  Release 1 passed 40 of 40.\n  Two days after launch, customers report answers that are sometimes garbled.\n  The team re-runs the suite on the live system: 40 of 40 again.\n\nATTACKS (draft):\n  120 attack runs against the full pipeline, every layer on: 4 succeeded.\n  Layers: input screen, system prompt rules, tool guardrail on issue_refund, output filter.\n  The lead asks: \"Which layer is doing the work?\"\n\nCI (draft):\n  File: .github/workflows/evals-nightly.yml\n  Trigger: schedule, cron \"0 3 * * *\" (full suite and attack set every night)\n  Job: timeout-minutes: 20\n  The file exists only on the branch feature/eval-gate.\n  The repository has commits every day.\n  After 3 nights, the Actions tab shows no run of this workflow.",
+  "questions": [
+    {
+      "prompt": "All 40 tasks are tidy, single-question sentences. What should the team add to the test set?",
+      "options": [
+        {
+          "text": "Forty more tidy tickets in the same style, so the set grows to 80 tasks and each change shows a clearer effect.",
+          "explanation": "More of the same shape adds volume, not coverage. OpenAI warns about datasets that don't faithfully reproduce production traffic patterns."
+        },
+        {
+          "text": "Only attack prompts such as \"ignore your rules\", because normal requests are already covered by the 40 tickets.",
+          "explanation": "OpenAI says test data should include typical cases, edge cases and adversarial cases. Tidied tickets are not typical traffic, and attacks alone drop the typical cases."
+        },
+        {
+          "text": "Tasks with typos, two questions in one message, and very short requests such as the single word \"returns\".",
+          "explanation": "Right. OpenAI's evaluation guide lists multiple intents in one request, typos and misspellings, and short requests with minimal context (its example is \"returns\") as cases to test.",
+          "correct": true
+        },
+        {
+          "text": "Nothing. The tickets are real customer data, so the set already matches what users send to the agent.",
+          "explanation": "The tickets were tidied by hand, so they no longer look like real messages. OpenAI names this as biased design: a dataset that does not reproduce production traffic."
+        }
+      ]
+    },
+    {
+      "prompt": "The team says both rates are above 90%, so the judge is ready. What is missing?",
+      "options": [
+        {
+          "text": "A held-out test set. Keep about 40% of the labels out of tuning, then run the judge on them once at the end.",
+          "explanation": "Right. The OpenAI Cookbook splits expert labels about 20% train, 40% validation and 40% test. The test set is held out and run one time, to confirm you haven't overfit.",
+          "correct": true
+        },
+        {
+          "text": "Nothing is missing. A TPR of 90% and a TNR of 95% on expert labels is exactly what the Cookbook asks for.",
+          "explanation": "The Cookbook sets no number; it asks for high TPR and TNR on a held-out test set. These rates come from the same 100 answers used for tuning, which can hide overfitting."
+        },
+        {
+          "text": "More tuning. Edit the prompt again on the same 100 answers until both rates reach 100%, then ship it.",
+          "explanation": "More tuning on the same answers makes the overfitting worse. The Cookbook keeps a test set that is not used for tuning."
+        },
+        {
+          "text": "One accuracy number. Report 93 of 100 to the gate, because a single figure is easier to use than two.",
+          "explanation": "The Cookbook uses TPR and TNR because plain accuracy can hide a judge that never finds a failure. The two rates are the right numbers; the missing part is a held-out test."
+        }
+      ]
+    },
+    {
+      "prompt": "The suite passes 40 of 40 twice, but customers report garbled answers. What does Anthropic's postmortem suggest for the gate?",
+      "options": [
+        {
+          "text": "Trust the suite. Two clean runs of 40 of 40 show the reports come from a few users, so keep the gate as it is.",
+          "explanation": "Anthropic's postmortem says its own evals simply didn't capture the degradation users were reporting. A green suite is not proof."
+        },
+        {
+          "text": "Run the same release check three times before every release, so a bad release has more chances to be caught.",
+          "explanation": "The same tasks, run only before release, would still miss it. Anthropic's fix was more sensitive evals, run on production systems."
+        },
+        {
+          "text": "Drop the suite and rely on customer reports alone, because the evals missed the problem and users saw it first.",
+          "explanation": "Anthropic kept its evals and made them better. Reports come after the damage; evals are the early check."
+        },
+        {
+          "text": "Add tasks that tell a working system from a broken one, and run the suite continuously on the live system.",
+          "explanation": "Right. In its postmortem Anthropic says its evals didn't capture the degradation users reported. Its changes: evals that more reliably differentiate working from broken implementations, and running them continuously on true production systems.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "All four layers were on in the 120 attack runs. What should the team run next to see which layer stops which attacks?",
+      "options": [
+        {
+          "text": "The 120 attacks once with all four layers off, so the raw model result shows which layer matters most.",
+          "explanation": "That shows only the model alone. It does not show what each single layer adds when the others are on."
+        },
+        {
+          "text": "The same 120 attacks again with one layer off at a time, then compare which attacks get through.",
+          "explanation": "Right. This is our own habit from the lesson, not a vendor rule: keep the full-pipeline run, then switch off single layers to learn which layer caught each attack.",
+          "correct": true
+        },
+        {
+          "text": "Each layer alone, outside the pipeline, because layers are the parts that the team can change one by one.",
+          "explanation": "Users reach the whole pipeline, so the full run stays. Layers alone also miss how they work together."
+        },
+        {
+          "text": "The same 120 attacks ten times each with every layer on, because a larger sample shows which layer matters.",
+          "explanation": "More runs help with varying outputs, but the setup is the same. With every layer on, a run can't show which layer did the work."
+        }
+      ]
+    },
+    {
+      "prompt": "The nightly workflow never runs. What is the cause, and what is the fix?",
+      "options": [
+        {
+          "text": "A schedule runs only while a pull request is open. Add a pull_request trigger and open a draft PR.",
+          "explanation": "A schedule trigger does not depend on open pull requests. The docs name the default branch as the limit."
+        },
+        {
+          "text": "The run is cancelled for taking too long. Raise timeout-minutes from 20 to 60.",
+          "explanation": "A cancelled run would still appear in the Actions tab. Here no run appears at all."
+        },
+        {
+          "text": "GitHub runs scheduled workflows only from the default branch. Merge the workflow file into it.",
+          "explanation": "Right. The Claude Code docs say GitHub runs scheduled workflows only from the default branch. A file that lives only on feature/eval-gate never fires.",
+          "correct": true
+        },
+        {
+          "text": "GitHub disables schedules after 60 days without activity. Turn the schedule back on in the Actions tab.",
+          "explanation": "The docs say this applies to public repositories after 60 days without repository activity. This repository has commits every day."
+        }
+      ]
+    }
+  ]
+}

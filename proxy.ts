@@ -15,7 +15,9 @@ export default clerkMiddleware(
 
 export const config = {
   matcher: [
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Clerk's default matcher plus txt|xml: /robots.txt, /sitemap.xml, /llms.txt
+    // and /blog/feed.xml are static and must not run Clerk. Keep them on a re-sync.
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|txt|xml)).*)',
     '/(api|trpc)(.*)',
     // Clerk's auto-proxy path
     '/__clerk/:path*',

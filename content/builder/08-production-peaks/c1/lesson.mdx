@@ -1,0 +1,96 @@
+---
+id: builder/r8/c1/lesson
+title: Rate limits
+minutes: 10
+sources:
+  - kind: docs
+    title: Rate limits (Claude docs)
+    url: https://platform.claude.com/docs/en/api/rate-limits
+  - kind: docs
+    title: Claude API errors (Claude docs)
+    url: https://platform.claude.com/docs/en/api/errors
+  - kind: docs
+    title: Rate limits (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/rate-limits
+  - kind: docs
+    title: Production best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+  - kind: docs
+    title: Rate limits (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/rate-limits
+---
+
+Realm 0, chapter 5 introduced rate limits: requests and tokens per minute, the 429 error, and how `max_tokens` counts on each vendor. This chapter is about living with those limits in production. You will tell errors apart, ramp traffic up safely, retry without making things worse, and keep one workload from starving another.
+
+## Not every 429 is a rate limit
+
+A 429 status can mean more than "slow down". The Claude docs say a `rate_limit_error` can mean a rate limit, a tier's monthly spend cap, or a spend limit on the Claude Code workspace.
+
+The spend-cap 429 is different. It has no `retry-after` header and "keeps failing until access resumes". On the Messages API, `error.details.error_code` is `enforced_spend_limit_reached`, so your code can tell it apart. A spend limit you set yourself returns HTTP 400 with `invalid_request_error` instead.
+
+OpenAI has the same trap: a hard spend limit makes affected requests return 429. Its rate-limit guide says: "Don't retry quota, billing, or other errors that require you to take action."
+
+| What you see                                                                  | What it means                | What your code does              |
+| ----------------------------------------------------------------------------- | ---------------------------- | -------------------------------- |
+| 429 with `retry-after`                                                        | A temporary rate limit       | Wait, then retry                 |
+| Claude 429, no `retry-after`, `enforced_spend_limit_reached`                  | The tier's monthly spend cap | Stop retrying and alert a person |
+| Claude 400, message starts "You have reached your specified API usage limits" | Your own spend limit         | Stop. Raise or remove the limit  |
+| Claude 500 or 529, OpenAI 503 `server_is_overloaded`                          | A problem on the vendor side | Retry with backoff               |
+
+The last column is our design. The vendor pages give the signals; the "what your code does" choices are ours.
+
+## Ramp up, do not jump
+
+Limits are not only about totals. Claude's docs warn that a sharp rise in usage can cause 429 errors from "acceleration limits". Their advice: ramp up gradually and keep usage consistent.
+
+OpenAI describes the same thing with the `slow_down` code. It is a 429 that can happen "even when your traffic is within its requests-per-minute and tokens-per-minute limits". It reflects how quickly traffic grew. OpenAI's rule of thumb: once traffic reaches 1 million input tokens per minute, increase it by no more than 50% every 15 minutes. The exact point varies by model and traffic.
+
+Claude also says it uses the token bucket algorithm. Your capacity is "continuously replenished up to your maximum limit, rather than being reset at fixed intervals". So there is no clean minute boundary to wait for.
+
+Example: a launch email goes out at 09:00 and your queue releases 10,000 waiting jobs at once. Release them in steps instead, and watch for 429 before each step.
+
+## Retries that do not multiply
+
+A good retry loop has four parts:
+
+- **Wait at least as long as the server says.** OpenAI: treat `Retry-After` as "a minimum" and add "a small random delay so multiple clients don't retry at the same time". If the header is missing, use exponential backoff with jitter.
+- **Cap the work.** OpenAI: "Limit both the number of attempts and the total time spent retrying."
+- **Know who else retries.** The Claude SDK retries transient failures twice by default, and honors `retry-after`. OpenAI's SDKs retry eligible 429 and 503 responses. OpenAI says that if you manage retries yourself, "disable SDK retries or account for them in those limits so nested retry loops don't multiply requests."
+- **Remember failures count.** OpenAI: "unsuccessful requests contribute to your per-minute limit". Retrying fast makes the jam worse.
+
+Example: the SDK makes up to 3 requests per call (1 plus 2 retries). Your own wrapper retries 3 more times. One user action can send 12 requests, all against the same limit.
+
+Streams need extra care. Claude notes that an error can arrive after the API already returned 200. OpenAI says: "don't automatically replay a request after consuming output."
+
+## Read the headers and slow down early
+
+Both vendors tell you how much room is left, on every response.
+
+- **Claude:** `anthropic-ratelimit-requests-remaining`, `anthropic-ratelimit-input-tokens-remaining` and `anthropic-ratelimit-output-tokens-remaining`, each with a matching `-reset` time in RFC 3339 format. Token values are rounded to the nearest thousand.
+- **OpenAI:** `x-ratelimit-remaining-requests`, `x-ratelimit-remaining-tokens`, and reset headers such as `x-ratelimit-reset-requests: 1s`.
+
+Our pattern, not a vendor rule: keep a small client-side limiter. When the remaining count nears zero, hold new jobs until the reset time instead of sending requests that will fail.
+
+## Keep workloads apart
+
+By default, everything in an organization shares one limit. A heavy background job can use it all and leave your live chat with 429 errors.
+
+- **Claude workspaces.** You can set custom rate and spend limits per workspace. Unused capacity stays available to the others. Three rules: you can't set limits on the default workspace, an unset workspace limit matches the organization's, and organization-wide limits "always apply".
+- **OpenAI projects.** Limits are set at the organization and project level, and the production guide says you can "set custom rate and spend limits per project". For abuse, it also suggests a usage limit for each individual user.
+- **Gemini.** Limits are "applied per project, not per API key". A second key in the same project adds no capacity. Daily request quotas reset at midnight Pacific time, and preview models are more restricted.
+
+Example: a nightly backfill and the live chat share the default workspace. Move the backfill to its own workspace with a lower limit, so chat keeps its room. The next chapter shows how to take the backfill out of the live pool entirely.
+
+## Getting more room
+
+- **Tiers.** Claude places organizations on tiers by usage history and account standing, and you can request an increase in the Console. OpenAI tiers rise automatically as total credit purchases reach each threshold.
+- **Caching.** For most Claude models, cached reads do not count toward ITPM. The docs' example: a 2,000,000 ITPM limit with an 80% cache hit rate can process 10,000,000 input tokens per minute (realm 3, chapter 4).
+- **Read limits, don't hard-code them.** Limits vary by model and tier. Check the console or the vendor's limits API.
+
+## Key points
+
+- A 429 is not always retryable. Spend-cap errors will keep failing. Check the code and the headers.
+- Ramp traffic gradually. Both Claude and OpenAI can return 429 on a sharp rise even below your limits.
+- Honor `retry-after`, add jitter, cap attempts and total time, and count every retry layer.
+- Read the remaining-capacity headers and slow down before you hit zero.
+- Separate workloads with workspaces or projects. On Gemini, limits are per project, so a second key does not help.

@@ -1,0 +1,96 @@
+{
+  "id": "builder/r4/c4/challenge",
+  "title": "Three agents, one search",
+  "scenario": "A consulting team built a research assistant: a lead agent that starts subagents in parallel. Its first real report missed half the question. You also get two smaller questions from other teams (exhibit).",
+  "exhibit": "QUESTION: How did the chip shortage hit car makers in 2021,\n          and how do supply chains look in 2025?\n\nLEAD AGENT -> subagent prompts\n  sub 1: \"research the semiconductor shortage\"\n  sub 2: \"research the semiconductor shortage\"\n  sub 3: \"look into chips\"\n\nRESULTS\n  sub 1: 2025 supply chains\n  sub 2: 2025 supply chains (same sources as sub 1)\n  sub 3: general history of chip making\n  nobody: 2021 car production cuts\n\nOTHER TEAMS\n  A) Support bot, OpenAI Agents SDK: a triage agent and a billing\n     specialist. Once a ticket is about billing, the specialist\n     must answer the customer directly.\n  B) A developer wants 5 parallel subagents to fix one typo\n     in one file.",
+  "questions": [
+    {
+      "prompt": "Why did two subagents repeat the same work while 2021 went uncovered?",
+      "options": [
+        {
+          "text": "Subagents share one context window, so they read each other's searches.",
+          "explanation": "The opposite: each subagent has its own context. That is why they could not see they were duplicating."
+        },
+        {
+          "text": "Three subagents is too many for a two-part question.",
+          "explanation": "Two parts with two time periods fits a few subagents well. The problem is what each one was told."
+        },
+        {
+          "text": "The delegation prompts were vague, with no objective or boundaries.",
+          "explanation": "Right. Anthropic saw the same thing: short tasks like research the semiconductor shortage made subagents misread the task or repeat each other's searches.",
+          "correct": true
+        },
+        {
+          "text": "The subagents ran on a weaker model than the lead agent.",
+          "explanation": "Nothing in the exhibit shows the models. Even a strong model can't guess a split of work it was never given."
+        }
+      ]
+    },
+    {
+      "prompt": "Which new prompt for sub 1 follows Anthropic's delegation advice?",
+      "options": [
+        {
+          "text": "\"Research the semiconductor shortage in depth. Be thorough and cover every region.\"",
+          "explanation": "Still no boundary or output format, so it can overlap with the others again."
+        },
+        {
+          "text": "\"Research everything about chips and the whole supply chain; the lead agent will filter it all.\"",
+          "explanation": "That spends the most tokens and pushes all the filtering back into the lead's context."
+        },
+        {
+          "text": "\"Read the full lead conversation first, then decide what to do and report back.\"",
+          "explanation": "It gets no parent conversation, only the prompt you pass (plus its own system prompt and CLAUDE.md)."
+        },
+        {
+          "text": "\"2021 car production cuts only, not 2025. News and reports. One bullet and URL per line.\"",
+          "explanation": "Right. It has an objective, a clear boundary, guidance on sources and an output format.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Team A: the billing specialist must answer the customer directly. Which OpenAI pattern fits?",
+      "options": [
+        {
+          "text": "A handoff from the triage agent to the billing specialist.",
+          "explanation": "Right. In a handoff, control moves to the specialist, which owns the next response.",
+          "correct": true
+        },
+        {
+          "text": "The billing specialist as a tool of the triage agent, via `as_tool()`.",
+          "explanation": "With agents as tools, the manager keeps ownership of the reply. Here the specialist must answer directly."
+        },
+        {
+          "text": "One agent with the billing instructions pasted into its prompt.",
+          "explanation": "That can work for small cases, but the team wants a separate specialist that owns billing replies."
+        },
+        {
+          "text": "Run both agents in parallel and show the faster answer.",
+          "explanation": "That doubles the cost and gives no clear owner of the reply, which OpenAI says is the first design choice."
+        }
+      ]
+    },
+    {
+      "prompt": "Team B wants 5 parallel subagents for one typo in one file. What is your advice?",
+      "options": [
+        {
+          "text": "Yes: parallel subagents always finish faster than one agent, even for a tiny task.",
+          "explanation": "Parallel work only helps when there are independent subtasks. One typo has none."
+        },
+        {
+          "text": "Use one agent, since subagents add tokens and there is nothing to split.",
+          "explanation": "Right. Multi-agent systems used about 15× the tokens of chat in Anthropic's data, and OpenAI says to start with one agent whenever you can.",
+          "correct": true
+        },
+        {
+          "text": "Use 5 subagents, but give each one only Read and Grep.",
+          "explanation": "Then none of them can fix the typo, and the cost is still five agents."
+        },
+        {
+          "text": "Use a handoff chain of 5 agents, one per line of the file.",
+          "explanation": "That adds prompts, traces and approval surfaces with no benefit, which OpenAI warns about."
+        }
+      ]
+    }
+  ]
+}

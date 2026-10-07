@@ -9,7 +9,7 @@ import { LessonBody } from '@/components/quest/lesson-body';
 import { LessonDone } from '@/components/quest/lesson-done';
 import { SourceList } from '@/components/quest/source-list';
 import { Tabs } from '@/components/tabs';
-import { QUEST_TEXT, SITE_NAME } from '@/lib/constants';
+import { QUEST_TEXT, SHARE_TEXT, SITE_NAME } from '@/lib/constants';
 import { parseExerciseId, questBackHref } from '@/lib/content/ids';
 import { getLessonMeta, getQuestPage, type QuestPage as QuestPageData } from '@/lib/data/quest';
 
@@ -38,7 +38,7 @@ const EXHIBIT_TITLE_ID = 'quest-exhibit-title';
 /**
  * The quest page (Sigmorai App.dc.html → isQuestBiz). A catch-all, because
  * exercise ids contain `/`: /quest/strategist/r0/c1/challenge. Lessons, cases
- * (chapter and boss) and quick checks, both tracks. For a case or quick check
+ * (chapter and boss) and quick checks, every track. For a case or quick check
  * the browser gets the public, shuffled view only. Lessons are public; their
  * NPC lines are the <DialogBox> blocks inside the lesson body. Math Tower
  * floors (lesson + quick check) use the same views and go back to the tower.
@@ -104,6 +104,7 @@ export default async function QuestPage({ params }: PageProps<'/quest/[...exerci
           viewer={viewer}
           nextHref={nextHref}
           lessonHref={lessonHref}
+          share={{ url: back.href, text: SHARE_TEXT.cleared(sheet.title) }}
         />
       </div>
     </div>

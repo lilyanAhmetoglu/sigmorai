@@ -1,0 +1,109 @@
+---
+id: builder/r8/c3/lesson
+title: Observability
+minutes: 10
+sources:
+  - kind: docs
+    title: Claude API errors (Claude docs)
+    url: https://platform.claude.com/docs/en/api/errors
+  - kind: docs
+    title: Reducing latency (Claude docs)
+    url: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-latency
+  - kind: docs
+    title: Usage and Cost API (Claude docs)
+    url: https://platform.claude.com/docs/en/manage-claude/usage-cost-api
+  - kind: docs
+    title: Monitoring, OpenTelemetry for Claude Code (Claude Code docs)
+    url: https://code.claude.com/docs/en/monitoring-usage
+  - kind: docs
+    title: API reference overview, debugging requests (OpenAI API reference)
+    url: https://developers.openai.com/api/reference/overview
+  - kind: docs
+    title: Integrations and observability, tracing (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/integrations-observability
+  - kind: docs
+    title: Latency optimization (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/latency-optimization
+  - kind: docs
+    title: Production best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+---
+
+When a user says "the assistant was slow and wrong at 14:03", you need a way to find that exact call. Observability means your system records enough to answer questions like this after the fact. This chapter covers what to record, what to watch, and what not to store.
+
+## Log every call
+
+Write one log line per model call. This field list is our checklist, not a vendor standard:
+
+| Field                | Why                                                                          |
+| -------------------- | ---------------------------------------------------------------------------- |
+| Time, feature, model | Group and compare                                                            |
+| Hashed user id       | Find one user's calls without storing their email                            |
+| Server request id    | Lets the vendor find the call                                                |
+| Your own request id  | Lets you find the call when no server id came back                           |
+| Status, attempt      | See errors and how many tries a success needed                               |
+| Latency, first token | See where users wait                                                         |
+| Tokens               | Input, output and cached tokens, from the `usage` block (realm 0, chapter 1) |
+
+The vendors give you the ids.
+
+- **Claude:** every response has a `request-id` header, and the same value is the `request_id` field in error bodies. The docs say to include it when you contact support.
+- **OpenAI:** the `x-request-id` header. The API reference says: "OpenAI recommends logging request IDs in production deployments".
+- **Your own id:** OpenAI lets you send `X-Client-Request-Id`. It must be unique, ASCII, and at most 512 characters, or the request fails with a 400. It exists for timeouts and network failures, when no `X-Request-Id` came back. You can give the value to support to check whether OpenAI received the request.
+
+Claude Code's telemetry shows the same idea. Its `api_error` events record `request_id`, a `client_request_id`, `status_code`, `duration_ms` and `attempt`. The client id is there even when a timeout never produced a server id.
+
+OpenAI also returns `openai-processing-ms`, the time OpenAI spent processing the request. Compare it with your measured time to see how much delay is yours.
+
+## Choose what to watch
+
+Raw logs are not a dashboard. These numbers are worth a chart and an alert (our list):
+
+- **Errors by status code.** A rise in 429 means a limit (chapter 1). A rise in 5xx means the vendor.
+- **Retries per call.** A call that succeeds on the third try still cost the user time and spent your limit.
+- **Latency percentiles.** Watch p50 and p95, not the average. A few slow calls hide in an average.
+- **Time to first token.** The Claude docs define it as the time from sending the prompt to the first token of the response.
+- **Tokens per request, by feature.** A prompt change that makes replies twice as long shows up here first, and output length drives latency (chapter 5).
+- **Cost per day, by feature**, against a budget.
+- **Cache hit rate**, from the cache fields (realm 3, chapter 4).
+
+Alert on change as well as on a fixed limit. Example (made-up): the average output grows from 220 to 450 tokens after a prompt edit. No error appears, but cost and latency both double.
+
+## Compare with the vendor's numbers
+
+Your logs show what you sent. The vendor shows what it counted.
+
+- **Claude Usage and Cost API.** An Admin API feature. The Usage endpoint breaks tokens down by model, workspace and service tier, and can filter by API key, in 1-minute, 1-hour or 1-day buckets. The docs list "cost reconciliation" and alerting as uses. Data "typically appears within 5 minutes", and the API supports polling once per minute for sustained use. The cost endpoint is daily only and does not include Priority Tier costs.
+- **OpenAI.** The usage dashboard shows token use for the current and past billing cycles, and you can set a notification threshold that emails you at a chosen amount.
+
+Separate workspaces or projects per feature and per environment make these reports easy to read (chapter 1, chapter 4).
+
+## Traces for multi-step work
+
+An agent run is many calls. One log line per call cannot show how they connect. A trace can.
+
+- **OpenAI Agents SDK.** Tracing is built in and "enabled by default in the normal server-side SDK path". A run can emit a record of model calls, tool calls, handoffs, guardrails and custom spans, shown in the Traces dashboard. `withTrace` groups several runs into one trace. OpenAI names two uses: debug one run, and feed good examples into evals (realm 6).
+- **Claude Code.** It exports metrics and events with OpenTelemetry (OTel), plus traces in beta. A user prompt starts a `claude_code.interaction` span, and API calls and tool calls are its children. The `prompt.id` attribute ties all events from one prompt together.
+
+## Logs hold customer data
+
+A full prompt log is a copy of your users' data. Claude Code's defaults show a careful pattern:
+
+- `OTEL_LOG_USER_PROMPTS` is off by default, and prompt text is redacted.
+- `OTEL_LOG_RAW_API_BODIES` is off by default. The docs warn that bodies "include the entire conversation history".
+
+Our rule: log metadata by default. Turn content logging on only for a small sample, with limited access and a short retention period. Never log keys (chapter 4).
+
+Cardinality matters too. The Claude Code docs keep `prompt.id` on events and "never" on metrics, because it would cause unbounded cardinality. Lower cardinality means "better performance and lower storage costs". Put ids in log lines, and keep metric labels to a few values, such as feature and model.
+
+## Logs do not measure quality
+
+A call can succeed with status 200 and still give a wrong answer. Logs tell you something happened, not that it was good. Sample real traces into your eval set and grade them (realm 6, chapters 1 and 6).
+
+## Key points
+
+- Log one line per call, with the server request id, your own id, status, attempts, latency and tokens.
+- OpenAI recommends logging request ids in production. `X-Client-Request-Id` covers calls that returned no server id.
+- Watch errors by status, retries, p95 latency, first-token time, tokens per request, cost and cache hits.
+- Reconcile with the vendor's usage data. Claude data typically appears within 5 minutes.
+- Use traces for agents. Keep prompt content out of logs by default, and keep metric labels few.

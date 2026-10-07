@@ -1,0 +1,96 @@
+{
+  "id": "builder/r4/c1/challenge",
+  "title": "Four turns to green",
+  "scenario": "A platform team runs a coding agent on the Claude Agent SDK. You review one run that fixed a billing bug (exhibit). The team also asks you about a second job they plan to build next.",
+  "exhibit": "PROMPT: Fix the failing tests in billing.ts\nOPTIONS: no max_turns, no max_budget_usd\n\nturn 1  tool_use  Bash   bun test billing.test.ts\n        result    2 failed, 14 passed\nturn 2  tool_use  Read   billing.ts\n        tool_use  Read   billing.test.ts\n        result    file contents\nturn 3  tool_use  Edit   billing.ts (round to cents)\n        tool_use  Bash   bun test billing.test.ts\n        result    0 failed, 16 passed\nfinal   text      Fixed the rounding bug. All 16 tests pass.\n\nRESULT  subtype: success\n\nNEXT JOB (planned)\n  every night: download sales.csv -> convert to JSON\n  -> upload to the warehouse. Always these 3 steps.",
+  "questions": [
+    {
+      "prompt": "Why did the loop end after the final message?",
+      "options": [
+        {
+          "text": "The run hit its turn limit after three tool turns.",
+          "explanation": "No `max_turns` was set, and the subtype is `success`. A turn limit would end with `error_max_turns`."
+        },
+        {
+          "text": "The SDK saw 0 failed tests and stopped the agent.",
+          "explanation": "The SDK does not read test output. It only checks whether the model's response asks for more tools."
+        },
+        {
+          "text": "Claude produced a response with no tool calls.",
+          "explanation": "Right. The Claude docs say turns continue until Claude produces output with no tool calls; then the loop ends and the result is delivered.",
+          "correct": true
+        },
+        {
+          "text": "The context window filled up and the SDK compacted it.",
+          "explanation": "Compaction summarizes older history so the loop can go on. It does not end the loop."
+        }
+      ]
+    },
+    {
+      "prompt": "In turn 3, the agent runs the tests again after its edit. What does that give it?",
+      "options": [
+        {
+          "text": "Ground truth from the environment to check its progress.",
+          "explanation": "Right. Anthropic says agents must gain ground truth from the environment at each step, such as tool call results or code execution.",
+          "correct": true
+        },
+        {
+          "text": "A second turn budget, because test runs don't count as turns.",
+          "explanation": "A Bash call is a tool call like any other. It is part of the turn it runs in."
+        },
+        {
+          "text": "Nothing new: the edit already proved the fix works.",
+          "explanation": "An edit is an action, not a check. Only the new test output shows that the fix works."
+        },
+        {
+          "text": "A way to clear the old test output from the context.",
+          "explanation": "The context does not reset between turns. The new output is added on top of the old one."
+        }
+      ]
+    },
+    {
+      "prompt": "The team now sets `max_turns` to 2 and runs the same prompt again. What happens, per the Claude docs?",
+      "options": [
+        {
+          "text": "Nothing changes: the final text reply happens anyway.",
+          "explanation": "Turn 3 is a tool-use turn. With a limit of 2, the run never gets that far."
+        },
+        {
+          "text": "The run stops before the edit and ends with subtype `error_max_turns`.",
+          "explanation": "Right. `max_turns` counts tool-use turns, and the docs' own example says a limit of 2 would stop before the edit step.",
+          "correct": true
+        },
+        {
+          "text": "The run stops after turn 1, because each tool call counts as one turn.",
+          "explanation": "A turn is one round trip, and it can hold several tool calls. Turn 2 has two reads and still counts once."
+        },
+        {
+          "text": "The run finishes, then reports `success` with a warning.",
+          "explanation": "At the limit the loop stops early. The result subtype is `error_max_turns`, and it has no `result` text."
+        }
+      ]
+    },
+    {
+      "prompt": "For the planned nightly job, what does Anthropic's agents post suggest?",
+      "options": [
+        {
+          "text": "An agent, so the model can choose the order of the three steps.",
+          "explanation": "The order never changes. Letting the model choose adds cost and a chance of errors with no gain."
+        },
+        {
+          "text": "An agent with a high turn limit, in case the upload fails.",
+          "explanation": "A failed upload is a known case your code can retry. It does not need a model to direct the process."
+        },
+        {
+          "text": "Two agents, one to download and one to upload.",
+          "explanation": "More agents add more cost. The post advises the simplest solution that works."
+        },
+        {
+          "text": "A workflow: the three steps run on a code path you write.",
+          "explanation": "Right. Workflows orchestrate LLMs and tools through predefined code paths. Agents fit tasks where you can't hardcode a fixed path.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

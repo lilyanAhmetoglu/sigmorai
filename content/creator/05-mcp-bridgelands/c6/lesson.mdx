@@ -1,0 +1,95 @@
+---
+id: creator/r5/c6/lesson
+title: Vendor lock-in
+minutes: 6
+sources:
+  - kind: docs
+    title: MCP docs · What is the Model Context Protocol?
+    url: https://modelcontextprotocol.io/docs/getting-started/intro
+  - kind: docs
+    title: MCP specification · Overview (extensions)
+    url: https://modelcontextprotocol.io/specification/2026-07-28
+  - kind: docs
+    title: Figma developer docs · Set up the remote server
+    url: https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/
+  - kind: docs
+    title: Claude docs · MCP connector (beta)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: Claude docs · MCP tunnels (research preview)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-tunnels/overview
+  - kind: docs
+    title: OpenAI docs · MCP servers
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+  - kind: docs
+    title: Gemini API docs · Function calling (Remote MCP)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
+---
+
+## Why it matters
+
+MCP is an open standard. That sounds like freedom: connect once, use any AI. It is partly true. This chapter shows which part is free to move, and which part is stuck to one vendor.
+
+You will not switch vendors this week. But a studio that cannot switch has no power when a price goes up or a feature ends.
+
+## What moves
+
+The MCP site says MCP makes it "easy to build once and integrate everywhere". It lists clients such as Claude, ChatGPT, Visual Studio Code and Cursor.
+
+Figma's install page shows this. It gives steps for Claude Code, Codex by OpenAI, Cursor, VS Code and Xcode. The server address is the same in both the Claude Code and Codex steps: `https://mcp.figma.com/mcp`. This is Figma's own server, but the idea is general. One server, many AI apps.
+
+So the **server** moves. The work you did to connect your design file, your library and your scheduler to a standard server is not wasted when you change AI vendor.
+
+## What does not move
+
+The wrapper around the server is different at each vendor. Here is how the three pages name the same things. The table is ours, built from their field lists.
+
+| Idea                  | Claude connector (beta) | OpenAI MCP tool | Gemini Interactions API |
+| --------------------- | ----------------------- | --------------- | ----------------------- |
+| Address of the server | `url`                   | `server_url`    | `url`                   |
+| Token                 | `authorization_token`   | `authorization` | `headers`               |
+| Name of the server    | `name`                  | `server_label`  | `name`                  |
+| Which tools           | allowlist or denylist   | `allowed_tools` | `allowed_tools`         |
+
+The names are small. The gaps in features are bigger:
+
+- Claude's connector supports "only tool calls" from the MCP feature set, and only servers on the public internet over HTTP, unless you use an MCP tunnel (research preview).
+- Gemini's Remote MCP "only works with Streamable HTTP servers".
+- Anthropic's beta lets you pin a copy of a server's tool list. The OpenAI and Gemini pages we cite do not describe a pin. That does not prove they have none. It means you should not count on one.
+- OpenAI's page describes approval settings for tool calls. The Claude connector page we cite describes allowlists and denylists instead.
+
+## Extensions need both sides
+
+The MCP specification also has extensions, such as interactive apps inside a chat. It says: "Extensions are always opt-in and require explicit support from both client and server, negotiated during initialization."
+
+So a demo that works in one AI app may not work in another. Ask which clients the demo was tested in.
+
+## Beta and preview change
+
+A beta can end or change. The cited pages show how often it happens.
+
+- Anthropic says the earlier version of its connector, `mcp-client-2025-04-04`, "is deprecated". The current connector is itself a beta.
+- Anthropic marks MCP tunnels as a research preview that it "may modify or discontinue".
+- OpenAI says `connector_id` "is deprecated for models released after September 1, 2026".
+
+None of this is a reason to avoid them. It is a reason to write down which parts of your set-up stand on a beta.
+
+## An exit plan, our way
+
+This list is ours. It costs little if you keep it up to date.
+
+1. **A connection sheet.** For each tool: the server's address, who runs it, which vendors use it, and the token's owner. Keep it outside any one vendor.
+2. **Standard servers first.** Use a standard remote MCP server before a vendor's built-in connector.
+3. **Your own storage.** Keep master files and records in the studio's own storage. A vendor's file store is a copy.
+4. **A test pair.** Each quarter, run the same three small jobs on a second vendor. If they fail, you learn it while the cost is small.
+5. **A beta list.** Note every beta, preview and deprecated item, and who owns the fix.
+
+Example: your scheduler runs through a standard server and your captions live in the studio drive. A vendor ends a beta. You change one line in the sheet. The captions and the server do not move.
+
+## What this means for your work
+
+- **The server moves. The wrapper does not.** Budget time for the wrapper.
+- **Check each vendor's gaps** before you promise a feature to a client.
+- **Ask which clients an extension works in.**
+- **Write down every beta.**
+- **Test on a second vendor** while you are not in a hurry.

@@ -1,0 +1,77 @@
+---
+title: What is a context window? How to budget tokens
+description: The context window holds everything in a request, including the reply. Window sizes, why bigger is not better, and a worked token budget.
+lesson: builder/r3/c5/lesson
+cover: /blog/covers/context-window-budget.webp
+---
+
+A context window is the total amount of text a model can work with in one request, counted in tokens. It holds everything: the system prompt, the tool definitions, the conversation so far, any documents, and the reply the model writes. Anthropic, OpenAI and Google document windows of around 1 million tokens for some models. But a big window is a limit, not a target: accuracy drops as the context grows, so you should plan how you spend it, the way you plan a budget.
+
+## What counts
+
+The Claude docs call the context window the model's "working memory": "all the text a language model can reference when generating a response, including the response itself." The Gemini docs use the same picture of short-term memory.
+
+On Claude, these all count: the system prompt, every message (including tool results, images and documents), the tool definitions, and the output for the turn, thinking included. OpenAI says the same in short: the window "includes input, output, and reasoning tokens."
+
+One detail is easy to miss. A cached prefix still takes space. The Claude docs say caching "changes what you pay for those tokens, not whether they count."
+
+## How big are windows?
+
+- **Claude:** current models such as Claude Opus 5.5 and Claude Sonnet 5.5 have a 1M-token window. Other models, including Claude Sonnet 4.5, have 200k.
+- **OpenAI:** GPT-4.1 has a 1M-token window (its model page lists 1,047,576 tokens). Each OpenAI model page lists its own size.
+- **Gemini:** "Many Gemini models come with large context windows of 1 million or more tokens."
+
+For scale, the Gemini docs say 1 million tokens is about 50,000 lines of code, or 8 average-length English novels.
+
+## Bigger is not automatically better
+
+All three vendors warn that a full window is not used equally well:
+
+- **Claude:** "As token count grows, accuracy and recall degrade, a phenomenon known as context rot."
+- **OpenAI** (GPT-4.1 guide): performance "can degrade as more items are required to be retrieved", or when the task needs complex reasoning across the whole context.
+- **Gemini:** finding many pieces of information is harder than finding one. Its docs say that for 100 pieces of information at 99% performance, you would likely need 100 separate requests.
+
+So the question is not "does it fit?" but "will the model use it well?". One fact in a big prompt (one needle) is easier than many.
+
+## A worked token budget
+
+Here is a budget for a contract assistant on a model with a 200k-token window. The numbers are an example; measure your own.
+
+| Item                                 | Tokens      |
+| ------------------------------------ | ----------- |
+| System prompt                        | 2,000       |
+| Tool definitions                     | 3,000       |
+| Conversation history (10 turns)      | 15,000      |
+| Reserve for the reply (`max_tokens`) | 8,000       |
+| **Fixed costs**                      | **28,000**  |
+| **Left for documents**               | **172,000** |
+
+Three things follow from this table:
+
+1. **The reply needs room too.** If you fill the window with input, there is no space left to answer. On Claude, if the input alone is larger than the window, the API returns a 400 error ("prompt is too long"). OpenAI warns that a prompt that fills the window "might result in truncated outputs."
+2. **History grows every turn.** At 1,500 tokens a turn, 10 more turns use another 15,000 tokens. Plan for where the conversation will be, not where it starts.
+3. **Count before you send.** Claude has a token counting API to estimate a request first; OpenAI documents a tokenizer tool on its conversation-state page.
+
+Then compare the documents to Anthropic's rule of thumb: "If your knowledge base is smaller than 200,000 tokens (about 500 pages of material), you can just include the entire knowledge base in the prompt", with no need for RAG. With prompt caching, that is faster and cheaper. As the knowledge base grows, Anthropic says you need a more scalable approach, and retrieval (RAG) is the usual one.
+
+## Lay out a long prompt
+
+Size is one half of the job. Order and framing are the other half, and here the vendors differ:
+
+- **Claude:** put long documents "near the top of your prompt, above your query, instructions, and examples." Queries at the end can improve quality "by up to 30 percent in tests".
+- **Gemini:** in most cases, put the question "at the end of the prompt".
+- **OpenAI (GPT-4.1):** place instructions "at both the beginning and end of the provided context". If only once, put them above the context.
+
+Frame each document so the model knows where it starts, ends and came from. Claude suggests `<document>` tags with `<document_content>` and `<source>` subtags. OpenAI's GPT-4.1 tests found XML worked well and JSON "performed particularly poorly". For long tasks, Claude also suggests asking the model to quote the relevant parts first, then work from the quotes.
+
+## Checklist
+
+1. List every item that uses the window: system prompt, tools, history, documents, reply.
+2. Reserve room for the reply before you add documents.
+3. Count tokens before you send.
+4. Under about 200,000 tokens of knowledge: consider sending it all, with caching. Above that: retrieve.
+5. Many facts to find? Split the task into several smaller requests.
+6. Order and frame documents the way your model's guide says.
+7. Remember long prompts cost more and are slower. Gemini: "longer queries will have higher latency".
+
+The lesson works through a graded case: 60 contracts in one prompt, and a model that finds far fewer clauses than a human review did.

@@ -1,0 +1,96 @@
+{
+  "id": "builder/r7/c2/challenge",
+  "title": "The refund agent saw too much",
+  "scenario": "An online shop runs customer support on the OpenAI Agents SDK. A triage agent talks to the customer first and can hand off to specialists. Before any handoff, triage runs a fraud-check tool whose output holds internal risk notes. You review the setup and one trace (exhibit). The shop, the trace and the data are made up for this case.",
+  "exhibit": "SETUP (made up for this case)\n  triage agent\n    tools:     fraud_check\n    handoffs:  billing agent, refund agent, FAQ agent\n  input_filter: none\n\nTRACE 2026-10-02 (made up)\n  user:        I was charged twice for order 5521.\n  triage:      fraud_check(order=5521)\n  tool result: risk=low; note=\"customer flagged in 2024 chargeback dispute\"\n  triage:      transfer_to_refund_agent\n  refund:      I can see a note about a 2024 dispute...\n\nOPEN REQUESTS\n- Product: when the customer replies after a refund answer, the refund agent should answer again.\n- Ops: log WHY each refund handoff happened, and how urgent it is.\n- Security: we move to server-managed history (previous_response_id). The input_filter fix must still work.",
+  "questions": [
+    {
+      "prompt": "Product wants the next customer message to go straight back to the refund agent. What does the OpenAI results guide suggest?",
+      "options": [
+        {
+          "text": "Start every turn at triage and tell it to prefer refunds.",
+          "explanation": "That repeats routing each turn and relies on a prompt. The guide names a result field for this."
+        },
+        {
+          "text": "Reuse `last_agent` from the result as the agent for the next turn.",
+          "explanation": "Right. The results guide says to reuse `last_agent` after handoffs when that specialist should stay in control next turn.",
+          "correct": true
+        },
+        {
+          "text": "Have triage call the refund agent with `as_tool` on the next turn.",
+          "explanation": "With agents as tools the manager keeps the reply, so triage would own it, not the refund agent."
+        },
+        {
+          "text": "Disable the billing and FAQ handoffs with `is_enabled`.",
+          "explanation": "`is_enabled` decides which handoffs exist. It does not keep the refund agent active for the next turn."
+        }
+      ]
+    },
+    {
+      "prompt": "The refund agent quoted the internal risk note. Why did it see the note, and what is the fix?",
+      "options": [
+        {
+          "text": "The handoff description was too long, so the model chose it; shorten it.",
+          "explanation": "The description helps the model choose a handoff. It does not control what history the next agent receives."
+        },
+        {
+          "text": "The refund agent has `is_enabled` set to true; set it to false instead.",
+          "explanation": "`is_enabled` turns the handoff on or off. Setting it to false would stop refunds, not hide the note."
+        },
+        {
+          "text": "Add an `input_type` schema to the handoff so that the note is replaced.",
+          "explanation": "The docs say `input_type` does not replace the next agent's main input. The receiving agent still sees the history."
+        },
+        {
+          "text": "By default it sees the whole history; add an `input_filter`.",
+          "explanation": "Right. The docs say the new agent sees the entire history unless an `input_filter` changes it. `remove_all_tools` removes tool items but not text copied into messages, so check what is left.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Ops wants a reason and a priority recorded at the moment of each refund handoff. What fits the SDK docs?",
+      "options": [
+        {
+          "text": "Set an `input_type` with reason and priority; log them in `on_handoff`.",
+          "explanation": "Right. The docs use this exact case: the model sends metadata like `reason` and `priority`, and `on_handoff` can log it before the refund agent takes over.",
+          "correct": true
+        },
+        {
+          "text": "Store reason and priority in the run context object before the run starts.",
+          "explanation": "The run context is for app state you already have. The reason is decided by the model at handoff time, so it cannot be set before the run."
+        },
+        {
+          "text": "Rename the handoff tool to include the priority with `tool_name_override`.",
+          "explanation": "A tool name is fixed when you define it. It cannot carry a different priority for each customer."
+        },
+        {
+          "text": "Register one refund handoff per priority level and let the model choose.",
+          "explanation": "One handoff per destination is for different specialists. Splitting one agent by priority adds routing surface and still logs no reason."
+        }
+      ]
+    },
+    {
+      "prompt": "Security moves the shop to server-managed history. How do you keep triage history away from the refund agent?",
+      "options": [
+        {
+          "text": "Keep the same `input_filter` on the refund handoff and test it again.",
+          "explanation": "The docs say server-managed conversations do not support handoff input filters, so the filter would not apply."
+        },
+        {
+          "text": "Turn on `nest_handoff_history` so the history is summarized for it.",
+          "explanation": "The docs say nested history changes how the transcript is shown. It does not redact sensitive data."
+        },
+        {
+          "text": "Start a separate run with chosen input, and do not reuse the old id.",
+          "explanation": "Right. The docs say to use a separate run with explicitly selected input, and not to reuse the original `conversation_id` or `previous_response_id`.",
+          "correct": true
+        },
+        {
+          "text": "Drop the filter and tell the refund agent to ignore internal notes.",
+          "explanation": "A prompt cannot hide data the agent already received. The notes would still be in its input."
+        }
+      ]
+    }
+  ]
+}

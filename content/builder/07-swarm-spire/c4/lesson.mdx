@@ -1,0 +1,102 @@
+---
+id: builder/r7/c4/lesson
+title: Parallel agents
+minutes: 9
+sources:
+  - kind: blog
+    title: Building effective agents (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: blog
+    title: How we built our multi-agent research system (Engineering at Anthropic)
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+  - kind: docs
+    title: Subagents in the SDK (Claude Agent SDK docs)
+    url: https://code.claude.com/docs/en/agent-sdk/subagents
+  - kind: docs
+    title: Orchestrate teams of Claude Code sessions (Claude Code docs)
+    url: https://code.claude.com/docs/en/agent-teams
+  - kind: repo
+    title: Agent orchestration (openai-agents-python docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md
+  - kind: docs
+    title: Orchestration and handoffs (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: repo
+    title: Running agents (openai-agents-python docs)
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md
+---
+
+Chapter 3 gave agents a place to keep shared facts. Now several of them work at the same time. Parallel agents can finish a job much faster. They also cost more and need rules, so first ask whether the job should be parallel at all.
+
+## What parallel buys you
+
+The Claude Agent SDK docs state the gain plainly: multiple subagents can run concurrently, "so independent subtasks finish in the time of the slowest one rather than the sum of all of them." Anthropic's Research system shows the size of the effect. Its first agents ran searches one after another, which was "painfully slow". Two changes fixed that: the lead agent starts 3-5 subagents in parallel instead of in a row, and each subagent uses 3 or more tools in parallel. Together they "cut research time by up to 90% for complex queries."
+
+Example (made-up numbers): four workers need 40, 55, 35 and 90 seconds. One after another, that is 220 seconds. In parallel it is about 90 seconds, the time of the slowest worker.
+
+## Fan out, then fan in
+
+A parallel step has two halves:
+
+- **Fan out:** start workers on separate subtasks.
+- **Fan in:** collect their results and combine them.
+
+Both vendors describe the same shape in code or in a model's hands. The OpenAI docs list "running multiple agents in parallel, e.g. via Python primitives like `asyncio.gather`" as a code pattern, useful "when you have multiple tasks that don't depend on each other." Anthropic's version, parallelization, has two variations:
+
+| Variation  | What it is                                             | Use it when                                             |
+| ---------- | ------------------------------------------------------ | ------------------------------------------------------- |
+| Sectioning | Break a task into independent subtasks run in parallel | The parts can run for speed, or each needs focused care |
+| Voting     | Run the same task several times for diverse outputs    | You need several attempts for higher confidence         |
+
+In the Research system, the lead is the fan-in point. It reads what the subagents return and decides whether more research is needed.
+
+## When parallel is the wrong choice
+
+Parallel work only helps when the parts are independent. Anthropic names the bad cases: domains "that require all agents to share the same context or involve many dependencies between agents are not a good fit." It adds that most coding tasks have fewer truly parallelizable parts than research.
+
+The Research post says where multi-agent systems do well: valuable tasks with heavy parallelization, information that exceeds one context window, and many complex tools. Its example is breadth-first work, such as finding the board members of every company in a list, where each company is a separate lookup.
+
+Claude Code's agent-teams page (agent teams are an experimental feature) gives the same warning in practical terms. For "sequential tasks, same-file edits, or work with many dependencies, a single session or subagents are more effective."
+
+A quick test (ours):
+
+1. Can each worker finish without another worker's output?
+2. Does each worker need only its own slice of the facts?
+3. Is the combined answer worth the extra cost (chapter 6)?
+
+If any answer is no, run those steps in order.
+
+## Sizing the fan-out
+
+More workers is not always better. Anthropic found that agents struggle to judge how much effort a task needs, so the team put scaling rules in the prompt:
+
+- Simple fact-finding: 1 agent, 3-10 tool calls.
+- Direct comparisons: 2-4 subagents, 10-15 calls each.
+- Complex research: more than 10 subagents with clearly divided responsibilities.
+
+Early agents made errors "like spawning 50 subagents for simple queries". The scaling rules were meant to prevent that overinvestment.
+
+Claude Code's agent-teams page suggests starting with 3-5 teammates, and says "three focused teammates often outperform five scattered ones." Tasks should be sized well: too small and coordination costs more than it saves, too large and teammates work too long without check-ins.
+
+## Caps that bound the fan-out
+
+A model decides how many subagents to start, so set limits in code.
+
+**Claude Agent SDK.** By default, 20 subagents can run at once. At the limit, a new spawn fails with `Concurrent subagent limit reached` until the running count drops. You can change the limit with the `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` environment variable. This needs Claude Agent SDK TypeScript v0.3.219 or Python v0.2.127 or later. Sessions with ultracode active are never refused.
+
+**OpenAI Agents SDK.** When a model emits several function tool calls in one turn, the SDK starts all local function tool calls by default. `RunConfig(tool_execution=ToolExecutionConfig(max_function_tool_concurrency=N))` caps how many local function tool calls run at once. It is separate from `parallel_tool_calls`, which controls whether the model may emit several tool calls in one response.
+
+## The wait at fan-in
+
+Parallel start does not mean parallel finish. Anthropic's lead agents run subagents synchronously and wait for each set to complete. This simplifies coordination, but "the lead agent can't steer subagents, subagents can't coordinate, and the entire system can be blocked while waiting for a single subagent." Asynchronous execution would add more parallelism, but also "challenges in result coordination, state consistency, and error propagation."
+
+Plan for the slowest worker. Give each one a clear stop rule from realm 4 so one stuck worker cannot block the rest forever.
+
+## Key points
+
+- Parallel agents finish in the time of the slowest one, not the sum. Cost is still the sum.
+- Fan out independent subtasks, then fan in the results. Sectioning splits work; voting repeats it.
+- Skip parallel work for dependent steps, shared context and same-file edits.
+- Scale the worker count to the task. Anthropic put scaling rules in its prompts.
+- Cap concurrency in code: Claude Agent SDK subagent limit, OpenAI `max_function_tool_concurrency` for function tool calls.
+- One slow worker can hold up a synchronous fan-in. Give every worker a stop rule.

@@ -1,0 +1,106 @@
+---
+id: builder/r8/c4/lesson
+title: Secrets & data
+minutes: 10
+sources:
+  - kind: docs
+    title: Authentication (Claude docs)
+    url: https://platform.claude.com/docs/en/manage-claude/authentication
+  - kind: docs
+    title: Workspaces (Claude docs)
+    url: https://platform.claude.com/docs/en/manage-claude/workspaces
+  - kind: docs
+    title: Usage and Cost API (Claude docs)
+    url: https://platform.claude.com/docs/en/manage-claude/usage-cost-api
+  - kind: docs
+    title: API and data retention (Claude docs)
+    url: https://platform.claude.com/docs/en/manage-claude/api-and-data-retention
+  - kind: docs
+    title: Production best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/production-best-practices
+  - kind: docs
+    title: Data controls in the OpenAI platform (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/your-data
+  - kind: docs
+    title: Safety best practices (OpenAI API docs)
+    url: https://developers.openai.com/api/docs/guides/safety-best-practices
+  - kind: docs
+    title: Using Gemini API keys (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/api-key
+---
+
+An API key is money and access in one string. User prompts are other people's data. In production you protect both. This chapter covers where keys live, how to rotate and replace them, how to split environments, and what the vendor stores about your requests.
+
+## Pick the right kind of key
+
+Claude has three key types. A **personal key** acts as you, with your permissions. It stops working when you leave the organization: "Personal keys are archived when you are removed". A **service account key** belongs to a service account, so it has its own identity. A **workspace key** is legacy. The docs say shared or automated workloads, such as CI and production services, should use a service account, and that a shared personal key "breaks when they leave".
+
+Claude also offers Workload Identity Federation. Your workload swaps a short-lived token from your identity provider for a short-lived Claude token, so there is no long-lived key to rotate. The docs add that this does not, on its own, guarantee security. It is only as strong as your identity provider's setup.
+
+OpenAI's key governance settings let administrators allow only service-account keys, only user-owned project keys, or disable new keys. Gemini's newer authorization keys are bound to a service account, and Google says they come with "fast-acting leaked key enforcement".
+
+## Where keys live
+
+- **In a secrets manager or environment variable.** Claude: "Store API keys in a secrets manager, rotate them periodically". OpenAI: "Avoid exposing the API keys in your code or in public repositories". Gemini recommends environment variables and says to pass a key in code only if you cannot use them.
+- **Never in the browser.** A key in front-end code is public. For ZDR organizations, Claude's retention page says to "route requests through a backend proxy server" for browser-based apps. We think that shape is right for everyone.
+
+Your server then holds the key and owns the rules: it checks who the user is, applies a per-user limit, and sends a hashed user id. OpenAI's safety page describes this id as `safety_identifier`, a string that "uniquely identifies each user", and says to hash the name or email so no personal data is sent.
+
+## Expiry and rotation
+
+Claude lets you pick an expiry when you create a key: 3 hours, 1 day, 7 days, 30 days, a custom time, or never. You cannot change it later. After it passes, requests return `401 authentication_error`, and an expired key can't be reactivated. The docs warn that expiry "is not a substitute for secret hygiene".
+
+OpenAI "strongly" recommends an expiry date on every project key and a regular rotation. Its steps: create a replacement, update your applications, and revoke the old key once the replacement works. Administrators can also set a maximum key lifetime.
+
+A rotation done in this order has no downtime, because both keys work during the switch.
+
+## If a key leaks
+
+OpenAI: if a key may be exposed, "revoke it promptly and replace it". A plan (ours):
+
+1. Disable or delete the key. In Claude's Console, Disable can be undone and Delete is permanent.
+2. Create a replacement and deploy it.
+3. Check usage for that key. Claude's Usage API can filter by API key.
+4. Clean up the repository after the key is dead. Removing a commit does not un-leak a key.
+
+Changing the expiry will not help, since the date cannot be edited after creation.
+
+## Separate environments
+
+- **Claude workspaces** separate "projects, environments, or teams". A key scoped to one workspace works only there, and each workspace can have its own limits (chapter 1).
+- **OpenAI projects.** Create separate staging and production projects. You can limit who can use production and "set custom rate and spend limits per project".
+
+Example: staging gets a small spend limit and its own key. A test script that loops by mistake costs a little, not a month's budget.
+
+## What the vendor keeps
+
+| Topic             | Claude                                                                                                               | OpenAI                                                             |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Default           | Conversation content "is not retained by default", with an exception for Covered Models, which need 30-day retention | Abuse monitoring logs are kept up to 30 days by default            |
+| Zero retention    | Zero data retention (ZDR), enabled per organization through the sales team                                           | Zero Data Retention or Modified Abuse Monitoring, by approval      |
+| Training          | Retained data is "never used for model training without your express permission"                                     | Data sent to the API is not used to train models unless you opt in |
+| Stateful features | Batch (29 days), code execution, Managed Agents: not ZDR eligible                                                    | `/v1/batches`, `/v1/files`, `/v1/conversations`: not ZDR eligible  |
+
+Two details trip teams up:
+
+- **ZDR does not block features.** Claude says that under ZDR the API does not block "No" features. Using one "is a choice to step outside your ZDR arrangement" for that data. A nightly job on the Batch API (chapter 2) is exactly this case. OpenAI also lists `/v1/batches` as not ZDR eligible.
+- **ZDR is not absolute.** Claude may keep flagged chats for up to 2 years, even with ZDR. With OpenAI ZDR, the `store` parameter is always treated as `false`, and endpoints marked "No" may still store application state.
+
+Our habit: read the feature-eligibility tables before you design, not after legal asks.
+
+## Keep secrets out of prompts
+
+Anything in a prompt can come back in an output, a log or a trace (chapter 3). Our rules:
+
+- Never put a key or password in a prompt or a tool result.
+- Send only the fields the task needs.
+- Treat tool results as untrusted (realm 2, chapter 6), and give tools the least authority they need (realm 5, chapter 6).
+- OpenAI also advises limiting user input length and output tokens, and requiring users to log in.
+
+## Key points
+
+- Use a service account or short-lived credentials for production. A personal key stops when its owner leaves.
+- Keep keys in a secrets manager or environment variable, never in the browser. Your server calls the vendor.
+- Set expiries and rotate by creating the new key first. A leaked key is revoked, not just expired.
+- Split staging and production with workspaces or projects.
+- ZDR does not block features that store data. Check the eligibility tables first.

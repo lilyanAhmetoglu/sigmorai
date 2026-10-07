@@ -1,0 +1,100 @@
+---
+id: strategist/r6/c1/lesson
+title: Define success
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Define success criteria and build evaluations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests
+  - kind: docs
+    title: OpenAI docs · Evaluation best practices
+    url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
+  - kind: docs
+    title: OpenAI docs · Optimizing LLM accuracy
+    url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
+  - kind: blog
+    title: Anthropic Engineering · Demystifying evals for AI agents
+    url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
+---
+
+## Why it matters
+
+Many AI pilots end with one sentence: "It seems to work." OpenAI's evaluation guide names this as an anti-pattern: **vibe-based evals**, where "it seems like it's working" is the whole test, or where nobody writes evals until after launch.
+
+An **eval** (evaluation) is a test for an AI system. Anthropic's post on evals describes it simply: give the AI an input, then apply grading logic to its output to measure success. You can't grade anything until you say what success is. This chapter is about writing that down before you buy, build or launch.
+
+## Good criteria have four qualities
+
+You met these four qualities in realm 2; here we apply them to buying decisions.
+
+Anthropic's guide to success criteria says good criteria are:
+
+- **Specific:** say exactly what you want. Not "good performance", but "accurate sentiment classification".
+- **Measurable:** use numbers, or a clear scale that people apply the same way each time.
+- **Achievable:** base targets on benchmarks, earlier experiments, research or expert knowledge.
+- **Relevant:** match the purpose and the users. The guide's example: citation accuracy can be critical for a medical app and matter less for a casual chatbot.
+
+The guide shows that even "hazy" goals can be measured. A bad safety criterion is "Safe outputs". A good one is: "Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter."
+
+Example: a legal team wants a contract summary tool. "It should summarise contracts well" is not a criterion. "On 200 of our past supplier contracts, the summary lists the notice period and the renewal date correctly in at least 95% of cases" is specific and measurable.
+
+## One number is rarely enough
+
+The same guide lists criteria that may matter for a use case: task fidelity, consistency, relevance and coherence, tone and style, privacy preservation, context utilisation, latency and price. It says most use cases need evaluation along several success criteria.
+
+Its sentiment example sets four targets at once: a quality score, a share of non-toxic outputs, a response-time limit, and a rule about errors. That last one says 90% of errors should cause only inconvenience, not an egregious error. The guide adds that you would also define what "inconvenience" and "egregious" mean.
+
+That idea fits business work well. Not every mistake costs the same.
+
+## Put a price on mistakes
+
+OpenAI's accuracy guide makes the same point with money. There is a difference between a bad draft that a person has to fix and refunding a customer $1,000 instead of $100. The guide says to start any accuracy discussion with a rough idea of what a failure costs you and what a success saves or earns you.
+
+Example: for the contract tool, a clumsy sentence costs a lawyer one minute. A missed auto-renewal clause can lock the company into another year with a supplier. These two errors need different targets, not one shared accuracy score.
+
+## Test on your own work
+
+OpenAI's guide says the word "evals" can mean three things: industry benchmarks that compare models in isolation, standard numerical scores, and specific tests you build for your own application. The guide is about the third kind.
+
+A vendor's benchmark score tells you about a model on someone else's tasks. Your acceptance test should look like your own work. Anthropic's guide says to design evals that mirror your real-world task distribution and to include edge cases, for example:
+
+- irrelevant or missing input data,
+- very long input,
+- ambiguous cases where even humans would disagree.
+
+## A five-step eval process
+
+OpenAI's guide gives a simple workflow:
+
+1. **Define the eval objective:** what are the success criteria?
+2. **Collect a dataset:** for example production data, historical data, expert-made examples or synthetic data.
+3. **Define eval metrics:** how will you check that the criteria are met?
+4. **Run and compare evals.**
+5. **Continuously evaluate:** run evals on every change, monitor the app and grow the eval set over time.
+
+Its document Q&A example sets clear numbers for the metrics, including "70+% positively rated answers". The point is not the exact numbers. The point is that the target exists before the test runs.
+
+## Business people should write the criteria
+
+Anthropic's post says evals force product teams to specify what success means. It gives a reason: two engineers can read the same spec and handle edge cases differently. An eval suite removes that doubt.
+
+The post also says the people closest to product requirements and users are best placed to define success. It names product managers, customer success managers and salespeople.
+
+## A success sheet
+
+This sheet is a tool for this course. Before a pilot, fill in one row per criterion:
+
+| Criterion          | Target                    | How we measure              | Cost of a miss |
+| ------------------ | ------------------------- | --------------------------- | -------------- |
+| Renewal date right | 95% of 200 past contracts | Compare with lawyer's notes | High           |
+| Summary length     | Under 250 words           | Word count                  | Low            |
+| Personal data      | Never in the summary      | Reviewer check              | High           |
+| Time to answer     | Under 30 seconds          | Tool log                    | Low            |
+
+## Key points
+
+- "It seems to work" is not a test; write success criteria first.
+- Good criteria are specific, measurable, achievable and relevant.
+- Most uses need several criteria: quality, tone, privacy, speed and price.
+- Put a rough cost on each kind of failure; set stricter targets for costly ones.
+- Test on your own tasks and edge cases, not only on a vendor's benchmark.

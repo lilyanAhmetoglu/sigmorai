@@ -1,0 +1,118 @@
+{
+  "id": "strategist/r7/boss/challenge",
+  "title": "A workflow redesign",
+  "scenario": "You are head of customer operations at an energy supplier with 600 staff. The billing-complaints desk has 25 people and answers about 1,200 emails a week. Management wants an AI-supported redesign of the desk's workflow, and you must propose it. The exhibit holds the draft and what you know. All numbers are made up for this case.",
+  "exhibit": "BRIEF:\n  Most emails are about a wrong bill.\n  Goal: faster replies, without more wrong credits.\n  The firm uses a ChatGPT Enterprise workspace.\n\nDRAFT WORKFLOW:\n  1  Read the email and sort it: wrong bill, meter reading, payment plan\n  2  Look up the account history in the billing system\n     (the same lookup, in the same order, every time)\n  3  Draft the reply\n  4  Apply a bill credit (money leaves the company)\n  5  Send the reply\n\nTEAM IDEA (from the team lead):\n  Five agents work on each reply: history, tone, credit amount, legal wording\n  and summary. All five need the same account history, and each one uses the\n  work of the one before it.\n\nACCESS NOTE:\n  The quality manager wants to see how much the desk uses the assistant.\n  She must not be able to change any setting.\n\nSETUP TEST SO FAR:\n  The IT administrator signed in, asked the assistant to look up an account,\n  and it worked. Next step planned: open it to all 25 desk agents.\n\nFIRST PILOT TEAM (6 agents, before launch and 3 months after):\n                                     Before    After\n  Messages per agent per week          40        72\n  Days to resolve a complaint          4.2       4.1\n  Repeat complaints within 30 days     8%        11%\n  The VP says: \"Usage is up 80%, so the redesign works.\"\n",
+  "questions": [
+    {
+      "prompt": "Which is the best view of the team lead's five-agent idea for one reply?",
+      "options": [
+        {
+          "text": "A good idea, because more agents always finish faster and the cost rises only a little with each one.",
+          "explanation": "Each extra agent adds token cost. Anthropic's research post reports about 15 times more tokens for multi-agent systems than for chat."
+        },
+        {
+          "text": "A poor fit: all five need the same history and depend on each other, so one agent should write the reply.",
+          "explanation": "Right. Anthropic's post says work where all agents share the same context, or depend on each other a lot, is not a good fit for multi-agent systems.",
+          "correct": true
+        },
+        {
+          "text": "A good fit, because each agent has a different skill, and different skills should be split between agents.",
+          "explanation": "Skills alone are not the test. The parts must be fairly independent, and these five each use the work of the one before."
+        },
+        {
+          "text": "A good fit if all five run at the same time, because work done in parallel always finishes sooner.",
+          "explanation": "Each agent needs the previous agent's work, so they cannot run side by side. Waiting and handing over work add cost."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 2 uses the same lookup, in the same order, every time. How should it be built?",
+      "options": [
+        {
+          "text": "As an agent that picks its own tools and its own order each time, because that is the most flexible choice for the desk.",
+          "explanation": "Anthropic's post says agents suit work that needs flexibility. A lookup that never changes does not need it."
+        },
+        {
+          "text": "As a manager agent that invents new helper agents for every email, because each email is different and the plan can adapt.",
+          "explanation": "The lookup is the same each time, so there is nothing new to plan. Extra helper agents add cost and add no value here."
+        },
+        {
+          "text": "As a loop where one model call writes the lookup and another grades it, so that mistakes are caught before the result is used.",
+          "explanation": "A loop with a grader fits work with clear criteria that needs revising. A fixed lookup has no draft to improve."
+        },
+        {
+          "text": "As a fixed step on a set path: code runs the same lookup every time, and the model works only on the wording of the reply.",
+          "explanation": "Right. Anthropic's post says workflows, with predefined code paths, offer predictability and consistency for well-defined tasks.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Which built-in role fits the quality manager's access in OpenAI's ChatGPT Enterprise guide?",
+      "options": [
+        {
+          "text": "The Analytics Viewer role, which the guide lists as the built-in role that can open workspace analytics.",
+          "explanation": "Right. OpenAI's roles guide lists Analytics Viewer as the built-in role that can access workspace analytics. Its rollout guide says to keep administration roles for people who administer.",
+          "correct": true
+        },
+        {
+          "text": "The Admin role, because anyone who looks at workspace data should be able to manage the workspace as well.",
+          "explanation": "Admin manages supported operations and groups. She would get power she does not need, and the guide says to keep it limited."
+        },
+        {
+          "text": "The Owner role, because the Owner is the only person who is allowed to open the workspace analytics.",
+          "explanation": "The guide names Analytics Viewer for analytics. Owner manages workspace-wide settings, which is more power than she needs."
+        },
+        {
+          "text": "A custom role, because custom roles are the way to set how much administrative power a member holds.",
+          "explanation": "Custom roles define which supported features a member can use. Built-in roles set administrative authority."
+        }
+      ]
+    },
+    {
+      "prompt": "The setup worked for the IT administrator. What should the rollout add before it opens to all 25 agents?",
+      "options": [
+        {
+          "text": "Nothing more: a setup that works for an administrator will work in the same way for every employee.",
+          "explanation": "An administrator's account has more rights than an agent's. A setup can pass for IT and still fail for an ordinary employee."
+        },
+        {
+          "text": "A second test by the same administrator, on another day, to be sure that the first result still holds.",
+          "explanation": "The same account would show the same result. The gap is the account, not the day of the test."
+        },
+        {
+          "text": "A test with a representative agent: an ordinary member who holds the permissions that agents will have.",
+          "explanation": "Right. OpenAI's rollout guide says to verify each boundary with representative identities. Find the problem in the test, not on the first morning.",
+          "correct": true
+        },
+        {
+          "text": "A written note from the vendor that the setup is correct, filed with the plan before the rollout starts.",
+          "explanation": "A vendor note does not show how your own roles and permissions behave for your own agents. Only a test with a real member does."
+        }
+      ]
+    },
+    {
+      "prompt": "The VP says usage is up 80%, so the redesign works. What does the pilot team's data show?",
+      "options": [
+        {
+          "text": "It works: more messages means more finished work, and the pilot is a good sign for the whole desk.",
+          "explanation": "OpenAI's Usage Insights page says a message count does not tell you how much work the team finished."
+        },
+        {
+          "text": "Not proven yet: messages measure use only, while resolve time barely moved and repeat complaints rose.",
+          "explanation": "Right. OpenAI's page says to pair usage with team records to see whether work takes less effort or meets quality standards. Here quality looks worse.",
+          "correct": true
+        },
+        {
+          "text": "It fails: repeat complaints rose from 8% to 11%, so the desk should stop using the assistant right now.",
+          "explanation": "One pilot of 6 agents is too small to prove failure. It is a reason to look at why repeat complaints rose, then test again."
+        },
+        {
+          "text": "It works for speed: days to resolve fell, so the rise in repeat complaints can be left out of the report.",
+          "explanation": "The fall is only 0.1 of a day. A guard number that gets worse should be shown, not left out."
+        }
+      ]
+    }
+  ]
+}

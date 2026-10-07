@@ -57,6 +57,10 @@ export const BlogFrontmatterSchema = z
     title: Text,
     description: Text,
     lesson: idForStep('lesson'),
+    /** The post's own cover: `/blog/covers/<slug>.webp` (content:check checks the name). Decoration only. */
+    cover: z
+      .string()
+      .regex(/^\/blog\/covers\/[a-z0-9-]+\.webp$/, 'cover is /blog/covers/<slug>.webp'),
   })
   .strict();
 export type BlogFrontmatter = z.infer<typeof BlogFrontmatterSchema>;
@@ -92,7 +96,7 @@ const questionSchema = (options: { min: number; max: number }) =>
     });
 
 /**
- * case.json: the graded `challenge` step (chapter and boss) on both tracks.
+ * case.json: the graded `challenge` step (chapter and boss) on every track.
  * 3–5 questions of exactly 4 options. `exhibit` is shown read-only in
  * monospace: a trace, a tool schema, a prompt, a config.
  */
