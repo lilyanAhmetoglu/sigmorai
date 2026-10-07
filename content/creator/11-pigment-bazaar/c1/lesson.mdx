@@ -30,6 +30,12 @@ sources:
   - kind: docs
     title: Recraft docs · Enhance prompt
     url: https://www.recraft.ai/docs/api-reference/tools/enhance-prompt
+  - kind: docs
+    title: Recraft docs · Endpoints
+    url: https://www.recraft.ai/docs/api-reference/endpoints
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
 ---
 
 ## Why it matters
@@ -45,7 +51,7 @@ A note on dates. The model names below are the ones on each vendor's page in Oct
 | Model (October 2026)           | What its guide asks for                                                                                                                        |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | OpenAI GPT Image 2.5           | Name the subject and the use. "For complex requests, organize the prompt as scene, subject, details, and constraints, using labeled sections." |
-| Google Nano Banana (Gemini)    | "Describe a scene in rich detail." Say the purpose of the image.                                                                               |
+| Google Nano Banana (Gemini)    | "Be hyper-specific: The more detail you provide, the more control you have." Say the purpose of the image.                                     |
 | Black Forest Labs FLUX 3 Image | Describe what appears. Refer to input images by position: "image 1", "image 2".                                                                |
 | Ideogram 4.5 and 4.0           | Full sentences, main idea first. Plain language or a JSON prompt.                                                                              |
 | Recraft V4 and V4.1            | The model name decides raster or vector. Short prompts to explore, structured prompts for a set art direction.                                 |
@@ -74,24 +80,24 @@ Chapter 9 of Prompt Forest showed that OpenAI, Gemini and older Imagen treat "do
 - **Ideogram** says "An empty street" works better than "a street with no people." Only Ideogram 3.0 has a separate **Negative prompt** field, and "Your main prompt always wins."
 - **Recraft** lists `negative_prompt` in its API for V2 and V3 models only.
 
-So the safe default for all five is a positive description (our reading). Use a negative field only where the model has one.
+So start with positive words on all five (our reading). OpenAI's guide also shows a short exclusion line: "No extra text, no watermarks, no unrelated logos." Use a negative field only where the model has one.
 
 ## Raster or vector
 
 Most image models make **raster** images: a grid of pixels, like a PNG or JPEG. A **vector** image (SVG) stores shapes and lines instead of pixels (our plain gloss).
 
-Recraft makes both. Its model list says names "ending in `_vector` produce vector (SVG) images; all other models produce raster images". It also has a `/generations/vector` endpoint that accepts only vector models.
+Recraft makes both. Its model list says names "ending in `_vector` produce vector (SVG) images; all other models produce raster images". It also has a `/generations/vector` **endpoint** (the API address you send the request to) that accepts only vector models.
 
-The prompt changes too. For logo and vector work, Recraft's V4 guide says to define the graphic type, shape logic, colour system, line discipline, layout and constraints. It adds: "Avoid texture or material-focused language." So "matte white tin with a gold rim" suits a raster photo. For an SVG icon of the same tin, write "flat outline icon, two colours, even stroke, centred" (our example).
+The prompt changes too. For logo and vector work, Recraft's V4 guide says to define the graphic type, shape logic, colour system, line discipline, layout and constraints. In plain words: what shapes it is built from, and how thick and even the lines are. It adds: "Avoid texture or material-focused language." So "matte white tin with a gold rim" suits a raster photo. For an SVG icon of the same tin, write "flat outline icon, two colours, even stroke, centred" (our example).
 
 ## Who rewrites your prompt?
 
 Some models change your words before they draw. Know which ones do.
 
 - **Ideogram Magic Prompt** "Enhances your prompt to improve image variety and richness." It starts on. "Turn it off when you want the model to follow your exact words."
-- **FLUX 3 Image** expands a short prompt "into a detailed description before it generates the image". There is no switch for it: the guide says FLUX 3 Image has no `prompt_upsampling` field.
+- **FLUX 3 Image** expands a short prompt "into a detailed description before it generates the image". There is no switch for it (our reading): the guide says FLUX 3 Image has no `prompt_upsampling` field.
 - **Recraft Enhance prompt** is a separate request. It returns one `enhanced_prompt` string, and you choose whether to use it. Price on the page in October 2026: $0.01 per request.
-- **OpenAI** can revise the prompt in its image tool (Prompt Forest, chapter 9: `revised_prompt`).
+- **OpenAI** says the mainline model in its image generation tool "will automatically revise your prompt". You can read the new version in the `revised_prompt` field (Prompt Forest, chapter 9).
 
 Our advice: when exact wording matters, such as a product name or a legal line, turn the rewriter off or read what it wrote.
 
@@ -110,6 +116,6 @@ Here is the start of the tea brief in each dialect (our examples):
 - **Read the guide for the model you use.** The habits overlap, but the details differ.
 - **Only write what can be seen.** Swap mood words for objects, light and colour.
 - **Keep settings out of the prompt.** Flags like `--ar` are just words to Ideogram.
-- **Describe in positive words** unless the model has a real negative field.
+- **Positive words first.** OpenAI's guide also shows a short exclusion line.
 - **Pick raster or vector first** when the vendor offers both.
 - **Know your rewriter.** Turn it off, or read its version, when words must stay exact.
