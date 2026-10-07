@@ -157,6 +157,95 @@ describe('broken content is caught, with the file name', () => {
   });
 });
 
+describe('Frontier chapters (curriculum plan, amendment 2026-10-07 SIG-29)', () => {
+  const FIXTURE = `${import.meta.dir}/__fixtures__/frontier/frontier`;
+  const NEW = 'frontier/2026-10-06-new-thing';
+
+  /** The real content plus the two fixture chapters. */
+  async function withChapters(): Promise<string> {
+    const root = await copyOfContent();
+    await cp(FIXTURE, `${root}/frontier`, { recursive: true });
+    return root;
+  }
+
+  test('well-formed chapters pass', async () => {
+    expect(await validateContent(await withChapters())).toEqual([]);
+  });
+
+  test('a chapter needs both its lesson and its quick check', async () => {
+    const root = await withChapters();
+    await rm(`${root}/${NEW}/quick-check.json`);
+    const issues = await validateContent(root);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].file).toBe(`${NEW}/quick-check.json`);
+    expect(issues[0].message).toContain('needs both lesson.mdx and quick-check.json');
+  });
+
+  test('a folder name that does not parse is named as such', async () => {
+    const root = await withChapters();
+    await cp(`${root}/${NEW}`, `${root}/frontier/2026-02-30-bad-date`, { recursive: true });
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([
+      'frontier/2026-02-30-bad-date/lesson.mdx',
+      'frontier/2026-02-30-bad-date/quick-check.json',
+    ]);
+    expect(issues[0].message).toContain('<YYYY-MM-DD>-<slug>');
+  });
+
+  test('a case or any other file in a chapter is unexpected', async () => {
+    const root = await withChapters();
+    await writeFile(`${root}/${NEW}/case.json`, '{}');
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/case.json`]);
+    expect(issues[0].message).toContain('unexpected file');
+  });
+
+  test('a <DialogBox> in a Frontier lesson fails: no NPC there', async () => {
+    const root = await withChapters();
+    const file = `${root}/${NEW}/lesson.mdx`;
+    await writeFile(file, (await Bun.file(file).text()) + '\n<DialogBox>Hello.</DialogBox>\n');
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/lesson.mdx`]);
+    expect(issues[0].message).toContain('<DialogBox> is not allowed. No components are.');
+  });
+
+  test('the lesson id must match its folder', async () => {
+    const root = await withChapters();
+    const file = `${root}/${NEW}/lesson.mdx`;
+    const text = await Bun.file(file).text();
+    await writeFile(
+      file,
+      text.replace(`id: ${NEW}/lesson`, 'id: frontier/2026-10-06-other/lesson'),
+    );
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/lesson.mdx`]);
+    expect(issues[0].message).toContain(`expected "${NEW}/lesson"`);
+  });
+
+  test('a source must be official', async () => {
+    const root = await withChapters();
+    const file = `${root}/${NEW}/lesson.mdx`;
+    const text = await Bun.file(file).text();
+    await writeFile(
+      file,
+      text.replace('https://platform.claude.com/docs/en/prompting', 'https://blog.example.com/x'),
+    );
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/lesson.mdx`]);
+    expect(issues[0].message).toContain('is not under a trustTier: official entry');
+  });
+
+  test('a quick check needs exactly 3 questions', async () => {
+    const root = await withChapters();
+    const file = `${root}/${NEW}/quick-check.json`;
+    const data = await Bun.file(file).json();
+    data.questions.pop();
+    await writeFile(file, JSON.stringify(data));
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/quick-check.json`]);
+  });
+});
+
 /** A blog post file: valid by default; `fields` overrides frontmatter lines. */
 function post(body = '## Summary\n\nPlain text.', fields: Record<string, string> = {}) {
   const front = {

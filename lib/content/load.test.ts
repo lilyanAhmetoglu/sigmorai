@@ -1,9 +1,14 @@
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, test } from 'bun:test';
 import { REALM_COUNT, TRACKS } from '@/lib/constants';
 import { CaseSchema, LessonFrontmatterSchema, QuickCheckSchema } from '@/lib/types';
 import {
   ContentError,
   listBlogPosts,
+  listFrontierChapters,
+  listFrontierFolders,
   loadBlogPost,
   loadCase,
   loadLesson,
@@ -246,5 +251,53 @@ describe('blog posts', () => {
     expect(err.message).toContain('description');
     expect(err.message).toContain('/lesson');
     expect(err.message).toContain('sources');
+  });
+});
+
+describe('Frontier chapters', () => {
+  const FRONTIER = `${import.meta.dir}/__fixtures__/frontier`;
+
+  test('listFrontierFolders: well-named folders only, newest first', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'sigmorai-frontier-'));
+    try {
+      await cp(FRONTIER, root, { recursive: true });
+      await mkdir(`${root}/frontier/not-a-chapter`);
+      await mkdir(`${root}/frontier/2026-02-30-bad-date`);
+      await writeFile(`${root}/frontier/2026-10-07-a-file`, '');
+      expect(await listFrontierFolders(root)).toEqual([
+        '2026-10-06-new-thing',
+        '2026-10-05-older-thing',
+      ]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  test('no frontier folder is an empty list, not an error', async () => {
+    expect(await listFrontierFolders(VALID)).toEqual([]);
+    expect(await listFrontierChapters(VALID)).toEqual([]);
+  });
+
+  test('listFrontierChapters: title and minutes from each lesson, newest first', async () => {
+    expect(await listFrontierChapters(FRONTIER)).toEqual([
+      {
+        folder: '2026-10-06-new-thing',
+        date: '2026-10-06',
+        slug: 'new-thing',
+        title: 'Frontier fixture, newer',
+        minutes: 4,
+        lessonId: 'frontier/2026-10-06-new-thing/lesson',
+        quickCheckId: 'frontier/2026-10-06-new-thing/quick-check',
+      },
+      {
+        folder: '2026-10-05-older-thing',
+        date: '2026-10-05',
+        slug: 'older-thing',
+        title: 'Frontier fixture, older',
+        minutes: 6,
+        lessonId: 'frontier/2026-10-05-older-thing/lesson',
+        quickCheckId: 'frontier/2026-10-05-older-thing/quick-check',
+      },
+    ]);
   });
 });

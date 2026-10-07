@@ -6,34 +6,13 @@
  * page content (a page is untrusted text).
  */
 import { createHash } from 'node:crypto';
-import { readdir } from 'node:fs/promises';
-import {
-  CONTENT_DIR,
-  DOCS_LLMS_TXT_HOSTS,
-  DOCS_MD_HOSTS,
-  FRONTIER_AREA,
-  TRACKS,
-} from '@/lib/constants';
+import { CONTENT_DIR, DOCS_LLMS_TXT_HOSTS, DOCS_MD_HOSTS, TRACKS } from '@/lib/constants';
 import type { DocsWatchPending, DocsWatchState, DocsWatchTarget, KbSource } from '@/lib/types';
-import { mathExerciseIds, parseExerciseId, trackExerciseIds } from './ids';
-import { contentPath, hasContent, loadLesson } from './load';
+import { frontierExerciseIds, mathExerciseIds, trackExerciseIds } from './ids';
+import { hasContent, listFrontierFolders, loadLesson } from './load';
 import { urlKey } from './source-urls';
 
 const isLessonId = (id: string) => id.endsWith('/lesson');
-
-/** Frontier lesson ids from the folders on disk (none yet is fine). */
-async function frontierLessonIds(root: string): Promise<string[]> {
-  let folders: string[];
-  try {
-    folders = await readdir(contentPath(root, FRONTIER_AREA));
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
-    throw err;
-  }
-  return folders
-    .map((folder) => `${FRONTIER_AREA}/${folder}/lesson`)
-    .filter((id) => parseExerciseId(id) !== null);
-}
 
 /**
  * Every cited page → the lessons that cite it, keyed by urlKey
@@ -44,7 +23,7 @@ export async function citedPages(root = CONTENT_DIR): Promise<Map<string, string
   const ids = [
     ...TRACKS.flatMap(trackExerciseIds).filter(isLessonId),
     ...mathExerciseIds().filter(isLessonId),
-    ...(await frontierLessonIds(root)),
+    ...frontierExerciseIds(await listFrontierFolders(root)).filter(isLessonId),
   ];
   const cited = new Map<string, string[]>();
   for (const id of ids) {

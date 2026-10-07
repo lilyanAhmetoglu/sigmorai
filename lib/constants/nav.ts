@@ -46,6 +46,8 @@ export const realmHref = (slug: string, track?: Track) =>
 export const realmsHref = (track: Track) => `${REALMS_HREF}?${TRACK_PARAM}=${track}`;
 /** The Math Tower: the side realm's 8 floors (app/(app)/math). */
 export const MATH_HREF = '/math';
+/** The Frontier: the side realm of dated chapters on new docs (app/(app)/frontier). */
+export const FRONTIER_HREF = '/frontier';
 /** The world map: `/map` sends the player to the realm they are in. */
 export const MAP_HREF = '/map';
 /** One realm's level map: `/map/<slug>`, plus `?track=` when a track is given. */

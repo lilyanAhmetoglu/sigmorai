@@ -1,4 +1,5 @@
 import 'server-only';
+import type { Dirent } from 'node:fs';
 import { access, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
@@ -7,6 +8,7 @@ import {
   BLOG_AREA,
   CASE_FILE,
   CONTENT_DIR,
+  FRONTIER_AREA,
   MATH_AREA,
   KB_SOURCES_NAME,
   LESSON_FILE,
@@ -25,6 +27,8 @@ import {
   TrackOutlineSchema,
   type BlogPost,
   type Case,
+  type ExerciseRef,
+  type FrontierChapter,
   type KbSource,
   type Lesson,
   type MathOutline,
@@ -33,7 +37,7 @@ import {
   type Track,
   type TrackOutline,
 } from '@/lib/types';
-import { parseBlogFileName, parseExerciseId } from './ids';
+import { frontierExerciseIds, parseBlogFileName, parseExerciseId } from './ids';
 import { exerciseFile } from './paths';
 
 /**
@@ -229,6 +233,9 @@ export const loadSharedChapters = (root = CONTENT_DIR): Promise<SharedChaptersFi
 
 // ── Blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx ─────────────────────
 
+/** `YYYY-MM-DD-` names sort by date as text. Same date: reverse slug order, stable. */
+const newestFirst = (a: string, b: string) => (a < b ? 1 : -1);
+
 /** File names in content/blog/ that follow the post grammar, newest first. */
 async function blogFileNames(root: string): Promise<string[]> {
   let names: string[];
@@ -238,8 +245,7 @@ async function blogFileNames(root: string): Promise<string[]> {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
     throw err;
   }
-  // `YYYY-MM-DD-` sorts by date as text. Same date: reverse slug order, stable.
-  return names.filter((name) => parseBlogFileName(name) !== null).sort((a, b) => (a < b ? 1 : -1));
+  return names.filter((name) => parseBlogFileName(name) !== null).sort(newestFirst);
 }
 
 /**
@@ -270,4 +276,50 @@ export async function loadBlogPost(slug: string, root = CONTENT_DIR): Promise<Bl
 export async function listBlogPosts(root = CONTENT_DIR): Promise<BlogPost[]> {
   const names = await blogFileNames(root);
   return Promise.all(names.map((name) => loadBlogFile(name, root)));
+}
+
+// ── The Frontier: content/frontier/<YYYY-MM-DD>-<slug>/ ──────────────────
+
+/**
+ * Folder names in content/frontier/ that follow the chapter grammar, newest
+ * first. No folder yet is fine (an empty list). The one scan of this folder:
+ * the pages, docs-watch and content:check all use it.
+ */
+export async function listFrontierFolders(root = CONTENT_DIR): Promise<string[]> {
+  let entries: Dirent[];
+  try {
+    entries = await readdir(contentPath(root, FRONTIER_AREA), { withFileTypes: true });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw err;
+  }
+  return entries
+    .filter((e) => e.isDirectory() && frontierExerciseIds([e.name]).length > 0)
+    .map((e) => e.name)
+    .sort(newestFirst);
+}
+
+/**
+ * Every Frontier chapter, newest first: title and minutes from its lesson.
+ * A chapter with a bad or missing lesson throws (content:check requires both
+ * files), so a broken chapter fails loudly, like a blog post.
+ */
+export async function listFrontierChapters(root = CONTENT_DIR): Promise<FrontierChapter[]> {
+  const folders = await listFrontierFolders(root);
+  return Promise.all(
+    folders.map(async (folder): Promise<FrontierChapter> => {
+      const [lessonId, quickCheckId] = frontierExerciseIds([folder]);
+      const ref = parseExerciseId(lessonId) as Extract<ExerciseRef, { area: 'frontier' }>;
+      const { frontmatter } = await loadLesson(lessonId, root);
+      return {
+        folder,
+        date: ref.date,
+        slug: ref.slug,
+        title: frontmatter.title,
+        minutes: frontmatter.minutes,
+        lessonId,
+        quickCheckId,
+      };
+    }),
+  );
 }
