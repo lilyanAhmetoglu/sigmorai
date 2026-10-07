@@ -1,0 +1,86 @@
+---
+id: creator/r7/c2/lesson
+title: Roles
+minutes: 6
+sources:
+  - kind: blog
+    title: Anthropic · How we built our multi-agent research system
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+  - kind: docs
+    title: Claude docs · Agent SDK · Subagents
+    url: https://platform.claude.com/docs/en/agent-sdk/subagents
+  - kind: docs
+    title: OpenAI docs · Orchestration and handoffs
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: blog
+    title: Anthropic · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+---
+
+## Why it matters
+
+Say your pipeline has a step that needs judgment, such as checking a tagline for tone. You may give that step to a helper agent with its own job. A group of helpers is a **studio**. Each helper has a **role**.
+
+A role is not a name. "Art director" on a slide means nothing to a model. A role is a written brief that says what to do, what to return, and what to leave alone. This lesson shows what goes in it.
+
+In Agent Citadel you learned to start with one agent and split only for a clear reason. This lesson assumes you have that reason.
+
+## A role is a brief
+
+Anthropic built a multi-agent research system, and it learned how a lead agent should brief its helpers. Each helper "needs an objective, an output format, guidance on the tools and sources to use, and clear task boundaries."
+
+It also reports what happens without that. At first the lead gave short instructions such as "research the semiconductor shortage". The helpers misread the task or repeated each other. One explored the 2021 car chip crisis while two others both studied 2025 supply chains. Anthropic says that without detailed descriptions, agents "duplicate work, leave gaps, or fail to find necessary information".
+
+The studio version: ten helpers each get the order "localise the ad". Three pick the same market. Two skip a market. Nobody notices until the files arrive.
+
+## The role card
+
+This template is ours, not a vendor format. It follows Anthropic's four needs, plus two more.
+
+| Field          | What it holds                                        |
+| -------------- | ---------------------------------------------------- |
+| **Job**        | One sentence. One verb.                              |
+| **Input**      | What the role gets: files, approved copy, the market |
+| **Output**     | The exact shape of the answer, such as a file name   |
+| **Tools**      | Only the tools this role needs                       |
+| **Boundaries** | What it must not do or touch                         |
+| **Check**      | Who or what looks at the output next                 |
+
+Example card (made up): **Localiser.** Job: write the tagline in one market's language. Input: the approved English tagline, the market name, the brand tone page. Output: one line of text, nothing else. Tools: none. Boundaries: do not change the English meaning, do not add claims. Check: the copy checker.
+
+## Keep each job narrow
+
+OpenAI's orchestration guide says: "Give each specialist a narrow job." It also says to keep the short note that tells the model when to pick a specialist "short and concrete".
+
+Claude's Agent SDK has the same idea. Each subagent has a `description`, which says "when to use this agent", and a `prompt`, the system prompt "defining its role and behavior". The docs say a tailored prompt means each subagent can have specific expertise "that would be unnecessary noise in the main agent's instructions."
+
+## Give each role only the tools it needs
+
+Claude's docs list "tool restrictions" as a benefit of subagents: they "can be limited to specific tools, reducing the risk of unintended actions." Their example is a reviewer that can read files but cannot change them.
+
+For a studio, the checker can open files but cannot post. The localiser needs no tools. Only the role that makes images gets the image tool. Agent Citadel, chapter 6, covered why access should be small.
+
+## Match the model to the job
+
+Claude subagents can use a different model from the main agent. The `model` setting accepts an alias such as `sonnet` or `haiku`, or `inherit` to use the main model. Anthropic's routing example is the same idea: send easy, common questions "to smaller, cost-efficient models" and hard or unusual ones to more capable models.
+
+Our reading for a studio: a role that checks "is the logo file there, and is the line under 40 characters" is easier than a role that writes a launch idea. Test the smaller model on the easy role before you pay for the big one.
+
+## Roles in our ad studio
+
+A sample set (ours, made up):
+
+- **Producer.** Plans, hands out items, collects results. Does not make assets.
+- **Localiser.** Writes the tagline for one market.
+- **Visual maker.** Makes one image from approved words and a layout.
+- **Checker.** Reads the output against the rubric. It does not fix, it reports.
+
+Four roles. Not fifty. Fifty versions are fifty **items** passing through four roles. Anthropic's early agents did spawn "50 subagents for simple queries", and it added scaling rules to its prompts to stop that.
+
+## What this means for your work
+
+- **Write a role card for every helper.** Job, input, output, tools, boundaries, check.
+- **One verb per job.** If the job needs "and", it may be two roles.
+- **Remove tools the role does not need.**
+- **Try a cheaper model on the easy roles.**
+- **Count roles, not items.** Fifty ads do not need fifty agents.
