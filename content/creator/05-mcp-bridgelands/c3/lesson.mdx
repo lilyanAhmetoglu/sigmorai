@@ -1,0 +1,88 @@
+---
+id: creator/r5/c3/lesson
+title: Asset libraries
+minutes: 6
+sources:
+  - kind: docs
+    title: MCP specification · Resources
+    url: https://modelcontextprotocol.io/specification/2026-07-28/server/resources
+  - kind: docs
+    title: Claude docs · MCP connector (beta)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: Claude connectors docs · Build an MCP server for Claude
+    url: https://claude.com/docs/connectors/building
+  - kind: docs
+    title: OpenAI docs · MCP servers
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
+---
+
+## Why it matters
+
+Earlier you learned to find the right asset in a library. This chapter is about something before that: how the library is wired to the AI at all.
+
+Two choices matter. First, does the AI look at the live library, or at a copy? Second, what does the link let it see and do? You will not set it up. You will decide, and you will know what to ask the vendor.
+
+## Link or copy
+
+This pair is ours.
+
+- **Copy.** You upload files into a vendor's storage. The AI reads the copy. It is fixed, and it goes stale when the library changes.
+- **Link.** A server in front of the library answers when the AI asks. The AI sees what the library holds now.
+
+Example: the brand library replaces the old logo on Monday. A copy still holds the old logo on Tuesday. A link returns the new one.
+
+A link has a cost. Data leaves the library at every call. The last section of this lesson shows where it goes.
+
+## What the library server offers
+
+An MCP server can offer more than tools. The specification says **resources** "allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information". It also says resources are "application-driven": the app decides how to bring them in.
+
+Tools are different. The specification calls tools "model-controlled": the model finds and calls them.
+
+Here is the catch. The two Claude pages differ:
+
+- **Claude's API connector (beta)** says "only tool calls are currently supported" from the MCP feature set.
+- **Claude's connector docs** for building a server say a server "can expose" tools, prompts and resources to Claude's apps.
+
+So a library that offers only resources may work in one place and not in the other. Our advice: ask for tools such as "list assets" and "get one asset", and test in each place you plan to use.
+
+## Ready-made links and their limits
+
+OpenAI's Responses API has built-in connectors for services such as Dropbox, Google Drive and SharePoint. It marks them as legacy. The page says `connector_id` "is deprecated for models released after September 1, 2026". For new models you use `server_url` for a remote server, or a tunnel for a private one. Existing models keep connector support.
+
+So, if your library lives in a cloud drive, do not plan around `connector_id`. Ask the library vendor for a remote MCP server instead.
+
+## The tool list can change
+
+The server's owner can change what the server offers. Both vendors say so:
+
+- Anthropic: "An MCP server can change its tools at any time." Its beta lets you pin a copy of the tool list, "so a server that changes its tools doesn't change what Claude sees partway through a conversation". That is on the Claude API.
+- OpenAI: "MCP servers may update tool behavior unexpectedly, potentially leading to unintended or malicious behavior."
+
+Example: a library update adds a "delete asset" tool. If your set-up imports every tool, the AI now has a new power that nobody approved.
+
+Our habit: keep a record of the tool list you approved, import only the tools you named, and test after a vendor update.
+
+## A long list costs tokens
+
+A library server can have many tools. Both vendors let you hold back the details:
+
+- Claude: `defer_loading`, which means "tool description is not sent to the model initially".
+- OpenAI: `defer_loading: true`, so "the individual function definitions are loaded only when needed". OpenAI says this "can help reduce overall token usage". Both work together with each vendor's tool search.
+
+## Where the data goes
+
+A linked library sends asset data to a server, and often through a vendor. Check retention before you link anything secret.
+
+- Anthropic: "The MCP connector is not covered by ZDR arrangements." Data exchanged with MCP servers "is retained according to Anthropic's standard data retention policy". ZDR means zero data retention.
+- OpenAI: the MCP tool works with Zero Data Retention, but "data sent to an MCP server is subject to their data retention and data residency policies". It adds that this part is "your responsibility".
+
+Example: an unreleased campaign folder is under embargo. Put it outside the link until you know who keeps a copy, and for how long.
+
+## What this means for your work
+
+- **Choose link or copy on purpose.** Link for things that change. Copy for things that must not.
+- **Ask for tools,** not only resources, and test where you will use them.
+- **Record the approved tool list** and re-check after updates.
+- **Keep secret folders out of the link** until retention is checked at every hop.

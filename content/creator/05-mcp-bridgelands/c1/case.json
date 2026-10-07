@@ -1,0 +1,96 @@
+{
+  "id": "creator/r5/c1/challenge",
+  "title": "Four tools, three vendors",
+  "scenario": "The studio wants to link four tools to its own app, using three AI vendors. You decide which links work and how. Use the exhibit. The sheet is made up for this case. The vendor rules come from the docs.",
+  "exhibit": "CONNECTION SHEET (made up for this case):\n  Tool 1  Draft reader. Runs on Mina's laptop, speaks STDIO. Reads one folder.\n  Tool 2  Design-tool server. Hosted by the design vendor on the internet.\n          Public HTTPS, Streamable HTTP.\n  Tool 3  Brand library server. Built by the studio. Sits on the office\n          network. No public address, and the studio wants to keep it so.\n  Tool 4  Old scheduler server. Public HTTPS, speaks SSE only.\n\nWISH (made up for this case):\n  The studio's own app calls the Claude API, the OpenAI Responses API and\n  the Gemini API. It would like to reach these tools from all three.",
+  "questions": [
+    {
+      "prompt": "Which tools can the Claude API MCP connector (beta) reach with no extra set-up?",
+      "options": [
+        {
+          "text": "Tools 1 and 2, because the connector talks to every server that the studio owns",
+          "explanation": "Tool 1 is local and speaks STDIO. Anthropic says local STDIO servers cannot be connected directly."
+        },
+        {
+          "text": "Tools 2 and 4, because both are public, and the connector takes Streamable HTTP and SSE",
+          "explanation": "Right. Claude's connector needs a server that is publicly exposed through HTTP. It supports both Streamable HTTP and SSE.",
+          "correct": true
+        },
+        {
+          "text": "Tools 2 and 3, because an office server can be reached once the studio gives it a name",
+          "explanation": "Tool 3 has no public address. The connector needs a server that is publicly exposed through HTTP."
+        },
+        {
+          "text": "All four tools, because MCP is one standard and so every server speaks it the same way",
+          "explanation": "The standard is the same, but each API has its own limits. Anthropic lists what its connector can reach."
+        }
+      ]
+    },
+    {
+      "prompt": "A teammate wants Tool 4 in a Gemini call. What do you tell them?",
+      "options": [
+        {
+          "text": "It works as it is, because Gemini takes the same two transports as Claude and OpenAI",
+          "explanation": "Google's page says Remote MCP only works with Streamable HTTP. SSE servers are not supported."
+        },
+        {
+          "text": "Give the server a name that has a dash in it, which is the style Gemini wants to see",
+          "explanation": "Google says the opposite. Server names should not include the - character. Use snake_case."
+        },
+        {
+          "text": "Move Tool 4 to a Streamable HTTP address first, because Gemini does not support SSE servers",
+          "explanation": "Right. Google's page says Remote MCP only works with Streamable HTTP, and SSE servers are not supported.",
+          "correct": true
+        },
+        {
+          "text": "Put the server on a laptop, because Gemini reaches local servers more easily than public ones",
+          "explanation": "The cited Gemini page describes remote servers only. A laptop does not help."
+        }
+      ]
+    },
+    {
+      "prompt": "Tool 3 must stay off the public internet, but OpenAI and Claude calls should reach it. What fits?",
+      "options": [
+        {
+          "text": "Open an inbound firewall port, so that each vendor can call the office server directly",
+          "explanation": "Both vendor tunnels are made so that you do not have to open inbound ports."
+        },
+        {
+          "text": "Give the server a public address with a long, secret-looking name, then share it with both",
+          "explanation": "A hidden name is still a public address. The tunnels exist so a private server need not be public."
+        },
+        {
+          "text": "Copy the whole library onto Tool 2's server, so that only public servers are in the plan",
+          "explanation": "This breaks the plan. The library would move to a vendor's server and leave the studio's control."
+        },
+        {
+          "text": "Use each vendor's outbound-only tunnel, and note that Claude's is a research preview",
+          "explanation": "Right. OpenAI's Secure MCP Tunnel and Anthropic's MCP tunnels both use outbound-only links. Anthropic's is a research preview and may change.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The producer asks if OpenAI charges a fee for each MCP tool call. What do you say?",
+      "options": [
+        {
+          "text": "No fee per call, but tokens are billed for tool definitions and calls, so long lists cost more",
+          "explanation": "Right. OpenAI says you pay for tokens used importing tool definitions or making tool calls, with no per-call fee. As you saw in Tool Forge, long tool lists add tokens to each turn.",
+          "correct": true
+        },
+        {
+          "text": "Yes, each call has its own fee, so the studio should count calls as well as tokens",
+          "explanation": "OpenAI says no additional fees apply per tool call."
+        },
+        {
+          "text": "No cost at all, because MCP is an open standard and the standard itself is free for everyone",
+          "explanation": "Open does not mean free to run. The model tokens for definitions and calls are billed."
+        },
+        {
+          "text": "Only the first call in a chat is billed, and every later call is free for the rest of that chat",
+          "explanation": "OpenAI's page describes no such rule. Tokens are billed when definitions are imported or tools are called."
+        }
+      ]
+    }
+  ]
+}

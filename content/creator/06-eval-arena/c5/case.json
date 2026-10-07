@@ -1,0 +1,118 @@
+{
+  "id": "creator/r6/c5/challenge",
+  "title": "The gate that passed everything",
+  "scenario": "Lantern Studio is adding a safety gate to its scorecard before it picks an image model for Fernhill Candles. You judge the checks, using the exhibit. The calls, settings and counts are made up for this case.",
+  "exhibit": "MODERATION CALL 1 (made up for this case)\n  Input: one image only, with no text. The image is a poster with an insulting\n  caption about a coworker drawn on it.\n  Result: flagged = false.  harassment = 0.00.  violence = 0.01.  sexual = 0.00.\n\nMODERATION PLAN (made up)\n  Both models are OpenAI GPT Image models.\n  Model A runs with moderation = auto.   Blocked prompts: 9 of 60.\n  Model B runs with moderation = low.    Blocked prompts: 3 of 60.\n\nGEMINI SETTING (made up)\n  The team sets the hate speech filter to BLOCK_ONLY_HIGH (\"Block few\").\n  A developer writes: \"Now all severe hateful content is blocked.\"\n\nSAFETY TEST SET (made up)\n  200 prompts, all friendly briefs written by the team.\n  Result: 200 of 200 images safe.\n\nDEVELOPER PROPOSAL (made up)\n  Delete every image with flagged = true.\n  Approve every image with flagged = false. No person looks at any of them.",
+  "questions": [
+    {
+      "prompt": "In moderation call 1, the harassment score is 0.00. What is the right reading?",
+      "options": [
+        {
+          "text": "The image is clean, since the harassment score is 0.00 and no category was flagged",
+          "explanation": "Harassment is a text-only category. With an image alone, OpenAI says the score is 0 for it, so the zero tells you little."
+        },
+        {
+          "text": "The moderation model is broken, because it should score any insulting caption above zero",
+          "explanation": "OpenAI says unsupported categories return 0 for image-only input. That is expected, not a fault."
+        },
+        {
+          "text": "Every image-only call returns 0 for every category, so images cannot be checked at all",
+          "explanation": "Some categories do support images, such as violence and sexual. Only the text-only ones return 0."
+        },
+        {
+          "text": "A zero here proves little: harassment is text-only, so send the caption with the image",
+          "explanation": "Right. OpenAI says text-only categories score 0 for image-only input. Sending the text lets those categories work. That second step is our fix.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Model B blocked fewer prompts than Model A (3 of 60 against 9 of 60). What does that show?",
+      "options": [
+        {
+          "text": "Model B is the safer model, because fewer of its prompts needed any blocking",
+          "explanation": "Fewer blocks may mean less strict filtering, not safer output."
+        },
+        {
+          "text": "Not much: B ran with moderation = low, so the setting may explain the gap in blocks",
+          "explanation": "Right. OpenAI says low means less restrictive filtering. A fair test fixes the settings, as in chapter 4.",
+          "correct": true
+        },
+        {
+          "text": "Nothing at all, because filter settings never change what an image model gives back",
+          "explanation": "OpenAI describes `auto` and `low` as different levels of filtering."
+        },
+        {
+          "text": "Model B is the better model, because blocked prompts are lost work and cost the studio time",
+          "explanation": "A blocked prompt may be a prompt that should be blocked. Fewer blocks is not a quality score."
+        }
+      ]
+    },
+    {
+      "prompt": "A developer says BLOCK_ONLY_HIGH now blocks all severe hateful content. What is the problem?",
+      "options": [
+        {
+          "text": "Nothing, because a high threshold means the filter catches everything that is severe",
+          "explanation": "The threshold is about probability. Google says the API blocks by probability and not severity."
+        },
+        {
+          "text": "Hate speech cannot be adjusted, because every Gemini filter is built in and always blocked",
+          "explanation": "Hate speech is one of the four adjustable categories. The always-blocked group is the core harms, such as child safety."
+        },
+        {
+          "text": "The setting does nothing, because Google keeps all filters off for every model",
+          "explanation": "Filters are off by default, but setting a threshold turns one on, so the setting does change what is blocked."
+        },
+        {
+          "text": "It blocks by probability of unsafe content, not by severity, so test your own examples",
+          "explanation": "Right. Google's settings page says the API blocks on the probability of unsafe content and not on severity.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The safety test set had 200 friendly prompts, and 200 of 200 images were safe. What is the weakness?",
+      "options": [
+        {
+          "text": "It has no edge or adversarial briefs, so a perfect score says little about failures",
+          "explanation": "Right. Google says adversarial testing should use data most likely to elicit problematic output, including edge cases.",
+          "correct": true
+        },
+        {
+          "text": "Two hundred is too few, and a safety test needs at least ten thousand friendly prompts",
+          "explanation": "The weak point is the kind of prompt, not only the count."
+        },
+        {
+          "text": "Friendly prompts are unfair to the model, because they never give it a chance to fail",
+          "explanation": "The point is not fairness to the model. The set should show how it behaves when it is pushed."
+        },
+        {
+          "text": "The team wrote the prompts, so a public benchmark from a vendor would test better",
+          "explanation": "Google says you will likely need your own test sets built for your context."
+        }
+      ]
+    },
+    {
+      "prompt": "What should you say about the developer proposal?",
+      "options": [
+        {
+          "text": "Delete on a flag and approve on no flag, because the scores are exact and need no person",
+          "explanation": "OpenAI says to treat scores as signals for your policy, not as an automatic blocking decision."
+        },
+        {
+          "text": "Delete every image with a score above zero, and approve only those that score exactly 0.00",
+          "explanation": "A rule on raw scores is still automatic, and OpenAI says scores may need recalibration over time."
+        },
+        {
+          "text": "Use flags and scores to route images to a review queue, and let a person decide close calls",
+          "explanation": "Right. OpenAI suggests using results for routing and review queues. Claude's docs ask for human oversight on sensitive image analysis.",
+          "correct": true
+        },
+        {
+          "text": "Skip moderation, because the vendor's filter at generation time already checks every image",
+          "explanation": "Anthropic says no single layer catches every issue. Layers work together."
+        }
+      ]
+    }
+  ]
+}

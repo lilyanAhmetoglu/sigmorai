@@ -1,0 +1,81 @@
+---
+id: creator/r7/c1/lesson
+title: Pipelines
+minutes: 6
+sources:
+  - kind: blog
+    title: Anthropic · Building effective agents
+    url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: repo
+    title: OpenAI Agents SDK (Python) · Agent orchestration
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md
+---
+
+## Why it matters
+
+A client sends one approved ad and asks for fifty versions: ten markets, five sizes each. One chat cannot do this well. The chat gets long, details drift, and nobody can say which version is done.
+
+A **pipeline** is a line of fixed steps that every version goes through. In Agent Citadel you learned to pick a fixed workflow over an agent when you can write the steps on one page. This lesson is about drawing that line well. Chapters 2 to 6 fill it in: roles, handoffs, batches, shared state and cost.
+
+## Chain: one step feeds the next
+
+Anthropic describes prompt chaining like this: it "decomposes a task into a sequence of steps, where each LLM call processes the output of the previous one." You can add programmatic checks, which it calls a gate, on any step. It says the main goal is "to trade off latency for higher accuracy, by making each LLM call an easier task."
+
+One of its own examples fits localised ads: "Generating Marketing copy, then translating it into a different language." Step 1 writes the line. Step 2 translates it. Each call has one small job.
+
+OpenAI's Agents SDK docs list the same idea for orchestrating "via code": "Chaining multiple agents by transforming the output of one into the input of the next." Its example is a blog post: research, outline, write, critique, improve.
+
+## Parallel: independent steps at the same time
+
+Anthropic names a second pattern, parallelization. One form is sectioning: "Breaking a task into independent subtasks run in parallel." OpenAI says that running agents in parallel "is useful for speed when you have multiple tasks that don't depend on each other."
+
+The test is in the last words: **do not depend on each other**. The German tagline does not need the French tagline. So all ten markets can run at the same time. But "pack the 50 files" needs every file first, so it must wait for all of them.
+
+## Fixed steps are easier to predict
+
+OpenAI's docs compare two ways to run agents. If the LLM decides the steps, you rely on its judgment. If your code decides, "orchestrating via code makes tasks more deterministic and predictable, in terms of speed, cost and performance."
+
+For fifty versions of one ad, you know the steps. So fix them. Save judgment for the one place that needs it, such as a person approving the master.
+
+## Our method: once, each, all
+
+This part is ours, not a vendor's. Every step in a pipeline runs at one of three **scopes**:
+
+| Scope    | Meaning                        | Example                                   |
+| -------- | ------------------------------ | ----------------------------------------- |
+| **Once** | One time for the whole job     | Approve the master ad and the brand rules |
+| **Each** | One time per item, in parallel | Localise a tagline, make one size         |
+| **All**  | After every item has finished  | Collect the files, person signs off, send |
+
+In Tool Forge you met the pipeline sheet. Add one column to it: **Runs**. Write once, each or all on every row.
+
+Example (numbers made up for this lesson): 10 markets and 5 sizes make 50 versions. The words depend on the market only. So localising is "each market", ten runs, not fifty. Making the image is "each version", fifty runs.
+
+## Put cheap checks before costly steps
+
+In Agent Citadel you saw a gate on a storyboard. The same idea works here. A check on the translated tagline takes a second. An image render takes longer and costs more. Check the words first, so a wrong tagline never reaches the render.
+
+## Routing: different inputs, different paths
+
+Anthropic describes routing this way: it "classifies an input and directs it to a specialized followup task." Its customer-service example sends refund requests and technical questions down different paths.
+
+A studio version (ours): a request says "new market" or "resize only". New markets go through localising. A resize goes straight to the image step, because the words are already approved.
+
+## A sample line for 50 ads
+
+This is our example, with made-up scopes:
+
+1. Approve master ad and brand rules. **Once**, by a person.
+2. Localise the tagline. **Each** market.
+3. Check each tagline. **Each** market. A gate.
+4. Make the image. **Each** version.
+5. Check each image. **Each** version.
+6. Collect files, sign off, send. **All**, by a person.
+
+## What this means for your work
+
+- **Write the steps first, then add agents only where a step needs judgment.**
+- **Give every step a scope:** once, each or all.
+- **Run independent items in parallel.** Make the last step wait for all of them.
+- **Put cheap checks before costly steps.**
+- **Keep the line fixed.** A fixed line is easier to cost, test and repeat.

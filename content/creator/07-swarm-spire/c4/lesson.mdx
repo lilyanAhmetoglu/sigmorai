@@ -1,0 +1,88 @@
+---
+id: creator/r7/c4/lesson
+title: Batch runs
+minutes: 7
+sources:
+  - kind: docs
+    title: Claude docs · Batch processing
+    url: https://platform.claude.com/docs/en/build-with-claude/batch-processing
+  - kind: docs
+    title: OpenAI docs · Batch API
+    url: https://developers.openai.com/api/docs/guides/batch
+  - kind: docs
+    title: Gemini API docs · Batch API
+    url: https://ai.google.dev/gemini-api/docs/batch-api
+  - kind: docs
+    title: Gemini API docs · Pricing
+    url: https://ai.google.dev/gemini-api/docs/pricing
+---
+
+## Why it matters
+
+Fifty image requests sent one by one means fifty tickets to watch. A **batch** is one parcel: you send all the requests together, go away, and collect the results later. In Bootstrap Village you learned that batch is cheaper and slower. This chapter is about how a batch run works, and how it goes wrong.
+
+Job tickets and retries were covered in Tool Forge. A batch is a job with many parts, so the same ideas apply to each part.
+
+## The shape of a batch
+
+All three vendors work the same way. You send a list of requests. **Each request carries its own id.**
+
+- **Claude:** each request has a `custom_id`, 1 to 64 characters. Results come back after the batch ends.
+- **OpenAI:** a file with one request per line. Each line "must include a unique `custom_id` value". You upload the file, start the batch and collect an output file.
+- **Gemini:** each line has a "user-defined key". The key "is used in the response to indicate which output is the result of which request."
+
+Example id (ours): `tea-de-9x16`, for the tea ad, German market, 9:16 size. A good id says which item it is.
+
+## Results come back in any order
+
+Claude says: "Batch results can be returned in any order, and may not match the ordering of requests when the batch was created." OpenAI says the same: "the output line order may not match the input line order." Both say to use the id, not the position.
+
+So the first result you see is not "ad number 1". Match every result to its item by id. A studio that matches by position can attach a French image to a German row, and nobody sees it.
+
+## Some parts can fail while the batch finishes
+
+A batch is not all-or-nothing. Each request ends in its own state.
+
+- **Claude:** `succeeded`, `errored`, `canceled` or `expired`. For the last three, "You will not be billed for these requests."
+- **OpenAI:** the output file holds the successes. Failed requests go into an error file. If the batch runs out of time, unfinished requests are cancelled, "any responses to completed requests are made available", and "You will be charged for tokens consumed from any completed requests." Expired requests are in the error file with the code `batch_expired`.
+- **Gemini:** a job can be `JOB_STATE_SUCCEEDED`, `FAILED`, `CANCELLED` or `EXPIRED`. An expired job ran or waited "for more than 48 hours" and "will not have any results to retrieve". Google suggests submitting again or "splitting up the requests into smaller batches".
+
+Two lessons follow. First, read the final state of each item, as you did for tickets in Tool Forge. Second, the vendors differ on partial results. Check the rule for the vendor you use.
+
+Our method for the fix: **collect the ids that did not succeed, and send only those in a new, small batch.** Use the three buckets from Tool Forge, chapter 5. If an item failed because the request was wrong, fix it first. If it only expired, send it again as it is.
+
+## How long is the window?
+
+- **Claude:** "most batches completing within 1 hour". The batch expires if it does not finish in 24 hours. Results "are available for 29 days after creation".
+- **OpenAI:** "Each batch completes within 24 hours (and often more quickly)."
+- **Gemini:** "The target turnaround time is 24 hours, but in majority of cases, it is much quicker." A job that runs or waits more than 48 hours expires.
+
+Plan for the long end. If the deadline is tomorrow morning, a batch sent at night is a risk. Download the results soon after they finish. A Claude batch is not kept for ever.
+
+## Test one first
+
+Claude warns that the check of each request in a batch happens late: "Validation of the `params` object for each message request is performed asynchronously, and validation errors are returned when processing of the entire batch has ended." Its best-practice list says to "Dry run a single request shape with the Messages API to avoid validation errors."
+
+For a studio: run two or three versions the normal way first. Look at the images. Then send the other forty-seven as a batch. A typo found after a night of waiting costs a night.
+
+OpenAI adds a rule for its files: "each input file can only include requests to a single model." So one file for each model.
+
+## What can go in a batch?
+
+Not every step can be batched. Check the vendor's page.
+
+- **Images.** OpenAI lists `/v1/images/generations` and `/v1/images/edits` as batch endpoints, and says GPT Image 2.5 models support batch image generation and editing. Gemini says that for Nano Banana, you can use the Batch API "to get higher rate limits in exchange for a turnaround of up to 24 hours".
+- **Claude.** Messages requests can be batched, and the list includes vision. So Claude can check many images in one batch. It makes text, not images.
+- **Video.** The Veo 3.1 price block on Google's pricing page, checked on 2026-10-07, lists prices per second and no Batch row. Do not assume a video step can be batched. Ask or check first.
+
+Gemini's Batch API page also says: "This feature is currently only available with the generateContent API."
+
+## What this means for your work
+
+- **Give every request an id that names the item.** Match results by id.
+- **Never trust the order of the results.**
+- **Read the final state of each item.** Collect the ones that did not succeed.
+- **Send only the missing ids in a new, small batch.** Fix the broken ones first.
+- **Plan for the long end of the window.** Download results soon.
+- **Run two or three items normally before the big batch.**
+- **Check that the step you want is on the vendor's batch list.**

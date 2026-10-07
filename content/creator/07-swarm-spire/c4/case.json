@@ -1,0 +1,96 @@
+{
+  "id": "creator/r7/c4/challenge",
+  "title": "What do you do with the batch result?",
+  "scenario": "A studio sent 50 image requests in one batch. You read the summary and decide the next step. The summary is our own example, made up for this case. The vendor lines are copied from the docs.",
+  "exhibit": "BATCH SUMMARY (made up for this case):\n  Sent Tuesday 18:00: 50 image requests in one batch.\n  Ids name the item: tea-de-9x16 = tea ad, German market, 9:16.\n  Result: 44 succeeded, 4 expired, 2 errored.\n  First line of the result file: tea-fr-1x1.\n  Row 1 of the status sheet: tea-de-9x16.\n  Error note on the 2 errored: \"invalid request: size not allowed\".\n  Client deadline: Friday 12:00. Now: Wednesday 20:00.\n\nPLAN IDEA (made up for this case):\n  Add 2 Veo video clips to the next batch to save money.\n\nVENDOR LINES (copied from the docs):\n  Claude, batch processing: \"Batch results can be returned in any order, and\n  may not match the ordering of requests when the batch was created.\"\n  OpenAI, Batch API: \"unfinished requests within that batch are cancelled,\n  and any responses to completed requests are made available via the\n  batch's output file.\"\n  Claude, batch processing: \"Dry run a single request shape with the Messages\n  API to avoid validation errors.\"\n  Google, pricing page, Veo 3.1 (checked on 2026-10-07): prices are listed per\n  second. The block has no Batch row.",
+  "questions": [
+    {
+      "prompt": "The first result line is tea-fr-1x1, but row 1 of the sheet is tea-de-9x16. How do you fill the sheet?",
+      "options": [
+        {
+          "text": "Fill the rows in the order the results arrive, because the first result belongs to row 1",
+          "explanation": "Results can come back in any order. Position would put a French image on a German row."
+        },
+        {
+          "text": "Sort the result file by image size first, and then copy the lines into the sheet rows",
+          "explanation": "Size does not say which item a result belongs to. Only the id does."
+        },
+        {
+          "text": "Wait for the batch to be sent again, because results out of order mean something broke",
+          "explanation": "Out of order is normal. Nothing is broken."
+        },
+        {
+          "text": "Match every result to its row by id, and ignore where each line sits in the result file",
+          "explanation": "Right. Both Claude and OpenAI say the order may not match, so use the id.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What should the studio do about the 6 items that did not succeed?",
+      "options": [
+        {
+          "text": "Send all 50 again in one new batch, so that every image comes from the same run",
+          "explanation": "This pays again for 44 images that already worked."
+        },
+        {
+          "text": "Send again only the 4 expired ones, because the 2 errored will repair themselves later",
+          "explanation": "An errored request has a problem. It will fail the same way unless it is fixed."
+        },
+        {
+          "text": "Fix the size on the 2 errored requests, then send only the 6 ids in a new small batch",
+          "explanation": "Right. Fix a bad request first. Then resend only the ids that are missing.",
+          "correct": true
+        },
+        {
+          "text": "Wait for the 4 expired ones, because they will still arrive in the same result file",
+          "explanation": "OpenAI says unfinished requests in an expired batch are cancelled. They will not arrive."
+        }
+      ]
+    },
+    {
+      "prompt": "The team will send the 6 ids as a new batch. What should it do first?",
+      "options": [
+        {
+          "text": "Nothing, because errors in a batch show up at once, as soon as it is created",
+          "explanation": "Not every error shows at once. Claude, for example, returns validation errors only when the whole batch has ended. The 2 size errors in this batch also came back at the end."
+        },
+        {
+          "text": "Run one request of each size the normal way, to catch a bad size before the batch",
+          "explanation": "Right. Claude advises a dry run of a single request shape, because validation errors come late in a batch.",
+          "correct": true
+        },
+        {
+          "text": "Rename the ids to the numbers 1 to 6, because short ids are safer to match later",
+          "explanation": "The ids name the item. Plain numbers make matching harder."
+        },
+        {
+          "text": "Ask for a longer batch window, so that the slow items have more time to finish this round",
+          "explanation": "More time does not fix a bad size. The 2 errored requests fail the same way until the size is corrected."
+        }
+      ]
+    },
+    {
+      "prompt": "Should the 2 Veo clips go in the next batch?",
+      "options": [
+        {
+          "text": "Yes, because a batch accepts any request type once the request has an id",
+          "explanation": "Batch support depends on the endpoint. Check the vendor's list."
+        },
+        {
+          "text": "Yes, because every vendor offers batch video at half the price of normal video",
+          "explanation": "Do not assume a discount. Google's Veo price block shows no Batch row."
+        },
+        {
+          "text": "No, because a batch can only ever hold requests that make images and nothing else at all",
+          "explanation": "Batches can hold other request types, such as Claude's text and vision requests."
+        },
+        {
+          "text": "Not yet, because Google's Veo price block shows no Batch row, so check before planning on it",
+          "explanation": "Right. Do not assume a video step can be batched or discounted. Read the vendor's page for that model.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

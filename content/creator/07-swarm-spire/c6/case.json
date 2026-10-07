@@ -1,0 +1,96 @@
+{
+  "id": "creator/r7/c6/challenge",
+  "title": "Is the budget right?",
+  "scenario": "A studio plans 20 ad images. A producer agent runs inside Claude's Agent SDK. You review the plan before the first request. The budget numbers are our own examples, made up for this case. The vendor lines are copied from the docs.",
+  "exhibit": "BUDGET DRAFT (made up for this case):\n  Copy      4 markets x $0.25              = $1.00\n  Images    20 images x 3 tries x $0.10    = $6.00\n  Checks    60 image checks x $0.05        = $3.00\n  Helpers   4 helper agents x $2.00        = $8.00\n  Total written in the draft: $14.00\n  Client cap: $20.00\n\nPRODUCER BRIEF (draft, made up for this case):\n  \"Use as many helpers as you need.\"\n  No spend option is set in the SDK call.\n\nVENDOR LINES (copied from the docs):\n  Claude, batch processing: \"batches may go slightly over your Workspace's\n  configured spend limit.\"\n  Claude Agent SDK, subagents: the spend limit has the default \"No limit\".\n  The concurrency limit has the default \"20 subagents running at once\".\n  (Current SDK releases. On earlier releases some limits are missing or\n  default differently.)\n  OpenAI Agents SDK, running agents: \"If we exceed the max_turns passed, we\n  raise a MaxTurnsExceeded exception.\"\n  Anthropic, research system: \"Agents struggle to judge appropriate effort\n  for different tasks\".",
+  "questions": [
+    {
+      "prompt": "The draft total reads $14.00. What is the right sum of the four lines?",
+      "options": [
+        {
+          "text": "About $14.",
+          "explanation": "This is the total written in the draft. The four lines do not add up to it."
+        },
+        {
+          "text": "About $17.",
+          "explanation": "This leaves out the copy line. All four lines count."
+        },
+        {
+          "text": "About $18.",
+          "explanation": "Right. 1 + 6 + 3 + 8 = 18. The draft total is wrong, and the plan has less room under the $20 cap than it seemed.",
+          "correct": true
+        },
+        {
+          "text": "About $20.",
+          "explanation": "This is the client cap, not the sum of the lines."
+        }
+      ]
+    },
+    {
+      "prompt": "The team wants a reserve in the plan. Why is a reserve useful when the image checks go in a Claude batch?",
+      "options": [
+        {
+          "text": "Batches always cost a fixed share more than the page price, so a reserve covers that",
+          "explanation": "Claude does not say that. It says batches may go slightly over a configured spend limit."
+        },
+        {
+          "text": "A batch may run slightly over a spend limit, so a reserve keeps an overrun in the plan",
+          "explanation": "Right. Claude says that, because of high throughput and concurrent processing, batches may go slightly over the configured spend limit.",
+          "correct": true
+        },
+        {
+          "text": "A reserve lets the batch finish sooner, because the vendor runs paid-up batches first",
+          "explanation": "Claude's batch docs do not link money set aside to speed. The reserve is about cost, not time."
+        },
+        {
+          "text": "A reserve is only needed for retries, because a batch is billed at a fixed price per item",
+          "explanation": "Claude bills batch usage at 50% of the standard price, not a fixed price per item. A batch can also go slightly over the spend limit."
+        }
+      ]
+    },
+    {
+      "prompt": "No spend option is set in the SDK call. What do the docs say about the default?",
+      "options": [
+        {
+          "text": "A default limit of $20 applies to every query that the SDK runs for the studio",
+          "explanation": "The docs list the spend limit default as \"No limit\"."
+        },
+        {
+          "text": "The SDK reads the client cap by itself and stops the run when the cap is reached",
+          "explanation": "Neither SDK knows the client's cap. Claude's SDK has a spend option you set yourself. OpenAI's SDK caps turns with max_turns, not money."
+        },
+        {
+          "text": "The SDK stops after 20 helpers run at once, which works in the same way as a spend limit",
+          "explanation": "That is the concurrency limit. It counts helpers at once, not money."
+        },
+        {
+          "text": "There is no spend limit by default, so you set one yourself, such as max_budget_usd",
+          "explanation": "Right. The docs list the spend limit default as \"No limit\". The option is max_budget_usd in Python.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The brief says \"Use as many helpers as you need.\" What should change?",
+      "options": [
+        {
+          "text": "Nothing, because the model can judge the right amount of effort for the job by itself",
+          "explanation": "Anthropic says agents struggle to judge appropriate effort for different tasks."
+        },
+        {
+          "text": "Add an effort rule: how many helpers and tries to use, and when it must stop and ask",
+          "explanation": "Right. Anthropic put scaling rules in its prompts because agents struggle to judge effort. Write the limits into the brief.",
+          "correct": true
+        },
+        {
+          "text": "Change it to \"Use 20 helpers\", so that every one of the 20 images has its own helper",
+          "explanation": "This spends more. Anthropic's early agents over-invested in simple work."
+        },
+        {
+          "text": "Remove the brief and let each helper write its own rules for how much work it does",
+          "explanation": "Without a brief, each helper guesses its own effort. That is the problem to solve."
+        }
+      ]
+    }
+  ]
+}

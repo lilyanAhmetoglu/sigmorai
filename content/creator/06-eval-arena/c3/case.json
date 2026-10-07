@@ -1,0 +1,96 @@
+{
+  "id": "creator/r6/c3/challenge",
+  "title": "Can the judge be trusted?",
+  "scenario": "Lantern Studio wants a vision model to grade candle images for Fernhill Candles, so a person does not have to look at all of them. You judge the set-up, using the exhibit. The numbers and prompts are made up for this case.",
+  "exhibit": "CALIBRATION, LOGO LINE (made up for this case)\n  30 images were marked pass or fail by a person and by the model judge.\n  Person:  20 pass, 10 fail.\n  Judge:   passed 18 of the 20 the person passed.\n           failed 4 of the 10 the person failed, and passed the other 6.\n  Same answer on 22 of 30 images.\n\nPAIR LOG (made up)\n  100 pairs, one image from Model A and one from Model B.\n  Run 1  Model B shown first.   Judge picked the first image 70 times.\n  Run 2  Same pairs, A first.   Judge picked the first image 68 times.\n\nJUDGE PROMPTS FOR THE LABEL LINE (made up)\n  P1  \"Score this image from 1 to 10 on the whole rubric. Reply with one number.\"\n  P2  \"Does the label read exactly 'Fernhill Soy Candle'? Think briefly first.\n       Then reply PASS, FAIL or UNKNOWN, and give one sentence of reason.\"\n  P3  \"Is this a good image? Reply yes or no.\"\n  P4  \"Reply PASS or FAIL for the label only. Do not write any other words.\"\n\nRERUN (made up)\n  The same 20 images, the same judge, the same prompt.\n  Monday: 15 pass.   Tuesday: 12 pass.   5 images changed their grade (4 to fail, 1 to pass).",
+  "questions": [
+    {
+      "prompt": "What do the calibration numbers say about the judge on the logo line?",
+      "options": [
+        {
+          "text": "It is ready, since it gives the same answer as the person on 22 of the 30 test images",
+          "explanation": "Agreement alone hides the kind of mistake. Here the mistakes let bad logos through."
+        },
+        {
+          "text": "Not ready: it passed 6 of the 10 images the person failed, so bad logos get through",
+          "explanation": "Right. OpenAI says to scale up only once the judge consistently agrees with human annotations. The overall 22 of 30 hides where it is wrong.",
+          "correct": true
+        },
+        {
+          "text": "It is too strict, because it passed only 18 images and so it rejects many good logos",
+          "explanation": "The judge passed 24 images in all (18 + 6), more than the person's 20. It is too lenient."
+        },
+        {
+          "text": "It is nearly perfect, because it disagreed with the person on only 4 of the 30 images",
+          "explanation": "It disagreed on 8 images (2 + 6), not 4. The 6 are the costly ones."
+        }
+      ]
+    },
+    {
+      "prompt": "Using the pair log, which statement is right?",
+      "options": [
+        {
+          "text": "Model B is better, because it won 70 of the 100 pairs in the first run",
+          "explanation": "In Run 1, B was shown first. The judge picked the first image about as often in Run 2."
+        },
+        {
+          "text": "Model A is better, because its image won 68 of the 100 pairs in the second run",
+          "explanation": "In Run 2, A was shown first. This is the same effect, seen from the other side."
+        },
+        {
+          "text": "The order decides the pick, as over both runs B won 102 of 200, which is about even",
+          "explanation": "Right. OpenAI lists position bias for model judges. B won 70, then 32 (100 - 68) when shown second.",
+          "correct": true
+        },
+        {
+          "text": "A model judge can never compare two images, so the whole pair test should be dropped",
+          "explanation": "OpenAI recommends pairwise comparison. The fix is to test both orders, not to drop it."
+        }
+      ]
+    },
+    {
+      "prompt": "Which judge prompt is best for the label line?",
+      "options": [
+        {
+          "text": "P1, because one score for the whole rubric saves the most money on each image",
+          "explanation": "One number for many lines mixes them. Anthropic says to grade each dimension with its own judge."
+        },
+        {
+          "text": "P3, because a plain yes or no keeps the answer short and quick to read",
+          "explanation": "\"Good\" is not defined. The judge has no rubric line to apply."
+        },
+        {
+          "text": "P4, because a bare PASS or FAIL cannot be argued with or over-explained away",
+          "explanation": "It gives no reasoning and no way out. Claude says reasoning before the score improves grading, and Anthropic says to allow \"Unknown\"."
+        },
+        {
+          "text": "P2, because it asks one narrow question, adds a reasoning step, and allows UNKNOWN",
+          "explanation": "Right. It matches the tips from Claude, OpenAI and Anthropic: a clear rubric line, reasoning first, and a way out.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "The same 20 images got 15 passes on Monday and 12 on Tuesday. What is the best response?",
+      "options": [
+        {
+          "text": "Keep only Monday's grades and delete Tuesday's, since the first run is the real one for us",
+          "explanation": "Deleting a run hides the variation. It does not remove it."
+        },
+        {
+          "text": "Run the grader a few times on the set, and tighten any line whose grades keep changing",
+          "explanation": "Right. Anthropic lists model graders as non-deterministic and says they need calibration. A line that flips is too loose.",
+          "correct": true
+        },
+        {
+          "text": "Stop using model graders for good, since a model's grades can never be useful to a studio",
+          "explanation": "Model graders are useful when checked. The change is a reason to check, not to quit."
+        },
+        {
+          "text": "Report that the vendor's model is broken and wait for a fix before running any new test",
+          "explanation": "Variation between runs is a known trait of model graders, not a vendor fault."
+        }
+      ]
+    }
+  ]
+}

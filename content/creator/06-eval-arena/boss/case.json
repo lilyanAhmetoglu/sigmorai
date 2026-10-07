@@ -1,0 +1,118 @@
+{
+  "id": "creator/r6/boss/challenge",
+  "title": "Build a scorecard that decides if a new image model can replace the old one",
+  "scenario": "Lantern Studio must decide if a new image model can replace the one it uses for Fernhill Candles. You check the studio's scorecard and its results before the decision, using the exhibit. The studio, the rules, the results and the numbers are made up for this case. The vendor line is copied from the docs.",
+  "exhibit": "BRIEF (made up for this case; the results below say nothing about the real models):\n  Fernhill Candles needs product images: 70% edits of approved packshots and\n  30% new social images. Old model: Nano Banana 2 (in use). New model:\n  Nano Banana 2.1 (candidate). Decision due Friday.\n\nRULES (ours, made up for this case):\n  Gates: each must pass in at least 95% of the 60 test jobs.\n    G1 label text exact   G2 logo exact   G3 no extra objects\n  Look: the mean look score (1 to 5) of New must be at least the Old mean.\n  Safety: on each of the 3 safety sets, New must be at least as safe as Old.\n  Cost: New must cost at most 1.25 times Old per image.\n  Regression: the 25 old jobs are re-run before any switch.\n\nTEST SET (made up):\n  60 jobs: 40 from real orders and 20 hard cases. Same settings for both models.\n\nGATE RESULTS, jobs passed of 60 (made up):\n  G1 label text    Old 57 (95.0%)    New 58 (96.7%)\n  G2 logo          Old 59 (98.3%)    New 54 (90.0%)\n  G3 extra objects Old 58 (96.7%)    New 59 (98.3%)\n  Mean of the 3 gate rates:  Old 96.7%   New 95.0%\n\nLOOK SCORE, mean of 60 jobs, scored by a model judge (made up):\n  Old 3.9    New 4.3\n  The art director also scored 20 of the images. On 6 of the 20, the judge's\n  score differed from hers by 2 points or more.\n\nSAFETY SETS, images safe of total (made up):\n  Everyday     Old 200 of 200    New 200 of 200\n  Edge         Old 58 of 60      New 57 of 60\n  Adversarial  Old 37 of 40      New 34 of 40\n  All sets     Old 295 of 300 (98.3%)    New 291 of 300 (97.0%)\n\nCOST PER IMAGE (made up):\n  Old $0.12    New $0.14\n\nREGRESSION, 25 old jobs (made up):\n  Old 25 of 25    New 24 of 25. Failed: R-14, the wrap-around label job\n  that was added after a client complaint last month.\n\nLIVE TEST IDEA (made up):\n  The account manager wants to post half of next week's 8 client posts with\n  New and compare client reactions before deciding.\n\nVENDOR LINE (copied from Google's image docs, about Nano Banana 2):\n  \"Recommended for all new projects to use Nano Banana 2.1.\"",
+  "questions": [
+    {
+      "prompt": "A manager says: \"New's three gate rates average 95.0%, so New passes the gates.\" What is the right reading?",
+      "options": [
+        {
+          "text": "She is right, since a mean of 95.0% meets the 95% line and two of the three gates pass",
+          "explanation": "A mean lets a strong gate cover a weak one. A gate must pass on its own."
+        },
+        {
+          "text": "She is wrong: the gates should use the look score, where New's 4.3 beats Old's 3.9",
+          "explanation": "The look score is a weighted line, not a gate. A better look cannot buy back a failed must-have."
+        },
+        {
+          "text": "She is wrong: each gate is checked alone, and New's logo gate is at 90.0%, below 95%",
+          "explanation": "Right. Anthropic describes binary scoring, where all must pass. A hybrid keeps must-haves as gates, and an average hides a failed one.",
+          "correct": true
+        },
+        {
+          "text": "She is right, since New beats Old on two of the three gates and a majority is enough",
+          "explanation": "A majority rule is not in the rules. Each gate needs 95% or more, and the logo gate is below it."
+        }
+      ]
+    },
+    {
+      "prompt": "The judge's look score differed from the art director's by 2 points or more on 6 of 20 images. What is the best step?",
+      "options": [
+        {
+          "text": "Read the judge's reasons on those 6 images, fix its prompt or anchors, and check again",
+          "explanation": "Right. Anthropic says to read the transcripts to see whether graders work, and OpenAI says to calibrate automated scoring with human feedback.",
+          "correct": true
+        },
+        {
+          "text": "Trust the judge, because it is within 2 points of the art director on 14 of the 20 images",
+          "explanation": "A 2-point gap on a 5-point scale is large. The 6 images may hide a pattern that favours one model."
+        },
+        {
+          "text": "Keep the judge and report its look scores as exact, since a model reads each image the same way",
+          "explanation": "Anthropic lists model graders as non-deterministic, so they need calibration."
+        },
+        {
+          "text": "Drop the judge and score all 120 images by hand, without looking at why the 6 differed",
+          "explanation": "That throws away a fast tool without learning why it failed. Fix and re-check first."
+        }
+      ]
+    },
+    {
+      "prompt": "The account manager wants a live test on 8 posts before deciding. What do you advise?",
+      "options": [
+        {
+          "text": "Agree, and use real client reactions only, since they are the one test that really counts",
+          "explanation": "Anthropic says live A/B testing is slow and needs sufficient traffic. Eight posts is not much."
+        },
+        {
+          "text": "Agree, but post only 1 of the 8, since a smaller test finishes sooner and is just as clear",
+          "explanation": "A smaller live test gives less signal, not more."
+        },
+        {
+          "text": "Skip testing, and let the art director choose by taste, since a live test cannot say why",
+          "explanation": "A blind offline test gives evidence that taste alone does not."
+        },
+        {
+          "text": "Decide from the offline scorecard, since a live test on 8 posts is slow and needs traffic",
+          "explanation": "Right. Anthropic describes live A/B tests as slow, needing enough traffic, and testing only what you deploy.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "What do the safety sets say about New?",
+      "options": [
+        {
+          "text": "It passes, since 97.0% overall is within 1.3 points of Old's 98.3%, which is close",
+          "explanation": "The rule is about each set. An overall number hides the two hard sets."
+        },
+        {
+          "text": "It fails on the edge and adversarial sets, though the overall gap is only 1.3 points",
+          "explanation": "Right. New is below Old on both hard sets, 95.0% against 96.7% and 85.0% against 92.5%. Google suggests focusing on worst-case performance, not the average.",
+          "correct": true
+        },
+        {
+          "text": "It passes, since both models score a perfect 200 of 200 on the biggest set, the everyday one",
+          "explanation": "A full score on the easy set says little. The hard sets show how a model fails."
+        },
+        {
+          "text": "It fails only on the adversarial set, since 57 of 60 on the edge set is too close to count",
+          "explanation": "The rule is at least as safe as Old on each set. New is lower on the edge set too."
+        }
+      ]
+    },
+    {
+      "prompt": "The client says that Google's \"Recommended for all new projects\" line settles it. What do you advise?",
+      "options": [
+        {
+          "text": "Switch now, since the vendor recommends the new model and the results are a formality",
+          "explanation": "OpenAI and Anthropic both tie quality to your own evals. A vendor note is not proof for your jobs."
+        },
+        {
+          "text": "Switch now, since 24 of 25 is 96% and any score above 95% passes a regression suite",
+          "explanation": "Anthropic says a regression suite should have a nearly 100% pass rate, and a drop is a signal to look into."
+        },
+        {
+          "text": "Treat the note as a trigger, not proof: the scorecard fails, and R-14 needs a look",
+          "explanation": "Right. A vendor's move-on note is a trigger to test. R-14 comes from a real complaint, so its failure matters.",
+          "correct": true
+        },
+        {
+          "text": "Move only the social images, since the note covers new work and packshots stay on Old",
+          "explanation": "The note is about new projects. It says nothing about which kinds of image to move. The studio's own jobs and scorecard decide."
+        }
+      ]
+    }
+  ]
+}
