@@ -44,7 +44,7 @@ Luma names the first one: "Restyle an existing video while preserving its motion
 
 **Luma** (`ray-3.2`). Send `type: "video_edit"`. Luma says an edit "re-renders a previous video generation under a new prompt". The source can be an earlier Luma generation id, a video URL, inline video or an uploaded file. A source sent by URL or inline must be at most 200 MB and 18 seconds.
 
-**Runway** (Aleph 2.0, `aleph2`). Send a `videoUri` and an optional `promptText` to `video_to_video`. The input must be 2–30 seconds and 30 FPS or lower. The output keeps the input's resolution, up to 1080p.
+**Runway** (Aleph 2.0, `aleph2`). Send a `videoUri` and an optional `promptText` to `video_to_video`. The input must be 2–30 seconds and 30 FPS or lower (FPS: frames per second). The output keeps the input's resolution, up to 1080p.
 
 **Google** (Gemini Omni Flash). Google's edit pages use Gemini Omni Flash, not Veo (our reading, October 2026). An edit is a conversation: each turn "builds on the previous result". You pass `previous_interaction_id` instead of uploading the video again. An uploaded video must be 10 seconds or less. On Google Cloud, the same edit sets `"task": "edit"`, and stored interactions are "retained for up to 14 days".
 
@@ -57,6 +57,8 @@ Luma's `strength` has nine values in three bands:
 | Adhere    | "Closely preserves source motion, composition, and structure"            |
 | Flex      | "Balanced — preserves motion, lets the prompt reshape style and content" |
 | Reimagine | "The prompt drives most of the output; source provides loose grounding"  |
+
+Composition means where things sit in the frame. Grounding means how much the source steers the result.
 
 Each band has levels 1 to 3, and "lower numbers within each band are lighter". Luma calls `flex_2` the "Common default for most edits".
 
@@ -86,7 +88,7 @@ One rule matters: `controls` "cannot be combined with `auto_controls: true`". Ex
 
 Chapter 2 pinned images to a new clip. Edits take keyframes too.
 
-- **Luma:** up to 64 guide images in `video.edit.keyframes`, placed by frame number in "the source video's frame grid". Luma calls keyframes "the single biggest lever on output quality" for most edits.
+- **Luma:** up to 64 guide images in `video.edit.keyframes`, placed by frame number in "the source video's frame grid". Luma treats keyframes as its main quality control for most edits.
 - **Runway Aleph 2.0:** up to 5 keyframes. You place each one by `seconds`, by `at` (a share of the clip, from 0 to 1) or by a `range`.
 
 Make each guide image from a frame of the approved clip (our advice). For the evening version, save frame 0, relight it as a still and pin it at 0.

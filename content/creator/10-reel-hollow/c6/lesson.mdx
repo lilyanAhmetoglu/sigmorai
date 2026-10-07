@@ -43,10 +43,10 @@ This grouping is ours.
 
 **Crop** works when the subject sits in the middle with space around it. If the bottle sits on the right, a 9:16 crop can cut it.
 
-**Outpaint** means the model adds new picture beyond the edges.
+**Outpaint** means the model adds new picture beyond the edges. Canvas Workshop, chapter 4 (Expand & fill), did this for still images; here it is video.
 
 - **Luma** `video_reframe` "outpaints an existing video to a new target aspect ratio". Luma says: "The source video content is preserved frame-for-frame". Use it for "the same clip in a different shape". Use `video_edit` (chapter 4) to restyle.
-- **Runway Aleph 2.0** has `targetAspectRatio`, a "Target aspect ratio for expand/outpaint". It "Letterboxes the input video and keyframes before generation".
+- **Runway Aleph 2.0** has `targetAspectRatio`, a "Target aspect ratio for expand/outpaint". It "Letterboxes the input video and keyframes before generation". (Letterboxing means adding empty bars around the picture so it fits the new shape.)
 
 **Regenerate.** On Veo, the shape is a setting of a new clip: `aspectRatio` is "16:9" (the default) or "9:16". Gemini Omni Flash offers the same two. A new 9:16 take has new motion and new framing, so it needs a new approval (our advice).
 
@@ -68,31 +68,31 @@ Example (ours). The bottle sits on the right of the master. For 9:16, set `sourc
 To **upscale** is to make a clip bigger in pixels.
 
 - **Runway Magnific Video Upscaler** (`video_upscale`) raises a clip to 4K. Inputs can be "at most 30 seconds". Its `creativity` setting runs "from 0 (faithful) to 100" and sets "How much AI-generated detail to add". For an approved master, keep it low (our advice). High creativity adds detail the client never saw.
-- **Runway Enhance Frame Rate** changes a clip to a set frame rate, such as 25 or 29.97. Inputs can be at most 300 seconds.
+- **Runway Enhance Frame Rate** changes a clip to a set frame rate (frames per second), such as 25 or 29.97. Inputs can be at most 300 seconds.
 - **Google.** Omni marks its 1080p and 4K outputs as "upscaled". Veo 3.1 "can also directly generate 720p, 1080p or 4k videos".
 
 ## Delivery formats
 
-An MP4 is fine for social media. An editor or a colourist often wants more. Runway says film work often needs "a container it can open directly, such as ProRes or a PNG sequence".
+An MP4 is fine for social media. An editor or a colourist (the person who adjusts the colours) often wants more. Runway says film work often needs "a container it can open directly, such as ProRes or a PNG sequence". (A container is the file type that holds the video. ProRes is a high-quality video format that editing programs open easily.)
 
-On Gen-4.5 and Aleph 2.0, Runway's `outputFormat` sets the file:
+On Gen-4.5 and Aleph 2.0, Runway's `outputFormat` sets the file. Colour grading means adjusting the colours in an editor. A 10-bit file stores colour in finer steps: Runway uses it when a grade "needs more precision than 8-bit H.264". Rec.709 is the name of the standard-range colour space these files use.
 
 | Value              | What you get                                                 |
 | ------------------ | ------------------------------------------------------------ |
 | `mp4` (default)    | an H.264 .mp4                                                |
 | `prores`           | a ProRes .mov                                                |
 | `png_sequence`     | a .zip of PNG frames, plus a separate .wav if there is sound |
-| `sdr_rec709_10bit` | a 10-bit Rec.709 .mp4, for grading                           |
+| `sdr_rec709_10bit` | a 10-bit Rec.709 .mp4, for colour grading                    |
 
 Two traps:
 
-- **ProRes 4444 is not a matte.** It is the default ProRes profile. But Runway says its alpha channel "is present but fully opaque": "choose these tiers for 12-bit 4:4:4 color fidelity, not for mattes". (A matte is a file with see-through parts.)
+- **ProRes 4444 is not a matte.** It is the default ProRes profile. An alpha channel is the part of a file that stores see-through areas. Runway says the alpha channel here "is present but fully opaque" (opaque means nothing is see-through), so choose these tiers "not for mattes". (A matte is a file with see-through parts, used to lay one picture over another.)
 - **These files are standard range.** Runway: "HDR is a separate delivery."
 
 **HDR** (high dynamic range) "stores a wider span of brightness than standard dynamic range (SDR)".
 
 - **Runway.** Gen-4.5 can make HDR directly. Ruby (`video_to_hdr`) converts an SDR clip, "including an Aleph edit", to HDR. Inputs are at most 30 seconds. Runway says the output "keeps the source's own pixels".
-- **Luma.** `hdr: true` makes an HDR MP4 (720p or 1080p, not 10 seconds, no loop). `exr_export` adds an EXR file "for professional colour-grading workflows". Reframe and extend stay standard range.
+- **Luma.** `hdr: true` makes an HDR MP4 (720p or 1080p only; not with a 10-second duration, not with a loop). `exr_export` adds an EXR file (an image file type that stores very precise colour, used for colour grading). Reframe and extend stay standard range.
 
 ## Order the steps
 
