@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { postHeadings } from '@/lib/content/blog';
 
 type Option = { text: string; correct?: boolean };
 type Sheet = { questions: { prompt: string; options: Option[] }[] };
@@ -17,4 +18,11 @@ export function answersFor(chapterDir: string, file: 'case.json' | 'quick-check.
     right: options.find((o) => o.correct)!.text,
     wrong: options.find((o) => !o.correct)!.text,
   }));
+}
+
+/** A chapter lesson's `##` heading texts, in order: one lesson step each (lesson-stepper.tsx). */
+export function lessonStepTitles(chapterDir: string): string[] {
+  const source = readFileSync(join('content', chapterDir, 'lesson.mdx'), 'utf8');
+  const body = source.replace(/^---\n[\s\S]*?\n---\n/, '');
+  return postHeadings(body).map((heading) => heading.text);
 }

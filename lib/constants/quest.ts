@@ -16,3 +16,12 @@ export const GRADED_STEP = {
   case: 'challenge',
   'quick-check': 'quick-check',
 } as const satisfies Record<GradedKind, ChapterStep>;
+
+/**
+ * Lesson steps (docs/plans/interactive-lessons-design-plan.md, Phase 1): a
+ * lesson with at least this many `##` sections shows one step at a time.
+ */
+export const LESSON_MIN_STEPS = 3;
+
+/** The "Lesson done" panel's id: Finish on the last step moves focus there. */
+export const LESSON_DONE_ID = 'lesson-done';
