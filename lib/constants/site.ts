@@ -10,6 +10,9 @@ export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://sigmorai.co
 
 export const SITE_DESCRIPTION = 'A pixel-art RPG for learning AI engineering and agentic systems.';
 
+/** --ink-900 (--surface-1): browser theme colour and the app icon background. */
+export const BRAND_COLOR = '#131126';
+
 /** Clerk's sign-in and sign-up pages (app/sign-in, app/sign-up). */
 export const AUTH_ROUTES = {
   signIn: '/sign-in',
