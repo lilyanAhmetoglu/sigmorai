@@ -1,9 +1,9 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Atkinson_Hyperlegible, JetBrains_Mono, Pixelify_Sans, Silkscreen } from 'next/font/google';
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/constants';
+import { BRAND_COLOR, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/constants';
 import './globals.css';
 
 // The four families from design/tokens/typography.css. Each sets a CSS variable
@@ -34,6 +34,18 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_NAME,
   description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  // Icons come from the app/ files (icon.svg, favicon.ico, apple-icon.png) and
+  // app/manifest.ts; all are the pixel Σ from design/assets/logo/favicon.svg.
+  appleWebApp: { title: SITE_NAME, statusBarStyle: 'black-translucent' },
+  // Defaults for pages that set no social tags of their own (lib/og/metadata.ts).
+  openGraph: { type: 'website', siteName: SITE_NAME, locale: 'en_US' },
+  twitter: { card: 'summary_large_image' },
+};
+
+export const viewport: Viewport = {
+  themeColor: BRAND_COLOR,
+  colorScheme: 'dark',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
