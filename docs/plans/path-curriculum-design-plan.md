@@ -17,7 +17,7 @@
 - **New image vendors join the registry when cited:** `bfl-docs` (docs.bfl.ai), `ideogram-docs` (docs.ideogram.ai), `ideogram-api-docs` (developer.ideogram.ai), `recraft-docs` (www.recraft.ai/docs), `huggingface-diffusers-docs` (huggingface.co/docs/diffusers). Adobe custom models cite `developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/custom-models/` (helpx is 403). Each is official for its own product and never the only vendor in a lesson.
 - **"Open models" uses two vendors:** Hugging Face diffusers docs + BFL FLUX.2 [klein] docs. Risk closed.
 - **r11 owns "style from references vs a trained model".** r13 c5 "Brand models" is narrowed or dropped at the PR 8 devil pass; it must not re-teach custom models.
-- **r11 sits on slot s1** (`slotRealms` += `{ slot: 's1', realm: 11 }`), after r1 in the creator outline: `0, 1, 11, 2, 10, 3, 4, 5, 9, 6, 7, 8`. s2 and s4 are kept for r12 and r13. `ids.test.ts` INSERTED gains `1: [11]`.
+- **r11 sits on slot s1** (`slotRealms` += `{ slot: 's1', realm: 11 }`), after r1 in the creator outline: `0, 1, 11, 2, 10, 3, 4, 5, 9, 6, 7, 8`. s2 and s4 are kept for r12 and r13 (this replaces the PR 5 slot sentence: r10 is on s10, r11 on s1, s2 → r12, s4 → r13). `ids.test.ts` INSERTED gains `1: [11]`.
 - **PR 6 is two PRs.** 6a = `REALMS` row 11 (`pigment-bazaar`, `track: 'creator'`, `tier: 'beginner'`, `scene: false`), slot row, outline entry with 6 titles, c1–c3 (+ cases, quick checks), new source ids. 6b = c4–c6 + `boss/case.json`.
 - **Count line** becomes 3 + 6 + 6 + 6 + 8 + 7 = 36 new creator chapters + 5 bosses.
 
@@ -418,7 +418,7 @@ NPC (draft): Dyer Sabe. Topic: "Image craft per model: colours, text, seeds, sty
 | c5  | Styles & tuning | Style from references vs a trained model                                                                                                                                                                                        | Recraft styles · Ideogram custom models · Adobe Firefly custom models · BFL FLUX.2 [klein] training — PR 6b                                                                                                       |
 | c6  | Open weights    | Open-weight image models and what running them yourself changes                                                                                                                                                                 | Hugging Face diffusers docs · BFL FLUX.2 [klein] — PR 6b                                                                                                                                                          |
 
-Boss task: "Write one launch brief as prompts and settings for four different image models, and mark which outputs need a human check." (PR 6b)
+Boss task: "Write one launch brief as prompts and settings for four different image models, and mark which outputs need a human check" (PR 6b; no trailing period, it is the boss title verbatim)
 
 ### r12 Echo Caverns: Voice & audio (beginner, 8 chapters)
 
