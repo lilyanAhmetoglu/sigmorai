@@ -8,6 +8,10 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07
+
+The knowledge-sync skill (`.claude/skills/knowledge-sync/SKILL.md`) is **run by hand** by the maintainer. There is **no scheduled routine** and no unattended mode; the 2026-10-06 "routine" wording is dropped. Commit and push follow `git-safety.md` as usual; a human still merges every knowledge-sync PR (the 2026-10-06 rule stands). The skill has `disable-model-invocation: true`, so only the maintainer's `/knowledge-sync` runs it. docs-watch (the GitHub Action on `main`) only opens issues.
+
 ## Amendments locked 2026-10-06 (SIG-23: docs-watch + knowledge-sync routine)
 
 Devil-reviewed plan for SIG-23. Layered on top; everything below stays for history. **This block replaces the whole Pipeline, Data model, Mentor grounding, AI and cost, Licensing and Phases sections.** Why: the old pipeline needed a DB role, embeddings, a model key and a triage prompt to answer one question, "did a page a lesson cites change?". A hash in git answers it for free; a Claude Code routine with a human-merged PR does the drafting.
@@ -17,7 +21,7 @@ Devil-reviewed plan for SIG-23. Layered on top; everything below stays for histo
 | Part              | What                                                                                                                                                                                                                                                                                                                                                        |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1. docs-watch     | `.github/workflows/docs-watch.yml`, daily `17 6 * * *` + manual. Runs `bun run docs:watch` (`scripts/docs-watch.ts`, logic in `lib/content/docs-watch.ts`, bun-tested). Fetches, normalises, sha256-hashes, compares. No DB, no model, no API key, no network calls except the GETs. Always exits 0: a failed fetch is a log row and keeps the stored hash. |
-| 2. knowledge-sync | A Claude Code **routine** (`.claude/skills/knowledge-sync/SKILL.md`, Part 2, **done**: skill written; the routine itself is set up by the maintainer per its "Routine setup" section) reads the open `docs-changed` issue, checks each citing lesson against the live page, and opens `new-level` PRs into `canary`. It drafts; a human merges.             |
+| 2. knowledge-sync | A skill **run by hand** (`.claude/skills/knowledge-sync/SKILL.md`, Part 2; no scheduled routine, see Amendments 2026-10-07) reads the open `docs-changed` issue, checks each citing lesson against the live page, and opens `new-level` PRs into `canary`. It drafts; a human merges.                                                                       |
 
 **Fetch set.** Every page any track, Math Tower or Frontier lesson cites, plus one index per enabled source in `sources.yaml`:
 

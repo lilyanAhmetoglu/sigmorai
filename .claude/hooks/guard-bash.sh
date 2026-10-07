@@ -115,21 +115,28 @@ seg_matches_q() {
 
 # ── 1. Closing PRs and deleting releases — never without a fresh yes ─────────
 # Merging is allowed (git-safety.md rule 3: green, reviewed PRs into canary).
-if seg_matches '^gh\s+(pr\s+close|release\s+delete)(\s|$)'; then
-  deny "BLOCKED: closing a PR or deleting a release needs a fresh, explicit approval (git-safety.md). If you really want this, run it yourself: ! ${short_cmd}"
+if seg_matches '^gh\s+(pr\s+close|issue\s+close|release\s+delete)(\s|$)'; then
+  deny "BLOCKED: closing a PR or an issue, or deleting a release, needs a fresh, explicit approval (git-safety.md). If you really want this, run it yourself: ! ${short_cmd}"
 fi
 
-# The same through the raw REST/GraphQL API. The knowledge-sync routine
-# (.claude/skills/knowledge-sync/SKILL.md) uses `gh api` and has no branch
-# protection behind it, so this hook is the guard. Quote-preserving segments:
-# API paths and fields are usually quoted. Allowed: GET reads and the POSTs the
-# routine needs (`/pulls`, `/issues/N/comments`, `/issues/N/labels`).
-gh_api_deny="BLOCKED: 'gh api' may only read, open a PR, comment or add a label. Merging, closing (state=), PUT/PATCH/DELETE and git ref changes are a human's call (git-safety.md). If you really want this, run it yourself: ! ${short_cmd}"
+# A merge must be a plain merge commit (canary → main is never squashed) and must
+# happen now, under the gates: --auto would merge later without a check, even into main.
+if seg_matches '^gh\s+pr\s+merge\b.*[[:space:]](--auto|--squash|-s|--rebase|-r)([[:space:]]|$)'; then
+  deny "BLOCKED: merge with 'gh pr merge <n> --merge' only. --auto, --squash and --rebase are not allowed (git-safety.md). If you really want this, run it yourself: ! ${short_cmd}"
+fi
+
+# The same through the raw REST/GraphQL API. `gh api` skips the gates above, so
+# it is denied for merges, closes (state=), PUT/PATCH/DELETE and git ref writes.
+# Quote-preserving segments: API paths and fields are usually quoted. Allowed:
+# GET reads and the POSTs for `/pulls`, `/issues/N/comments`, `/issues/N/labels`.
+gh_api_deny="BLOCKED: 'gh api' may only read, open a PR, comment or add a label. To merge into canary use 'gh pr merge <n> --merge' (only when the cto review has no Must-fix, CI is green and the PR is MERGEABLE; git-safety.md rule 3). A merge into main needs the maintainer's 'release'. Closing, PUT/PATCH/DELETE and git ref changes need a fresh approval. If you really want this, run it yourself: ! ${short_cmd}"
 if seg_matches_q '^gh\s+api\b.*/merges?([/?'"'"'"[:space:]]|$)'; then deny "$gh_api_deny"; fi
-if seg_matches_q '^gh\s+api\b.*\s(-X|--method)(\s+|=)?['"'"'"]?(PUT|PATCH|DELETE|put|patch|delete)\b'; then deny "$gh_api_deny"; fi
-if seg_matches_q '^gh\s+api\b.*\s(-f|-F|--field|--raw-field)(\s+|=)['"'"'"]?state='; then deny "$gh_api_deny"; fi
+if seg_matches_q '^gh\s+api\b.*\s(-X|--method)(\s+|=)?['"'"'"]?([Pp][Uu][Tt]|[Pp][Aa][Tt][Cc][Hh]|[Dd][Ee][Ll][Ee][Tt][Ee])\b'; then deny "$gh_api_deny"; fi
+if seg_matches_q '^gh\s+api\b.*\s(-f|-F|--field|--raw-field)(\s+|=)['"'"'"]?state['"'"'"]?='; then deny "$gh_api_deny"; fi
 if seg_matches_q '^gh\s+api\b.*/git/refs'; then deny "$gh_api_deny"; fi
-if seg_matches_q '^gh\s+api\s+graphql\b.*(mergePullRequest|closePullRequest|closeIssue|updatePullRequest|updateIssue|deleteRef|updateRef)'; then deny "$gh_api_deny"; fi
+# Any GraphQL write: flags may sit before 'graphql' and mutation names change, so
+# deny the word 'mutation' itself. Read queries stay allowed.
+if seg_matches_q '^gh\s+api\b.*\bgraphql\b.*\bmutation\b'; then deny "$gh_api_deny"; fi
 
 # ── 2. History rewriting / destructive git ───────────────────────────────────
 # Flags must belong to the git command in THIS segment, so `-f` from an
