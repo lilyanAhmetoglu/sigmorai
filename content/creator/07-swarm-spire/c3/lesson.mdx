@@ -1,0 +1,87 @@
+---
+id: creator/r7/c3/lesson
+title: Handoffs
+minutes: 6
+sources:
+  - kind: docs
+    title: OpenAI docs · Orchestration and handoffs
+    url: https://developers.openai.com/api/docs/guides/agents/orchestration
+  - kind: repo
+    title: OpenAI Agents SDK (Python) · Handoffs
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/handoffs.md
+  - kind: repo
+    title: OpenAI Agents SDK (Python) · Tools
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/tools.md
+  - kind: docs
+    title: Claude docs · Agent SDK · Subagents
+    url: https://platform.claude.com/docs/en/agent-sdk/subagents
+  - kind: blog
+    title: Anthropic · How we built our multi-agent research system
+    url: https://www.anthropic.com/engineering/multi-agent-research-system
+---
+
+## Why it matters
+
+In a studio, work moves. The localiser finishes a tagline. The visual maker needs it. The checker needs both. Each move is a **handoff**.
+
+A bad handoff is a quiet failure. The next role gets half the story, or too much of it, and does confident work on the wrong thing. This lesson shows the two ways vendors pass work, what the next role sees in each, and what a good handoff note holds.
+
+## Two ways to pass work
+
+OpenAI's orchestration guide names two patterns, and asks first "who owns the final user-facing answer at each branch of the workflow."
+
+| Pattern             | What happens                               | Use it when                                                    |
+| ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
+| **Handoff**         | "Control moves to the specialist agent"    | A specialist should take over the conversation for that branch |
+| **Agent as a tool** | "The manager keeps ownership of the reply" | A manager should stay in control and call specialists          |
+
+In the SDK a handoff is shown to the model as a tool. For an agent named `Refund Agent`, the tool is called `transfer_to_refund_agent`.
+
+Our reading for a batch of ads: the producer is answerable for all fifty versions, so the producer should stay in control. Helpers are called as tools. A handoff fits better when the next role should talk to the client directly.
+
+## What the next role sees
+
+The two patterns have opposite defaults.
+
+- **OpenAI handoff.** The SDK docs say "it's as though the new agent takes over the conversation, and gets to see the entire previous conversation history." You can change this with an input filter.
+- **OpenAI agent as a tool.** The nested run starts with its own state: "the parent run's conversation state is not inherited automatically."
+- **Claude subagent.** Its context "starts fresh, with no parent conversation". The docs say: "The only content you pass from parent to subagent is the Agent tool's prompt string."
+
+So a handoff may share too much, and a subagent may get too little. Both have a cost.
+
+**Too much:** the full history may hold things the next role should not see, such as the client's price list. OpenAI warns that its nested handoff history, an opt-in beta, "does not redact sensitive data". It adds: "Treat the receiving agent and its model provider as recipients of the forwarded history."
+
+**Too little:** a fresh subagent knows nothing you did not write down. Claude's docs say to include "any file paths, error messages, or decisions the subagent needs directly in that prompt."
+
+## The handoff note
+
+This template is ours. Write one for every move:
+
+| Part            | What it holds                                    |
+| --------------- | ------------------------------------------------ |
+| **Goal**        | What the next role must produce                  |
+| **Done so far** | What is finished and approved                    |
+| **Inputs**      | File names or ids, not pasted copies             |
+| **Must hold**   | Rules that cannot change: tagline, colours, logo |
+| **Open**        | What is still unknown                            |
+| **Return**      | The shape of the answer you want back            |
+
+Example (made up): "Goal: make the 9:16 image for market DE. Done: tagline approved, file `tea-de-copy.txt`. Inputs: `master-layout.png`. Must hold: green lid, logo bottom right. Open: none. Return: one PNG named `tea-de-9x16.png`."
+
+OpenAI's SDK shows the same idea on a small scale. A handoff can carry a small piece of data the model fills in, such as `reason`, `language`, `priority` or `summary`.
+
+## What comes back
+
+The return trip needs care too. Claude's docs say the parent "receives the subagent's final report, but may summarize it in its own response." Only the subagent's final message returns to the parent. Its tool calls and results stay inside.
+
+So if the checker finds six failed rubric lines, the producer might report "a few small issues". If the full list matters, say so in the brief: ask the checker to save its report as a file, and tell the producer to quote it in full. The docs say that to keep subagent output word for word, you should "include an instruction to do so".
+
+Anthropic's research post calls the loss of detail from passing results through many hands a "game of telephone". Chapter 5 shows its fix.
+
+## What this means for your work
+
+- **Decide who owns the answer.** Producer in control: agents as tools. Next role in control: a handoff.
+- **Write down what the next role needs.** A fresh helper knows only the note.
+- **Do not forward everything.** Filter out what the next role must not see.
+- **Use file names, not pasted blobs.**
+- **Ask for important results to be saved whole.** A summary can drop the detail you need.
