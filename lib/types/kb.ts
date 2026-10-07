@@ -1,10 +1,16 @@
 import { z } from 'zod';
 import { KB_SOURCE_KINDS, KB_TRUST_TIERS } from '@/lib/constants';
+import { SLUG } from '@/lib/content/ids';
+
+/** A lowercase kebab-case id: a sources.yaml id, a shared-chapters concept id. */
+export const KebabSlugSchema = z
+  .string()
+  .regex(new RegExp(`^${SLUG}$`), 'id must be a kebab-case slug');
 
 /** One entry of content/sources.yaml; mirrors a kb_sources row. */
 export const KbSourceSchema = z
   .object({
-    id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'id must be a kebab-case slug'),
+    id: KebabSlugSchema,
     kind: z.enum(KB_SOURCE_KINDS),
     title: z.string().min(1),
     url: z.url({ protocol: /^https$/ }),

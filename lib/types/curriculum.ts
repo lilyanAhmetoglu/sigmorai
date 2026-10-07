@@ -9,6 +9,7 @@ import {
 } from '@/lib/constants';
 import { segment } from '@/lib/content/ids';
 import type { HudState } from './hud';
+import { KebabSlugSchema } from './kb';
 import type { ChapterView, StepView } from './realms';
 
 export type Tier = (typeof TIERS)[number];
@@ -75,6 +76,47 @@ export const MathOutlineSchema = z
   })
   .strict();
 export type MathOutline = z.infer<typeof MathOutlineSchema>;
+
+/**
+ * A member of a shared-chapters group: a realm chapter without its step
+ * (`builder/r1/c1`). `content:check` checks that it is a live realm chapter.
+ */
+const SharedMemberSchema = Text;
+
+/** Same idea, same depth: a clear of any member credits every other member. */
+const SameGroupSchema = z
+  .object({
+    id: KebabSlugSchema,
+    kind: z.literal('same'),
+    members: z.array(SharedMemberSchema).min(2),
+  })
+  .strict();
+
+/** One member teaches all of the other and more: a clear of `deep` credits the light one, never back. */
+const CoversGroupSchema = z
+  .object({
+    id: KebabSlugSchema,
+    kind: z.literal('covers'),
+    deep: SharedMemberSchema,
+    members: z.array(SharedMemberSchema).length(2),
+  })
+  .strict()
+  .refine((g) => g.members.includes(g.deep), {
+    message: 'deep must be one of the two members',
+    path: ['deep'],
+  });
+
+export const SharedChapterGroupSchema = z.discriminatedUnion('kind', [
+  SameGroupSchema,
+  CoversGroupSchema,
+]);
+export type SharedChapterGroup = z.infer<typeof SharedChapterGroupSchema>;
+
+/** content/shared-chapters.json: concept groups whose chapters credit each other on read. */
+export const SharedChaptersFileSchema = z
+  .object({ groups: z.array(SharedChapterGroupSchema) })
+  .strict();
+export type SharedChaptersFile = z.infer<typeof SharedChaptersFileSchema>;
 
 /** A Math Tower floor's state and steps (buildTowerMap). `chapter` is the floor number. */
 export type FloorState = Omit<ChapterView, 'chapter'> & { chapter: number };

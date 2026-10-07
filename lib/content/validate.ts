@@ -7,8 +7,10 @@ import {
   ANSWER_LENGTH_MIN_GAP,
   BLOG_AREA,
   BOSS_SEGMENT,
+  BOSS_STEP,
   CASE_FILE,
   CHAPTER_COUNT,
+  CHAPTER_STEPS,
   CONTENT_DIR,
   CONTENT_NOTES_FILE,
   FRONTIER_AREA,
@@ -18,12 +20,19 @@ import {
   MATH_FLOORS,
   OUTLINE_FILE,
   QUICK_CHECK_FILE,
+  SHARED_CHAPTERS_FILE,
   SIDE_STEPS,
   TRACKS,
 } from '@/lib/constants';
-import { MathOutlineSchema, TrackOutlineSchema } from '@/lib/types';
+import { MathOutlineSchema, TrackOutlineSchema, type SharedChaptersFile } from '@/lib/types';
 import { headingProblems } from './blog';
-import { buildExerciseId, parseBlogFileName, parseExerciseId, trackExerciseIds } from './ids';
+import {
+  buildExerciseId,
+  parseBlogFileName,
+  parseChapterId,
+  parseExerciseId,
+  trackExerciseIds,
+} from './ids';
 import {
   ContentError,
   contentPath,
@@ -33,6 +42,7 @@ import {
   loadKbSources,
   loadLesson,
   loadQuickCheck,
+  loadSharedChapters,
 } from './load';
 import { compileLesson, NO_COMPONENTS } from './mdx';
 import { exerciseFile } from './paths';
@@ -52,7 +62,7 @@ export type ContentIssue = { file: string; message: string };
 const UNEXPECTED =
   `unexpected file. Allowed: ${LESSON_FILE}, ${CASE_FILE} or ${QUICK_CHECK_FILE} inside ` +
   `<track>/<NN-realm>/c1–c${CHAPTER_COUNT} or ${BOSS_SEGMENT}, ${MATH_AREA}/f1–f${MATH_FLOORS.length}, ` +
-  `${FRONTIER_AREA}/<date>-<slug>, or ${BLOG_AREA}/<date>-<slug>.mdx. Move or rename it.`;
+  `${FRONTIER_AREA}/<date>-<slug>, ${BLOG_AREA}/<date>-<slug>.mdx, or ${SHARED_CHAPTERS_FILE} at the root. Move or rename it.`;
 
 /** Every exercise file the id grammar allows, keyed by path → id. Frontier folders come from disk. */
 function knownExerciseFiles(frontierFolders: string[]): Map<string, string> {
@@ -237,6 +247,84 @@ async function checkBlogPost(
   }
 }
 
+/** What a shared member is when it is not a realm chapter, for the error message. */
+const NOT_SHAREABLE = {
+  boss: 'a boss',
+  math: 'a Math floor',
+  frontier: 'a Frontier level',
+} as const;
+
+/**
+ * The rules of content/shared-chapters.json beyond its schema
+ * (docs/plans/shared-chapters-design-plan.md, Content contract): every member
+ * is a live realm chapter (lesson, case and quick check on disk), never a
+ * boss, Math floor or Frontier level; a group has one member per track; a
+ * chapter and a concept id are each used by one group only.
+ */
+async function sharedChapterProblems(
+  data: SharedChaptersFile,
+  root: string,
+  rel: string = SHARED_CHAPTERS_FILE,
+): Promise<ContentIssue[]> {
+  const issues: ContentIssue[] = [];
+  const push = (group: string, message: string) =>
+    issues.push({ file: rel, message: `group "${group}": ${message}` });
+  /** concept id → seen; member → the group that first used it. */
+  const groupIds = new Set<string>();
+  const owner = new Map<string, string>();
+
+  for (const group of data.groups) {
+    if (groupIds.has(group.id)) push(group.id, 'this concept id is used by another group.');
+    groupIds.add(group.id);
+    const tracks = new Set<string>();
+    for (const member of group.members) {
+      const first = owner.get(member);
+      if (first) {
+        push(
+          group.id,
+          `${member} is already in group "${first}". A chapter may be in one group only.`,
+        );
+      } else owner.set(member, group.id);
+
+      const ref = parseChapterId(member);
+      if (!ref) {
+        // Not a chapter: name what it is (a boss parses with BOSS_STEP; Math and Frontier with a side step).
+        const other =
+          parseExerciseId(`${member}/${BOSS_STEP}`) ??
+          parseExerciseId(`${member}/${SIDE_STEPS[0]}`);
+        push(
+          group.id,
+          other && other.area !== 'chapter'
+            ? `${member} is ${NOT_SHAREABLE[other.area]}. Only realm chapters may be shared.`
+            : `${member} is not a realm chapter. Write it as <track>/r<N>/c<N>.`,
+        );
+        continue;
+      }
+      if (tracks.has(ref.track)) {
+        push(group.id, `two members are on the ${ref.track} track. Use one chapter per track.`);
+      }
+      tracks.add(ref.track);
+      for (const step of CHAPTER_STEPS) {
+        const id = buildExerciseId({ area: 'chapter', ...ref, step });
+        if (!(await hasContent(id, root))) {
+          push(group.id, `${member} has no ${exerciseFile(parseExerciseId(id)!)}.`);
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+/** Loads content/shared-chapters.json with its schema, then checks its rules. */
+async function checkSharedChapters(abs: string, rel: string, issues: ContentIssue[]) {
+  try {
+    const data = await loadSharedChapters(abs);
+    issues.push(...(await sharedChapterProblems(data, abs, rel)));
+  } catch (err) {
+    issues.push({ file: rel, message: detail(err) });
+  }
+}
+
 export async function validateContent(
   root: string = CONTENT_DIR,
   publicDir: string = PUBLIC_DIR,
@@ -268,6 +356,10 @@ export async function validateContent(
     const post = blogPostName(rel);
     if (post) {
       await checkBlogPost(abs, rel, post, blogSlugs, blogCovers, publicDir, issues);
+      continue;
+    }
+    if (rel === SHARED_CHAPTERS_FILE) {
+      await checkSharedChapters(abs, rel, issues);
       continue;
     }
     if (rel === `${MATH_AREA}/${OUTLINE_FILE}`) {

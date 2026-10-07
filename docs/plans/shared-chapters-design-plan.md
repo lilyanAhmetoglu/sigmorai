@@ -22,6 +22,7 @@ These override the sections below where they disagree.
 - **Two PRs:** PR 1 `content` (list file, schema, `content:check` rules + walker whitelist, content-reviewer); PR 2 `quest` (credit + the "Cleared on the <Path> path" label in the chapter list only; no level-map tooltip, no quest-header label).
 - **Drop the prod count query.** We never claw back, so the number changes nothing.
 - **Wording:** revalidation uses `refresh()` / `updateTag`, not `revalidatePath`; `content/shared-chapters.json` is whitelisted in the content walker (`lib/content/validate.ts`), its file name lives in `lib/constants` next to `OUTLINE_FILE`.
+- **Final list after `content-reviewer` (PR 1): 4 groups.** `token-costs` (covers, builder r0 c6 → strategist r0 c4), `structured-output` (covers, builder r1 c5 → strategist r1 c3), `few-shot-examples` (covers, builder r1 c2 → strategist r1 c2; not `same`, because the strategist lesson does not teach the builder case's "zero-shot first on reasoning models"), `mcp-basics` (same, builder r5 c1 ⇄ strategist r5 c2). `be-specific` and `multimodal-input` are **related only**: their cases and the strategist r1 boss test facts the sibling lesson does not teach. The PR 2 e2e golden path uses `token-costs`: clear builder r0 c6's case, and on strategist r0 c4 is DONE.
 - **Pure helper shape:** one helper returns `{ cleared, creditedFrom }`; e2e uses `?track=` on the realm page, no track switch.
 
 ---
@@ -72,17 +73,19 @@ A learner who switches path, or follows two paths, should not study the same ide
 
 ### The 9 credit pairs (proposed)
 
-| Concept id          | Kind   | Chapter A                                | Chapter B                                    | Evidence                                                                               | Realm tier   |
-| ------------------- | ------ | ---------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- | ------------ |
-| `be-specific`       | same   | builder r1 c1 "Be specific"              | strategist r1 c1 "Write a brief"             | 3 of 4 sources shared; same sections (new-colleague test, steps, what good looks like) | beginner     |
-| `few-shot-examples` | same   | builder r1 c2 "Examples"                 | strategist r1 c2 "Give examples"             | 3 of 5 sources; same sections (how many, what good looks like, hidden patterns)        | beginner     |
-| `multimodal-input`  | same   | builder r0 c4 "Multimodal input"         | creator r0 c3 "Multimodal input"             | same title; 4 of 9 sources; images in a message, cost, vendor limits                   | beginner     |
-| `mcp-basics`        | same   | builder r5 c1 "MCP basics"               | strategist r5 c2 "MCP in plain words"        | 6 of 8 sources; same sections (host, client, server; server primitives)                | intermediate |
-| `model-graders`     | same   | builder r6 c2 "Model graders"            | creator r6 c3 "Model graders"                | same title; same sections (kinds of grader, biases, rubric, calibrate)                 | advanced     |
-| `handoffs`          | same   | builder r7 c2 "Handoffs"                 | creator r7 c3 "Handoffs"                     | same title; same sections (two ways to delegate, what the next agent sees)             | advanced     |
-| `rate-limits`       | same   | builder r8 c1 "Rate limits"              | creator r8 c4 "Rate limits"                  | same title; 5 of 5 sources the same; ramp-up, retries                                  | advanced     |
-| `structured-output` | covers | builder r1 c5 "Structured output" (deep) | strategist r1 c3 "Ask for structure" (light) | 4 of 6 sources; builder adds schema design and validation                              | beginner     |
-| `token-costs`       | covers | builder r0 c6 "Costs" (deep)             | strategist r0 c4 "Tokens = cost" (light)     | 4 of 10 sources; builder adds caching, batching and caps                               | beginner     |
+| Concept id                                 | Kind                             | Chapter A                                | Chapter B                                    | Evidence                                                                               | Realm tier   |
+| ------------------------------------------ | -------------------------------- | ---------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- | ------------ |
+| `be-specific` (amended: related only)      | same                             | builder r1 c1 "Be specific"              | strategist r1 c1 "Write a brief"             | 3 of 4 sources shared; same sections (new-colleague test, steps, what good looks like) | beginner     |
+| `few-shot-examples`                        | covers (amended; deep = builder) | builder r1 c2 "Examples"                 | strategist r1 c2 "Give examples"             | 3 of 5 sources; same sections (how many, what good looks like, hidden patterns)        | beginner     |
+| `multimodal-input` (amended: related only) | same                             | builder r0 c4 "Multimodal input"         | creator r0 c3 "Multimodal input"             | same title; 4 of 9 sources; images in a message, cost, vendor limits                   | beginner     |
+| `mcp-basics`                               | same                             | builder r5 c1 "MCP basics"               | strategist r5 c2 "MCP in plain words"        | 6 of 8 sources; same sections (host, client, server; server primitives)                | intermediate |
+| `model-graders`                            | same                             | builder r6 c2 "Model graders"            | creator r6 c3 "Model graders"                | same title; same sections (kinds of grader, biases, rubric, calibrate)                 | advanced     |
+| `handoffs`                                 | same                             | builder r7 c2 "Handoffs"                 | creator r7 c3 "Handoffs"                     | same title; same sections (two ways to delegate, what the next agent sees)             | advanced     |
+| `rate-limits`                              | same                             | builder r8 c1 "Rate limits"              | creator r8 c4 "Rate limits"                  | same title; 5 of 5 sources the same; ramp-up, retries                                  | advanced     |
+| `structured-output`                        | covers                           | builder r1 c5 "Structured output" (deep) | strategist r1 c3 "Ask for structure" (light) | 4 of 6 sources; builder adds schema design and validation                              | beginner     |
+| `token-costs`                              | covers                           | builder r0 c6 "Costs" (deep)             | strategist r0 c4 "Tokens = cost" (light)     | 4 of 10 sources; builder adds caching, batching and caps                               | beginner     |
+
+**Amended after review (see Amendments):** the shipped list is 4 groups: `token-costs`, `structured-output`, `few-shot-examples` (all covers, builder deep) and `mcp-basics` (same). `be-specific` and `multimodal-input` are related only. The 3 advanced pairs wait for the advanced tier.
 
 "Covers" means: clear the builder chapter, and the strategist chapter is cleared. Clear the strategist chapter, and the builder chapter is **not** cleared, because it teaches more.
 
