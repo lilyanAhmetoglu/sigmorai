@@ -16,7 +16,8 @@ const pathWord = (trackLabel: string) =>
   `${trackLabel.charAt(0)}${trackLabel.slice(1).toLowerCase()}`;
 
 /** The Frontier's empty state, one sentence (its page and the dashboard panel). */
-const FRONTIER_EMPTY = 'No chapters yet. A chapter is added when official docs ship something new.';
+const FRONTIER_EMPTY =
+  'No chapters yet. We add a chapter when official docs publish something new.';
 
 /** UI form of a tier (design: realms catalog filter). */
 export const TIER_TEXT: Record<Tier, string> = {
@@ -144,13 +145,15 @@ export const DASHBOARD_TEXT = {
    */
   frontier: {
     heading: FRONTIER.name.toUpperCase(),
-    /** "NEW · 2026-10-05": the chapter's date. */
-    date: (date: string) => `NEW · ${date}`,
+    /** "2026-10-05": the chapter's date, same as the chapter card. */
+    date: (date: string) => date,
     open: (title: string) => `${title} is open.`,
     openButton: 'Open',
     /** Screen-reader end of the Open button's name. */
     openTarget: (title: string) => `: ${title}`,
-    cleared: 'You cleared every Frontier chapter. New ones come when the docs change.',
+    cleared: 'You cleared every Frontier chapter. New chapters come when the docs change.',
+    /** The Frontier read failed; the rest of the dashboard still shows. */
+    error: "The Frontier didn't load.",
     empty: FRONTIER_EMPTY,
     viewFrontier: 'View the Frontier',
   },
@@ -236,7 +239,7 @@ export const FRONTIER_TEXT = {
   eyebrow: 'SIDE REALM · NEW IN THE DOCS',
   /** Meta description, and the fixed description of every Frontier lesson. */
   description:
-    'Short chapters on what is new in official AI docs. Each one is a lesson and a quick check. Every chapter is free and open on every path.',
+    'Short chapters on what is new in official AI docs. Open on every path, in any order.',
   intro:
     'What is new in official AI docs, newest first. Each chapter is a short lesson and a quick check. Every chapter is open, in any order, on every path.',
   chaptersHeading: 'CHAPTERS',

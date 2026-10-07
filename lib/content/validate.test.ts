@@ -192,6 +192,15 @@ describe('Frontier chapters (curriculum plan, amendment 2026-10-07 SIG-29)', () 
     expect(issues[0].message).toContain('<YYYY-MM-DD>-<slug>');
   });
 
+  test('a stray file right under frontier/ is unexpected, not a bad folder', async () => {
+    const root = await withChapters();
+    await writeFile(`${root}/frontier/notes.md`, 'x');
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual(['frontier/notes.md']);
+    expect(issues[0].message).toContain('unexpected file');
+    expect(issues[0].message).not.toContain('Rename the folder');
+  });
+
   test('a case or any other file in a chapter is unexpected', async () => {
     const root = await withChapters();
     await writeFile(`${root}/${NEW}/case.json`, '{}');

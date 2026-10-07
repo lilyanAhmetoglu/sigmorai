@@ -10,7 +10,8 @@
 
 ## Amendments locked 2026-10-07 (SIG-29: the Frontier is playable)
 
-- **Route `/frontier`** (`app/(app)/frontier`, public like `/math`): a newest-first list of chapters (title, date, `minutes`, state). With no chapter it shows one plain empty-state panel ("No chapters yet. A chapter is added when official docs ship something new.") and nothing else. No scene art, no NPC, accent `neutral`, site-default OG image.
+- **Route `/frontier`** (`app/(app)/frontier`, public like `/math`): a newest-first list of chapters (title, date, `minutes`, state). With no chapter it shows one plain empty-state panel ("No chapters yet. We add a chapter when official docs publish something new.") and nothing else. No scene art, no NPC, accent `neutral`, site-default OG image.
+- **Design:** derived from the Math Tower screens (isMath); the design file has no Frontier screen.
 - **Open rule: every Frontier chapter is open.** No order, no tier. `decideOpen` returns ok for a Frontier ref whose file exists. Replaces "Frontier ids return `INVALID_INPUT`" (quest-actions §Open check, Math Tower amendment 2026-10-06).
 - **XP: the existing lesson (+10) and quick-check (+5) rewards, once per user.** Frontier ids have no track, so progress and XP are **shared across paths** (same as the tower). This replaces "Frontier progress is written under the active track" (devil pass 2026-10-05): the shipped id grammar wins.
 - **Quest pages reuse the realm views:** tag `THE FRONTIER · <YYYY-MM-DD> · LESSON | QUICK CHECK`, no DialogBox. Lesson Continue → the chapter's quick check. Quick-check Continue → `/frontier`. Back link → `/frontier`.

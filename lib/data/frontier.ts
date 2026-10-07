@@ -24,9 +24,13 @@ type Scan = { chapters: FrontierChapter[]; live: Set<string> };
 /** The chapters on disk, newest first, and which of their steps have a file. */
 async function scanChapters(): Promise<Scan> {
   const chapters = await listFrontierChapters();
-  const ids = chapters.flatMap((c) => [c.lessonId, c.quickCheckId]);
-  const present = await Promise.all(ids.map((id) => hasContent(id)));
-  return { chapters, live: new Set(ids.filter((_, i) => present[i])) };
+  // listFrontierChapters already read every lesson, so only the quick checks need a look.
+  const quick = await Promise.all(chapters.map((c) => hasContent(c.quickCheckId)));
+  const live = new Set(chapters.map((c) => c.lessonId));
+  chapters.forEach((c, i) => {
+    if (quick[i]) live.add(c.quickCheckId);
+  });
+  return { chapters, live };
 }
 
 /** Content ships with the deploy, so production scans once per server. */

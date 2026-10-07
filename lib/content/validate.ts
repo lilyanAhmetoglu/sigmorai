@@ -391,8 +391,11 @@ export async function validateContent(
     }
     const id = exercises.get(rel);
     if (!id) {
-      const [area, folder] = rel.split('/');
-      const badFolder = area === FRONTIER_AREA && !frontier.includes(folder);
+      // Only a file inside a badly named chapter folder (frontier/<folder>/<file>)
+      // gets "rename the folder"; a stray file right under frontier/ is just unexpected.
+      const parts = rel.split('/');
+      const [area, folder] = parts;
+      const badFolder = parts.length === 3 && area === FRONTIER_AREA && !frontier.includes(folder);
       issues.push({ file: rel, message: badFolder ? FRONTIER_FOLDER : UNEXPECTED });
       continue;
     }

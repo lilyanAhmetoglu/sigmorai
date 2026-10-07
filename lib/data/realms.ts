@@ -7,7 +7,7 @@ import { progress } from '@/db/schema';
 import {
   DASHBOARD_REALM_LIMIT,
   DEFAULT_TRACK,
-  type FRONTIER_AREA,
+  FRONTIER_AREA,
   MATH_AREA,
   REALMS,
   TRACKS,
@@ -62,6 +62,13 @@ export const getViewer = cache(async (): Promise<Viewer> => {
 /** What has its own set of live ids: a track, or the Math Tower. */
 type LiveArea = Track | typeof MATH_AREA;
 
+/**
+ * An id's first segment that progress can be read by: a track, the tower, or
+ * the Frontier. The Frontier is not a LiveArea: its folders are dated, so
+ * lib/data/frontier.ts scans them itself.
+ */
+type ProgressArea = LiveArea | typeof FRONTIER_AREA;
+
 /** Ids of this track (or the tower) that have a content file. Stubs (outline only) have none. */
 async function scanLiveIds(area: LiveArea): Promise<Set<string>> {
   const ids = area === MATH_AREA ? mathExerciseIds() : trackExerciseIds(area);
@@ -91,10 +98,7 @@ export function liveIds(area: LiveArea): Promise<Set<string>> {
  * cleared. The area is the id's first segment. Shared with lib/data/math.ts
  * and lib/data/frontier.ts.
  */
-export async function clearedIds(
-  userId: string,
-  area: LiveArea | typeof FRONTIER_AREA,
-): Promise<Set<string>> {
+export async function clearedIds(userId: string, area: ProgressArea): Promise<Set<string>> {
   const rows = await db
     .select({ id: progress.exerciseId })
     .from(progress)

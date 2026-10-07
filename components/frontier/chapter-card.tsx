@@ -30,7 +30,7 @@ export function ChapterCard({ chapter }: Props) {
       <h3 id={ids.name} className="floor-card-name">
         {chapter.title}
       </h3>
-      <p className="frontier-card-meta">{FRONTIER_TEXT.minutes(chapter.minutes)}</p>
+      <p className="realm-card-meta">{FRONTIER_TEXT.minutes(chapter.minutes)}</p>
     </>
   );
   return step ? (
