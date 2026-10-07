@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { PixelAvatar } from '@/components/pixel-avatar';
-import { WORLD_MAP, WORLD_MAP_TEXT } from '@/lib/constants';
+import { heroSide, WORLD_MAP, WORLD_MAP_TEXT } from '@/lib/constants';
 import { realmAccent } from '@/lib/content/curriculum';
 import { coastline, edgeFog, shapeSeed } from '@/lib/grading/world-map';
 import type { Accent, RealmStatus, WorldPlace, WorldRealm, WorldView } from '@/lib/types';
@@ -138,7 +138,13 @@ export function WorldMap({ view, heroName, tag }: Props) {
         </svg>
 
         {current && heroName && (
-          <div className="world-hero" style={anchorStyle(current.place)} aria-hidden="true">
+          <div
+            className="world-hero"
+            // The first side of the pin that hides no other pin or label (heroSide).
+            data-side={heroSide(current.place) ?? 'left'}
+            style={anchorStyle(current.place)}
+            aria-hidden="true"
+          >
             <PixelAvatar seed={heroName} size="sm" accent="xp" />
           </div>
         )}
