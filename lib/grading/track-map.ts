@@ -48,7 +48,7 @@ type Sets = {
   live: ReadonlySet<string>;
   cleared: ReadonlySet<string>;
   chapterCount: number;
-  /** REALMS, or a test fixture with specialist rows. */
+  /** Test seam: app code never passes `table` (REALMS is the default). */
   table?: RealmTable;
 };
 type Credited = ReadonlyMap<string, Track>;
@@ -170,8 +170,7 @@ export const clearedLevels = (realms: RealmView[]): number =>
  * order: core and specialist realms mixed; path-curriculum spec). A realm
  * not in the outline is not on the map. `cleared` already holds the
  * credited cases (applyCredit); `credited` says which ones were credited and
- * from which track, for the chapter label. `table` is REALMS, or a test
- * fixture with specialist rows.
+ * from which track, for the chapter label. `table`: test seam: app code never passes `table`.
  */
 export function buildTrackMap(
   track: Track,

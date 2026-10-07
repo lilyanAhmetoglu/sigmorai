@@ -10,6 +10,7 @@ import {
 import { realmArt, realmNumber } from '@/lib/content/curriculum';
 import { loadTrackOutline } from '@/lib/content/load';
 import { loadLogo, loadSceneLayers, OgCard, ogImage, SceneArt } from '@/lib/og/og-card';
+// The site default card, same size: the image a realm without art shares.
 import siteImage from '@/app/(marketing)/opengraph-image';
 
 /**

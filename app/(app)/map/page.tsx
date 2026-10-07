@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { mapHref, REALMS, TRACK_PARAM } from '@/lib/constants';
+import { mapHref, REALMS, realmRow, TRACK_PARAM } from '@/lib/constants';
 import { getRealmsPage } from '@/lib/data/realms';
 
 /**
@@ -11,6 +11,7 @@ import { getRealmsPage } from '@/lib/data/realms';
 export default async function MapPage({ searchParams }: PageProps<'/map'>) {
   const query = await searchParams;
   const { map } = await getRealmsPage(query[TRACK_PARAM]);
-  const realm = REALMS[map.next?.realm ?? 0];
+  // The next step's realm, else the first realm on this path's map.
+  const realm = realmRow(map.next?.realm ?? map.realms[0]?.id ?? 0) ?? REALMS[0];
   redirect(mapHref(realm.slug, query[TRACK_PARAM] ? map.track : undefined));
 }

@@ -164,12 +164,23 @@ describe('realm list rule (fixture table: r9 creator, r10 builder)', () => {
   const ok = (ids: number[], track: 'creator' | 'builder' = 'creator') =>
     trackOutlineSchema(track, T).safeParse(fixtureOutline(ids)).success;
 
-  test('core realms in order pass, with or without the owned specialist realm anywhere', () => {
-    expect(ok(CORE_IDS)).toBe(true);
+  test('core realms in order plus every owned specialist realm, anywhere, pass', () => {
     expect(ok(CREATOR_ORDER)).toBe(true);
     expect(ok([...CORE_IDS, 9])).toBe(true);
     expect(ok([9, ...CORE_IDS])).toBe(true);
     expect(ok([0, 10, 1, 2, 3, 4, 5, 6, 7, 8], 'builder')).toBe(true);
+    // strategist owns no fixture realm: the core realms alone pass.
+    expect(trackOutlineSchema('strategist', T).safeParse(fixtureOutline(CORE_IDS)).success).toBe(
+      true,
+    );
+  });
+
+  test('an owner outline that leaves out one of its specialist realms fails', () => {
+    expect(ok(CORE_IDS)).toBe(false);
+    expect(ok(CORE_IDS, 'builder')).toBe(false);
+    expect(outlineRealmIssues(CORE_IDS, 'creator', T)).toEqual([
+      'realm r9 is owned by creator but missing from its outline',
+    ]);
   });
 
   test('a missing core realm fails', () => {
@@ -187,15 +198,15 @@ describe('realm list rule (fixture table: r9 creator, r10 builder)', () => {
     expect(
       trackOutlineSchema('strategist', T).safeParse(fixtureOutline(CREATOR_ORDER)).success,
     ).toBe(false);
-    expect(outlineRealmIssues([...CORE_IDS, 9], 'builder', T)).toEqual([
+    expect(outlineRealmIssues([...CORE_IDS, 10, 9], 'builder', T)).toEqual([
       'realm r9 belongs to the creator path, not builder',
     ]);
   });
 
   test('a duplicate or unknown realm fails', () => {
     expect(ok([...CREATOR_ORDER, 9])).toBe(false);
-    expect(ok([...CORE_IDS, 11])).toBe(false);
-    expect(outlineRealmIssues([...CORE_IDS, 11], 'creator', T)).toEqual([
+    expect(ok([...CREATOR_ORDER, 11])).toBe(false);
+    expect(outlineRealmIssues([...CREATOR_ORDER, 11], 'creator', T)).toEqual([
       'realm r11 has no REALMS row',
     ]);
   });

@@ -164,10 +164,14 @@ function pickTrack(param: unknown, viewer: Viewer): Track {
   return viewer.status === 'ready' ? viewer.stats.track : DEFAULT_TRACK;
 }
 
-/** Progress is per track (the track is in every id), so any track shows the player's own clears and credit. */
-async function mapFor(param: unknown) {
+/**
+ * Progress is per track (the track is in every id), so any track shows the
+ * player's own clears and credit. `resolve` turns the picked track into the
+ * one to show (a specialist realm page: always its owner's).
+ */
+async function mapFor(param: unknown, resolve: (picked: Track) => Track = (t) => t) {
   const viewer = await getViewer();
-  const track = pickTrack(param, viewer);
+  const track = resolve(pickTrack(param, viewer));
   const map = await getTrackMap(track, viewer.status === 'ready' ? viewer.userId : null);
   return { viewer: viewer.status, map };
 }
@@ -197,14 +201,12 @@ export async function getRealmPage(slug: string, trackParam: unknown): Promise<R
   if (!parsed.success) return null;
   const row = REALMS.find((r) => r.slug === parsed.data);
   if (!row) return null;
-  const viewer = await getViewer();
-  const track = realmPageTrack(row, pickTrack(trackParam, viewer));
-  const map = await getTrackMap(track, viewer.status === 'ready' ? viewer.userId : null);
+  const { viewer, map } = await mapFor(trackParam, (picked) => realmPageTrack(row, picked));
   const realm = map.realms.find((r) => r.id === row.id);
   if (!realm) return null;
   return {
-    viewer: viewer.status,
-    track,
+    viewer,
+    track: map.track,
     realm,
     next: firstOpenStep([realm]),
     ...realmNeighbours(map.realms, realm.id),

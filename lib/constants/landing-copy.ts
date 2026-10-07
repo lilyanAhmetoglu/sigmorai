@@ -18,7 +18,7 @@ const lastRealm = beginnerRealms[beginnerRealms.length - 1];
 export const LANDING_META = {
   title: `${SITE_NAME}: learn AI engineering as a pixel-art RPG`,
   description:
-    'Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people, developers and designers.',
+    'From how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people, developers and designers.',
 } as const;
 
 export const LANDING_TEXT = {
@@ -27,7 +27,7 @@ export const LANDING_TEXT = {
   continueQuest: 'Continue quest',
   eyebrow: 'AI ENGINEERING · PIXEL-ART RPG',
   title: 'Start your AI engineering adventure.',
-  lede: `Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work, or how to make AI media.`,
+  lede: `From how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work, or how to make AI media.`,
   audienceEyebrow: 'WHO IT IS FOR',
   audienceTitle: 'Pick the path that fits you',
   audienceIntro:
@@ -42,7 +42,7 @@ export const LANDING_TEXT = {
     `Clear the realm's boss case (+${XP_REWARDS.boss} XP) to earn a certificate you can share.`,
   ],
   realmsEyebrow: 'THE MAP',
-  realmsTitle: `${coreRealms().length} realms, one world`,
+  realmsTitle: 'One map, a path for every job',
   /** Keep in step with OPEN_TIERS (curriculum.ts): beginner + intermediate today. */
   realmsIntro: `Each realm is a course: its chapters, then a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
   realmsAll: 'Explore all realms',

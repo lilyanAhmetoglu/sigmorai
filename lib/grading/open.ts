@@ -51,8 +51,8 @@ const challengeId = (track: Track, realm: number, chapter: number, table: RealmT
 /**
  * The exercise ids that must have a progress row before `ref` opens. Pure.
  * `chapterCount` is the realm's chapter count in its track's outline (the
- * boss needs every one); the Math Tower and the Frontier ignore it. `table`
- * is REALMS, or a test fixture with specialist rows (here and below).
+ * boss needs every one); the Math Tower and the Frontier ignore it.
+ * `table` (here and below): test seam: app code never passes `table`.
  */
 export function requiredClears(
   ref: ExerciseRef,

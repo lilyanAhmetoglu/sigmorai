@@ -100,7 +100,7 @@ function isCalendarDate(date: string): boolean {
 /** The number after a one-letter prefix: `r3` → 3. */
 const indexOf = (segment: string) => Number(segment.slice(1));
 
-/** `table` is REALMS, or a test fixture with specialist rows. */
+/** `table`: test seam: app code never passes `table` (a fixture with specialist rows). */
 export function parseExerciseId(id: string, table: RealmTable = REALMS): ExerciseRef | null {
   if (!patternFor(table).test(id)) return null;
   // The pattern above already proved each segment's shape, so the casts are safe.
@@ -160,7 +160,7 @@ function format(ref: ExerciseRef): string {
 
 /**
  * Throws on an out-of-range ref (or a realm the track doesn't have), so a
- * bad id can never be written. `table` is REALMS, or a test fixture.
+ * bad id can never be written. `table`: test seam: app code never passes `table`.
  */
 export function buildExerciseId(ref: ExerciseRef, table: RealmTable = REALMS): string {
   const id = format(ref);
@@ -186,6 +186,7 @@ export function parseBlogFileName(name: string): { date: string; slug: string } 
 /**
  * Every exercise id of one realm on one track: each chapter step, then the
  * boss. `chapterCount` is the realm's chapter count in that track's outline.
+ * `table`: test seam: app code never passes `table`.
  */
 export function realmExerciseIds(
   track: Track,
@@ -203,7 +204,10 @@ export function realmExerciseIds(
   return ids;
 }
 
-/** Every realm exercise id of one track, realm by realm in its outline's order. */
+/**
+ * Every realm exercise id of one track, realm by realm in its outline's
+ * order. `table`: test seam: app code never passes `table`.
+ */
 export function trackExerciseIds(
   track: Track,
   outline: TrackOutline,

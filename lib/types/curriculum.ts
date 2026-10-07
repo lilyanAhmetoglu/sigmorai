@@ -69,7 +69,8 @@ const RealmOutlineSchema = z
  * What is wrong with a track outline's realm list (path-curriculum spec,
  * amendments 2026-10-07). Pure. The rule: every core realm exactly once and
  * in id order; specialist realms anywhere between them, but only the ones
- * this track owns; no realm twice; no realm without a row in the table.
+ * this track owns, and every one it owns; no realm twice; no realm without
+ * a row in the table.
  */
 export function outlineRealmIssues(
   ids: readonly number[],
@@ -92,6 +93,13 @@ export function outlineRealmIssues(
   if (listed.join() !== core.join()) {
     const expected = core.map((id) => segment('realm', id)).join(', ');
     issues.push(`the core realms must each appear once, in this order: ${expected}`);
+  }
+  // A specialist realm left out of its owner's outline would have a row, a
+  // grammar entry and a certificate, but no place on any map.
+  for (const realm of realms) {
+    if (realm.track === track && !seen.has(realm.id)) {
+      issues.push(`realm r${realm.id} is owned by ${track} but missing from its outline`);
+    }
   }
   return issues;
 }
