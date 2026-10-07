@@ -2,7 +2,16 @@ import { describe, expect, test } from 'bun:test';
 import type { WorldPlace } from '@/lib/types';
 import { REALMS } from './curriculum';
 import { WORLD_MAP_TEXT } from './realms-copy';
-import { WORLD_MAP, WORLD_MIN_ANCHOR_GAP, WORLD_OVERVIEW_MIN_WIDTH, ZOOM_STEPS } from './world-map';
+import {
+  HERO_SIDES,
+  heroClear,
+  heroSide,
+  WORLD_HERO,
+  WORLD_MAP,
+  WORLD_MIN_ANCHOR_GAP,
+  WORLD_OVERVIEW_MIN_WIDTH,
+  ZOOM_STEPS,
+} from './world-map';
 
 // The geometry rules of the world-map spec (→ Geometry). The art is made to
 // fit these numbers, so a broken rule here means overlapping lands or markers.
@@ -81,6 +90,60 @@ describe('world-map.css', () => {
     const rems = [...css.matchAll(/@media \(width >= ([\d.]+)rem\)/g)].map((m) => Number(m[1]));
     expect(rems.length).toBeGreaterThan(0);
     for (const rem of rems) expect(rem * 16).toBe(WORLD_OVERVIEW_MIN_WIDTH);
+  });
+});
+
+describe('heroSide', () => {
+  // Every place the hero can stand on: each core realm, and each slot as if
+  // a specialist realm stood there.
+  const stands = places.filter(([name]) => !WORLD_MAP.landmarks.some((l) => l.id === name));
+
+  test('every core realm and slot has a side that is clear at every zoom', () => {
+    const blocked = stands
+      .filter(([, p]) => {
+        const side = heroSide(p);
+        return !side || !ZOOM_STEPS.every((z) => heroClear(p, side, z));
+      })
+      .map(([name]) => name);
+    expect(blocked).toEqual([]);
+  });
+
+  test('core realms keep the hero on the left, unless the left truly collides', () => {
+    const moved = Object.fromEntries(
+      Object.entries(WORLD_MAP.realms)
+        .map(([id, p]) => [`r${id}`, heroSide(p)] as const)
+        .filter(([, side]) => side !== 'left'),
+    );
+    // r3 Context Library: at ½ the left hides the Math Tower label, the right slot s4.
+    expect(moved).toEqual({ r3: 'above' });
+  });
+
+  test('a side is skipped when it is not clear (r3: left and right)', () => {
+    const r3 = WORLD_MAP.realms[3];
+    expect(heroClear(r3, 'left', 0.5)).toBe(false);
+    expect(heroClear(r3, 'right', 0.5)).toBe(false);
+  });
+
+  test('world-map.css places the hero with the WORLD_HERO.sides offsets', async () => {
+    const css = await Bun.file(
+      `${import.meta.dir}/../../app/styles/components/world-map.css`,
+    ).text();
+    const px = (sign: string, n: string) => (sign === '-' ? -1 : 1) * Number(n) * 4;
+    for (const side of HERO_SIDES) {
+      const rule = css.match(
+        new RegExp(`\\.world-hero\\[data-side='${side}'\\] \\{([^}]*)\\}`),
+      )?.[1];
+      const left = rule?.match(
+        /left: max\(0px, calc\(var\(--hero-x\) ([+-]) --spacing\(([\d.]+)\)\)\)/,
+      );
+      const top = rule?.match(
+        /top: max\(0px, calc\(var\(--hero-y\) ([+-]) --spacing\(([\d.]+)\)\)\)/,
+      );
+      expect({ side, at: left && top && [px(left[1], left[2]), px(top[1], top[2])] }).toEqual({
+        side,
+        at: [...WORLD_HERO.sides[side]],
+      });
+    }
   });
 });
 

@@ -23,6 +23,7 @@
 - **Copy:** `/map/<slug>` title becomes "<Realm> · Level map · Sigmorai"; `MAP_TEXT.description` has no hard-coded count. `DESIGN.md` line about "only the level map scrolls sideways" gets "the level map and the world map scroll inside their boxes".
 - **Order:** PR 1 lands after per-path PR 1a (merged). It does not need 1b. PR 3 island prompts 14–18 are rendered only when each creator realm ships.
 - **PR 1 includes the journey layer** (trail, hero, ragged edge fog); PR 2 is folded in. Zoom lives in `components/map/zoom-controls.tsx`. Slot fog patches wait for the Higgsfield art (PR 3): in PR 1 an empty slot is plain sea. The placeholder uses land (`--mint-700`), beach (`--parchment-400`) and sea (`--byte-700`, sparse `--byte-600` waves) tokens and a seeded, uneven coast on whole tiles inside each footprint, so it reads as a map. The box height follows the overview zoom only; the overview is ½ under 68rem (1088px). The hero stands left of the current pin. Pins are 28px inside a 44px link.
+- **The hero stands on the first clear side of its pin (left, right, above, below), picked per place by `heroSide`; a test checks every core place and slot at every zoom.** Above and below also clear the marker's own tag and name. Today r3 stands above (at ½ its left hides the Math Tower label); slots s3, s4, s5 and s9 stand right.
 
 <!-- New decisions are appended here as:
 ## Amendments locked YYYY-MM-DD
