@@ -1,4 +1,5 @@
 import 'server-only';
+import type { Dirent } from 'node:fs';
 import { access, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
@@ -7,11 +8,13 @@ import {
   BLOG_AREA,
   CASE_FILE,
   CONTENT_DIR,
+  FRONTIER_AREA,
   MATH_AREA,
   KB_SOURCES_NAME,
   LESSON_FILE,
   OUTLINE_FILE,
   QUICK_CHECK_FILE,
+  SHARED_CHAPTERS_FILE,
 } from '@/lib/constants';
 import {
   BlogFrontmatterSchema,
@@ -20,17 +23,21 @@ import {
   LessonFrontmatterSchema,
   MathOutlineSchema,
   QuickCheckSchema,
+  SharedChaptersFileSchema,
   TrackOutlineSchema,
   type BlogPost,
   type Case,
+  type ExerciseRef,
+  type FrontierChapter,
   type KbSource,
   type Lesson,
   type MathOutline,
   type QuickCheck,
+  type SharedChaptersFile,
   type Track,
   type TrackOutline,
 } from '@/lib/types';
-import { parseBlogFileName, parseExerciseId } from './ids';
+import { frontierExerciseIds, parseBlogFileName, parseExerciseId } from './ids';
 import { exerciseFile } from './paths';
 
 /**
@@ -188,13 +195,13 @@ export async function loadKbSources(root = CONTENT_DIR): Promise<KbSource[]> {
   return result.data.sources;
 }
 
-/** Reads an outline.json under the content root and parses it with its schema. */
-async function loadOutline<S extends z.ZodType>(
-  folder: string,
+/** A JSON file at `rel` under the content root, parsed with its schema. Throws ContentError. */
+async function loadContentJson<S extends z.ZodType>(
+  rel: string,
   schema: S,
   root: string,
 ): Promise<z.output<S>> {
-  const abs = contentPath(root, `${folder}/${OUTLINE_FILE}`);
+  const abs = contentPath(root, rel);
   const at = { abs, file: path.relative(process.cwd(), abs) };
   const text = await readText(at);
   let raw: unknown;
@@ -208,6 +215,10 @@ async function loadOutline<S extends z.ZodType>(
   return result.data;
 }
 
+/** Reads an outline.json under the content root and parses it with its schema. */
+const loadOutline = <S extends z.ZodType>(folder: string, schema: S, root: string) =>
+  loadContentJson(`${folder}/${OUTLINE_FILE}`, schema, root);
+
 /** content/<track>/outline.json, validated: topic, lore and chapter titles per realm. */
 export const loadTrackOutline = (track: Track, root = CONTENT_DIR): Promise<TrackOutline> =>
   loadOutline(track, TrackOutlineSchema, root);
@@ -216,7 +227,14 @@ export const loadTrackOutline = (track: Track, root = CONTENT_DIR): Promise<Trac
 export const loadMathOutline = (root = CONTENT_DIR): Promise<MathOutline> =>
   loadOutline(MATH_AREA, MathOutlineSchema, root);
 
+/** content/shared-chapters.json, validated: chapter groups that credit each other across tracks. */
+export const loadSharedChapters = (root = CONTENT_DIR): Promise<SharedChaptersFile> =>
+  loadContentJson(SHARED_CHAPTERS_FILE, SharedChaptersFileSchema, root);
+
 // ── Blog posts: content/blog/<YYYY-MM-DD>-<slug>.mdx ─────────────────────
+
+/** `YYYY-MM-DD-` names sort by date as text. Same date: reverse slug order, stable. */
+const newestFirst = (a: string, b: string) => (a < b ? 1 : -1);
 
 /** File names in content/blog/ that follow the post grammar, newest first. */
 async function blogFileNames(root: string): Promise<string[]> {
@@ -227,8 +245,7 @@ async function blogFileNames(root: string): Promise<string[]> {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
     throw err;
   }
-  // `YYYY-MM-DD-` sorts by date as text. Same date: reverse slug order, stable.
-  return names.filter((name) => parseBlogFileName(name) !== null).sort((a, b) => (a < b ? 1 : -1));
+  return names.filter((name) => parseBlogFileName(name) !== null).sort(newestFirst);
 }
 
 /**
@@ -259,4 +276,50 @@ export async function loadBlogPost(slug: string, root = CONTENT_DIR): Promise<Bl
 export async function listBlogPosts(root = CONTENT_DIR): Promise<BlogPost[]> {
   const names = await blogFileNames(root);
   return Promise.all(names.map((name) => loadBlogFile(name, root)));
+}
+
+// ── The Frontier: content/frontier/<YYYY-MM-DD>-<slug>/ ──────────────────
+
+/**
+ * Folder names in content/frontier/ that follow the chapter grammar, newest
+ * first. No folder yet is fine (an empty list). The one scan of this folder:
+ * the pages, docs-watch and content:check all use it.
+ */
+export async function listFrontierFolders(root = CONTENT_DIR): Promise<string[]> {
+  let entries: Dirent[];
+  try {
+    entries = await readdir(contentPath(root, FRONTIER_AREA), { withFileTypes: true });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw err;
+  }
+  return entries
+    .filter((e) => e.isDirectory() && frontierExerciseIds([e.name]).length > 0)
+    .map((e) => e.name)
+    .sort(newestFirst);
+}
+
+/**
+ * Every Frontier chapter, newest first: title and minutes from its lesson.
+ * A chapter with a bad or missing lesson throws (content:check requires both
+ * files), so a broken chapter fails loudly, like a blog post.
+ */
+export async function listFrontierChapters(root = CONTENT_DIR): Promise<FrontierChapter[]> {
+  const folders = await listFrontierFolders(root);
+  return Promise.all(
+    folders.map(async (folder): Promise<FrontierChapter> => {
+      const [lessonId, quickCheckId] = frontierExerciseIds([folder]);
+      const ref = parseExerciseId(lessonId) as Extract<ExerciseRef, { area: 'frontier' }>;
+      const { frontmatter } = await loadLesson(lessonId, root);
+      return {
+        folder,
+        date: ref.date,
+        slug: ref.slug,
+        title: frontmatter.title,
+        minutes: frontmatter.minutes,
+        lessonId,
+        quickCheckId,
+      };
+    }),
+  );
 }

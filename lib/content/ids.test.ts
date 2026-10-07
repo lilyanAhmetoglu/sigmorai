@@ -11,8 +11,10 @@ import {
 import { ExerciseIdSchema, type ExerciseRef } from '@/lib/types';
 import {
   buildExerciseId,
+  frontierExerciseIds,
   isExerciseId,
   parseBlogFileName,
+  parseChapterId,
   parseExerciseId,
   mathExerciseIds,
   questBackHref,
@@ -158,7 +160,7 @@ describe('realmExerciseIds', () => {
 });
 
 describe('questBackHref', () => {
-  test('a realm quest goes back to its realm, a floor to the tower, anything else to the catalog', () => {
+  test('a realm quest goes back to its realm, a floor to the tower, a Frontier step to the Frontier, anything else to the catalog', () => {
     expect(questBackHref('builder/r1/c2/challenge')).toBe(
       `/realms/${REALMS[1].slug}?track=builder`,
     );
@@ -166,8 +168,26 @@ describe('questBackHref', () => {
       `/realms/${REALMS[0].slug}?track=strategist`,
     );
     expect(questBackHref('math/f1/lesson')).toBe('/math');
-    expect(questBackHref('frontier/2026-10-05-some-slug/lesson')).toBe('/realms');
+    expect(questBackHref('frontier/2026-10-05-some-slug/lesson')).toBe('/frontier');
+    expect(questBackHref('frontier/2026-10-05-some-slug/quick-check')).toBe('/frontier');
     expect(questBackHref('nonsense')).toBe('/realms');
+  });
+});
+
+describe('frontierExerciseIds', () => {
+  test('lesson then quick check per folder, in the order given', () => {
+    expect(frontierExerciseIds(['2026-10-06-b', '2026-10-05-a'])).toEqual([
+      'frontier/2026-10-06-b/lesson',
+      'frontier/2026-10-06-b/quick-check',
+      'frontier/2026-10-05-a/lesson',
+      'frontier/2026-10-05-a/quick-check',
+    ]);
+  });
+
+  test('a folder that breaks the grammar has no ids', () => {
+    expect(
+      frontierExerciseIds(['notes', '2026-02-30-bad-date', '2026-10-05-Bad', '2026-10-05']),
+    ).toEqual([]);
   });
 });
 
@@ -198,6 +218,28 @@ describe('parseBlogFileName', () => {
       '2026-10-06-xmdx',
     ]) {
       expect(parseBlogFileName(name)).toBeNull();
+    }
+  });
+});
+
+describe('parseChapterId', () => {
+  test('a realm chapter without its step parses', () => {
+    expect(parseChapterId('strategist/r1/c3')).toEqual({
+      track: 'strategist',
+      realm: 1,
+      chapter: 3,
+    });
+  });
+
+  test('a boss, a Math floor, a full exercise id or a bad shape is null', () => {
+    for (const id of [
+      'builder/r1/boss',
+      'math/f1',
+      'builder/r1/c1/lesson',
+      'builder/r9/c1',
+      'builder/r1/c7',
+    ]) {
+      expect(parseChapterId(id)).toBeNull();
     }
   });
 });

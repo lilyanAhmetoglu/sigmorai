@@ -4,6 +4,8 @@ import { connection } from 'next/server';
 import { cache } from 'react';
 import { db } from '@/db';
 import {
+  FRONTIER_AREA,
+  FRONTIER_TEXT,
   HP_PER_CHALLENGE,
   MATH_AREA,
   MATH_FLOOR_COUNT,
@@ -42,16 +44,14 @@ import type {
 import { nextUtcDayStart } from '@/lib/xp/day';
 import { getHudState } from './hud';
 
-/** A step this page plays: a realm chapter step, a boss, or a Math Tower floor step. */
-type PlayableRef = Extract<ExerciseRef, { area: 'chapter' | 'boss' | typeof MATH_AREA }>;
-/** A step that has a lesson: a realm chapter step or a Math Tower floor step. */
-type LessonRef = Extract<ExerciseRef, { area: 'chapter' | typeof MATH_AREA }>;
+/** Every step this page plays: a realm chapter step, a boss, a Math Tower floor or Frontier step. */
+type PlayableRef = ExerciseRef;
+/** A step that has a lesson: a realm chapter, Math Tower floor or Frontier chapter step. */
+type LessonRef = Exclude<ExerciseRef, { area: 'boss' }>;
 
 /** What the quest page renders. Public content only: no correct flags, no explanations. */
 export type QuestPage =
   | { kind: 'not-found' }
-  /** A real step this page can't show yet (Frontier steps). */
-  | { kind: 'unavailable' }
   | { kind: 'locked'; message: string }
   | {
       kind: 'answers';
@@ -77,8 +77,11 @@ export type QuestPage =
       /** "BOOTSTRAP VILLAGE · CHAPTER 1 · LESSON", "MATH TOWER · FLOOR 1 · LESSON" */
       tag: string;
       accent: Accent;
-      /** The realm's (or tower's) NPC: every <DialogBox> in the body speaks as them. */
-      npc: string;
+      /**
+       * The realm's (or tower's) NPC: every <DialogBox> in the body speaks as
+       * them. None for the Frontier: its body may use no component at all.
+       */
+      npc?: string;
       viewer: LessonViewer;
       /** Where Continue goes after "Lesson done": this chapter's case, or this floor's quick check. */
       nextHref: string;
@@ -94,19 +97,33 @@ function tagFor(ref: PlayableRef, step: keyof typeof STEP_TAG): string {
   if (ref.area === MATH_AREA) {
     return `${MATH_TOWER.name.toUpperCase()} · ${QUEST_TEXT.floorTag(ref.floor)} · ${STEP_TAG[step]}`;
   }
+  if (ref.area === FRONTIER_AREA) {
+    return `${QUEST_TEXT.frontierArea} · ${ref.date} · ${STEP_TAG[step]}`;
+  }
   const realm = REALMS[ref.realm as RealmId].name.toUpperCase();
   const where = ref.area === 'boss' ? QUEST_TEXT.bossTag : QUEST_TEXT.chapterTag(ref.chapter);
   return `${realm} · ${where} · ${STEP_TAG[step]}`;
 }
 
-const accentFor = (ref: PlayableRef): Accent =>
-  ref.area === MATH_AREA ? 'math' : realmAccent(ref.realm as RealmId);
+function accentFor(ref: PlayableRef): Accent {
+  if (ref.area === MATH_AREA) return 'math';
+  if (ref.area === FRONTIER_AREA) return 'neutral';
+  return realmAccent(ref.realm as RealmId);
+}
 
-const npcFor = (ref: LessonRef): string =>
-  ref.area === MATH_AREA ? MATH_TOWER.npc : REALMS[ref.realm as RealmId].npc;
+/** The lesson's NPC. The Frontier has none (no DialogBox, no lore). */
+function npcFor(ref: LessonRef): string | undefined {
+  if (ref.area === MATH_AREA) return MATH_TOWER.npc;
+  if (ref.area === FRONTIER_AREA) return undefined;
+  return REALMS[ref.realm as RealmId].npc;
+}
 
-/** The step a pass leads to: the next case, or (Math Tower) the next floor's lesson. */
+/**
+ * The step a pass leads to: the next case, or (Math Tower) the next floor's
+ * lesson. The Frontier has no order: Continue goes back to its page.
+ */
 function nextStepId(ref: PlayableRef): string | null {
+  if (ref.area === FRONTIER_AREA) return null;
   if (ref.area !== MATH_AREA) return nextCaseId(ref);
   return ref.floor < MATH_FLOOR_COUNT
     ? buildExerciseId({ area: MATH_AREA, floor: ref.floor + 1, step: 'lesson' })
@@ -180,21 +197,24 @@ async function readyViewer(
 /**
  * The quest page's read. Signed-out readers see the case (no submit); only
  * the tier lock applies to them. A signed-in player also gets the chapter
- * (or floor) order check, which the actions run again. Math Tower floors have
- * no tier. Frontier steps are not playable yet.
+ * (or floor) order check, which the actions run again. Math Tower floors and
+ * Frontier chapters have no tier; every Frontier chapter is open.
  */
 export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
   // A new seed on every request: never prerender or reuse this read.
   await connection();
   const ref = parseExerciseId(exerciseId);
   if (!ref || !(await hasContent(exerciseId))) return { kind: 'not-found' };
-  if (ref.area === 'frontier') return { kind: 'unavailable' };
-  if (ref.area !== MATH_AREA && !isRealmOpen(REALMS[ref.realm as RealmId].tier)) {
+  if (
+    (ref.area === 'chapter' || ref.area === 'boss') &&
+    !isRealmOpen(REALMS[ref.realm as RealmId].tier)
+  ) {
     return { kind: 'locked', message: QUEST_ERROR_TEXT.TIER_LOCKED };
   }
   if (ref.area !== 'boss' && ref.step === 'lesson') return lessonPage(ref, exerciseId);
   const kind = gradedKind(ref);
-  if (!kind) return { kind: 'unavailable' };
+  // Every non-lesson step is graded; this only narrows the type.
+  if (!kind) return { kind: 'not-found' };
 
   let loaded: Awaited<ReturnType<typeof loadSheet>>;
   try {
@@ -242,14 +262,15 @@ async function readLesson(exerciseId: string): Promise<Lesson | null> {
 }
 
 /**
- * Continue after "Lesson done": this chapter's case (or this floor's quick
- * check) if it has content, else the realm or tower page.
+ * Continue after "Lesson done": this chapter's case (or this floor's or
+ * Frontier chapter's quick check) if it has content, else the realm, tower or
+ * Frontier page.
  */
 async function lessonNextHref(ref: LessonRef, exerciseId: string): Promise<string> {
   const nextId =
-    ref.area === MATH_AREA
-      ? buildExerciseId({ ...ref, step: 'quick-check' })
-      : buildExerciseId({ ...ref, step: 'challenge' });
+    ref.area === 'chapter'
+      ? buildExerciseId({ ...ref, step: 'challenge' })
+      : buildExerciseId({ ...ref, step: 'quick-check' });
   return (await hasContent(nextId)) ? questHref(nextId) : questBackHref(exerciseId);
 }
 
@@ -269,7 +290,10 @@ async function lessonViewer(exerciseId: string): Promise<LessonViewer> {
   return { status: 'ready', cleared };
 }
 
-/** A realm chapter or Math Tower floor lesson. The tier check already ran in getQuestPage. */
+/**
+ * A realm chapter, Math Tower floor or Frontier lesson. The tier check
+ * already ran in getQuestPage.
+ */
 async function lessonPage(ref: LessonRef, exerciseId: string): Promise<QuestPage> {
   const lesson = await readLesson(exerciseId);
   if (!lesson) return { kind: 'not-found' };
@@ -277,28 +301,33 @@ async function lessonPage(ref: LessonRef, exerciseId: string): Promise<QuestPage
     lessonViewer(exerciseId),
     lessonNextHref(ref, exerciseId),
   ]);
+  const npc = npcFor(ref);
   return {
     kind: 'lesson',
     exerciseId,
     lesson,
     tag: tagFor(ref, 'lesson'),
     accent: accentFor(ref),
-    npc: npcFor(ref),
+    ...(npc && { npc }),
     viewer,
     nextHref,
   };
 }
 
-/** What a lesson's meta description says: the realm's topic, or what the floor covers. */
+/**
+ * What a lesson's meta description says: the realm's topic, what the floor
+ * covers, or the Frontier's fixed description.
+ */
 async function lessonDescription(ref: LessonRef): Promise<string> {
   if (ref.area === MATH_AREA) return (await loadMathOutline()).floors[ref.floor - 1].covers;
+  if (ref.area === FRONTIER_AREA) return FRONTIER_TEXT.description;
   return (await loadTrackOutline(ref.track)).realms[ref.realm].topic;
 }
 
-/** Title, description and canonical for a realm or Math Tower lesson; null otherwise. */
+/** Title, description and canonical for any lesson (realm, Math Tower, Frontier); null otherwise. */
 export async function getLessonMeta(exerciseId: string) {
   const ref = parseExerciseId(exerciseId);
-  if ((ref?.area !== 'chapter' && ref?.area !== MATH_AREA) || ref.step !== 'lesson') return null;
+  if (!ref || ref.area === 'boss' || ref.step !== 'lesson') return null;
   const lesson = await readLesson(exerciseId);
   if (!lesson) return null;
   return {

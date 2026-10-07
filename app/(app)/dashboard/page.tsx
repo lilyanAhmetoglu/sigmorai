@@ -4,23 +4,37 @@ import { redirect } from 'next/navigation';
 import { ContinueCard } from '@/components/dashboard/continue-card';
 import { DailyQuest } from '@/components/dashboard/daily-quest';
 import { DashboardStats } from '@/components/dashboard/dashboard-stats';
+import { FrontierPanel } from '@/components/dashboard/frontier-panel';
 import { RealmTile } from '@/components/dashboard/realm-tile';
 import { TowerPanel } from '@/components/dashboard/tower-panel';
 import { Panel } from '@/components/panel';
 import { AUTH_ROUTES, DASHBOARD_TEXT, ONBOARDING_HREF, REALMS_HREF } from '@/lib/constants';
+import { getFrontierSummary } from '@/lib/data/frontier';
 import { getDashboard } from '@/lib/data/realms';
+import type { FrontierSummary } from '@/lib/types';
 
 export const metadata: Metadata = { title: `${DASHBOARD_TEXT.title} · Sigmorai` };
 
 const CONTINUE_ID = 'dashboard-continue';
 const REALMS_ID = 'dashboard-realms';
 
+/** The FRONTIER panel's summary, or null when its read fails (the panel says so). */
+async function readFrontier(): Promise<FrontierSummary | null> {
+  try {
+    return await getFrontierSummary();
+  } catch (error) {
+    console.error('[dashboard] Frontier read failed', error);
+    return null;
+  }
+}
+
 /**
  * The player's home (Sigmorai App.dc.html → isDash): the next open step on
  * their track, their stats and their active realms. Every state is computed
  * on the server (lib/data/realms.ts).
- * The Math Tower panel and MATH FLOORS stat come from the same read.
- * Not built yet: the Frontier shortcut.
+ * The Math Tower panel and MATH FLOORS stat come from the same read; the
+ * FRONTIER panel from the Frontier's own read (lib/data/frontier.ts), done
+ * only for a ready player. A Frontier failure shows in its panel only.
  */
 export default async function DashboardPage() {
   const page = await getDashboard();
@@ -28,6 +42,7 @@ export default async function DashboardPage() {
   if (page.status === 'onboarding') redirect(ONBOARDING_HREF);
 
   const { stats, map, active, levelsCleared, tower } = page;
+  const frontier = await readFrontier();
 
   return (
     <div className="max-w-app mx-auto flex w-full flex-wrap items-start gap-6 px-4 py-6">
@@ -74,6 +89,7 @@ export default async function DashboardPage() {
         <DashboardStats streak={stats.streak} levelsCleared={levelsCleared} tower={tower} />
         <DailyQuest streak={stats.streak} activeToday={stats.activeToday} />
         <TowerPanel tower={tower} />
+        <FrontierPanel frontier={frontier} />
       </aside>
     </div>
   );

@@ -1,9 +1,27 @@
 import type { Metadata } from 'next';
+import { PixelButton } from '@/components/pixel-button';
 import { RealmCard } from '@/components/realms/realm-card';
 import { SignInNote } from '@/components/realms/sign-in-note';
 import { TrackSwitch } from '@/components/realms/track-switch';
-import { REALMS_HREF, REALMS_TEXT, realmsHref, TRACK_PARAM, TRACK_TEXT } from '@/lib/constants';
+import {
+  FRONTIER,
+  FRONTIER_HREF,
+  MATH_HREF,
+  MATH_TOWER,
+  REALMS_HREF,
+  REALMS_TEXT,
+  realmsHref,
+  SIDE_REALMS_TEXT,
+  TRACK_PARAM,
+  TRACK_TEXT,
+} from '@/lib/constants';
 import { getRealmsPage } from '@/lib/data/realms';
+
+const SIDE_REALMS_ID = 'side-realms';
+const SIDE_REALM_LINKS = [
+  { href: MATH_HREF, name: MATH_TOWER.name },
+  { href: FRONTIER_HREF, name: FRONTIER.name },
+] as const;
 
 // Relative URLs resolve against metadataBase (app/layout.tsx).
 export const metadata: Metadata = {
@@ -17,8 +35,9 @@ export const metadata: Metadata = {
  * a visitor sees the map with no progress (curriculum spec). State is
  * computed on the server; the track comes from `?track=`, else the player's
  * own track, else the beginner path.
- * Not built yet: the tier filter row, realm scene art, and the Math Tower and
- * Frontier entries (the tower has its own page, /math; the Frontier comes later).
+ * After the realms, a "Side realms" link row: the Math Tower (/math) and the
+ * Frontier (/frontier), shared by every path.
+ * Not built yet: the tier filter row and realm scene art.
  */
 export default async function RealmsPage({ searchParams }: PageProps<'/realms'>) {
   const params = await searchParams;
@@ -42,6 +61,25 @@ export default async function RealmsPage({ searchParams }: PageProps<'/realms'>)
           </li>
         ))}
       </ul>
+      <section aria-labelledby={SIDE_REALMS_ID} className="side-realms">
+        <h2 id={SIDE_REALMS_ID} className="page-eyebrow">
+          {SIDE_REALMS_TEXT.heading}
+        </h2>
+        <ul className="side-realms-list">
+          {SIDE_REALM_LINKS.map(({ href, name }) => (
+            <li key={href}>
+              <PixelButton
+                href={href}
+                variant="secondary"
+                size="sm"
+                icon={<span aria-hidden="true">{SIDE_REALMS_TEXT.icon}</span>}
+              >
+                {name}
+              </PixelButton>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

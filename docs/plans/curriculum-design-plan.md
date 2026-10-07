@@ -8,6 +8,24 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (SIG-29: the Frontier is playable)
+
+- **Route `/frontier`** (`app/(app)/frontier`, public like `/math`): a newest-first list of chapters (title, date, `minutes`, state). With no chapter it shows one plain empty-state panel ("No chapters yet. We add a chapter when official docs publish something new.") and nothing else. No scene art, no NPC, accent `neutral`, site-default OG image.
+- **Design:** derived from the Math Tower screens (isMath); the design file has no Frontier screen.
+- **Open rule: every Frontier chapter is open.** No order, no tier. `decideOpen` returns ok for a Frontier ref whose file exists. Replaces "Frontier ids return `INVALID_INPUT`" (quest-actions §Open check, Math Tower amendment 2026-10-06).
+- **XP: the existing lesson (+10) and quick-check (+5) rewards, once per user.** Frontier ids have no track, so progress and XP are **shared across paths** (same as the tower). This replaces "Frontier progress is written under the active track" (devil pass 2026-10-05): the shipped id grammar wins.
+- **Quest pages reuse the realm views:** tag `THE FRONTIER · <YYYY-MM-DD> · LESSON | QUICK CHECK`, no DialogBox. Lesson Continue → the chapter's quick check. Quick-check Continue → `/frontier`. Back link → `/frontier`.
+- **Entry points: no header slot** (header amendment 2026-10-07 stands). A dashboard FRONTIER panel like the Math Tower panel: the newest uncleared chapter with an Open button, else one sentence; a "View the Frontier" link in every state. A "Side realms" link row on `/realms` (Math Tower, The Frontier). Replaces "nav item + dashboard shortcut".
+- **SEO:** `/frontier` and every Frontier lesson join the sitemap. Quick checks never do.
+- **`content:check` for `content/frontier/<YYYY-MM-DD>-<slug>/`:** folder name must parse; the folder holds exactly `lesson.mdx` + `quick-check.json` (both required); lesson frontmatter `id` = `frontier/<folder>/lesson`, sources official; lesson body compiles with **no components** (no `<DialogBox>`); quick check = 3 questions, giveaway rules. The existing checks already do the rest.
+- **No sample chapter.** The code ships with the empty state; the first chapter comes from a hand-run `/knowledge-sync` PR (KB amendment 2026-10-07). Tests use fixtures.
+- **No certificate, no stat, no schema change.** `level_announcements` stays deferred (KB 2026-10-06).
+- **Dead:** the `unavailable` quest page kind and its copy; the `frontier-chapter` triage outcome; "sync job" means the hand-run knowledge-sync skill.
+
+## Amendments locked 2026-10-07 (header)
+
+- **Blog takes the Math Tower's header slot** (maintainer: the header holds meaningful items and must include Blog). The Math Tower is no longer a nav item. It stays reachable from the dashboard Math Tower panel (a "View the tower" link in every state) and keeps its `/math` routes and certificate. Later it becomes a chapter of the Scientist path. This replaces "a nav item + a dashboard shortcut" for the tower below; the Frontier's nav slot is decided when the Frontier ships.
+
 ## Amendments locked 2026-10-06 (bosses)
 
 - **A boss is a `case.json`, same schema as a chapter case.** `CaseSchema`, `loadCase`, the quest page, `submitCase`, the open check and the map already handle `<track>/r<N>/boss/challenge`. No new format, no code. Supersedes "Out of scope: boss format" and the "Stub: … bosses" row (2026-10-05).

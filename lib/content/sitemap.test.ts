@@ -14,6 +14,7 @@ const entries = sitemapEntries({
     'math/f1/lesson',
     'math/f1/quick-check',
     'frontier/2026-10-05-some-slug/lesson',
+    'frontier/2026-10-05-some-slug/quick-check',
   ],
   posts: [{ date: '2026-10-06', slug: 'be-specific' }],
 });
@@ -25,18 +26,20 @@ describe('sitemapEntries', () => {
       `${SITE}/`,
       `${SITE}/realms`,
       `${SITE}/math`,
+      `${SITE}/frontier`,
       `${SITE}/leaderboard`,
       `${SITE}/blog`,
       `${SITE}/privacy`,
       `${SITE}/realms/bootstrap-village`,
       `${SITE}/quest/strategist/r0/c1/lesson`,
       `${SITE}/quest/math/f1/lesson`,
+      `${SITE}/quest/frontier/2026-10-05-some-slug/lesson`,
       `${SITE}/blog/be-specific`,
     ]);
   });
 
-  test('never lists a case, a quick check, a level map or a Frontier step', () => {
-    expect(urls.some((u) => /challenge|quick-check|\/map\/|frontier/.test(u))).toBe(false);
+  test('never lists a case, a quick check (Frontier too) or a level map', () => {
+    expect(urls.some((u) => /challenge|quick-check|\/map\//.test(u))).toBe(false);
   });
 
   test('a post is last modified on its date (midnight UTC)', () => {

@@ -19,14 +19,12 @@ import { questFailure } from './failure';
 
 /**
  * Which kind of answer set an exercise takes: a case (chapter or boss) or a
- * quick check (chapter or Math Tower floor). The Frontier is not graded yet.
+ * quick check (chapter, Math Tower floor or Frontier chapter). A lesson is none.
  */
 export function gradedKind(ref: ExerciseRef): GradedKind | null {
   if (ref.area === 'boss') return 'case';
   if (ref.area === 'chapter' && ref.step === 'challenge') return 'case';
-  if ((ref.area === 'chapter' || ref.area === 'math') && ref.step === 'quick-check') {
-    return 'quick-check';
-  }
+  if (ref.step === 'quick-check') return 'quick-check';
   return null;
 }
 

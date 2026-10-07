@@ -2,7 +2,7 @@ import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { CONTENT_DIR } from '@/lib/constants';
+import { CONTENT_DIR, SHARED_CHAPTERS_FILE } from '@/lib/constants';
 import { isSafeLessonUrl } from './mdx';
 import { lengthGiveaways, shapeGiveaways, validateContent } from './validate';
 
@@ -154,6 +154,104 @@ describe('broken content is caught, with the file name', () => {
     });
     await Bun.write(`${pub}/blog/covers/tokens.webp`, 'x');
     expect((await validateContent(root, pub)).map((i) => i.file)).toEqual(['blog/tokens.mdx']);
+  });
+});
+
+describe('Frontier chapters (curriculum plan, amendment 2026-10-07 SIG-29)', () => {
+  const FIXTURE = `${import.meta.dir}/__fixtures__/frontier/frontier`;
+  const NEW = 'frontier/2026-10-06-new-thing';
+
+  /** The real content plus the two fixture chapters. */
+  async function withChapters(): Promise<string> {
+    const root = await copyOfContent();
+    await cp(FIXTURE, `${root}/frontier`, { recursive: true });
+    return root;
+  }
+
+  test('well-formed chapters pass', async () => {
+    expect(await validateContent(await withChapters())).toEqual([]);
+  });
+
+  test('a chapter needs both its lesson and its quick check', async () => {
+    const root = await withChapters();
+    await rm(`${root}/${NEW}/quick-check.json`);
+    const issues = await validateContent(root);
+    expect(issues).toHaveLength(1);
+    expect(issues[0].file).toBe(`${NEW}/quick-check.json`);
+    expect(issues[0].message).toContain('needs both lesson.mdx and quick-check.json');
+  });
+
+  test('a folder name that does not parse is named as such', async () => {
+    const root = await withChapters();
+    await cp(`${root}/${NEW}`, `${root}/frontier/2026-02-30-bad-date`, { recursive: true });
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([
+      'frontier/2026-02-30-bad-date/lesson.mdx',
+      'frontier/2026-02-30-bad-date/quick-check.json',
+    ]);
+    expect(issues[0].message).toContain('<YYYY-MM-DD>-<slug>');
+  });
+
+  test('a stray file right under frontier/ is unexpected, not a bad folder', async () => {
+    const root = await withChapters();
+    await writeFile(`${root}/frontier/notes.md`, 'x');
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual(['frontier/notes.md']);
+    expect(issues[0].message).toContain('unexpected file');
+    expect(issues[0].message).not.toContain('Rename the folder');
+  });
+
+  test('a case or any other file in a chapter is unexpected', async () => {
+    const root = await withChapters();
+    await writeFile(`${root}/${NEW}/case.json`, '{}');
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/case.json`]);
+    expect(issues[0].message).toContain('unexpected file');
+  });
+
+  test('a <DialogBox> in a Frontier lesson fails: no NPC there', async () => {
+    const root = await withChapters();
+    const file = `${root}/${NEW}/lesson.mdx`;
+    await writeFile(file, (await Bun.file(file).text()) + '\n<DialogBox>Hello.</DialogBox>\n');
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/lesson.mdx`]);
+    expect(issues[0].message).toContain('<DialogBox> is not allowed. No components are.');
+  });
+
+  test('the lesson id must match its folder', async () => {
+    const root = await withChapters();
+    const file = `${root}/${NEW}/lesson.mdx`;
+    const text = await Bun.file(file).text();
+    await writeFile(
+      file,
+      text.replace(`id: ${NEW}/lesson`, 'id: frontier/2026-10-06-other/lesson'),
+    );
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/lesson.mdx`]);
+    expect(issues[0].message).toContain(`expected "${NEW}/lesson"`);
+  });
+
+  test('a source must be official', async () => {
+    const root = await withChapters();
+    const file = `${root}/${NEW}/lesson.mdx`;
+    const text = await Bun.file(file).text();
+    await writeFile(
+      file,
+      text.replace('https://platform.claude.com/docs/en/prompting', 'https://blog.example.com/x'),
+    );
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/lesson.mdx`]);
+    expect(issues[0].message).toContain('is not under a trustTier: official entry');
+  });
+
+  test('a quick check needs exactly 3 questions', async () => {
+    const root = await withChapters();
+    const file = `${root}/${NEW}/quick-check.json`;
+    const data = await Bun.file(file).json();
+    data.questions.pop();
+    await writeFile(file, JSON.stringify(data));
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.file)).toEqual([`${NEW}/quick-check.json`]);
   });
 });
 
@@ -388,6 +486,101 @@ describe('isSafeLessonUrl', () => {
       '/\\evil.example',
     ];
     for (const url of bad) expect(isSafeLessonUrl(url)).toBe(false);
+  });
+});
+
+describe('shared chapters (content/shared-chapters.json)', () => {
+  const same = (id: string, ...members: string[]) => ({ id, kind: 'same', members });
+
+  /** Writes the groups into a copy of content/ and returns the shared-file issues. */
+  async function issuesFor(groups: unknown[]): Promise<string[]> {
+    const root = await copyOfContent();
+    await writeFile(`${root}/${SHARED_CHAPTERS_FILE}`, JSON.stringify({ groups }));
+    const issues = await validateContent(root);
+    expect(issues.every((i) => i.file === SHARED_CHAPTERS_FILE)).toBe(true);
+    return issues.map((i) => i.message);
+  }
+
+  test('good same and covers groups pass', async () => {
+    const covers = {
+      id: 'token-costs',
+      kind: 'covers',
+      deep: 'builder/r0/c6',
+      members: ['builder/r0/c6', 'strategist/r0/c4'],
+    };
+    expect(
+      await issuesFor([same('mcp-basics', 'builder/r5/c1', 'strategist/r5/c2'), covers]),
+    ).toEqual([]);
+  });
+
+  test('a bad member format fails', async () => {
+    const [msg] = await issuesFor([same('x', 'builder/r1/c1', 'strategist/r1/c9')]);
+    expect(msg).toContain('strategist/r1/c9 is not a realm chapter');
+  });
+
+  test('a boss, a Math floor or a Frontier level may not be shared', async () => {
+    const msgs = await issuesFor([
+      same('a', 'builder/r1/boss', 'strategist/r1/c1'),
+      same('b', 'math/f1', 'creator/r1/c1'),
+      same('c', 'frontier/2026-10-05-some-slug', 'creator/r2/c1'),
+    ]);
+    expect(msgs).toEqual([
+      expect.stringContaining('builder/r1/boss is a boss'),
+      expect.stringContaining('math/f1 is a Math floor'),
+      expect.stringContaining('frontier/2026-10-05-some-slug is a Frontier level'),
+    ]);
+  });
+
+  test('a member with a missing case fails', async () => {
+    const root = await copyOfContent();
+    await rm(`${root}/strategist/01-prompt-forest/c1/case.json`);
+    await writeFile(
+      `${root}/${SHARED_CHAPTERS_FILE}`,
+      JSON.stringify({ groups: [same('be-specific', 'builder/r1/c1', 'strategist/r1/c1')] }),
+    );
+    const issues = await validateContent(root);
+    expect(issues.map((i) => i.message)).toContain(
+      'group "be-specific": strategist/r1/c1 has no strategist/01-prompt-forest/c1/case.json.',
+    );
+  });
+
+  test('two members on one track fail', async () => {
+    const [msg] = await issuesFor([same('x', 'builder/r1/c1', 'builder/r1/c2')]);
+    expect(msg).toContain('two members are on the builder track');
+  });
+
+  test('a chapter in two groups fails, and so does a reused concept id', async () => {
+    const msgs = await issuesFor([
+      same('x', 'builder/r1/c1', 'strategist/r1/c1'),
+      same('y', 'builder/r1/c1', 'creator/r1/c1'),
+      same('x', 'builder/r2/c1', 'creator/r2/c1'),
+    ]);
+    expect(msgs).toEqual([
+      expect.stringContaining('builder/r1/c1 is already in group "x"'),
+      expect.stringContaining('this concept id is used by another group'),
+    ]);
+  });
+
+  test('a covers group needs a deep member, one of exactly two', async () => {
+    const pair = ['builder/r0/c6', 'strategist/r0/c4'];
+    const noDeep = await issuesFor([{ id: 'a', kind: 'covers', members: pair }]);
+    expect(noDeep).toHaveLength(1);
+    const wrongDeep = await issuesFor([
+      { id: 'a', kind: 'covers', deep: 'creator/r0/c1', members: pair },
+    ]);
+    expect(wrongDeep[0]).toContain('deep must be one of the two members');
+    const three = await issuesFor([
+      { id: 'a', kind: 'covers', deep: pair[0], members: [...pair, 'creator/r0/c1'] },
+    ]);
+    expect(three).toHaveLength(1);
+  });
+
+  test('a same group with one member, an unknown kind or a bad id fails its schema', async () => {
+    expect(await issuesFor([same('x', 'builder/r1/c1')])).toHaveLength(1);
+    expect(await issuesFor([{ id: 'x', kind: 'related', members: [] }])).toHaveLength(1);
+    expect(
+      await issuesFor([same('Be Specific', 'builder/r1/c1', 'strategist/r1/c1')]),
+    ).toHaveLength(1);
   });
 });
 

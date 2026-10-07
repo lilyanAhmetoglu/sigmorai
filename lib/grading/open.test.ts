@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { CHAPTER_COUNT, REALMS } from '@/lib/constants';
 import { parseExerciseId } from '@/lib/content/ids';
 import type { ExerciseRef } from '@/lib/types';
-import { decideOpen, requiredClears } from './open';
+import { decideOpen, ownClear, requiredClears } from './open';
 
 const ref = (id: string): ExerciseRef => {
   const parsed = parseExerciseId(id);
@@ -109,9 +109,46 @@ describe('Math Tower', () => {
 });
 
 describe('Frontier', () => {
-  test('is not handled yet: INVALID_INPUT', () => {
-    const result = decideOpen(ref('frontier/2026-10-05-some-slug/lesson'), NONE);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.code).toBe('INVALID_INPUT');
+  test('every chapter is open, lesson and quick check, with nothing cleared', () => {
+    for (const id of [
+      'frontier/2026-10-05-some-slug/lesson',
+      'frontier/2026-10-05-some-slug/quick-check',
+      'frontier/2020-01-01-old-slug/quick-check',
+    ]) {
+      expect(decideOpen(ref(id), NONE)).toEqual({ ok: true, ref: ref(id) });
+    }
+  });
+
+  test('needs no clear before it; its own clear is the step itself', () => {
+    const quick = ref('frontier/2026-10-05-some-slug/quick-check');
+    expect(requiredClears(quick)).toEqual([]);
+    expect(ownClear(quick)).toBe('frontier/2026-10-05-some-slug/quick-check');
+  });
+});
+
+describe('a cleared or credited chapter is always open (shared chapters)', () => {
+  const credited = new Set(['strategist/r0/c4/challenge']);
+
+  test('every step of a chapter whose case is cleared opens, even with chapter N−1 not done', () => {
+    expect(decideOpen(ref('strategist/r0/c4/challenge'), credited).ok).toBe(true);
+    expect(decideOpen(ref('strategist/r0/c4/lesson'), credited).ok).toBe(true);
+    expect(decideOpen(ref('strategist/r0/c4/quick-check'), credited).ok).toBe(true);
+  });
+
+  test('the chapter after it opens; the one before stays locked', () => {
+    expect(decideOpen(ref('strategist/r0/c5/lesson'), credited).ok).toBe(true);
+    expect(decideOpen(ref('strategist/r0/c3/lesson'), credited).ok).toBe(false);
+  });
+
+  test('the tier lock still wins', () => {
+    const advanced = REALMS.find((r) => r.tier === 'advanced')!.id;
+    const id = `builder/r${advanced}/c2/challenge`;
+    expect(decideOpen(ref(id), new Set([id])).ok).toBe(false);
+  });
+
+  test('ownClear: a chapter step maps to its case; a boss or floor to itself', () => {
+    expect(ownClear(ref('builder/r1/c2/lesson'))).toBe('builder/r1/c2/challenge');
+    expect(ownClear(ref('builder/r1/boss/challenge'))).toBe('builder/r1/boss/challenge');
+    expect(ownClear(ref('math/f2/lesson'))).toBe('math/f2/lesson');
   });
 });

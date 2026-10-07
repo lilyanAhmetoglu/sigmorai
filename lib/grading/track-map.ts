@@ -2,6 +2,7 @@ import {
   BOSS_STEP,
   CHAPTER_COUNT,
   CHAPTER_STEPS,
+  FRONTIER_AREA,
   MATH_AREA,
   MATH_FLOORS,
   REALMS,
@@ -13,6 +14,9 @@ import type {
   ChapterView,
   ExerciseRef,
   FloorState,
+  FrontierChapter,
+  FrontierChapterView,
+  FrontierSummary,
   LevelStatus,
   NextStep,
   Realm,
@@ -36,6 +40,7 @@ import { decideOpen } from './open';
  */
 
 type Sets = { live: ReadonlySet<string>; cleared: ReadonlySet<string> };
+type Credited = ReadonlyMap<string, Track>;
 
 /** "Boss · Bootstrap Village" (curriculum spec: the boss name is derived). */
 export const bossTitle = (realm: Pick<Realm, 'name'>) => `Boss · ${realm.name}`;
@@ -66,14 +71,22 @@ function chapterStatus(steps: StepView[], caseStep: StepView): StepStatus {
   return 'locked';
 }
 
-function chapterViews(track: Track, realm: Realm, titles: string[], sets: Sets): ChapterView[] {
+function chapterViews(
+  track: Track,
+  realm: Realm,
+  titles: string[],
+  sets: Sets,
+  credited: Credited,
+): ChapterView[] {
   const chapters = titles.slice(0, CHAPTER_COUNT).map((title, i): ChapterView => {
     const chapter = i + 1;
     const steps = CHAPTER_STEPS.map((step) =>
       stepView({ area: 'chapter', track, realm: realm.id, chapter, step }, sets),
     );
     const caseStep = steps.find((s) => s.step === BOSS_STEP)!;
-    return { chapter, title, status: chapterStatus(steps, caseStep), steps };
+    const status = chapterStatus(steps, caseStep);
+    const creditedFrom = status === 'done' ? credited.get(caseStep.exerciseId) : undefined;
+    return { chapter, title, status, steps, ...(creditedFrom && { creditedFrom }) };
   });
   const boss = stepView({ area: 'boss', track, realm: realm.id }, sets);
   return [
@@ -115,7 +128,7 @@ export function levelStatus(chapter: ChapterView, isCurrent: boolean): LevelStat
  * Where a level-map node links: the chapter's first open step; for a done
  * chapter with nothing open, its first step (replay). Else null (not playable).
  */
-export function playableStep(chapter: ChapterView): StepView | null {
+export function playableStep(chapter: Pick<ChapterView, 'status' | 'steps'>): StepView | null {
   const open = chapter.steps.find((s) => s.status === 'open');
   if (open) return open;
   return chapter.status === 'done' ? (chapter.steps[0] ?? null) : null;
@@ -131,11 +144,16 @@ export function activeRealms(realms: RealmView[], limit = realms.length): RealmV
 export const clearedLevels = (realms: RealmView[]): number =>
   realms.reduce((sum, r) => sum + r.cleared, 0);
 
+/**
+ * `cleared` already holds the credited cases (applyCredit); `credited` says
+ * which ones were credited and from which track, for the chapter label.
+ */
 export function buildTrackMap(
   track: Track,
   outline: TrackOutline,
   live: ReadonlySet<string>,
   cleared: ReadonlySet<string>,
+  credited: Credited = new Map(),
 ): TrackMap {
   const sets = { live, cleared };
   const realms = REALMS.map((realm): RealmView => {
@@ -145,6 +163,7 @@ export function buildTrackMap(
       realm,
       outlined.map((c) => c.title),
       sets,
+      credited,
     );
     return {
       id: realm.id,
@@ -204,4 +223,37 @@ export function towerSummary(floors: FloorState[]): TowerSummary {
   }
   const state = live > 0 && cleared === live ? 'cleared' : 'soon';
   return { state, next: null, cleared, live };
+}
+
+/**
+ * The Frontier's chapters (curriculum plan, amendment 2026-10-07 SIG-29), in
+ * the order given (newest first): lesson then quick check, and the quick
+ * check decides the chapter's state. Every chapter is open (decideOpen); a
+ * step with no file is "soon". Pure.
+ */
+export function buildFrontierList(
+  chapters: readonly FrontierChapter[],
+  live: ReadonlySet<string>,
+  cleared: ReadonlySet<string>,
+): FrontierChapterView[] {
+  const sets = { live, cleared };
+  return chapters.map((chapter): FrontierChapterView => {
+    const steps = SIDE_STEPS.map((step) =>
+      stepView({ area: FRONTIER_AREA, date: chapter.date, slug: chapter.slug, step }, sets),
+    );
+    const quickCheck = steps.find((s) => s.step === 'quick-check')!;
+    return { ...chapter, status: chapterStatus(steps, quickCheck), steps };
+  });
+}
+
+/**
+ * The dashboard's FRONTIER panel: the newest chapter not cleared yet, linked
+ * to its playable step. Else `cleared` (every chapter done) or `empty`.
+ */
+export function frontierSummary(chapters: readonly FrontierChapterView[]): FrontierSummary {
+  for (const chapter of chapters) {
+    const step = chapter.status === 'open' ? playableStep(chapter) : null;
+    if (step) return { state: 'open', next: { title: chapter.title, date: chapter.date, step } };
+  }
+  return { state: chapters.length > 0 ? 'cleared' : 'empty', next: null };
 }

@@ -9,7 +9,8 @@ import {
 } from '@/lib/constants';
 import { segment } from '@/lib/content/ids';
 import type { HudState } from './hud';
-import type { ChapterView, StepView } from './realms';
+import { KebabSlugSchema } from './kb';
+import type { ChapterView, StepStatus, StepView } from './realms';
 
 export type Tier = (typeof TIERS)[number];
 export type Realm = (typeof REALMS)[number];
@@ -76,6 +77,47 @@ export const MathOutlineSchema = z
   .strict();
 export type MathOutline = z.infer<typeof MathOutlineSchema>;
 
+/**
+ * A member of a shared-chapters group: a realm chapter without its step
+ * (`builder/r1/c1`). `content:check` checks that it is a live realm chapter.
+ */
+const SharedMemberSchema = Text;
+
+/** Same idea, same depth: a clear of any member credits every other member. */
+const SameGroupSchema = z
+  .object({
+    id: KebabSlugSchema,
+    kind: z.literal('same'),
+    members: z.array(SharedMemberSchema).min(2),
+  })
+  .strict();
+
+/** One member teaches all of the other and more: a clear of `deep` credits the light one, never back. */
+const CoversGroupSchema = z
+  .object({
+    id: KebabSlugSchema,
+    kind: z.literal('covers'),
+    deep: SharedMemberSchema,
+    members: z.array(SharedMemberSchema).length(2),
+  })
+  .strict()
+  .refine((g) => g.members.includes(g.deep), {
+    message: 'deep must be one of the two members',
+    path: ['deep'],
+  });
+
+export const SharedChapterGroupSchema = z.discriminatedUnion('kind', [
+  SameGroupSchema,
+  CoversGroupSchema,
+]);
+export type SharedChapterGroup = z.infer<typeof SharedChapterGroupSchema>;
+
+/** content/shared-chapters.json: concept groups whose chapters credit each other on read. */
+export const SharedChaptersFileSchema = z
+  .object({ groups: z.array(SharedChapterGroupSchema) })
+  .strict();
+export type SharedChaptersFile = z.infer<typeof SharedChaptersFileSchema>;
+
 /** A Math Tower floor's state and steps (buildTowerMap). `chapter` is the floor number. */
 export type FloorState = Omit<ChapterView, 'chapter'> & { chapter: number };
 
@@ -97,3 +139,40 @@ export type TowerSummary = {
 
 /** The /math page's read (lib/data/math.ts). A visitor has no progress. */
 export type MathPage = { viewer: HudState['status']; floors: FloorView[] };
+
+// ── The Frontier (side realm; curriculum plan, amendment 2026-10-07 SIG-29) ──
+
+/**
+ * One Frontier chapter on disk: `content/frontier/<YYYY-MM-DD>-<slug>/`
+ * (listFrontierChapters). Title and minutes come from its lesson frontmatter.
+ */
+export type FrontierChapter = {
+  /** The folder name: `2026-10-05-some-slug`. */
+  folder: string;
+  /** `YYYY-MM-DD`, a real calendar date. */
+  date: string;
+  slug: string;
+  title: string;
+  minutes: number;
+  lessonId: string;
+  quickCheckId: string;
+};
+
+/**
+ * A Frontier chapter's state and steps (buildFrontierList): lesson, then
+ * quick check; the quick check clears the chapter. Every chapter is open.
+ */
+export type FrontierChapterView = FrontierChapter & { status: StepStatus; steps: StepView[] };
+
+/**
+ * The dashboard's FRONTIER panel (frontierSummary). `open`: `next` is the
+ * newest chapter not cleared yet, with its playable step. `cleared`: every
+ * chapter is done. `empty`: no chapter yet.
+ */
+export type FrontierSummary = {
+  state: 'open' | 'cleared' | 'empty';
+  next: { title: string; date: string; step: StepView } | null;
+};
+
+/** The /frontier page's read (lib/data/frontier.ts), newest first. A visitor has no progress. */
+export type FrontierPage = { viewer: HudState['status']; chapters: FrontierChapterView[] };

@@ -3,14 +3,14 @@
  * realms, the live ids and the posts; this only turns them into absolute URLs.
  * Listed (curriculum spec → SEO): the public pages (the leaderboard's
  * all-time view only, no range param), indexable realm pages,
- * live lessons (every track and the Math Tower) and every blog post. Never
+ * live lessons (every track, the Math Tower and the Frontier) and every blog post. Never
  * listed: level maps, cases, quick checks and private pages.
  */
 import type { MetadataRoute } from 'next';
 import {
   BLOG_HREF,
   blogHref,
-  FRONTIER_AREA,
+  FRONTIER_HREF,
   HOME_HREF,
   LEADERBOARD_HREF,
   MATH_HREF,
@@ -28,15 +28,16 @@ const STATIC_HREFS = [
   HOME_HREF,
   REALMS_HREF,
   MATH_HREF,
+  FRONTIER_HREF,
   LEADERBOARD_HREF,
   BLOG_HREF,
   PRIVACY_HREF,
 ] as const;
 
-/** A realm or Math Tower lesson: the only quest step a crawler should find. */
+/** A realm, Math Tower or Frontier lesson: the only quest step a crawler should find. */
 function isLessonId(id: string): boolean {
   const ref = parseExerciseId(id);
-  return ref !== null && ref.area !== FRONTIER_AREA && 'step' in ref && ref.step === 'lesson';
+  return ref !== null && ref.area !== 'boss' && ref.step === 'lesson';
 }
 
 export type SitemapInput = {
