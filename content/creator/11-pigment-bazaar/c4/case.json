@@ -1,0 +1,96 @@
+{
+  "id": "creator/r11/c4/challenge",
+  "title": "Same picture, blue mug",
+  "scenario": "A ceramics studio picked one draft for its autumn mug launch. Now it wants small changes without losing that picture. Your teammate tried four fixes on four tools and wrote down what happened.\n\nUse the exhibit. The studio, the prompts and the notes are made up for this case. The field names are from the vendors' docs in October 2026.",
+  "exhibit": "APPROVED DRAFT (made up)\n  Ideogram 4.5, Image app\n  Prompt: \"A stoneware mug in sage green on a linen cloth, morning window light\"\n  Seed:   184467   (Magic Prompt off, all other settings saved)\n\nFIX 1, Ideogram 4.5, Image app\n  Plan:  get the same picture with the mug in blue\n\nFIX 2, Ideogram 3.0, Image app\n  Same prompt, same seed 184467\n  Note:  the cloth, the light and the angle are all different.\n\nFIX 3, own GPU, diffusers (part)\n  generator = torch.Generator(device=\"cpu\").manual_seed(7)\n  for size in sizes:\n      image = pipeline(prompt, generator=generator).images[0]\n  Note:  each size shows a different picture.\n\nFIX 4, Gemini (Nano Banana)\n  Client: \"Send me the seed so we can make the same image again later.\"",
+  "questions": [
+    {
+      "prompt": "Fix 1: the studio wants the approved picture with the mug in blue. What is the best plan on Ideogram?",
+      "options": [
+        {
+          "text": "Keep prompt, model, settings and seed 184467; change only \"sage green\" to \"blue\"",
+          "explanation": "Right. Ideogram says to change one word and keep the seed to try a small change while keeping most of the layout.",
+          "correct": true
+        },
+        {
+          "text": "Leave the seed field on Random and run the blue prompt until one looks the same",
+          "explanation": "A Random seed means each run starts from a new number, so the layout is left to chance."
+        },
+        {
+          "text": "Keep seed 184467 but rewrite the prompt fully in new words, with the mug in blue",
+          "explanation": "The seed repeats a result only with the same prompt. A full rewrite gives a new picture."
+        },
+        {
+          "text": "Keep the prompt and seed but turn Magic Prompt on so the model adds the blue for you",
+          "explanation": "Magic Prompt rewrites and expands the prompt. That changes the words the seed was paired with."
+        }
+      ]
+    },
+    {
+      "prompt": "Fix 2 used the same prompt and seed on Ideogram 3.0, but the picture changed. Why?",
+      "options": [
+        {
+          "text": "The seed was too long; Ideogram 3.0 only reads the first four digits",
+          "explanation": "Ideogram takes digits up to 2147483647. The seed length is not the cause."
+        },
+        {
+          "text": "Ideogram 3.0 has no seed setting, so the number was ignored here",
+          "explanation": "Ideogram says Seed sits under Advanced settings on every image model."
+        },
+        {
+          "text": "A seed repeats a result only on the same model; a new model draws anew",
+          "explanation": "Right. Ideogram warns that switching models gives a different image even with the same seed.",
+          "correct": true
+        },
+        {
+          "text": "Seeds work only in the API, so the Image app picks a random one",
+          "explanation": "The Image app has its own Seed field. Random is only what an empty field means."
+        }
+      ]
+    },
+    {
+      "prompt": "Fix 3 set seed 7 once, but each size shows a different picture. What is the fix?",
+      "options": [
+        {
+          "text": "Move the generator to the GPU so the seed is read more carefully",
+          "explanation": "Diffusers says to use a CPU Generator for reproducibility. A GPU Generator can diverge from CPU results."
+        },
+        {
+          "text": "Create a new seeded Generator inside the loop, before each call",
+          "explanation": "Right. A Generator's state is used up and changes. Diffusers says to reseed it or create a new one before each call.",
+          "correct": true
+        },
+        {
+          "text": "Raise the steps to 100 so all runs settle on the same picture",
+          "explanation": "Steps change detail and speed. The changing Generator state is the cause here."
+        },
+        {
+          "text": "Remove the generator and let the pipeline choose its own seed",
+          "explanation": "Without a Generator, diffusers uses a different random seed each time."
+        }
+      ]
+    },
+    {
+      "prompt": "Fix 4: the client wants a Gemini seed for later. What is your honest answer?",
+      "options": [
+        {
+          "text": "Gemini prints the seed under each image, so we copy it from there",
+          "explanation": "Gemini's image page lists no seed field. There is nothing to copy."
+        },
+        {
+          "text": "Any seed works on every model, so we reuse 184467 from Ideogram",
+          "explanation": "A seed is tied to its model. Ideogram says a new model gives a new image even with the same seed."
+        },
+        {
+          "text": "Gemini's page has no seed; we edit the approved image in the chat",
+          "explanation": "Right. Gemini's guide lists no seed and calls multi-turn conversation the recommended way to iterate on images.",
+          "correct": true
+        },
+        {
+          "text": "We set seed in the request; Gemini will then reject any new change",
+          "explanation": "Gemini's image page documents no seed field, so this plan has no source."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+---
+id: creator/r11/c6/lesson
+title: Open weights
+minutes: 9
+sources:
+  - kind: docs
+    title: Black Forest Labs docs · FLUX.2 overview
+    url: https://docs.bfl.ai/flux_2/flux2_overview
+  - kind: docs
+    title: Black Forest Labs docs · FLUX.2 [klein] training
+    url: https://docs.bfl.ai/flux_2/flux2_klein_training
+  - kind: docs
+    title: Hugging Face diffusers docs · Quickstart
+    url: https://huggingface.co/docs/diffusers/en/quicktour
+  - kind: docs
+    title: Hugging Face diffusers docs · Flux2 pipeline
+    url: https://huggingface.co/docs/diffusers/en/api/pipelines/flux2
+  - kind: docs
+    title: Hugging Face diffusers docs · Schedulers
+    url: https://huggingface.co/docs/diffusers/en/using-diffusers/schedulers
+  - kind: docs
+    title: Hugging Face diffusers docs · Legacy checkpoints (safety checker)
+    url: https://huggingface.co/docs/diffusers/en/using-diffusers/legacy_checkpoints
+  - kind: docs
+    title: Gemini API docs · Image generation (Nano Banana)
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+---
+
+## Why it matters
+
+A small studio makes 2,000 product shots a year for one client. It pays per image on an API. Someone says: "Let's download a model and run it on our own PC. It's free."
+
+Some of that is true. A lot changes when you run the model yourself: the licence, the setup, the speed, and the safety checks. This chapter shows what changes, using Hugging Face's diffusers library and Black Forest Labs' FLUX.2 [klein].
+
+## What "open weights" means
+
+**Weights** are the numbers a model learned in training (chapter 5). **Open weights** means the vendor lets you download that file and run the model on your own machine (our plain gloss).
+
+BFL's FLUX.2 page, in October 2026:
+
+- "[klein] 4B is fully open under **Apache 2.0**."
+- "[klein] 9B is available under the **FLUX Non-Commercial License**."
+- "Download from Hugging Face."
+
+There are also **Base** versions of [klein]. BFL says they are for "fine-tuning, LoRA training, research, and custom pipelines", and "They are not offered on the public API." So some models exist only as downloads.
+
+## Read the licence first
+
+A **licence** is the legal text that says what you may do with the weights (our plain gloss). The names on BFL's page tell you where to look:
+
+| Model (October 2026)          | Licence on BFL's page       |
+| ----------------------------- | --------------------------- |
+| FLUX.2 [klein] 4B and 4B Base | Apache 2.0                  |
+| FLUX.2 [klein] 9B and 9B Base | FLUX Non-Commercial License |
+| FLUX.2 [dev]                  | "Free (non-commercial)"     |
+
+For a paid client job, a licence with "non-commercial" in its name is a stop sign. Read the full text, or ask whoever handles your contracts, before you use it (our advice). Free to download is not the same as free to use for work.
+
+Some downloads are also **gated**: you need to log in before you can get them (our plain gloss). The diffusers quickstart says to have a Hugging Face account "to use gated models like Flux".
+
+## The parts of a pipeline
+
+On an API you send a prompt and get an image. On your own machine you load a **pipeline**. Diffusers says a pipeline "packages the pieces of a diffusion model (text encoder, scheduler, UNet or DiT, and VAE) into one class".
+
+The diffusers page for FLUX.2 lists its parts. Here they are in plain words (our glosses, with the page's own wording in quotes):
+
+- **Text encoder**: turns your prompt into numbers the model can use. FLUX.2 [dev] uses a Mistral model; [klein] uses a Qwen3 model.
+- **Transformer**: the main model. It is the part that will "denoise the encoded image latents". **Latents** are a small, compressed version of the picture that the model works on.
+- **Scheduler**: "tells the denoising loop how much noise to remove at each step. Different schedulers trade speed for quality."
+- **VAE**: turns latents back into a real image. The page: it is used "to encode and decode images to and from latent representations".
+
+You don't need to change these parts. Diffusers says FLUX models ship a default scheduler: "Keep that scheduler unless you are intentionally experimenting." But it helps to know them. When a guide says "swap the VAE", you know which part it means.
+
+Chapters 4 and 5 showed the knobs you now control yourself: the seed, the steps, the guidance and LoRAs.
+
+## Hardware and speed
+
+Check the hardware before you promise anything. What the pages say, in October 2026:
+
+- **BFL:** [klein] gives "sub-second inference", and "4B runs on consumer GPUs (~13GB VRAM)". **VRAM** is the memory on the graphics card.
+- **Diffusers:** "Flux2 can be quite expensive to run on consumer hardware devices."
+- **Less memory:** diffusers can load a model in 4-bit "To use less memory".
+- **First run:** after a speed-up called compile, "The first generate after compile is a cold start and is slow. Later generates are faster."
+
+So test on your real machine with your real image size before you plan a deadline (our advice).
+
+## What you get, and what you lose
+
+On an API, the vendor runs checks and adds labels for you. On your own machine, you get only what the pipeline includes.
+
+**Safety checks.** Diffusers has a safety checker "for older Stable Diffusion checkpoints". It says: "Newer models such as Qwen-Image do not have this checker." The FLUX.2 parts list above has no safety checker either (our reading of the list). Diffusers also says it and Hugging Face "strongly recommend keeping the safety filter enabled in all public-facing circumstances".
+
+**Watermarks.** On Google's API, "All generated images include a SynthID watermark." The FLUX.2 pipeline lists no watermark step (our reading). So your own images carry no vendor label by default. If your client needs one, plan it yourself.
+
+The rules still apply. Bootstrap Village, chapter 6, covers vendor policies and provenance labels. The licence and the law still apply too.
+
+## API or your own machine?
+
+Our advice, built from the pages above:
+
+| You need                                   | Lean                                        |
+| ------------------------------------------ | ------------------------------------------- |
+| No setup, checks and labels done for you   | An API                                      |
+| A Base model for your own LoRA             | Download (Base is not on BFL's public API)  |
+| Many images, a strong GPU, a clear licence | Your own machine, after a real speed test   |
+| A public app where anyone types a prompt   | An API, or add your own safety checks first |
+
+## What this means for your work
+
+- **Read the licence before the first download.** "Non-commercial" means stop and check.
+- **Know the four parts:** text encoder, transformer, scheduler, VAE.
+- **Keep the default scheduler** unless you are testing on purpose.
+- **Test speed and memory on your real machine** before you quote a deadline.
+- **Plan your own checks and labels.** A local pipeline may have no filter and no watermark.
