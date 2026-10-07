@@ -1,0 +1,108 @@
+---
+id: creator/r9/c3/lesson
+title: Template fills
+minutes: 8
+sources:
+  - kind: docs
+    title: Canva developer docs · Best practices for Canva MCP
+    url: https://www.canva.dev/docs/apps/mcp/best-practices/
+  - kind: docs
+    title: Canva developer docs · Autofill designs with data (REST APIs)
+    url: https://www.canva.dev/docs/apps/rest-apis/autofill-guide/
+  - kind: docs
+    title: Canva developer docs · autofill-design (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/tools/autofill-design/
+  - kind: docs
+    title: Canva developer docs · get-brand-template-dataset (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/tools/get-brand-template-dataset/
+  - kind: docs
+    title: Canva developer docs · search-brand-templates (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/tools/search-brand-templates/
+  - kind: docs
+    title: Canva developer docs · Design edit handoff
+    url: https://www.canva.dev/docs/apps/mcp/workflows/design-edit/
+  - kind: docs
+    title: Adobe Firefly Services docs · InDesign API
+    url: https://developer.adobe.com/firefly-services/docs/indesign-apis/
+  - kind: docs
+    title: Adobe Firefly Services docs · Working with the Data Merge API
+    url: https://developer.adobe.com/firefly-services/docs/indesign-apis/guides/working-with-datamerge-api/
+---
+
+## Why it matters
+
+A café brand opens in 24 cities. Each city needs the same poster with its own name, date and photo. You could ask a model to generate 24 posters. You would get 24 different layouts.
+
+A **template fill** works the other way round. The layout is fixed and approved. Only named fields change: a city, a date, a photo. This chapter shows how two vendors do it, and the limits that bite.
+
+## Generate, template or fill?
+
+Canva's best-practice page gives a clear rule:
+
+- "Use generation when a user needs a new concept or creative direction."
+- "Use a brand template and autofill when the user needs consistent, repeatable output from prepared content".
+- "Use user-provided, approved assets when the design has brand, legal, or compliance requirements that a generated asset might not meet."
+
+Example. The campaign idea is still open: generate. The idea is approved and you need 24 versions: template and autofill. The photo of the store front must be the real store: an approved asset, not a generated one.
+
+## Fields with names
+
+Both vendors fill named slots in a template.
+
+**Canva.** A brand template has data fields. Canva's REST guide shows a weather poster with "Two text fields named `CITY` and `TEMPERATURE`" and "One image field named `BACKGROUND`". The MCP tool `get-brand-template-dataset` lists a template's fields and their types: `text`, `image`, `video`, `chart` or `sheet`. Canva adds that "`autofill-design` can't yet write `sheet` fields", and "An empty `dataset` means the template can't be autofilled."
+
+**Adobe InDesign.** Adobe's Data Merge API "generates variations of a template document from data in a provided CSV file". It has two parts: "the data merge and the data merge tags". A separate call retrieves the data merge tags from the document, so you can see the fields first.
+
+So the first step is the same on both sides (our summary): **read the fields, then build the data.** Your spreadsheet columns must match the field names.
+
+## Three ways to run a fill
+
+| Route                        | You send                                                         | You get back                                   |
+| ---------------------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| Canva REST API               | a brand template ID and a `data` object, as an async job         | a design URL to open in the Canva editor       |
+| Canva MCP, `autofill-design` | "exactly one of `brand_template_id` or `design_id`", plus `data` | a new or updated design, with an edit URL      |
+| Adobe Data Merge API         | an InDesign file and a CSV                                       | variations as InDesign, PDF, PNG or JPEG files |
+
+A few details:
+
+- In Canva's REST guide, you poll the job until it is done. Then the guide says: "Direct your user to the design's URL so they can open it in the Canva editor".
+- On the MCP route, "The Canva MCP server polls the job for you for up to about a minute before responding".
+- An assistant can find templates with `search-brand-templates` before it fills one.
+- Adobe's overview says the InDesign APIs "enable enterprises to automate tedious, time-consuming design tasks".
+
+## Limits that bite
+
+**Plans.** Canva's REST guide says autofill and brand templates are for "Canva Pro (including Canva Education and Canva for Nonprofits), Canva Teams, or Canva Enterprise", and "Usage limits will be introduced in the future." The MCP pages say "Canva Pro, Business, and Enterprise plans". The REST guide also says the Canva account you build with must have multi-factor authentication (MFA) enabled.
+
+**Silent empties.** This one is easy to miss. "For users whose plan doesn't include Brand Templates, the tool returns an empty `dataset` rather than an error." `search-brand-templates` does the same with an empty list. So an empty answer can mean "wrong plan", not "no fields".
+
+**Missing values.** On the REST route: "If you omit a field, Canva uses the default value from your template". Example: row 7 has no date. Poster 7 goes out with the template's sample date. Nobody gets an error.
+
+**Media.** The REST guide says: "Only image assets can be used for autofill. Video assets are currently not supported." Also, "External image URLs are currently not supported for autofill." Upload first. The MCP tool page lists videos and chart data as fill types. So the two routes differ. Read the page for the route you use (our advice).
+
+**Overwrites.** On the MCP tool, "`update_in_place` replaces the existing design's content and can't be undone". Canva says to set it only "when the user explicitly asks to refill that design".
+
+**Text and fonts in InDesign.** The Data Merge API "now supports CSV files encoded in UTF-8", for accents, other scripts and emoji. Adobe adds: "Make sure applied font is available and have the required glyphs." For text on several lines, wrap the field value in double quotes.
+
+**File names.** Adobe lets one CSV column name each output file. You prefix its header with `&`, for example `&FileName`. "Only one variable file name column is allowed."
+
+## Check before you send
+
+Canva's handoff page says: "Autofilled content may need a final human check." A fill is fast, so mistakes are fast too.
+
+This test set is ours. Before the full run, fill three rows only:
+
+1. **The longest text.** Does it still fit the box?
+2. **A row with special characters.** Accents, another script. Do the glyphs show?
+3. **A row with an empty cell.** What does it fall back to?
+
+Then open each result in the editor and look. Only then run all 24.
+
+## What this means for your work
+
+- **Fill, don't generate,** when the layout is approved and only data changes.
+- **Read the fields first** and match your columns to them.
+- **Treat an empty field list as a question,** not an answer. Check the plan.
+- **Fill every field.** A gap can turn into template sample text.
+- **Never overwrite in place** unless someone asked for it.
+- **Test three hard rows,** then run the batch.

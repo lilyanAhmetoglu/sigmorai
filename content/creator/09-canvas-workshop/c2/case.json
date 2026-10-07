@@ -1,0 +1,96 @@
+{
+  "id": "creator/r9/c2/challenge",
+  "title": "Saved, said the assistant",
+  "scenario": "You run design at a small bakery chain. An AI assistant has write tools on two design servers. In Canva it updates the prices on the shared menu board. In Figma it builds a new loyalty screen for the app.\n\nUse the exhibit. Tool names, statuses and limits are from Canva's and Figma's docs. The bakery, the people and the log are made up for this case.",
+  "exhibit": "CANVA LOG (made up, tool names from Canva's docs)\n  start-editing-transaction     transaction_id=T1, 14 richtexts\n  perform-editing-operations    12 operations, each status: success\n  assistant to you:             \"Done! All 12 prices are saved.\"\n  commit-editing-transaction    failed: design edited concurrently\n  (Sam fixed a typo on the same board in the browser at 09:14)\n\nFIGMA REQUEST (made up)\n  \"Using this file: <shared app file URL>, build the loyalty screen\n   with our components, the new product photos and our brand font.\"\n\nFIGMA WRITE LIMITS (from Figma's write page, October 2026)\n  20kb output response limit per call\n  No assets (image) support yet\n  Custom fonts aren't supported yet\n  Components must be manually published before Code Connect completes",
+  "questions": [
+    {
+      "prompt": "The commit failed because Sam edited the board in the browser. What should the assistant do now?",
+      "options": [
+        {
+          "text": "Call commit-editing-transaction on T1 again, and keep trying until it goes through",
+          "explanation": "Canva says retrying the same transaction won't help, because its snapshot is stale."
+        },
+        {
+          "text": "Cancel T1, start a fresh transaction, re-apply the 12 changes, then commit again",
+          "explanation": "Right. This is Canva's own fix for a commit that fails after a concurrent edit.",
+          "correct": true
+        },
+        {
+          "text": "Do nothing, because each of the 12 operations already returned a success status",
+          "explanation": "Edits stay in draft until commit. If the transaction isn't committed, the edits are discarded."
+        },
+        {
+          "text": "Ask Sam to undo the typo fix, then call commit on the same transaction T1 again",
+          "explanation": "Undoing a good fix does not refresh the snapshot. Canva says to cancel and start a fresh transaction."
+        }
+      ]
+    },
+    {
+      "prompt": "What was wrong with the assistant's message \"Done! All 12 prices are saved.\"?",
+      "options": [
+        {
+          "text": "Nothing, because a success status on each operation means the board is already saved",
+          "explanation": "Operation success is for the draft. Only a committed status confirms the save."
+        },
+        {
+          "text": "It should have said it in the board's comments, not in the chat with the designer",
+          "explanation": "Where it said it is not the problem. When it said it is."
+        },
+        {
+          "text": "It came before commit returned a committed status, so the edits were still a draft",
+          "explanation": "Right. Canva says to report a saved edit only after commit-editing-transaction returns a committed status.",
+          "correct": true
+        },
+        {
+          "text": "It should also have sent a PNG export, because an export proves that the edit is saved",
+          "explanation": "Canva says an export is a static file and a delivery mechanism, not a handoff. It proves nothing about the commit."
+        }
+      ]
+    },
+    {
+      "prompt": "Which part of the Figma request will the write tool not do today, by Figma's current limits?",
+      "options": [
+        {
+          "text": "Using the team's components, since the write tool cannot read a design library",
+          "explanation": "Figma says the agent first checks your design system or file content before creating from scratch."
+        },
+        {
+          "text": "Building auto layout, since the write tool can only draw static flat shapes",
+          "explanation": "Figma says the write tool builds frames, components, variables and auto layout."
+        },
+        {
+          "text": "Placing the photos and the brand font, since images and custom fonts are not supported yet",
+          "explanation": "Right. Both are on Figma's current limitations list. Plan placeholders, then place them by hand.",
+          "correct": true
+        },
+        {
+          "text": "Working in a shared file, since the write tool can only edit files in your drafts",
+          "explanation": "You can edit an existing file with a Full seat and edit permission. Drafts are only where create_new_file puts new files."
+        }
+      ]
+    },
+    {
+      "prompt": "The loyalty screen is built in the shared app file. What is the best next step?",
+      "options": [
+        {
+          "text": "Ask the assistant to describe the screen in chat, and approve it if the summary sounds right",
+          "explanation": "A summary is not the design. Figma says to open the file and inspect the content."
+        },
+        {
+          "text": "Open the file, inspect the new screen, and refine it in small steps before anyone builds it",
+          "explanation": "Right. Figma says to review the result in Figma and keep iterating, in smaller steps.",
+          "correct": true
+        },
+        {
+          "text": "Export a PNG of the screen and send it straight to the developers, since it used components",
+          "explanation": "Using components helps, but nobody has checked the result yet. Review comes before handoff."
+        },
+        {
+          "text": "Ask for ten more screens in one prompt, so you can review them all together at the end",
+          "explanation": "Figma says large changes work best incrementally. A huge batch is harder to check."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+---
+id: creator/r9/c1/lesson
+title: Canvas to code
+minutes: 8
+sources:
+  - kind: docs
+    title: Figma developer docs · Tools and prompts
+    url: https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/
+  - kind: docs
+    title: Figma developer docs · What the MCP sends vs. what the agent does
+    url: https://developers.figma.com/docs/figma-mcp-server/mcp-vs-agent/
+  - kind: docs
+    title: Figma developer docs · Structure your Figma file for better code
+    url: https://developers.figma.com/docs/figma-mcp-server/structure-figma-file/
+  - kind: docs
+    title: Figma developer docs · Avoid selecting large, heavy frames
+    url: https://developers.figma.com/docs/figma-mcp-server/avoid-large-frames/
+  - kind: docs
+    title: Figma developer docs · Trigger specific tools when needed
+    url: https://developers.figma.com/docs/figma-mcp-server/trigger-specific-tools/
+  - kind: docs
+    title: Canva developer docs · get-design-content (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/tools/get-design-content/
+  - kind: docs
+    title: Claude docs · Vision
+    url: https://platform.claude.com/docs/en/build-with-claude/vision
+  - kind: docs
+    title: OpenAI docs · Images and vision
+    url: https://developers.openai.com/api/docs/guides/images-vision
+---
+
+## Why it matters
+
+In MCP Bridgelands (chapter 2) you split a design server's tools into read tools and write tools. This chapter opens the read side.
+
+A developer asks an AI assistant to build a screen from your design. What does the assistant really get? A picture? A list of boxes? Your real colour tokens? The answer decides if the code uses your design system, or only looks a bit like it.
+
+## Four kinds of design input
+
+Figma's tool list has a "Design to code" group. Four read tools in it matter most here. The descriptions are Figma's.
+
+| Tool                 | What it gives                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| `get_design_context` | "Design context for a layer or selection". Figma calls it "the default entry point".             |
+| `get_metadata`       | "a sparse XML representation" with "layer IDs, names, types, position and sizes"                 |
+| `get_variable_defs`  | "the variables and styles used in your Figma selection, such as colors, spacing, and typography" |
+| `get_screenshot`     | a screenshot of your selection                                                                   |
+
+A few details from the same page:
+
+- **Design context** comes out as code. "By default, the output is React + Tailwind, but you can customize it through your prompt." One of Figma's examples: `generate my Figma selection in Vue`.
+- **Metadata** is an outline. Your agent can "break down and call `get_design_context` on" the parts it needs. Figma says it is "useful for very large designs".
+- **The screenshot** "helps preserve layout fidelity in the generated code". Figma recommends you keep it on, and turn it off only "if you're concerned about token limits".
+
+So in Figma's design, the screenshot works next to the structured context. It does not replace it.
+
+Canva has a read tool for words. Its `get-design-content` tool reads "a design's text content for read-only inspection". It "returns the text as a single `text` field plus `metadata`". Canva adds that this response "is for reading content, not for targeting edits". Chapter 2 shows where editable parts come from.
+
+## Why a screenshot alone misleads
+
+A screenshot shows the look. It does not carry the names behind the look.
+
+Here is an example (ours). A button in your file is green. Its fill is the colour variable `brand/green-600`. In a screenshot, it is only green pixels. The model can guess a hex code that looks close. The code then has a new colour, not your token. Nobody sees the problem until the brand green changes and this button does not.
+
+The vendors' own vision pages explain why.
+
+- **OpenAI.** "The model doesn't process original file names or metadata. Images may be resized before analysis." The model "struggles with tasks requiring precise spatial localization". It also "may struggle to understand graphs or text where colors or styles—like solid, dashed, or dotted lines—vary".
+- **Anthropic.** "Claude's coordinate and localization outputs are approximate." A large image may be resized, and "this might, for example, make text less legible". Anthropic's advice: "Always carefully review and verify Claude's image interpretations, especially for high-stakes use cases."
+
+Put together (our summary): a screenshot is good for "what does it look like?". It is weak for "which token, which component, how many pixels of space?". Those answers live in the file's structure.
+
+## The server is a bridge, not a builder
+
+Figma is clear about the split. It says the server "is not a one-click 'design to perfect code' tool". Instead, it "acts as a bridge between Figma and your IDE".
+
+What the server does not do, in Figma's words:
+
+- "Generate final code. That's your AI assistant's role."
+- "Understand your design system by default. It won't know your conventions or strategies unless you provide that information through Code Connect, variables or prompts."
+
+So the code is only as good as the context. Chapter 6 covers Code Connect, which links a design component to a real code component.
+
+## Make the file readable
+
+Figma's page on file structure gives a short checklist. This is the designer's part of the job.
+
+- **Components.** "Buttons, cards, inputs, nav items - anything repeated should be a component."
+- **Variables.** "Apply variables for spacing, color, radius, and typography."
+- **Clear names.** "Replace default names (`Frame1268`, `Group5`) with intent-driven ones like `CardContainer`, `ProductImage`, or `CTA_Button`."
+- **Auto Layout.** It helps "communicate layout intent clearly".
+- **Annotations.** They "convey design intent that's hard to capture from visuals alone", such as how something should behave.
+
+Example (ours). Before: a frame called `Frame1268` with three loose rectangles and a hex fill. After: `PriceCard` with an instance of your `Button` component, spacing variables and the fill `brand/green-600`. The second frame tells the assistant what each part is.
+
+## Ask small, ask exact
+
+Two habits from Figma's tips.
+
+**Keep the selection small.** Figma warns that large selections "can slow the tools down, cause errors, or result in incomplete responses". Its advice: "Generate code for smaller sections or individual components (e.g. `Card`, `Header`, `Sidebar`)". For a whole page, start from the metadata outline, then ask for design context one part at a time.
+
+**Name what you want.** Figma says the assistant sometimes "doesn't automatically pick the right one". So it is "often helpful to nudge it by calling the tool explicitly in your prompt". Its example, for when you want tokens and get code:
+
+> Get the variable names and values used in this frame
+
+## A read plan for one screen
+
+This order is ours. It uses only the tools above.
+
+1. **Outline.** `get_metadata` on the page. Find the parts.
+2. **Tokens.** `get_variable_defs` on each part.
+3. **Structure.** `get_design_context` on one part at a time, in the code style you name.
+4. **Check.** `get_screenshot` of the same part. Compare the built screen with it.
+
+## What this means for your work
+
+- **Structure first, picture second.** A screenshot checks the result. It is not the spec.
+- **Name layers and use variables** before you hand a file over.
+- **Select small parts,** not the whole page.
+- **Ask for the exact output** you want: tokens, outline or code.
+- **Check every result** against the design before it ships (our advice).
