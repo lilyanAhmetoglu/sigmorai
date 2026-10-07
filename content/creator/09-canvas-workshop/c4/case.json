@@ -1,0 +1,96 @@
+{
+  "id": "creator/r9/c4/challenge",
+  "title": "One bottle, every size",
+  "scenario": "You lead design at a juice brand. The bottle photo for the summer campaign is approved. A developer's script sends it to Adobe's Firefly API to make every size. A teammate also tries a wide banner with OpenAI's image API.\n\nUse the exhibit. Operation names, mask rules and limits are from Adobe's and OpenAI's docs. The brand, the files and the log are made up for this case.",
+  "exhibit": "SOURCE (made up)\n  bottle_hero.png   square, approved by the client\n  The label text must not change in any version.\n\nFILL TEST (made up)\n  mask_v1.png: bottle painted WHITE, background painted BLACK\n  Prompt: \"a sunny beach background\"\n  Result: the beach is missing, and the bottle label now reads \"JUCE\"\n\nSCENE REQUEST (made up)\n  The client sends beach_scene.jpg, a background it already owns.\n  The bottle must go into it, label exactly as in the photo.\n\nBATCH LOG (made up)\n  09:00  script starts 30 expand jobs at the same time\n  09:00  jobs 1-4 accepted\n  09:00  jobs 5-30: HTTP 429 Too Many Requests\n\nTEAMMATE (made up)\n  OpenAI image edit, size 2048x512, request rejected\n\nVENDOR LINES (from the docs)\n  Adobe masks: \"Black areas are protected.\" \"White areas are exposed.\"\n  Adobe limit: \"4 requests per minute (RPM)\" per organization\n  OpenAI sizes: \"the aspect ratio must be between 1:3 and 3:1\"",
+  "questions": [
+    {
+      "prompt": "Why did the fill test change the bottle label and leave the background as it was?",
+      "options": [
+        {
+          "text": "The prompt was too short, so Firefly picked a random part of the photo to change",
+          "explanation": "The mask decides where an edit may go. The prompt did not choose the area."
+        },
+        {
+          "text": "The mask was the wrong way round: white opens an area to edits, black protects it",
+          "explanation": "Right. Adobe says black areas are protected and white areas are exposed. Here the bottle was white, so the bottle changed.",
+          "correct": true
+        },
+        {
+          "text": "Fill always edits the main object first, and the background only on a second call",
+          "explanation": "No page says this. Fill edits the white area of the mask, whatever is in it."
+        },
+        {
+          "text": "Firefly cannot read PNG masks, so it ignored the mask and edited the whole image",
+          "explanation": "Adobe's tutorial uses PNG masks. The mask worked; its colours were swapped."
+        }
+      ]
+    },
+    {
+      "prompt": "The client sent its own beach scene. Which Adobe operation fits the request best?",
+      "options": [
+        {
+          "text": "Generate Object Composite, because it makes a fresh beach background from a prompt",
+          "explanation": "Adobe says to use it when no background image exists yet. Here the client has one."
+        },
+        {
+          "text": "Adaptive Composite, because it regenerates the bottle so that it matches the beach",
+          "explanation": "It adapts and regenerates the subject. The label must not change, so that is a risk."
+        },
+        {
+          "text": "Precise Composite, because it places the bottle in that scene without altering it",
+          "explanation": "Right. Adobe says to use Precise Composite when the subject must not be altered.",
+          "correct": true
+        },
+        {
+          "text": "Expand Image, because it can stretch the bottle photo out until it shows a beach",
+          "explanation": "Expand adds image beyond the edges. It does not place the bottle into the client's own scene."
+        }
+      ]
+    },
+    {
+      "prompt": "Jobs 5 to 30 got HTTP 429. What should the developer change in the script?",
+      "options": [
+        {
+          "text": "Send all 30 jobs again at once, because a 429 only means the server was busy then",
+          "explanation": "That hits the same limit again. Adobe's default is 4 requests per minute per organization."
+        },
+        {
+          "text": "Switch every job to the synchronous endpoints, which have no rate limit to respect",
+          "explanation": "Adobe places default rate limits on API calls. No page says the sync endpoints skip them."
+        },
+        {
+          "text": "Make each image smaller, because 429 means the uploaded files were far too large",
+          "explanation": "429 is Too Many Requests. It is about how often you call, not file size."
+        },
+        {
+          "text": "Stay under the limit and retry with retry-after or a backoff that waits longer each time",
+          "explanation": "Right. Adobe says to retry via a retry-after header or exponential backoff, or to ask for a higher limit.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Why was the teammate's 2048x512 request rejected, and what is a good fix?",
+      "options": [
+        {
+          "text": "It is 4:1, outside OpenAI's 1:3 to 3:1 range; make 3:1, then fit it in the design tool",
+          "explanation": "Right. Both sides are multiples of 16, but 4:1 is wider than 3:1. A 1536x512 image fits the rules.",
+          "correct": true
+        },
+        {
+          "text": "The width is not a multiple of 16, so add a few pixels until it becomes 2050 wide",
+          "explanation": "2048 is a multiple of 16. 2050 is not, so this would break that rule."
+        },
+        {
+          "text": "OpenAI only accepts square sizes, so ask for 1024x1024 and stretch it to a banner",
+          "explanation": "OpenAI lists landscape and portrait sizes too, and custom sizes such as 1536x864."
+        },
+        {
+          "text": "The edge is too long, because OpenAI never allows an edge longer than 1536 pixels",
+          "explanation": "OpenAI's limit is 3840 pixels on an edge. 2048 is under it."
+        }
+      ]
+    }
+  ]
+}

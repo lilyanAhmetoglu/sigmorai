@@ -1,0 +1,132 @@
+---
+id: creator/r9/c4/lesson
+title: Expand & fill
+minutes: 8
+sources:
+  - kind: docs
+    title: Adobe Firefly API docs · Overview
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/
+  - kind: docs
+    title: Adobe Firefly API docs · Firefly Expand Image API Tutorial
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/firefly-expand-image-api-tutorial
+  - kind: docs
+    title: Adobe Firefly API docs · Firefly Fill Image API Tutorial
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/firefly-fill-image-api-tutorial
+  - kind: docs
+    title: Adobe Firefly API docs · Using Masks
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/masking/
+  - kind: docs
+    title: Adobe Firefly API docs · Using Placement
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/placement/
+  - kind: docs
+    title: Adobe Firefly API docs · Composite Operations API Feature Guide
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/object-composite/
+  - kind: docs
+    title: Adobe Firefly API docs · Using the Firefly Asynchronous API
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/using-async-apis
+  - kind: docs
+    title: Adobe Firefly API docs · Technical Usage Notes
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/getting-started/usage-notes/
+  - kind: docs
+    title: Adobe Firefly API docs · Image Upload
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/image-upload/
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: Gemini API docs · Image generation
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: Canva developer docs · resize-design (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/tools/resize-design/
+---
+
+## Why it matters
+
+Chapter 3 put text and photos into a fixed template. Some jobs need more. The approved photo is square, but the banner is wide. The product shot has a busy background.
+
+Prompt Forest (chapter 4) taught the prompt side of edits. This chapter is the job side: which operation, which size, how many at once, and who checks.
+
+## Three operations
+
+Adobe's Firefly API gives each job its own name. The words in quotes are Adobe's.
+
+| Operation | What it does                                            | Use it when                       |
+| --------- | ------------------------------------------------------- | --------------------------------- |
+| Expand    | "Generatively expand an image out beyond its edges"     | the photo is too small for a size |
+| Fill      | "Generatively edit specific areas of an image"          | one area must change              |
+| Composite | "Blend product shots and objects into generated scenes" | the product needs a new scene     |
+
+OpenAI's and Google's image pages do not name an expand operation. You give their models an image and a prompt, and you set the output size. OpenAI's edits endpoint can also take a mask "that identifies the areas to replace".
+
+## One photo, many sizes
+
+Adobe's expand tutorial is a real layout job. A team needs "differently sized image variations" for social media. It writes down the sizes first, for example "Instagram Post" at 1080 × 1080 and "Facebook Cover" at 820 × 312. Then it uploads the photo once and calls Expand for each size.
+
+**Where the photo sits.** Adobe's `placement` setting controls "how an image is positioned and sized in the final generation". With `alignment` you pin the photo, for example to the top left. With `inset` you set a margin in pixels on each side. So the new, empty side can go where your headline sits.
+
+**Which sizes are allowed.** Each vendor has its own rules.
+
+- **OpenAI** takes custom sizes such as `1536x864`. "Width and height must be multiples of 16, the aspect ratio must be between 1:3 and 3:1, and neither edge may exceed 3840 pixels."
+- **Gemini** takes `aspect_ratio` and `image_size`. "By default, the model matches the output image size to that of your input image, or otherwise generates 1:1 squares."
+
+Example (ours). Your banner frame is 3:1. On OpenAI, 1536 × 512 fits all three rules. You scale it to the exact frame in your design tool.
+
+Sometimes the whole layout must change size. Canva's `resize-design` tool makes "a copy of an existing design at new dimensions, with the layout rearranged to fit". It needs a plan with premium features, such as Canva Pro. Our view: resize the layout in the design tool, and expand only the photo with an API.
+
+## Masks: check the colour rule
+
+A mask is a second image that says where the edit may go. The rule is not the same everywhere.
+
+- **Adobe.** "Black areas are protected." "White areas are exposed."
+- **OpenAI.** The mask needs an alpha channel (a see-through layer). Prompt Forest chapter 4 covers this.
+- **Google.** Its page calls word-based edits "Inpainting (semantic masking)". You name the area in words.
+
+Example (ours). The product and the headline space must not change, so you paint them black in an Adobe mask. If the colours are swapped, the product changes and the background stays. Check one result before you run the rest.
+
+Adobe's fill tutorial changes the background of "thousands of employee photos", each with its own mask.
+
+## Put the product in a scene
+
+Adobe has three composite operations. Choose by what is allowed to change.
+
+- **Generate Object Composite.** It makes the background from a prompt. "Use when no background image exists yet."
+- **Precise Composite.** It keeps the object exactly as it is. "Use when the subject must not be altered."
+- **Adaptive Composite.** It adapts and regenerates "the subject to match the scene". "Use when realism and seamless integration are the priority."
+
+A bottle with a printed label must stay exact, so Precise Composite fits (our view). Adaptive Composite has a `preserveBackground` setting. When it is true, "the original background pixels are retained and only the composited object region is modified".
+
+## Many jobs at once
+
+Batch work is where an API saves the most time. It is also where limits bite.
+
+- **Adobe.** Jobs are async (Tool Forge, chapter 3). Each composite call returns "a jobId and a statusUrl for polling job status", plus a `cancelUrl`. The async guide starts several expand jobs together: "we can kick off multiple jobs at once". But the default limit is "4 requests per minute (RPM)" per organization. Over it, you get "HTTP 429 Too Many Requests". Adobe says to retry with "a retry-after HTTP header or an exponential backoff strategy" (wait longer after each failure). An upload ID "is valid for 7 days".
+- **Google.** Image jobs can run through the Batch API: "higher rate limits in exchange for a turnaround of up to 24 hours".
+- **OpenAI.** "Complex prompts may take up to 2 minutes to process." For tests: "Use quality: "low" for quick drafts."
+
+Example (ours). 40 product photos in 3 sizes are 120 expand calls. At 4 calls a minute, that is at least 30 minutes. Plan the batch before deadline day.
+
+## What the models may not hold
+
+OpenAI's limits list names two problems for layout work. The model "may have difficulty placing elements precisely in structured or layout-sensitive compositions". It may also "struggle to maintain visual consistency for recurring characters or brand elements across multiple generations".
+
+So keep the headline, the logo and the price in the design file, not inside the picture (our advice).
+
+## A review routine
+
+This routine is ours.
+
+1. **Test three first.** The widest size, the tallest size, the hardest product.
+2. **Compare protected areas** with the original: label, face, logo.
+3. **Look at the new areas.** Odd objects, repeats, seams.
+4. **Place it in the real layout** at full size.
+5. **Log it.** Source, operation, size, and who approved it.
+
+## What this means for your work
+
+- **Name the job:** expand, fill or composite.
+- **Write the sizes down first,** and check each vendor's rules.
+- **Check the mask colours** for your vendor.
+- **Pick Precise** when the product must not change.
+- **Count calls against the rate limit** before a batch.
+- **A person checks** every result in the real layout.
