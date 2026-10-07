@@ -65,8 +65,8 @@ export const REALMS_TEXT = {
   heading: (trackLabel: string) => `Explore realms · ${pathWord(trackLabel)} path`,
   /** Meta description of the catalog. */
   description:
-    'Every Sigmorai realm on every path: chapters and a boss each, built from official docs.',
-  intro: 'Every realm is a course: chapters and a boss, built from official docs.',
+    'Every Sigmorai realm on every path. Each one is a course: its chapters, then a boss, built from official docs.',
+  intro: 'Every realm is a course: its chapters, then a boss, built from official docs.',
   trackSwitch: 'Path',
   signInNote: 'Sign in to save your progress and earn XP.',
   signIn: 'Sign in',
@@ -188,7 +188,7 @@ export const MAP_TEXT = {
   /** "Bootstrap Village · World map · Sigmorai" */
   title: (realmName: string) => `${realmName} · World map · Sigmorai`,
   description: (realmName: string) =>
-    `The ${realmName} level map: its chapters and a boss, built from official docs.`,
+    `The ${realmName} level map: every chapter and the boss, built from official docs.`,
   realmNav: 'Other realms',
   prevIcon: '◂',
   nextIcon: '▸',

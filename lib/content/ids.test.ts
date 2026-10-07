@@ -169,6 +169,8 @@ const gridIds = (track: string) =>
   ]);
 
 describe('trackExerciseIds', () => {
+  // This is also the guard for nextCaseId's MIN_CHAPTERS default in
+  // lib/data/quest.ts; when this fails, pass the outline count there.
   test.each([...TRACKS])(
     'regression: %s, from its outline, equals the 9 × 6 grid id for id',
     async (track) => {

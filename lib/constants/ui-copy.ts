@@ -303,5 +303,5 @@ export const QUEST_TEXT = {
 export const notOpenText = (previousChapter: number) => `Clear chapter ${previousChapter} first.`;
 /** NOT_OPEN for Math Tower floor N: floor N−1's quick check is not cleared. */
 export const floorNotOpenText = (previousFloor: number) => `Clear floor ${previousFloor} first.`;
-/** NOT_OPEN for a boss. */
-export const BOSS_NOT_OPEN_TEXT = 'Clear every chapter in this realm first.';
+/** NOT_OPEN for a boss: every chapter of its realm (the count comes from the track's outline). */
+export const bossNotOpenText = (chapters: number) => `Clear all ${chapters} chapters first.`;

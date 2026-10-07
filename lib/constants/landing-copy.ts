@@ -43,7 +43,7 @@ export const LANDING_TEXT = {
   realmsEyebrow: 'THE MAP',
   realmsTitle: `${REALMS.length} realms, one world`,
   /** Keep in step with OPEN_TIERS (curriculum.ts): beginner + intermediate today. */
-  realmsIntro: `Each realm is a course: chapters and a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
+  realmsIntro: `Each realm is a course: its chapters, then a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
   realmsAll: 'Explore all realms',
   blogEyebrow: 'FROM THE BLOG',
   blogTitle: 'Latest posts',

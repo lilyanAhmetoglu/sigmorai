@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
-  BOSS_NOT_OPEN_TEXT,
+  bossNotOpenText,
   LEVEL_GLYPHS,
   notOpenText,
   questHref,
@@ -10,6 +10,7 @@ import {
   STEP_TEXT,
   TRACK_TEXT,
 } from '@/lib/constants';
+import { realmChapterCount } from '@/lib/grading/track-map';
 import type { ChapterView, StepView } from '@/lib/types';
 import { LockGlyph } from '@/components/lock-glyph';
 import { StatusBadge } from './status-badge';
@@ -27,10 +28,15 @@ function glyph(chapter: ChapterView): ReactNode {
   return chapter.chapter === null ? REALMS_TEXT.bossGlyph : String(chapter.chapter);
 }
 
-/** What opens a chapter-locked row: the same words the quest action returns. */
-function unlockHint(chapter: ChapterView): string | null {
+/**
+ * What opens a chapter-locked row: the same words the quest action returns.
+ * `chapterCount` is the realm's chapter count (its rows without the boss).
+ */
+function unlockHint(chapter: ChapterView, chapterCount: number): string | null {
   if (chapter.status !== 'locked') return null;
-  return chapter.chapter === null ? BOSS_NOT_OPEN_TEXT : notOpenText(chapter.chapter - 1);
+  return chapter.chapter === null
+    ? bossNotOpenText(chapterCount)
+    : notOpenText(chapter.chapter - 1);
 }
 
 /** A step is a link only when the quest page can play it: open, or done (replay). */
@@ -72,10 +78,11 @@ function StepRow({ step, current }: { step: StepView; current: boolean }) {
  * Styles: realms.css.
  */
 export function ChapterList({ chapters, nextId }: Props) {
+  const chapterCount = realmChapterCount({ chapters });
   return (
     <ol className="chapter-list">
       {chapters.map((chapter) => {
-        const hint = unlockHint(chapter);
+        const hint = unlockHint(chapter, chapterCount);
         return (
           <li key={chapter.chapter ?? 'boss'}>
             <details className="chapter" open={chapter.status === 'open'}>

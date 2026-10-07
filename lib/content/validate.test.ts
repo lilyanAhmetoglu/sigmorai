@@ -100,7 +100,9 @@ describe('broken content is caught, with the file name', () => {
     expect(issues.map((i) => i.file)).toEqual(
       ['lesson.mdx', 'case.json', 'quick-check.json'].map((f) => `${c7}/${f}`),
     );
-    expect(issues[0].message).toContain('a chapter past 6 ships with its');
+    expect(issues[0].message).toBe(
+      `Chapter 7 is in builder/outline.json. A chapter past 6 needs lesson.mdx, case.json and quick-check.json. Add content/${c7}/lesson.mdx, or remove the chapter from the outline.`,
+    );
   });
 
   test('a grown realm with all three files for its new chapter passes', async () => {
@@ -559,6 +561,13 @@ describe('shared chapters (content/shared-chapters.json)', () => {
     expect(
       await issuesFor([same('mcp-basics', 'builder/r5/c1', 'strategist/r5/c2'), covers]),
     ).toEqual([]);
+  });
+
+  test("a member past its realm's chapter count fails (c9 in a 6-chapter realm)", async () => {
+    const [msg] = await issuesFor([same('x', 'builder/r1/c1', 'strategist/r1/c9')]);
+    expect(msg).toBe(
+      'group "x": strategist/r1/c9 is past the realm\'s chapter count (c1–c6 in strategist/outline.json).',
+    );
   });
 
   test('a bad member format fails', async () => {

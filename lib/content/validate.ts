@@ -151,7 +151,7 @@ function grownChapterMissingFiles(outlines: Outlines, files: string[]): ContentI
           if (!files.includes(rel)) {
             issues.push({
               file: rel,
-              message: `chapter ${chapter} is in ${track}/${OUTLINE_FILE}, and a chapter past ${MIN_CHAPTERS} ships with its ${LESSON_FILE}, ${CASE_FILE} and ${QUICK_CHECK_FILE}: add content/${rel}, or remove the chapter from the outline.`,
+              message: `Chapter ${chapter} is in ${track}/${OUTLINE_FILE}. A chapter past ${MIN_CHAPTERS} needs ${LESSON_FILE}, ${CASE_FILE} and ${QUICK_CHECK_FILE}. Add content/${rel}, or remove the chapter from the outline.`,
             });
           }
         }
@@ -359,6 +359,7 @@ const NOT_SHAREABLE = {
 async function sharedChapterProblems(
   data: SharedChaptersFile,
   root: string,
+  outlines: Outlines,
   rel: string = SHARED_CHAPTERS_FILE,
 ): Promise<ContentIssue[]> {
   const issues: ContentIssue[] = [];
@@ -399,6 +400,16 @@ async function sharedChapterProblems(
         push(group.id, `two members are on the ${ref.track} track. Use one chapter per track.`);
       }
       tracks.add(ref.track);
+      // The grammar allows c1–c12; the realm's outline may have fewer.
+      const outline = outlines.get(ref.track);
+      const count = outline ? outlineChapterCount(outline, ref.realm) : null;
+      if (count !== null && ref.chapter > count) {
+        push(
+          group.id,
+          `${member} is past the realm's chapter count (c1–c${count} in ${ref.track}/${OUTLINE_FILE}).`,
+        );
+        continue;
+      }
       for (const step of CHAPTER_STEPS) {
         const id = buildExerciseId({ area: 'chapter', ...ref, step });
         if (!(await hasContent(id, root))) {
@@ -411,10 +422,15 @@ async function sharedChapterProblems(
 }
 
 /** Loads content/shared-chapters.json with its schema, then checks its rules. */
-async function checkSharedChapters(abs: string, rel: string, issues: ContentIssue[]) {
+async function checkSharedChapters(
+  abs: string,
+  rel: string,
+  outlines: Outlines,
+  issues: ContentIssue[],
+) {
   try {
     const data = await loadSharedChapters(abs);
-    issues.push(...(await sharedChapterProblems(data, abs, rel)));
+    issues.push(...(await sharedChapterProblems(data, abs, outlines, rel)));
   } catch (err) {
     issues.push({ file: rel, message: detail(err) });
   }
@@ -455,7 +471,7 @@ export async function validateContent(
       continue;
     }
     if (rel === SHARED_CHAPTERS_FILE) {
-      await checkSharedChapters(abs, rel, issues);
+      await checkSharedChapters(abs, rel, outlines, issues);
       continue;
     }
     if (rel === `${MATH_AREA}/${OUTLINE_FILE}`) {

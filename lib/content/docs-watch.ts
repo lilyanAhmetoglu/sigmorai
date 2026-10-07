@@ -23,6 +23,7 @@ const isLessonId = (id: string) => id.endsWith('/lesson');
  */
 export async function citedPages(
   root = CONTENT_DIR,
+  // Test seam: the fixtures have lessons but no outlines, so tests read the real ones.
   outlineRoot = root,
 ): Promise<Map<string, string[]>> {
   const outlines = await Promise.all(TRACKS.map((track) => loadTrackOutline(track, outlineRoot)));

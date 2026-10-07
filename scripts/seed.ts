@@ -77,8 +77,13 @@ async function seedKbSources() {
 /** Same shape as a real grant: ledger insert (award once) + cache bump in one transaction. */
 async function seedDemo(demo: Demo, i: number) {
   const userId = demoId(i);
-  const outline = await loadTrackOutline(demo.track);
-  const done = clears(demo, outlineChapterCount(outline, DEMO_REALM) ?? 0);
+  const realmChapters = outlineChapterCount(await loadTrackOutline(demo.track), DEMO_REALM);
+  if (realmChapters === null) {
+    throw new Error(
+      `${demo.track}/outline.json has no realm ${DEMO_REALM}: cannot seed ${demo.heroName}.`,
+    );
+  }
+  const done = clears(demo, realmChapters);
   const events = done.flatMap(({ exerciseId, reason }) =>
     reason ? [{ userId, exerciseId, reason, amount: XP_REWARDS[reason] }] : [],
   );

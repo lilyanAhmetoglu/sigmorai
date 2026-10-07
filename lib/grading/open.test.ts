@@ -89,7 +89,10 @@ describe('chapter count from the outline (path-curriculum spec, 2026-10-07)', ()
     expect(requiredClears(boss, NINE)).toEqual([...nine('creator', 1)]);
     const result = decideOpen(boss, allChallenges('creator', 1), NINE);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.code).toBe('NOT_OPEN');
+    if (!result.ok) {
+      expect(result.code).toBe('NOT_OPEN');
+      expect(result.message).toBe('Clear all 9 chapters first.');
+    }
     expect(decideOpen(boss, nine('creator', 1), NINE).ok).toBe(true);
   });
 

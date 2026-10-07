@@ -3,7 +3,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import type { Db, Tx } from '@/db';
 import { progress } from '@/db/schema';
 import {
-  BOSS_NOT_OPEN_TEXT,
+  bossNotOpenText,
   floorNotOpenText,
   FRONTIER_AREA,
   MATH_AREA,
@@ -97,7 +97,7 @@ export function decideOpen(
   if (requiredClears(ref, chapterCount).some((id) => !cleared.has(id))) {
     return fail(
       'NOT_OPEN',
-      ref.area === 'boss' ? BOSS_NOT_OPEN_TEXT : notOpenText(ref.chapter - 1),
+      ref.area === 'boss' ? bossNotOpenText(chapterCount) : notOpenText(ref.chapter - 1),
     );
   }
   return { ok: true, ref };
