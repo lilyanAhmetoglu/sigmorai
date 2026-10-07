@@ -36,7 +36,8 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   // Icons come from the app/ files (icon.svg, favicon.ico, apple-icon.png) and
-  // app/manifest.ts; all are the pixel Σ from design/assets/logo/favicon.svg.
+  // app/manifest.ts; all are the pixel Σ from design/assets/logo/favicon.svg. The tab
+  // icons (icon.svg, favicon.ico) drop its ink square; apple-icon.png and public/icons/*.png keep it.
   appleWebApp: { title: SITE_NAME, statusBarStyle: 'black-translucent' },
   // Defaults for pages that set no social tags of their own (lib/og/metadata.ts).
   openGraph: { type: 'website', siteName: SITE_NAME, locale: 'en_US' },
