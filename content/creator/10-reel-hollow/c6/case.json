@@ -1,0 +1,96 @@
+{
+  "id": "creator/r10/c6/challenge",
+  "title": "One master, four files",
+  "scenario": "The client approved a 16:9 master of a perfume bottle on a marble shelf: 10 seconds, 1080p, made on Luma. The bottle sits on the right third of the frame. Now the media plan needs more files from it. Your teammate wrote the delivery plan and sent it to you before running anything.\n\nUse the exhibit. The field names and rules are from Luma's and Runway's docs (October 2026). The brand, the ids and the plan are made up for this case.",
+  "exhibit": "MASTER (made up)\n  Luma ray-3.2, 16:9, 1080p, 10 s, SDR. Generation id kept.\n\nDELIVERY PLAN (draft, made up)\n  Stories   Luma video_reframe to 9:16 at 1080p, hdr: true\n  Screen    Runway video_upscale (Magnific) to 4k, creativity: 90\n  Editor    Runway outputFormat prores, profile 4444, so the editor\n            can lay the bottle over other footage as a matte\n\nRULES (from the docs, short)\n  Luma reframe: 9:16 and 3:4 at 1080p return a \"coming soon\" 400\n  Luma reframe: standard dynamic range only; hdr is rejected\n  Runway Ruby (video_to_hdr): converts any SDR video to HDR,\n                              at most 30 seconds\n  Runway Magnific creativity: 0 (faithful) to 100; how much\n                              AI-generated detail to add\n  Runway ProRes 4444: the alpha channel is present but fully opaque",
+  "questions": [
+    {
+      "prompt": "The Stories line asks Luma for 9:16 at 1080p. What happens, and what is the fix?",
+      "options": [
+        {
+          "text": "It runs, because 1080p works for every ratio",
+          "explanation": "Luma says 1080p works for landscape and square. Vertical 1080p is not available yet."
+        },
+        {
+          "text": "It fails; reframe to 9:16 at 720p instead",
+          "explanation": "Right. Luma returns a coming soon 400 for 9:16 at 1080p, and says to use 720p or lower for vertical.",
+          "correct": true
+        },
+        {
+          "text": "It fails; reframe to 21:9 at 1080p instead",
+          "explanation": "21:9 is a wide shape. It does not give the tall file that stories need."
+        },
+        {
+          "text": "It runs, but Luma crops the master by itself",
+          "explanation": "The request is refused with a 400. Luma does not change it into a crop."
+        }
+      ]
+    },
+    {
+      "prompt": "The plan also sets hdr: true on the reframe. The client wants an HDR stories file. What do you do?",
+      "options": [
+        {
+          "text": "Keep hdr: true on the reframe, because Luma supports HDR on every request type",
+          "explanation": "Luma says reframe is standard dynamic range only, and hdr is rejected on it."
+        },
+        {
+          "text": "Reframe in SDR first, then convert the result to HDR with Runway's Ruby",
+          "explanation": "Right. Reframe rejects HDR, and Ruby converts an SDR video of 30 seconds or less to HDR.",
+          "correct": true
+        },
+        {
+          "text": "Export the reframe as ProRes 4444, because ProRes files are always in HDR",
+          "explanation": "Runway says ProRes and PNG files stay in standard dynamic range. HDR is a separate delivery."
+        },
+        {
+          "text": "Upscale the reframe to 4k, because a 4k file is the same thing as an HDR file",
+          "explanation": "Size and brightness range are different things. A 4k file can still be SDR."
+        }
+      ]
+    },
+    {
+      "prompt": "The Screen line upscales the approved master with creativity 90. What is the risk?",
+      "options": [
+        {
+          "text": "The upscaler adds new detail the client never approved",
+          "explanation": "Right. Creativity sets how much AI-generated detail to add. On approved work, keep it low (our advice).",
+          "correct": true
+        },
+        {
+          "text": "The upscaler refuses any setting above 50 for 4k output",
+          "explanation": "Runway lists creativity from 0 to 100 for this upscaler."
+        },
+        {
+          "text": "The upscaler turns the clip into a 9:16 shape by default",
+          "explanation": "An upscale makes the clip bigger in pixels. It does not change the shape."
+        },
+        {
+          "text": "The upscaler cuts the clip to 5 seconds at this setting",
+          "explanation": "Inputs can be up to 30 seconds. Creativity does not change the length."
+        }
+      ]
+    },
+    {
+      "prompt": "The editor wants the bottle as a matte over other footage. Will ProRes 4444 from Runway do that?",
+      "options": [
+        {
+          "text": "Yes, because 4444 always holds a see-through alpha channel",
+          "explanation": "Runway says the alpha channel is present but fully opaque, so nothing is see-through."
+        },
+        {
+          "text": "Yes, but only if the clip is first converted to HDR",
+          "explanation": "HDR changes the brightness range. It does not add a see-through alpha."
+        },
+        {
+          "text": "No, because ProRes is not a format Runway can deliver",
+          "explanation": "Runway does deliver ProRes (.mov) from Gen-4.5 and Aleph 2.0."
+        },
+        {
+          "text": "No, the 4444 alpha is fully opaque; agree another plan",
+          "explanation": "Right. Runway says to choose 4444 for colour fidelity, not for mattes. Agree another way with the editor.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
