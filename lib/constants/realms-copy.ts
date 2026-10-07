@@ -1,6 +1,6 @@
 import type { Accent, ChapterStep, RealmStatus, StepStatus, Tier } from '@/lib/types';
 import { FRONTIER, MATH_TOWER } from './curriculum';
-import { CHAPTER_COUNT, MATH_FLOOR_COUNT } from './exercises';
+import { MATH_FLOOR_COUNT } from './exercises';
 import { QUEST_ERROR_TEXT } from './ui-copy';
 
 /**
@@ -64,8 +64,9 @@ export const REALMS_TEXT = {
   /** "Explore realms · Builder path" (the label comes in caps). */
   heading: (trackLabel: string) => `Explore realms · ${pathWord(trackLabel)} path`,
   /** Meta description of the catalog. */
-  description: `Every Sigmorai realm on every path: ${CHAPTER_COUNT} chapters and a boss each, built from official docs.`,
-  intro: `Every realm is a course: ${CHAPTER_COUNT} chapters and a boss, built from official docs.`,
+  description:
+    'Every Sigmorai realm on every path. Each one is a course: its chapters, then a boss, built from official docs.',
+  intro: 'Every realm is a course: its chapters, then a boss, built from official docs.',
   trackSwitch: 'Path',
   signInNote: 'Sign in to save your progress and earn XP.',
   signIn: 'Sign in',
@@ -73,8 +74,8 @@ export const REALMS_TEXT = {
   number: (number: string) => `REALM ${number}`,
   /** "REALM 03 · INTERMEDIATE" */
   tag: (number: string, tier: Tier) => `REALM ${number} · ${TIER_TEXT[tier]}`,
-  /** Catalog meta row: what a realm holds. */
-  meta: `${CHAPTER_COUNT} CHAPTERS + BOSS`,
+  /** Catalog meta row: what a realm holds on this path ("6 CHAPTERS + BOSS"). */
+  meta: (chapters: number) => `${chapters} CHAPTERS + BOSS`,
   /** A tier-locked catalog card: the tier is already in its tag. */
   lockedNote: 'Locked for now. It opens in a later update.',
   clearedLabel: 'LEVELS CLEARED',
@@ -187,7 +188,7 @@ export const MAP_TEXT = {
   /** "Bootstrap Village · World map · Sigmorai" */
   title: (realmName: string) => `${realmName} · World map · Sigmorai`,
   description: (realmName: string) =>
-    `The ${realmName} level map: ${CHAPTER_COUNT} chapters and a boss, built from official docs.`,
+    `The ${realmName} level map: every chapter and the boss, built from official docs.`,
   realmNav: 'Other realms',
   prevIcon: '◂',
   nextIcon: '▸',

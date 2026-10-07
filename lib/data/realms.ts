@@ -13,9 +13,11 @@ import {
   TRACKS,
 } from '@/lib/constants';
 import { mathExerciseIds, realmExerciseIds, trackExerciseIds } from '@/lib/content/ids';
-import { hasContent, loadTrackOutline } from '@/lib/content/load';
+import { outlineChapterCount } from '@/lib/content/curriculum';
+import { hasContent } from '@/lib/content/load';
 import { applyCredit, creditorsForTrack, type Credit } from '@/lib/content/shared';
 import { sharedGroups } from '@/lib/grading/credit';
+import { trackOutline } from '@/lib/grading/outline';
 import {
   activeRealms,
   buildTowerMap,
@@ -71,7 +73,8 @@ type ProgressArea = LiveArea | typeof FRONTIER_AREA;
 
 /** Ids of this track (or the tower) that have a content file. Stubs (outline only) have none. */
 async function scanLiveIds(area: LiveArea): Promise<Set<string>> {
-  const ids = area === MATH_AREA ? mathExerciseIds() : trackExerciseIds(area);
+  const ids =
+    area === MATH_AREA ? mathExerciseIds() : trackExerciseIds(area, await trackOutline(area));
   const live = await Promise.all(ids.map((id) => hasContent(id)));
   return new Set(ids.filter((_, i) => live[i]));
 }
@@ -145,7 +148,7 @@ const noClears = (): Promise<Credit> =>
 
 const getTrackMap = cache(async (track: Track, userId: string | null): Promise<TrackMap> => {
   const [outline, live, credit] = await Promise.all([
-    loadTrackOutline(track),
+    trackOutline(track),
     liveIds(track),
     userId ? trackClears(userId, track) : noClears(),
   ]);
@@ -193,12 +196,17 @@ export async function getRealmMeta(slug: string) {
   const parsed = RealmSlugSchema.safeParse(slug);
   if (!parsed.success) return null;
   const realm = REALMS.find((r) => r.slug === parsed.data)!;
-  const lists = await Promise.all(TRACKS.map((track) => liveIds(track)));
+  const [lists, outlines] = await Promise.all([
+    Promise.all(TRACKS.map((track) => liveIds(track))),
+    Promise.all(TRACKS.map((track) => trackOutline(track))),
+  ]);
   const indexable = TRACKS.some((track, i) =>
-    realmExerciseIds(track, realm.id).some((id) => lists[i].has(id)),
+    realmExerciseIds(track, realm.id, outlineChapterCount(outlines[i], realm.id) ?? 0).some((id) =>
+      lists[i].has(id),
+    ),
   );
   // Same text on every track' URL (the canonical has no ?track=): the beginner path's topic.
-  const outline = await loadTrackOutline(DEFAULT_TRACK);
+  const outline = outlines[TRACKS.indexOf(DEFAULT_TRACK)];
   return { name: realm.name, description: outline.realms[realm.id].topic, indexable };
 }
 

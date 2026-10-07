@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { CONTENT_DIR, DOCS_LLMS_TXT_HOSTS, DOCS_MD_HOSTS, TRACKS } from '@/lib/constants';
 import type { DocsWatchPending, DocsWatchState, DocsWatchTarget, KbSource } from '@/lib/types';
 import { frontierExerciseIds, mathExerciseIds, trackExerciseIds } from './ids';
-import { hasContent, listFrontierFolders, loadLesson } from './load';
+import { hasContent, listFrontierFolders, loadLesson, loadTrackOutline } from './load';
 import { urlKey } from './source-urls';
 
 const isLessonId = (id: string) => id.endsWith('/lesson');
@@ -17,11 +17,18 @@ const isLessonId = (id: string) => id.endsWith('/lesson');
 /**
  * Every cited page → the lessons that cite it, keyed by urlKey
  * (`platform.claude.com/docs/en/x`). Track, Math Tower and Frontier lessons
- * that have a file. A bad lesson file throws (content:check guards canary).
+ * that have a file. A bad lesson or outline file throws (content:check guards
+ * canary). Track lesson ids come from the outlines under `outlineRoot`
+ * (tests point `root` at a fixtures folder that has lessons but no outlines).
  */
-export async function citedPages(root = CONTENT_DIR): Promise<Map<string, string[]>> {
+export async function citedPages(
+  root = CONTENT_DIR,
+  // Test seam: the fixtures have lessons but no outlines, so tests read the real ones.
+  outlineRoot = root,
+): Promise<Map<string, string[]>> {
+  const outlines = await Promise.all(TRACKS.map((track) => loadTrackOutline(track, outlineRoot)));
   const ids = [
-    ...TRACKS.flatMap(trackExerciseIds).filter(isLessonId),
+    ...TRACKS.flatMap((track, i) => trackExerciseIds(track, outlines[i])).filter(isLessonId),
     ...mathExerciseIds().filter(isLessonId),
     ...frontierExerciseIds(await listFrontierFolders(root)).filter(isLessonId),
   ];

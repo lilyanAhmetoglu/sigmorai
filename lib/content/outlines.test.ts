@@ -6,6 +6,8 @@ import {
   CONTENT_DIR,
   MATH_AREA,
   MATH_FLOORS,
+  MAX_CHAPTERS,
+  MIN_CHAPTERS,
   OUTLINE_FILE,
   REALMS,
   SIDE_STEPS,
@@ -102,6 +104,24 @@ describe('broken outlines fail', () => {
     const outline = TrackOutlineSchema.parse(await readOutline(TRACKS[0]));
     outline.realms[0].chapters.pop();
     expect(TrackOutlineSchema.safeParse(outline).success).toBe(false);
+  });
+
+  test.each([MIN_CHAPTERS - 1, MAX_CHAPTERS + 1])('a realm with %i chapters', async (n) => {
+    const outline = TrackOutlineSchema.parse(await readOutline(TRACKS[0]));
+    outline.realms[0].chapters = Array.from({ length: n }, (_, i) => ({
+      id: segment('chapter', i + 1),
+      title: `Chapter ${i + 1}`,
+    }));
+    expect(TrackOutlineSchema.safeParse(outline).success).toBe(false);
+  });
+
+  test('a realm with 9 chapters passes (6 to 12 allowed)', async () => {
+    const outline = TrackOutlineSchema.parse(await readOutline(TRACKS[0]));
+    outline.realms[1].chapters = Array.from({ length: 9 }, (_, i) => ({
+      id: segment('chapter', i + 1),
+      title: `Chapter ${i + 1}`,
+    }));
+    expect(TrackOutlineSchema.safeParse(outline).success).toBe(true);
   });
 
   test('chapters out of order', async () => {

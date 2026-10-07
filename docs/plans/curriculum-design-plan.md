@@ -32,6 +32,7 @@
 - **Boss shape:** 5 questions (the case max), one longer exhibit with labelled parts (`BRIEF:`, `TRACE:`, `BUDGET:` …), each question on a different chapter of the realm. Pass is already every question right.
 - **The id stays `<track>/r<N>/boss/challenge`.** Ids are forever.
 - **A boss opens after all 6 chapter cases of that realm.** Clearing it marks the realm cleared (7/7) and pays +500. It does not gate the next realm (realms open by tier).
+  > **Amended 2026-10-07:** "all 6" is now every chapter in that track's outline (6 to 12). See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 - **XP +500** (`XP_REWARDS.boss`), normal HP rule (3 failed tries per UTC day). Replay after a clear is free practice.
 - **No schema change.**
 - **UI:** the quest case page, the castle map node and the "Boss battle" row. No boss scene, no NPC intro.
@@ -133,6 +134,7 @@ The Phase 1 build and its CTO review changed these parts. The maintainer approve
 - **Outline and frontmatter schemas live in `lib/types/`,** per AGENTS.md ("every shared type and Zod schema"). `lib/content/schema.ts` is dropped. Amended in the same branch: `content/CLAUDE.md`.
 - **The accent helper returns the `data-accent` value** (`realmAccent(3)` → `realm-3`). `accents.css` maps it to `--realm-3`. Why: components already pick a tint with `data-accent`.
 - **`CHAPTERS_PER_REALM` is the existing `CHAPTER_COUNT`.** No second constant.
+  > **Amended 2026-10-07:** `CHAPTER_COUNT` is replaced by `MIN_CHAPTERS = 6` and `MAX_CHAPTERS = 12`; a realm's real count comes from its track's outline. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 - **A Math outline floor is `{ n, covers, formulas: [{ math, text }] }`.** No `title` (the name is in `MATH_FLOORS`) and no single `formulaText`. Why: floor 1 has two formulas, and each needs its own plain-words line.
 - **The Math Tower has a constant row** (`MATH_TOWER`: name, NPC) and one art path (`MATH_ART` = `/levels/math`).
 
@@ -155,6 +157,7 @@ Maintainer decision. Full detail in `knowledge-base-design-plan.md` → "Amendme
 - **New side realm: The Frontier** (working name; `voice-guardian` checks it). The sync job adds its chapters by PR. It is the only part of the map that grows. Why: the 9 × 6 main map is fixed, so new topics from the docs had no home.
 - **One exception to "tier is a realm property":** a Frontier chapter carries its own tier in `content/frontier/outline.json`. Default open; `advanced` only when triage marks it. Why: the Frontier mixes topics of every level.
 - **`fill-stub`** lets the sync job draft a "Coming soon" chapter of a main realm. It never adds a main-realm chapter; the 9 × 6 count stays.
+  > **Amended 2026-10-07:** the 9 × 6 count no longer stays: a realm can have 6 to 12 chapters (outline). `fill-stub` still never adds a chapter. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 - **Blog:** owned by the KB spec now (no separate blog job). This spec still only depends on it.
 
 ## Amendments locked 2026-10-05 (devil pass)
@@ -236,6 +239,8 @@ No realm id, tier or track name is typed as a loose string anywhere else. Pages,
 | `MATH_FLOORS`        | 8 rows: `{ n, slug, name }` (table below). No tier.                                                             |
 | `CHAPTERS_PER_REALM` | `6` (matches the 6 flags in `design/assets/levels/layout.json`; node 7 is the boss)                             |
 | `FRONTIER`           | `{ slug: 'frontier', name: 'The Frontier' }`. Working name. No tier, no chapter count; accent reuses `neutral`. |
+
+> **Amended 2026-10-07:** `CHAPTERS_PER_REALM` (`CHAPTER_COUNT`) is replaced by `MIN_CHAPTERS = 6` / `MAX_CHAPTERS = 12`. A 6-chapter realm keeps the design's node columns; other counts are spread evenly. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 
 `id` is a number, `0`–`8`. One helper turns it into the content folder (`00-bootstrap-village`), the art path (`public/levels/realm-00`) and the accent token (`--realm-0`). Nothing else builds these strings.
 
@@ -320,6 +325,7 @@ _Note 2026-10-05: `progress` has no `status` column (it is one row per cleared e
 - **Quick check has its own XP reason** in `xp_events` (amount in `lib/constants`, set by the step-5 spec).
 - **Chapter status is derived:** a chapter folder with a lesson MDX is live. No folder = "Coming soon", with no route.
 - A `bun test` reads the outlines from disk and parses them with Zod. It fails if a track has ≠ 9 realms, a realm has ≠ 6 chapters, an id is unknown, or a chapter folder is not in its outline.
+  > **Amended 2026-10-07:** a realm may have 6 to 12 chapters; fewer than 6 or more than 12 fails. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 - **`devil` review: done (this pass). `db-architect`: needed at step 3** — `level_announcements` must point at a Frontier chapter (devil pass on the Frontier). It is needed again when the paywall adds entitlements.
 
 ## MVP content cut (48h sprint)
