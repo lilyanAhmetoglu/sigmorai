@@ -175,8 +175,13 @@ function post(body = '## Summary\n\nPlain text.', fields: Record<string, string>
 
 describe('blog posts', () => {
   /** Validate the real content plus these posts, with a tiny public/ holding the named covers. */
-  async function postIssues(files: Record<string, string>, covers = ['tokens', 'other']) {
+  async function postIssues(
+    files: Record<string, string>,
+    covers = ['tokens', 'other'],
+    removeFromCopy: string[] = [],
+  ) {
     const root = await copyOfContent();
+    for (const rel of removeFromCopy) await rm(`${root}/${rel}`);
     for (const [name, text] of Object.entries(files)) await Bun.write(`${root}/blog/${name}`, text);
     const pub = await mkdtemp(path.join(tmpdir(), 'sigmorai-public-'));
     pubDirs.push(pub);
@@ -222,12 +227,13 @@ describe('blog posts', () => {
   });
 
   test('a lesson with no file (a stub chapter) fails', async () => {
-    const issues = await postIssues({
-      // A real id whose chapter is not written yet; move it when creator r8 ships.
-      '2026-10-05-tokens.mdx': post(undefined, { lesson: 'creator/r8/c6/lesson' }),
-    });
-    expect(issues).toHaveLength(1);
-    expect(issues[0].message).toContain('has no lesson file');
+    // Every chapter is written now, so the copy deletes one lesson to make a stub.
+    const issues = await postIssues(
+      { '2026-10-05-tokens.mdx': post(undefined, { lesson: 'creator/r8/c6/lesson' }) },
+      undefined,
+      ['creator/08-production-peaks/c6/lesson.mdx'],
+    );
+    expect(issues.some((i) => i.message.includes('has no lesson file'))).toBe(true);
   });
 
   test('a cover that is not a file under public/ fails', async () => {
