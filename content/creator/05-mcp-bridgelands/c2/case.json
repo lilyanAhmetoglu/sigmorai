@@ -1,0 +1,96 @@
+{
+  "id": "creator/r5/c2/challenge",
+  "title": "The design-tool helper",
+  "scenario": "The studio links a design-tool server to its AI app. You choose which tools to switch on. Use the exhibit. The tool lines are copied from Figma's docs. The asks and the third-party server are made up for this case.",
+  "exhibit": "TOOLS ON THE DESIGN SERVER (names and lines copied from Figma's tool list):\n  READ\n    get_design_context     Design context for a layer or selection\n    get_screenshot         Screenshot of a selection\n    get_variable_defs      Variables and styles used in a selection\n    search_design_system   Searches libraries for components, variables, styles\n    whoami                 Identity and plans of the authenticated user\n  WRITE\n    use_figma              General-purpose create, edit, and inspect\n    create_new_file        Creates a blank Design, FigJam, or Slides file\n    upload_assets          Uploads images into a Figma file\n    generate_image         Generates a downloadable raster image\n\nSTUDIO ASKS (made up for this case):\n  Ask A  Read the approved brand frame and list the colour variables it uses.\n  Ask B  Make a new file with three layout ideas for the autumn banner.\n  Ask C  Fix typos on the 40 live client files, all at once, by itself.\n\nA THIRD-PARTY SERVER (made up for this case):\n  The studio also tests a small server from an unknown author. One of its\n  tools has an annotation that says it is read-only.",
+  "questions": [
+    {
+      "prompt": "What does Ask A need from the design server?",
+      "options": [
+        {
+          "text": "Only read tools, such as get_variable_defs, because no write tool is needed for this job",
+          "explanation": "Right. Listing variables only takes information out of Figma. A read job needs read tools only.",
+          "correct": true
+        },
+        {
+          "text": "Only use_figma, because it is the general tool and so it can also look at a file",
+          "explanation": "use_figma is listed under write tools. It can change files, so it is more than this job needs."
+        },
+        {
+          "text": "The whole list, because the server only works when every tool is switched on together",
+          "explanation": "Nothing says that. You can choose which tools the model sees."
+        },
+        {
+          "text": "upload_assets and get_screenshot, so the agent can compare a picture with the frame",
+          "explanation": "upload_assets writes images into a file. A read job needs no upload."
+        }
+      ]
+    },
+    {
+      "prompt": "On Claude's MCP connector, how do you make sure only the read tools are on?",
+      "options": [
+        {
+          "text": "Write in the system prompt that the agent must not edit anything in any client file",
+          "explanation": "A prompt line is a request, not a setting. A tool that is on can still be called."
+        },
+        {
+          "text": "Switch every tool off by default, then turn on only the named read tools, one by one",
+          "explanation": "Right. Claude's connector supports an allowlist. Anthropic also recommends denylisting write tools for read-only work.",
+          "correct": true
+        },
+        {
+          "text": "Leave every tool on, because the tool hints tell Claude which ones are safe to use",
+          "explanation": "Hints are untrusted unless they come from a trusted server. They are not a control."
+        },
+        {
+          "text": "Use OpenAI's allowed_tools setting inside the Claude request to name the read tools",
+          "explanation": "allowed_tools is OpenAI's setting. Claude's connector has its own allowlist and denylist."
+        }
+      ]
+    },
+    {
+      "prompt": "What is the best plan for Ask C, the typo fix on the 40 live client files?",
+      "options": [
+        {
+          "text": "Switch on use_figma now, because fixing a typo is a small change that is easy to undo",
+          "explanation": "Small changes on 40 live files still add up. A person should stay able to deny each write."
+        },
+        {
+          "text": "Switch on every write tool and trust the agent, since Ask C says it should work by itself",
+          "explanation": "The MCP spec says there should always be a human in the loop with the ability to deny."
+        },
+        {
+          "text": "Ask the model in the prompt to be careful, then run all 40 files in one single batch",
+          "explanation": "Care in a prompt is not a control. A batch on live files raises the risk."
+        },
+        {
+          "text": "Begin in Look, then test one write on a copy of a file, with a person approving each one",
+          "explanation": "Right. The spec says a human should be able to deny tool calls. Anthropic suggests a confirmation step before state changes.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "A tool on the unknown author's server has an annotation that says it is read-only. Do you rely on it?",
+      "options": [
+        {
+          "text": "Yes, because a read-only hint means the tool cannot change anything in the studio files",
+          "explanation": "A hint is only the server's claim about itself. It does not prove anything."
+        },
+        {
+          "text": "Yes, but only after the model has read the hint aloud to the person who approves the tool",
+          "explanation": "Reading a hint aloud does not test it. The server still has to be trusted."
+        },
+        {
+          "text": "Not on its own, since hints are untrusted unless the server is trusted, so check the server",
+          "explanation": "Right. The MCP spec says clients must treat tool annotations as untrusted unless they come from trusted servers.",
+          "correct": true
+        },
+        {
+          "text": "No, because MCP forbids a tool from carrying hints, so the field must be an error",
+          "explanation": "MCP allows annotations. The rule is about how much to trust them."
+        }
+      ]
+    }
+  ]
+}
