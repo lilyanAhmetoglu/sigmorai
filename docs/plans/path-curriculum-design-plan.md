@@ -10,10 +10,22 @@
 
 ## Amendments
 
-<!-- New decisions are appended here as:
-## Amendments locked YYYY-MM-DD
-- ...
--->
+## Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")
+
+These override the sections below where they disagree.
+
+- **Engine ships as two PRs.** 1a = chapter count from the outline (open rule, next case, map, validate, level-map spacing, copy). 1b = realm list per track (`REALMS` owner/scene, per-track grammar, outline-order map, certificates, art fallback, docs). Today's outlines pass both; each is green alone.
+- **No `CORE_REALM_COUNT`.** Core realms are the `REALMS` rows with `track: null`.
+- **A core realm's outline grows only with its files.** `content:check` fails when an outline chapter past `MIN_CHAPTERS` lacks its lesson, case or quick check. This removes the "grown realm, new chapters not live" state (no boss re-locked with nothing to play).
+- **The outline is memoised** (module memo in prod, per request in dev, like `liveIds`), because `checkOpen` reads it on every graded action.
+- **Real counts where a realm view exists** (`N CHAPTERS + BOSS`, `x/N CLEARED`); count-free only on the landing and catalog intros.
+- **Specialist realm pages hide the path switch;** `getRealmPage` and `getRealmMeta` use the owner track's outline.
+- **Level-map spacing sets the label width too** (`--node-gap`), tested at 6 and 12 chapters.
+- **`lib/data/quest.ts` is untouched** (the helpers carry the `neutral` fallback); this avoids a clash with SIG-50.
+- **Source status R means "cited before", not "verified".** Every claim in a new chapter needs a fresh fetch. The build environment's network was opened fully on 2026-10-07 (maintainer), so content PRs 3–8 run here with fresh fetches; no docs-watch `--snapshot` is needed.
+- **The realm OG image and the dashboard realm tile** branch on `scene` (no art → flat `neutral` fill, site-default OG).
+- **Accepted side effect:** a boss cleared before its realm grew stays cleared (and its certificate stays), while the header reads e.g. 7/10 until the new chapters are played.
+- **Ids:** an id past the outline's chapter count is `INVALID_INPUT`, never `NOT_OPEN` (tested). Specialist realm numbers are fixed when each realm first ships, and never renumbered after.
 
 ---
 
