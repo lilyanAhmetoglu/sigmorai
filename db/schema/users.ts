@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { HERO_NAME_MAX, HERO_NAME_MIN, HERO_NAME_UNIQUE_INDEX, TRACKS } from '@/lib/constants';
 import { oneOf } from './checks';
 
@@ -19,6 +28,10 @@ export const users = pgTable(
     streak: integer().notNull().default(0),
     lastActiveAt: timestamp({ withTimezone: true }),
     avatarUrl: text(),
+    // Public capability for share links (/cert/<public_id>/...). Select it only on
+    // the cert route and in the export; leaderboard and HUD reads must not return it.
+    // Never put the Clerk id in a URL.
+    publicId: uuid().notNull().defaultRandom(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -39,5 +52,7 @@ export const users = pgTable(
     // One hero per name, any case: the name is public on the leaderboard. The app
     // NFKC-normalises first (HeroNameSchema). createHero maps a clash to name_taken.
     uniqueIndex(HERO_NAME_UNIQUE_INDEX).on(sql`lower(${t.heroName})`),
+    // Certificate links look a hero up by public_id (/cert/<public_id>/<achievement>).
+    uniqueIndex('users_public_id_idx').on(t.publicId),
   ],
 );

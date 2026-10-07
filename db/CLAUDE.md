@@ -12,7 +12,8 @@
 4. **The track lives in the exercise id.** `progress` is keyed `(user_id, exercise_id)`; ids like `builder/r0/c1/lesson` carry the track (grammar in `content/CLAUDE.md`, helpers in `lib/content/ids.ts`). Shared Math Tower and Frontier ids have no track, so they clear and grant XP once.
 5. **Computed, not stored:** level (from xp), HP refill (from attempts + date), "NEW LEVEL" visibility (from `level_announcements.created_at`).
 6. **Enums are CHECK constraints or text + Zod, never Postgres enums.** Fixed sets (track, kb kind) get a CHECK built from the `lib/constants` list; growing sets (xp reason) are text + a Zod enum in `lib/types`.
-7. **Content lives in the repo** (`content/`), not the DB. The DB stores ids that point at it.
+7. **`users.public_id` is a capability, not an identity.** A random uuid (unique index `users_public_id_idx`) used only in certificate links (`/cert/<public_id>/<achievement>`). Select it only on the cert route and in the export. Never in leaderboard or HUD reads. Never put the Clerk id in a URL.
+8. **Content lives in the repo** (`content/`), not the DB. The DB stores ids that point at it.
 
 ## Layout
 
