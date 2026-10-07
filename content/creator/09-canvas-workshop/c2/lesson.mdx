@@ -1,6 +1,6 @@
 ---
 id: creator/r9/c2/lesson
-title: Write to canvas
+title: Edit the canvas
 minutes: 8
 sources:
   - kind: docs
@@ -30,13 +30,19 @@ sources:
   - kind: docs
     title: Canva developer docs · Design edit handoff
     url: https://www.canva.dev/docs/apps/mcp/workflows/design-edit/
+  - kind: docs
+    title: Claude docs · MCP connector (beta)
+    url: https://platform.claude.com/docs/en/agents-and-tools/mcp-connector
+  - kind: docs
+    title: OpenAI docs · MCP servers (Always require approval for sensitive actions)
+    url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
 ---
 
 ## Why it matters
 
-MCP Bridgelands (chapter 2) gave you a ladder: Look, then Draft, then Edit. This chapter is the Edit step, up close. You will see how two design tools let an AI assistant change a file, what limits they list today, and how a person checks a change before it stays.
+MCP Bridgelands (chapter 2) gave you a ladder: Look, then Draft, then Edit. This chapter is the Edit step, up close: how two design tools let an assistant change a file, and how a person checks it.
 
-A write is where an assistant saves the most time. It is also where it can break a shared file. So you need to know where a change lands, and how to throw it away.
+A write is where an assistant saves the most time (our view). It is also where it can break a shared file. So you need to know where a change lands, and how to throw it away.
 
 ## Figma: code that runs inside the file
 
@@ -52,14 +58,20 @@ Three facts to plan around:
 
 ## Figma's current limits
 
-Figma's write page lists "Current limitations". Check the page again before you promise a client anything, because it can change. On the day this lesson was written (October 2026) it said:
+Figma's write-to-canvas page is about `use_figma`. It lists "Current limitations". On the day this lesson was written (October 2026) it said:
 
 - "20kb output response limit per call"
 - "No assets (image) support yet", including "no importing components that have images/videos"
 - "Custom fonts aren't supported yet"
 - "Components must be manually published before Code Connect completes"
 
-Example. You ask for a product page with real photos and your brand font. Two of the four limits apply. Plan to place the photos and set the font by hand, or ask for a layout with placeholders.
+Today, Figma's pages do not fully agree about images. The write page says "No assets (image) support yet". But the tool list says `use_figma` "can work with pages, frames, components, variants, variables, styles, text, images, and more".
+
+The tool list also has a separate write tool for pictures, `upload_assets`. Like `use_figma`, it is marked remote-only. It "Uploads assets (PNG, JPG, GIF, and WebP) into a Figma file. Max 10MB per asset. If a URL to a specific node is provided, the image is uploaded as a fill to that node."
+
+So check both pages before you plan a job, because they can change (our advice).
+
+Example. You ask for a product page with real photos and your brand font. Plan to put the photos in with `upload_assets`, as fills on the frames you name. Set the brand font by hand, because custom fonts are not supported yet.
 
 ## A safe place to draft
 
@@ -86,7 +98,7 @@ Two rules from the same pages:
 
 Canva warns: "Commit can fail if the design is edited concurrently (for example, a person editing in the browser) during your transaction. Retrying the same transaction won't help, because its snapshot is stale. Cancel it, start a fresh transaction, re-apply, and commit."
 
-Example. The assistant changes twelve prices. Meanwhile, a teammate fixes a typo in the same design in the browser. The commit fails. The right move is cancel, start again, re-apply the twelve changes, commit.
+Example. The assistant changes twelve prices while a teammate fixes a typo in the browser. The commit fails. Cancel, start again, re-apply the twelve changes, commit.
 
 ## Do not say "saved" too early
 
@@ -99,22 +111,15 @@ An assistant that says "Done, all saved!" after step 2 is wrong. The edits are s
 Both vendors put a person at the end.
 
 - **Figma.** "Review the result in Figma and continue iterating." Open the file and "inspect the generated or updated content". For big jobs: "Large changes work best incrementally", inspecting first and working "in smaller steps" to "validate as it goes".
-- **Canva.** Its handoff pattern says the agent "should return a direct link to the design so the user can immediately open it in Canva". For editing transactions: "User should verify and continue edits after programmatic changes." And: "Don't end the workflow at export." An export "gives users a static file. It's a delivery mechanism, not a handoff."
+- **Canva.** Its handoff pattern says the agent "should return a direct link to the design so the user can immediately open it in Canva". For editing transactions: "User should verify and continue edits after programmatic changes." And: "Don't end the workflow at export."
 
-## A review routine
-
-This routine is ours.
-
-1. **Draft away from the live file.** A new file, or a copy.
-2. **One small change per step.** Easier to check, easier to undo.
-3. **Open the link and look.** In the editor, not in a chat summary.
-4. **Keep or drop.** Commit, or cancel.
-5. **Write down what changed** and who checked it.
+Approvals in the AI app help too. MCP Bridgelands (chapter 4) taught them. Anthropic recommends denylisting write tools "when you want a human confirmation step before state changes". OpenAI says to use `require_approval` and `allowed_tools` "to ensure that any sensitive actions require an approval flow".
 
 ## What this means for your work
 
+- **Draft away from the live file:** a new file, or a copy (our advice).
 - **Know where a write lands.** Figma writes into the file. Canva holds a draft until commit.
 - **Read the limits list** before you plan a job, and date it.
 - **Cancel and redo** when a Canva commit fails because someone else edited.
 - **Trust the tool status,** not the assistant's summary.
-- **A person opens the design** before any change stays.
+- **A person opens the design** before any change stays, and notes what changed (our advice).
