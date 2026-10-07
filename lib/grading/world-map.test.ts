@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { coreRealms, REALMS, WORLD_MAP } from '@/lib/constants';
-import type { RealmStatus, RealmView, TrackMap, WorldGeometry } from '@/lib/types';
+import { CONTENT_DIR, coreRealms, OUTLINE_FILE, REALMS, TRACKS, WORLD_MAP } from '@/lib/constants';
+import type { RealmStatus, RealmView, Track, TrackMap, WorldGeometry } from '@/lib/types';
 import { coastline, edgeFog, pathRealms, realmPlace, shapeSeed, worldView } from './world-map';
 
 /** A realm view with 6 chapters + boss; only the fields worldView reads matter. */
@@ -45,32 +45,50 @@ describe('pathRealms', () => {
   });
 });
 
-describe('specialist realms (real r9 Canvas Workshop on the creator path)', () => {
-  // Creator map order: r9 sits between r5 and r6 (content/creator/outline.json).
-  const ORDER = [0, 1, 2, 3, 4, 5, 9, 6, 7, 8];
-  const creator: TrackMap = {
-    track: 'creator',
-    realms: ORDER.map((id) => realm(id, 'open')),
-    next: { realm: 0, chapter: 1, step },
+describe('specialist realms (real REALMS, each path in its committed outline order)', () => {
+  /** A path's map order, as committed in content/<track>/outline.json. */
+  const order = async (track: Track): Promise<number[]> => {
+    const file = `${import.meta.dir}/../../${CONTENT_DIR}/${track}/${OUTLINE_FILE}`;
+    const outline = (await Bun.file(file).json()) as { realms: { id: number }[] };
+    return outline.realms.map((r) => r.id);
   };
+  const pathMap = async (track: Track): Promise<TrackMap> => ({
+    track,
+    realms: (await order(track)).map((id) => realm(id, 'open')),
+    next: { realm: 0, chapter: 1, step },
+  });
+  const specialists = REALMS.filter((r) => r.track !== null);
 
-  test('pathRealms carries the owner only on the specialist row ("CREATOR ONLY" badge)', () => {
-    const rows = pathRealms(creator, (slug) => `/realms/${slug}`);
-    expect(rows.filter((r) => r.track !== null).map((r) => [r.id, r.track])).toEqual([
-      [9, 'creator'],
-    ]);
+  test('the creator path has at least one specialist realm (r9 Canvas Workshop)', () => {
+    expect(specialists.map((r) => r.id)).toContain(9);
   });
 
-  test('r9 stands on its slot, which is no longer fog; the trail runs r5 → r9 → r6', () => {
-    const view = worldView(creator);
-    const slot = WORLD_MAP.slotRealms.find((s) => s.realm === 9)!.slot;
-    expect(view.realms.find((r) => r.id === 9)!.place).toEqual(
-      WORLD_MAP.slots.find((s) => s.id === slot)!,
-    );
-    expect(view.fog.map((s) => s.id)).not.toContain(slot);
-    expect(view.trail.map((s) => [s.from, s.to])).toContainEqual([5, 9]);
-    expect(view.trail.map((s) => [s.from, s.to])).toContainEqual([9, 6]);
-  });
+  test.each([...TRACKS])(
+    '%s: pathRealms carries the owner only on its own specialist rows ("<PATH> ONLY" badge)',
+    async (track) => {
+      const rows = pathRealms(await pathMap(track), (slug) => `/realms/${slug}`);
+      expect(rows.filter((r) => r.track !== null).map((r) => [r.id, r.track])).toEqual(
+        rows.filter((r) => REALMS[r.id].track === track).map((r) => [r.id, track]),
+      );
+    },
+  );
+
+  test.each(specialists.map((r) => [r.id, r.track] as const))(
+    'r%d (%s) stands on its slot, which is no longer fog; the trail runs through it in outline order',
+    async (id, owner) => {
+      const ids = await order(owner);
+      const view = worldView(await pathMap(owner));
+      const slot = WORLD_MAP.slotRealms.find((s) => s.realm === id)!.slot;
+      expect(view.realms.find((r) => r.id === id)!.place).toEqual(
+        WORLD_MAP.slots.find((s) => s.id === slot)!,
+      );
+      expect(view.fog.map((s) => s.id)).not.toContain(slot);
+      const at = ids.indexOf(id);
+      const legs = view.trail.map((s) => [s.from, s.to]);
+      if (at > 0) expect(legs).toContainEqual([ids[at - 1], id]);
+      if (at < ids.length - 1) expect(legs).toContainEqual([id, ids[at + 1]]);
+    },
+  );
 });
 
 describe('worldView', () => {

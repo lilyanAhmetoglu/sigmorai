@@ -135,6 +135,15 @@ export const REALMS = [
     track: 'creator',
     scene: false,
   },
+  {
+    id: 10,
+    slug: 'reel-hollow',
+    name: 'Reel Hollow',
+    npc: 'Lanternist Oto',
+    tier: 'intermediate',
+    track: 'creator',
+    scene: false,
+  },
 ] as const satisfies readonly RealmRow[];
 
 /** Whether a realm is on this track: a core realm, or a specialist realm the track owns. */

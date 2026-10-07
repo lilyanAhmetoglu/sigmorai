@@ -55,10 +55,15 @@ describe('isRealmOpen', () => {
 describe('realm lists per track (fixture table: r9 creator, r10 builder)', () => {
   const T = SPECIALIST_REALMS;
 
-  test('real table: builder and strategist have the core realms; creator adds r9', () => {
-    expect(trackRealms('builder')).toEqual(coreRealms());
-    expect(trackRealms('strategist')).toEqual(coreRealms());
-    expect(trackRealms('creator')).toEqual([...coreRealms(), REALMS[9]]);
+  test('real table: every path has the core realms plus the specialist rows it owns', () => {
+    for (const track of TRACKS) {
+      expect(trackRealms(track)).toEqual([
+        ...coreRealms(),
+        ...REALMS.filter((r) => r.track === track),
+      ]);
+    }
+    // r9 Canvas Workshop stays creator only.
+    expect(trackRealms('creator')).toContain(REALMS[9]);
   });
 
   test('a track gets the core realms plus only the specialist realms it owns', () => {
@@ -118,8 +123,15 @@ describe('realm paths', () => {
     },
   );
 
-  test('a real realm with no art yet has no art path and its own folder', () => {
-    expect(realmArt(9)).toBeNull();
+  test.each(REALMS.filter((r) => !r.scene).map((r) => r.id))(
+    'real realm %d has no art yet: no art path, and its own folder',
+    (id) => {
+      expect(realmArt(id)).toBeNull();
+      expect(realmFolder(id)).toBe(`${String(id).padStart(2, '0')}-${REALMS[id].slug}`);
+    },
+  );
+
+  test('folder of a real realm with no art yet (r9)', () => {
     expect(realmFolder(9)).toBe('09-canvas-workshop');
   });
 });
