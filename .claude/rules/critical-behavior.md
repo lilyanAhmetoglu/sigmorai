@@ -44,7 +44,7 @@ When something similar exists, prefer in this order: **use it** · **extend it**
 - **Every async UI has all four states**: loading, empty, error, success.
 - **Grading happens on the server only.** Correct indexes and explanations never reach the client before submit.
 - **Every XP change is an `xp_events` row**, written in a Server Action that re-validates everything. `users.xp` is derived/denormalised from it, never set from client input.
-- **Every mentor call goes through `lib/mentor/`**, grounded only in the current lesson's sources, streamed, with a timeout and token logging.
+- **Every mentor call goes through `lib/mentor/`**, grounded only in the curriculum (every lesson + the pages lessons cite, current lesson boosted; "not covered" for anything else), streamed, with a timeout and token logging.
 - **Tokens only.** Zero radius, hard offset shadows, no gradients except the scene text-legibility fade. Reading text is Atkinson Hyperlegible; pixel fonts only for headings, HUD and buttons.
 - **Every layout reflows down to 360px wide.**
 - **Every server secret stays server-side.** `NEXT_PUBLIC_` is for browser-visible values only.
