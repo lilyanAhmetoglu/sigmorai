@@ -1,7 +1,7 @@
 ---
 id: strategist/r0/c4/lesson
 title: Tokens = cost
-minutes: 7
+minutes: 9
 sources:
   - kind: docs
     title: Claude docs · Pricing
@@ -23,68 +23,132 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/tokens
 ---
 
-## Why it matters
+## Goal
 
-When a company uses AI models through a vendor's API (the way software talks to the model), the bill is counted in **tokens**. If you plan an AI project, you need to know what a token is and what makes the count grow.
+After this lesson you can:
 
-## What a token is
+- Explain what a token is and how an AI bill is counted.
+- Estimate the cost of an AI task before launch: requests × tokens × price.
+- Spot what makes the token count grow, and name the levers that lower it.
 
-A token is a small piece of text. Models read and write tokens, not letters.
+## The problem
 
-A rough rule for English, from OpenAI's and Anthropic's docs: **1 token is about 4 characters, or about 0.75 words.** Google's Gemini docs give a similar rule: about 4 characters, and 100 tokens is about 60–80 English words.
+A support director wants AI to write a short summary of every ticket. Finance asks one question before they approve it: "What will this cost per month?"
 
-The exact count varies by language and content type. It can also vary by model: Anthropic's pricing page notes that its newer models use a tokenizer that produces more tokens for the same text (about 30% more).
+When a company uses a model through a vendor's **API** (the way software talks to the model), the bill is not per seat. It is counted in **tokens**. To answer finance, you need to know what a token is, what counts, and how to do the maths. Prices and rules below come from each vendor's docs (October 2026).
 
-Example: a one-page memo of about 500 English words is roughly 650–700 tokens.
+## The idea
 
-## How the bill works
+**A token is a small piece of text.** Models read and write tokens, not letters. A rough rule for English, in the words of the [OpenAI docs](https://developers.openai.com/api/docs/concepts): "1 token is approximately 4 characters or 0.75 words". The [Claude pricing page](https://platform.claude.com/docs/en/about-claude/pricing) gives the same rule. The [Gemini docs](https://ai.google.dev/gemini-api/docs/tokens) say: "100 tokens is equal to about 60-80 English words."
 
-All three vendors price by token. Anthropic and OpenAI list prices **per million tokens**, with separate prices for:
+The count also depends on language, content and model. The Claude pricing page says Claude's newer tokenizer (the part that cuts text into tokens), used by Claude 4.7 and later models, "produces approximately 30% more tokens for the same text" than older Claude models. This is not a comparison with other vendors.
+
+**The bill has two parts.** Anthropic and OpenAI list prices per million tokens, with one price for each part:
 
 - **Input tokens:** everything you send in.
 - **Output tokens:** everything the model writes back.
 
-For most models in both vendors' current price tables, output tokens cost more per token than input tokens. So a task that writes long answers costs more than one that writes short ones, even with the same input.
+In both vendors' current price tables, the output price is higher than the input price for most models. So long answers cost more than short ones, even with the same input.
 
-## What counts as input
+```text
+cost = input tokens  x input price
+     + output tokens x output price
+```
 
-More than you might think. Anthropic's context-window docs list everything in the request: the instructions, every message, attached files and images, and tool definitions. Gemini's docs say all input is tokenized, including images and other non-text content.
+**More counts as input than you think.** The [Claude context-window docs](https://platform.claude.com/docs/en/build-with-claude/context-windows) say "Everything in the request counts toward the context window": the instructions, every message, files, images and tool definitions. All of it is input you pay for. The Gemini docs say all input is tokenized, "including images, video, and audio".
 
-**Chat history adds up.** In a long conversation, each message and reply stays in the context, so it is sent again with the next question. Turn 20 of a chat carries turns 1 to 19 with it.
+- **Chat history adds up.** In a chat, "each user message and assistant response accumulates" (Claude docs). The whole history is sent again with each new question, so turn 20 carries turns 1 to 19.
+- **Thinking counts as output.** Some models think before they answer. The Claude docs say thinking tokens "are billed as output tokens". The [OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning) says the same for reasoning tokens, even though they are "not visible via the API".
 
-**Thinking counts as output.** Some models "think" before they answer. Anthropic's docs say thinking tokens are billed as output tokens. OpenAI's docs say the same for reasoning tokens, even though you don't see them.
+Our example: it is like a taxi meter that runs on words. You pay for the words you hand over, and more for the words that come back.
 
-## A worked example
+**Levers that lower the bill.**
+
+- **Pick the right model.** Prices differ a lot between models from one vendor. The Claude pricing page says to choose a light model "for simple tasks". Chapter 5, Choosing a model, covers this.
+- **Reuse repeated input.** If every request starts with the same long instructions, **prompt caching** can reuse them. Anthropic says it helps "reduce costs for repeated context". OpenAI's price table lists a lower "cached input" price.
+- **Batch work that can wait.** Anthropic's Batch API gives "a 50% discount on both input and output tokens". OpenAI's price page lists separate, lower Batch prices.
+- **Ask for what you will use**, and send only the documents that matter.
+- **Watch usage.** Anthropic says to "track token consumption to identify optimization opportunities."
+
+## Worked example
 
 The prices here are made up, to keep the maths easy. Real prices change; check the vendor's pricing page.
 
-Say a model costs **$2 per million input tokens** and **$10 per million output tokens**. Your support team wants a short summary of each ticket.
+### Step 1: write down the facts
 
-- 2,000 tickets a day.
-- Each ticket plus instructions: 1,500 input tokens.
-- Each summary: 300 output tokens.
+```text
+Model price:   $2 per 1M input tokens, $10 per 1M output tokens
+Volume:        2,000 tickets a day
+Per request:   1,500 input tokens (ticket + instructions)
+               300 output tokens (a short summary)
+```
 
-Input: 2,000 × 1,500 = 3,000,000 tokens → 3 × $2 = **$6 a day**.
-Output: 2,000 × 300 = 600,000 tokens → 0.6 × $10 = **$6 a day**.
+### Step 2: do the maths
 
-Total: about **$12 a day**. Notice that output is only a sixth of the tokens but half the cost.
+```text
+Input:  2,000 x 1,500 = 3,000,000 tokens = 3 x $2  = $6 a day
+Output: 2,000 x 300   =   600,000 tokens = 0.6 x $10 = $6 a day
+Total:                                              $12 a day
+Month (30 days):                                    $360
+```
 
-Now someone changes the prompt to "write a detailed report on each ticket", 1,500 output tokens each. Output becomes 3,000,000 tokens → $30 a day. The total triples, from $12 to $36.
+Notice: output is only a sixth of the tokens, but half the cost.
 
-## Ways to spend less
+### Step 3: the hard case
 
-Both vendors document the same main levers.
+A teammate switches to a model that thinks before it answers. Each summary now uses about 700 thinking tokens you never see. **This is the hard case**, because the summaries look exactly the same.
 
-- **Pick the right model.** Prices per token differ a lot between models from the same vendor. Anthropic's cost tips say to use a lighter model for simple tasks and a stronger one for complex reasoning. (Chapter 5 covers this.)
-- **Reuse repeated input.** If every request starts with the same long instructions or document, prompt caching can reuse it. Anthropic says this reduces cost and latency. OpenAI's price table lists a lower "cached input" price.
-- **Batch work that can wait.** Anthropic's Batch API gives a 50% discount on input and output for work that is not time-sensitive. OpenAI's price page lists separate, lower Batch prices.
-- **Ask for shorter output** when short is enough.
-- **Send less.** Pass the documents that matter, not everything.
-- **Watch usage.** Anthropic recommends tracking token use to find savings.
+```text
+Output per ticket: 300 + 700 = 1,000 tokens
+Output: 2,000 x 1,000 = 2,000,000 tokens = 2 x $10 = $20 a day
+Total:  $6 + $20 = $26 a day, about $780 a month
+```
 
-## Key points
+The bill more than doubles, and nobody changed the prompt.
 
-- Cost = input tokens + output tokens, each with its own price.
-- Output usually costs more per token.
-- Long chats, big files, images and thinking all add tokens.
-- Estimate before you launch: requests per day × tokens per request × price.
+### Step 4: the note for finance
+
+```text
+Estimate: about $360 a month on the current model.
+Main driver: output tokens (half the cost).
+Risk: a thinking model would raise it to about $780.
+Plan: keep the current model if a test shows the summaries are
+good enough; batch the tickets that can wait until the next day;
+check token usage weekly.
+```
+
+### Step 5: why it is better
+
+- **Every part is counted:** input, output and hidden thinking tokens.
+- **Finance sees the driver**, not just a total, so they know what would change it.
+- **Levers are named up front**: model choice, batch and usage checks.
+
+## Common mistakes
+
+1. **Budgeting for input only.** Output has its own, higher price. Fix: always price both parts.
+2. **Forgetting the hidden tokens.** Long chats, attached files, images and thinking all count. Fix: estimate from a real request, with everything that goes in it.
+3. **Asking for more than you use.** A full report when people read one line. Fix: ask for the shortest output that does the job.
+
+## Try it
+
+Not graded. A sales team wants a summary of each sales call. Use these made-up numbers:
+
+```text
+Price:   $1 per 1M input tokens, $5 per 1M output tokens
+Volume:  400 calls a day, 30 days a month
+Each:    3,000 input tokens, 200 output tokens
+```
+
+1. What is the cost per month?
+2. They also want a 1,000-token follow-up email for each call. What is the new monthly cost?
+
+### Answer
+
+1. Input: 400 × 3,000 = 1.2M tokens × $1 = $1.20 a day. Output: 400 × 200 = 80,000 tokens = 0.08M × $5 = $0.40 a day. Total $1.60 a day, so **about $48 a month**.
+2. Output becomes 400 × 1,200 = 480,000 tokens = 0.48M × $5 = $2.40 a day. Total $1.20 + $2.40 = $3.60 a day, so **about $108 a month**. The input did not change, but the bill more than doubled.
+
+## Recap
+
+- Cost = input tokens × input price + output tokens × output price. Output usually costs more per token.
+- Instructions, chat history, files, images and thinking all add tokens.
+- Estimate before you launch: requests × tokens × price. Then use the levers: right model, caching, batch, shorter output.

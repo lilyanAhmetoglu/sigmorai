@@ -1,7 +1,7 @@
 ---
 id: strategist/r0/c1/lesson
 title: What an LLM is
-minutes: 6
+minutes: 9
 sources:
   - kind: docs
     title: Claude docs · Glossary
@@ -23,44 +23,124 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/tokens
 ---
 
-## Why it matters
+## Goal
 
-AI assistants such as Claude and ChatGPT run on the same kind of system: a **large language model**, or LLM. This lesson explains what that is, in plain words. You need no tech background.
+After this lesson you can:
 
-## The short version
+- Explain in plain words what an LLM is, how it learned, and what it reads.
+- Tell what a model can see in a chat (its context window) and what it can't.
+- Plan for answers that change from one run to the next.
 
-An LLM is a program that reads text and writes text. It was trained on a very large amount of text. You give it a **prompt**: a question, an instruction, or a document plus a task. It writes a reply.
+## The problem
 
-Example: you paste a long email thread and write "List the decisions and who owns each one." The model reads the thread and writes the list.
+A marketing manager wants a short summary of last quarter's customer survey for a leadership meeting. She opens an AI assistant and types one line: "Summarize what customers said about our new app last quarter."
 
-The OpenAI docs say models can generate "almost any kind of text response", from prose to structured data. Anthropic's glossary lists answering questions and summarizing information among the useful tasks.
+The reply looks polished. It mentions "faster checkout" and "a cleaner design". But she never gave the assistant the survey. Where did those points come from? And when a colleague asks the same thing, the summary is different.
 
-## How it learned
+To use these tools well at work, you need a simple picture of what is inside them. You need no tech background. The product details below come from each vendor's docs (October 2026).
 
-Training happens in steps.
+## The idea
 
-1. **Pretraining.** The model reads a huge amount of text and learns to predict the next word from the words before it. Anthropic's glossary says a model at this stage is not good at answering questions or following instructions yet.
-2. **Fine-tuning and feedback.** The model is trained more, so it acts like a helpful assistant. One method is RLHF (reinforcement learning from human feedback): people rank example answers, and the model learns to prefer answers like the higher-ranked ones.
+AI assistants such as Claude and ChatGPT run on a **large language model**, or **LLM**: a program that reads text and writes text. The [Claude docs](https://platform.claude.com/docs/en/about-claude/glossary) say LLMs "are trained on vast amounts of text data and can generate human-like text, answer questions, summarize information, and more."
 
-Example: a pretrained model given "Write a polite reply to this customer" might just continue the text. An assistant model writes the reply.
+You give it a **prompt**: a question, an instruction, or a document plus a task. It writes a reply. The [OpenAI docs](https://developers.openai.com/api/docs/guides/text) say models can generate "almost any kind of text response", from prose to structured data.
 
-## How it reads your prompt
+**How it learned.** Training happens in steps:
 
-The model does not read letters or whole words. It reads **tokens**: small pieces of text. A token can be a whole word like "cat", or part of a long word. Gemini's docs say long words are broken into several tokens.
+1. **Pretraining.** The model reads a huge amount of text and learns "to predict the next word" from the words before it (Claude docs). At this stage it is "not inherently good at answering questions or following instructions".
+2. **Fine-tuning and feedback.** More training turns it into a helpful assistant. One method is **RLHF** (reinforcement learning from human feedback): people rank example answers, and the model learns to prefer answers like the higher-ranked ones.
 
-Everything the model can look at while it answers sits in its **context window**. Anthropic calls this the model's "working memory". It holds your prompt, the files you add, the chat so far, and the reply itself. It is separate from the training data.
+**How it reads.** The model reads **tokens**, small pieces of text. A token can be a short word like "cat". The [Gemini docs](https://ai.google.dev/gemini-api/docs/tokens) say: "Long words are broken up into several tokens."
 
-Example: you upload this quarter's sales report and ask a question. The report is in the context window, so the model can use it. Last week's report, which you did not upload, is not there.
+**What it can see.** Everything the model can look at while it answers sits in its **context window**. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/context-windows) call it a "working memory" for the model. It holds your prompt, the files you add, the chat so far, and the reply itself. It is separate from the training data.
 
-## Same prompt, different answer
+Our example: think of a new consultant on day one. They know a lot in general, from years of reading. But they know your company only from the papers you put on their desk.
 
-LLMs are **non-deterministic**: the same prompt can give a different answer each time. OpenAI's docs say this is why getting the output you want is "a mix of art and science". Anthropic's glossary adds that even with temperature (the randomness setting) at 0, identical inputs may produce different outputs.
+```text
+training      general knowledge, fixed at a date
+context       what you give it now: prompt, files, chat
+reply         built from both
+```
 
-Example: you ask for a product description twice. You get two different versions. Both may be fine, but you can't assume the second run repeats the first.
+The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) names three gaps: knowledge that was not "in its training set", knowledge that "is out of date", and "proprietary information" (your company's private data).
 
-## What this means at work
+**Same prompt, different answer.** LLM output is **non-deterministic**: it can change from run to run. The OpenAI docs say this makes prompting "a mix of art and science". The Claude docs add that even with **temperature** (the randomness setting) at 0, "identical inputs may produce different outputs across API calls."
 
-- **The prompt is your main tool.** OpenAI's docs compare it to a function in code: your instructions set the rules, and your input fills them in. A clear brief gets a better result.
-- **Give it what it needs.** The model only works with what is in its context window, plus what it learned in training. OpenAI's accuracy guide notes that a model lacks knowledge that was not in its training set, is out of date, or is private to your company. If a fact is only in your company's files, add the file.
-- **Expect variation.** Check outputs, and don't build a process that needs the exact same words every time.
-- **It writes fluent text. That is not the same as true text.** Later chapters cover where models fail and how to check them.
+## Worked example
+
+### Step 1: the first prompt
+
+```text
+Summarize what customers said about our new app last quarter.
+```
+
+What goes wrong:
+
+- **No survey in the context window.** The model can only write general points that sound right for "an app". "Faster checkout" may not be in your data at all.
+- **No task details.** Who reads the summary? How long should it be?
+- **One run taken as the answer.** A second run gives a different list, and nobody knows which is right.
+
+### Step 2: put the facts on the desk
+
+She exports the survey comments to a file and attaches it. Now the comments are in the context window, so the model can work from them.
+
+### Step 3: write the task clearly
+
+The OpenAI docs compare a prompt to a function in code: the instructions are the rules, and your input fills them in. So she writes the rules first, then the input:
+
+```text
+You are helping me prepare a leadership meeting.
+
+Task: summarize the attached survey comments about our new app
+(Q3, 412 comments).
+
+Rules:
+- Use only the attached comments.
+- Give the 3 most common themes, with how many comments mention each.
+- Add one short quote for each theme, copied word for word.
+- If the comments don't say something, don't guess. Write "not in the survey".
+
+Format: 5 bullet points, under 120 words.
+
+[survey-q3-app.csv attached]
+```
+
+### Step 4: the hard case
+
+A director then asks: "How does this compare with last year?" Last year's survey is not attached. It is not in the training data either, because it is private. **This is the hard case.** The honest reply is "not in the survey", and that is exactly what the new rules ask for. The fix is to attach last year's file too.
+
+### Step 5: why it is better
+
+- **The facts are in the context window.** The themes come from her customers, not from general knowledge.
+- **The task is clear.** Audience, length and format are set, so there is less to guess.
+- **Gaps are allowed.** The model may say "not in the survey" instead of filling the gap.
+- **Checkable.** Counts and word-for-word quotes let her check the summary against the file.
+
+Our advice: because answers vary, run it twice. If the themes change a lot between runs, read the comments yourself before the meeting.
+
+## Common mistakes
+
+1. **Asking about company facts without giving them.** Sales figures, policies or client names are not in the training data. Fix: attach or paste the document the answer needs.
+2. **Expecting the model to remember.** A file from last week's chat is not in today's context window. Fix: add it again in the chat where you need it.
+3. **Treating one reply as final.** The next run can say something different. Fix: check the important facts, and don't build a process that needs the exact same words every time.
+
+## Try it
+
+Not graded. A team lead wants this prompt. Find two problems before you read the answer.
+
+```text
+Using what you know about our team, write a short thank-you note
+to each of our three best-performing staff this year, and mention
+their biggest project.
+```
+
+### Answer
+
+1. **The facts are not there.** "Our team", "best-performing" and "biggest project" are private company facts. They are not in the training data or in the context window. The model will guess names or write vague notes. Fix: paste the three names and one line about each project.
+2. **No room for gaps.** Nothing tells the model what to do if it is missing a fact. Fix: add "If you don't have a detail, leave a [blank] for me to fill in."
+
+## Recap
+
+- An LLM reads and writes text. It learned from a huge amount of text, then was trained further to act as an assistant.
+- It works only from its training plus what is in its context window: your prompt, files and the chat. Your company's private facts must be given to it.
+- One prompt can give a different reply each time. Check important facts, and plan for variation.
