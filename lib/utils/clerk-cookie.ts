@@ -7,3 +7,17 @@
 const CLIENT_UAT = /(?:^|;\s*)__client_uat(?:_[\w-]+)?=([1-9]\d*)(?:;|$)/;
 
 export const hasClerkSessionHint = (cookie: string): boolean => CLIENT_UAT.test(cookie);
+
+/**
+ * Whether a ClerkGate mounts ClerkProvider (curriculum plan, amendments
+ * 2026-10-08). `enabled` true or false is the layout's own answer: the (app)
+ * layout's server auth(), the (auth) group. Undefined means a public page:
+ * mount only after hydration (so the server HTML and the first client render
+ * match) and only when the cookie says a player is likely. A visitor gets no
+ * Clerk at all.
+ */
+export const decideClerk = (
+  enabled: boolean | undefined,
+  hydrated: boolean,
+  cookie: string,
+): boolean => enabled ?? (hydrated && hasClerkSessionHint(cookie));

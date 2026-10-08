@@ -13,7 +13,7 @@ export const SITE_DESCRIPTION = 'A pixel-art RPG for learning AI engineering and
 /** --ink-900 (--surface-1): browser theme colour and the app icon background. */
 export const BRAND_COLOR = '#131126';
 
-/** Clerk's sign-in and sign-up pages (app/(marketing)/sign-in, app/(marketing)/sign-up). */
+/** Clerk's sign-in and sign-up pages (app/(auth)/sign-in, app/(auth)/sign-up). */
 export const AUTH_ROUTES = {
   signIn: '/sign-in',
   signUp: '/sign-up',

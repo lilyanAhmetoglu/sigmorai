@@ -1,83 +1,23 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
-import { useCallback, useEffect, useState } from 'react';
-import { useHideSignedOut } from '@/components/use-hide-signed-out';
-import { HUD_API_HREF, HUD_FETCH_TIMEOUT_MS } from '@/lib/constants';
+import dynamic from 'next/dynamic';
+import { useClerkMounted } from '@/components/clerk-gate';
 import type { HudState } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { HudBar } from './hud-bar';
-import { HudErrorView } from './hud-error-boundary';
-import { HudSkeleton } from './hud-skeleton';
 
 const SIGNED_OUT: HudState = { status: 'signed-out' };
 
-/** One fetch result, tied to the user it was read for, so a sign-out or switch never shows old stats. */
-type Loaded = { userId: string; state: HudState } | { userId: string; failed: true };
+// Lazy, so a visitor's page never downloads @clerk/* (ClerkGate).
+const ClerkPublicHud = dynamic(() => import('./clerk-hud').then((mod) => mod.ClerkPublicHud));
 
 /**
- * The header HUD on static pages (the marketing group, the site 404). A
- * server auth() read would make them dynamic, so this reads Clerk on the
- * client and, for a player, fetches the same HudState the in-app header
- * reads on the server (app/api/hud). Same HudBar, skeleton and error view as
- * the in-app slot.
- * Until Clerk says "signed in" it shows Sign in + Start free: plain links in
- * the static HTML, so they work before JS and when Clerk fails. They are
- * hidden (space kept) only while a likely player's Clerk loads, for at most
- * CLERK_WAIT_MS (useHideSignedOut). The fetch times out after
- * HUD_FETCH_TIMEOUT_MS; a timeout, a bad status or a body that fails
- * HudStateSchema is the error view with Retry.
+ * The header HUD on pages whose layout doesn't read auth() on the server
+ * (the marketing and (auth) groups, the site 404). A server read would make
+ * the public pages dynamic. Without Clerk mounted (a visitor) it is Sign in +
+ * Start free: plain links in the static HTML, so they work before JS and
+ * when Clerk fails. With Clerk mounted, ClerkPublicHud reads Clerk on the
+ * client and, for a player, fetches the HUD from app/api/hud.
  */
 export function PublicHud() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
-  const hideSignedOut = useHideSignedOut();
-  const [loaded, setLoaded] = useState<Loaded | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  const retry = useCallback(() => {
-    setLoaded(null);
-    setAttempt((n) => n + 1);
-  }, []);
-
-  useEffect(() => {
-    if (!isSignedIn || !userId) return;
-    // One controller for both the timeout and the cleanup (no AbortSignal.any:
-    // it is missing before Safari 17.4). `cancelled` tells the two apart.
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), HUD_FETCH_TIMEOUT_MS);
-    let cancelled = false;
-    // The schema (and Zod, ~95 KB gzipped) loads only here, for a player:
-    // this component is on every page (the root 404 ships with each one),
-    // and a visitor never needs it. Fetched in parallel with the HUD.
-    Promise.all([
-      fetch(HUD_API_HREF, { cache: 'no-store', signal: controller.signal }).then((res) =>
-        res.ok ? (res.json() as Promise<unknown>) : Promise.reject(new Error(`HUD ${res.status}`)),
-      ),
-      import('@/lib/types'),
-    ])
-      .then(([body, { HudStateSchema }]) =>
-        setLoaded({ userId, state: HudStateSchema.parse(body) }),
-      )
-      .catch(() => {
-        // Aborted by the cleanup (unmount, user switch): not an error to show.
-        if (!cancelled) setLoaded({ userId, failed: true });
-      })
-      .finally(() => clearTimeout(timer));
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [isSignedIn, userId, attempt]);
-
-  if (!isLoaded || !isSignedIn || !userId) {
-    // `contents` keeps the header's flex layout; `invisible` keeps the space.
-    return (
-      <div className={cn('contents', hideSignedOut && 'invisible')}>
-        <HudBar state={SIGNED_OUT} />
-      </div>
-    );
-  }
-  if (!loaded || loaded.userId !== userId) return <HudSkeleton />;
-  if ('failed' in loaded) return <HudErrorView onRetry={retry} />;
-  return <HudBar state={loaded.state} />;
+  return useClerkMounted() ? <ClerkPublicHud /> : <HudBar state={SIGNED_OUT} />;
 }
