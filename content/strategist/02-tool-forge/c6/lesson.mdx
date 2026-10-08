@@ -1,7 +1,7 @@
 ---
 id: strategist/r2/c6/lesson
 title: Pilot scope
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -26,84 +26,127 @@ sources:
     url: https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep
 ---
 
-## Why it matters
+## Goal
 
-A pilot is a small, real test that answers one question: should we go further? A pilot that is too big takes months and teaches little. A pilot with no clear target ends with "it seems fine" and no decision.
-
-Good scope means one task, clear numbers and a decision rule, all agreed before you start.
-
-## One task, one group, one time box
-
-Anthropic's "Building effective agents" post says to start with simple solutions and add complexity only when it demonstrably improves outcomes. The same applies to a pilot.
-
-Weak scope: "Use AI in customer support."
-
-Strong scope: "Label the topic of incoming emails for the Spanish-language team, for six weeks. Agents still check each label."
-
-Small scope also makes results easier to read. If ten things change at once, you can't tell which one helped.
-
-## Write success criteria before day one
-
-Anthropic's guide on success criteria says good criteria are specific, measurable, achievable and relevant. Its example of a good one: an F1 score of at least 0.85 on a held-out test set of 10,000 posts, which is a 5% improvement over the current baseline. (The page lists F1 as a task-specific quality score; the point is that the target is a number.) The guide adds that most use cases need several criteria, such as accuracy, response time and the share of serious errors.
-
-OpenAI's evaluation guide names the opposite as an anti-pattern: **vibe-based evals**, meaning "it seems like it's working", or waiting until you ship before you test at all.
-
-Example criteria for the email pilot:
-
-```
-- Topic label correct on 92% or more of emails
-- Rerouting rate falls from 18% to under 10%
-- No customer data leaves the approved system
-- Cost per email under the budget in the business case
-```
-
-## Test on past work first
-
-Before anyone sees a live result, test on real past cases with known answers.
-
-- Anthropic's guide says to design tests that mirror the real mix of tasks, including edge cases. Its edge case examples include missing or irrelevant input, very long input, and unclear cases where even humans would find it hard to agree.
-- OpenAI's evaluation guide says test data should include typical cases, edge cases and adversarial cases.
-- OpenAI's workspace agents cookbook suggests a simple version: ask the agent to prepare a brief for a meeting you already had last week, and compare it with the brief a person wrote.
-
-Then move to live work. Anthropic's ticket routing guide says it is hard to know how well a prompt works without deploying it in a test production setting and running evaluations.
-
-## Keep people in charge and set limits
-
-OpenAI's accuracy guide describes a team that ran a few pilots to get clear data before making decisions. Where a failure was very costly, the team chose to let a human lead and the AI assist.
-
-Set practical limits too:
-
-- **Who sees it.** The cookbook notes that a new workspace agent is, by default, available only to the person who made it. Share it with the pilot group only.
-- **Separate test from live.** OpenAI's production guide suggests separate projects for staging and production, with their own rate and spend limits.
-- **Cap the spend.** The same guide describes spend alerts, and hard spend limits that stop API traffic when spend reaches the limit.
-
-## Decide the next step in advance
-
-Write the decision rule before the pilot starts:
-
-- **Go**: all criteria met. Expand to the next team.
-- **Change**: close to target. Fix one thing, such as a hand-off rule, and run again.
-- **Stop**: far from target, or the business case doesn't hold. Write down why.
-
-A "stop" is a good result if it saves a bigger mistake.
-
-After a "go", testing doesn't end. OpenAI's evaluation guide recommends continuous evaluation: run your tests on every change, watch the live system and grow the test set over time.
-
-## The pilot on one page
-
-1. **Question**: what decision will this pilot inform?
-2. **Scope**: one task, one group, the dates.
-3. **Criteria**: numbers, agreed in advance.
-4. **Baseline**: today's numbers from the business case.
-5. **Test set**: past cases with known answers, including edge cases.
-6. **People**: who checks outputs, who owns the result.
-7. **Limits**: who has access, spend cap.
-8. **Decision rule**: go, change or stop.
-
-## Key points
+After this lesson you can:
 
 - Scope a pilot to one task, one group and a fixed time.
-- Agree specific, measurable criteria before day one. "It seems to work" is not a result.
-- Test on past cases with known answers, including edge cases, before going live.
-- Keep a person in charge where mistakes are costly; limit access and spend.
-- Decide go, change or stop in advance; keep testing after rollout.
+- Write success criteria with numbers and a test on past work, before day one.
+- Set limits on access and spend, and set the rule for go, change or stop in advance.
+
+## The problem
+
+A city transport company gets about 1,500 lost-property requests a month by web form. The steering group said yes to a pilot: AI drafts the reply to each request, and the lost-property desk checks it. The first plan says "AI for customer service, all channels, start next week".
+
+A **pilot** is a small, real test that answers one question: should we go further? Too big, and it takes months and teaches little. No clear target, and it ends with "it seems fine" and no decision. This lesson shows how to scope one well. The guidance below is from each vendor's docs (October 2026).
+
+## The idea
+
+**Keep it small.** The [Anthropic post on agents](https://www.anthropic.com/engineering/building-effective-agents) says to add complexity only when it "demonstrably improves outcomes". A pilot follows the same rule: one task, one group, one time box. If ten things change at once, you can't tell which one helped.
+
+**Write the criteria first.** The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) give an example of a good criterion: "an F1 score of at least 0.85" (a quality score) on "a held-out test set" (examples kept apart for testing) of 10,000 posts, "which is a 5% improvement over the current baseline". The point is that the target is a number. They add: "Most use cases need multidimensional evaluation along several success criteria." The [OpenAI docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) name the opposite as an anti-pattern: "Vibe-based evals", meaning "it seems like it's working", or waiting "until you ship" to test at all.
+
+**Test on past work first, including hard cases.** The Claude docs say to "mirror your real-world task distribution" and "Don't forget to factor in edge cases". Their examples include "Overly long input data" and "Ambiguous test cases where even humans would find it hard to reach an assessment consensus". The OpenAI docs say test data should include "typical cases, edge cases, and adversarial cases" (cases built to trick the model). An [OpenAI cookbook](https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep) suggests a simple version: prepare a brief "for a meeting that you already had last week" and compare it "with a human-generated prep doc". Then move to live work: the [ticket routing guide](https://platform.claude.com/docs/en/about-claude/use-case-guides/ticket-routing) says it's hard to know how well a prompt works "without deploying it in a test production setting".
+
+**Keep people in charge where mistakes cost a lot.** In the [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy), the team made decisions "following a few pilots to get clear data". For very costly failures, "the human would drive and the AI would function as an assistant".
+
+**Set limits on access and spend.** The cookbook says a new workspace agent "is by default available only to you". The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) suggests "separate projects for your staging and production environments" (test and live), with "custom rate and spend limits per project". Spend alerts warn you, and "Hard spend limits stop affected API traffic when tracked spend reaches the limit".
+
+**Keep testing after a go.** The OpenAI docs recommend continuous evaluation: "run evals on every change, monitor your app to identify new cases of nondeterminism, and grow the eval set over time".
+
+Our example: a pilot is like a test drive. One car, one route, a set time, and you decide before you start what would make you buy it.
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+Name      AI for customer service
+Scope     web forms, phone notes, social media, refunds
+Success   "the desk likes it"
+Testing   start live next week
+Access    all 900 staff
+Decision  we'll see
+```
+
+What goes wrong: four tasks at once, no numbers, no test on past work, no limits and no decision rule.
+
+### Step 2: cut the scope
+
+```text
+Task      draft replies to lost-property web forms
+Group     the lost-property desk (6 people), who check every draft
+Time      8 weeks
+Question  should all lost-property replies use AI drafts?
+```
+
+### Step 3: write criteria with numbers
+
+```text
+- 80% of drafts sent with small edits or none
+- Reply time falls from 3 days to 1 day
+- Under 1 in 300 drafts promises an item the desk doesn't have
+- Cost per reply under the business case figure
+```
+
+### Step 4: test on past requests (the hard case)
+
+The desk picks 300 past requests with replies they already approved. The set includes the hard ones:
+
+```text
+- Very long messages with three lost items in one form
+- Vague requests ("a black bag, maybe on bus 12 or 14?")
+- Requests for items that are dangerous or illegal to return
+```
+
+**The vague requests are the hard case.** Even two desk staff disagree on the best reply. The AI drafts must ask a clear question back, not guess. The team checks this group on its own, because an average over all 300 would hide it.
+
+### Step 5: set limits and the decision rule
+
+```text
+Access    only the 6 desk staff
+Project   its own test project, with alerts on spend and a hard limit
+Go        every criterion met -> roll out to all lost-property replies
+Change    one criterion missed by a little -> fix it, run 4 more weeks
+Stop      far from target, or the business case fails -> write down why
+After go  run the 300 tests on every prompt change; add new hard cases
+```
+
+### Step 6: why it is better
+
+- **Readable results.** One task and one group, so you know what caused the change.
+- **Agreed in advance.** Numbers and the decision rule come before day one.
+- **Safe.** Past work first, people check every draft, and access and spend have limits.
+- **A stop is fine.** It saves a bigger mistake.
+
+## Common mistakes
+
+1. **Many tasks in one pilot.** You can't tell what worked. Fix: one task, one group, one time box.
+2. **Judging by feel.** "Seems fine" is not a result. Fix: number targets and a past-work test set, agreed first.
+3. **Deciding the rule at the end.** People then argue for the result they want. Fix: write go, change and stop rules before the pilot starts.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A bank's HR team writes this pilot plan for AI answers to staff questions about holidays. Find three problems and fix each one.
+
+```text
+Scope     holiday questions, plus pay, pensions and sick leave
+Success   "most answers are good"
+Length    until the team is happy
+Testing   none before launch
+Access    the whole bank, 4,000 staff
+```
+
+### Answer
+
+1. **Scope too wide.** Four topics at once. Fix: holiday questions only, one office, 6 weeks.
+2. **No numbers, no end.** Fix: for example, "90% of answers match the HR policy on 200 past questions", with a set end date and go, change or stop rules agreed now.
+3. **No test and no limits.** Fix: test on past questions with known answers, including vague and very long ones. Give access to the pilot group only, and set alerts and a hard limit on spend.
+
+## Recap
+
+- A pilot answers one question with one task, one group and a fixed time.
+- Agree number targets, a test on past work with hard cases, and the go, change or stop rule before day one.
+- Limit access and spend, keep a person in charge where mistakes cost a lot, and keep testing after a go.
