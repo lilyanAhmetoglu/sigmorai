@@ -1,0 +1,96 @@
+{
+  "id": "builder/r14/c2/challenge",
+  "title": "Hooks that did not hold",
+  "scenario": "A team added hooks to its repo last week. Most developers use Claude Code; one uses Codex. A nightly job also runs `claude -p` on pull requests, including pull requests from forks. Four things went wrong. You review the hooks and the notes.\n\nUse the exhibit. The team, the scripts and the notes are made up for this case. Event names and behaviour are from the vendors' pages in October 2026.",
+  "exhibit": "REPO .claude/settings.json (made up)\n\n  PreToolUse   matcher \"Edit|Write\"   -> scripts/format.sh\n  PreToolUse   matcher \"Bash\"         -> scripts/guard.sh\n\nscripts/guard.sh (made up)\n  if the command contains \"git push --force\":\n     print \"force push blocked\" to stderr\n     exit 1\n  exit 0\n\nTEAM NOTES\n  A. Files are formatted, but the formatter runs on the old\n     text. The new edit lands unformatted.\n  B. Claude ran \"git push --force\" yesterday. The guard printed\n     its message, and the push still went through.\n  C. The nightly claude -p job ran a hook from a fork's\n     .claude/settings.json that nobody had reviewed.\n  D. The Codex user edited the team's .codex/hooks.json. Now\n     Codex skips that hook.",
+  "questions": [
+    {
+      "prompt": "Note A: why does the new edit land unformatted, and what is the fix?",
+      "options": [
+        {
+          "text": "The hook runs before the edit; move it to PostToolUse",
+          "explanation": "Right. PreToolUse runs before the tool call, so it formats the old file. Anthropic's format recipe uses PostToolUse with an Edit|Write matcher.",
+          "correct": true
+        },
+        {
+          "text": "The matcher is wrong; change it from Edit|Write to Bash",
+          "explanation": "Edits are made by the Edit and Write tools, which is what the matcher already catches. The event is the problem."
+        },
+        {
+          "text": "Formatters can't run in hooks; ask Claude to format instead",
+          "explanation": "Anthropic's own recipe runs Prettier in a hook. Asking Claude is a request, not a guarantee."
+        },
+        {
+          "text": "The script needs exit 2 so Claude Code waits for the format",
+          "explanation": "Exit 2 blocks the action. It would stop the edit, not format it."
+        }
+      ]
+    },
+    {
+      "prompt": "Note B: why did the force push go through?",
+      "options": [
+        {
+          "text": "Guard hooks only work in Codex, not in Claude Code",
+          "explanation": "Claude Code's own guide shows a PreToolUse guard on Bash. The exit code is the problem."
+        },
+        {
+          "text": "The matcher Bash does not catch git commands at all",
+          "explanation": "git runs through the Bash tool, so the matcher fires. The script printed its message, which shows it ran."
+        },
+        {
+          "text": "The script exits 1, which does not block; it must exit 2",
+          "explanation": "Right. Exit 2 blocks, with the reason on stderr. Other codes with no JSON output only show a non-blocking error.",
+          "correct": true
+        },
+        {
+          "text": "Hooks can never block a command that a person approved",
+          "explanation": "A PreToolUse deny holds even in bypassPermissions mode. This guard simply never denied."
+        }
+      ]
+    },
+    {
+      "prompt": "Note C: what should the nightly claude -p job change?",
+      "options": [
+        {
+          "text": "Nothing; -p runs always ask a person to trust each hook",
+          "explanation": "The opposite. A -p run never shows the trust dialog and treats the folder as trusted."
+        },
+        {
+          "text": "Review the fork's .claude/ files or run with hooks turned off",
+          "explanation": "Right. In -p or SDK runs Claude Code treats the folder as trusted. Anthropic says to review its .claude/ settings or set disableAllHooks for that run.",
+          "correct": true
+        },
+        {
+          "text": "Move the job to a PostToolUse hook so it runs after review",
+          "explanation": "A hook event does not decide which repo's hooks are trusted. The fork's hooks would still run."
+        },
+        {
+          "text": "Add exit 2 to every fork hook so none of them can run",
+          "explanation": "You don't control the fork's scripts. Turning hooks off for the run, or reviewing them first, is the fix."
+        }
+      ]
+    },
+    {
+      "prompt": "Note D: why does Codex skip the edited hook?",
+      "options": [
+        {
+          "text": "Codex keeps trust by the hook's hash; a changed hook waits for review",
+          "explanation": "Right. Codex records trust against the hook's hash, so new or changed hooks are skipped until someone trusts them in /hooks.",
+          "correct": true
+        },
+        {
+          "text": "Codex reads hooks only from the user's home folder, never a repo",
+          "explanation": "Codex also reads <repo>/.codex/hooks.json, as the lesson shows. The change to the file is what matters."
+        },
+        {
+          "text": "Codex runs only one hook per event, and the other hook won the race",
+          "explanation": "Codex runs all matching hooks, launched side by side. The change to the file is what matters."
+        },
+        {
+          "text": "Codex ignores hooks.json files and reads only [hooks] in config.toml",
+          "explanation": "Codex reads both forms: hooks.json and inline [hooks] in config.toml. The edit changed the hook's hash."
+        }
+      ]
+    }
+  ]
+}
