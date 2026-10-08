@@ -45,20 +45,33 @@ The model continues from whatever you return. So a tool result is also a prompt,
 
 **Match each result to its call.** Every call has an id, and the result carries the same id.
 
-- Claude: the call is a `tool_use` block with an `id`. The result is a `tool_result` block. Its `tool_use_id` field holds that id, and it goes in the next `user` message ([Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls)).
-- OpenAI: the call is a `function_call` item with a `call_id`. The result is a `function_call_output` item with the same `call_id` ([OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling)).
+- On Claude: the call is a `tool_use` block with an `id`. The result is a `tool_result` block. Its `tool_use_id` field holds that id, and it goes in the next `user` message ([Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls)).
+- On OpenAI: the call is a `function_call` item with a `call_id`. The result is a `function_call_output` item with the same `call_id` ([OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling)).
 
 The Claude docs add two format rules. Tool results "must immediately follow their corresponding tool use blocks in the message history". And in that user message, the results "must come FIRST in the content array"; any text goes after them.
 
-**What a result holds.** OpenAI: the output "should typically be a string, where the format is up to you (JSON, error codes, plain text, etc.)". Functions that return images or files can send an array of image or file objects instead. On Claude, `content` is a string or a list of blocks: text, image, document or search result. If the tool has nothing to return, OpenAI says to "return a string that indicates success or failure". Never leave the model to guess whether an action happened.
+**What a result holds.**
 
-**Return only what matters.** The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) say: "Design tool responses to return only high-signal information." Include "only the fields Claude needs to reason about its next step", because "Bloated responses waste context". Anthropic's [engineering post on tools](https://www.anthropic.com/engineering/writing-tools-for-agents) suggests "pagination, range selection, filtering, and/or truncation with sensible default parameter values" for any tool that can return a lot. It notes that Claude Code limits tool responses "to 25,000 tokens by default". In its example, a "concise" format used about a third of the tokens of a "detailed" one.
+- On OpenAI, the output "should typically be a string, where the format is up to you (JSON, error codes, plain text, etc.)". Functions that return images or files can send an array of image or file objects instead.
+- On Claude, `content` is a string or a list of blocks: text, image, document or search result.
+- If the tool has nothing to return, the OpenAI docs say to "return a string that indicates success or failure". Never leave the model to guess whether an action happened.
+
+**Return only what matters.**
+
+- The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) say: "Design tool responses to return only high-signal information." Include "only the fields Claude needs to reason about its next step", because "Bloated responses waste context".
+- Anthropic's [engineering post on tools](https://www.anthropic.com/engineering/writing-tools-for-agents) suggests "pagination, range selection, filtering, and/or truncation with sensible default parameter values" for any tool that can return a lot.
+- The post notes that Claude Code limits tool responses "to 25,000 tokens by default".
+- In its example, the "concise" format uses "~⅓ of the tokens" of the "detailed" one.
 
 Think of a librarian at the desk. You ask for a bee book, and she hands you three good titles, not the whole card index.
 
-**Errors are results too.** A tool can fail: a timeout, a rate limit, a record that does not exist. Do not crash the loop, and do not hide the failure. On Claude, send the error text as the result with `is_error: true`. The [Claude tutorial](https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent) explains why: "Claude reads the error and can retry with corrected input, ask the user for clarification, or explain the limitation." On OpenAI, the output is one string, and error codes are one format the docs list, so the error goes in that string. The [Gemini docs](https://ai.google.dev/gemini-api/docs/function-calling) list "Implement robust error handling" as a best practice.
+**Errors are results too.** A tool can fail: a timeout, a rate limit, a record that does not exist. Do not crash the loop, and do not hide the failure.
 
-**Write the error for the model.** The Claude docs: instead of a generic `"failed"`, "include what went wrong and what Claude should try next". Their example tells the model to retry after 60 seconds. The engineering post says errors should "clearly communicate specific and actionable improvements, rather than opaque error codes or tracebacks."
+- On Claude, send the error text as the result with `is_error: true`. The [Claude tutorial](https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent) explains why: "Claude reads the error and can retry with corrected input, ask the user for clarification, or explain the limitation."
+- On OpenAI, the output is usually a string, and error codes are one format the docs list, so the error goes in that string.
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/function-calling) list "Implement robust error handling" as a best practice.
+
+**Write the error for the model.** The Claude docs: instead of a generic `"failed"`, "include what went wrong and what Claude should try next". Their example: "Rate limit exceeded. Retry after 60 seconds." The engineering post says errors should "clearly communicate specific and actionable improvements, rather than opaque error codes or tracebacks."
 
 **Check the call before you run it.** Sometimes the call itself is bad: a required value is missing, or it has the wrong type. The Gemini docs say: "Validate function calls before executing." If the check fails, do not run the tool. Send back an error result that names the problem. The Claude docs show one: `Error: Missing required 'location' parameter`. They also say that for invalid or incomplete calls, "Claude will retry 2-3 times with corrections before apologizing to the user". Better descriptions and strict mode (chapter 2) prevent many of these calls.
 
@@ -134,7 +147,7 @@ After:   cancel_hold(...)  ->  "Hold H-5120 cancelled. The reader is no longer i
 
 1. **Raw internal fields in results.** Database column names and internal ids cost tokens and confuse the model. Fix: return the few fields the next step needs, with meaningful ids.
 2. **A results message that breaks the format.** Text placed before the tool results, or a result that arrives later in the history, makes the Claude API return an error. Fix: put the results first, in the message right after the call.
-3. **Running a call that is missing a value.** Your code guesses a default and does something the user never asked for. Fix: check the call first; if a value is missing, return an error that names the field and its format.
+3. **Running a call that is missing a value.** Your code guesses a default and does something the user never asked for. Fix: check the call first; if a value is missing, return an error result that says which value is missing and what format it needs.
 
 ## Try it
 
@@ -158,4 +171,4 @@ C. save_recipe(title="Pancakes")                      -> (nothing)
 
 - Every result carries the id of its call. On Claude, results come right after the call and before any text in the message.
 - Keep results small and high-signal: few fields, meaningful ids, and paging or filters for big data. Always return something, even "success".
-- Failures and bad calls become error results (on Claude, `is_error: true`) that say what went wrong and what to try next.
+- Failures and bad calls become error results (on Claude, `is_error: true`) that explain the cause and the next step.

@@ -62,7 +62,13 @@ Think of a cook following a recipe. After each step, they read the recipe again 
 
 **Keep the whole history.** The [Claude tutorial](https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent) says: instead of rebuilding the messages on each request, "keep a running list and append to it". Then "Every turn sees the complete prior context." OpenAI says the same, and adds that for reasoning models, "any reasoning items returned in model responses with tool calls must also be passed back with tool call outputs."
 
-**Add your own limit.** A loop that stops only when the model is done has no upper bound. Anthropic's engineering post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) says the model "will potentially operate for many turns", and that it is "common to include stopping conditions" to keep control, for example a cap on iterations. The same post warns of "higher costs, and the potential for compounding errors." The OpenAI Agents SDK lists "max-turn limits" among the failures your code must handle. Anthropic's own server tools work the same way: their loop "has an iteration limit", and when it is hit, the response stops with `"pause_turn"`. That work "isn't finished": you send the conversation again, with the paused response, and the model continues.
+**Add your own limit.** A loop that stops only when the model is done has no upper bound.
+
+- Anthropic's engineering post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) says the model "will potentially operate for many turns". It says it is "common to include stopping conditions" to keep control, for example a cap on iterations.
+- The same post warns of "higher costs, and the potential for compounding errors."
+- The OpenAI Agents SDK lists "max-turn limits" among the failures your code must handle.
+- Anthropic's own server tools work the same way. Their loop "has an iteration limit". When it is hit, the response stops with `"pause_turn"`.
+- That work "isn't finished". Send the conversation again, with the paused response, and the model continues.
 
 **Handle every stop reason.** Not every stop is a finished answer.
 
@@ -72,9 +78,9 @@ Think of a cook following a recipe. After each step, they read the recipe again 
 
 **Who decides to call a tool.** By default the model decides. A tool choice setting changes that:
 
-- **Claude**: `auto` (the default when you send tools), `any` (must use some tool), `tool` (must use one named tool), `none`.
-- **OpenAI**: `auto` (the default), `required` (call one or more functions), one forced function, `allowed_tools` (limit to a subset), `none`.
-- **Gemini**: `auto` (the default), `any` (the model is "constrained to always predict a function call"), `none`, and `validated` (the model "ensures function schema adherence").
+- **On Claude**: `auto` ("the default value when `tools` are provided"), `any` (must use some tool), `tool` (must use one named tool), `none`.
+- **On OpenAI**: `auto` (the default), `required` (call one or more functions), one forced function, `allowed_tools` (limit to a subset), `none`.
+- **On Gemini**: `auto` (the default), `any` (the model is "constrained to always predict a function call"), `none`, and `validated` (the model "ensures function schema adherence").
 
 Forcing does not work on every model. The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) say that on Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.1 and Claude Mythos 5.1, `any` and `tool` return a 400 error. They suggest `auto` with strict tool use instead. A prompt also steers `auto`: the [Claude overview](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) says a line like "Use the tools to investigate before responding." increases tool use.
 

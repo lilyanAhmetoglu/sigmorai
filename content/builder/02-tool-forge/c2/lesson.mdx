@@ -56,25 +56,45 @@ The logs show three problems:
 
 ## The idea
 
-**The definition is a prompt.** Chapter 1 showed that the model never sees your code. It only sees the definition and the results. So everything from realm 1 applies: be specific, and remove guesses.
+**The definition is a prompt.** Chapter 1 showed that the model never sees your code. It only sees the definition and the results. So everything from the prompting chapters applies: be specific, and remove guesses.
 
-Claude, OpenAI and Gemini all use three core parts:
+All three vendors use the same three core parts:
 
 - a **name**, such as `get_order_status`;
 - a **description** of what the tool does and when to use it;
 - a **schema** for the inputs. Claude and OpenAI use JSON Schema (`input_schema` and `parameters`). Gemini's `parameters` uses "a subset of the OpenAPI schema" ([Gemini docs](https://ai.google.dev/gemini-api/docs/function-calling)).
 
-**The description matters most.** The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) ask for "extremely detailed" descriptions and call them "by far the most important" thing for tool performance. A good description covers the job of the tool, when to call it and when to skip it, the meaning of each parameter, and what the tool does not return. They suggest "at least 3–4 sentences for each tool description". The [OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling) say: "Explicitly describe the purpose of the function and each parameter (and its format), and what the output represents." They also give a test: "Pass the intern test." Could a new person use the function with only what you gave the model?
+**The description matters most.**
+
+- The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) ask for "extremely detailed" descriptions and call them "by far the most important" thing for tool performance. A good description covers the job of the tool, when to call it and when to skip it, the meaning of each parameter, and what the tool does not return. They suggest "at least 3–4 sentences for each tool description".
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling) say: "Explicitly describe the purpose of the function and each parameter (and its format), and what the output represents."
+- The OpenAI docs also give a test: "Pass the intern test." Could a new person use the function with only what you gave the model?
 
 Think of a form at a post office. A box labelled only "Number" gets phone numbers, house numbers and parcel numbers. A box labelled "Parcel number (12 digits, on the yellow slip)" gets the right one.
 
-**Names and types.** Anthropic's [engineering post on tools](https://www.anthropic.com/engineering/writing-tools-for-agents) says to name parameters so they cannot be misread: "instead of a parameter named `user`, try a parameter named `user_id`." OpenAI: "Use enums and object structure to prevent invalid states." Its example is `toggle_light(on: bool, off: bool)`, which allows a call with both set to true. The Gemini docs say: "Use specific types (integer, string, enum)."
+**Names and types.**
 
-**Strict mode.** Without it, the model can send inputs that break your schema. The [Claude strict tool use page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use) says Claude "might return incompatible types" and gives an example: a `passengers` field may arrive as `"two"` or `"2"` instead of `2`. Setting `strict: true` "guarantees Claude's tool inputs match your JSON Schema". OpenAI says strict mode makes calls "reliably adhere to the function schema, instead of being best effort. We recommend always enabling strict mode." OpenAI's strict mode needs `additionalProperties: false` and every field in `required`; to make a field optional, add `null` as a type. Both vendors support only part of JSON Schema in strict mode. Strict mode checks the shape of the input. It does not check that a value is real: a well-formed id can still point to nothing.
+- Anthropic's [engineering post on tools](https://www.anthropic.com/engineering/writing-tools-for-agents) says to name parameters so they cannot be misread: "instead of a parameter named `user`, try a parameter named `user_id`."
+- The OpenAI docs: "Use enums and object structure to prevent invalid states." Their example is `toggle_light(on: bool, off: bool)`, which allows a call with both set to true.
+- The Gemini docs say: "Use specific types (integer, string, enum)."
 
-**Let code fill what code knows.** OpenAI: "Don't make the model fill arguments you already know." Its example: if you already have the `order_id`, define `submit_refund()` with no parameters and pass the id in your own code.
+**Strict mode.** Without it, the model can send inputs that break your schema.
 
-**Keep the list short.** OpenAI: "Aim for fewer than 20 functions" at the start of a turn, and it calls this a soft suggestion. Gemini: "Keep active set to 10-20 tools maximum." The Claude docs: "Consolidate related operations into fewer tools", for example one tool with an `action` parameter instead of `create_pr`, `review_pr` and `merge_pr`. Claude suggests service prefixes such as `github_list_prs`; OpenAI has namespaces such as `crm` and `billing`. OpenAI also says: "Combine functions that are always called in sequence."
+- The [Claude strict tool use page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use) says Claude "might return incompatible types". Example: a `passengers` field may arrive as `"two"` or `"2"` instead of `2`. Setting `strict: true` "guarantees Claude's tool inputs match your JSON Schema".
+- The OpenAI docs say strict mode makes calls "reliably adhere to the function schema, instead of being best effort. We recommend always enabling strict mode." It needs `additionalProperties: false` and every field in `required`. To make a field optional, add `null` as a type.
+- Both vendors support only part of JSON Schema in strict mode.
+
+Strict mode checks the shape of the input. It does not check that a value is real: a well-formed id can still point to nothing.
+
+**Let code fill what code knows.** The OpenAI docs: "Don't make the model fill arguments you already know." Their example: if you already have the `order_id`, define `submit_refund()` with no parameters and pass the id in your own code.
+
+**Keep the list short.**
+
+- The OpenAI docs: "Aim for fewer than 20 functions" at the start of a turn, "though this is just a soft suggestion".
+- The Gemini docs: "Keep active set to 10-20 tools maximum."
+- The Claude docs: "Consolidate related operations into fewer tools". Example: one tool with an `action` parameter instead of `create_pr`, `review_pr` and `merge_pr`.
+- The OpenAI docs: "Combine functions that are always called in sequence."
+- Prefix names by service. The Claude docs suggest service prefixes such as `github_list_prs`; OpenAI has namespaces such as `crm` and `billing`.
 
 ## Worked example
 
