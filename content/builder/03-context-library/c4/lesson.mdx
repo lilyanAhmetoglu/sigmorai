@@ -42,15 +42,15 @@ request 2:  [standards ......... ] [PR line] [diff B]
 
 The key word is **prefix**. Any change near the start breaks the match for all the text that follows.
 
-- **Claude** ([docs](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)): the cache covers `tools`, `system` and `messages`, "in that order", up to the block you mark. Hits "require 100% identical prompt segments".
-- **OpenAI**: "Cache reuse requires the entire rendered prefix to match." If your instructions contain "timestamps, user-specific content, or other dynamic content", the docs say to place them at the end.
-- **Gemini** ([docs](https://ai.google.dev/gemini-api/docs/caching)): "Try putting large and common contents at the beginning of your prompt".
+- **The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-caching):** the cache covers `tools`, `system` and `messages`, "in that order", up to the block you mark. Hits "require 100% identical prompt segments".
+- **The OpenAI docs:** "Cache reuse requires the entire rendered prefix to match." If your instructions contain "timestamps, user-specific content, or other dynamic content", the docs say to place them at the end.
+- **The [Gemini docs](https://ai.google.dev/gemini-api/docs/caching):** "Try putting large and common contents at the beginning of your prompt".
 
 The defaults differ:
 
 - **Claude:** you opt in with `cache_control`. Automatic caching is one `cache_control` field at the top of the request. Or you mark up to 4 blocks yourself (explicit breakpoints).
 - **OpenAI:** supported models cache on their own ("enabled by default"). On GPT-5.6 and later, you can also mark a block yourself (`prompt_cache_breakpoint`).
-- **Gemini:** implicit caching is on "for all Gemini 2.5 and newer models". The docs add: "There is nothing you need to do".
+- **Gemini:** the Gemini docs say implicit caching is on "for all Gemini 2.5 and newer models". The docs add: "There is nothing you need to do".
 
 Caching changes the price, not the answer. The Claude docs: the response "is identical to what you would get if prompt caching were not used."
 
@@ -114,7 +114,7 @@ On OpenAI, read `usage.input_tokens_details.cached_tokens` and `cache_write_toke
 
 ### Step 5: what it costs
 
-On Claude, a 5-minute cache write is 1.25 times the base input price. A read is normally 0.1 times, but the docs list exceptions: "Cache hits and refreshes on Claude Opus 5.5 and Claude Sonnet 5.5 are priced at 0.05x the base input price."
+On Claude, a 5-minute cache write is 1.25 times the base input price (the docs: "1.25 times the base input tokens price"). A read is normally 0.1 times, but the docs list exceptions: "Cache hits and refreshes on Claude Opus 5.5 and Claude Sonnet 5.5 are priced at 0.05x the base input price."
 
 Ten reviews inside the cache lifetime, measured in "one full pass of the standards":
 
@@ -126,7 +126,7 @@ a 0.1x-read model:        1.25 + 9 x 0.10         =  2.15
 
 The OpenAI docs do the same sum for GPT-5.6 and later at the 0.1 read rate: "one write and nine full reads cost 2.15×".
 
-The default Claude lifetime is 5 minutes, and each use refreshes it for free. At 40 reviews an hour, a request comes about every 90 seconds, so the 5-minute cache stays warm.
+The default Claude lifetime is 5 minutes. The Claude docs: "The cache is refreshed for no additional cost each time the cached content is used." For longer gaps, Claude also has a 1-hour cache "at 2x the base input token price" for writes. On OpenAI models before GPT-5.6, `prompt_cache_retention` set to `24h` can keep entries "for up to 24 hours". At 40 reviews an hour, a request comes about every 90 seconds, so the 5-minute cache stays warm.
 
 ### Step 6: the hard case, a cheaper model
 

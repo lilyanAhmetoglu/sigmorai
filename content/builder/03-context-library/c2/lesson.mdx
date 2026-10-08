@@ -64,7 +64,11 @@ Managed vector stores cut files for you, with their own settings:
 - **OpenAI vector stores** ([OpenAI docs](https://developers.openai.com/api/docs/guides/retrieval)): "By default, `max_chunk_size_tokens` is set to `800` and `chunk_overlap_tokens` is set to `400`." You can change it with `chunking_strategy`. The size must be "between 100 and 4096" tokens, inclusive. The overlap "should not exceed" half of it (`max_chunk_size_tokens / 2`).
 - **Gemini File Search** ([Gemini docs](https://ai.google.dev/gemini-api/docs/file-search)): files are "automatically broken down into chunks". A `chunking_config` sets the most tokens per chunk and the most overlapping tokens.
 
-A cut can also remove context. Anthropic's example is a chunk that says revenue grew by 3%, but that "doesn't specify which company it's referring to or the relevant time period". The fix in the post is **Contextual Retrieval**: a model reads the chunk together with its full document, then writes a short context. The context, "usually 50-100 tokens", is added in front of the chunk "before embedding it and before creating the BM25 index" (BM25 is keyword search; chapter 3 covers it). Writing these by hand would be "far too much work" for thousands of chunks, so a model does it.
+A cut can also remove context. Anthropic's post describes the fix, **Contextual Retrieval**:
+
+- **The lost context.** A chunk says revenue grew by 3%, but it "doesn't specify which company it's referring to or the relevant time period".
+- **The fix.** A model reads the chunk together with its full document, then writes a short context. The context, "usually 50-100 tokens", is added in front of the chunk "before embedding it and before creating the BM25 index" (BM25 is keyword search; chapter 3 covers it).
+- **Why a model.** Writing these by hand would be "far too much work" for thousands of chunks.
 
 There is also a second way. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/embeddings) list Voyage AI contextualized chunk models, such as `voyage-context-4`. They "produce chunk-level vectors that capture full document context without manual metadata augmentation". You call them with `contextualized_embed()`.
 
@@ -141,7 +145,7 @@ Every call sends the whole release note again, once per chunk. Anthropic's post 
 - **Inside the limits.** Size and overlap follow the vendor's rules, so the upload is accepted.
 - **Findable chunks.** Each chunk names its version. In Anthropic's tests, contextual embeddings cut the top-20 retrieval failure rate by 35% (5.7% to 3.7%).
 
-You can also add labels that are not in the text. OpenAI files can have `attributes` (at most 16 keys) to filter on. Gemini File Search takes custom metadata, "a set of key-value pairs". Example: `product: cli` or `product: sdk`.
+You can also add labels that are not in the text. OpenAI files can have `attributes` (the dictionary "can have at most 16 keys") to filter on. Gemini File Search takes custom metadata, "a set of key-value pairs". Example: `product: cli` or `product: sdk`.
 
 ## Common mistakes
 
@@ -165,7 +169,7 @@ Sample chunk after upload:
 ### Answer
 
 1. **The overlap breaks the rule.** 200 is more than half of 300 (150). Fix: lower the overlap to 150 or less, or raise the chunk size.
-2. **The chunk lost its context.** It does not say which product or which button. Fix: add a model-written context line per chunk, for example "From the Model T2 manual, section Pairing the remote." Or use a contextualized embedding model.
+2. **The chunk has no product name.** It does not say which product or which button. Fix: add a model-written context line per chunk, for example "From the Model T2 manual, section Pairing the remote." Or use a contextualized embedding model.
 
 ## Recap
 

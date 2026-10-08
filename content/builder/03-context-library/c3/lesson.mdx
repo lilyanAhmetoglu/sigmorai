@@ -49,7 +49,11 @@ question -> embed -> nearest chunks -> top K -> prompt -> answer
 
 Gemini File Search describes the first step: "When you make a query, it's also converted into an embedding" ([Gemini docs](https://ai.google.dev/gemini-api/docs/file-search)). The OpenAI Retrieval API returns results "each with the relevant chunks, similarity scores, and file of origin" ([OpenAI docs](https://developers.openai.com/api/docs/guides/retrieval)).
 
-Embeddings match meaning well, but they can miss exact strings. The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) says embedding models "can miss crucial exact matches". Its example is a support search for one error code: the model finds pages on the general topic, but "could miss the exact" code. **BM25** is a keyword ranking function that uses "lexical matching to find precise word or phrase matches". So it is strong on ids, codes and technical words. **Hybrid search** runs both and merges the lists with rank fusion. The post's summary: "Embeddings+BM25 is better than embeddings on their own".
+Embeddings match meaning well, but they can miss exact strings. The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) explains the two sides:
+
+- **What embeddings miss.** Embedding models "can miss crucial exact matches". The post's example is a support search for one error code: the model finds pages on the general topic, but "could miss the exact" code.
+- **What BM25 is.** A keyword ranking function that uses "lexical matching to find precise word or phrase matches". So it is strong on ids, codes and technical words.
+- **What hybrid does.** **Hybrid search** runs both and merges the lists with rank fusion. The post's summary: "Embeddings+BM25 is better than embeddings on their own".
 
 Think of two librarians. One understands what you mean. The other checks every label letter by letter. Ask both, then merge their piles.
 
@@ -108,7 +112,7 @@ So hybrid search must keep both sides. Do not set `embedding_weight` to 0 to "fi
 
 ### Step 4: rerank a big shortlist
 
-Hybrid search now returns many candidates. Copy Anthropic's steps:
+Hybrid search now returns many candidates. Anthropic's steps start with "the top 150" chunks, and the post measures the "top-20-chunk retrieval failure rate". Copy the steps:
 
 ```text
 1. retrieve the top 150 candidates (hybrid search)

@@ -46,13 +46,13 @@ The team asks: can we just send all 14 documents every time? And if so, how shou
 
 The **context window** is everything the model can see in one request. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/context-windows) call it the model's "working memory": "all the text a language model can reference when generating a response, including the response itself." Everything counts: the system prompt, all messages, tool definitions, documents and the output. The [OpenAI docs](https://developers.openai.com/api/docs/guides/conversation-state) say the same: the limit "includes input, output, and reasoning tokens".
 
-Windows are large now. Many Claude models, such as Claude Opus 5.5 and Claude Sonnet 5.5, "have a 1M-token context window". Others, such as Claude Sonnet 4.5, have 200k. GPT-4.1 lists a "1,047,576 context window" ([OpenAI model page](https://developers.openai.com/api/docs/models/gpt-4.1)). The [Gemini docs](https://ai.google.dev/gemini-api/docs/long-context) say many Gemini models have "1 million or more tokens".
+Windows are large now. Many Claude models, such as Claude Opus 5.5 and Claude Sonnet 5.5, "have a 1M-token context window". Others, such as Claude Haiku 4.5, have 200k. GPT-4.1 lists a "1,047,576 context window" ([OpenAI model page](https://developers.openai.com/api/docs/models/gpt-4.1)). The [Gemini docs](https://ai.google.dev/gemini-api/docs/long-context) say many Gemini models have "1 million or more tokens".
 
 But a big window is not a perfect memory:
 
-- **Claude:** "As token count grows, accuracy and recall degrade, a phenomenon known as _context rot_."
-- **OpenAI** ([GPT-4.1 guide](https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide)): performance "can degrade as more items are required to be retrieved".
-- **Gemini:** with several "needles" to find, "the model does not perform with the same accuracy" as with one.
+- **The Claude docs:** "As token count grows, accuracy and recall degrade, a phenomenon known as _context rot_."
+- **The OpenAI docs** ([GPT-4.1 guide](https://developers.openai.com/cookbook/examples/gpt4-1_prompting_guide)): performance "can degrade as more items are required to be retrieved".
+- **The Gemini docs:** with several "needles" to find, "the model does not perform with the same accuracy" as with one.
 
 Think of a desk. A bigger desk holds more papers, but finding ten things on it is harder than finding one.
 
@@ -66,8 +66,8 @@ GPT-4.1:         [instructions] [documents] [instructions again]
 ```
 
 - The [Claude prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) puts long documents "near the top of your prompt", above the query. In Anthropic's tests, a query at the end raised quality by "up to 30 percent".
-- Gemini: performance is usually better "if you put your query / question at the end of the prompt".
-- GPT-4.1: put instructions "at both the beginning and end of the provided context". If you write them only once, "above the provided context" is the better place.
+- The Gemini docs: performance is usually better "if you put your query / question at the end of the prompt".
+- The GPT-4.1 guide (OpenAI): put instructions "at both the beginning and end of the provided context". If you write them only once, "above the provided context" is the better place.
 
 ## Worked example
 
@@ -161,16 +161,16 @@ Each request has a narrow job. The documents are the same prefix every time, so 
 
 ## Try it
 
-Not graded. A team sends a 230,000-token wiki to Claude Sonnet 4.5. Find two problems with this plan.
+Not graded. A team sends a 230,000-token wiki to Claude Haiku 4.5. Find two problems with this plan.
 
 ```text
-model:  Claude Sonnet 4.5
+model:  Claude Haiku 4.5
 prompt: "Summarise our on-call process." + the whole wiki (230,000 tokens)
 ```
 
 ### Answer
 
-1. **It does not fit.** Claude Sonnet 4.5 has a 200k-token window, and the wiki alone is 230,000 tokens. The API will reject it with a 400 error. Also, 230,000 is above Anthropic's 200,000-token line for skipping RAG. Fix: use retrieval, or a 1M-token model with only the pages you need.
+1. **It does not fit.** Claude Haiku 4.5 has a 200k-token window, and the wiki alone is 230,000 tokens. The API will reject it with a 400 error. Also, 230,000 is above Anthropic's 200,000-token line for skipping RAG. Fix: use retrieval, or a 1M-token model with only the pages you need.
 2. **The question is first.** For Claude, put the long text first and the request at the end.
 
 ## Recap
