@@ -10,6 +10,9 @@ sources:
     title: Gemini API docs · Voice replication
     url: https://ai.google.dev/gemini-api/docs/voice-replication
   - kind: docs
+    title: Gemini API docs · Speech generation (text-to-speech)
+    url: https://ai.google.dev/gemini-api/docs/speech-generation
+  - kind: docs
     title: OpenAI docs · Custom voices
     url: https://developers.openai.com/api/docs/guides/custom-voices
   - kind: docs
@@ -67,27 +70,27 @@ Cloning copies a real person. So every vendor asks for proof that the person agr
 
 | Vendor (October 2026)                | You upload                             | The consent check                                                   |
 | ------------------------------------ | -------------------------------------- | ------------------------------------------------------------------- |
-| Google, Gemini voice replication     | 10–30 seconds of clean speech          | the same speaker reads Google's exact consent statement             |
+| Google, Gemini voice replication     | 10–30 seconds of clean speech          | the same adult speaker reads Google's exact consent statement       |
 | OpenAI, custom voices                | a sample of 30 seconds or less         | the same voice reads one of OpenAI's consent phrases, word for word |
-| ElevenLabs, Instant Voice Cloning    | about 1–2 minutes of clear audio       | you confirm "you have the right and consent to clone the voice"     |
-| ElevenLabs, Professional Voice Clone | at least 30 minutes; 2–3 hours is best | your own voice only, checked with a voice captcha                   |
+| ElevenLabs, Instant Voice Cloning    | about 1–2 minutes of clear audio       | a voice check, and you confirm "the right and consent to clone the voice" |
+| ElevenLabs, Professional Voice Clone | at least 30 minutes; 2–3 hours is best | a voice check; your own voice only                                  |
 
-**Google.** Each request "requires two real human audio recordings": the reference clip, and a consent clip of "the same speaker" reading the statement. In English it is: "I am the owner of this voice and I consent to Google using this voice to create a synthetic voice model." Record both on "the same microphone in the same acoustic setting so the speaker verification check succeeds reliably."
+**Google.** Each request "requires two real human audio recordings from the same adult speaker": the reference clip, and a consent clip of that speaker reading the statement "in one of the supported languages". In English it is: "I am the owner of this voice and I consent to Google using this voice to create a synthetic voice model." Record both on "the same microphone in the same acoustic setting so the speaker verification check succeeds reliably."
 
 **OpenAI.** The consent recording "must only include one of the following phrases. Any divergence from the script will lead to a failure." The sample voice "must match the consent recording". Also note: custom voices "are limited to eligible customers", and "At most 20 voices can be created per organization."
 
-**ElevenLabs.** The two types have different rules. For an instant clone, you confirm in the app that you have the right and consent. A professional clone is stricter: "You can only create a Professional Voice Clone of your own voice. Even with their consent, you cannot clone someone else's voice." It also "requires a Creator plan or above". If Priya wants a professional clone, she makes it on her own account. ElevenLabs says she can then share it with the studio privately.
+**ElevenLabs.** "Both IVC and PVC include a voice verification step" (IVC is an instant clone, PVC a professional one). It uses "voice-captcha technology": a **voice captcha** means you read a sentence live, so the vendor knows a person is there (our plain gloss). For an instant clone, you also confirm in the app that you have "the right and consent to clone the voice". A professional clone is stricter: "You can only create a Professional Voice Clone of your own voice. Even with their consent, you cannot clone someone else's voice." It also "requires a Creator plan or above". If Priya wants a professional clone, she makes it on her own account. ElevenLabs says she can then share it with the studio privately.
 
 ## A check is not permission
 
-ElevenLabs explains the limit of these checks. Its voice captcha confirms "that the requester was present and actively participating". It "cannot guarantee that the provided recording truly belongs to the requester". The responsibility for authorised use stays with you, the creator.
+ElevenLabs explains the limit of these checks. Its voice captcha confirms "that the requester was present and actively participating". It "cannot guarantee that the provided recording truly belongs to the requester". ElevenLabs says the responsibility for authorised use stays with you, the creator. Its policy also forbids trying to "Evade product guardrails, including voice verification mechanisms such as Voice CAPTCHA."
 
 Bootstrap Village, chapter 6, covered the impersonation rules in the Google and Anthropic policies. ElevenLabs' Prohibited Use Policy (last updated 17 August 2026) adds voice-specific lines. It forbids using its audio "to intentionally replicate the voice of another person":
 
 - "without consent or legal right"
 - "in a manner intended to deceive others about whether the voice was generated by artificial intelligence"
 
-It also forbids impersonating "political candidates or elected government officials, regardless of whether authorization was obtained." Even a yes is not enough there.
+A separate rule covers elections. Under its heading "in the context of elections", the policy forbids you to "Impersonate political candidates or elected government officials, regardless of whether authorization was obtained." So for election content, even a yes from the candidate is not enough.
 
 And OpenAI's TTS guide says its policies require "a clear disclosure to end users that the TTS voice they are hearing is AI-generated".
 
@@ -105,7 +108,7 @@ A clone copies everything, good and bad.
 
 ## How long a voice lasts
 
-A custom voice is not always forever. On Gemini, stored voices (designed or replicated) are limited to "200 voices per project", with a 1-year **TTL** (time to live: how long the vendor keeps it). A stateless voice key (`voicekey_...`) has a 7-day TTL.
+A custom voice is not always forever. On Gemini, stored voices (designed or replicated) are limited to "200 voices per project". They have a 1-year **TTL** (time to live: how long the vendor keeps it), counted "from last use": a voice is deleted after 1 year with no use, and the clock resets each time you use it. A **stateless** voice key (`voicekey_...`, not stored by the vendor; our plain gloss) has a 7-day TTL.
 
 Keep the consent recording, the date and the agreed use with your other asset records. Context Library, chapter 6, shows how to keep a rights record (our advice).
 
