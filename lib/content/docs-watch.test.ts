@@ -72,6 +72,16 @@ describe('markdownUrl', () => {
     expect(
       markdownUrl('https://developer.ideogram.ai/api-reference/images/generate/ideogram-4-5'),
     ).toBe('https://developer.ideogram.ai/api-reference/images/generate/ideogram-4-5.md');
+    expect(markdownUrl('https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue')).toBe(
+      'https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue.md',
+    );
+  });
+
+  test('a host with a path prefix covers only that path (elevenlabs.io/docs)', () => {
+    expect(markdownUrl('https://elevenlabs.io/use-policy')).toBe(
+      'https://elevenlabs.io/use-policy',
+    );
+    expect(markdownUrl('https://elevenlabs.io/docsx/a')).toBe('https://elevenlabs.io/docsx/a');
   });
 
   test('ai.google.dev uses its own suffix, .md.txt', () => {

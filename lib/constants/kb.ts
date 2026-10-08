@@ -24,7 +24,9 @@ export const DOCS_WATCH_LABEL = 'docs-changed';
 
 /**
  * Hosts that serve a page's Markdown at `<page><suffix>` (cheaper and steadier
- * than HTML: no banners, no build ids).
+ * than HTML: no banners, no build ids). A key is a host, or a host plus a path
+ * prefix when only part of the site is docs (`elevenlabs.io/docs`: its
+ * `/use-policy` page has no Markdown copy).
  */
 export const DOCS_MD_HOSTS: Readonly<Record<string, string>> = {
   'platform.claude.com': '.md',
@@ -33,12 +35,17 @@ export const DOCS_MD_HOSTS: Readonly<Record<string, string>> = {
   'modelcontextprotocol.io': '.md',
   'ai.google.dev': '.md.txt',
   'developer.ideogram.ai': '.md',
+  'elevenlabs.io/docs': '.md',
 };
-/** Hosts whose docs base has an `llms.txt` page index (`<base>/llms.txt`). */
+/**
+ * Hosts whose docs base has an `llms.txt` page index (`<base>/llms.txt`). Same
+ * key form as DOCS_MD_HOSTS (a host, or a host plus a path prefix).
+ */
 export const DOCS_LLMS_TXT_HOSTS = [
   'platform.claude.com',
   'developers.openai.com',
   'code.claude.com',
   'huggingface.co',
   'developer.ideogram.ai',
+  'elevenlabs.io/docs',
 ] as const;
