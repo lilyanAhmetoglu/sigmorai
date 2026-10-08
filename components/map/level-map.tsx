@@ -14,8 +14,14 @@ import {
   STEP_TEXT,
   TRACK_TEXT,
 } from '@/lib/constants';
-import { chapterXp, playableStep, realmChapterCount, stopStatus } from '@/lib/grading/track-map';
-import type { ChapterView, LevelStatus, RealmView } from '@/lib/types';
+import {
+  chapterXp,
+  playableStep,
+  realmChapterCount,
+  realmIsSoon,
+  stopStatus,
+} from '@/lib/grading/track-map';
+import type { ChapterGoal, ChapterView, LevelStatus, RealmView } from '@/lib/types';
 import { ScrollToCurrent } from './scroll-to-current';
 
 type Props = {
@@ -23,14 +29,18 @@ type Props = {
   /** The exercise id of the player's next step in this realm, if any. */
   nextId?: string;
   /** Each card's one-line goal, in `realm.chapters` order (getChapterGoals). */
-  goals: readonly (string | null)[];
+  goals: readonly (ChapterGoal | null)[];
 };
 
 type StopStatus = LevelStatus | 'soon';
 
 const HEADING_ID = 'level-map-heading';
-/** The card holding the next step: brought into view on load. */
-const CURRENT_SELECTOR = '.quest-stop[data-status="current"]';
+/**
+ * The card holding the next step, when it is not the first card: brought
+ * into view on load only if it starts below the fold (ScrollToCurrent), so
+ * a realm with no progress never moves.
+ */
+const CURRENT_SELECTOR = '.quest-stop[data-status="current"]:not(:first-child)';
 
 /** The node on the trail: ✓ when done, a padlock when shut, else the number (B for the boss). */
 function nodeGlyph(chapter: ChapterView, status: StopStatus): ReactNode {
@@ -45,15 +55,21 @@ function QuestStop({
   status,
   goal,
   chapterCount,
+  started,
 }: {
   chapter: ChapterView;
   status: StopStatus;
-  goal: string | null;
+  goal: ChapterGoal | null;
   chapterCount: number;
+  /** The realm has a cleared step: the current card says CONTINUE, else START (like the header). */
+  started: boolean;
 }) {
-  const text = QUEST_STOP_TEXT[status];
+  const text = QUEST_STOP_TEXT[status === 'current' && !started ? 'start' : status];
   const step = playableStep(chapter);
   const hint = unlockHint(chapter, chapterCount);
+  const hintId = `quest-stop-hint-${chapter.chapter ?? 'boss'}`;
+  // A card shut as a whole: its steps need no LOCKED word each (the badge says it).
+  const allLocked = chapter.steps.every((s) => s.status === 'locked');
   // The status word is also read with the title: a link list says it too.
   const title = (
     <>
@@ -88,12 +104,21 @@ function QuestStop({
             </Link>
           ) : (
             // Nothing to play: a focusable, aria-disabled button, so the lock is announced.
-            <button type="button" className="quest-stop-link" aria-disabled="true">
+            <button
+              type="button"
+              className="quest-stop-link"
+              aria-disabled="true"
+              aria-describedby={hint ? hintId : undefined}
+            >
               {title}
             </button>
           )}
         </h3>
-        {goal && <p className="quest-stop-goal">{goal}</p>}
+        {goal && (
+          <p className="quest-stop-goal">
+            {goal.kind === 'case' ? MAP_TEXT.caseGoal(goal.text) : goal.text}
+          </p>
+        )}
         <ul className="quest-stop-steps" aria-label={MAP_TEXT.steps}>
           {chapter.steps.map((s) => {
             const state = STEP_STATUS_TEXT[s.status];
@@ -101,14 +126,18 @@ function QuestStop({
               <li key={s.exerciseId} className="quest-stop-step" data-status={s.status}>
                 <span aria-hidden="true">{state.icon}</span>
                 {STEP_TEXT[s.step]}
-                <span className="quest-stop-step-state">{state.label}</span>
+                {!allLocked && <span className="quest-stop-step-state">{state.label}</span>}
               </li>
             );
           })}
         </ul>
         <div className="quest-stop-foot">
           <span className="quest-stop-xp">{MAP_TEXT.xp(chapterXp(chapter))}</span>
-          {hint && <span className="quest-stop-hint">{hint}</span>}
+          {hint && (
+            <span id={hintId} className="quest-stop-hint">
+              {hint}
+            </span>
+          )}
           {chapter.creditedFrom && (
             <span className="quest-stop-hint">
               {REALMS_TEXT.creditedFrom(TRACK_TEXT[chapter.creditedFrom].label)}
@@ -133,7 +162,8 @@ function QuestStop({
  */
 export function LevelMap({ realm, nextId, goals }: Props) {
   const chapterCount = realmChapterCount(realm);
-  const nothingLive = realm.chapters.every((c) => c.status === 'soon');
+  const nothingLive = realmIsSoon(realm.chapters);
+  const started = realm.status !== 'open';
   return (
     <section aria-labelledby={HEADING_ID} className="quest-map">
       <h2 id={HEADING_ID} className="sr-only">
@@ -152,6 +182,7 @@ export function LevelMap({ realm, nextId, goals }: Props) {
             )}
             goal={goals[i] ?? null}
             chapterCount={chapterCount}
+            started={started}
           />
         ))}
       </ol>

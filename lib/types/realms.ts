@@ -18,6 +18,12 @@ export type ChapterView = {
   creditedFrom?: Track;
 };
 
+/**
+ * A level-map card's goal line, as a fact (lib/data/realms.ts →
+ * getChapterGoals): a chapter's case title, or the boss's outline task.
+ */
+export type ChapterGoal = { kind: 'case' | 'boss'; text: string };
+
 export type RealmView = {
   /** The realm number (global across paths; r9 and up are specialist realms). */
   id: number;

@@ -30,8 +30,8 @@ From the build prompt and `design/ui_kits/webapp/Sigmorai App.dc.html`. Port, do
 ## Level map (`components/map/`, clear-maps 2026-10-08)
 
 - `/map/<slug>` is a quest path, not a scrolling strip (`docs/plans/level-art-design-plan.md` → clear maps). The realm's four layers are a short banner at exactly 2× (RealmScene, cropped to the ground, no parallax); a `scene: false` realm gets a flat token banner with its name, never an empty box.
-- Under it, one card per chapter, then the boss, in one column joined by a trail. Each card: tag, title, goal, steps with icon + word, XP, status icon + word (Done / Continue / Open / Locked / Soon). Same layout on every screen; nothing scrolls sideways.
-- The card's title is a real link (or an aria-disabled `<button>` when shut, with an unlock hint) that covers the card. The current card is marked and brought into view.
+- Under it, one card per chapter, then the boss, in one column joined by a trail. Each card: tag, title, goal, steps with icon + word, XP, status icon + word (Done / Start or Continue / Open / Locked / Soon). Same layout on every screen; nothing scrolls sideways.
+- The card's title is a real link (or an aria-disabled `<button>` when shut, with an unlock hint) that covers the card. The current card is marked; the page scrolls to it only when it starts below the fold and is not the first card.
 
 ## World map (`components/map/world-map.tsx`, 2026-10-07)
 
@@ -39,7 +39,7 @@ From the build prompt and `design/ui_kits/webapp/Sigmorai App.dc.html`. Port, do
 - A native scroll box. Zoom steps `ZOOM_STEPS` = ½, 1, 2 only (`data-zoom` on the box); it starts at 1 with no JS. No canvas, no pan/zoom library.
 - Markers are real 44px links that do not scale with the zoom; the art, trail, fog and hero are `aria-hidden`. The "Your path" list under the box is the text view.
 - Until the Higgsfield art lands, the world is a token-coloured SVG cartography map (paper sea, organic stepped coasts on an 8 art px grid, seeded terrain glyphs that keep off pins and labels, compass, frame). The art goes in the `WORLD_MAP_ART` slot (2048×1536, pixelated). Never reuse level art.
-- Marker labels (clear-maps 2026-10-08): from zoom 1, one parchment plate under the pin: the name, the number as a small tag with the status as icon + word, and a segmented bar with "cleared/total". Its box is `WORLD_HERO.detail`; a test keeps it off every pin, plate and landmark label. At ½ only the pin and its state pip show (the plate on focus). The map starts at zoom 1 on every screen.
+- Marker labels (clear-maps 2026-10-08): from zoom 1, one small parchment plate under the pin (148 × 36 max): the name; the number as a small tag with the status as icon + word (one word per state, as in the path list); and a thin segmented bar. Its box is `WORLD_HERO.detail`; a test keeps it off every pin, plate and landmark label. At ½ only the pin and its state pip show (the plate on focus). The map starts at zoom 1 on every screen.
 
 ## The UI is not pixel art
 

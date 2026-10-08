@@ -42,11 +42,16 @@ export const STEP_STATUS_TEXT: Record<StepStatus, StatusText> = {
   soon: { icon: '…', label: 'COMING SOON', accent: 'neutral' },
 };
 
+/**
+ * One word per realm state, on every surface: realm cards, the path list,
+ * world-map markers and the map key (clear-maps review, 2026-10-08). The
+ * tier ("ADVANCED") is in the realm's tag, so the state word is LOCKED.
+ */
 export const REALM_STATUS_TEXT: Record<RealmStatus, StatusText> = {
   cleared: { icon: '✓', label: 'CLEARED', accent: 'success' },
   'in-progress': { icon: '▸', label: 'IN PROGRESS', accent: 'xp' },
   open: { icon: '▸', label: 'OPEN', accent: 'accent' },
-  'tier-locked': { icon: '·', label: 'ADVANCED · LOCKED', accent: 'neutral' },
+  'tier-locked': { icon: '·', label: 'LOCKED', accent: 'neutral' },
 };
 
 /** The realm's main button, by its state. A cleared realm is replayed. */
@@ -226,30 +231,27 @@ export const MAP_TEXT = {
 
 /**
  * A level-map card's status (clear-maps amendment): an icon AND a word.
- * "current" is the card holding the next step; "soon" has no content file yet.
+ * "current" is the card holding the next step: START while the realm has no
+ * cleared step, else CONTINUE, the same word as the header button
+ * (REALM_ACTION_TEXT). "soon" has no content file yet.
  */
-export const QUEST_STOP_TEXT: Record<LevelStatus | 'soon', StatusText> = {
+export const QUEST_STOP_TEXT: Record<LevelStatus | 'soon' | 'start', StatusText> = {
   done: { icon: '✓', label: 'DONE', accent: 'success' },
-  current: { icon: '▸', label: 'CONTINUE', accent: 'xp' },
+  start: { icon: '▸', label: REALM_ACTION_TEXT.open.toUpperCase(), accent: 'xp' },
+  current: { icon: '▸', label: REALM_ACTION_TEXT['in-progress'].toUpperCase(), accent: 'xp' },
   open: { icon: '▸', label: 'OPEN', accent: 'accent' },
   locked: { icon: '·', label: 'LOCKED', accent: 'neutral' },
   soon: { icon: '…', label: 'SOON', accent: 'neutral' },
 };
 
 /**
- * A world-map marker's status row (clear-maps amendment): an icon AND a
- * word. A realm's own status, plus "soon" for a realm with no content file.
+ * A world-map marker's status (clear-maps amendment): REALM_STATUS_TEXT's
+ * icon and word, plus SOON for a realm with no content file yet.
  */
 export const WORLD_MARKER_STATUS_TEXT: Record<
   RealmStatus | 'soon',
   { icon: string; label: string }
-> = {
-  cleared: { icon: '✓', label: 'DONE' },
-  'in-progress': { icon: '▸', label: 'IN PROGRESS' },
-  open: { icon: '▸', label: 'OPEN' },
-  'tier-locked': { icon: '·', label: 'LOCKED' },
-  soon: { icon: '…', label: 'SOON' },
-};
+> = { ...REALM_STATUS_TEXT, soon: { icon: '…', label: 'SOON' } };
 
 /** `0.5` → `½`: a zoom step as text. */
 const zoomWord = (zoom: number) => (zoom === 0.5 ? '½' : String(zoom));
@@ -286,8 +288,6 @@ export const WORLD_MAP_TEXT = {
     only?: string,
   ) =>
     `${tag ? `${tag.toLowerCase()}, ` : ''}${name}${only ? `, ${only.toLowerCase()}` : ''}, ${number}, ${state.replace(/\s*·\s*/g, ' ').toLowerCase()}, ${cleared} of ${total} cleared`,
-  /** The marker's progress count: "2/7". */
-  markerCount: (cleared: number, total: number) => `${cleared}/${total}`,
   /** On the current realm, for a player with a hero. */
   youAreHere: 'YOU ARE HERE',
   /** On the first open realm, for a visitor. */
@@ -306,10 +306,11 @@ export const WORLD_MAP_TEXT = {
     cleared: 'Cleared route',
     ahead: 'Route ahead',
     /** The pin marks (WORLD_STATUS_PIPS). */
-    realmCleared: 'Realm cleared',
+    /** The same words as the markers and the path list (REALM_STATUS_TEXT). */
+    realmCleared: 'Cleared',
     inProgress: 'In progress',
-    open: 'Open, not started',
-    locked: 'Advanced, locked',
+    open: 'Open',
+    locked: 'Locked (advanced realm)',
     pathOnly: 'Only on this path',
   },
   /** The level map's link back to the world map. */

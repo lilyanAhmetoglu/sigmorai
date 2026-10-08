@@ -19,7 +19,14 @@
   - **Links:** unchanged. A playable card's title links to its first open step (a done card: its lesson, replay), and the link covers the whole card. A shut card is an `aria-disabled` button with the hint "Clear chapter N to open." (the boss: the same words the quest action returns).
   - **Current chapter:** the card holding the player's next step is marked (a Spark edge, `aria-current="step"`, the word Continue) and brought into view on load (only as far as needed, so the header stays when it already shows).
 - **Why cards and not the strip:** a card says what a chapter is, what is left and what it is worth, in words; a numbered flag on busy art said none of that, and on a phone only two flags were in view. The art stays as the banner, so each realm keeps its look.
-- **Removed:** `LEVEL_MAP`, `levelNodeX`, `levelNodeGap` and the strip's scroll-driven parallax CSS (nothing else used them). `LevelNode` stays as a primitive for a later map (Math Tower).
+- **Removed:** `LEVEL_MAP`, `levelNodeX`, `levelNodeGap` and the strip's scroll-driven parallax CSS (nothing else used them). `LevelNode` stays as a primitive for a later map (Math Tower); its `level-node.css` is not imported in `globals.css` until that map uses it.
+- **Review fixes (same day, cto + ui-ux):**
+  - The page scrolls on load only when the current card is not the first one **and** starts below the fold. A realm with no progress never moves, so the header and "◂ World map" stay in view.
+  - The current card says START while the realm has no cleared step, else CONTINUE: the same word as the header button.
+  - The current card stands out on any realm colour: a raised surface (surface-3) and a 4px Spark edge drawn as a hard inset shadow (no text shift).
+  - A shut card's button is `aria-describedby` its unlock hint. A card shut as a whole drops the LOCKED word on each step (the badge says it once).
+  - The flat banner of a realm with no art is 96px tall (was 192px). The banner preloads only the front art layers (mid, near).
+  - `getChapterGoals` returns facts (`{ kind: 'case' | 'boss', text }`); the card words them ("Case: …").
 
 ## Amendments locked 2026-10-07 (world map, SIG-59)
 

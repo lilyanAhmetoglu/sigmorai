@@ -30,6 +30,7 @@ import {
   chapterXp,
   levelStatus,
   playableStep,
+  realmIsSoon,
   stopStatus,
   realmChapterCount,
   realmNeighbours,
@@ -248,6 +249,13 @@ describe('stopStatus', () => {
     expect(stopStatus(chapters[0], false)).toBe('done');
     expect(stopStatus(chapters[1], true)).toBe('current');
     expect(stopStatus(chapters[2], false)).toBe('locked');
+  });
+});
+
+describe('realmIsSoon', () => {
+  test('only when no chapter and no boss has a content file', () => {
+    expect(realmIsSoon(realm(map(NONE, NONE).realms, 0).chapters)).toBe(true);
+    expect(realmIsSoon(realm(map(ALL_LIVE, NONE).realms, 0).chapters)).toBe(false);
   });
 });
 

@@ -194,18 +194,20 @@ describe('labels and pins', () => {
     expect(long).toEqual([]);
   });
 
-  test('world-map.css sizes the label plate like WORLD_HERO.detail (148 × 44, 24px under the anchor)', async () => {
+  test('world-map.css sizes the label plate like WORLD_HERO.detail (148 × 36, 24px under the anchor)', async () => {
     const css = await Bun.file(
       `${import.meta.dir}/../../app/styles/components/world-map.css`,
     ).text();
     const [l, t, r, b] = WORLD_HERO.detail;
-    // max-w-37 = 148px and h-11 = 44px on the 4px spacing scale, plus the 2px shadow.
+    // max-w-37 = 148px and h-9 = 36px on the 4px spacing scale, plus the 2px shadow.
     expect(r - l).toBe(148 + 2);
-    expect(b - t).toBe(44 + 2);
+    expect(b - t).toBe(36 + 2);
     expect(t).toBe(24);
+    // Order-free on purpose: prettier sorts the @apply classes. Each class is
+    // matched with a space on both sides, so h-9 never matches inside another.
     const rule = css.match(/\.world-marker-label \{([^}]*)\}/)?.[1] ?? '';
     expect(rule).toContain(' max-w-37 ');
-    expect(rule).toContain(' h-11 ');
+    expect(rule).toContain(' h-9 ');
     expect(rule).toContain('top-[calc(100%+--spacing(0.5))]');
   });
 
@@ -293,8 +295,8 @@ describe('WORLD_MAP_TEXT.marker', () => {
     expect(WORLD_MAP_TEXT.marker('01', 'Prompt Forest', 'IN PROGRESS', 2, 7, 'YOU ARE HERE')).toBe(
       'you are here, Prompt Forest, 01, in progress, 2 of 7 cleared',
     );
-    expect(WORLD_MAP_TEXT.marker('06', 'Eval Arena', 'ADVANCED · LOCKED', 0, 7)).toBe(
-      'Eval Arena, 06, advanced locked, 0 of 7 cleared',
+    expect(WORLD_MAP_TEXT.marker('06', 'Eval Arena', 'A · B', 0, 7)).toBe(
+      'Eval Arena, 06, a b, 0 of 7 cleared',
     );
   });
 

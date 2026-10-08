@@ -292,9 +292,9 @@ export const WORLD_HERO = {
   /**
    * Its label plate from zoom 1 (world-map.css → .world-marker-label, clear-maps
    * amendment): name, number + status, progress bar. At most 148px wide and
-   * 44px tall, 24px under the anchor, plus its 2px hard shadow.
+   * 36px tall, 24px under the anchor, plus its 2px hard shadow.
    */
-  detail: [-74, 24, 76, 70] satisfies Box,
+  detail: [-74, 24, 76, 62] satisfies Box,
 } as const;
 
 /** The sides the hero tries, in order: left is the default look. */

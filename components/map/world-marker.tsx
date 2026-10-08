@@ -25,9 +25,12 @@ const markerState = (realm: WorldRealm) =>
  * realm's anchor (clear-maps amendment). The link is a transparent 44px
  * target; inside it, a small visible pin with a state pip (a shape per
  * state, explained in the map key), so the land shows around it. The tag
- * sits above it and, from zoom 1, a label plate below it: the name, the
- * realm number as a small tag with the status as icon + word, and a
- * segmented bar with "cleared/total" (XPBar's cell logic, filledSegments).
+ * sits above it and, from zoom 1, a small label plate below it, so most
+ * of the land shows: the name; the realm number as a small tag with the
+ * status as icon + word; and a thin segmented bar, one cell per chapter and
+ * the boss, lit when cleared (XPBar's cell logic, filledSegments). The
+ * numbers ("2 of 7 cleared") are in the accessible name and the path list:
+ * "2/7" did not fit the 148px plate next to IN PROGRESS.
  * It does not scale with the zoom; WORLD_HERO.detail is its box. The
  * accessible name starts with the visible text in screen order (WCAG
  * 2.5.3): tag, name, number, state, then cleared of total. A specialist
@@ -78,13 +81,10 @@ export function WorldMarker({ realm, tag }: Props) {
           <span className="world-marker-number">{number}</span>{' '}
           <span aria-hidden="true">{state.icon}</span> {state.label}
         </span>{' '}
-        <span className="world-marker-progress">
-          <span className="world-marker-bar" aria-hidden="true">
-            {Array.from({ length: realm.total }, (_, i) => (
-              <span key={i} className="world-marker-cell" data-lit={i < lit || undefined} />
-            ))}
-          </span>
-          <span>{WORLD_MAP_TEXT.markerCount(realm.cleared, realm.total)}</span>
+        <span className="world-marker-bar" aria-hidden="true">
+          {Array.from({ length: realm.total }, (_, i) => (
+            <span key={i} className="world-marker-cell" data-lit={i < lit || undefined} />
+          ))}
         </span>
       </span>
     </Link>

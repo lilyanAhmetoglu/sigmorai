@@ -8,7 +8,6 @@ import {
   BOSS_STEP,
   DEFAULT_TRACK,
   FRONTIER_AREA,
-  MAP_TEXT,
   MATH_AREA,
   REALMS,
   realmPageTrack,
@@ -31,6 +30,7 @@ import {
 import {
   RealmSlugSchema,
   TrackSchema,
+  type ChapterGoal,
   type FloorState,
   type HudStats,
   type NextStep,
@@ -81,22 +81,28 @@ async function scanLiveIds(area: LiveArea): Promise<Set<string>> {
   return new Set(ids.filter((_, i) => live[i]));
 }
 
-/** Content ships with the deploy, so production scans each area once per server. */
-const liveIdsMemo = new Map<LiveArea, Promise<Set<string>>>();
-/** In dev, content files change while the server runs: scan once per request. */
-const liveIdsPerRequest = cache(scanLiveIds);
+/**
+ * A content read, memoised. Content ships with the deploy, so production
+ * reads each key once per server (a failed read is dropped, so it retries).
+ * In dev, content files change while the server runs: once per request.
+ */
+function memoPerDeploy<K, V>(load: (key: K) => Promise<V>): (key: K) => Promise<V> {
+  const memo = new Map<K, Promise<V>>();
+  const perRequest = cache(load);
+  return (key) => {
+    if (process.env.NODE_ENV !== 'production') return perRequest(key);
+    let value = memo.get(key);
+    if (!value) {
+      value = load(key);
+      memo.set(key, value);
+      value.catch(() => memo.delete(key));
+    }
+    return value;
+  };
+}
 
 /** Shared with lib/data/math.ts. */
-export function liveIds(area: LiveArea): Promise<Set<string>> {
-  if (process.env.NODE_ENV !== 'production') return liveIdsPerRequest(area);
-  let ids = liveIdsMemo.get(area);
-  if (!ids) {
-    ids = scanLiveIds(area);
-    liveIdsMemo.set(area, ids);
-    ids.catch(() => liveIdsMemo.delete(area));
-  }
-  return ids;
-}
+export const liveIds: (area: LiveArea) => Promise<Set<string>> = memoPerDeploy(scanLiveIds);
 
 /**
  * Every exercise of this track (or the tower, or the Frontier) the user
@@ -197,41 +203,29 @@ export type RealmPage = {
   after: RealmView | null;
 };
 
-/** A case's title. Content ships with the deploy: production reads each case once per server. */
-const caseTitleMemo = new Map<string, Promise<string>>();
-const caseTitlePerRequest = cache(async (id: string) => (await loadCase(id)).title);
-
-function caseTitle(id: string): Promise<string> {
-  if (process.env.NODE_ENV !== 'production') return caseTitlePerRequest(id);
-  let title = caseTitleMemo.get(id);
-  if (!title) {
-    title = loadCase(id).then((c) => c.title);
-    caseTitleMemo.set(id, title);
-    title.catch(() => caseTitleMemo.delete(id));
-  }
-  return title;
-}
+/** A case's title (only the title: never its options or answers). */
+const caseTitle = memoPerDeploy(async (id: string) => (await loadCase(id)).title);
 
 /**
  * Each level-map card's one-line goal, in `realm.chapters` order
- * (clear-maps amendment): "Case: <case title>" for a chapter, the outline's
- * boss task for the boss. No new copy. Only the case title leaves this
- * module, never the case's options or answers. Null when a chapter's case
- * has no file yet, or fails to load: the card still shows, without a goal.
+ * (clear-maps amendment), as facts: a chapter's case title, the boss's
+ * outline task. The component words them. No new copy. Null when a
+ * chapter's case has no file yet, or fails to load: the card still shows,
+ * without a goal.
  */
 export async function getChapterGoals(
   track: Track,
   realm: Pick<RealmView, 'id' | 'chapters'>,
-): Promise<(string | null)[]> {
+): Promise<(ChapterGoal | null)[]> {
   const [outline, live] = await Promise.all([trackOutline(track), liveIds(track)]);
-  const task = outline.realms.find((r) => r.id === realm.id)?.boss.task ?? null;
+  const task = outline.realms.find((r) => r.id === realm.id)?.boss.task;
   return Promise.all(
     realm.chapters.map(async (chapter) => {
-      if (chapter.chapter === null) return task;
+      if (chapter.chapter === null) return task ? { kind: 'boss' as const, text: task } : null;
       const kase = chapter.steps.find((s) => s.step === BOSS_STEP);
       if (!kase || !live.has(kase.exerciseId)) return null;
       try {
-        return MAP_TEXT.caseGoal(await caseTitle(kase.exerciseId));
+        return { kind: 'case' as const, text: await caseTitle(kase.exerciseId) };
       } catch {
         return null;
       }

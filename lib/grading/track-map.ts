@@ -147,6 +147,13 @@ export function levelStatus(chapter: ChapterView, isCurrent: boolean): LevelStat
 }
 
 /**
+ * Nothing in the realm has a content file yet (every chapter and the boss
+ * is "soon"): the level map says so, and its world-map marker says SOON.
+ */
+export const realmIsSoon = (chapters: readonly Pick<ChapterView, 'status'>[]): boolean =>
+  chapters.every((c) => c.status === 'soon');
+
+/**
  * A level-map card's state (clear-maps amendment): levelStatus, except a
  * chapter with no content file at all is "soon", not "locked".
  */
