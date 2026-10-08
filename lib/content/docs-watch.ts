@@ -48,14 +48,21 @@ export async function citedPages(
 }
 
 const hostOf = (url: string) => new URL(url).hostname.toLowerCase().replace(/^www\./, '');
-const inList = (list: readonly string[], url: string) => list.includes(hostOf(url));
+
+/** Whether a host list key (`host` or `host/path-prefix`) covers this URL. */
+const covers = (key: string, url: string) => {
+  const at = `${hostOf(url)}${new URL(url).pathname.replace(/\/+$/, '')}`;
+  return at === key || at.startsWith(`${key}/`);
+};
+const inList = (list: readonly string[], url: string) => list.some((key) => covers(key, url));
 
 /**
  * `https://platform.claude.com/docs/en/x` → `…/x.md` (`…/x.md.txt` on
  * ai.google.dev) on hosts that serve Markdown; else the URL.
  */
 export function markdownUrl(url: string): string {
-  const suffix = DOCS_MD_HOSTS[hostOf(url)];
+  const key = Object.keys(DOCS_MD_HOSTS).find((k) => covers(k, url));
+  const suffix = key && DOCS_MD_HOSTS[key];
   if (!suffix) return url;
   const u = new URL(url);
   u.search = '';
