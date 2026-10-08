@@ -1,7 +1,7 @@
 ---
 id: builder/r3/c1/lesson
 title: Embeddings
-minutes: 9
+minutes: 11
 sources:
   - kind: docs
     title: Embeddings (Claude docs)
@@ -17,78 +17,153 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/embeddings
 ---
 
-Realm 2 gave the model tools to fetch facts. This realm is about a different question: which facts should reach the model at all? A company wiki can hold millions of words, and only a few paragraphs answer any one question. The first step to finding them is the embedding.
+## Goal
 
-## What an embedding is
+After this lesson you can:
 
-OpenAI puts it simply: "An embedding is a vector (list) of floating point numbers." You send text to an embedding model, and it returns a fixed-length list of numbers.
+- Explain what an embedding is and why it finds texts that share no words.
+- Embed queries and documents the right way: one model for both sides, and the query/document setting your vendor asks for.
+- Choose a vector size and a similarity function, and know when you must re-embed everything.
 
-The useful part is the distance between two lists. OpenAI: "Small distances suggest high relatedness and large distances suggest low relatedness." Texts with similar meaning land close together, even when they share no words.
+## The problem
 
-Example from the OpenAI retrieval guide. The query is "When did we go to the moon?"
+A platform team keeps 900 runbooks in a wiki. An engineer types "how do I roll back a deploy?" into the search box. The right runbook is called "Reverting a release". It never uses the words "roll back" or "deploy".
 
-| Text                                              | Keyword similarity | Semantic similarity |
-| ------------------------------------------------- | ------------------ | ------------------- |
-| The first lunar landing occurred in July of 1969. | 0%                 | 65%                 |
-| When I ate the moon cake, it was delicious.       | 40%                | 28%                 |
+The wiki uses keyword search, so it shows a page about deploy schedules instead. The engineer gives up and asks in chat. The team wants search that understands meaning. Their assistant runs on Claude.
 
-OpenAI points out that the most relevant result contains none of the words in the query. Keyword search ranks it last; embeddings rank it first.
+## The idea
 
-## What embeddings are used for
+An **embedding** turns a text into a list of numbers. The [OpenAI docs](https://developers.openai.com/api/docs/guides/embeddings) say: "An embedding is a vector (list) of floating point numbers." The distance between two lists shows how related the texts are: "Small distances suggest high relatedness and large distances suggest low relatedness."
 
-OpenAI lists search, clustering, recommendations, anomaly detection, diversity measurement and classification. The Gemini docs list a similar set and add retrieval-augmented generation (RAG): "Embeddings enhance the quality of generated text by retrieving and incorporating relevant information into the context of a model."
+Think of an embedding as a meaning fingerprint. Two texts that mean the same thing get similar fingerprints, even with different words.
 
-In this realm, search for RAG is the main job: turn your documents into vectors once, turn each question into a vector, and pick the documents closest to it.
+```text
+"roll back a deploy"     -> [0.12, -0.40, 0.03, ...]  \
+                                                        close
+"Reverting a release"    -> [0.10, -0.38, 0.05, ...]  /
+"Deploy schedule 2026"   -> [-0.31, 0.22, 0.17, ...]    far
+```
 
-## Who makes the embedding model
+The [OpenAI retrieval docs](https://developers.openai.com/api/docs/guides/retrieval) show this with a real query, "When did we go to the moon?". The best answer, about the first lunar landing, has 0% keyword similarity but the highest semantic similarity (65%). Semantic search finds results "with few or no shared keywords, which classical search techniques might miss."
 
-Embedding models have their own names and prices, and not every vendor has one.
+Four facts shape every embedding setup:
 
-- **Anthropic:** the Claude docs say "Anthropic does not offer its own embedding model." They describe Voyage AI as one provider, and say you should assess a variety of vendors for your use case.
-- **OpenAI:** `text-embedding-3-small` (1536 numbers by default) and `text-embedding-3-large` (3072 by default).
-- **Gemini:** `gemini-embedding-2` is multimodal and takes up to 8,192 input tokens. For text-only use, `gemini-embedding-001` remains available.
+- **The embedding model is a separate choice.** The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/embeddings) say Anthropic makes no embedding model. They point to "Voyage AI by MongoDB" as one option, and tell you to assess a variety of vendors. OpenAI has `text-embedding-3-small` and `text-embedding-3-large`. Gemini has `gemini-embedding-2` and `gemini-embedding-001` ([Gemini docs](https://ai.google.dev/gemini-api/docs/embeddings)).
+- **Some models want to know: query or document?** For Voyage, set `input_type` to `query` or `document` for retrieval. The Claude docs say: "Do not omit `input_type` or set `input_type=None`." With `gemini-embedding-2`, you write the task into the text instead (see the block below). `gemini-embedding-001` uses a `task_type` field.
 
-So a Claude app gets its embeddings from another vendor. The chat model and the embedding model are two separate choices.
+```text
+gemini-embedding-2, search use case
+query:     task: search result | query: how do I roll back a deploy?
+document:  title: Reverting a release | text: To revert, run ...
+no title:  title: none | text: ...
+```
 
-## Comparing two vectors
+- **One model for both sides.** A query vector and a document vector must come from the same model. The Gemini docs say the spaces of their two models are "incompatible": "you cannot directly compare embeddings generated by one model with embeddings generated by the other". After an upgrade, every old document must be embedded again.
+- **Similarity.** The OpenAI docs recommend cosine similarity and say the choice "typically doesn't matter much". OpenAI and Voyage vectors are normalized to length 1, so a dot product gives the same result as cosine and is faster.
 
-OpenAI recommends cosine similarity and says "The choice of distance function typically doesn't matter much."
+Smaller vectors save space. The OpenAI docs say larger embeddings "generally" cost more and use more compute, memory and storage. Each vendor lets you ask the API for a shorter vector: `dimensions` (OpenAI), `output_dimension` (Voyage), `output_dimensionality` (Gemini).
 
-OpenAI and Voyage both normalize their embeddings to length 1. Both docs draw the same two conclusions: cosine similarity can be computed faster as a dot product, and cosine similarity and Euclidean distance give identical rankings.
+## Worked example
 
-## Use one model for both sides
+The team picks Voyage AI, from the Claude docs. Let's build the search step by step.
 
-A query vector and a document vector can only be compared if the same model made them. The Gemini docs are direct about this: the spaces of `gemini-embedding-001` and `gemini-embedding-2` are "incompatible", and "If you are upgrading to `gemini-embedding-2`, you must re-embed all of your existing data."
+### Step 1: the weak version
 
-Example: you index 20,000 help articles with one model in March. In September, you switch the query side to a newer model. Every search now compares vectors from two models, which the Gemini docs say you "cannot directly compare". The fix is to re-embed the articles too.
+```python
+results = [doc for doc in runbooks if "roll back" in doc.text.lower()]
+```
 
-## Tell the model what the text is
+What goes wrong:
 
-Some models want to know if a text is a question or a document.
+- It only finds exact words. "Reverting a release" never matches.
+- There is no ranking. Every match counts the same.
 
-- **Voyage** (in the Claude docs): for retrieval, set `input_type` to `query` or `document`. "Do not omit `input_type` or set `input_type=None`."
-- **Gemini, `gemini-embedding-2`:** put the task in the text itself. A search query becomes `task: search result | query: how do I reset my password?`. A document becomes `title: Reset your password | text: ...`. Use `title: none` when there is no title.
-- **Gemini, `gemini-embedding-001`:** set a `task_type` field instead. `gemini-embedding-2` does not accept it.
+### Step 2: embed, but carelessly
 
-For symmetric tasks such as classification, the Gemini docs say the task must be used consistently: documents and queries get the same format.
+```python
+import voyageai
+vo = voyageai.Client()
 
-## Size, cost and dimensions
+doc_vecs = vo.embed([d.text for d in runbooks], model="voyage-4").embeddings
+q_vec = vo.embed(["how do I roll back a deploy?"], model="voyage-4").embeddings[0]
+```
 
-Bigger vectors cost more to keep. OpenAI: larger embeddings "generally" cost more and use more compute, memory and storage than smaller ones.
+This is better: search now works by meaning. But `input_type` is missing on both calls. The Claude docs say to set it for all retrieval tasks. With it, Voyage adds a short instruction before the text. The docs say this "can create better dense vector representations for retrieval".
 
-OpenAI, Gemini and Voyage each let you ask for shorter vectors:
+### Step 3: say which side is which
 
-- OpenAI: the `dimensions` parameter. Its example: a vector store that accepts at most 1024 dimensions can still use `text-embedding-3-large` with `dimensions` set to 1024, "trading off some accuracy" for the smaller size.
-- Gemini: `output_dimensionality`, from 128 to 3072, with 768, 1536 and 3072 recommended. `gemini-embedding-2` normalizes the shorter vectors for you. With `gemini-embedding-001`, you normalize them yourself for any size other than 3072.
-- Voyage: `output_dimension`. If you cut vectors you already stored, keep the leading numbers and normalize them again.
+```python
+import numpy as np
 
-For many vectors, use a vector database. OpenAI recommends one "For searching over many vectors quickly", and the Gemini docs say it is common in production.
+doc_vecs = vo.embed(
+    [d.text for d in runbooks], model="voyage-4", input_type="document"
+).embeddings
 
-## Key points
+q_vec = vo.embed(
+    ["how do I roll back a deploy?"], model="voyage-4", input_type="query"
+).embeddings[0]
+
+scores = np.dot(doc_vecs, q_vec)   # vectors have length 1, so dot = cosine
+best = runbooks[int(np.argmax(scores))]
+```
+
+Same model on both sides, the right role on each, and a dot product for speed.
+
+### Step 4: pick the size
+
+`voyage-4` returns 1024 numbers by default. The Claude docs list 256, 512 and 2048 as other sizes. 900 runbooks are small, so 1024 is fine. For millions of chunks, ask the API for a shorter vector with `output_dimension=512`. Do not cut stored vectors by hand without the extra step: the Claude docs say to keep the leading numbers "then normalize them again".
+
+### Step 5: the hard case, a model change
+
+Six months later, someone embeds 50 new runbooks with `voyage-4-large`, because it scores better. The old 900 stay on `voyage-4`. Now one index holds vectors from two models. Queries made with one model are compared with documents made by the other.
+
+The fix is a rule in code, not a memory:
+
+```python
+INDEX_MODEL = "voyage-4"   # one constant for docs AND queries
+
+record = {
+    "runbook_id": d.id,
+    "model": INDEX_MODEL,   # stored next to every vector
+    "vector": vec,
+}
+```
+
+Before a search, check that every stored `model` equals `INDEX_MODEL`. To move to a new model, re-embed all runbooks and switch the constant once. The Gemini docs ask for the same thing when you move to their newer model.
+
+### Why it is better
+
+- **Meaning, not words.** "roll back a deploy" now finds "Reverting a release".
+- **Right roles.** Queries and documents are embedded as what they are.
+- **No silent mix.** The model name travels with every vector, so a half-done upgrade is caught.
+
+## Common mistakes
+
+1. **Asking the chat model for vectors.** The Claude docs send you to a separate embedding vendor. Fix: pick an embedding provider (for example Voyage AI) as a separate choice.
+2. **Two models in one index.** A new model for new documents only, or for queries only. Fix: one model constant for both sides, and re-embed everything when it changes.
+3. **Cutting vectors by slicing only.** Shorter lists that are no longer length 1 break the dot-product shortcut. Fix: ask the API for the size you need, or normalize again after you cut.
+
+## Try it
+
+Not graded. Find two problems in this code before you read the answer.
+
+```python
+# index job
+docs = vo.embed(texts, model="voyage-4", input_type="query").embeddings
+docs = [v[:256] for v in docs]
+
+# search
+q = vo.embed([question], model="voyage-4", input_type="query").embeddings[0]
+scores = np.dot(docs, q[:256])
+```
+
+### Answer
+
+1. **Wrong role for the documents.** The index job uses `input_type="query"`. Documents need `input_type="document"`.
+2. **Sliced without normalizing.** The vectors are cut to 256 numbers but not normalized again. Fix: request `output_dimension=256` from the API, or normalize after slicing (both sides).
+
+## Recap
 
 - An embedding is a list of numbers. Close vectors mean related texts, even with no shared words.
-- Anthropic has no embedding model of its own; the Claude docs point to Voyage AI as one provider. OpenAI and Gemini have their own.
-- OpenAI recommends cosine similarity. On vectors normalized to length 1, it ranks the same as Euclidean distance.
-- Embed queries and documents with the same model. A model change means re-embedding everything.
-- Mark queries and documents where the model asks for it: `input_type` on Voyage, a task prefix on `gemini-embedding-2`.
-- Shorter vectors cost less to store. Request them with the API parameter, and normalize if you cut them yourself.
+- Choose the embedding model on its own. Anthropic has none; Voyage AI, OpenAI and Gemini do. Use one model for queries and documents, and re-embed everything when it changes.
+- Tell the model the role where it asks (`input_type`, a Gemini task prefix), and get shorter vectors from the API, not by slicing.

@@ -1,7 +1,7 @@
 ---
 id: builder/r3/c3/lesson
 title: Retrieval
-minutes: 10
+minutes: 12
 sources:
   - kind: blog
     title: Introducing Contextual Retrieval (Engineering at Anthropic)
@@ -23,80 +23,158 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/file-search
 ---
 
-You have chunks and vectors. Now a user asks a question. Retrieval is the step that picks which chunks reach the model. Pick badly and the model answers from the wrong pages, or from none.
+## Goal
 
-## The basic loop
+After this lesson you can:
 
-At question time, a simple RAG system does three things:
+- Combine meaning search and keyword search (hybrid search), and explain when each one wins.
+- Add a reranking step that turns a long list of candidates into a short, strong one.
+- Pass the final chunks to the model with stable sources, so every answer can cite them.
 
-1. Turn the question into a vector. Gemini File Search: "When you make a query, it's also converted into an embedding."
-2. Find the chunks whose vectors are closest.
-3. Add the top chunks to the prompt and ask the model to answer.
+## The problem
 
-OpenAI's Retrieval API does steps 1 and 2 for you: a `search` call on a vector store returns results "each with the relevant chunks, similarity scores, and file of origin". By default it returns at most 10 results; `max_num_results` raises that to 50.
+A finance team has an assistant for its expense rules: 400 pages of policies, forms and FAQs. Staff ask things like "Which form do I need for a foreign contractor? EXP-17?"
 
-## Where meaning search fails
+The assistant uses embeddings only and sends the top 3 chunks to the model. For this question, it returns three general pages about contractors. The page for form EXP-17 is not among them. The model answers with general advice and no form name.
 
-Embeddings match meaning, but they can miss exact strings. Anthropic's example: a user searches a support database for "Error code TS-999". Anthropic says an embedding model might find content about error codes in general, but miss the exact TS-999 match.
+The team also wants each answer to show where it came from, so staff can check it.
 
-The older fix is keyword search. Anthropic uses BM25, a ranking function that "uses lexical matching to find precise word or phrase matches". It is "particularly effective for queries that include unique identifiers or technical terms": part numbers, error codes, product names.
+## The idea
 
-## Hybrid search: use both
+**Retrieval** is the step that picks which chunks reach the model. A basic loop:
 
-Anthropic's recipe runs both searches and merges them:
+```text
+question -> embed -> nearest chunks -> top K -> prompt -> answer
+```
 
-1. Use BM25 to find top chunks by exact matches.
-2. Use embeddings to find top chunks by meaning.
-3. Combine and remove duplicates with rank fusion.
-4. Add the top chunks to the prompt.
+Gemini File Search describes the first step: "When you make a query, it's also converted into an embedding" ([Gemini docs](https://ai.google.dev/gemini-api/docs/file-search)). The OpenAI Retrieval API returns results "each with the relevant chunks, similarity scores, and file of origin" ([OpenAI docs](https://developers.openai.com/api/docs/guides/retrieval)).
 
-Its conclusion: "Embeddings+BM25 is better than embeddings on their own". In its tests, contextual embeddings plus contextual BM25 cut the top-20 retrieval failure rate by 49% (5.7% to 2.9%).
+Embeddings match meaning well, but they can miss exact strings. The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) says embedding models "can miss crucial exact matches". Its example is a support search for one error code: the model finds pages on the general topic, but "could miss the exact" code. **BM25** is a keyword ranking function that uses "lexical matching to find precise word or phrase matches". So it is strong on ids, codes and technical words. **Hybrid search** runs both and merges the lists with rank fusion. The post's summary: "Embeddings+BM25 is better than embeddings on their own".
 
-OpenAI exposes the same idea as settings. Its file search tool retrieves "through semantic and keyword search". In the Retrieval API, `ranking_options.hybrid_search` has two weights for reciprocal rank fusion: raise `embedding_weight` to favour meaning, or raise `text_weight` to favour shared words. At least one weight must be above zero.
+Think of two librarians. One understands what you mean. The other checks every label letter by letter. Ask both, then merge their piles.
 
-## Narrow the search first
+A **reranker** is a second model. It scores each candidate against the question, so only the best ones reach the main model. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/embeddings) say rerankers "take a query and a list of documents and return them ranked by relevance to the query". The cost: a reranker "adds an extra step at runtime", so the answer comes a little later (Anthropic post).
 
-Two OpenAI settings help before ranking even starts.
+**How many chunks?** More chunks raise the chance the answer is there. But extra text can distract the model, so "there's a limit to this" (Anthropic post). Anthropic tried 5, 10 and 20 chunks, and 20 worked best of these, but it says to experiment on your own use case.
 
-- **Attribute filters** limit the search to files with certain labels, such as a region or a date range.
-- **Query rewriting** (`rewrite_query=true`) turns a chatty question into a better search string. OpenAI's example: "I'd like to know the height of the main office building." becomes `primary office building height`.
+Last, **show the source**. All three vendors can tie an answer to the retrieved text: Claude through `search_result` blocks ([Claude docs](https://platform.claude.com/docs/en/build-with-claude/search-results)), OpenAI's `file_search` tool through "file citations" ([OpenAI docs](https://developers.openai.com/api/docs/guides/tools-file-search)), and Gemini File Search through citations that "specify which parts of your uploaded documents were used".
 
-OpenAI also offers a `score_threshold` from 0.0 to 1.0. A higher value keeps only more relevant chunks, "though it may exclude some potentially useful ones".
+## Worked example
 
-## Rerank the shortlist
+The finance assistant runs on Claude. Its policies sit in an OpenAI vector store, searched with the Retrieval API. Let's rebuild retrieval step by step.
 
-Anthropic notes that with large knowledge bases, the first search often returns many chunks, "sometimes hundreds", of varying relevance. A reranker is a second model that scores each chunk against the question, so only the best ones reach the main model.
+### Step 1: the weak version
 
-Anthropic's steps:
+```text
+search: embeddings only
+top K:  3
+sent:   chunk text only, no source
+```
 
-1. Retrieve the top candidates (it used the top 150).
-2. Pass them, with the query, to a reranking model.
-3. Keep the top-K by score (it used the top 20).
-4. Send those to the model.
+What goes wrong:
 
-Voyage AI makes rerankers as well as embedding models. In the Claude docs, rerankers "take a query and a list of documents and return them ranked by relevance to the query."
+- "EXP-17" is an exact identifier. Meaning search ranks general contractor pages higher.
+- 3 chunks is a small net. One near miss and the answer is gone.
+- No source travels with the chunks, so the answer cannot cite anything.
 
-In Anthropic's tests, adding reranking to contextual embeddings and BM25 cut the failure rate by 67% (5.7% to 1.9%). The cost is time: reranking "inevitably adds a small amount of latency". Reranking more chunks gives better results; fewer gives lower latency and cost.
+### Step 2: add keyword matching
 
-## How many chunks to send
+On the OpenAI Retrieval API, turn on hybrid ranking and give exact words more weight:
 
-More chunks raise the chance that the answer is in the prompt. But Anthropic warns that "more information can be distracting for models". It tried 5, 10 and 20 chunks and found 20 performed best of these, while advising you to experiment. OpenAI makes the same trade from the other side: fewer results can reduce token usage and latency, "but may come at the cost of reduced answer quality."
+```text
+search(
+  query: "Which form do I need for a foreign contractor? EXP-17?",
+  ranking_options: {
+    hybrid_search: { embedding_weight: 1, text_weight: 2 }
+  }
+)
+```
 
-## Hand the results to the model with sources
+The OpenAI docs: increase `embedding_weight` "to emphasize semantic similarity", increase `text_weight` "to emphasize textual overlap", and keep at least one weight above zero. If you run your own stack, the Anthropic recipe is the same idea: BM25 for exact matches, embeddings for meaning, then rank fusion to merge and remove duplicates.
 
-Retrieval is more useful when the user can check the answer. Claude, OpenAI and Gemini each document a way to link an answer back to the retrieved text.
+Two more OpenAI settings narrow the search:
 
-- **Claude:** wrap each result in a `search_result` block with a `source`, a `title` and text `content`. With citations enabled, Claude cites them in its answer. The `source` can be "a URL, or an internal identifier such as `kb://article-1234`".
-- **OpenAI:** the hosted `file_search` tool returns the model's message "along with the file citations".
-- **Gemini:** File Search responses "may include citations that specify which parts of your uploaded documents were used to generate the answer."
+- **Attribute filters** limit it to files with certain labels, for example `region: "EU"` or a date range.
+- **`rewrite_query=true`** rewrites a long, polite question into a short search phrase. The docs' example turns "I'd like to know the height of the main office building." into "primary office building height".
 
-Example: a support bot answers "Reset the router by holding the button for 10 seconds" and shows the cited source `kb://router-x200-manual`. A human can open it and check.
+### Step 3: the hard case, a wrong code
 
-## Key points
+A user types "Do I need EXP-71 for a contractor in Canada?" There is no EXP-71. The user swapped two digits.
 
-- Retrieval embeds the question, finds the nearest chunks and adds the best ones to the prompt.
-- Embeddings can miss exact strings like error codes. BM25 keyword search catches them; hybrid search uses both.
-- OpenAI exposes hybrid weights, attribute filters, query rewriting and a score threshold.
-- A reranker re-scores a large shortlist (Anthropic: 150) down to a small set (20). Better results, a little more latency.
-- More chunks raise recall but can distract the model and cost more tokens. Test the number.
-- Pass results with sources so the model can cite them: `search_result` blocks on Claude, file citations on OpenAI and Gemini.
+- Keyword search alone finds nothing useful: no page contains "EXP-71".
+- Meaning search still finds pages about foreign contractors, including the EXP-17 page.
+
+So hybrid search must keep both sides. Do not set `embedding_weight` to 0 to "fix" identifier questions. The words help when the code is right; the meaning helps when it is wrong.
+
+### Step 4: rerank a big shortlist
+
+Hybrid search now returns many candidates. Copy Anthropic's steps:
+
+```text
+1. retrieve the top 150 candidates (hybrid search)
+2. send the question + 150 chunks to a reranking model
+3. keep the top 20 by score
+4. send those 20 to the main model
+```
+
+Anthropic's numbers for its test sets (top-20 retrieval failure rate):
+
+```text
+contextual embeddings + BM25:               5.7% -> 2.9%  (-49%)
+contextual embeddings + BM25 + reranking:   5.7% -> 1.9%  (-67%)
+```
+
+The trade-off is in the post too: reranking more chunks gives better results; fewer chunks gives lower latency and cost.
+
+### Step 5: send the chunks with stable sources
+
+On Claude, wrap each chunk in a `search_result` block:
+
+```json
+{
+  "type": "search_result",
+  "source": "kb://expense-policy/foreign-contractors",
+  "title": "Foreign contractors: form EXP-17",
+  "content": [{ "type": "text", "text": "Contractors paid outside ... use form EXP-17 ..." }],
+  "citations": { "enabled": true }
+}
+```
+
+Two details from the Claude docs:
+
+- `source` takes "Any stable string": a URL, or an internal id like `kb://article-1234`. Use an id that survives a re-index.
+- Citations are off unless you turn them on: "Citations are disabled by default". All search results in one request must use the same setting.
+
+### Why it is better
+
+- **Both kinds of match.** Exact codes rank high, and a mistyped code still finds the right page by meaning.
+- **A strong short list.** The reranker picks 20 good chunks out of 150 rough ones.
+- **Checkable answers.** Each sentence can point to `kb://expense-policy/...`, and staff can open it.
+
+## Common mistakes
+
+1. **Embeddings only for a domain full of codes.** Product numbers, form names and error codes slip through. Fix: add keyword search (BM25 or a text weight) and merge.
+2. **Sending everything "to be safe".** A long list costs tokens and can distract the model. Fix: rerank and send a tested number (start near 20, then measure).
+3. **Using a changing value as the source.** A row number or a file name that changes on each release breaks old citations. Fix: use a stable id or URL in `source`.
+
+## Try it
+
+Not graded. A team runs search on the OpenAI Retrieval API. Users complain that answers miss useful pages. Read the settings and find two problems.
+
+```text
+ranking_options:
+  score_threshold: 0.95
+  hybrid_search: { embedding_weight: 0, text_weight: 1 }
+max_num_results: 3
+```
+
+### Answer
+
+1. **Keyword only.** `embedding_weight` is 0, so meaning matches are ignored. Questions that use other words than the page will miss. Fix: give both weights a value above 0.
+2. **Too strict.** A threshold of 0.95 keeps only very high scores. The OpenAI docs say a higher `score_threshold` keeps fewer, more relevant chunks, and it can drop useful ones too. With only 3 results, little is left. Fix: lower the threshold and test a larger K.
+
+## Recap
+
+- Retrieval embeds the question, finds the nearest chunks and sends the best ones to the model. Embeddings can miss exact strings; BM25 or a text weight catches them. Hybrid search keeps both.
+- A reranker re-scores a big shortlist (Anthropic: 150) and keeps a small one (20). Better results, a little more latency.
+- Send chunks with a stable source so answers can cite them: `search_result` blocks on Claude, file citations on OpenAI and Gemini.
