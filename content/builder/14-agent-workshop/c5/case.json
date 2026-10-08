@@ -1,0 +1,96 @@
+{
+  "id": "builder/r14/c5/challenge",
+  "title": "The bots that did not behave",
+  "scenario": "A team added coding agents to its GitHub repo last month: Claude Code Review, a Claude mention workflow and a Codex fix workflow. Four things surprised them. You read the workflow files and the notes.\n\nUse the exhibit. The team, the files and the notes are made up for this case. Inputs and behaviour are from the vendors' pages in October 2026.",
+  "exhibit": "SETTINGS (made up)\n  Claude Code Review: on, reviews every push.\n\n.github/workflows/claude.yml (part, made up)\n  on: issue_comment\n  - uses: anthropics/claude-code-action@v1\n    with:\n      anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}\n      github_token: ${{ secrets.GITHUB_TOKEN }}\n\n.github/workflows/codex-fix.yml (part, made up)\n  jobs:\n    fix:\n      permissions: { contents: write }\n      env:\n        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}\n      steps: checkout, npm ci, npm test,\n             run Codex, push a branch, open a PR\n\nTEAM NOTES\n  A. PR #88 merged with one Important finding still open.\n     We thought Code Review would stop that.\n  B. Claude pushes fixes to PRs, but our test workflow\n     never runs on Claude's commits.\n  C. Security asked us to look again at codex-fix.yml.\n  D. Our dependency bot commented \"@claude update the\n     lockfile\" on a PR. Nothing happened.",
+  "questions": [
+    {
+      "prompt": "Note A: why did PR #88 merge with an Important finding open?",
+      "options": [
+        {
+          "text": "Code Review blocks merges only on the default branch",
+          "explanation": "No page says that. Its check run always ends neutral, on every branch."
+        },
+        {
+          "text": "Its check run always ends neutral; gate merges in your own CI",
+          "explanation": "Right. Anthropic: findings don't approve or block a PR, and the check run never blocks merging. Read the severity counts in your own CI.",
+          "correct": true
+        },
+        {
+          "text": "Code Review needs a REVIEW.md file before it can block",
+          "explanation": "REVIEW.md tunes what Claude flags. It does not make the review block merges."
+        },
+        {
+          "text": "Important findings block only after a person replies to them",
+          "explanation": "The check run always ends neutral, whatever happens to the finding."
+        }
+      ]
+    },
+    {
+      "prompt": "Note B: why does the test workflow never run on Claude's commits?",
+      "options": [
+        {
+          "text": "Claude pushes to a fork, and forks never run workflows",
+          "explanation": "Claude pushes to the PR's branch here. The token is the problem."
+        },
+        {
+          "text": "The workflow lacks actions: read, so tests cannot start",
+          "explanation": "actions: read lets Claude read CI results. It does not start other workflows."
+        },
+        {
+          "text": "Tests skip bot commits unless allowed_bots lists Claude",
+          "explanation": "allowed_bots decides which bots may start Claude, not which commits run tests."
+        },
+        {
+          "text": "GITHUB_TOKEN commits start no workflows; remove that input",
+          "explanation": "Right. GitHub doesn't trigger workflows on commits made with the default GITHUB_TOKEN. Without it, the action authenticates as the Claude GitHub App. A custom app token also works.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Note C: what is the main problem with codex-fix.yml?",
+      "options": [
+        {
+          "text": "npm steps can read the key; split into a read-only Codex job and a PR job",
+          "explanation": "Right. OpenAI says not to set OPENAI_API_KEY as a job-level variable where repo code runs. Its recipe gives the key to a read-only job and write rights to a job without the key.",
+          "correct": true
+        },
+        {
+          "text": "Nothing; GitHub hides every secret from steps that run npm commands",
+          "explanation": "A job-level variable is visible to every step. OpenAI names build scripts and tests as steps that can read it."
+        },
+        {
+          "text": "The key should move to the job that pushes the branch and opens the PR",
+          "explanation": "The opposite. In OpenAI's recipe, the open_pr job has write rights and no API key."
+        },
+        {
+          "text": "Set the action to read-only mode, so the key can no longer leak at all",
+          "explanation": "OpenAI: don't rely on read-only alone to protect secrets. The key must leave the job's environment."
+        }
+      ]
+    },
+    {
+      "prompt": "Note D: why did the dependency bot's @claude comment do nothing?",
+      "options": [
+        {
+          "text": "A mention workflow needs a prompt input to answer comments",
+          "explanation": "The opposite. With no prompt input, Claude waits for @claude. With a prompt, it skips the mention."
+        },
+        {
+          "text": "The action refuses bot actors unless allowed_bots lists them",
+          "explanation": "Right. Anthropic: the action rejects a bot actor unless it is in allowed_bots, which keeps bots from triggering Claude in a loop.",
+          "correct": true
+        },
+        {
+          "text": "The trigger phrase in pull requests must be /claude, not @claude",
+          "explanation": "Anthropic says the comment must contain @claude as a whole word, not /claude."
+        },
+        {
+          "text": "@claude works in issues only and is ignored in PR comments",
+          "explanation": "@claude works in issue and PR comments. The commenter was a bot."
+        }
+      ]
+    }
+  ]
+}
