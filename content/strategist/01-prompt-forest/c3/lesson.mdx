@@ -1,7 +1,7 @@
 ---
 id: strategist/r1/c3/lesson
 title: Ask for structure
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Prompting best practices
@@ -23,84 +23,155 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/structured-output
 ---
 
-## Why it matters
+## Goal
 
-If you don't say what shape you want, the model picks one. You get a long essay when you needed a table, or bullets when you needed one sentence. Structure works in two directions: a clear structure in your prompt, and a clear structure for the answer.
+After this lesson you can:
 
-## Structure your prompt
+- Mark the parts of a long prompt with tags, so the model doesn't mix them up.
+- Ask for an exact output shape: a table with named columns, or one answer from a fixed list.
+- Explain what structured outputs guarantee, what they don't, and when to split a task into steps.
 
-A long prompt mixes many things: instructions, background, examples, a document. The model needs to see where each part starts and ends.
+## The problem
 
-All three vendors suggest marking the parts:
+Mara's company holds a client conference each autumn. Two venues sent offers, each about four pages long. She pastes both into one prompt and writes: "Compare these offers and recommend one."
 
-- Anthropic's guide recommends **XML tags**, such as `<instructions>`, `<context>` and `<input>`. It says wrapping each type of content in its own tag reduces misinterpretation.
-- OpenAI's guide suggests **Markdown headings and lists** for sections, and XML tags to show where a piece of content begins and ends.
-- Gemini's guide suggests XML-style tags or Markdown headings, and says to pick one format and use it consistently within a prompt.
+The answer is a long essay. It mixes up the offers: the catering price of venue A appears under venue B. It ends with "both venues have strengths", which is no recommendation at all. The director wants a table she can read in one minute.
 
-You don't need to know XML. A tag is just a label in angle brackets, opened and closed:
+The model had no way to see where offer A ends and offer B starts. It also had no idea what shape the answer should take. This lesson fixes both. The guidance below is from each vendor's docs (October 2026).
 
+## The idea
+
+Structure works in two directions: **structure in the prompt**, so the model reads it right, and **structure in the answer**, so you can use it.
+
+**Mark the parts of your prompt.** The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) suggest **XML tags**, such as `<instructions>` and `<context>`. They say wrapping each type of content in its own tag "reduces misinterpretation".
+
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-engineering) suggest Markdown headings and lists for sections.
+- They also suggest XML tags to show where a piece of content "begins and ends".
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) accept tags or headings. They say: "Choose one format and use it consistently within a single prompt."
+
+Our example: a tag is like a label on a folder. `<offer_a>` opens it and `</offer_a>` closes it, so the model sees where one offer starts and ends. You don't need to know XML.
+
+**Name the shape of the answer.** The Gemini docs list formats you can ask for: "a table, bulleted list, elevator pitch, keywords, sentence, or paragraph". Two tips from the Claude docs:
+
+- **Say what to do, not what not to do.** Instead of "Do not use markdown", the docs suggest asking for "smoothly flowing prose paragraphs".
+- **Your prompt's style rubs off.** "Removing markdown from your prompt can reduce the volume of markdown in the output."
+
+The Gemini docs add a trick: write the start of the format yourself and let the model complete it.
+
+**Give a fixed list when the answer is a category.** In one Gemini example, the model answered a category question with a full explanation. When the prompt was rewritten as a multiple-choice question with listed options, the model answered with the option. Fixed lists make results easy to count and sort.
+
+**When a system reads the answer, use structured outputs.** Sometimes no person reads the answer. It goes into a spreadsheet, a CRM or a booking tool. Then the shape must be the same every time. All three vendors offer **structured outputs**: your technical team sets a **schema** (a fixed list of fields and their types, such as "venue: text, price: number"), and the answer must follow it.
+
+- The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) say structured outputs "guarantee schema-compliant responses". The docs say this holds "in most cases". Exceptions include a refusal or an answer cut off because it hit the length limit.
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/structured-outputs) say the model "will always generate responses that adhere to your supplied JSON Schema", so a required key is never left out. They add there is "No need for strongly worded prompts" to keep the format.
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/structured-output) list uses such as data extraction and classification "into predefined categories". The Gemini prompting docs recommend the feature for a more complex JSON Schema.
+
+Without it, the Claude docs warn, even careful prompting can give missing required fields.
+
+**A valid shape is not a correct answer.** The OpenAI docs warn that the output "can still contain mistakes". The Gemini docs add: "While output is syntactically correct JSON, always validate values in your application." JSON is the text format systems use to pass data to each other. A field can be in the right place with the wrong number in it. Your job as a business user is to name each field and say exactly what it means.
+
+**Split big tasks into steps.** The Gemini docs describe **chaining**: each step is its own prompt, and the output of one step "becomes the input of the next". The Claude docs say chaining is still useful "when you need to inspect intermediate outputs".
+
+## Worked example
+
+### Step 1: the first prompt
+
+```text
+Compare these offers and recommend one.
+
+[offer from venue A]
+[offer from venue B]
 ```
-<instructions>
-Compare the two supplier offers. Recommend one.
-</instructions>
 
+What goes wrong: the two offers run into each other, and nothing says what the answer should look like.
+
+### Step 2: tag the inputs, name the shape
+
+```text
 <offer_a>
-[paste offer A]
+[paste the offer from venue A]
 </offer_a>
 
 <offer_b>
-[paste offer B]
+[paste the offer from venue B]
 </offer_b>
+
+<instructions>
+We need a venue for a one-day client conference for 180 people.
+Compare the two offers above in a table.
+Columns: Item | Venue A | Venue B.
+Rows: room hire, catering per person, AV equipment, cancellation
+terms, distance from the main train station.
+Copy each value from the offer. If an offer does not state a
+value, write "not stated".
+
+Below the table, write one line that starts "Recommendation:"
+followed by exactly one of: Venue A, Venue B, Ask for more details.
+Then two sentences of plain prose that give the reason.
+</instructions>
 ```
 
-Now the model can tell offer A from offer B, and both offers from your instructions.
+### Step 3: the hard case
 
-## Ask for the shape of the answer
+**The hard case is the missing value.** Venue B's offer does not mention AV equipment. In the first answer, the model wrote "included" for both venues, which was a guess. With "not stated" allowed, the gap shows in the table, and "Ask for more details" becomes a real option.
 
-Gemini's guide lists formats you can ask for: a table, a bulleted list, an elevator pitch, keywords, a sentence or a paragraph. Be exact.
+### Step 4: from a table to a system
 
-Weak: "Compare these three laptops."
-Strong: "Compare these three laptops in a table. Columns: model, price, battery hours, weight. One row per laptop. Then one sentence: which one you recommend for sales staff who travel."
+Mara's team now books 40 events a year, and the booking tool needs the same fields every time. A table in chat is not enough, because its shape can change. She asks IT for structured outputs, and writes the field list:
 
-Two tips from Anthropic's guide:
+```text
+venue_name      text    as written in the offer
+room_hire       number  total for the day, in euros, before tax
+catering_pp     number  per person, in euros, before tax
+av_included     one of  yes | no | not stated
+free_cancel_by  date    last day to cancel at no cost
+```
 
-- **Say what to do, not what not to do.** Instead of "Don't use bullet points", write "Write in short paragraphs of plain prose."
-- **Your prompt's style rubs off.** The formatting in your prompt may affect the formatting of the answer. The guide says removing Markdown from your prompt can reduce Markdown in the output.
+### Step 5: why it is better
 
-Gemini's guide adds a trick: start the format yourself and let the model finish it. For example, write the first line of an outline, and the model follows that pattern.
+- **Tagged inputs.** The model can no longer mix the two offers.
+- **Exact shape.** Named columns and rows, one recommendation from a fixed list.
+- **"Not stated" is allowed**, so a gap stays visible instead of being filled with a guess.
+- **Field meanings are written down.** "Before tax" and "per person" stop two right-looking numbers from meaning different things.
+- **Someone still checks.** A valid record can still hold a wrong value, so the team spot-checks new bookings against the offer.
 
-## Use fixed answer lists
+Our advice: write the field list yourself, with units and "not stated" allowed, before IT builds anything. The person who knows what each number means should name it.
 
-When the answer must be one of a few options, list them. Gemini's guide shows a model that answered a category question in full sentences. When the prompt was turned into a multiple-choice question with listed options, the model answered with just the option.
+## Common mistakes
 
-Example: "Classify this expense as one of: Travel, Software, Office, Other. Answer with the category name only."
+1. **Mixing tag styles.** Half the prompt uses `<doc>` tags and half uses `## Document` headings. Fix: pick one format and use it in the whole prompt.
+2. **"Don't" lists.** "No bullets, no jargon, not too long" says only what to avoid. Fix: describe the result you want, with a number: "Two paragraphs, under 120 words."
+3. **A heavily formatted prompt when you want plain text.** Headings and bullets in the prompt invite headings and bullets back. Fix: write the prompt in the style you want back.
 
-Fixed lists make results easy to count, sort and paste into a spreadsheet.
+## Try it
 
-## When the result goes into another system
+Not graded. A team lead wants to choose between three internal project ideas. Rewrite this prompt with tags, a named answer shape and a fixed verdict list.
 
-Sometimes the answer is not read by a person. It goes into a spreadsheet, a CRM or another tool. Then the format must be exact every time.
+```text
+Tell me about these three project ideas and which is best.
+[idea 1] [idea 2] [idea 3]
+```
 
-For this, all three vendors offer **structured outputs**. Your technical team sets a schema: a fixed list of fields and their types, such as "name: text, amount: number". The model's answer then follows that schema.
+### Answer
 
-- Anthropic's docs say structured outputs give schema-compliant responses, so the JSON (a common data format) is valid, except in rare cases, such as when the model refuses or runs out of tokens.
-- OpenAI's docs say the model will always generate responses that follow your JSON Schema, so it won't omit a required key.
-- Gemini's docs list uses such as data extraction and classification into predefined categories.
+```text
+<idea_1>[paste]</idea_1>
+<idea_2>[paste]</idea_2>
+<idea_3>[paste]</idea_3>
 
-**A valid shape is not a correct answer.** OpenAI's docs say structured outputs can still contain mistakes. Gemini's docs say that while the output is syntactically correct JSON, you should always validate the values. Example: the invoice total lands neatly in the "amount" field, but it is the wrong number. Someone still checks.
+<instructions>
+Compare the three ideas above in a table.
+Columns: Idea | Cost estimate | Time to first result | Main risk.
+Write "not stated" if an idea does not say.
+Then for each idea, one verdict from this list only:
+Start now, Start next quarter, Drop.
+</instructions>
+```
 
-As a business user, your job is to say clearly which fields you need and what each one means. That list becomes the schema.
+Tags keep the ideas apart. The table and the fixed list make the answers easy to compare across ideas and across weeks.
 
-## Break big tasks into steps
+## Recap
 
-One giant prompt that does five things is hard to control. Gemini's guide suggests **chaining**: each step is its own prompt, and the output of one step becomes the input of the next. Anthropic's guide says chaining is useful when you need to inspect the results in between.
-
-Example: step 1 extracts the key terms from a contract into a table. You check the table. Step 2 writes the summary email from the checked table.
-
-## Key points
-
-- Mark the parts of a long prompt with tags or headings.
-- Name the exact output shape: columns, length, number of bullets.
-- Say what to do, not what not to do.
-- Give fixed option lists when the answer is a category.
-- Structured outputs fix the shape, not the facts. Still check the values.
+- Mark the parts of a long prompt with tags or headings, and use one style for the whole prompt.
+- Name the exact shape of the answer, say what to do, and give a fixed list when the answer is a category.
+- Structured outputs fix the shape, not the facts. Define every field, check the values, and split big tasks into steps you can inspect.

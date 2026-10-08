@@ -1,7 +1,7 @@
 ---
 id: strategist/r1/c4/lesson
 title: Review outputs
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -14,73 +14,147 @@ sources:
     url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
 ---
 
-## Why it matters
+## Goal
 
-You already know that a model can sound sure and still be wrong. So someone must review the output. But reading each draft to see if it looks fine does not scale, and two reviewers will judge the same draft differently. This lesson shows how to review on purpose: decide what good means, check against it, and learn from each miss.
+After this lesson you can:
 
-## Decide what good means first
+- Write review criteria that are specific and measurable, before you read any output.
+- Pick the right check for each criterion: a simple rule, a person, or a model as reviewer.
+- Set up a model reviewer that you can trust, and keep testing it.
 
-Write your criteria **before** you look at the outputs. Anthropic's guide says good success criteria are **specific** and **measurable**. Its example: instead of "good performance", say exactly what you want to achieve.
+## The problem
 
-OpenAI's guide names the opposite as an anti-pattern: "vibe-based" evals, where the test is only that it seems like it's working.
+Mara's sales team now uses AI to draft replies to clients who ask for a training quote. A salesperson reads each draft and sends it. Last month, three quotes went out with last year's prices. One promised a course date that was already full.
 
-Turn your criteria into a short checklist, called a **rubric**. Example for AI-drafted customer replies:
+Each salesperson "reviews" in their own way. One reads every word. Another checks only the greeting. Nobody can say what a good draft is, so nobody can say how many drafts are bad.
 
-1. Answers the customer's actual question.
-2. Every fact (price, date, policy) matches our help-center page.
-3. Friendly, no blame, under 120 words.
-4. No other customer's data.
-5. Ends with a clear next step.
+Reviewing by feel does not scale, and two people judge the same draft differently. This lesson shows how to review on purpose: decide what good means, check against it, and learn from each miss. The guidance below is from each vendor's docs (October 2026).
 
-Anthropic's guide lists common criteria you can borrow, including task fidelity, tone and style, privacy, and how well the model uses the context you gave it.
+## The idea
 
-## Three ways to check
+**Decide what good means first.** The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say good success criteria need to be **specific**, and they need to be **measurable**. Their example: instead of "good performance," specify "accurate sentiment classification" (sorting comments into positive or negative). The [OpenAI docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) name the opposite as an anti-pattern: **vibe-based evals**, using "it seems like it's working" as the test.
 
-Both vendors describe the same three kinds of checks.
+Write your criteria as a short checklist, called a **rubric**. The Claude docs list common criteria you can borrow, such as task fidelity, tone and style, privacy, and how well the answer uses the context you gave it.
 
-**1. Simple rules.** Anthropic calls this code-based grading: the fastest and most reliable, but it lacks nuance for complex judgments. A rule can check an exact match or whether a key phrase is present.
+Our example: a rubric is like the checklist a pilot reads before take-off. It is short, every line is a yes or no, and every pilot reads the same list.
 
-Example: "Does the reply contain the order number?" "Is it under 120 words?" Your technical team can automate these.
+**Three ways to check.** Both vendors describe the same three:
 
-**2. A person.** Anthropic's guide calls human grading the most flexible and high quality, but slow and expensive. OpenAI's guide agrees: highest quality, but slow and expensive, and experts can disagree with each other.
+| Check            | Good at                        | Weak at                            |
+| ---------------- | ------------------------------ | ---------------------------------- |
+| A simple rule    | fast, cheap, always the same   | judgment and nuance                |
+| A person         | the highest quality            | slow and expensive                 |
+| A model reviewer | fast, scalable, handles nuance | must be tested before you trust it |
 
-Example: a senior agent reviews 20 drafts a week with the rubric.
+- **Rules.** The Claude docs call code-based grading "Fastest and most reliable", but it "lacks nuance" for complex judgments. A rule can check an exact match or whether a key phrase is present.
+- **People.** The Claude docs call human grading "Most flexible and high quality, but slow and expensive." The OpenAI docs agree, and add that experts can disagree with each other.
+- **A model as reviewer.** The Claude docs call this "Fast and flexible, scalable", and say: "Test to ensure reliability first then scale." The OpenAI docs say it is "cheaper to run and more scalable than human evaluation".
 
-**3. A model as reviewer.** You give a second model the rubric and the output, and it grades. Anthropic's guide calls this fast, flexible and scalable, and says to test it for reliability before you scale it. OpenAI's guide calls it cheaper and more scalable than human review.
+**How to set up a model reviewer.**
 
-## Using a model as a reviewer, safely
+- **Give it a detailed, clear rubric.** The Claude docs suggest a clear result: output only "correct" or "incorrect", or a score "from a scale of 1–5".
+- **Ask it to reason before it scores.** Both vendors say this improves grading.
+- **Know its biases.** The OpenAI docs name two: **position bias** (the order of the answers can sway its pick) and **verbosity bias** ("preferring longer responses"). They suggest a pairwise comparison (show two answers, pick the better one) or a pass/fail verdict "for more reliability".
+- **Check it against people.** The OpenAI docs say to scale up only when its grades keep matching the "human annotations" (grades given by people).
 
-Both guides give the same main advice.
+**Draft, review, improve.** The [Claude prompting docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) describe **self-correction**: the model writes a draft, reviews it against criteria, then refines it. Each step is a separate request, so you can see the review in between.
 
-- **Give it a clear, detailed rubric.** Anthropic's guide says to ask for a clear result, such as only "correct" or "incorrect", or a score from 1 to 5.
-- **Ask it to reason before it scores.** Both guides say reasoning before the score improves the grading.
-- **Know its biases.** OpenAI's guide names two: **position bias** (it may prefer an answer because of its place in the order) and **verbosity bias** (it may prefer longer answers).
-- **Check it against people.** OpenAI's guide says to compare the model's grades with human grades, and to scale up only once it consistently agrees with them.
+**Test the hard cases.** The Claude docs say to design checks that mirror your real tasks: "Don't forget to factor in edge cases!" Their list includes missing or irrelevant input, very long input, and cases where even people would disagree. The OpenAI docs ask for typical, edge and adversarial cases.
 
-Example: a model reviewer gives the long, padded draft a higher score than the short, correct one. That is verbosity bias. Add "length is not a quality signal; prefer the shorter answer when both are correct" to the rubric, then re-check against a person's grades.
+**Turn every miss into a test.** The OpenAI docs say to log everything, so you can "mine your logs for good eval cases", and to grow the set of test cases over time. They call evaluation "a continuous process". So when a bad output slips through, fix the prompt and keep that input as a test. Every new version of the prompt must pass it.
 
-## Draft, review, improve
+## Worked example
 
-You can also build the review into the work. Anthropic's guide describes a common pattern called **self-correction**: the model writes a draft, reviews it against your criteria, then improves it. Each step is a separate request, so you can look at the review in between.
+### Step 1: write the rubric before reading drafts
 
-Example: step 1 drafts a policy summary. Step 2 checks it against the rubric and lists problems. Step 3 rewrites. A person reads the final version.
+Mara and two senior salespeople agree on five lines for a quote reply:
 
-## Test the hard cases too
+```text
+1. The price matches the current price list (item code and amount).
+2. Every course date offered has free places in the booking system.
+3. Answers every question in the client's email.
+4. Under 180 words, friendly, no promises about results.
+5. Ends with one clear next step and the salesperson's name.
+```
 
-Easy inputs pass easily. Anthropic's guide says to design checks that mirror your real tasks, including edge cases, such as missing or irrelevant input, very long input, and cases where even people would disagree. OpenAI's guide asks for typical, edge and adversarial cases.
+### Step 2: choose a check for each line
 
-Example: test the reply drafter with an email that has no question in it, a very long angry email, and an email in another language.
+```text
+Line 1  price         rule: compare with the price list
+Line 2  dates         rule: look up places in the booking system
+Line 3  questions     model reviewer, with this rubric line
+Line 4  length, tone  rule for length; model reviewer for tone
+Line 5  next step     model reviewer
+```
 
-## Turn every miss into a test
+Rules take the facts that a system already knows. The model reviewer takes the lines that need judgment.
 
-When a review finds a problem, don't only fix that one output. Fix the prompt, and keep the bad case as a test. OpenAI's guide says to log everything, mine the logs for good test cases, and grow the test set over time. It calls evaluation a continuous process.
+### Step 3: the reviewer prompt
 
-Example: a draft promised a refund your policy doesn't allow. Add that customer email to your test set. Every future version of the prompt must pass it.
+```text
+You check quote replies for a training company.
 
-## Key points
+<rubric>
+3. The reply answers every question in the client's email.
+4. The tone is friendly and makes no promises about results.
+5. It ends with one clear next step and the salesperson's name.
+</rubric>
 
-- Write specific, measurable criteria before you review. Don't review by gut feeling.
-- Check with simple rules, people, or a model, depending on cost and nuance.
-- A model reviewer needs a clear rubric, can prefer longer answers, and must be checked against people.
-- Test edge cases, not just easy ones.
-- Every miss becomes a new test case.
+<client_email>[paste]</client_email>
+<draft_reply>[paste]</draft_reply>
+
+For each rubric line, first write one sentence of reasoning.
+Then write PASS or FAIL for that line.
+```
+
+### Step 4: the hard case
+
+**The hard case is a comparison of two drafts.** Mara also asks the reviewer to pick the better of two drafts for the same email. In a trial, it picks the first draft it sees in 17 of 20 pairs, even when people prefer the second. That is position bias.
+
+Our advice: give each draft its own pass/fail check against the rubric, as the OpenAI docs suggest for reliability. If you still need a comparison, run it twice with the order swapped, and count it only when both runs agree.
+
+### Step 5: check the reviewer, then scale
+
+For two weeks, a senior salesperson grades 30 drafts a week with the same rubric. Mara compares her grades with the model's. They agree on 28 of 30. The two misses lead to a clearer rubric line. Only then does the model reviewer run on all drafts. People read each draft it fails, plus a small sample of passes. (The numbers in this example are made up.)
+
+### Step 6: why it is better
+
+- **Criteria first.** Every reviewer checks the same five lines.
+- **The right check for each line.** Rules for facts the systems know; a model for judgment; people to check that the model's grades match theirs.
+- **Reason before verdict**, and pass/fail per line, so a fail says what to fix.
+- **Checked against people** before it scaled.
+
+## Common mistakes
+
+1. **Writing criteria after reading the outputs.** You end up describing the drafts you saw, not the result you need. Fix: agree on the rubric before the first review.
+2. **Testing only easy inputs.** A tidy one-question email passes. A long email with three questions and a complaint does not. Fix: add messy, very long and unclear inputs to your test set.
+3. **People for every check.** A person comparing prices by hand is slow and still misses some. Fix: use rules for facts a system can check, and keep people for judgment.
+
+## Try it
+
+Not graded. A marketing team reviews AI-drafted job ads with this checklist. Rewrite it as a measurable rubric, and say which check (rule, person or model) fits each line.
+
+```text
+- The ad is good and attractive.
+- It sounds like us.
+- It's legally fine.
+```
+
+### Answer
+
+```text
+1. States job title, location, salary range and closing date.   rule
+2. Under 300 words.                                              rule
+3. Uses "you" for the reader and none of our banned phrases.     rule + model
+4. No age, gender or other wording on our legal "do not use" list.
+                                                                 rule + person
+5. A recruiter would apply: clear duties and requirements.       model, sampled by a person
+```
+
+"Good", "sounds like us" and "legally fine" are opinions. Each new line can be checked the same way by anyone. The legal line keeps a person in the loop, because a miss there is costly.
+
+## Recap
+
+- Write specific, measurable criteria before you review. Don't review by feel.
+- Use rules, people or a model reviewer, line by line, based on cost and nuance.
+- A model reviewer needs a clear rubric and reasoning first. It can prefer longer or first-placed answers, so check it against people before you scale, and keep adding hard cases.
