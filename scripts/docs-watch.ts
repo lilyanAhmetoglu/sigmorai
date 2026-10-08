@@ -12,19 +12,17 @@ import {
   DOCS_WATCH_DEFAULT_DIR,
   DOCS_WATCH_ISSUE_FILE,
   DOCS_WATCH_STATE_FILE,
-  DOCS_WATCH_TIMEOUT_MS,
-  DOCS_WATCH_USER_AGENT,
 } from '@/lib/constants';
 import {
   citedPages,
   EMPTY_DOCS_WATCH_STATE,
   fetchTargets,
   nextState,
-  normalise,
   renderIssue,
   sha256,
   type DocsWatchResult,
 } from '@/lib/content/docs-watch';
+import { fetchPageWithFallback } from '@/lib/content/fetch-page';
 import { loadKbSources } from '@/lib/content/load';
 import { DocsWatchStateSchema, type DocsWatchState, type DocsWatchTarget } from '@/lib/types';
 
@@ -45,30 +43,10 @@ async function readState(): Promise<DocsWatchState> {
   return DocsWatchStateSchema.parse(JSON.parse(text));
 }
 
-/** HTTP 404: the URL is gone, so the fallback may be tried. */
-class NotFound extends Error {}
-
-/** Normalised text of one URL, or throws with a short reason. */
-async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url, {
-    headers: { 'user-agent': DOCS_WATCH_USER_AGENT },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(DOCS_WATCH_TIMEOUT_MS),
-  });
-  if (res.status === 404) throw new NotFound('HTTP 404');
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return normalise(res.headers.get('content-type') ?? '', await res.text());
-}
-
 async function check(target: DocsWatchTarget): Promise<DocsWatchResult> {
   try {
-    let text = await fetchText(target.fetchUrl).catch((err: unknown) => {
-      if (err instanceof NotFound && target.fallbackUrl) return '';
-      throw err;
-    });
-    // A moved page's .md (404) or a repo with no releases (empty feed): use the fallback.
-    if (text === '' && target.fallbackUrl) text = await fetchText(target.fallbackUrl);
-    if (text === '') throw new Error('empty page after normalising');
+    // A moved page's .md (404) or a repo with no releases (empty feed): the fallback is used.
+    const { text } = await fetchPageWithFallback(target);
     return { target, ok: true, hash: sha256(text) };
   } catch (err) {
     const error = err instanceof Error ? `${err.name}: ${err.message}` : String(err);

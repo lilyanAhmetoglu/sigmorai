@@ -25,6 +25,11 @@ Layered on top of the blocks below; this one wins where they disagree. Full cont
 - **`no_match` costs nothing; an `error`/`timeout` with no output is given back.** `stopped` is charged.
 - **Route order change:** after the cheap checks, a balance pre-check (402 `no_credits`), then retrieval, then **one transaction** that locks the user row (`FOR UPDATE`), picks free or credit, inserts the `started` usage row and, for a credit, the `spend` ledger row. `mentor_usage` gains `billing` (`free` / `credit` / `none`). SCHEMA REVIEW REQUIRED (db-architect), see the credits plan.
 
+## Amendments locked 2026-10-08 (Phase 1 build)
+
+- **Known debt: 38 lesson sentences match case or quick-check option text word for word** (the case re-quotes the lesson; the learner can already read it, so it is not an answer leak). `lib/mentor/index-build.test.ts` holds a lower-only ratchet at 38 distinct strings (`MENTOR_KNOWN_OVERLAPS=1` lists them). The lesson-template rollout removes them (content/CLAUDE.md: no case option text copied into the lesson); lower the number as realms land. The ratchet counts distinct strings, not lesson/string pairs.
+- The index workflow also runs on pushes that touch `lib/constants/mentor.ts`, `lib/content/**` and `scripts/mentor-index.ts` (they change chunking or hashes).
+
 ## Amendments locked 2026-10-08 (devil + db-architect pass)
 
 Both gates said "refine before building". These amendments win over the body below where they disagree. Where the two reviews disagreed, the simpler option was picked and the reason is given.
