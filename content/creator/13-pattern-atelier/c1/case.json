@@ -1,0 +1,96 @@
+{
+  "id": "creator/r13/c1/challenge",
+  "title": "One green, three files",
+  "scenario": "You run the design system for a small tea shop. The brand green lives in Figma, in a CSS file and in the agent's prompts, and the three no longer match. You start one DTCG token file to be the single source. A teammate drafted it, imported it into Figma and wrote down what happened.\n\nUse the exhibit. The shop, the file and the results are made up for this case. Tool details are from the vendors' pages in October 2026.",
+  "exhibit": "brand.tokens.json (draft, made up)\n\n  {\n    \"color\": {\n      \"$type\": \"color\",\n      \"green-600\": { \"$value\": { \"colorSpace\": \"srgb\",\n                     \"components\": [0.13, 0.45, 0.3], \"hex\": \"#21734d\" } },\n      \"brand\":  { \"$value\": \"{color.link}\" },\n      \"link\":   { \"$value\": \"{color.brand}\" }\n    },\n    \"space\": {\n      \"md\": { \"$type\": \"dimension\", \"$value\": { \"value\": 1, \"unit\": \"rem\" } }\n    },\n    \"font\": {\n      \"body\": { \"$value\": [\"Inter\", \"Arial\", \"sans-serif\"] }\n    }\n  }\n\nNOTES AFTER THE FIGMA IMPORT\n  1. color.brand and color.link: the import shows an error.\n  2. space.md: no variable was created.\n  3. font.body: no variable was created, and our checker says\n     the token is invalid.\n  4. The agent wrote a new page with the hex #21734d pasted in\n     the CSS, not the token name.",
+  "questions": [
+    {
+      "prompt": "Note 1: color.brand and color.link both fail. What is wrong with them?",
+      "options": [
+        {
+          "text": "They point at each other, and the spec says references must not be circular",
+          "explanation": "Right. brand points at link and link points at brand. The DTCG spec says references MUST NOT be circular.",
+          "correct": true
+        },
+        {
+          "text": "They have no $type, and an alias always needs a $type of its own",
+          "explanation": "An alias does not need its own $type: the spec takes it from the token it points at, or from its group. The real fault is that each one points at the other."
+        },
+        {
+          "text": "They use curly braces, and the spec allows only a hex code in $value",
+          "explanation": "Curly braces are the DTCG alias syntax. A $value can be a reference to another token."
+        },
+        {
+          "text": "They are aliases, and Figma variables cannot reference other variables",
+          "explanation": "Figma says any variable can reference another variable of the same type. The problem is the loop between the two tokens."
+        }
+      ]
+    },
+    {
+      "prompt": "Note 2: space.md made no variable in Figma. What is the most likely cause?",
+      "options": [
+        {
+          "text": "Figma imports dimension tokens only when the group name is spacing",
+          "explanation": "Figma's import table sets no group-name rule. It sets a unit rule for dimension tokens."
+        },
+        {
+          "text": "Its unit is rem, and Figma's import needs px for dimension tokens",
+          "explanation": "Right. Figma's import table says a dimension token's unit must be set to px. Other values are not supported.",
+          "correct": true
+        },
+        {
+          "text": "Its $type is set on the token, and Figma reads only a group $type",
+          "explanation": "The DTCG spec lets $type sit on a token or a group. Figma's import table names the unit, not where $type sits."
+        },
+        {
+          "text": "Its value is 1, and Figma skips a dimension token below the value 4",
+          "explanation": "Figma's import page has no minimum value. The unit rem is the problem: Figma needs px."
+        }
+      ]
+    },
+    {
+      "prompt": "Note 3: the checker says font.body is invalid. What does the DTCG spec say about it?",
+      "options": [
+        {
+          "text": "Tools should read a list of font names as a fontFamily type",
+          "explanation": "The spec says tools MUST NOT guess a type from the value. Without a $type, this token's type cannot be found."
+        },
+        {
+          "text": "A token outside the color group cannot hold a list of values",
+          "explanation": "The spec has no such rule. The fault is the missing $type: no $type on the token, and none on its group."
+        },
+        {
+          "text": "It has no $type and no group $type, so its type is unknown",
+          "explanation": "Right. With no $type on the token or a parent group, the spec says the type cannot be determined and the token MUST be considered invalid.",
+          "correct": true
+        },
+        {
+          "text": "Every token in the file needs a $description, and it has none",
+          "explanation": "The spec makes $description optional. The token fails because no $type can be found for it."
+        }
+      ]
+    },
+    {
+      "prompt": "Note 4: the agent pasted #21734d instead of the token name. Which fix best keeps the green in one place?",
+      "options": [
+        {
+          "text": "Paste the hex in a comment above the CSS rule so people can find it",
+          "explanation": "A comment is a second copy of the value. When the green changes, the hex in the CSS and the comment both go stale."
+        },
+        {
+          "text": "Ask the agent to read the green from a new screenshot each time",
+          "explanation": "A screenshot shows pixels, not names. The agent would still guess a hex instead of using the token."
+        },
+        {
+          "text": "Give the agent token names, such as from get_variable_defs, and use color.brand",
+          "explanation": "Right. The lesson's rule: give the agent names. Figma's get_variable_defs returns the variables used in a selection, so code can use color.brand.",
+          "correct": true
+        },
+        {
+          "text": "Copy the hex into the brand token too, so both places hold the same value",
+          "explanation": "That breaks the alias. color.brand should point at color.green-600, not hold a second copy of the value."
+        }
+      ]
+    }
+  ]
+}

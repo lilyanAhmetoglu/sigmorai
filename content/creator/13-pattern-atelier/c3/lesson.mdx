@@ -1,0 +1,96 @@
+---
+id: creator/r13/c3/lesson
+title: Rules files
+minutes: 8
+sources:
+  - kind: docs
+    title: Figma developer docs · Add custom rules and instructions (Figma MCP server)
+    url: https://developers.figma.com/docs/figma-mcp-server/add-custom-rules/
+  - kind: docs
+    title: Claude Code docs · How Claude remembers your project (CLAUDE.md)
+    url: https://code.claude.com/docs/en/memory
+  - kind: docs
+    title: OpenAI Codex docs · Custom instructions with AGENTS.md
+    url: https://learn.chatgpt.com/docs/agent-configuration/agents-md
+---
+
+## Why it matters
+
+Monday: you tell the agent "use our Button component, not a new one". It does. Tuesday, in a new session, it builds a new button again. You type the same rule again. By Friday you have typed it five times, and one teammate never typed it at all.
+
+The fix is a **rules file**: a plain text file the agent reads at the start of every session. You write the design do's and don'ts once. Every session and every teammate gets the same rules.
+
+Context Library, chapter 1, gave image models a short brand card and the rule "one rule, one place". A rules file is that card for a coding agent. Chapters 1 and 2 of this realm gave the agent tokens and modes. This chapter tells it how to use them.
+
+A note on dates. The file names and limits below are from each vendor's page in October 2026.
+
+## Three vendors, one idea
+
+**Figma** says its MCP server works better with project rules. It calls them "the 'unwritten rules' of a codebase that experienced devs know, and would want to pass on to a new junior hire". Figma says adding them once "can dramatically reduce the need for repetitive prompting". Figma does not choose the file for you: "check your IDE or MCP client's documentation for how to structure rules."
+
+**Anthropic.** Claude Code reads **CLAUDE.md** files. Claude "reads them at the start of every session". A project file sits at `./CLAUDE.md` or `./.claude/CLAUDE.md` and is shared "with your team through version control".
+
+**OpenAI.** Codex reads **AGENTS.md**: "Codex reads AGENTS.md files before doing any work." There is a global file in your Codex home folder and project files from the repo root down to the folder you work in.
+
+| Tool (October 2026) | Project rules file                      | Notes from the page                                                |
+| ------------------- | --------------------------------------- | ------------------------------------------------------------------ |
+| Claude Code         | `CLAUDE.md` (or `AGENTS.md`, see below) | "target under 200 lines per CLAUDE.md file"                        |
+| Codex               | `AGENTS.md` (`AGENTS.override.md` wins) | stops adding files at `project_doc_max_bytes`, "32 KiB by default" |
+| Figma MCP server    | whatever your agent reads               | gives example rules for Figma work                                 |
+
+## One file for two agents
+
+Many teams use more than one agent. Claude Code can read AGENTS.md too, with one catch. By default, "Claude reads AGENTS.md only when you have no CLAUDE.md in your working directory or above it". If you have both, Claude reads "Your CLAUDE.md files only".
+
+The page names a fix: "A CLAUDE.md that already imports AGENTS.md". A CLAUDE.md can import a file with `@path/to/import`. So one way to share rules is this (our example):
+
+- `AGENTS.md` holds the design rules. Codex reads it.
+- `CLAUDE.md` holds one line, `@AGENTS.md`, plus anything only Claude needs.
+
+Now there is one place to change a rule (our advice).
+
+## What goes in: design do's and don'ts
+
+Figma's list of "unwritten rules" is a good start: "Which layout primitives to use", "Where component files belong", "How components should be named", "What should never be hardcoded".
+
+Figma's own example rules include:
+
+- "IMPORTANT: Always use components from `/path_to_your_design_system` when possible"
+- "Avoid hardcoded values, use design tokens from Figma where available"
+- "Follow WCAG requirements for accessibility"
+
+It also gives a required order of tools for every Figma task. Run `get_design_context` first. If that is too large, run `get_metadata`, then fetch only the nodes you need. Run `get_screenshot`. Only then build. And "Validate against Figma for 1:1 look and behavior before marking complete."
+
+One Figma rule settles a common fight: "When conflicts arise, prefer design‑system tokens and adjust spacing or sizes minimally to match visuals."
+
+## Write rules an agent can check
+
+Anthropic's advice: write instructions "concrete enough to verify". Its examples: "Use 2-space indentation" instead of "Format code properly", and "API handlers live in src/api/handlers/" instead of "Keep files organized".
+
+For design, that means (our examples):
+
+- Weak: "Use brand colours." Strong: "Colours come from `brand.tokens.json`. Never write a hex code in a component."
+- Weak: "Respect dark mode." Strong: "Every new screen is built in Light and Dark. Name the mode in the task."
+- Weak: "Reuse things." Strong: "Use `Button` from `src/ui/`. Do not create a new button component."
+
+## Keep it short and without conflicts
+
+Long files cost more and work worse. Anthropic says: "Longer files consume more context and reduce adherence." For rules that matter only in one part of the code, Claude Code has `.claude/rules/` files with a `paths` field, which "only apply when Claude is working with files matching the specified patterns". Codex lets a folder deeper in the repo add its own AGENTS.md: "Files closer to your current directory override earlier guidance because they appear later in the combined prompt."
+
+Contradictions are worse than gaps. Anthropic: "if two instructions contradict each other, Claude may pick one arbitrarily." If the root file says "8px spacing grid" and a folder file says "4px grid", decide which is true and delete the other (our advice).
+
+## A rule is not a lock
+
+Anthropic is clear that CLAUDE.md is "context, not enforced configuration". To block an action no matter what Claude decides, it points to a **PreToolUse hook**: a script that runs before a tool call and can stop it (our plain gloss).
+
+So use rules to guide and checks to prove (our advice). "Never write a hex code" is a rule. A lint check that fails the build on a hex code in a component is proof. Chapter 5 of this realm does the same for colour contrast.
+
+## What this means for your work
+
+- **Write the rule once.** In a file the agent reads every session, not in chat.
+- **Know who reads what.** Claude Code: CLAUDE.md. Codex: AGENTS.md. Figma's rules go in whichever file your agent reads.
+- **Share one file.** Put rules in AGENTS.md and import it from CLAUDE.md with `@AGENTS.md`.
+- **Make rules checkable.** Name the file, the component, the token.
+- **Keep it short.** Under 200 lines for a CLAUDE.md; Codex stops at 32 KiB by default.
+- **Remove conflicts.** Two rules that disagree make the agent guess.
+- **Back key rules with checks.** A rules file guides; it does not enforce.
