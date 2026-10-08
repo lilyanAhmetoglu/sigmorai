@@ -41,6 +41,7 @@ const SOURCES: KbSource[] = [
   source('elevenlabs-docs', 'docs', 'https://elevenlabs.io/docs'),
   source('elevenlabs-use-policy', 'docs', 'https://elevenlabs.io/use-policy'),
   source('storybook-docs', 'docs', 'https://storybook.js.org'),
+  source('geminicli-docs', 'docs', 'https://geminicli.com'),
 ];
 
 describe('citedPages', () => {
@@ -94,6 +95,13 @@ describe('markdownUrl', () => {
     expect(markdownUrl('https://ui.shadcn.com/docs/mcp')).toBe('https://ui.shadcn.com/docs/mcp.md');
     expect(markdownUrl('https://storybook.js.org/blog/a-post')).toBe(
       'https://storybook.js.org/blog/a-post',
+    );
+    // geminicli.com pages end in a slash; the .md copy drops it.
+    expect(markdownUrl('https://geminicli.com/docs/hooks/')).toBe(
+      'https://geminicli.com/docs/hooks.md',
+    );
+    expect(markdownUrl('https://geminicli.com/extensions/browse/')).toBe(
+      'https://geminicli.com/extensions/browse/',
     );
   });
 
@@ -158,6 +166,7 @@ describe('fetchTargets', () => {
     );
     // A host-root source (storybook.js.org) reads the site's llms.txt, not /docs/llms.txt.
     expect(byUrl('https://storybook.js.org/llms.txt')?.sourceId).toBe('storybook-docs');
+    expect(byUrl('https://geminicli.com/llms.txt')?.sourceId).toBe('geminicli-docs');
     expect(targets).toHaveLength(2 + SOURCES.length);
   });
 
