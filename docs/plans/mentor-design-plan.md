@@ -13,6 +13,16 @@
 - ...
 -->
 
+## Amendments locked 2026-10-08 (credits)
+
+Layered on top of the blocks below; this one wins where they disagree. Full contract: `docs/plans/credits-design-plan.md`.
+
+- **The main limit is now 20 free questions per calendar month (UTC) + paid credits** (1 credit = 1 question, Stripe Checkout packs). This replaces "30 questions per UTC day for everyone" as the main limit. Why: a daily cap for everyone gave heavy learners no way to keep going and gave light learners more than the budget can carry.
+- **A daily abuse cap stays: 100 questions per user per UTC day** (free + paid). 429 `daily_cap`, new text. The 5/min cap is unchanged.
+- **The $50 global monthly budget stays as a kill switch** for everyone. No credit is spent while the mentor is paused.
+- **`no_match` costs nothing; an `error`/`timeout` with no output is given back.** `stopped` is charged.
+- **Route order change:** after the cheap checks, a balance pre-check (402 `no_credits`), then retrieval, then **one transaction** that locks the user row (`FOR UPDATE`), picks free or credit, inserts the `started` usage row and, for a credit, the `spend` ledger row. `mentor_usage` gains `billing` (`free` / `credit` / `none`). SCHEMA REVIEW REQUIRED (db-architect), see the credits plan.
+
 ## Amendments locked 2026-10-08 (devil + db-architect pass)
 
 Both gates said "refine before building". These amendments win over the body below where they disagree. Where the two reviews disagreed, the simpler option was picked and the reason is given.
