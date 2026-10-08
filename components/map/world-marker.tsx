@@ -21,9 +21,11 @@ export const anchorStyle = ({ x, y }: WorldPlace) =>
  * visible pin (realm number + a state pip: a shape per state, explained in
  * the map key), so the land shows around it. The tag sits above it and,
  * from zoom 1, the name on a thin plate below it. It does not scale with the zoom. The accessible
- * name starts with the visible number and name (WCAG 2.5.3), then state,
- * cleared of total, and the tag; a specialist realm adds "creator only"
- * after its name. Styles: world-map.css.
+ * name starts with the visible text in screen order (WCAG 2.5.3): number,
+ * tag, name; then state and cleared of total. A specialist realm adds
+ * "creator only" after its name. No prefetch: a map has many markers in
+ * view at once, and each would fetch its realm on load (the path list
+ * under the map links the same realms). Styles: world-map.css.
  */
 export function WorldMarker({ realm, tag }: Props) {
   const state = REALM_STATUS_TEXT[realm.status];
@@ -39,6 +41,7 @@ export function WorldMarker({ realm, tag }: Props) {
   return (
     <Link
       href={realm.href}
+      prefetch={false}
       className="world-marker"
       data-accent={realmAccent(realm.id)}
       data-status={realm.status}
@@ -46,13 +49,15 @@ export function WorldMarker({ realm, tag }: Props) {
       aria-label={label}
       style={anchorStyle(realm.place)}
     >
+      {/* The {' '} keep the visible text "01 YOU ARE HERE PROMPT FOREST", as in
+          the label, not "01YOU ARE HERE…". The grid drops them from layout. */}
       <span className="world-marker-pin">
         {realmNumber(realm.id)}
         <span className="world-marker-pip">
           <StatusPip status={realm.status} />
         </span>
-      </span>
-      {tag && <span className="world-marker-tag">{tag}</span>}
+      </span>{' '}
+      {tag && <span className="world-marker-tag">{tag}</span>}{' '}
       <span className="world-marker-name">{realm.name}</span>
     </Link>
   );

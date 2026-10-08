@@ -23,10 +23,13 @@ const atkinson = Atkinson_Hyperlegible({
   style: ['normal', 'italic'],
 });
 
-// Greek too: the Math Tower formulas use Σ, θ, η.
+// Greek too: the Math Tower formulas use Σ, θ, η. Not preloaded: only code
+// and formulas use it, so most pages (the map, the landing) never need its
+// two files, and a preload would put them ahead of the page's own requests.
 const jetbrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
   subsets: ['latin', 'greek'],
+  preload: false,
 });
 
 export const metadata: Metadata = {
