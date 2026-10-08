@@ -9,7 +9,6 @@ import {
   BOSS_SEGMENT,
   BOSS_STEP,
   CASE_FILE,
-  CHAPTER_COUNT,
   CHAPTER_STEPS,
   CONTENT_DIR,
   CONTENT_NOTES_FILE,
@@ -18,20 +17,32 @@ import {
   LESSON_FILE,
   MATH_AREA,
   MATH_FLOORS,
+  MAX_CHAPTERS,
+  MIN_CHAPTERS,
   OUTLINE_FILE,
   QUICK_CHECK_FILE,
+  REALMS,
   SHARED_CHAPTERS_FILE,
   SIDE_STEPS,
   TRACKS,
+  trackRealms,
 } from '@/lib/constants';
-import { MathOutlineSchema, TrackOutlineSchema, type SharedChaptersFile } from '@/lib/types';
+import {
+  MathOutlineSchema,
+  trackOutlineSchema,
+  type SharedChaptersFile,
+  type Track,
+  type TrackOutline,
+} from '@/lib/types';
 import { headingProblems } from './blog';
+import { outlineChapterCount, realmFolder } from './curriculum';
 import {
   buildExerciseId,
   frontierExerciseIds,
   parseBlogFileName,
   parseChapterId,
   parseExerciseId,
+  realmExerciseIds,
   trackExerciseIds,
 } from './ids';
 import {
@@ -45,6 +56,7 @@ import {
   loadLesson,
   loadQuickCheck,
   loadSharedChapters,
+  loadTrackOutline,
 } from './load';
 import { compileLesson, NO_COMPONENTS } from './mdx';
 import { exerciseFile } from './paths';
@@ -61,14 +73,39 @@ import { isUnderBase } from './source-urls';
 /** One problem. `file` is relative to the content root. */
 export type ContentIssue = { file: string; message: string };
 
-const UNEXPECTED =
+/**
+ * "unexpected file", naming what is allowed. `chapters` is the realm's range
+ * from its track's outline (`c1–c6`) when the file sits in a known realm
+ * folder, else the general form.
+ */
+const unexpected = (chapters = `c1–c<N from ${OUTLINE_FILE}>`) =>
   `unexpected file. Allowed: ${LESSON_FILE}, ${CASE_FILE} or ${QUICK_CHECK_FILE} inside ` +
-  `<track>/<NN-realm>/c1–c${CHAPTER_COUNT} or ${BOSS_SEGMENT}, ${MATH_AREA}/f1–f${MATH_FLOORS.length}, ` +
+  `<track>/<NN-realm>/${chapters} or ${BOSS_SEGMENT}, ${MATH_AREA}/f1–f${MATH_FLOORS.length}, ` +
   `${FRONTIER_AREA}/<date>-<slug>, ${BLOG_AREA}/<date>-<slug>.mdx, or ${SHARED_CHAPTERS_FILE} at the root. Move or rename it.`;
 
-/** Every exercise file the id grammar allows, keyed by path → id. Frontier folders come from disk. */
-function knownExerciseFiles(frontierFolders: string[]): Map<string, string> {
-  const ids: string[] = TRACKS.flatMap(trackExerciseIds);
+/** A track's outline, or null when it is missing or invalid (checkOutline already names why). */
+type Outlines = ReadonlyMap<Track, TrackOutline | null>;
+
+async function loadOutlines(root: string): Promise<Outlines> {
+  const loaded = await Promise.all(
+    TRACKS.map((track) => loadTrackOutline(track, root).catch(() => null)),
+  );
+  return new Map(TRACKS.map((track, i) => [track, loaded[i]]));
+}
+
+/**
+ * A track's realm ids, chapters from its outline. A track whose outline did
+ * not load allows up to MAX_CHAPTERS in each realm the track has (core +
+ * its own specialist realms), so its files are not flagged twice.
+ */
+const trackIds = (track: Track, outline: TrackOutline | null): string[] =>
+  outline
+    ? trackExerciseIds(track, outline)
+    : trackRealms(track).flatMap((realm) => realmExerciseIds(track, realm.id, MAX_CHAPTERS));
+
+/** Every exercise file the outlines and the id grammar allow, keyed by path → id. Frontier folders come from disk. */
+function knownExerciseFiles(outlines: Outlines, frontierFolders: string[]): Map<string, string> {
+  const ids: string[] = [...outlines].flatMap(([track, outline]) => trackIds(track, outline));
   for (const { n } of MATH_FLOORS) {
     for (const step of SIDE_STEPS) ids.push(buildExerciseId({ area: MATH_AREA, floor: n, step }));
   }
@@ -97,6 +134,46 @@ function frontierMissingFiles(folders: string[], files: string[]): ContentIssue[
     }
   }
   return issues;
+}
+
+/**
+ * A core realm's outline grows only with its files (path-curriculum spec,
+ * amendments 2026-10-07): every outline chapter past MIN_CHAPTERS needs its
+ * lesson, case and quick check on disk, so a grown realm never re-locks its
+ * boss behind chapters nobody can play.
+ */
+function grownChapterMissingFiles(outlines: Outlines, files: string[]): ContentIssue[] {
+  const issues: ContentIssue[] = [];
+  for (const [track, outline] of outlines) {
+    for (const realm of outline?.realms ?? []) {
+      for (let chapter = MIN_CHAPTERS + 1; chapter <= realm.chapters.length; chapter++) {
+        for (const step of CHAPTER_STEPS) {
+          const ref = { area: 'chapter', track, realm: realm.id, chapter, step } as const;
+          const rel = exerciseFile(ref);
+          if (!files.includes(rel)) {
+            issues.push({
+              file: rel,
+              message: `Chapter ${chapter} is in ${track}/${OUTLINE_FILE}. A chapter past ${MIN_CHAPTERS} needs ${LESSON_FILE}, ${CASE_FILE} and ${QUICK_CHECK_FILE}. Add content/${rel}, or remove the chapter from the outline.`,
+            });
+          }
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+/** Realm folder (`00-bootstrap-village`) → realm id, for the "unexpected file" message. */
+const REALM_BY_FOLDER = new Map(REALMS.map((r) => [realmFolder(r.id), r.id]));
+
+/** `c1–c<N>` for a file inside a realm folder of a track whose outline loaded, else undefined. */
+function allowedChapters(rel: string, outlines: Outlines): string | undefined {
+  const [track, folder] = rel.split('/');
+  const outline = outlines.get(track as Track);
+  const realm = REALM_BY_FOLDER.get(folder);
+  if (!outline || realm === undefined) return undefined;
+  const count = outlineChapterCount(outline, realm);
+  return count === null ? undefined : `c1–c${count}`;
 }
 
 /** The post's file name when `rel` is a well-named blog post (blog/<YYYY-MM-DD>-<slug>.mdx). */
@@ -284,6 +361,7 @@ const NOT_SHAREABLE = {
 async function sharedChapterProblems(
   data: SharedChaptersFile,
   root: string,
+  outlines: Outlines,
   rel: string = SHARED_CHAPTERS_FILE,
 ): Promise<ContentIssue[]> {
   const issues: ContentIssue[] = [];
@@ -324,6 +402,16 @@ async function sharedChapterProblems(
         push(group.id, `two members are on the ${ref.track} track. Use one chapter per track.`);
       }
       tracks.add(ref.track);
+      // The grammar allows c1–c12; the realm's outline may have fewer.
+      const outline = outlines.get(ref.track);
+      const count = outline ? outlineChapterCount(outline, ref.realm) : null;
+      if (count !== null && ref.chapter > count) {
+        push(
+          group.id,
+          `${member} is past the realm's chapter count (c1–c${count} in ${ref.track}/${OUTLINE_FILE}).`,
+        );
+        continue;
+      }
       for (const step of CHAPTER_STEPS) {
         const id = buildExerciseId({ area: 'chapter', ...ref, step });
         if (!(await hasContent(id, root))) {
@@ -336,10 +424,15 @@ async function sharedChapterProblems(
 }
 
 /** Loads content/shared-chapters.json with its schema, then checks its rules. */
-async function checkSharedChapters(abs: string, rel: string, issues: ContentIssue[]) {
+async function checkSharedChapters(
+  abs: string,
+  rel: string,
+  outlines: Outlines,
+  issues: ContentIssue[],
+) {
   try {
     const data = await loadSharedChapters(abs);
-    issues.push(...(await sharedChapterProblems(data, abs, rel)));
+    issues.push(...(await sharedChapterProblems(data, abs, outlines, rel)));
   } catch (err) {
     issues.push({ file: rel, message: detail(err) });
   }
@@ -355,8 +448,10 @@ export async function validateContent(
   const official = await officialBases(abs, issues);
 
   const frontier = await listFrontierFolders(abs);
-  const exercises = knownExerciseFiles(frontier);
+  const outlines = await loadOutlines(abs);
+  const exercises = knownExerciseFiles(outlines, frontier);
   issues.push(...frontierMissingFiles(frontier, files));
+  issues.push(...grownChapterMissingFiles(outlines, files));
 
   /** slug → the first file that used it: two posts may not share a URL. */
   const blogSlugs = new Map<string, string>();
@@ -378,15 +473,16 @@ export async function validateContent(
       continue;
     }
     if (rel === SHARED_CHAPTERS_FILE) {
-      await checkSharedChapters(abs, rel, issues);
+      await checkSharedChapters(abs, rel, outlines, issues);
       continue;
     }
     if (rel === `${MATH_AREA}/${OUTLINE_FILE}`) {
       await checkOutline(abs, rel, MathOutlineSchema, issues);
       continue;
     }
-    if ((TRACKS as readonly string[]).some((t) => rel === `${t}/${OUTLINE_FILE}`)) {
-      await checkOutline(abs, rel, TrackOutlineSchema, issues);
+    const outlineTrack = TRACKS.find((t) => rel === `${t}/${OUTLINE_FILE}`);
+    if (outlineTrack) {
+      await checkOutline(abs, rel, trackOutlineSchema(outlineTrack), issues);
       continue;
     }
     const id = exercises.get(rel);
@@ -396,7 +492,10 @@ export async function validateContent(
       const parts = rel.split('/');
       const [area, folder] = parts;
       const badFolder = parts.length === 3 && area === FRONTIER_AREA && !frontier.includes(folder);
-      issues.push({ file: rel, message: badFolder ? FRONTIER_FOLDER : UNEXPECTED });
+      issues.push({
+        file: rel,
+        message: badFolder ? FRONTIER_FOLDER : unexpected(allowedChapters(rel, outlines)),
+      });
       continue;
     }
     try {

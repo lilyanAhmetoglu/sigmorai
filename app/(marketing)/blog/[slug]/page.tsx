@@ -131,7 +131,7 @@ export default async function BlogPostPage({ params }: PageProps<'/blog/[slug]'>
 
         <div className="post-layout">
           <article className="post-article">
-            <LessonBody body={post.body} />
+            <LessonBody body={post.body} kind="blog" />
             <section
               id={BLOG_TEXT.sourcesId}
               className="post-sources"

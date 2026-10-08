@@ -13,10 +13,10 @@ import {
   QUEST_ERROR_TEXT,
   QUEST_TEXT,
   questHref,
-  REALMS,
+  realmRow,
 } from '@/lib/constants';
-import { isRealmOpen, realmAccent } from '@/lib/content/curriculum';
-import { buildExerciseId, parseExerciseId, questBackHref } from '@/lib/content/ids';
+import { isRealmOpen, outlineChapterCount, realmAccent } from '@/lib/content/curriculum';
+import { buildExerciseId, parseExerciseId, questBackHref, segment } from '@/lib/content/ids';
 import {
   ContentError,
   hasContent,
@@ -30,6 +30,7 @@ import { toPublicCase, toPublicQuickCheck } from '@/lib/content/public';
 import { readAttempts } from '@/lib/grading/attempts';
 import { gradedKind, hpNow, nextCaseId, triesLeft } from '@/lib/grading/case';
 import { checkOpen } from '@/lib/grading/open';
+import { trackOutline } from '@/lib/grading/outline';
 import { newSeed, shuffleQuestions } from '@/lib/grading/shuffle';
 import type {
   Accent,
@@ -39,7 +40,6 @@ import type {
   GradedKind,
   Lesson,
   LessonViewer,
-  RealmId,
 } from '@/lib/types';
 import { nextUtcDayStart } from '@/lib/xp/day';
 import { getHudState } from './hud';
@@ -100,7 +100,8 @@ function tagFor(ref: PlayableRef, step: keyof typeof STEP_TAG): string {
   if (ref.area === FRONTIER_AREA) {
     return `${QUEST_TEXT.frontierArea} · ${ref.date} · ${STEP_TAG[step]}`;
   }
-  const realm = REALMS[ref.realm as RealmId].name.toUpperCase();
+  // The grammar only parses a realm with a REALMS row; the fallback is `R9`, never a crash.
+  const realm = (realmRow(ref.realm)?.name ?? segment('realm', ref.realm)).toUpperCase();
   const where = ref.area === 'boss' ? QUEST_TEXT.bossTag : QUEST_TEXT.chapterTag(ref.chapter);
   return `${realm} · ${where} · ${STEP_TAG[step]}`;
 }
@@ -108,23 +109,29 @@ function tagFor(ref: PlayableRef, step: keyof typeof STEP_TAG): string {
 function accentFor(ref: PlayableRef): Accent {
   if (ref.area === MATH_AREA) return 'math';
   if (ref.area === FRONTIER_AREA) return 'neutral';
-  return realmAccent(ref.realm as RealmId);
+  return realmAccent(ref.realm);
 }
 
 /** The lesson's NPC. The Frontier has none (no DialogBox, no lore). */
 function npcFor(ref: LessonRef): string | undefined {
   if (ref.area === MATH_AREA) return MATH_TOWER.npc;
   if (ref.area === FRONTIER_AREA) return undefined;
-  return REALMS[ref.realm as RealmId].npc;
+  return realmRow(ref.realm)?.npc;
 }
 
 /**
  * The step a pass leads to: the next case, or (Math Tower) the next floor's
- * lesson. The Frontier has no order: Continue goes back to its page.
+ * lesson. The Frontier has no order: Continue goes back to its page. A realm's
+ * last chapter is its outline count (6 to 12), so a grown realm's c6 leads to c7.
  */
-function nextStepId(ref: PlayableRef): string | null {
-  if (ref.area === FRONTIER_AREA) return null;
-  if (ref.area !== MATH_AREA) return nextCaseId(ref);
+async function nextStepId(ref: PlayableRef): Promise<string | null> {
+  // Nothing comes after a boss; the Frontier has no order.
+  if (ref.area === FRONTIER_AREA || ref.area === 'boss') return null;
+  if (ref.area !== MATH_AREA) {
+    const count = outlineChapterCount(await trackOutline(ref.track), ref.realm);
+    // A realm missing from the outline has no next case (checkOpen rejects it anyway).
+    return count === null ? null : nextCaseId(ref, count);
+  }
   return ref.floor < MATH_FLOOR_COUNT
     ? buildExerciseId({ area: MATH_AREA, floor: ref.floor + 1, step: 'lesson' })
     : null;
@@ -132,7 +139,7 @@ function nextStepId(ref: PlayableRef): string | null {
 
 /** Continue after a pass: the next step if it has content, else the realm or tower page. */
 async function nextHrefFor(ref: PlayableRef, exerciseId: string): Promise<string> {
-  const next = nextStepId(ref);
+  const next = await nextStepId(ref);
   return next && (await hasContent(next)) ? questHref(next) : questBackHref(exerciseId);
 }
 
@@ -207,7 +214,7 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
   if (!ref || !(await hasContent(exerciseId))) return { kind: 'not-found' };
   if (
     (ref.area === 'chapter' || ref.area === 'boss') &&
-    !isRealmOpen(REALMS[ref.realm as RealmId].tier)
+    !isRealmOpen(realmRow(ref.realm)?.tier ?? 'advanced')
   ) {
     return { kind: 'locked', message: QUEST_ERROR_TEXT.TIER_LOCKED };
   }
@@ -321,7 +328,9 @@ async function lessonPage(ref: LessonRef, exerciseId: string): Promise<QuestPage
 async function lessonDescription(ref: LessonRef): Promise<string> {
   if (ref.area === MATH_AREA) return (await loadMathOutline()).floors[ref.floor - 1].covers;
   if (ref.area === FRONTIER_AREA) return FRONTIER_TEXT.description;
-  return (await loadTrackOutline(ref.track)).realms[ref.realm].topic;
+  // The outline lists realms in map order, not by number: find by id.
+  const realm = (await loadTrackOutline(ref.track)).realms.find((r) => r.id === ref.realm);
+  return realm?.topic ?? realmRow(ref.realm)?.name ?? '';
 }
 
 /** Title, description and canonical for any lesson (realm, Math Tower, Frontier); null otherwise. */

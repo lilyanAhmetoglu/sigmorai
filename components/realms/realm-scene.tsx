@@ -1,11 +1,10 @@
 import Image from 'next/image';
 import { LEVEL_ART_LAYERS } from '@/lib/constants';
 import { realmArt } from '@/lib/content/curriculum';
-import type { RealmId } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 /** A realm's art (by its id), or any other scene's art base path (the Math Tower: MATH_ART). */
-type Art = { realm: RealmId; art?: never } | { art: string; realm?: never };
+type Art = { realm: number; art?: never } | { art: string; realm?: never };
 
 type Props = Art & {
   /**
@@ -22,9 +21,14 @@ type Props = Art & {
  * A realm's (or the Math Tower's) level art: the four parallax layers stacked, static. Decoration
  * only (aria-hidden, empty alt); the realm name next to it carries the
  * meaning. The parent sets the box size. Styles: realms.css.
+ * A realm with no art yet (`scene: false`) is a flat dark surface fill
+ * (surface-3), never another realm's art (path-curriculum spec).
  */
 export function RealmScene({ realm, art, sizes, preload = false, className }: Props) {
   const base = art ?? realmArt(realm!);
+  if (!base) {
+    return <div className={cn('realm-scene', className)} data-flat="" aria-hidden="true" />;
+  }
   return (
     <div className={cn('realm-scene', className)} aria-hidden="true">
       {LEVEL_ART_LAYERS.map((layer) => (

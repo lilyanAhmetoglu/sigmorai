@@ -1,7 +1,6 @@
 import type { Audience, Track } from '@/lib/types';
-import { REALMS, TRACK_ACCENTS } from './curriculum';
+import { coreRealms, TRACK_ACCENTS } from './curriculum';
 import { QUICK_CHECK_QUESTIONS } from './content';
-import { CHAPTER_COUNT } from './exercises';
 import { HP_PER_CHALLENGE, XP_REWARDS } from './xp';
 import { SITE_NAME } from './site';
 
@@ -11,14 +10,15 @@ import { SITE_NAME } from './site';
  * (landing screen, TR table). Only claims the curriculum backs up.
  */
 
-const beginnerRealms = REALMS.filter((realm) => realm.tier === 'beginner');
+// The core realms: every path has them (specialist realms are on one path only).
+const beginnerRealms = coreRealms().filter((realm) => realm.tier === 'beginner');
 const firstRealm = beginnerRealms[0];
 const lastRealm = beginnerRealms[beginnerRealms.length - 1];
 
 export const LANDING_META = {
   title: `${SITE_NAME}: learn AI engineering as a pixel-art RPG`,
   description:
-    'Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people, developers and designers.',
+    'From how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. Paths for beginners, business people, developers and designers.',
 } as const;
 
 export const LANDING_TEXT = {
@@ -27,7 +27,7 @@ export const LANDING_TEXT = {
   continueQuest: 'Continue quest',
   eyebrow: 'AI ENGINEERING · PIXEL-ART RPG',
   title: 'Start your AI engineering adventure.',
-  lede: `Nine realms, from how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work, or how to make AI media.`,
+  lede: `From how a model reads a prompt to multi-agent systems in production. Every lesson cites its sources. You clear a level by deciding a real scenario: how to design the system, or how to use it at work, or how to make AI media.`,
   audienceEyebrow: 'WHO IT IS FOR',
   audienceTitle: 'Pick the path that fits you',
   audienceIntro:
@@ -42,9 +42,9 @@ export const LANDING_TEXT = {
     `Clear the realm's boss case (+${XP_REWARDS.boss} XP) to earn a certificate you can share.`,
   ],
   realmsEyebrow: 'THE MAP',
-  realmsTitle: `${REALMS.length} realms, one world`,
+  realmsTitle: 'One map, a path for every job',
   /** Keep in step with OPEN_TIERS (curriculum.ts): beginner + intermediate today. */
-  realmsIntro: `Each realm is a course: ${CHAPTER_COUNT} chapters and a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
+  realmsIntro: `Each realm is a course: its chapters, then a boss. Beginner and intermediate realms are open now; the advanced ones open later.`,
   realmsAll: 'Explore all realms',
   blogEyebrow: 'FROM THE BLOG',
   blogTitle: 'Latest posts',

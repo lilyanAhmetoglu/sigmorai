@@ -1,0 +1,110 @@
+---
+id: creator/r10/c3/lesson
+title: Longer cuts
+minutes: 8
+sources:
+  - kind: docs
+    title: Gemini API docs · Generate videos with Veo 3.1
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: Google Cloud docs · Video generation prompt guide (Veo)
+    url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/video/video-gen-prompt-guide
+  - kind: docs
+    title: Luma Agents docs · Video generation
+    url: https://docs.agents.lumalabs.ai/guides/videos/generation
+  - kind: docs
+    title: Runway API docs · Multi-Shot Video recipe
+    url: https://docs.dev.runwayml.com/recipes/multi-shot-video
+  - kind: docs
+    title: Runway API docs · API reference
+    url: https://docs.dev.runwayml.com/api
+---
+
+## Why it matters
+
+A bike shop wants a 20-second clip: a rider climbs a hill, reaches the top, and the shop's logo appears. Most video models make short clips. Bootstrap Village, chapter 4, listed the limits. So a longer clip is made of parts.
+
+Every join between two parts is a **seam**. A seam is where things break: the jacket changes colour, or the sun jumps to the other side. This chapter shows three ways to make a clip longer, and how to check each seam.
+
+## Three ways to go longer
+
+This grouping is ours.
+
+| Way    | What happens                           | Result              |
+| ------ | -------------------------------------- | ------------------- |
+| Extend | The model continues a clip it made     | one continuous take |
+| Chain  | The last frame of clip A starts clip B | two clips, joined   |
+| Cut    | Separate shots, joined on purpose      | a visible cut       |
+
+## Extend forward
+
+**Google Veo.** Google says you can "extend videos that you previously generated with Veo". The model takes the end of your clip and goes on: "Extend finalizes the final second or 24 frames of your video and continues the action." The result is "a single video combining the user input video and the generated extended video".
+
+Rules to plan around (October 2026):
+
+- Only Veo-made clips: "Gemini API only supports video extensions for Veo-generated videos."
+- Only recent ones: "You can only extend videos that were generated or referenced in the last two days." Using a clip for an extension resets its 2-day timer.
+- Only some models: extension is for "Veo 3.1 & Veo 3.1 Fast models only, not Veo 3.1 Lite".
+
+The prompt says what happens next, not the whole scene again. Google's example: "Extend this video with the paraglider slowly descending."
+
+Watch the sound. Google notes that "voice is not able to be effectively extended if it's not present in the last 1 second of video". So if the rider must keep talking after the seam, plan clip A so her voice is still there in its last second (our reading of that note).
+
+**Luma.** You extend by passing the old clip's id as a frame. Put it in `video.start_frame` for a "Forward extend — the prior clip becomes the start, and the new generation continues after it". Extend is "standard dynamic range only" (no HDR: the wider range of bright and dark).
+
+**Runway.** Some models take a `mode` of `extend` on video-to-video. For Gemini Omni Flash 1.1 there, the duration "is the amount of footage added to the input video". Check each model's list in the API reference.
+
+## Extend backward
+
+Sometimes the end is fixed and the start is missing. The client approved the logo shot on the hilltop. Now you need the climb before it.
+
+Luma has a direct way. Put the approved clip's id in `video.end_frame` for a "Backward extend — the prior clip becomes the end, and the new generation is prepended before it". (Prepended means added before.) Luma notes that `loop` works only on a forward extend.
+
+## Chain by the last frame
+
+This method is ours, and it works with any model that takes a first frame (chapter 2). Save the last frame of clip A as an image. Use it as the first frame of clip B. Then join A and B in your editor.
+
+Google points to this habit for its first and last frames: "Upload an image or use a frame from a previous video generation to make sure your scene begins and concludes exactly as you envision it."
+
+Chain when you change model between parts, or when the extend feature is not offered (our advice). This is for a smooth seam. For the character's look, still check against the cast sheet (Context Library, chapter 5). Two cautions:
+
+- The camera move may change speed at the seam. Write the same move into both prompts (chapter 1).
+- A frame in the wrong shape gets cropped (Tool Forge, chapter 4).
+
+## Cut on purpose
+
+Not every seam must hide. Runway's Multi-Shot recipe makes videos "composed of multiple shots that cut between scenes". Its tips: "Write one clear idea per shot", order shots "the way you want them to play", and "Reuse the same product or style language across shots for visual consistency".
+
+Google's guide lists editing words you can put in a prompt: "match cut", "jump cut", "establishing shot sequence", "montage".
+
+One editing habit helps a lot (our advice): **cut on action.** End shot A while something moves, and start shot B in the middle of the same movement, from a new angle. Example: in shot A the rider stands up on the pedals; shot B starts as she is half up, seen from the side. The movement carries the eye across the cut.
+
+## Check every seam
+
+This checklist is ours. Watch each seam at full speed, then frame by frame.
+
+| Check     | Question                                           |
+| --------- | -------------------------------------------------- |
+| Subject   | Same jacket, same bike, same logo?                 |
+| Light     | Sun on the same side? Same time of day?            |
+| Direction | Is the rider still moving left to right?           |
+| Camera    | Does the move keep its speed and direction?        |
+| Sound     | Does the background noise jump? Does a voice stop? |
+
+If a seam fails, fix the part after it. Chain again from the last good frame (our advice).
+
+## Keep the parts
+
+Longer clips have more parts to lose. Luma says: "The generation id does not expire — keep it if you plan to edit, extend, or reframe the video later." Its download links expire "after 1 hour". Veo removes videos after 2 days (Tool Forge, chapter 4).
+
+So keep a parts log (our habit): clip name, tool, id, prompt, first and last frame files, and where the downloaded file lives.
+
+## What this means for your work
+
+- **Plan the seams.** A long clip is short parts joined together.
+- **Extend for one continuous take.** Forward on Veo and Luma; backward on Luma.
+- **Prompt only what happens next** when you extend.
+- **Keep the voice in the last second** if speech must carry on.
+- **Chain by the last frame** when you change tools.
+- **Cut on action** when a seam should show.
+- **Check every seam**, and keep every id and file.

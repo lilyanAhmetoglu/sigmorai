@@ -1,9 +1,16 @@
 import type { CSSProperties } from 'react';
 import { LevelNode } from '@/components/level-node';
 import { RealmScene } from '@/components/realms/realm-scene';
-import { LEVEL_MAP, levelNodeX, MAP_TEXT, questHref, REALMS_TEXT } from '@/lib/constants';
+import {
+  LEVEL_MAP,
+  levelNodeGap,
+  levelNodeX,
+  MAP_TEXT,
+  questHref,
+  REALMS_TEXT,
+} from '@/lib/constants';
 import { realmAccent } from '@/lib/content/curriculum';
-import { levelStatus, playableStep } from '@/lib/grading/track-map';
+import { levelStatus, playableStep, realmChapterCount } from '@/lib/grading/track-map';
 import type { RealmView } from '@/lib/types';
 import { ScrollToCurrent } from './scroll-to-current';
 
@@ -26,11 +33,15 @@ const STAGE_STYLE = {
 /**
  * One realm's level map (Sigmorai App.dc.html → isMap): the four art layers
  * at exactly 2× in a strip that scrolls sideways, and a node per chapter plus
- * the boss on the ground line. The art is decoration; the nodes are real
- * links (or aria-disabled buttons when locked). Parallax: level-map.css.
+ * the boss on the ground line (6 to 12 chapters: levelNodeX spaces them,
+ * and `--node-gap` caps each label's width). The art is decoration; the
+ * nodes are real links (or aria-disabled buttons when locked). Parallax:
+ * level-map.css.
  */
 export function LevelMap({ realm, nextId }: Props) {
   const accent = realmAccent(realm.id);
+  const chapters = realmChapterCount(realm);
+  const nodesStyle = { '--node-gap': `${levelNodeGap(chapters)}px` } as CSSProperties;
   return (
     <section aria-labelledby={HEADING_ID} className="level-map" id={SCROLLER_ID}>
       <h2 id={HEADING_ID} className="sr-only">
@@ -38,7 +49,7 @@ export function LevelMap({ realm, nextId }: Props) {
       </h2>
       <div className="level-map-stage" style={STAGE_STYLE}>
         <RealmScene realm={realm.id} sizes={`${LEVEL_MAP.width * LEVEL_MAP.scale}px`} preload />
-        <ol className="level-map-nodes">
+        <ol className="level-map-nodes" style={nodesStyle}>
           {realm.chapters.map((chapter, i) => {
             const isCurrent = chapter.steps.some((s) => s.exerciseId === nextId);
             const status = levelStatus(chapter, isCurrent);
@@ -54,7 +65,7 @@ export function LevelMap({ realm, nextId }: Props) {
                 key={chapter.chapter ?? 'boss'}
                 className="level-map-node"
                 data-boss={node.boss || undefined}
-                style={{ '--node-x': `${levelNodeX(i)}px` } as CSSProperties}
+                style={{ '--node-x': `${levelNodeX(i, chapters)}px` } as CSSProperties}
               >
                 {step ? (
                   <LevelNode {...node} status={status} href={questHref(step.exerciseId)} />

@@ -1,4 +1,4 @@
-import { CHAPTER_COUNT, QUICK_CHECK_DAILY_TRIES, XP_REWARDS } from '@/lib/constants';
+import { QUICK_CHECK_DAILY_TRIES, XP_REWARDS } from '@/lib/constants';
 import { buildExerciseId } from '@/lib/content/ids';
 import type {
   ExerciseRef,
@@ -96,13 +96,15 @@ export function xpOutcome(xpBefore: number, awarded: number): XpOutcome {
 
 /**
  * The case a clear opens next: the next chapter's case, the boss after the
- * last chapter, and nothing after the boss. Ids keep the `challenge` segment.
- * Null for the Math Tower and the Frontier (they have no cases).
+ * realm's last chapter (`chapterCount`, from its track's outline), and
+ * nothing after the boss. Ids keep the `challenge` segment. Null for the
+ * Math Tower and the Frontier (they have no cases). No default count: a
+ * grown realm (6 to 12 chapters) would silently skip its new chapters.
  */
-export function nextCaseId(ref: ExerciseRef): string | null {
+export function nextCaseId(ref: ExerciseRef, chapterCount: number): string | null {
   if (ref.area !== 'chapter') return null;
   const { track, realm, chapter } = ref;
-  if (chapter < CHAPTER_COUNT) {
+  if (chapter < chapterCount) {
     return buildExerciseId({
       area: 'chapter',
       track,

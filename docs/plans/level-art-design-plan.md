@@ -8,6 +8,11 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (world map, SIG-59)
+
+- **`/map` is the world map, not a redirect.** It shows every realm of a path as a land on one top-down map (`docs/plans/world-map-design-plan.md`). This replaces "/map → redirect to the player's current realm" (2026-10-05). `/map/<slug>` stays the realm's level map and gets a "◂ World map" back link; its title reads "<Realm> · Level map · Sigmorai".
+- **World art is its own set** (sea, continents, landmarks, fog, islands; prompts in the world-map spec, PR 3), on a 1024×768 art grid at 1×, shown at ½, 1 or 2. Until it exists the world is a token-coloured SVG placeholder. No level art is reused.
+
 ## Amendments locked 2026-10-05 (level map, SIG-15)
 
 - The map is DOM, not canvas. /map/[realm] (and /map → redirect to the player's current realm) renders the four PNG layers via RealmScene in a 2048×480 horizontally scrolling box (exact 2×), with seven LevelNode links on top. Why: the design file already uses <img> + buttons; canvas would only remove accessibility.
@@ -21,6 +26,7 @@
 - **The pixelate pipeline stays outside the repo.** It is a Python script (numpy + Pillow), and this is a Bun repo. The maintainer decided not to ship it. It lives in the maintainer's local art folder with the raw Higgsfield renders. This replaces Pipeline step 2's "offline in `scripts/art/`". Only the finished PNGs are committed.
 - **What the pipeline does now** (replaces the "≤32 colours per realm, snapped to tokens" line in step 2): crop each raw 2688×1152 render so its ground line lands at 80%, box-downscale to the 1024×240 grid, hard alpha (no semi-transparent pixels), quilt a seamless left↔right join on **all four** layers (near too), drop floating half-objects the join cuts, then quantise each layer on its own: sky 24, far 32, mid 64, near 48 colours. No token snapping yet. The snow realm (08) skips the fake-checkerboard removal so the white snow survives.
 - **Output files:** `public/levels/realm-00` … `realm-08` and `public/levels/math`, each with `{sky,far,mid,near}.png` at **1×** (1024×240, ground at row 192). The level map scales them 2× with nearest-neighbour, so 1 art pixel = 2 screen pixels, as locked below.
+  > **Amended 2026-10-07 (path curriculum, PR 1b):** a `REALMS` row has `scene: boolean`. A specialist realm (r9 and up) ships with `scene: false`: its scene is a flat `neutral` fill and its share image is the site default. Another realm's art is never reused. Its own art PR adds `public/levels/realm-NN` and sets `scene: true`; its accent stays `neutral` until a token exists. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
 - **Realm 04 near was regenerated** (2026-10-05) because the first render had a heraldic cross on a pennant. The new prompt asks for a plain solid-blue pennant with no emblem. The other 39 layers are the 2026-10-04 renders.
 
 ## Amendments locked 2026-10-04

@@ -6,8 +6,8 @@
  * in lib/grading/certificates.ts (buildExerciseId lives in lib/content).
  * Plain product voice: no lore on the certificate.
  */
-import type { CertAchievement, RealmId, Track } from '@/lib/types';
-import { OPEN_TIERS, REALMS, MATH_TOWER } from './curriculum';
+import type { CertAchievement, RealmTable, Track } from '@/lib/types';
+import { OPEN_TIERS, REALMS, MATH_TOWER, trackRealms } from './curriculum';
 import { MATH_FLOOR_COUNT, TRACKS } from './exercises';
 import { SITE_NAME } from './site';
 import { TRACK_TEXT } from './ui-copy';
@@ -22,26 +22,34 @@ const trackWord = (track: Track) =>
 const openTier = (tier: string) => (OPEN_TIERS as readonly string[]).includes(tier);
 
 /** `builder` + realm 3 → `builder-r3`. */
-export const realmAchievementSlug = (track: Track, realm: RealmId) => `${track}-r${realm}`;
+export const realmAchievementSlug = (track: Track, realm: number) => `${track}-r${realm}`;
 
 /**
- * Every achievement a player can earn today: each open-tier realm's boss on
- * each track, then the Math Tower. Locked tiers can't be earned, so they
- * have no certificate (their links 404).
+ * The realm achievements of a realm table, track by track: each open-tier
+ * realm the track has (core realms on every track, a specialist realm only
+ * on its owner track; path-curriculum spec). Locked tiers can't be earned,
+ * so they have no certificate (their links 404). `table` is REALMS, or a
+ * test fixture.
  */
+export const realmAchievements = (table: RealmTable = REALMS): CertAchievement[] =>
+  TRACKS.flatMap((track) =>
+    trackRealms(track, table)
+      .filter((realm) => openTier(realm.tier))
+      .map((realm): CertAchievement => ({
+        slug: realmAchievementSlug(track, realm.id),
+        kind: 'realm',
+        track,
+        realm: realm.id,
+        title: `${realm.name} cleared`,
+        name: realm.name,
+        pathLabel: `${TRACK_TEXT[track].label} PATH`,
+        linkedInName: `${realm.name} cleared (${trackWord(track)} path)`,
+      })),
+  );
+
+/** Every achievement a player can earn today: the realm ones, then the Math Tower. */
 export const CERT_ACHIEVEMENTS: readonly CertAchievement[] = [
-  ...TRACKS.flatMap((track) =>
-    REALMS.filter((realm) => openTier(realm.tier)).map((realm): CertAchievement => ({
-      slug: realmAchievementSlug(track, realm.id),
-      kind: 'realm',
-      track,
-      realm: realm.id,
-      title: `${realm.name} cleared`,
-      name: realm.name,
-      pathLabel: `${TRACK_TEXT[track].label} PATH`,
-      linkedInName: `${realm.name} cleared (${trackWord(track)} path)`,
-    })),
-  ),
+  ...realmAchievements(),
   {
     slug: MATH_TOWER_ACHIEVEMENT,
     kind: 'math',

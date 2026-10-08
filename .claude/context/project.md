@@ -8,7 +8,7 @@ Durable facts that don't change week to week.
 
 **Sigmorai** (sigmorai.com) is a 2D pixel-art RPG web app for learning AI engineering and agentic systems. Responsive web only, no native app.
 
-Three paths: **builder/tech** (how to design and run AI systems), **strategist/business** (how to use AI at work) and **creator** (how to make and ship AI images, video and audio). Every chapter ends in a graded scenario case. 9 realms per track (00 Bootstrap Village → 08 Production Peaks) plus the Math Tower side realm (8 floors). Each realm: 6 chapters + 1 boss; each chapter: lesson, case, quick check.
+Three paths: **builder/tech** (how to design and run AI systems), **strategist/business** (how to use AI at work) and **creator** (how to make and ship AI images, video and audio). Every chapter ends in a graded scenario case. Every path shares 9 core realms (00 Bootstrap Village → 08 Production Peaks); a path can add its own specialist realms (r9 and up, on that path only). Plus the Math Tower side realm (8 floors). Each realm: 6 to 12 chapters (from the path's outline) + 1 boss; each chapter: lesson, case, quick check.
 
 Story: the Oracle of Latentia (the model) is clouded by the Hallucinant, a fog of confident falsehood. NPC guides speak only inside parchment DialogBoxes. Everywhere else the product voice is plain and technical.
 

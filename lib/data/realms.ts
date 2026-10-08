@@ -5,23 +5,25 @@ import { cache } from 'react';
 import { db } from '@/db';
 import { progress } from '@/db/schema';
 import {
-  DASHBOARD_REALM_LIMIT,
   DEFAULT_TRACK,
   FRONTIER_AREA,
   MATH_AREA,
   REALMS,
-  TRACKS,
+  realmPageTrack,
+  realmTracks,
 } from '@/lib/constants';
 import { mathExerciseIds, realmExerciseIds, trackExerciseIds } from '@/lib/content/ids';
-import { hasContent, loadTrackOutline } from '@/lib/content/load';
+import { outlineChapterCount } from '@/lib/content/curriculum';
+import { hasContent } from '@/lib/content/load';
 import { applyCredit, creditorsForTrack, type Credit } from '@/lib/content/shared';
 import { sharedGroups } from '@/lib/grading/credit';
+import { trackOutline } from '@/lib/grading/outline';
 import {
-  activeRealms,
   buildTowerMap,
   buildTrackMap,
   clearedLevels,
   firstOpenStep,
+  realmNeighbours,
   towerSummary,
 } from '@/lib/grading/track-map';
 import {
@@ -71,7 +73,8 @@ type ProgressArea = LiveArea | typeof FRONTIER_AREA;
 
 /** Ids of this track (or the tower) that have a content file. Stubs (outline only) have none. */
 async function scanLiveIds(area: LiveArea): Promise<Set<string>> {
-  const ids = area === MATH_AREA ? mathExerciseIds() : trackExerciseIds(area);
+  const ids =
+    area === MATH_AREA ? mathExerciseIds() : trackExerciseIds(area, await trackOutline(area));
   const live = await Promise.all(ids.map((id) => hasContent(id)));
   return new Set(ids.filter((_, i) => live[i]));
 }
@@ -145,7 +148,7 @@ const noClears = (): Promise<Credit> =>
 
 const getTrackMap = cache(async (track: Track, userId: string | null): Promise<TrackMap> => {
   const [outline, live, credit] = await Promise.all([
-    loadTrackOutline(track),
+    trackOutline(track),
     liveIds(track),
     userId ? trackClears(userId, track) : noClears(),
   ]);
@@ -159,15 +162,25 @@ function pickTrack(param: unknown, viewer: Viewer): Track {
   return viewer.status === 'ready' ? viewer.stats.track : DEFAULT_TRACK;
 }
 
-/** Progress is per track (the track is in every id), so any track shows the player's own clears and credit. */
-async function mapFor(param: unknown) {
+/**
+ * Progress is per track (the track is in every id), so any track shows the
+ * player's own clears and credit. `resolve` turns the picked track into the
+ * one to show (a specialist realm page: always its owner's).
+ */
+async function mapFor(param: unknown, resolve: (picked: Track) => Track = (t) => t) {
   const viewer = await getViewer();
-  const track = pickTrack(param, viewer);
+  const track = resolve(pickTrack(param, viewer));
   const map = await getTrackMap(track, viewer.status === 'ready' ? viewer.userId : null);
-  return { viewer: viewer.status, map };
+  const heroName = viewer.status === 'ready' ? viewer.stats.heroName : null;
+  return { viewer: viewer.status, map, heroName };
 }
 
-export type RealmsPage = { viewer: Viewer['status']; map: TrackMap };
+export type RealmsPage = {
+  viewer: Viewer['status'];
+  map: TrackMap;
+  /** The world map hero's sprite seed. Null for a visitor or a player still in onboarding. */
+  heroName: string | null;
+};
 
 export const getRealmsPage = (trackParam: unknown): Promise<RealmsPage> => mapFor(trackParam);
 
@@ -177,29 +190,58 @@ export type RealmPage = {
   realm: RealmView;
   /** The first open step inside this realm, for its Start / Continue button. */
   next: NextStep | null;
+  /** The realms before and after it in the track's outline order (the map's prev / next). */
+  prev: RealmView | null;
+  after: RealmView | null;
 };
 
-/** null for an unknown slug (the page 404s). */
+/**
+ * null for an unknown slug, or a realm not in the shown track's outline
+ * (the page 404s; never a crash). A specialist realm always shows its
+ * owner's path: `?track=` is ignored there (path-curriculum spec).
+ */
 export async function getRealmPage(slug: string, trackParam: unknown): Promise<RealmPage | null> {
   const parsed = RealmSlugSchema.safeParse(slug);
   if (!parsed.success) return null;
-  const { viewer, map } = await mapFor(trackParam);
-  const realm = map.realms.find((r) => r.slug === parsed.data)!;
-  return { viewer, track: map.track, realm, next: firstOpenStep([realm]) };
+  const row = REALMS.find((r) => r.slug === parsed.data);
+  if (!row) return null;
+  const { viewer, map } = await mapFor(trackParam, (picked) => realmPageTrack(row, picked));
+  const realm = map.realms.find((r) => r.id === row.id);
+  if (!realm) return null;
+  return {
+    viewer,
+    track: map.track,
+    realm,
+    next: firstOpenStep([realm]),
+    ...realmNeighbours(map.realms, realm.id),
+  };
 }
 
-/** The realm's name, description and whether any chapter on any track is live (else noindex). */
+/**
+ * The realm's name, description and whether any chapter is live on a track
+ * that has it (else noindex). A specialist realm is checked on its owner
+ * track only.
+ */
 export async function getRealmMeta(slug: string) {
   const parsed = RealmSlugSchema.safeParse(slug);
   if (!parsed.success) return null;
-  const realm = REALMS.find((r) => r.slug === parsed.data)!;
-  const lists = await Promise.all(TRACKS.map((track) => liveIds(track)));
-  const indexable = TRACKS.some((track, i) =>
-    realmExerciseIds(track, realm.id).some((id) => lists[i].has(id)),
+  const realm = REALMS.find((r) => r.slug === parsed.data);
+  if (!realm) return null;
+  const tracks = realmTracks(realm);
+  const [lists, outlines] = await Promise.all([
+    Promise.all(tracks.map((track) => liveIds(track))),
+    Promise.all(tracks.map((track) => trackOutline(track))),
+  ]);
+  const indexable = tracks.some((track, i) =>
+    realmExerciseIds(track, realm.id, outlineChapterCount(outlines[i], realm.id) ?? 0).some((id) =>
+      lists[i].has(id),
+    ),
   );
-  // Same text on every track' URL (the canonical has no ?track=): the beginner path's topic.
-  const outline = await loadTrackOutline(DEFAULT_TRACK);
-  return { name: realm.name, description: outline.realms[realm.id].topic, indexable };
+  // Same text on every track's URL (the canonical has no ?track=): the beginner
+  // path's topic, or a specialist realm's own path's.
+  const outline = outlines[tracks.indexOf(realmPageTrack(realm, DEFAULT_TRACK))];
+  const topic = outline.realms.find((r) => r.id === realm.id)?.topic;
+  return { name: realm.name, description: topic ?? realm.name, indexable };
 }
 
 export type Dashboard =
@@ -209,8 +251,6 @@ export type Dashboard =
       status: 'ready';
       stats: HudStats;
       map: TrackMap;
-      /** In-progress then open realms, capped for the "Your realms" row. */
-      active: RealmView[];
       /** Chapters and bosses cleared on the player's track. */
       levelsCleared: number;
       /** The Math Tower panel and MATH FLOORS stat. */
@@ -229,7 +269,6 @@ export async function getDashboard(): Promise<Dashboard> {
     status: 'ready',
     stats: viewer.stats,
     map,
-    active: activeRealms(map.realms, DASHBOARD_REALM_LIMIT),
     levelsCleared: clearedLevels(map.realms),
     tower: towerSummary(floors),
   };

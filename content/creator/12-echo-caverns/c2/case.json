@@ -1,0 +1,96 @@
+{
+  "id": "creator/r12/c2/challenge",
+  "title": "Three voices for a museum audio tour",
+  "scenario": "You make the welcome track for a small city museum's audio tour. Three characters speak: a Guide, a Curator and a Kid who asks questions. Your teammate drafted two production plans and a script. Nothing has been sent yet.\n\nUse the exhibit. The museum, the plans and the script are made up for this case. The model names and limits are from the vendors' pages in October 2026.",
+  "exhibit": "PLAN A: Gemini 3.8 Flash TTS, one request\n  speech_config.speakers:\n    Guide   -> Charon\n    Curator -> Gacrux\n    Kid     -> Leda\n  turns: 14, each with speech_metadata.speaker\n\nPLAN B: ElevenLabs Text to Dialogue, Eleven v4, one request\n  inputs: 14 turns, each with its own voice_id\n  total text of all turns: about 3,400 characters\n\nSCRIPT EXTRACTS\n  Turn 1  Guide:   \"<door creak> Welcome, everyone, come on in.\"\n  Turn 6  Curator (style: \"calm\"):\n          \"This room is quiet. (pause, then suddenly excited) Look at this vase!\"",
+  "questions": [
+    {
+      "prompt": "Plan A puts three speakers in one Gemini request. What has to change?",
+      "options": [
+        {
+          "text": "Split the work so no Gemini request has more than two speakers",
+          "explanation": "Right. Google says multi-speaker generation supports up to 2 speakers using prebuilt voices per request.",
+          "correct": true
+        },
+        {
+          "text": "Keep one request and leave speaker off all the Curator's turns",
+          "explanation": "Google says every turn in a multi-speaker request must include a speaker that matches a configured one."
+        },
+        {
+          "text": "Keep one request and switch every speaker to a designed voice",
+          "explanation": "Google says that with designed or cloned voices you synthesize each speaker's turn on its own. The single request gets harder, not easier."
+        },
+        {
+          "text": "Keep one request and give the Kid a style instead of a voice name",
+          "explanation": "style sets how a turn is said, not who says it. The request would still have three speakers."
+        }
+      ]
+    },
+    {
+      "prompt": "Plan B sends about 3,400 characters of dialogue in one request. What is the best change?",
+      "options": [
+        {
+          "text": "Send it as is, since Text to Dialogue has no limit on speakers",
+          "explanation": "The speaker count has no limit, but ElevenLabs says to keep all the turn texts at or below 2,000 characters per request."
+        },
+        {
+          "text": "Add a seed so the long request stays more consistent",
+          "explanation": "A seed helps takes sound more alike. It does not change the guidance to keep each request at or below 2,000 characters."
+        },
+        {
+          "text": "Split it into requests of 2,000 characters or less and join them",
+          "explanation": "Right. ElevenLabs says to keep the total text at or below 2,000 characters per request, split longer text and join the audio.",
+          "correct": true
+        },
+        {
+          "text": "Drop the voice_id from each turn to make every request shorter",
+          "explanation": "Each turn needs its voice_id to choose the speaker. The limit is on the turn texts, not the ids."
+        }
+      ]
+    },
+    {
+      "prompt": "Turn 6 (Gemini): the Curator goes from calm to excited in the middle of one turn. Which change fits Google's guide?",
+      "options": [
+        {
+          "text": "Keep one turn and write the stage direction in CAPITAL letters",
+          "explanation": "Gemini 3.8 TTS reads the text as a verbatim transcript, so the direction would still be spoken. Capitals add stress."
+        },
+        {
+          "text": "Split it into two Curator turns, each with its own short style",
+          "explanation": "Right. Google says that when emotion shifts mid-dialogue, split the script into separate turns with distinct style values.",
+          "correct": true
+        },
+        {
+          "text": "Keep one turn and put the stage direction in pipe characters",
+          "explanation": "Pipe characters are for a listener's short reaction inside the active speaker's turn, not for stage directions."
+        },
+        {
+          "text": "Keep one turn and turn style into a long paragraph for both moods",
+          "explanation": "Google says long direction blocks are the most common cause of voice drift. It says to split the turn."
+        }
+      ]
+    },
+    {
+      "prompt": "Turn 1 (Gemini): the plan marks a door creak with an angle-bracket tag. What do you do?",
+      "options": [
+        {
+          "text": "Keep <door creak> but move it to the end of the Guide's line",
+          "explanation": "The position is not the problem. Gemini's notes say to avoid sound-effect tags; its inline tags are for human sounds."
+        },
+        {
+          "text": "Put \"door creaks loudly\" in the Guide's style field for turn 1",
+          "explanation": "style sets how the voice delivers a turn. Google does not list sound effects as a style."
+        },
+        {
+          "text": "Write the words \"creak, creak\" in the text so the voice says it",
+          "explanation": "Gemini reads the text as a verbatim transcript. The Guide would say \"creak, creak\" as words."
+        },
+        {
+          "text": "Take the creak out of the Gemini text and add it in the audio edit",
+          "explanation": "Right. Gemini's notes say to avoid sound-effect tags such as applause or thuds, so add the creak as a separate sound.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

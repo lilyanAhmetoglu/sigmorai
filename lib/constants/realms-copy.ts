@@ -1,6 +1,6 @@
 import type { Accent, ChapterStep, RealmStatus, StepStatus, Tier } from '@/lib/types';
 import { FRONTIER, MATH_TOWER } from './curriculum';
-import { CHAPTER_COUNT, MATH_FLOOR_COUNT } from './exercises';
+import { MATH_FLOOR_COUNT } from './exercises';
 import { QUEST_ERROR_TEXT } from './ui-copy';
 
 /**
@@ -64,17 +64,24 @@ export const REALMS_TEXT = {
   /** "Explore realms · Builder path" (the label comes in caps). */
   heading: (trackLabel: string) => `Explore realms · ${pathWord(trackLabel)} path`,
   /** Meta description of the catalog. */
-  description: `Every Sigmorai realm on every path: ${CHAPTER_COUNT} chapters and a boss each, built from official docs.`,
-  intro: `Every realm is a course: ${CHAPTER_COUNT} chapters and a boss, built from official docs.`,
+  description:
+    'Every Sigmorai realm on every path. Each one is a course: its chapters, then a boss, built from official docs.',
+  intro: 'Every realm is a course: its chapters, then a boss, built from official docs.',
   trackSwitch: 'Path',
   signInNote: 'Sign in to save your progress and earn XP.',
   signIn: 'Sign in',
   /** "REALM 03" */
   number: (number: string) => `REALM ${number}`,
+  /**
+   * A specialist realm (one path only) on its card, its "Your path" row and
+   * its world-map marker name: "CREATOR ONLY" (from TRACK_TEXT's label).
+   * Text, not colour only.
+   */
+  pathRealm: (trackLabel: string) => `${trackLabel} ONLY`,
   /** "REALM 03 · INTERMEDIATE" */
   tag: (number: string, tier: Tier) => `REALM ${number} · ${TIER_TEXT[tier]}`,
-  /** Catalog meta row: what a realm holds. */
-  meta: `${CHAPTER_COUNT} CHAPTERS + BOSS`,
+  /** Catalog meta row: what a realm holds on this path ("6 CHAPTERS + BOSS"). */
+  meta: (chapters: number) => `${chapters} CHAPTERS + BOSS`,
   /** A tier-locked catalog card: the tier is already in its tag. */
   lockedNote: 'Locked for now. It opens in a later update.',
   clearedLabel: 'LEVELS CLEARED',
@@ -112,8 +119,8 @@ export const DASHBOARD_TEXT = {
   continueHeading: 'CONTINUE LEARNING',
   nothingOpen: 'Nothing new is open on your path right now.',
   nothingOpenHint: 'The next chapters are not built yet. They come soon.',
-  realmsHeading: 'YOUR REALMS',
-  noActiveRealms: 'You cleared every open realm. Browse all realms to replay one.',
+  /** The link under "YOUR PATH" (WORLD_MAP_TEXT.pathHeading) to the world map. */
+  viewWorldMap: 'View on world map',
   /** Stat labels (design: isDash STATS). Only stats with real data. */
   streak: 'DAY STREAK',
   levelsCleared: 'LEVELS CLEARED',
@@ -182,12 +189,12 @@ export const DASHBOARD_TEXT = {
   retry: 'Retry',
 } as const;
 
-/** World map words (Sigmorai App.dc.html → isMap). */
+/** Level map words, one realm's side view (Sigmorai App.dc.html → isMap). */
 export const MAP_TEXT = {
-  /** "Bootstrap Village · World map · Sigmorai" */
-  title: (realmName: string) => `${realmName} · World map · Sigmorai`,
+  /** "Bootstrap Village · Level map · Sigmorai" */
+  title: (realmName: string) => `${realmName} · Level map · Sigmorai`,
   description: (realmName: string) =>
-    `The ${realmName} level map: ${CHAPTER_COUNT} chapters and a boss, built from official docs.`,
+    `The ${realmName} level map: every chapter and the boss, built from official docs.`,
   realmNav: 'Other realms',
   prevIcon: '◂',
   nextIcon: '▸',
@@ -203,8 +210,62 @@ export const MAP_TEXT = {
   chapterList: 'Chapter list',
   /** The realm page's link to its map. */
   viewOnMap: 'View on map',
-  loading: 'Loading the map',
-  error: "The map didn't load. Try again in a moment.",
+  loading: 'Loading the level map',
+  error: "The level map didn't load. Try again in a moment.",
+  retry: 'Retry',
+} as const;
+
+/** `0.5` → `½`: a zoom step as text. */
+const zoomWord = (zoom: number) => (zoom === 0.5 ? '½' : String(zoom));
+
+/**
+ * World map words (app/(app)/map/(world); world-map spec). Plain product
+ * voice: no NPC, no lore. A state is always an icon AND a word.
+ */
+export const WORLD_MAP_TEXT = {
+  title: 'World map',
+  metaTitle: 'World map · Sigmorai',
+  description:
+    'The world of Sigmorai: every realm on your path, what you cleared and where you are.',
+  /** "STRATEGIST PATH" */
+  eyebrow: (trackLabel: string) => `${trackLabel} PATH`,
+  intro: 'Each land is a realm on your path. Open a land to see its level map.',
+  /** The map box (a labelled section). */
+  mapLabel: 'World map',
+  hint: 'Scroll or swipe to move around the map. Zoom with + and −.',
+  /**
+   * "03 Prompt Forest, in progress, 2 of 7 cleared, you are here": starts with
+   * the visible number and name (WCAG 2.5.3); the "·" in a state word is dropped.
+   */
+  marker: (
+    number: string,
+    name: string,
+    state: string,
+    cleared: number,
+    total: number,
+    tag?: string,
+    /** "CREATOR ONLY" on a specialist realm (REALMS_TEXT.pathRealm). */
+    only?: string,
+  ) =>
+    `${number} ${name}${only ? `, ${only.toLowerCase()}` : ''}, ${state.replace(/\s*·\s*/g, ' ').toLowerCase()}, ${cleared} of ${total} cleared${tag ? `, ${tag.toLowerCase()}` : ''}`,
+  /** On the current realm, for a player with a hero. */
+  youAreHere: 'YOU ARE HERE',
+  /** On the first open realm, for a visitor. */
+  startHere: 'START HERE',
+  /** The list heading: "YOUR PATH" for a player, "REALMS ON THIS PATH" for a visitor. */
+  pathHeading: 'YOUR PATH',
+  pathHeadingVisitor: 'REALMS ON THIS PATH',
+  /** The level map's link back to the world map. */
+  backIcon: '◂',
+  back: 'World map',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  zoomInIcon: '+',
+  zoomOutIcon: '−',
+  /** "ZOOM ½×" */
+  zoomLabel: (zoom: number) => `ZOOM ${zoomWord(zoom)}×`,
+  loading: 'Loading the world map',
+  error: "The world map didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;
 

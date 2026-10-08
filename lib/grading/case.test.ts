@@ -174,12 +174,24 @@ describe('nextCaseId', () => {
       chapter,
       step: 'challenge',
     });
-    expect(nextCaseId(c(1))).toBe('strategist/r2/c2/challenge');
-    expect(nextCaseId(c(6))).toBe('strategist/r2/boss/challenge');
-    expect(nextCaseId({ area: 'boss', track: 'strategist', realm: 2 })).toBeNull();
+    expect(nextCaseId(c(1), 6)).toBe('strategist/r2/c2/challenge');
+    expect(nextCaseId(c(6), 6)).toBe('strategist/r2/boss/challenge');
+    expect(nextCaseId({ area: 'boss', track: 'strategist', realm: 2 }, 6)).toBeNull();
+  });
+
+  test('a 9-chapter realm: c6 leads to c7, c9 to the boss', () => {
+    const c = (chapter: number): ExerciseRef => ({
+      area: 'chapter',
+      track: 'creator',
+      realm: 1,
+      chapter,
+      step: 'challenge',
+    });
+    expect(nextCaseId(c(6), 9)).toBe('creator/r1/c7/challenge');
+    expect(nextCaseId(c(9), 9)).toBe('creator/r1/boss/challenge');
   });
 
   test('a Math Tower floor opens no case', () => {
-    expect(nextCaseId({ area: 'math', floor: 1, step: 'quick-check' })).toBeNull();
+    expect(nextCaseId({ area: 'math', floor: 1, step: 'quick-check' }, 6)).toBeNull();
   });
 });

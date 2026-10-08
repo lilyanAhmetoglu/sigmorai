@@ -1,0 +1,126 @@
+---
+id: creator/r12/c4/lesson
+title: Music & effects
+minutes: 9
+sources:
+  - kind: docs
+    title: Gemini API docs · Generate music with Lyria 3.5
+    url: https://ai.google.dev/gemini-api/docs/music-generation
+  - kind: docs
+    title: Gemini API docs · Lyria prompt guide
+    url: https://ai.google.dev/gemini-api/docs/lyria-prompt-guide
+  - kind: docs
+    title: Gemini API docs · Veo video generation
+    url: https://ai.google.dev/gemini-api/docs/veo
+  - kind: docs
+    title: ElevenLabs docs · Eleven Music
+    url: https://elevenlabs.io/docs/overview/capabilities/music
+  - kind: docs
+    title: ElevenLabs docs · Music best practices
+    url: https://elevenlabs.io/docs/overview/capabilities/music/best-practices
+  - kind: docs
+    title: ElevenLabs docs · Sound effects
+    url: https://elevenlabs.io/docs/overview/capabilities/sound-effects
+---
+
+## Why it matters
+
+A small coffee roaster makes a 45-second video about its new bean. The voice-over is done (chapters 1 to 3). Now it needs two more things:
+
+- a calm **music bed**: music that plays quietly under the voice (our plain gloss)
+- two **sound effects** (SFX): a grinder whirring, and a cup set down on a table
+
+The first try at music came back with a singer, on top of the voice-over. This chapter shows how to ask for what the video needs.
+
+A note on dates: the models and limits below are from each vendor's page in October 2026.
+
+## Two vendors for music
+
+| Vendor (October 2026)    | Model                  | Length                                            |
+| ------------------------ | ---------------------- | ------------------------------------------------- |
+| Google, Lyria 3 Clip     | `lyria-3-clip-preview` | always 30 seconds                                 |
+| Google, Lyria 3.5        | `lyria-3.5`            | "A couple of minutes (controllable using prompt)" |
+| ElevenLabs, Eleven Music | `music_v2_5`           | from 3 seconds to 5 minutes                       |
+
+Google's table says Lyria 3 Clip is for "Short clips, loops, previews". Lyria 3.5 is for "Full-length songs with verses, choruses, bridges". Its tip: "Iterate with Clip first", then make the full version with `lyria-3.5`.
+
+So a 30-second clip is good for testing a sound, but it cannot be a 45-second bed. For that, use Lyria 3.5 and say the length in the prompt ("create a 2-minute song" is Google's example), or set the length on ElevenLabs ("60 seconds" is its example).
+
+## Write a music prompt
+
+Both vendors want the same basic facts. ElevenLabs says a prompt answers five questions "whether you intend it to or not: genre, mood, instrumentation, tempo, and production era." If you leave one open, the model picks "the most average one."
+
+Google's Lyria guide says: "Lead your prompt with the primary genre." If you want specific instruments, name them. Then add "standard musical properties":
+
+- **Tempo (BPM):** BPM means beats per minute, the speed of the music (our plain gloss). Google's examples: "120 BPM", "slow tempo around 72 BPM".
+- **Key:** the set of notes the music uses (our plain gloss). Google's examples: "in G major", "in D minor".
+- **Mood:** words like "Chill", "Dreamy", "Upbeat".
+
+ElevenLabs says to state the BPM and the key in the prompt. It says the model follows BPM and often the key.
+
+For the roaster (our example): "Warm acoustic folk, slow tempo around 72 BPM, in G major, soft fingerpicked guitar and light brushed drums, calm morning mood. Instrumental only, no vocals."
+
+## Instrumental, or with words
+
+Here is why the first try had a singer. Google: "Lyria 3.5 generates vocal tracks with lyrics by default." ElevenLabs: "By default, most music prompts will include lyrics." Under a voice-over, that is a problem.
+
+- **Google** shows "Instrumental only, no vocals." in its prompt.
+- **ElevenLabs** says to add "instrumental only" to your prompt.
+
+When you do want a song, you can write the words yourself:
+
+- **Google:** put your lyrics "beneath a `Lyrics:` header". Tag each part: `[Verse 1]`, `[Chorus]`, `[Bridge]`. Use parentheses for backing vocals, like "(moving on)". And "Separate lyrics from instructions". Our reading: then the model does not sing your directions.
+- **Language:** Lyria "generates lyrics in the language of your prompt". For French lyrics, write the prompt in French.
+- **Real artists:** Google's safety filters block "prompts that request specific artist voices or the generation of copyrighted lyrics."
+
+## Shape the music over time
+
+You can tell the model what happens when.
+
+- **Google:** time ranges like `[0:00 - 0:10] Intro: ...` and `[0:10 - 0:30] Verse 1: ...`, or cues like "The chorus kicks in at 22 seconds".
+- **ElevenLabs:** narrate the order "the way you'd brief a band": "start with just a shuffled drum loop, add a warm sub bassline after four bars". It says the small words matter: "Without the _just_, the model fills the silence".
+
+For the roaster (our example), a quiet start helps the first spoken line: "Start with just guitar. Add soft drums at 10 seconds."
+
+## Fixing a take
+
+The two vendors differ here.
+
+- **Google:** "Music generation is a single-turn process." You cannot refine a clip with more prompts. Change the prompt and generate again. "Results may vary between calls, even with the same prompt."
+- **ElevenLabs:** in its app you can select one section of a song "and regenerate just that section". This is called **inpainting**.
+
+Google also says every Lyria track has a SynthID audio watermark: a hidden mark in the audio that you cannot hear.
+
+## Sound effects
+
+ElevenLabs has a separate sound effects model. You give a text description and two optional settings:
+
+- **Duration:** "Range: 0.1 to 30 seconds". If you don't set it, the length is chosen from the prompt.
+- **Looping:** makes an effect that "can be played on repeat without perceptible start/end points". Its example: "Generate 30s of 'soft rain' then loop it endlessly".
+- **Prompt influence:** "High: More literal interpretation of the prompt". "Low: More creative interpretation with added variations".
+
+The maximum is "30 seconds per generation". So a 40-second grinder hum is one 30-second looping effect, played longer in the edit (our reading).
+
+Prompt tips from the same page:
+
+- Simple effect: a short, clear description, like "Heavy wooden door creaking open".
+- A sequence: say the order, like "Footsteps on gravel, then a metallic door opens".
+
+ElevenLabs gives a small word list. A **one-shot** is a "Single, non-repeating sound". A **loop** is a "Repeating audio segment". A **stem** is an "Isolated audio component", for example the drums alone.
+
+For the roaster (our examples): "Coffee grinder whirring, steady, close-up" with looping on. "Ceramic cup set down on a wooden table" as a one-shot.
+
+## Sound inside the video
+
+Prompt Forest, chapter 5, showed another way: Veo makes sound with the picture. Google's Veo page says Veo 3.1 makes "8-second videos" with "natively generated audio". You can ask for dialogue, sound effects and "Ambient Noise" in the video prompt.
+
+The difference (our reading): Veo's sound comes inside the clip, tied to that picture. A sound effect file from ElevenLabs is separate, so you can move it, loop it, or use it again. Reel Hollow, chapter 3, showed that a voice can break at a seam between clips. A separate music bed under the whole video avoids that jump.
+
+## What this means for your work
+
+- **Pick the model by length.** Lyria 3 Clip is always 30 seconds. Use Lyria 3.5 or ElevenLabs for a longer bed.
+- **Answer the five questions:** genre, mood, instruments, tempo (BPM), era. Add a key if it matters.
+- **Say "instrumental only"** for music under a voice. Both vendors usually add vocals by default.
+- **Keep lyrics apart** from directions, under a `Lyrics:` header on Lyria.
+- **Effects: 0.1 to 30 seconds** on ElevenLabs. Loop for longer background sounds.
+- **Separate files are easier to edit** than sound baked into a video clip.

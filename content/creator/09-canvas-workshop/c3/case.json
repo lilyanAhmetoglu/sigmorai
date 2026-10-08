@@ -1,0 +1,96 @@
+{
+  "id": "creator/r9/c3/challenge",
+  "title": "Twenty-four cities, one poster",
+  "scenario": "You lead design for a tea brand that opens cafés in 24 cities. The poster layout is approved. A developer's small tool fills a Canva brand template through the REST APIs. A teammate also tries the Canva MCP tools from an AI assistant. The print shop makes flyers with Adobe's Data Merge API.\n\nUse the exhibit. Field types, tool names and limits are from Canva's and Adobe's docs. The brand, the rows and the results are made up for this case.",
+  "exhibit": "TEMPLATE FIELDS (Canva dataset, made up names, same template ID on every route)\n  CITY      text\n  OPENING   text\n  HERO      image\n\nTEST ROWS (made up)\n  row 3   Lisbon  | 12 May | https://cdn.example.com/lisbon.jpg\n  row 7   Leeds   |        | asset Mx91 (uploaded)\n  row 12  Kyōto   | 3 June | asset Mx77 (uploaded)\n\nRESULTS (made up; the developer's tool leaves out empty cells)\n  REST autofill, row 3:  job failed on HERO\n  REST autofill, row 7:  poster shows \"1 January\", the template's sample date\n  Teammate, MCP get-brand-template-dataset:  dataset is empty, no error\n  Print shop, Data Merge flyer for row 12:  \"Ky?to\", a box where the ō should be",
+  "questions": [
+    {
+      "prompt": "Why does the Leeds poster (row 7) show the template's sample date?",
+      "options": [
+        {
+          "text": "The tool left OPENING out for row 7, and Canva uses the template's default for an omitted field",
+          "explanation": "Right. Canva's REST guide says that if you omit a field, Canva uses the default value from your template. The exhibit shows no error.",
+          "correct": true
+        },
+        {
+          "text": "The API picks a random date when it cannot read one, so every run gives a new date",
+          "explanation": "No page says this. The date came from the template itself."
+        },
+        {
+          "text": "Text fields only accept numbers, so a date written in words gets swapped for the sample",
+          "explanation": "The weather example in Canva's guide fills a text field with words like Sydney. Words are fine."
+        },
+        {
+          "text": "Leeds has an uploaded image, and an uploaded image always resets the text fields as well",
+          "explanation": "The image field and the text fields are separate. The empty OPENING cell is the cause."
+        }
+      ]
+    },
+    {
+      "prompt": "Row 3 failed on HERO. What is the most likely fix on the REST route?",
+      "options": [
+        {
+          "text": "Shorten the image URL, because long links are cut off before Canva can open them",
+          "explanation": "Length is not the issue. External image URLs are not supported for autofill at all."
+        },
+        {
+          "text": "Upload the photo to the asset library first, then send its asset ID in the HERO field",
+          "explanation": "Right. Canva says media for autofill must first be uploaded, and external image URLs are not supported.",
+          "correct": true
+        },
+        {
+          "text": "Change HERO into a video field, because video fields accept outside links on this route",
+          "explanation": "The REST guide says video assets are currently not supported for autofill."
+        },
+        {
+          "text": "Send the image URL in CITY instead, since text fields can hold any link you give them",
+          "explanation": "That prints a link as text on the poster. The image still never reaches HERO."
+        }
+      ]
+    },
+    {
+      "prompt": "Your teammate's MCP call returns an empty dataset with no error. What do you check first?",
+      "options": [
+        {
+          "text": "Nothing, because an empty dataset proves the server is down for every user right now",
+          "explanation": "A server outage would not look like a clean, empty answer for one user."
+        },
+        {
+          "text": "Whether the template lost its fields, so you rebuild the whole template from scratch",
+          "explanation": "The same template works on the REST route, so the fields are there."
+        },
+        {
+          "text": "Whether the teammate's Canva plan includes Brand Templates, since others return empty",
+          "explanation": "Right. Canva says users whose plan doesn't include Brand Templates get an empty dataset rather than an error.",
+          "correct": true
+        },
+        {
+          "text": "Whether the teammate typed the field names in capitals, since names must be upper case",
+          "explanation": "The dataset call only lists fields. Typing has nothing to do with an empty list."
+        }
+      ]
+    },
+    {
+      "prompt": "The Kyōto flyer from Data Merge shows a box instead of ō. What should the print shop check?",
+      "options": [
+        {
+          "text": "That the city names are typed in capitals, because Data Merge only reads upper case",
+          "explanation": "No page says this. The problem is the character and the font."
+        },
+        {
+          "text": "That every row has a file name column, because each row needs its own &FileName",
+          "explanation": "File naming is optional, and only one such column is allowed. It does not change glyphs."
+        },
+        {
+          "text": "That the template uses Canva fields, because InDesign cannot read data from a CSV file",
+          "explanation": "Adobe's Data Merge API is built to read CSV data into an InDesign template."
+        },
+        {
+          "text": "That the CSV is saved as UTF-8 and the font in the template has the needed glyphs",
+          "explanation": "Right. Adobe supports UTF-8 CSV files and says to make sure the applied font has the required glyphs.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

@@ -19,3 +19,4 @@ export * from './blog';
 export * from './share';
 export * from './og';
 export * from './certificates';
+export * from './world-map';

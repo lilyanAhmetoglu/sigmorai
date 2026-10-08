@@ -11,7 +11,7 @@ import {
   FRONTIER,
   MATH_AREA,
   MATH_TOWER,
-  REALMS,
+  realmRow,
 } from '@/lib/constants';
 import type {
   BlogCardView,
@@ -20,7 +20,6 @@ import type {
   BlogPlace,
   BlogPost,
   BlogTopic,
-  RealmId,
 } from '@/lib/types';
 import { MATH_ART, realmAccent, realmArt } from './curriculum';
 import { parseExerciseId } from './ids';
@@ -28,13 +27,14 @@ import { parseExerciseId } from './ids';
 /** Realm, colour, scene and topic of a post, from its lesson id (`builder/r1/c1/lesson`). */
 export function blogPlace(lessonId: string): BlogPlace {
   const ref = parseExerciseId(lessonId);
-  if (ref?.area === 'chapter' || ref?.area === 'boss') {
-    const id = ref.realm as RealmId;
+  const realm = ref?.area === 'chapter' || ref?.area === 'boss' ? realmRow(ref.realm) : undefined;
+  if (realm) {
     return {
-      name: REALMS[id].name,
-      accent: realmAccent(id),
-      art: realmArt(id),
-      topic: BLOG_REALM_TOPIC[id],
+      name: realm.name,
+      accent: realmAccent(realm.id),
+      art: realmArt(realm.id),
+      // A specialist realm (past r8) has no blog topic yet: it shows under ALL only.
+      topic: (BLOG_REALM_TOPIC as readonly BlogTopic[])[realm.id] ?? null,
     };
   }
   if (ref?.area === MATH_AREA) {

@@ -1,0 +1,96 @@
+{
+  "id": "creator/r13/c3/challenge",
+  "title": "Rules two agents can share",
+  "scenario": "A small studio builds a booking app. Two developers use Claude Code and one uses Codex. All three connect the Figma MCP server. The design lead wrote the design rules, but the agents still invent new buttons and hex codes. You review the repo's instruction files.\n\nUse the exhibit. The studio and the files are made up for this case. File names and defaults are from the vendors' pages in October 2026.",
+  "exhibit": "REPO FILES (made up)\n\n  /CLAUDE.md\n    # Booking app\n    - Run the tests before you finish.\n    - Spacing uses an 8px grid.\n\n  /AGENTS.md\n    # Design rules\n    - Use brand colours.\n    - Use Button from src/ui/. Never create a new button.\n    - Run get_design_context before you build from Figma.\n\n  /src/checkout/CLAUDE.md\n    - Spacing uses a 4px grid.\n\nTEAM NOTES\n  A. Claude Code sessions never follow the AGENTS.md design\n     rules. Codex sessions do.\n  B. Agents still write hex codes like #21734d in components,\n     even with \"Use brand colours\" in AGENTS.md.\n  C. In src/checkout, Claude uses 8px on some screens and 4px on\n     others.\n  D. The lead wants a guarantee: no hex code ever lands in a\n     component file.",
+  "questions": [
+    {
+      "prompt": "Note A: why do Claude Code sessions skip the AGENTS.md rules, and what is the fix?",
+      "options": [
+        {
+          "text": "Claude reads AGENTS.md only with no CLAUDE.md; add @AGENTS.md to CLAUDE.md",
+          "explanation": "Right. By default Claude reads AGENTS.md only when there is no CLAUDE.md. A CLAUDE.md that imports AGENTS.md brings the rules in.",
+          "correct": true
+        },
+        {
+          "text": "Claude reads AGENTS.md only in subfolders; move it into src/ to fix it",
+          "explanation": "Claude's page ties this to whether a CLAUDE.md exists, not to the folder. A root CLAUDE.md is present here."
+        },
+        {
+          "text": "AGENTS.md is a Codex-only file; copy every rule by hand into CLAUDE.md",
+          "explanation": "Claude Code can read AGENTS.md. Two hand copies would also break one rule, one place. Import it instead."
+        },
+        {
+          "text": "AGENTS.md is over the size limit; split it into AGENTS.override.md files",
+          "explanation": "The file is short. AGENTS.override.md is a Codex file, and the cause is the CLAUDE.md that exists next to it."
+        }
+      ]
+    },
+    {
+      "prompt": "Note B: \"Use brand colours\" does not stop hex codes. Which rewrite follows Anthropic's advice best?",
+      "options": [
+        {
+          "text": "IMPORTANT: always respect the brand and its colours in every screen",
+          "explanation": "Louder, but still not checkable. Anthropic asks for instructions concrete enough to verify."
+        },
+        {
+          "text": "Colours come from brand.tokens.json; never write a hex code in a component",
+          "explanation": "Right. It names the file and the forbidden thing, so it is concrete enough to verify, as Anthropic advises.",
+          "correct": true
+        },
+        {
+          "text": "Use good colours that match the Figma file and look like the brand",
+          "explanation": "This is as vague as the first rule. It names no file and nothing you can check."
+        },
+        {
+          "text": "Keep colour use tidy and consistent across the whole booking app",
+          "explanation": "Like Anthropic's weak example \"Format code properly\", nobody can check this one."
+        }
+      ]
+    },
+    {
+      "prompt": "Note C: in src/checkout Claude mixes 8px and 4px. What is the best fix?",
+      "options": [
+        {
+          "text": "Keep both rules and add a third rule asking Claude to pick the better grid",
+          "explanation": "Anthropic says Claude may pick one of two conflicting rules arbitrarily. A third rule adds more guessing."
+        },
+        {
+          "text": "Move the 4px rule to the top of the root CLAUDE.md so it is read first",
+          "explanation": "Both rules would still be loaded and still disagree. Decide which grid is true and delete the other."
+        },
+        {
+          "text": "Delete both rules so Claude can choose a grid from the screenshot",
+          "explanation": "That removes the rule the team needs. A screenshot does not carry the spacing rule either."
+        },
+        {
+          "text": "Decide which grid is true for checkout, and delete or reword the other rule",
+          "explanation": "Right. Anthropic says if two instructions contradict each other, Claude may pick one arbitrarily. Remove the conflict.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "Note D: the lead wants a guarantee, not a hope. What does the lesson say?",
+      "options": [
+        {
+          "text": "Write the rule in capitals with IMPORTANT, which makes Claude obey it",
+          "explanation": "Figma's examples use IMPORTANT, but no page here promises that it forces a result. Rules files are guidance."
+        },
+        {
+          "text": "Put the rule in both CLAUDE.md and AGENTS.md, which makes it binding",
+          "explanation": "More copies are still context. Anthropic says CLAUDE.md is context, not enforced configuration."
+        },
+        {
+          "text": "A rules file is context, not a lock; add a check such as a hook or lint",
+          "explanation": "Right. Anthropic says CLAUDE.md is context, not enforced configuration, and points to a PreToolUse hook to block an action.",
+          "correct": true
+        },
+        {
+          "text": "Rules in a subfolder file are enforced, so move it into src/ files",
+          "explanation": "A subfolder file is still instructions. No page here says folder files are enforced."
+        }
+      ]
+    }
+  ]
+}

@@ -6,12 +6,28 @@ import {
   CONTENT_DIR,
   MATH_AREA,
   MATH_FLOORS,
+  MAX_CHAPTERS,
+  MIN_CHAPTERS,
   OUTLINE_FILE,
   REALMS,
   SIDE_STEPS,
   TRACKS,
+  trackRealms,
 } from '@/lib/constants';
-import { CaseSchema, ExerciseIdSchema, MathOutlineSchema, TrackOutlineSchema } from '@/lib/types';
+import {
+  CaseSchema,
+  ExerciseIdSchema,
+  MathOutlineSchema,
+  outlineRealmIssues,
+  trackOutlineSchema,
+} from '@/lib/types';
+import {
+  CORE_IDS,
+  CREATOR_ORDER,
+  fixtureOutline,
+  realmOutline,
+  SPECIALIST_REALMS,
+} from './__fixtures__/realms';
 import { realmFolder } from './curriculum';
 import { buildExerciseId, segment } from './ids';
 
@@ -33,11 +49,13 @@ function subfolders(dir: string): string[] {
 }
 
 describe.each([...TRACKS])('%s outline', (track) => {
-  const load = async () => TrackOutlineSchema.parse(await readOutline(track));
+  const load = async () => trackOutlineSchema(track).parse(await readOutline(track));
 
-  test('parses, with one entry per REALMS row', async () => {
-    const { realms } = await load();
-    expect(realms.map((r) => r.id)).toEqual(REALMS.map((r) => r.id));
+  test('parses, with one entry per realm the track has; core realms in order', async () => {
+    const ids = (await load()).realms.map((r) => r.id);
+    // Map order is the outline: a specialist realm may sit between core realms.
+    expect([...ids].sort((a, b) => a - b)).toEqual(trackRealms(track).map((r) => r.id));
+    expect(ids.filter((id) => (CORE_IDS as readonly number[]).includes(id))).toEqual(CORE_IDS);
   });
 
   test('every exercise id it implies is valid', async () => {
@@ -73,7 +91,7 @@ describe.each([...TRACKS])('%s outline', (track) => {
 
 describe.each([...TRACKS])('%s boss cases', (track) => {
   test('a boss case title is its realm outline boss.task, verbatim', async () => {
-    const { realms } = TrackOutlineSchema.parse(await readOutline(track));
+    const { realms } = trackOutlineSchema(track).parse(await readOutline(track));
     for (const realm of realms) {
       const file = Bun.file(`${areaDir(track)}/${realmFolder(realm.id)}/boss/${CASE_FILE}`);
       if (!(await file.exists())) continue;
@@ -98,26 +116,124 @@ describe('math outline', () => {
 });
 
 describe('broken outlines fail', () => {
+  const schema = trackOutlineSchema(TRACKS[0]);
+
   test('a track with a missing chapter', async () => {
-    const outline = TrackOutlineSchema.parse(await readOutline(TRACKS[0]));
+    const outline = schema.parse(await readOutline(TRACKS[0]));
     outline.realms[0].chapters.pop();
-    expect(TrackOutlineSchema.safeParse(outline).success).toBe(false);
+    expect(schema.safeParse(outline).success).toBe(false);
+  });
+
+  test.each([MIN_CHAPTERS - 1, MAX_CHAPTERS + 1])('a realm with %i chapters', async (n) => {
+    const outline = schema.parse(await readOutline(TRACKS[0]));
+    outline.realms[0].chapters = Array.from({ length: n }, (_, i) => ({
+      id: segment('chapter', i + 1),
+      title: `Chapter ${i + 1}`,
+    }));
+    expect(schema.safeParse(outline).success).toBe(false);
+  });
+
+  test('a realm with 9 chapters passes (6 to 12 allowed)', async () => {
+    const outline = schema.parse(await readOutline(TRACKS[0]));
+    outline.realms[1].chapters = Array.from({ length: 9 }, (_, i) => ({
+      id: segment('chapter', i + 1),
+      title: `Chapter ${i + 1}`,
+    }));
+    expect(schema.safeParse(outline).success).toBe(true);
   });
 
   test('chapters out of order', async () => {
-    const outline = TrackOutlineSchema.parse(await readOutline(TRACKS[0]));
+    const outline = schema.parse(await readOutline(TRACKS[0]));
     outline.realms[0].chapters.reverse();
-    expect(TrackOutlineSchema.safeParse(outline).success).toBe(false);
+    expect(schema.safeParse(outline).success).toBe(false);
   });
 
-  test('a realm too many', async () => {
-    const outline = TrackOutlineSchema.parse(await readOutline(TRACKS[0]));
+  test('a realm twice', async () => {
+    const outline = schema.parse(await readOutline(TRACKS[0]));
     outline.realms.push(outline.realms[0]);
-    expect(TrackOutlineSchema.safeParse(outline).success).toBe(false);
+    expect(schema.safeParse(outline).success).toBe(false);
   });
 
   test('an unknown field', async () => {
-    const outline = TrackOutlineSchema.parse(await readOutline(TRACKS[0]));
-    expect(TrackOutlineSchema.safeParse({ ...outline, tier: 'advanced' }).success).toBe(false);
+    const outline = schema.parse(await readOutline(TRACKS[0]));
+    expect(schema.safeParse({ ...outline, tier: 'advanced' }).success).toBe(false);
+  });
+});
+
+describe('realm list rule (fixture table: r9 creator, r10 builder)', () => {
+  const T = SPECIALIST_REALMS;
+  const creator = trackOutlineSchema('creator', T);
+  const ok = (ids: number[], track: 'creator' | 'builder' = 'creator') =>
+    trackOutlineSchema(track, T).safeParse(fixtureOutline(ids)).success;
+
+  test('core realms in order plus every owned specialist realm, anywhere, pass', () => {
+    expect(ok(CREATOR_ORDER)).toBe(true);
+    expect(ok([...CORE_IDS, 9])).toBe(true);
+    expect(ok([9, ...CORE_IDS])).toBe(true);
+    expect(ok([0, 10, 1, 2, 3, 4, 5, 6, 7, 8], 'builder')).toBe(true);
+    // strategist owns no fixture realm: the core realms alone pass.
+    expect(trackOutlineSchema('strategist', T).safeParse(fixtureOutline(CORE_IDS)).success).toBe(
+      true,
+    );
+  });
+
+  test('an owner outline that leaves out one of its specialist realms fails', () => {
+    expect(ok(CORE_IDS)).toBe(false);
+    expect(ok(CORE_IDS, 'builder')).toBe(false);
+    expect(outlineRealmIssues(CORE_IDS, 'creator', T)).toEqual([
+      'realm r9 is owned by creator but missing from its outline',
+    ]);
+  });
+
+  test('a missing core realm fails', () => {
+    expect(ok(CORE_IDS.filter((id) => id !== 4))).toBe(false);
+    expect(ok([9])).toBe(false);
+  });
+
+  test('core realms out of order fail', () => {
+    expect(ok([1, 0, 2, 3, 4, 5, 6, 7, 8])).toBe(false);
+  });
+
+  test('a specialist realm in another track’s outline fails (owner check)', () => {
+    expect(ok([...CORE_IDS, 9], 'builder')).toBe(false);
+    expect(ok([...CORE_IDS, 10])).toBe(false);
+    expect(
+      trackOutlineSchema('strategist', T).safeParse(fixtureOutline(CREATOR_ORDER)).success,
+    ).toBe(false);
+    expect(outlineRealmIssues([...CORE_IDS, 10, 9], 'builder', T)).toEqual([
+      'realm r9 belongs to the creator path, not builder',
+    ]);
+  });
+
+  test('a duplicate or unknown realm fails', () => {
+    expect(ok([...CREATOR_ORDER, 9])).toBe(false);
+    expect(ok([...CREATOR_ORDER, 11])).toBe(false);
+    expect(outlineRealmIssues([...CREATOR_ORDER, 11], 'creator', T)).toEqual([
+      'realm r11 has no REALMS row',
+    ]);
+  });
+
+  test('a specialist realm with 9 chapters passes; 5 or 13 fail', () => {
+    const outline = (n: number) => ({
+      realms: [...CORE_IDS.map((id) => realmOutline(id)), realmOutline(9, n)],
+    });
+    expect(creator.safeParse(outline(9)).success).toBe(true);
+    expect(creator.safeParse(outline(MIN_CHAPTERS - 1)).success).toBe(false);
+    expect(creator.safeParse(outline(MAX_CHAPTERS + 1)).success).toBe(false);
+  });
+
+  test('with the real REALMS, each specialist realm is on its owner path only', () => {
+    const specialists = REALMS.filter((r) => r.track !== null);
+    expect(specialists.length).toBeGreaterThan(0);
+    for (const track of TRACKS) {
+      const schema = trackOutlineSchema(track);
+      const owned = specialists.filter((r) => r.track === track).map((r) => r.id);
+      expect(schema.safeParse(fixtureOutline([...CORE_IDS, ...owned])).success).toBe(true);
+      for (const other of specialists.filter((r) => r.track !== track)) {
+        expect(schema.safeParse(fixtureOutline([...CORE_IDS, ...owned, other.id])).success).toBe(
+          false,
+        );
+      }
+    }
   });
 });

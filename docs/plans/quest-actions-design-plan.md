@@ -239,6 +239,10 @@ Server Actions return `{ ok: false, code, message, resetsAt? }`, never a raw thr
 
 > **Amended 2026-10-06 (step 6):** Math Tower floors now join the open check (floor N needs floor N−1's quick check; no tier check). Frontier ids still return `INVALID_INPUT`. See `curriculum-design-plan.md` → "Amendments locked 2026-10-06 (Math Tower playable, step 6)".
 
+> **Amended 2026-10-07 (path curriculum, PR 1b):** the id grammar is built per track from `REALMS`: a track has the core realms plus the specialist realms it owns, so `builder/r9/...` does not parse when creator owns r9. A ref for a realm its track does not have is `INVALID_INPUT`. The tier still comes from the realm's `REALMS` row. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
+
+> **Amended 2026-10-07 (path curriculum, PR 1a):** a realm has 6 to 12 chapters, from its track's outline. The boss opens after every chapter case in that outline (not "all 6"), and a chapter past the outline's count is `INVALID_INPUT`. See `path-curriculum-design-plan.md` → "Amendments locked 2026-10-07 (devil pass, maintainer "go with your lean")".
+
 > **Amended 2026-10-07 (SIG-29):** every Frontier chapter is open (the content file must exist; no order, no tier). This replaces the `INVALID_INPUT` line above. See `curriculum-design-plan.md` → "Amendments locked 2026-10-07 (SIG-29: the Frontier is playable)".
 
 ### ~~`POST /api/run` (exists; this spec finishes it)~~ (removed by the no-code pivot)

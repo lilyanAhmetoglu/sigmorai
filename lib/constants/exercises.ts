@@ -6,10 +6,13 @@
 /** The learner paths. Also users.track (CHECK in db/schema/users.ts). */
 export const TRACKS = ['builder', 'strategist', 'creator'] as const;
 
-/** Realms r0..r8 per track. */
-export const REALM_COUNT = 9;
-/** Chapters c1..c6 per realm. */
-export const CHAPTER_COUNT = 6;
+/**
+ * Chapters per realm: c1..cN, where N comes from that track's outline
+ * (path-curriculum spec, amendments 2026-10-07). A realm has at least
+ * MIN_CHAPTERS and at most MAX_CHAPTERS; the id grammar accepts c1..c12.
+ */
+export const MIN_CHAPTERS = 6;
+export const MAX_CHAPTERS = 12;
 /** Math Tower floors f1..f8. */
 export const MATH_FLOOR_COUNT = 8;
 

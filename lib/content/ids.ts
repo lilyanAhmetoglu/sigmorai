@@ -13,22 +13,30 @@ import {
   BLOG_POST_EXT,
   BOSS_SEGMENT,
   BOSS_STEP,
-  CHAPTER_COUNT,
   CHAPTER_STEPS,
   FRONTIER_AREA,
   FRONTIER_HREF,
   MATH_AREA,
   MATH_FLOOR_COUNT,
   MATH_HREF,
+  MAX_CHAPTERS,
   QUEST_BACK_HREF,
-  REALM_COUNT,
   REALMS,
   realmHref,
+  realmRow,
   SEGMENT_PREFIX,
   SIDE_STEPS,
   TRACKS,
+  trackRealms,
 } from '@/lib/constants';
-import type { ChapterStep, ExerciseRef, RealmId, SideStep, Track } from '@/lib/types';
+import type {
+  ChapterStep,
+  ExerciseRef,
+  RealmTable,
+  SideStep,
+  Track,
+  TrackOutline,
+} from '@/lib/types';
 import { utcMidnight } from '@/lib/utils';
 
 const alt = (xs: readonly (string | number)[]) => `(?:${xs.join('|')})`;
@@ -38,9 +46,9 @@ const range = (from: number, count: number) => Array.from({ length: count }, (_,
 export const segment = (kind: keyof typeof SEGMENT_PREFIX, n: number | string) =>
   `${SEGMENT_PREFIX[kind]}${n}`;
 
-const TRACK = alt(TRACKS);
-const REALM = segment('realm', alt(range(0, REALM_COUNT)));
-const CHAPTER = segment('chapter', alt(range(1, CHAPTER_COUNT)));
+// Any chapter a realm may have. Whether this realm really has it is the
+// outline's job (checkOpen), not the grammar's.
+const CHAPTER = segment('chapter', alt(range(1, MAX_CHAPTERS)));
 const FLOOR = segment('floor', alt(range(1, MATH_FLOOR_COUNT)));
 const DATE = String.raw`\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])`;
 /** A lowercase kebab-case slug (Frontier, blog, sources.yaml and concept ids). */
@@ -48,15 +56,41 @@ export const SLUG = '[a-z0-9]+(?:-[a-z0-9]+)*';
 /** Length of `YYYY-MM-DD` at the start of a Frontier segment. */
 const DATE_LENGTH = 10;
 
-/** Structure only; parseExerciseId also rejects impossible dates (2026-02-30). */
-export const EXERCISE_ID_PATTERN = new RegExp(
-  `^${alt([
-    `${TRACK}/${REALM}/${CHAPTER}/${alt(CHAPTER_STEPS)}`,
-    `${TRACK}/${REALM}/${BOSS_SEGMENT}/${BOSS_STEP}`,
-    `${MATH_AREA}/${FLOOR}/${alt(SIDE_STEPS)}`,
-    `${FRONTIER_AREA}/${DATE}-${SLUG}/${alt(SIDE_STEPS)}`,
-  ])}$`,
-);
+/**
+ * The id pattern for a realm table. Built per track: a track's realms are
+ * the core rows plus the rows it owns, so `creator/r9/...` parses only when
+ * creator owns r9 (path-curriculum spec, amendments 2026-10-07). Anchored,
+ * and every segment ends at `/`, so `r1` and `r10` can't clash.
+ * Structure only; parseExerciseId also rejects impossible dates (2026-02-30).
+ */
+function exerciseIdPattern(table: RealmTable): RegExp {
+  const realmPaths = TRACKS.flatMap((track) => {
+    const realm = segment('realm', alt(trackRealms(track, table).map((r) => r.id)));
+    return [
+      `${track}/${realm}/${CHAPTER}/${alt(CHAPTER_STEPS)}`,
+      `${track}/${realm}/${BOSS_SEGMENT}/${BOSS_STEP}`,
+    ];
+  });
+  return new RegExp(
+    `^${alt([
+      ...realmPaths,
+      `${MATH_AREA}/${FLOOR}/${alt(SIDE_STEPS)}`,
+      `${FRONTIER_AREA}/${DATE}-${SLUG}/${alt(SIDE_STEPS)}`,
+    ])}$`,
+  );
+}
+
+/** The pattern for REALMS. Another table (a test fixture) gets its own, built once. */
+export const EXERCISE_ID_PATTERN = exerciseIdPattern(REALMS);
+const patterns = new WeakMap<RealmTable, RegExp>([[REALMS, EXERCISE_ID_PATTERN]]);
+function patternFor(table: RealmTable): RegExp {
+  let pattern = patterns.get(table);
+  if (!pattern) {
+    pattern = exerciseIdPattern(table);
+    patterns.set(table, pattern);
+  }
+  return pattern;
+}
 
 function isCalendarDate(date: string): boolean {
   const d = utcMidnight(date);
@@ -66,8 +100,9 @@ function isCalendarDate(date: string): boolean {
 /** The number after a one-letter prefix: `r3` → 3. */
 const indexOf = (segment: string) => Number(segment.slice(1));
 
-export function parseExerciseId(id: string): ExerciseRef | null {
-  if (!EXERCISE_ID_PATTERN.test(id)) return null;
+/** `table`: test seam: app code never passes `table` (a fixture with specialist rows). */
+export function parseExerciseId(id: string, table: RealmTable = REALMS): ExerciseRef | null {
+  if (!patternFor(table).test(id)) return null;
   // The pattern above already proved each segment's shape, so the casts are safe.
   const [head, second, third, fourth] = id.split('/');
 
@@ -102,6 +137,7 @@ export function parseChapterId(
   return { track: ref.track, realm: ref.realm, chapter: ref.chapter };
 }
 
+/** One argument on purpose: it is passed to `filter` and Zod's `refine`. */
 export const isExerciseId = (id: string): boolean => parseExerciseId(id) !== null;
 
 function format(ref: ExerciseRef): string {
@@ -122,10 +158,15 @@ function format(ref: ExerciseRef): string {
   }
 }
 
-/** Throws on an out-of-range ref, so a bad id can never be written. */
-export function buildExerciseId(ref: ExerciseRef): string {
+/**
+ * Throws on an out-of-range ref (or a realm the track doesn't have), so a
+ * bad id can never be written. `table`: test seam: app code never passes `table`.
+ */
+export function buildExerciseId(ref: ExerciseRef, table: RealmTable = REALMS): string {
   const id = format(ref);
-  if (!isExerciseId(id)) throw new RangeError(`Invalid exercise ref: ${JSON.stringify(ref)}`);
+  if (!parseExerciseId(id, table)) {
+    throw new RangeError(`Invalid exercise ref: ${JSON.stringify(ref)}`);
+  }
   return id;
 }
 
@@ -142,21 +183,39 @@ export function parseBlogFileName(name: string): { date: string; slug: string } 
   return { date: match[1], slug: match[2] };
 }
 
-/** Every exercise id of one realm on one track: each chapter step, then the boss. */
-export function realmExerciseIds(track: Track, realm: number): string[] {
+/**
+ * Every exercise id of one realm on one track: each chapter step, then the
+ * boss. `chapterCount` is the realm's chapter count in that track's outline.
+ * `table`: test seam: app code never passes `table`.
+ */
+export function realmExerciseIds(
+  track: Track,
+  realm: number,
+  chapterCount: number,
+  table: RealmTable = REALMS,
+): string[] {
   const ids: string[] = [];
-  for (let chapter = 1; chapter <= CHAPTER_COUNT; chapter++) {
+  for (let chapter = 1; chapter <= chapterCount; chapter++) {
     for (const step of CHAPTER_STEPS) {
-      ids.push(buildExerciseId({ area: 'chapter', track, realm, chapter, step }));
+      ids.push(buildExerciseId({ area: 'chapter', track, realm, chapter, step }, table));
     }
   }
-  ids.push(buildExerciseId({ area: 'boss', track, realm }));
+  ids.push(buildExerciseId({ area: 'boss', track, realm }, table));
   return ids;
 }
 
-/** Every realm exercise id of one track, realm by realm in map order. */
-export function trackExerciseIds(track: Track): string[] {
-  return Array.from({ length: REALM_COUNT }, (_, realm) => realmExerciseIds(track, realm)).flat();
+/**
+ * Every realm exercise id of one track, realm by realm in its outline's
+ * order. `table`: test seam: app code never passes `table`.
+ */
+export function trackExerciseIds(
+  track: Track,
+  outline: TrackOutline,
+  table: RealmTable = REALMS,
+): string[] {
+  return outline.realms.flatMap((realm) =>
+    realmExerciseIds(track, realm.id, realm.chapters.length, table),
+  );
 }
 
 /** Every Math Tower exercise id, floor by floor (lesson, then quick check). */
@@ -185,5 +244,6 @@ export function questBackHref(exerciseId: string): string {
   if (ref?.area === MATH_AREA) return MATH_HREF;
   if (ref?.area === FRONTIER_AREA) return FRONTIER_HREF;
   if (ref?.area !== 'chapter' && ref?.area !== 'boss') return QUEST_BACK_HREF;
-  return realmHref(REALMS[ref.realm as RealmId].slug, ref.track);
+  // The grammar proved the realm is a REALMS row on this track.
+  return realmHref(realmRow(ref.realm)!.slug, ref.track);
 }

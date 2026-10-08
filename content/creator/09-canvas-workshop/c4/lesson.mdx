@@ -1,0 +1,131 @@
+---
+id: creator/r9/c4/lesson
+title: Expand & fill
+minutes: 8
+sources:
+  - kind: docs
+    title: Adobe Firefly API docs · Overview
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/
+  - kind: docs
+    title: Adobe Firefly API docs · Firefly Expand Image API Tutorial
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/firefly-expand-image-api-tutorial
+  - kind: docs
+    title: Adobe Firefly API docs · Firefly Fill Image API Tutorial
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/firefly-fill-image-api-tutorial
+  - kind: docs
+    title: Adobe Firefly API docs · Using Masks
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/masking/
+  - kind: docs
+    title: Adobe Firefly API docs · Using Placement
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/placement/
+  - kind: docs
+    title: Adobe Firefly API docs · Composite Operations API Feature Guide
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/object-composite/
+  - kind: docs
+    title: Adobe Firefly API docs · Using the Firefly Asynchronous API
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/using-async-apis
+  - kind: docs
+    title: Adobe Firefly API docs · Technical Usage Notes
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/getting-started/usage-notes/
+  - kind: docs
+    title: Adobe Firefly API docs · Image Upload
+    url: https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/image-upload/
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
+  - kind: docs
+    title: Gemini API docs · Image generation
+    url: https://ai.google.dev/gemini-api/docs/image-generation
+  - kind: docs
+    title: Canva developer docs · resize-design (Canva MCP)
+    url: https://www.canva.dev/docs/apps/mcp/tools/resize-design/
+---
+
+## Why it matters
+
+Chapter 3 put text and photos into a fixed template. Some jobs need more. The approved photo is square, but the banner is wide. The product shot has a busy background.
+
+Prompt Forest taught the prompt side of edits (chapter 4) and sizes (chapter 8). This chapter is the job side: which operation, where the photo sits, how many jobs at once, and who checks.
+
+## Three operations
+
+Adobe's Firefly API gives each job its own name. The words in quotes are Adobe's.
+
+| Operation | What it does                                            | Use it when                       |
+| --------- | ------------------------------------------------------- | --------------------------------- |
+| Expand    | "Generatively expand an image out beyond its edges"     | the photo is too small for a size |
+| Fill      | "Generatively edit specific areas of an image"          | one area must change              |
+| Composite | "Blend product shots and objects into generated scenes" | the product needs a new scene     |
+
+OpenAI's and Google's image pages do not name an expand operation (our reading). You give their models an image and a prompt, and you set the output size. OpenAI's edits endpoint can also take a mask "that identifies the areas to replace". Size rules per vendor: see Prompt Forest, chapter 8.
+
+## One photo, many sizes
+
+Adobe's expand tutorial is a real layout job. A team needs "differently sized image variations" for social media. It writes down the sizes first, for example "Instagram Post" at 1080 × 1080 and "Facebook Cover" at 820 × 312. Then it uploads the photo once and calls Expand for each size.
+
+## Where the photo sits
+
+Expand makes a new image area around your photo. Adobe's `placement` setting decides where your photo goes inside the new frame. It controls "how an image is positioned and sized in the final generation". There are two ways.
+
+- **`alignment`** pins the photo to a side. Adobe's example uses `"horizontal": "left"` and `"vertical": "top"`, so the photo sits in the top-left corner.
+- **`inset`** sets a margin in pixels from each edge. Adobe's example is `left` 500, `top` 0, `right` 400, `bottom` 40.
+
+Example (ours). The headline sits on the right of your banner. Align the photo to the left, and the new part of the image lands under the headline.
+
+If the whole layout must change size, Canva's `resize-design` makes "a copy of an existing design at new dimensions, with the layout rearranged to fit" (on plans with premium features, such as Canva Pro). Our view: resize the layout there, and expand only the photo.
+
+## Masks: check the colour rule
+
+A mask is a second image that says where the edit may go. The colour rule is not the same at every vendor.
+
+- **Adobe.** "Black areas are protected." "White areas are exposed." An inverted mask swaps black and white. Adobe calls this "a quick way to reverse the selection of editable areas".
+- **OpenAI.** The mask needs an alpha channel (a see-through layer). Prompt Forest chapter 4 covers this.
+- **Google.** Its page calls word-based edits "Inpainting (semantic masking)". You name the area in words.
+
+Example (ours). The product and the headline space must not change, so you paint them black in an Adobe mask. If the colours are swapped, the product changes and the background stays. Check one result before you run the rest.
+
+Adobe's fill tutorial changes the background of "thousands of employee photos". You upload each photo and its own mask, then send one prompt for the new background. For many photos, Adobe points to its Photoshop Create Mask API "to automate the creation of masks".
+
+## Put the product in a scene
+
+Adobe has three composite operations. Choose by what is allowed to change.
+
+- **Generate Object Composite.** It makes the background from a prompt. "Use when no background image exists yet."
+- **Precise Composite.** It keeps the object exactly as it is. "Use when the subject must not be altered."
+- **Adaptive Composite.** It adapts and regenerates "the subject to match the scene". "Use when realism and seamless integration are the priority."
+
+A bottle with a printed label must stay exact, so Precise Composite fits (our view).
+
+Adobe's overview adds two details. Harmonization (matching light and shadow to the scene) can be set "(0–100%)" or turned off. Adaptive Composite "automatically adjusts the object's rotation to match environmental cues". With its `preserveBackground` set to true, "the original background pixels are retained and only the composited object region is modified". For the Object Composite API, Adobe gives a "Maximum image size supported" of 10MB.
+
+## Many jobs at once
+
+Batch work is where an API saves the most time. It is also where rate limits stop you.
+
+**Async jobs.** Expand, Fill and the composites have async versions: you start a job, then ask later if it is done (Tool Forge, chapter 3). Each call returns "a jobId and a statusUrl for polling job status" (polling means asking again and again). A `cancelUrl` stops a job you no longer need. The async guide starts several expand jobs together: "we can kick off multiple jobs at once".
+
+**Rate limits.** The default is "4 requests per minute (RPM)" per organization. Over it, you get "HTTP 429 Too Many Requests". Adobe says to retry with "a retry-after HTTP header or an exponential backoff strategy" (wait longer after each failure). For more, "Contact your account manager to request higher rate limits".
+
+**Uploads.** You upload a photo once and reuse its ID. The ID "is valid for 7 days from the date of upload".
+
+Example (ours). 40 product photos in 3 sizes are 120 expand calls. At 4 calls a minute, that is at least 30 minutes. After 7 days, the same batch needs fresh uploads.
+
+Keep the headline, the logo and the price in the design file, not in the picture (our advice; Prompt Forest chapters 1, 3 and 8 say why).
+
+## A review routine
+
+This routine is ours.
+
+1. **Test three first.** The widest size, the tallest size, the hardest product.
+2. **Compare protected areas** with the original: label, face, logo.
+3. **Check new areas in the real layout** at full size: odd objects, repeats, seams.
+4. **Log it.** Source, operation, size, and who approved it.
+
+## What this means for your work
+
+- **Name the job:** expand, fill or composite.
+- **Set the placement** so the new space lands where the layout needs it.
+- **Check the mask colours** for your vendor.
+- **Pick Precise** when the product must not change.
+- **Count calls against the rate limit** before a batch.
+- **A person checks** every result in the real layout.

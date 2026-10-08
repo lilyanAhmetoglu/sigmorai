@@ -1,0 +1,96 @@
+{
+  "id": "creator/r11/c2/challenge",
+  "title": "The green that was almost right",
+  "scenario": "A stationery brand launches a notebook line. Its brand book has two colours. Your teammate set up drafts on three image tools and wrote down what happened.\n\nUse the exhibit. The brand, the requests and the notes are made up for this case. The field names are from the vendors' docs in October 2026.",
+  "exhibit": "BRAND BOOK (made up)\n  Moss green   #2E6B4F   (cover)\n  Terracotta   #C4725A   (elastic band)\n\nDRAFT 1, FLUX.2\n  Prompt: \"A hardback notebook on a desk, brand colours #2E6B4F and #C4725A somewhere in the image\"\n  Note:   the desk came out green, the cover grey, the band black.\n\nDRAFT 2, Ideogram 4.5, JSON prompt (part)\n  \"style_description\": {\n    \"color_palette\": [\"#2e6b4f\", \"#c47\"]\n  }\n\nDRAFT 3, Recraft API, request (part)\n  \"controls\": {\n    \"colors\": [\n      { \"rgb\": [46, 107, 79],  \"weight\": 0.7 },\n      { \"rgb\": [196, 114, 90], \"weight\": 0.5 }\n    ]\n  }\n\nCLIENT NOTE (made up)\n  \"Before we print, promise me the cover green will be exactly #2E6B4F.\"",
+  "questions": [
+    {
+      "prompt": "Draft 1 put the green on the desk, not the cover. Which rewrite fits BFL's hex guide best?",
+      "options": [
+        {
+          "text": "A notebook on a desk, use #2E6B4F and #C4725A as much as you can",
+          "explanation": "The codes are still not tied to objects. BFL warns that vague references may give inconsistent results."
+        },
+        {
+          "text": "A notebook with a cover in color #2E6B4F and a band in color #C4725A",
+          "explanation": "Right. BFL says to associate each code with an object or surface, such as \"the mug in color #FF0000\".",
+          "correct": true
+        },
+        {
+          "text": "A notebook on a desk, brand colours #2E6B4F, #C4725A, very important",
+          "explanation": "Stressing the codes does not say where each colour goes. Each code needs its own object."
+        },
+        {
+          "text": "A notebook on a desk in forest green and terracotta, with no codes",
+          "explanation": "Words alone name a family of colours, not the brand's exact colours. This drops the codes."
+        }
+      ]
+    },
+    {
+      "prompt": "Draft 2: what is wrong with the Ideogram palette list?",
+      "options": [
+        {
+          "text": "It has too many colours for one image's palette in a JSON prompt",
+          "explanation": "Ideogram allows up to 16 colours for the whole image. Two is well under that."
+        },
+        {
+          "text": "Palette colours must go on each element, never on the whole image",
+          "explanation": "Ideogram has both: style_description.color_palette for the image and color_palette per element."
+        },
+        {
+          "text": "The codes must be uppercase and in full: #2E6B4F and #C4725A",
+          "explanation": "Right. Ideogram says to write hex codes in uppercase #RRGGBB, never #rgb or lowercase.",
+          "correct": true
+        },
+        {
+          "text": "Hex codes do not work in Ideogram 4.5; use colour words instead",
+          "explanation": "Ideogram 4.5 and 4.0 accept hex colours in a JSON prompt's color_palette."
+        }
+      ]
+    },
+    {
+      "prompt": "Draft 3 breaks one of the rules on Recraft's colors list. Which change fixes it?",
+      "options": [
+        {
+          "text": "Change the weights so that together they add up to 1.0 or less",
+          "explanation": "Right. Recraft says weights are set for every colour or none, and their sum must not exceed 1.0. Here 0.7 + 0.5 = 1.2.",
+          "correct": true
+        },
+        {
+          "text": "Replace each rgb list with the hex code written as a plain string",
+          "explanation": "Recraft's colour object has a required rgb field of three integers from 0 to 255."
+        },
+        {
+          "text": "Remove the weight from only the second colour and keep the first",
+          "explanation": "Recraft says weights must be set either for every colour or for none."
+        },
+        {
+          "text": "Add eight more colours so the palette has the full ten colours",
+          "explanation": "Ten is the maximum, not a minimum. The problem is the weights."
+        }
+      ]
+    },
+    {
+      "prompt": "The client wants a promise that the cover will be exactly #2E6B4F. What is your honest answer?",
+      "options": [
+        {
+          "text": "Yes: once the hex code is in the prompt, the model matches it exactly",
+          "explanation": "BFL says to check the rendered colour when accuracy matters. A code in the prompt is not a promise."
+        },
+        {
+          "text": "Yes, if we use Ideogram's palette, because it locks every pixel",
+          "explanation": "Ideogram says its palettes steer the colours strongly but don't lock every pixel."
+        },
+        {
+          "text": "No: codes steer the colour; we check it with a picker and fix by hand",
+          "explanation": "Right. Each vendor hedges: BFL says check the rendered colour, Ideogram says it doesn't lock every pixel, Recraft says preferable colours.",
+          "correct": true
+        },
+        {
+          "text": "No: image models cannot take colour codes, so we pick colours later",
+          "explanation": "BFL, Ideogram and Recraft all take colour codes. They steer the colour; they don't guarantee it."
+        }
+      ]
+    }
+  ]
+}
