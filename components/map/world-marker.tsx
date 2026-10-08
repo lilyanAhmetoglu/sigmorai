@@ -57,7 +57,11 @@ export function WorldMarker({ realm, tag }: Props) {
           <StatusPip status={realm.status} />
         </span>
       </span>{' '}
-      {tag && <span className="world-marker-tag">{tag}</span>}{' '}
+      {tag && (
+        <>
+          <span className="world-marker-tag">{tag}</span>{' '}
+        </>
+      )}
       <span className="world-marker-name">{realm.name}</span>
     </Link>
   );

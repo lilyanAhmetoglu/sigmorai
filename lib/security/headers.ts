@@ -115,12 +115,11 @@ export const PERMISSIONS_POLICY = [
 ].join(', ');
 
 /**
- * HTTPS only, for two years, on every subdomain too (clerk.sigmorai.com is
- * HTTPS). It replaces Vercel's default (the same max-age, no
- * includeSubDomains). No `preload`: the browser preload list is hard to
- * leave, so that is the maintainer's call.
+ * HTTPS only, for two years. Same as Vercel's default. No
+ * `includeSubDomains` or `preload` yet: browsers keep both for two years, so
+ * adding them is the maintainer's call.
  */
-export const HSTS = 'max-age=63072000; includeSubDomains';
+export const HSTS = 'max-age=63072000';
 
 /** Every header next.config.ts sets on every route. */
 export function securityHeaders(options: CspOptions): { key: string; value: string }[] {

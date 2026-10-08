@@ -54,7 +54,7 @@ export default function WorldMapPage({ searchParams }: PageProps<'/map'>) {
     <div className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6">
       <header className="flex flex-col gap-2">
         {/* A non-breaking space keeps the line's height while the path loads. */}
-        <Suspense fallback={<p className="page-eyebrow">{' '}</p>}>
+        <Suspense fallback={<p className="page-eyebrow">{'\u00a0'}</p>}>
           <Eyebrow data={data} />
         </Suspense>
         <h1 className="page-title">{WORLD_MAP_TEXT.title}</h1>

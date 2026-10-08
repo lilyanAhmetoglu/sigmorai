@@ -1,6 +1,10 @@
 import { WorldMapBodySkeleton } from '@/components/map/world-map';
 
-/** Header, map box and path-list placeholders at their final size, so nothing jumps. No spinner. */
+/**
+ * Header, map box and path-list placeholders at their final size, so nothing jumps. No spinner.
+ * The page itself is not async and streams with its own Suspense, so that usually wins; this
+ * covers the route segment while it loads.
+ */
 export default function Loading() {
   return (
     <div aria-busy="true" className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6">

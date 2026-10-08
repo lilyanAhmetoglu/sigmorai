@@ -10,6 +10,12 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (Lighthouse)
+
+- The marker's accessible name now starts with its visible text, in screen order: "<number> <tag>, <Realm name>, <state>, <cleared> of <total> cleared". Example: "01 you are here, Prompt Forest, in progress, 2 of 7 cleared". Why: WCAG 2.5.3 (label in name); Lighthouse flagged the old order, which put "you are here" last.
+- Markers and landmarks use `prefetch={false}`; the path list under the map still prefetches the same realms.
+- The /map title and intro stream first; only the path eyebrow and the map body wait for data, each with a same-size placeholder.
+
 ## Amendments locked 2026-10-08 (cartography review fixes)
 
 - **Focus:** markers and landmark links keep the global 3px Spark ring, backed by a hard 3px ink-950 ring outside it (zero blur). Spark alone on parchment is under 3:1; ink-950 on parchment is over 10:1. The focused marker shows its name at every zoom and sits above its neighbours.
