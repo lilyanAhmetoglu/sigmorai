@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useClerkMounted } from '@/components/clerk-gate';
 import { PixelButton } from '@/components/pixel-button';
+import { useHideForLikelyPlayer } from '@/components/use-session-hint';
 import { AUTH_ROUTES, AUTH_TEXT } from '@/lib/constants';
 import { isUnderPath } from '@/lib/utils';
 
@@ -43,13 +44,17 @@ export function SignedOutActions() {
 
 /**
  * Sign in inside the mobile Menu panel, below sm only (the bar has no room for
- * it there). Hidden on /sign-in. Without Clerk mounted (a visitor) it always
- * shows; with Clerk, ClerkMenuSignIn hides it for a player.
+ * it there). Hidden on /sign-in. Without Clerk mounted it shows, except
+ * while a likely player's Clerk chunk downloads (useHideForLikelyPlayer, the
+ * same rule ClerkMenuSignIn uses); with Clerk, ClerkMenuSignIn hides it for a
+ * player.
  */
 export function MenuSignIn() {
   const pathname = usePathname();
-  if (useClerkMounted()) return <ClerkMenuSignIn />;
-  return isUnderPath(pathname, AUTH_ROUTES.signIn) ? null : <MenuSignInLink />;
+  const clerk = useClerkMounted();
+  const hide = useHideForLikelyPlayer(!clerk);
+  if (clerk) return <ClerkMenuSignIn />;
+  return hide || isUnderPath(pathname, AUTH_ROUTES.signIn) ? null : <MenuSignInLink />;
 }
 
 /** The Menu's Sign in link itself, for MenuSignIn and ClerkMenuSignIn. */

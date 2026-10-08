@@ -17,19 +17,18 @@ describe('hasClerkSessionHint', () => {
 });
 
 describe('decideClerk', () => {
-  const PLAYER = '__client_uat=1791459873';
-
-  test('a layout that knows wins, before and after hydration', () => {
-    expect(decideClerk(true, false, '')).toBe(true);
-    expect(decideClerk(true, true, '')).toBe(true);
-    expect(decideClerk(false, false, PLAYER)).toBe(false);
-    expect(decideClerk(false, true, PLAYER)).toBe(false);
+  test('a layout that knows a player mounts Clerk, hint or not', () => {
+    expect(decideClerk(true, false)).toBe(true);
+    expect(decideClerk(true, true)).toBe(true);
   });
 
-  test('a public page mounts only after hydration, for a likely player', () => {
-    expect(decideClerk(undefined, false, PLAYER)).toBe(false);
-    expect(decideClerk(undefined, true, PLAYER)).toBe(true);
-    expect(decideClerk(undefined, true, '__client_uat=0')).toBe(false);
-    expect(decideClerk(undefined, true, '')).toBe(false);
+  test('a public page mounts only on the after-hydration hint', () => {
+    expect(decideClerk(undefined, false)).toBe(false);
+    expect(decideClerk(undefined, true)).toBe(true);
+  });
+
+  test('an (app) layout whose server saw no session still opens on the hint', () => {
+    expect(decideClerk(false, false)).toBe(false);
+    expect(decideClerk(false, true)).toBe(true);
   });
 });

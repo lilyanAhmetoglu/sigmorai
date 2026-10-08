@@ -17,7 +17,8 @@ import { hasSession } from '@/lib/data/user';
  * query. There it is read on the client, so the public pages stay static.
  * Clerk mounts only for a signed-in player (hasSession: the proxy's request
  * headers, no DB and no network), so a visitor on /map or a lesson
- * downloads no Clerk.
+ * downloads no Clerk. Next keeps this layout on client navigation, so a
+ * stale false still opens after hydration on Clerk's cookie hint (ClerkGate).
  */
 export default async function AppLayout({ children }: LayoutProps<'/'>) {
   return (

@@ -2,7 +2,9 @@
 
 import dynamic from 'next/dynamic';
 import { useClerkMounted } from '@/components/clerk-gate';
+import { useHideForLikelyPlayer } from '@/components/use-session-hint';
 import type { HudState } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { HudBar } from './hud-bar';
 
 const SIGNED_OUT: HudState = { status: 'signed-out' };
@@ -16,8 +18,18 @@ const ClerkPublicHud = dynamic(() => import('./clerk-hud').then((mod) => mod.Cle
  * the public pages dynamic. Without Clerk mounted (a visitor) it is Sign in +
  * Start free: plain links in the static HTML, so they work before JS and
  * when Clerk fails. With Clerk mounted, ClerkPublicHud reads Clerk on the
- * client and, for a player, fetches the HUD from app/api/hud.
+ * client and, for a player, fetches the HUD from app/api/hud. While a likely
+ * player's Clerk chunk downloads, the links are hidden (space kept) for at
+ * most CLERK_WAIT_MS (useHideForLikelyPlayer).
  */
 export function PublicHud() {
-  return useClerkMounted() ? <ClerkPublicHud /> : <HudBar state={SIGNED_OUT} />;
+  const clerk = useClerkMounted();
+  const hide = useHideForLikelyPlayer(!clerk);
+  if (clerk) return <ClerkPublicHud />;
+  // `contents` keeps the header's flex layout; `invisible` keeps the space.
+  return (
+    <div className={cn('contents', hide && 'invisible')}>
+      <HudBar state={SIGNED_OUT} />
+    </div>
+  );
 }
