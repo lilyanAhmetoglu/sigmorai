@@ -5,11 +5,18 @@ import { NavLinks } from './nav-links';
 import { SiteLogo } from './site-logo';
 
 type Props = {
-  /** The HUD slot (HudBar, or its loading / error state). */
+  /**
+   * The header's right side: HudBar, or its loading / error state. The (app)
+   * layout passes the server slot (HudSlot in Suspense); public pages pass PublicHud.
+   */
   hud: ReactNode;
 };
 
-/** Top bar (sticky from lg): logo, nav (row from lg, Menu below; hidden while no page is live), HUD. Styles: app-shell.css. */
+/**
+ * The one site header, on every page (the (app) and (marketing) layouts and
+ * the site 404): logo, nav (row from lg, Menu below; hidden while no page is
+ * live), HUD. Sticky from lg. Styles: app-shell.css.
+ */
 export function SiteHeader({ hud }: Props) {
   return (
     <header className="site-header">

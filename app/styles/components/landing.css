@@ -1,25 +1,14 @@
 /*
- * Landing page (Sigmorai App.dc.html → landing screen): hero nav, parallax
- * hero, "who it is for" cards. The hero art is CSS layers for now; the canvas
+ * Landing page (Sigmorai App.dc.html → landing screen): parallax hero, "who it is for" cards. The hero art is CSS layers for now; the canvas
  * HeroScene replaces .landing-art later.
  * Art: /public/art/hero-*.png are 1920×640 and tile left↔right (level-art spec:
  * 4 source px per art px, ground at 80%). Layers keep that native size, sit on
  * the hero's bottom edge and pan by exactly one tile, so the loop has no seam.
  * Reduced motion → no pan (motion-safe only).
+ * No hero nav: the one SiteHeader sits above the hero, as on every page
+ * (maintainer, 2026-10-08), so the hero needs no top room for it.
  */
 @layer components {
-  .landing-nav {
-    @apply absolute inset-x-0 top-0 z-10 flex flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-12;
-  }
-  .landing-nav-actions {
-    @apply flex flex-wrap items-center gap-3;
-  }
-  /* The fade is light on the right, so a see-through ghost button sits on bright
-     sky (about 3.6:1). A solid ink fill keeps its ring and passes 4.5:1. */
-  .landing-nav-actions .pixel-button[data-variant='ghost'] {
-    @apply bg-ink-900;
-  }
-
   .landing-main {
     @apply flex w-full min-w-0 flex-1 flex-col;
   }
@@ -27,7 +16,7 @@
   .landing-hero {
     --art-tile-w: calc(var(--px) * 480);
     --art-tile-h: calc(var(--px) * 160);
-    @apply relative isolate flex min-h-160 flex-col justify-center overflow-hidden px-4 pt-36 pb-24 sm:px-12 sm:pt-28;
+    @apply relative isolate flex min-h-160 flex-col justify-center overflow-hidden py-24;
   }
 
   /* byte-500 is the nearest token to the sky art's top row (#45A1E5), so a
@@ -88,6 +77,11 @@
     }
   }
 
+  /* The art stays full-bleed; the copy sits in the header's column (same
+     max-w-app and inset as .site-header-bar), so it lines up with the logo. */
+  .landing-hero-inner {
+    @apply max-w-app mx-auto w-full px-3 sm:px-6 lg:px-8;
+  }
   .landing-hero-copy {
     @apply max-w-reading flex flex-col gap-6;
   }

@@ -1,4 +1,5 @@
-import type { Track } from './exercise';
+import { z } from 'zod';
+import { type Track, TrackSchema } from './exercise';
 
 /** One in-app nav entry (lib/constants/nav.ts). */
 export type NavItem = {
@@ -38,3 +39,25 @@ export type HudStats = LevelProgress & {
  */
 export type HudState =
   { status: 'signed-out' } | { status: 'onboarding' } | { status: 'ready'; stats: HudStats };
+
+/**
+ * HudState as GET /api/hud sends it. PublicHud parses the response with this
+ * before it renders: a body that doesn't match is the HUD error state.
+ */
+export const HudStateSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('signed-out') }),
+  z.object({ status: z.literal('onboarding') }),
+  z.object({
+    status: z.literal('ready'),
+    stats: z.object({
+      heroName: z.string(),
+      track: TrackSchema,
+      xp: z.number().int(),
+      level: z.number().int().positive(),
+      into: z.number().int().nonnegative(),
+      span: z.number().int().positive(),
+      streak: z.number().int().nonnegative(),
+      activeToday: z.boolean(),
+    }),
+  }),
+]) satisfies z.ZodType<HudState>;

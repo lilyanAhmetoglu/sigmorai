@@ -1,9 +1,7 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
+import { useHydrated } from '@/components/use-hydrated';
 import { QUEST_TEXT } from '@/lib/constants';
-
-const noSubscribe = () => () => {};
 
 type Props = {
   /** The sentence before the time, e.g. "No HP left for this case. HP refills at". */
@@ -18,12 +16,8 @@ type Props = {
  * (the server HTML has the sentence without a time, so nothing mismatches).
  */
 export function ResetNote({ lead, resetsAt }: Props) {
-  const isClient = useSyncExternalStore(
-    noSubscribe,
-    () => true,
-    () => false,
-  );
-  const time = isClient
+  const hydrated = useHydrated();
+  const time = hydrated
     ? new Date(resetsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     : '';
   return (
