@@ -6,6 +6,9 @@ import type { Accent } from './ui';
 /** A rectangle in world art px, centred on its anchor (x, y). */
 export type WorldPlace = { x: number; y: number; w: number; h: number };
 
+/** A box terrain keeps out of (worldKeepClear), for one zoom step or (null) every zoom. */
+export type WorldClearBox = WorldRect & { zoom: ZoomStep | null };
+
 /** A sea slot kept for a specialist realm (r9+). Fogged until a realm on the shown path uses it. */
 export type WorldSlot = WorldPlace & { id: string };
 
@@ -27,11 +30,21 @@ export type WorldRect = { x: number; y: number; w: number; h: number };
 
 export type WorldGeometry = typeof WORLD_MAP;
 
+/** How a drawn coast is shaped (WORLD_MAP.coast; coastBands reads it). */
+export type CoastShape = (typeof WORLD_MAP)['coast'];
+
+/** One row of a drawn land (art px): its top and bottom, and where the land starts and ends. */
+export type CoastBand = { top: number; bottom: number; left: number; right: number };
+
 /** A terrain sprite name (WORLD_GLYPHS). */
 export type WorldGlyphKind = keyof typeof WORLD_GLYPHS;
 
-/** One terrain sprite placed on a land: its top-left corner and size in art px. */
-export type WorldGlyph = WorldRect & { kind: WorldGlyphKind };
+/**
+ * One terrain sprite placed on a land: its top-left corner and size in art
+ * px. `fromZoom: 1` when it only keeps clear of pins and words from zoom 1
+ * (at ½ the pin covers most of a small island); world-map.css hides it at ½.
+ */
+export type WorldGlyph = WorldRect & { kind: WorldGlyphKind; fromZoom?: 1 };
 
 export type ZoomStep = (typeof ZOOM_STEPS)[number];
 

@@ -4,13 +4,14 @@ import {
   WORLD_GLYPH_PX,
   WORLD_GLYPHS,
   WORLD_MAP,
+  WORLD_STATUS_PIPS,
 } from '@/lib/constants';
-import type { TrailSegment, WorldGlyph } from '@/lib/types';
+import type { RealmStatus, TrailSegment, WorldGlyph } from '@/lib/types';
 
 /**
  * The drawn parts of the world map that are not lands (world-map.tsx draws
- * those): sprites, the trail, the compass and the frame. SVG only, inside
- * the map's aria-hidden <svg>. Colours come from world-map.css classes,
+ * those): sprites, the trail, the compass and the frame, SVG only, inside
+ * the map's aria-hidden <svg>; and the status pip, its own small svg. Colours come from world-map.css classes,
  * never from here.
  */
 
@@ -47,13 +48,39 @@ const GLYPH_RUNS = Object.fromEntries(
 
 const COMPASS_RUNS = spriteRuns(WORLD_COMPASS);
 
-function Sprite({ runs, x, y, px }: { runs: Run[]; x: number; y: number; px: number }) {
+const PIP_RUNS = Object.fromEntries(
+  Object.entries(WORLD_STATUS_PIPS).map(([status, rows]) => [status, spriteRuns(rows)]),
+) as Record<RealmStatus, Run[]>;
+
+type SpriteProps = { runs: Run[]; x: number; y: number; px: number; fromZoom?: 1 };
+
+function Sprite({ runs, x, y, px, fromZoom }: SpriteProps) {
   return (
-    <g transform={`translate(${x} ${y})`}>
+    <g transform={`translate(${x} ${y})`} data-from-zoom={fromZoom}>
       {runs.map((r, i) => (
         <rect key={i} data-px={r.px} x={r.x * px} y={r.y * px} width={r.w * px} height={px} />
       ))}
     </g>
+  );
+}
+
+/**
+ * A realm's state as a small ink shape (WORLD_STATUS_PIPS), for a pin and
+ * the map key. Its own <svg>, decoration only: the words are in the link's
+ * accessible name and in the key.
+ */
+export function StatusPip({ status, className }: { status: RealmStatus; className?: string }) {
+  const rows = WORLD_STATUS_PIPS[status];
+  return (
+    <svg
+      className={className}
+      viewBox={`0 0 ${rows[0].length} ${rows.length}`}
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <Sprite runs={PIP_RUNS[status]} x={0} y={0} px={1} />
+    </svg>
   );
 }
 
@@ -68,6 +95,7 @@ export function Glyphs({ glyphs }: { glyphs: readonly WorldGlyph[] }) {
           x={g.x}
           y={g.y}
           px={WORLD_GLYPH_PX}
+          fromZoom={g.fromZoom}
         />
       ))}
     </>

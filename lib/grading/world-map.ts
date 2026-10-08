@@ -1,5 +1,7 @@
 import { mapHref, WORLD_GLYPH_PX, WORLD_GLYPHS, WORLD_MAP } from '@/lib/constants';
 import type {
+  CoastBand,
+  CoastShape,
   PathRealm,
   RealmView,
   TrackMap,
@@ -10,6 +12,7 @@ import type {
   WorldGlyphKind,
   WorldPlace,
   WorldRealm,
+  WorldClearBox,
   WorldRect,
   WorldView,
 } from '@/lib/types';
@@ -105,104 +108,156 @@ export function shapeSeed(key: number | string): number {
   return h >>> 0;
 }
 
-/** One 16px row of a land: its top and bottom, and where the land starts and ends. */
-type Band = { top: number; bottom: number; left: number; right: number };
-
 /**
- * An uneven coastline inside a footprint, on whole tiles: the footprint cut
- * into 16px rows, each row's left and right ends moved in by 0 or 1 tile
- * (seeded), the top and bottom rows by one more tile, so corners round off.
- * Every row keeps at least one tile and shares its middle tiles with its
- * neighbours, so the outline is one simple polygon. It never leaves the
- * footprint (the rectangle-footprint amendment). Returns the rows, top first.
+ * An organic, pixel-stepped coastline inside a footprint. The footprint is
+ * cut into rows of `coast.step` art px. Each row's ends follow a rounded
+ * box (a superellipse, so the land is not a rectangle), plus a seeded random
+ * walk per side (small wobbles), a bay on one side (rows cut deeper) and a
+ * cape on the other (rows reaching the footprint edge). Every row
+ * keeps the middle column, so neighbours always touch and the outline is
+ * one simple polygon. It never leaves the footprint (the rectangle-footprint
+ * amendment) and it is the same for the same seed. Returns the rows, top first.
  */
-export function coastBands(place: WorldPlace, seed: number, tile: number = WORLD_MAP.tile): Band[] {
+export function coastBands(
+  place: WorldPlace,
+  seed: number,
+  coast: CoastShape = WORLD_MAP.coast,
+): CoastBand[] {
+  const { step, round, fill, wobble, bay, cape } = coast;
   const l = place.x - place.w / 2;
-  const r = place.x + place.w / 2;
   const t = place.y - place.h / 2;
-  const b = place.y + place.h / 2;
-  const rows = Math.max(1, Math.floor(place.h / tile));
-  const cols = Math.floor(place.w / tile);
-  // Each side moves in at most this many tiles, so a row keeps ≥ 1 tile.
-  const maxIn = Math.max(0, Math.floor((cols - 1) / 2));
+  const rows = Math.max(1, Math.floor(place.h / step));
+  // Steps from the middle to the footprint's side; a row keeps ≥ 1 step each way.
+  const half = Math.max(1, Math.floor(place.w / 2 / step));
   const next = seeded(seed);
-  const inset = (end: boolean) => Math.min(maxIn, (end ? 1 : 0) + (next() < 0.5 ? 0 : 1)) * tile;
-  return Array.from({ length: rows }, (_, i) => {
-    const end = rows > 2 && (i === 0 || i === rows - 1);
-    const top = t + i * tile;
+  const pick = (n: number) => Math.floor(next() * n);
+
+  // Wobble: a random walk of 0..wobble steps, one value per row.
+  const walk = () => {
+    let v = pick(2);
+    return Array.from({ length: rows }, () => {
+      const roll = next();
+      v = Math.max(0, Math.min(wobble, v + (roll < 0.2 ? -1 : roll > 0.8 ? 1 : 0)));
+      return v;
+    });
+  };
+  // Bays and capes only in the middle rows, where the land is wide.
+  const middle = Array.from({ length: rows }, (_, i) => i).filter(
+    (i) => Math.abs(((i + 0.5) * step) / (place.h / 2) - 1) < 0.6,
+  );
+  // One bay on one side, one cape on the other (seeded), so the land keeps
+  // its body: a bay and a cape on the same side read as noise.
+  const sides = [walk(), walk()];
+  if (middle.length >= 4) {
+    const [bayside, capeside] = next() < 0.5 ? sides : [sides[1], sides[0]];
+    const b = middle[pick(middle.length - 1)];
+    for (const i of [b, b + 1]) if (middle.includes(i)) bayside[i] += bay.depth;
+    const c = middle[pick(middle.length - cape.rows + 1)];
+    for (let i = c; i < c + cape.rows; i++) capeside[i] = -Infinity;
+  }
+
+  return Array.from({ length: rows }, (_, i): CoastBand => {
+    const top = t + i * step;
+    // -1 at the top edge, 1 at the bottom edge (row middles).
+    const v = Math.min(1, Math.abs(((i + 0.5) * step) / (place.h / 2) - 1));
+    const width = Math.pow(1 - Math.pow(v, round), 1 / round);
+    const base = half - Math.round(half * width * fill);
+    const inset = (n: number) => Math.max(0, Math.min(half - 1, base + n)) * step;
     return {
       top,
-      bottom: i === rows - 1 ? b : top + tile,
-      left: l + inset(end),
-      right: r - inset(end),
+      bottom: i === rows - 1 ? place.y + place.h / 2 : top + step,
+      left: l + inset(sides[0][i]),
+      right: place.x + place.w / 2 - inset(sides[1][i]),
     };
   });
 }
 
-/** The coastline of coastBands as polygon points (clockwise on screen). */
-export function coastline(place: WorldPlace, seed: number, tile: number = WORLD_MAP.tile) {
-  const bands = coastBands(place, seed, tile);
-  const points: [number, number][] = [];
-  for (const band of bands) points.push([band.right, band.top], [band.right, band.bottom]);
-  for (const band of [...bands].reverse())
-    points.push([band.left, band.bottom], [band.left, band.top]);
-  return points;
-}
-
 /**
- * A coastline pushed `d` art px out to sea (the ripple lines around a land).
- * The coast only has straight and right-angle turns, so each corner moves by
- * d along both of its edges' outward normals. Repeated and in-line points
- * are dropped first. Expects the clockwise points of `coastline`.
+ * The outline of a stack of rows as polygon points, clockwise on screen:
+ * down the right ends, back up the left ends. Repeated points and points in
+ * the middle of a straight edge are dropped, so every corner is a real turn.
  */
-export function offsetCoast(points: readonly [number, number][], d: number): [number, number][] {
-  const n = points.length;
-  const unique = points.filter((p, i) => {
-    const q = points[(i + n - 1) % n];
+export function bandOutline(bands: readonly CoastBand[]): [number, number][] {
+  const raw: [number, number][] = [];
+  for (const b of bands) raw.push([b.right, b.top], [b.right, b.bottom]);
+  for (const b of [...bands].reverse()) raw.push([b.left, b.bottom], [b.left, b.top]);
+  const unique = raw.filter((p, i) => {
+    const q = raw[(i + raw.length - 1) % raw.length];
     return p[0] !== q[0] || p[1] !== q[1];
   });
   const m = unique.length;
-  const corners = unique.filter((p, i) => {
+  return unique.filter((p, i) => {
     const a = unique[(i + m - 1) % m];
     const c = unique[(i + 1) % m];
-    // In line: a, p and c share x or share y.
     return !((a[0] === p[0] && p[0] === c[0]) || (a[1] === p[1] && p[1] === c[1]));
   });
-  const k = corners.length;
-  // Outward normal of a clockwise (screen) edge from a to b: (dy, -dx), unit length.
-  const normal = (a: [number, number], b: [number, number]): [number, number] => [
-    Math.sign(b[1] - a[1]),
-    -Math.sign(b[0] - a[0]),
-  ];
-  return corners.map((p, i) => {
-    const before = normal(corners[(i + k - 1) % k], p);
-    const after = normal(p, corners[(i + 1) % k]);
-    return [p[0] + d * (before[0] + after[0]), p[1] + d * (before[1] + after[1])];
-  });
+}
+
+/** The coastline of coastBands as polygon points (clockwise on screen). */
+export function coastline(place: WorldPlace, seed: number, coast: CoastShape = WORLD_MAP.coast) {
+  return bandOutline(coastBands(place, seed, coast));
+}
+
+/**
+ * Rows grown `d` art px in every direction (a square brush): the land plus
+ * a d px ring of water. Every input row keeps the middle column, so each
+ * grown row is still one stretch of land.
+ */
+export function growBands(bands: readonly CoastBand[], d: number): CoastBand[] {
+  const cuts = [...new Set(bands.flatMap((b) => [b.top - d, b.bottom + d]))].sort((a, b) => a - b);
+  const out: CoastBand[] = [];
+  for (let i = 0; i < cuts.length - 1; i++) {
+    const [top, bottom] = [cuts[i], cuts[i + 1]];
+    const live = bands.filter((b) => b.top - d <= top && b.bottom + d >= bottom);
+    if (live.length === 0) continue;
+    const left = Math.min(...live.map((b) => b.left)) - d;
+    const right = Math.max(...live.map((b) => b.right)) + d;
+    const prev = out[out.length - 1];
+    if (prev && prev.bottom === top && prev.left === left && prev.right === right)
+      prev.bottom = bottom;
+    else out.push({ top, bottom, left, right });
+  }
+  return out;
+}
+
+/**
+ * A ripple line `d` art px out to sea around a land: the outline of its
+ * coast rows grown by d. Follows every bay and cape, never crosses itself.
+ */
+export function rippleLine(
+  place: WorldPlace,
+  seed: number,
+  d: number,
+  coast: CoastShape = WORLD_MAP.coast,
+): [number, number][] {
+  return bandOutline(growBands(coastBands(place, seed, coast), d));
 }
 
 /** Free space (art px) between a glyph and the coast, and between two glyphs. */
 const GLYPH_MARGIN = 4;
 
-/** At most one glyph per this many square art px of footprint (a core land: 6). */
+/** At most one glyph per this many square art px of footprint (a core land: 6 or more). */
 const GLYPH_AREA = 3200;
 
 /**
  * Terrain on one land: up to one glyph per GLYPH_AREA, cycling through
  * `kinds`, each placed whole inside the coast (with GLYPH_MARGIN) and outside
- * every `clear` box (pins, names, tags, the hero: worldKeepClear). Seeded,
- * so a land shows the same terrain on every request and device. A land with
- * no free spot simply gets fewer glyphs.
+ * every `clear` box (pins, names, tags, the hero: worldKeepClear) of each
+ * zoom it shows at. First pass: glyphs clear at every zoom. Second pass,
+ * if the land has room for more: glyphs clear from zoom 1 only, marked
+ * `fromZoom: 1` (hidden at ½, where a pin covers most of a small island).
+ * Seeded, so a land shows the same terrain on every request and device. A
+ * land with no free spot simply gets fewer glyphs.
  */
 export function terrainGlyphs(
   place: WorldPlace,
   seed: number,
   kinds: readonly WorldGlyphKind[],
-  clear: readonly WorldRect[],
-  tile: number = WORLD_MAP.tile,
+  clear: readonly WorldClearBox[],
+  coast: CoastShape = WORLD_MAP.coast,
 ): WorldGlyph[] {
   if (kinds.length === 0) return [];
-  const bands = coastBands(place, seed, tile);
+  const bands = coastBands(place, seed, coast);
   const top = bands[0].top;
   const bottom = bands[bands.length - 1].bottom;
   const max = Math.max(1, Math.floor((place.w * place.h) / GLYPH_AREA));
@@ -221,9 +276,10 @@ export function terrainGlyphs(
     b.x < a.x + a.w + gap &&
     a.y < b.y + b.h + gap &&
     b.y < a.y + a.h + gap;
+  const fromOne = clear.filter((c) => c.zoom === null || c.zoom >= 1);
 
-  // Candidate corners on a 4 art px grid, in a seeded order.
-  const step = 2 * WORLD_GLYPH_PX;
+  // Candidate corners on the sprite-pixel grid, in a seeded order.
+  const step = WORLD_GLYPH_PX;
   const spots: [number, number][] = [];
   for (let y = top; y < bottom; y += step)
     for (let x = place.x - place.w / 2; x < place.x + place.w / 2; x += step) spots.push([x, y]);
@@ -234,14 +290,17 @@ export function terrainGlyphs(
   }
 
   const placed: WorldGlyph[] = [];
-  for (const [x, y] of spots) {
-    if (placed.length >= max) break;
-    const kind = kinds[placed.length % kinds.length];
-    const g = { kind, x, y, ...size(kind) };
-    if (!onLand(g)) continue;
-    if (clear.some((c) => touches(g, c, 0))) continue;
-    if (placed.some((p) => touches(g, p, GLYPH_MARGIN))) continue;
-    placed.push(g);
+  for (const boxes of [clear, fromOne]) {
+    for (const [x, y] of spots) {
+      if (placed.length >= max) break;
+      const kind = kinds[placed.length % kinds.length];
+      const g: WorldGlyph = { kind, x, y, ...size(kind) };
+      if (!onLand(g)) continue;
+      if (boxes.some((c) => touches(g, c, 0))) continue;
+      if (placed.some((p) => touches(g, p, GLYPH_MARGIN))) continue;
+      if (clear.some((c) => touches(g, c, 0))) g.fromZoom = 1;
+      placed.push(g);
+    }
   }
   return placed;
 }

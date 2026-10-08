@@ -10,6 +10,17 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (cartography polish)
+
+- Maintainer feedback on the cartography map: the labels were too big and covered the land, the orange "▸ OPEN" badges were loud, the lands looked like boxes, and the specialist islands were tiny and bare.
+- **Labels:** a realm's name is a thin parchment plate under the pin (10px HUD font, 1px padding, a 2px hard shadow), from zoom 1. No StatusBadge on the map. The state is a **pip**: a 5×5 ink shape on an inked paper square on the pin's top-right corner (tick = cleared, pennant = in progress, ring = open, padlock = advanced locked; `WORLD_STATUS_PIPS`). The words stay in the link's accessible name and in the "Your path" list; the map key gains a row per pip. Landmark links stay 44px tall but are transparent; the name inside is the same thin plate.
+- **Coasts:** rows of 8 art px (`WORLD_MAP.coast`). The row ends follow a superellipse (power 2.6, 90% of the footprint), plus a seeded random walk, a bay on one side and a cape on the other. Every row keeps the middle column, so a land is one piece. Ripples are the coast rows grown by 6 and 12 art px (`rippleLine`), so they follow bays and capes and never cross themselves. This replaces `offsetCoast`.
+- **Footprints are per place** (still rectangles centred on the anchor): cores 160–192 × 120–152, used slots 80–128 × 80–128, landmarks 96×96, unused slots 80×64. Anchors moved to make room: s2 → 532,520 · s3 → 192,284 · s4 → 482,264 · s5 → 792,684 · s8 → 780,150 · Math Tower → 120,132 · the Frontier → 950,158. This supersedes the 160×120 / 80×64 / 80×80 sizes and those anchors in Geometry; the Higgsfield art (PR 3) fits `WORLD_MAP`.
+- **Terrain has two tiers:** glyphs clear at every zoom, then glyphs clear only from zoom 1 (`fromZoom: 1`, hidden at ½, where a 28px pin covers most of a small island). Every land on a map, specialist islands too, shows at least one glyph from zoom 1 (test).
+- **Hero:** the right side sits 24px off the anchor (was 16), past the pip. `WORLD_HERO.pinBox` (pin + pip) is what the hero, terrain and the new label test keep clear of.
+- **New test:** at every zoom, no pin (with its pip), name plate or landmark label touches another. It found two clashes at ½ in the old layout (the Math Tower label over s3's pin, the Frontier label over s8's pin), fixed by the moves above.
+- **Route:** the line keeps its zoom-1 screen weight at ½ (`--world-route`: 2× art px), and the arrows grow with it. Contrast: ink route and coast on the paper sea 7.0:1, name text 14.3:1, ember line on its ink casing 3.7:1, pip ink on paper 14.3:1.
+
 ## Amendments locked 2026-10-08 (cartography placeholder)
 
 - The maintainer said the placeholder "looks ugly, doesn't look like a map". The drawn world is now an old pixel cartography map, tokens only. This replaces the PR 1 palette (mint-700 land, parchment-400 beach, byte-700 sea): a blue screen with small green blocks read as a node graph, not a map.

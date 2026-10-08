@@ -8,6 +8,7 @@ import {
   HERO_SIDES,
   heroClear,
   heroSide,
+  landmarkLabel,
   WORLD_COMPASS,
   WORLD_COMPASS_PX,
   WORLD_GLYPHS,
@@ -155,6 +156,42 @@ describe('world-map.css', () => {
     const rems = [...css.matchAll(/@media \(width >= ([\d.]+)rem\)/g)].map((m) => Number(m[1]));
     expect(rems.length).toBeGreaterThan(0);
     for (const rem of rems) expect(rem * 16).toBe(WORLD_OVERVIEW_MIN_WIDTH);
+  });
+});
+
+describe('labels and pins', () => {
+  type Box = readonly [number, number, number, number];
+  const hit = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+  const at = (x: number, y: number, [l, t, r, b]: Box): Box => [x + l, y + t, x + r, y + b];
+  const anchors = places.filter(([name]) => !WORLD_MAP.landmarks.some((l) => l.id === name));
+
+  test('every realm name fits its plate box (Silkscreen 10px: under 8px a letter, 12px padding)', () => {
+    const [l, , r] = WORLD_HERO.detail;
+    const long = REALMS.filter((realm) => realm.name.length * 8 + 12 > r - l).map((x) => x.name);
+    expect(long).toEqual([]);
+  });
+
+  test('at every zoom, no pin (with its pip) or name plate touches another, or a landmark label', () => {
+    const clashes: string[] = [];
+    for (const z of ZOOM_STEPS) {
+      // Screen px on the stage; names show from zoom 1.
+      const said = anchors.flatMap(([name, p]): [string, Box][] => [
+        [`${name} pin`, at(p.x * z, p.y * z, WORLD_HERO.pinBox)],
+        ...(z >= 1
+          ? [[`${name} name`, at(p.x * z, p.y * z, WORLD_HERO.detail)] as [string, Box]]
+          : []),
+      ]);
+      said.forEach(([a, boxA], i) =>
+        said.slice(i + 1).forEach(([b, boxB]) => {
+          if (a.split(' ')[0] !== b.split(' ')[0] && hit(boxA, boxB))
+            clashes.push(`${z}: ${a} × ${b}`);
+        }),
+      );
+      for (const m of WORLD_MAP.landmarks)
+        for (const [a, boxA] of said)
+          if (hit(landmarkLabel(m, z), boxA)) clashes.push(`${z}: ${m.id} label × ${a}`);
+    }
+    expect(clashes).toEqual([]);
   });
 });
 

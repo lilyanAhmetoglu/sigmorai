@@ -263,6 +263,10 @@ export const WORLD_MAP_TEXT = {
   legend: {
     cleared: 'Cleared route',
     ahead: 'Route ahead',
+    /** The pin marks (WORLD_STATUS_PIPS). */
+    realmCleared: 'Realm cleared',
+    inProgress: 'In progress',
+    open: 'Open, not started',
     locked: 'Advanced, locked',
     pathOnly: 'Only on this path',
   },

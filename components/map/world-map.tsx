@@ -11,14 +11,14 @@ import {
   worldKeepClear,
 } from '@/lib/constants';
 import { realmAccent } from '@/lib/content/curriculum';
-import { coastline, edgeFog, offsetCoast, shapeSeed, terrainGlyphs } from '@/lib/grading/world-map';
+import { coastline, edgeFog, rippleLine, shapeSeed, terrainGlyphs } from '@/lib/grading/world-map';
 import type {
   Accent,
   RealmStatus,
   WorldGlyphKind,
   WorldPlace,
   WorldRealm,
-  WorldRect,
+  WorldClearBox,
   WorldView,
 } from '@/lib/types';
 import { ScrollToCurrent } from './scroll-to-current';
@@ -93,7 +93,6 @@ function landsOf(placed: readonly Placed[]): Land[] {
 
 /** Two outlines in the water that follow a coast (drawn under every land). */
 function Ripples({ land }: { land: Land }) {
-  const coast = coastline(land.place, land.seed);
   return (
     <>
       {RIPPLES.map((d, i) => (
@@ -101,14 +100,14 @@ function Ripples({ land }: { land: Land }) {
           key={d}
           className="world-ripple"
           data-ring={i}
-          points={toPoints(offsetCoast(coast, d))}
+          points={toPoints(rippleLine(land.place, land.seed, d))}
         />
       ))}
     </>
   );
 }
 
-type IslandProps = { land: Land; clear: readonly WorldRect[]; art: boolean };
+type IslandProps = { land: Land; clear: readonly WorldClearBox[]; art: boolean };
 
 /**
  * One land, like an old printed map: paper land with a light stipple, a band
@@ -277,7 +276,7 @@ export function WorldMap({ view, heroName, tag }: Props) {
                   } as CSSProperties
                 }
               >
-                {l.name}
+                <span className="world-landmark-name">{l.name}</span>
               </Link>
             </li>
           ))}
