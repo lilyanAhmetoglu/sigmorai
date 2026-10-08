@@ -74,7 +74,7 @@ When it does not fit, vendors act differently. Claude: if the input alone is too
 
 Bigger is not always better. The Claude docs say "more context isn't automatically better", because accuracy and recall degrade as the token count grows. They call this "context rot". Send what the task needs.
 
-**The output cap.** Each request sets a ceiling on reply length: `max_tokens` on Claude, `max_output_tokens` on OpenAI. It is a ceiling, not a target, and a higher one does not make replies arrive sooner. When a reply hits it, Claude sets `stop_reason` to `max_tokens` ([stop reasons](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons)). A full context window has its own signal, `model_context_window_exceeded`, and a refusal has `refusal`. On OpenAI, the reply gets `status` `incomplete` with the reason `max_output_tokens`. Hidden reasoning uses this budget too. The [OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning) says reasoning tokens "still occupy space in the model's context window and are billed as output tokens".
+**The output cap.** Each request sets a ceiling on reply length: `max_tokens` on Claude, `max_output_tokens` on OpenAI. It is a ceiling, not a target. (OpenAI's rate-limit text calls the same output cap `max_tokens`.) When a reply hits it, Claude sets `stop_reason` to `max_tokens` ([stop reasons](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons)). A full context window has its own signal, `model_context_window_exceeded`, and a refusal has `refusal`. On OpenAI, the reply gets `status` `incomplete` with the reason `max_output_tokens`. Hidden reasoning uses this budget too. The [OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning) says reasoning tokens "still occupy space in the model's context window and are billed as output tokens".
 
 **Rate limits** cap how much you send per minute.
 
@@ -127,7 +127,7 @@ Fix: send only the 6 most relevant sections of the page (about 20,000 tokens) an
 
 Logs show good answers are 300–900 tokens. The team sets the cap to 1,500, and checks the stop signal on every reply.
 
-**The hard case is the cap on OpenAI.** Someone suggests a cap of 64,000 "just in case". On OpenAI, the rate limit counts the larger of `max_tokens` and the estimated tokens, so this would use up the limit fast. On Claude, OTPM ignores `max_tokens`. Either way, 1,500 fits the task.
+**The hard case is the cap on OpenAI.** Someone suggests a cap of 64,000 "just in case". On OpenAI, the rate-limit count uses whichever is bigger: the output cap or the estimated size of the request. So this would use up the limit fast. On Claude, OTPM ignores `max_tokens`. Either way, 1,500 fits the task.
 
 ### Step 5: handle 429 properly
 
@@ -156,7 +156,7 @@ The chat UI streams, so the first words show quickly. The client also handles an
 
 1. **Forgetting the reply is in the window.** Input alone fits, but input plus reply does not. Fix: add the output cap (and reasoning) to the budget.
 2. **Retrying a 429 at once.** It hits the same limit and adds load. Fix: wait for `retry-after`, then back off with jitter.
-3. **Filling the window "to be safe".** More context costs more and can lower accuracy. Fix: send only what the task needs.
+3. **Filling the window "to be safe".** Extra text adds cost, and long inputs can make answers less accurate. Fix: send only what the task needs.
 
 ## Try it
 
@@ -171,7 +171,7 @@ A translation service uses a model with a 128,000-token window. One request has 
 ### Answer
 
 1. 2,000 + 70,000 + 60,000 = **132,000 tokens**. It does not fit. Split the document or lower the cap to what a translation of that part needs.
-2. On OpenAI, the rate limit counts **the larger** of `max_tokens` and the estimated tokens. A huge cap on every call uses up the limit early.
+2. On OpenAI, the rate-limit count uses **whichever is bigger**: the output cap or the estimated size of the request. A huge cap on every call uses up the limit early.
 3. **Streaming**, so the first part of the translation shows while the rest is written.
 
 ## Recap

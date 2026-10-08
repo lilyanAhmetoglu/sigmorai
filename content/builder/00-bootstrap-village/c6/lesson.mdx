@@ -39,7 +39,7 @@ After this lesson you can:
 
 ## The problem
 
-An online shop wants a model to write product descriptions. Every day about 5,000 new products arrive. Each request sends a 2,500-token style guide plus about 500 tokens of product data, and gets back a description of about 400 tokens. The descriptions must be ready by the next morning.
+An online shop wants a model to write product descriptions. Every day about 5,000 new products arrive. Each request sends a 2,500-token style guide plus about 500 tokens of product data, and gets back a description of about 400 tokens. The descriptions must be ready within two days.
 
 Finance asks two questions: "What will this cost per month?" and "How can we make it cheaper?" The team also wants to test a reasoning model, because it writes better descriptions.
 
@@ -67,7 +67,7 @@ On the Claude price list, output costs more per token than input for each model.
 
 **Lever 2: prompt caching.** Many requests start with the same long text. Caching reuses that start, the **prefix**, at a lower price. Think of it as a shop that keeps your usual order ready: it is faster and cheaper, but only if you order the same thing first.
 
-- Claude: a cache read costs "0.1x base input price" on most models ("All other models use the standard 0.1x multiplier"). A cache write costs more: "1.25x base input price" for 5 minutes, "2x base input price" for 1 hour. The pricing page says caching "pays off after one cache read" for the 5-minute cache.
+- Claude: a cache read costs "0.1x base input price" on most models ("All other models use the standard 0.1x multiplier"); some newer models read for even less. A cache write costs more: "1.25x base input price" for 5 minutes, "2x base input price" for 1 hour. The pricing page says caching "pays off after one cache read" for the 5-minute cache.
 - OpenAI: "Prompt caching is enabled by default for supported OpenAI models." The [caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) says "Cache reuse requires the entire rendered prefix to match", and advises: "Put stable developer instructions and shared reference material first."
 
 The rule for both: **the same text first, the changing text last.**
@@ -114,7 +114,7 @@ The template puts the 2,500-token style guide at the start and the product data 
 
 ### Step 3: run it as a batch
 
-Nobody waits for each description; they are needed by the next morning. The job runs once a night through the Batch API, with "a 50% discount on both input and output tokens" on Claude and a 50% discount on OpenAI. Batch alone takes the month from **$930 to $465**, and caching cuts the input part further.
+Nobody waits for each description; they are needed within two days, which fits the 24-hour batch window. The job runs once a night through the Batch API, with "a 50% discount on both input and output tokens" on Claude and a 50% discount on OpenAI. Batch alone takes the month from **$930 to $465**, and caching cuts the input part further.
 
 ### Step 4: test the reasoning model with `usage`
 
@@ -136,7 +136,7 @@ output per day: 5,000 × 2,000 = 10 MTok × $8 = $80   (was $16)
 
 1. **Pricing output at the input rate.** Output usually costs more per token. Fix: multiply input and output by their own prices, then add.
 2. **Putting the changing text first.** Then the prefix never matches and caching does nothing. Fix: fixed text first, changing text last.
-3. **Using live calls for work that can wait.** You pay full price and use your live limits. Fix: send overnight and bulk jobs through a Batch API, as long as its time window fits your deadline.
+3. **Using live calls for work that can wait.** Each call is billed at the normal rate and counts against your normal rate limits. Fix: send overnight and bulk jobs through a Batch API, as long as its time window fits your deadline.
 
 ## Try it
 
@@ -146,7 +146,7 @@ A review-tagging job uses made-up prices: input $0.50 per MTok, output $4 per MT
 
 1. What does it cost per day, and per 30-day month?
 2. The tags are needed within two days. Which lever fits best, and what is the new monthly cost?
-3. Every request starts with the review text and ends with the same 1,000-token tag list. What should change?
+3. The prompt puts the review text first, then a 1,000-token tag list that never changes. What should change?
 
 ### Answer
 
