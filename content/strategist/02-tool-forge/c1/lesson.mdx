@@ -1,7 +1,7 @@
 ---
 id: strategist/r2/c1/lesson
 title: Map the workflow
-minutes: 7
+minutes: 10
 sources:
   - kind: docs
     title: Claude docs · Ticket routing
@@ -20,81 +20,136 @@ sources:
     url: https://developers.openai.com/cookbook/examples/chatgpt/chatgpt_prompt_guide/chatgpt_prompt_guide
 ---
 
-## Why it matters
+## Goal
 
-Many AI projects start with a tool: "We bought a chatbot. Where can we use it?" A better start is the work itself. Before you pick an AI opportunity, draw how the work runs today, step by step.
+After this lesson you can:
 
-The map shows three things: which steps AI could do, which steps need a person, and what you will measure later. Without a map, you automate a guess.
+- Map how a piece of work really runs today, one step at a time.
+- Write each step with the same five fields, so steps are easy to compare.
+- Mark each step as an AI candidate, a person's decision, or not worth it.
 
-## Start with how people do it today
+## The problem
 
-Anthropic's ticket routing guide says that before you automate, you should understand how your team handles the work now. It suggests questions like these:
+An HR team at a logistics company hires about 30 people a month. The head of HR says: "Let's use AI for onboarding." Nobody can say which part of onboarding they mean.
 
-- What rules decide which team or level gets a ticket?
-- Are there automated rules already? In what cases do they fail?
-- How are edge cases and unclear tickets handled?
-- How does the team prioritize?
+"Onboarding" is many small jobs. Some are simple and repeat every week. Some need a person's judgment. If you pick a tool first, you automate a guess. This lesson shows how to draw the work first, so you can see where AI fits. The guidance below is from each vendor's docs (October 2026).
 
-The guide's reason: the more you know about how humans handle certain cases, the better you can work with the model on the task.
+## The idea
 
-Example: an online furniture shop wants AI in its support inbox. Don't start from the handbook. Sit with an agent and walk through ten real emails from last week. Write down what they really did, including the workarounds.
+**Start with how people do it today.** The [Claude docs](https://platform.claude.com/docs/en/about-claude/use-case-guides/ticket-routing) say: "Before you automate, it's crucial to understand your existing ticketing system." They suggest questions such as "How are edge cases or ambiguous tickets handled?" and "Are there any automated rules or workflows already in place? In what cases do they fail?" The reason, in short: when you know how people handle each kind of case, you can "work with Claude to do the task" better. The guide is about support tickets, but the habit works for any process.
 
-## Write each step the same way
+**Break the big job into tasks.** The [Claude docs](https://platform.claude.com/docs/en/about-claude/use-case-guides/customer-support-chat) call support chat "a collection of multiple different tasks". They say to break the ideal interaction "into every task" before you build, so you can "prompt and evaluate" each one. The [OpenAI docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) show the same idea with an order question. The workflow has three steps: "Extracting an Order ID", "Looking up the order details", and "Providing the order details to a model for a final response". The guide then lists what to test at each step.
 
-This template is a tool for this course. For each step, write down five things:
+**Say what "good" looks like.** An [OpenAI prompting guide](https://developers.openai.com/cookbook/examples/chatgpt/chatgpt_prompt_guide/chatgpt_prompt_guide) asks: "What will I judge as 'good'?" Its rule of thumb: if "good" takes more than one or two sentences to describe, the model "can't reliably hit it".
 
-1. **Trigger.** What starts the step? ("A customer email arrives.")
-2. **Input.** What does the person read or use? ("The email and the order system.")
-3. **Action.** What do they do? ("Find the order and check its status.")
-4. **Output.** What do they produce? ("The order status and the delivery date.")
-5. **Owner and time.** Who does it, and how long does it take? ("Support agent, about 3 minutes.")
+**See if the path is fixed.** The [Anthropic post on agents](https://www.anthropic.com/engineering/building-effective-agents) separates two designs. A **workflow** runs "through predefined code paths" (steps written in advance). An **agent** decides its own steps and tools as it goes. The post recommends "finding the simplest solution possible", which "might mean not building agentic systems at all". Agents fit open-ended work, but they bring "higher costs, and the potential for compounding errors" (small mistakes that grow).
 
-The furniture shop's map might look like this:
+**Our advice:** write every step with the same five fields.
 
-```
-1. Read the email, decide the topic       → topic label
-2. Find the order number, look it up      → order status
-3. Write a reply                          → draft email
-4. If refund over the limit: ask manager  → approval or not
-5. Send the reply, close the ticket       → closed ticket
+```text
+Trigger   what starts the step
+Input     what the person reads or uses
+Action    what they do
+Output    what they produce
+Owner     who does it, and how long it takes
 ```
 
-## Break big jobs into separate tasks
+Our example: a map is like a recipe written down while you watch the cook, not copied from the cookbook. The real kitchen has shortcuts and "a bit of this" that the book never shows.
 
-One customer conversation can hide many tasks. Anthropic's customer support guide says support chat is a collection of different tasks: answering questions, finding information and taking action on requests. It tells you to break the ideal interaction into every task before you build, so you can prompt and test each one. Some teams draw it as a flowchart.
+## Worked example
 
-OpenAI's evaluation guide uses a similar example. A workflow for an order question has three steps: extract the order ID, look up the order details, then give those details to the model for the final reply. The guide says each step can be evaluated on its own.
+### Step 1: the weak plan
 
-This is why the map matters for strategy. "Automate support" is too big to judge. "Label the topic of each email" is small enough to test.
+```text
+Goal: use AI for onboarding.
+Next step: ask three vendors for a demo.
+```
 
-## Ask "what does good look like?" for each output
+What goes wrong:
 
-OpenAI's ChatGPT Enterprise prompting guide asks: what is the single output I want, and what will I judge as good? Its rule of thumb: if you can't describe "good" in one or two sentences, the model can't reliably hit it either.
+- "Onboarding" is too big to test. Nobody can say if the AI did it well.
+- The demo will show what the tool does, not what HR needs.
 
-Apply this to each step of the map. Step 1 has a clear "good": the right topic label. Step 4 is harder: "a fair refund decision" needs rules a person can write down. If nobody can write them down, that step is not ready for AI.
+### Step 2: watch the real work
 
-## Notice which steps are fixed and which are not
+You sit with the HR coordinator for a morning. Together you walk through the last five new hires, from signed offer to first day. You write down what really happened, including the shortcuts.
 
-Anthropic's "Building effective agents" post separates two designs. In a **workflow**, the model and tools follow steps written in advance. In an **agent**, the model decides its own steps and which tools to use. The post recommends finding the simplest solution possible, and says this might mean not building an agentic system at all.
+### Step 3: write the map
 
-Your map shows which one you need. If the same five steps happen every time, the work is a fixed path. If every case needs a different path, the work is open-ended. The post says agents can handle that kind of work, but at higher cost and with the risk of compounding errors.
+```text
+1. Trigger: offer signed       Input: offer, HR form
+   Action: create employee record          Output: record
+   Owner: HR, 10 min
+2. Trigger: record created     Input: job title
+   Action: request email and system logins Output: IT ticket
+   Owner: HR, 5 min
+3. Trigger: start date known   Input: role, manager's wishes
+   Action: choose laptop and access level  Output: order
+   Owner: HR and manager, 1-2 days
+4. Trigger: one week to go     Input: template, start date
+   Action: write welcome email, first-day plan  Output: email
+   Owner: HR, 15 min
+5. Trigger: first day          Input: ID and work permit
+   Action: check documents in person       Output: signed check
+   Owner: HR, 20 min
+```
 
-Example: the furniture shop's map is mostly fixed. Only refunds over the limit need a manager. That points to a simple, step-by-step design with a person at step 4.
+### Step 4: ask "what is good?" for each output
 
-## Mark each step
+- Step 2: good = the right ticket with the right list of systems. Easy to say.
+- Step 4: good = the template filled in with the right name, date, place and manager. Easy to say.
+- Step 3: the coordinator says, "The manager just tells us. Some contractors get full access, some don't." Nobody can say what good looks like.
 
-When the map is done, add a mark to each step. These marks are also a tool for this course:
+### Step 5: mark each step (the hard case)
 
-- **AI candidate**: clear input, clear output, "good" is easy to describe.
-- **Person decides**: the rules are unwritten, or a mistake is costly.
-- **Not worth it**: rare, or already fast.
+```text
+1. Create record      AI candidate: clear input, clear output
+2. Request logins     AI candidate
+3. Laptop + access    Person decides: no written rule, and wrong
+                      access is a security risk
+4. Welcome email      AI candidate: AI drafts, HR sends
+5. Check documents    Person decides: a legal check, in person
+```
 
-The next chapters use these marks to find repetition, score each candidate and choose one.
+**Step 3 is the hard case.** It takes the longest, so it looks like the best target. But the rule lives in managers' heads, and a mistake gives someone access they should not have. First write the rule down ("contractors get these three systems"). Then look at it again.
 
-## Key points
+### Step 6: why it is better
 
-- Map how the work really runs today, not how the handbook says it runs.
-- Write every step with a trigger, input, action, output, owner and time.
-- Break big jobs into small tasks you can test one at a time.
-- If you can't describe a good output in one or two sentences, the step isn't ready.
-- Fixed steps suit a simple workflow; the simplest solution may need no agent.
+- **Small tasks.** "Draft the welcome email" can be tested. "Use AI for onboarding" can't.
+- **Real work.** The map shows the shortcut at step 3 that no handbook shows.
+- **Fixed path.** The same steps happen for every hire, so a simple workflow is enough. No agent is needed.
+- **Better demo questions.** You can now ask a vendor about steps 2 and 4 only.
+
+## Common mistakes
+
+1. **Mapping the official process.** Written procedures hide shortcuts and unwritten rules. Fix: watch real recent cases with the people who do the work.
+2. **One giant task.** "Automate HR" can't be tested or measured. Fix: split it until each step has one clear output.
+3. **Automating a step nobody can judge.** If people can't agree what good looks like, the model can't hit it. Fix: write the rule first, or leave the step with a person.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+An events team handles requests from people who want to speak at its conference. Mark each step: AI candidate, person decides, or not worth it.
+
+```text
+1. Copy name, topic and email from each request into a sheet
+   (300 a year, 3 min each)
+2. Decide which talks fit this year's theme (no written rule)
+3. Send a "thanks, we got your request" email (already automatic)
+4. Write a short speaker bio for the website from their CV
+   (a template exists)
+```
+
+### Answer
+
+1. **AI candidate.** Clear input and a clear output: the right fields in the sheet.
+2. **Person decides.** "Fits the theme" has no rule anyone can write in two sentences.
+3. **Not worth it.** A simple automatic reply already does it.
+4. **AI candidate.** A template exists, so "good" is easy to describe. A person checks the bio before it goes online.
+
+## Recap
+
+- Map the work as people really do it today, not as the official process says.
+- Break big jobs into small steps, each with one clear output you can judge.
+- Mark each step. Keep steps with unwritten rules or high risk with a person, and choose a simple fixed workflow when the path is the same every time.
