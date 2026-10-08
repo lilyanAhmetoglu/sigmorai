@@ -1,7 +1,7 @@
 ---
 id: strategist/r1/c6/lesson
 title: Team playbooks
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Prompting best practices
@@ -20,90 +20,135 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-## Why it matters
+## Goal
 
-When each person writes their own prompts, results are uneven. One colleague gets great customer replies; the next gets weak ones for the same task. Good prompts sit in private chat histories, and the same lessons are learned again and again.
+After this lesson you can:
 
-A **team playbook** fixes this. It is a shared set of tested prompts for the team's common tasks. It turns one person's good prompt into the whole team's way of working.
+- Turn a prompt that works for one person into a **play**: a tested template the whole team can use.
+- Set up simple rules for changing a play: an owner, a change log and saved test cases.
+- Decide where a playbook should live, and what to check before you trust a vendor feature with it.
 
-## What goes into one play
+## The problem
 
-Each task in the playbook gets one entry, a **play**. It brings together everything from this realm:
+Mara's company now uses AI in sales, operations and training. Over this realm, she wrote a good brief, added examples, asked for structure and set up a review. Her follow-up notes for clients are now quick and reliable.
 
-1. **Name and when to use it.** "Reply to a delivery complaint. Use for any email about late or damaged orders."
-2. **The brief, as a template.** The fixed text, with blanks to fill in.
-3. **Examples.** A few approved outputs, with names and private details removed.
-4. **The output format.** Fields, length, structure.
+Then a new colleague, Jonas, joins. He asks for "the prompt". Mara finds three versions in her chat history and is not sure which is the latest. Jonas copies one, changes a line, and his notes come out different from hers. A client receives both and asks why.
+
+A good prompt in one person's chat history helps one person. This lesson shows how to turn it into a **team playbook**: a shared, tested set of prompts for common tasks, each one called a play. The guidance below is from each vendor's docs (October 2026).
+
+## The idea
+
+**What goes into one play.** Each play brings together everything from this realm:
+
+1. **Name and when to use it.** "Workshop follow-up note. Use after every client workshop."
+2. **The template.** The fixed brief, with clear blanks for the parts that change.
+3. **Examples.** Two or three approved results, with names and private details removed.
+4. **The output format.** Sections, fields, length.
 5. **The review checklist.** What a person checks before the result is used.
-6. **Owner, model and last test date.** Who maintains it, which model and settings it was tested on, and when.
+6. **Owner, model and last test date.** Who looks after it, which model and settings it was tested on, and when.
 
-## Templates: fixed parts and blanks
+**Templates: fixed parts and blanks.** The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) show a template with labelled parts and blanks such as `[Insert relevant documents, code snippets, or background info here]`. They also say to "iterate and modify" any template for your own use case. Blanks show people exactly what to fill in, and the tested text never changes.
 
-A template keeps the parts that never change and leaves clear blanks for the parts that do. Gemini's prompting guide shows a template like this, with labelled parts and gaps such as `[Insert relevant documents, code snippets, or background info here]`. It also says to iterate and modify any template for your own use case.
+**Keep it findable.** The [OpenAI prompting page](https://developers.openai.com/api/docs/guides/prompting) gives tips that fit any team: keep examples in a short block "so your team can scan and update them", and use clear folder names "so teammates can locate prompts quickly".
 
-Example play for complaint replies:
+**Treat changes like real changes.** The same page says: "Treat prompts as application code." That means reviewed changes, a history of versions, and a way to roll back. It also says to run your prompt tests "every time you publish", because "catching issues early is cheaper than fixing them in production". For a business team this can be simple: one owner approves changes, a change log says what changed and why, and saved test cases run before a change goes live.
 
-```
+**Re-test when the model changes.** The [OpenAI prompt engineering docs](https://developers.openai.com/api/docs/guides/prompt-engineering) say that "different snapshots of models within the same family could produce different results". They suggest pinning a fixed model version and keeping tests that show how prompts behave when you upgrade. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say a technique measured on one model should be re-checked "against your own evals before applying it to another".
+
+Our example: a play is like a recipe card in a restaurant kitchen. It is written down, tested, owned by the head chef, and tasted again when a supplier changes an ingredient.
+
+**Tools that hold playbooks.** Some products can store a play so the assistant uses it automatically. Anthropic's **Agent Skills** are one example. The [Agent Skills docs](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) say Skills load on demand, "so you don't have to repeat the same guidance across conversations". They compare a Skill to "an onboarding guide you'd create for a new team member". Two cautions from the same docs:
+
+- **Sharing differs by product.** In claude.ai, custom Skills "are individual to each user". They are "not shared organization-wide and cannot be centrally managed by admins". Through the Claude API, custom Skills are shared workspace-wide.
+- **Trusted sources only.** The docs say to "Use Skills only from trusted sources", because "a malicious Skill" can direct the model to act in ways that don't match its stated purpose. Review a Skill from anywhere else like software, before you install it.
+
+**Vendor features change.** The OpenAI prompting page says: "OpenAI is deprecating reusable prompt objects in the API". It now recommends keeping prompts in versioned code instead. So keep the master copy of your playbook in a place your team controls.
+
+## Worked example
+
+### Step 1: pick the play
+
+Mara starts with the task the team does most often and that already works: the workshop follow-up note.
+
+### Step 2: write the play
+
+```text
+PLAY: Workshop follow-up note
+Use for: every client workshop, sent within 2 working days.
+Owner: Mara · Tested on: [model name and version] · Last test: [date]
+
 <role>
-You write replies for the support team of an online furniture shop.
+You write follow-up notes for a company that runs business training.
 </role>
 
 <instructions>
-Reply to the customer email below. Apologize once. Say what we will do
-and by when. Friendly and direct. Under 120 words. End with the
-agent's first name.
+Using the workshop materials below, write a follow-up note for the
+client's HR contact. Sections: Summary (3 sentences), Action items
+(table: Action | Owner | Due date), Next session.
+Under 250 words. Plain, friendly, no promises about results.
+If something is unclear in the materials, write [check] instead of
+guessing.
 </instructions>
 
 <examples>
-[2-3 approved replies, anonymized]
+[2 approved notes, names and company details removed]
 </examples>
 
-<customer_email>
-[paste the email here]
-</customer_email>
+<materials>
+[paste the whiteboard list, chart readings and transcript summary]
+</materials>
 
-<agent_name>[your first name]</agent_name>
+<client_contact>[first name]</client_contact>
+
+REVIEW CHECKLIST (person, before sending)
+- Every action item has an owner and a date.
+- Every number matches the client's own data.
+- No [check] marks left.
 ```
 
-Now anyone on the team fills two blanks and gets the same tested setup.
+### Step 3: save the tests
 
-## Keep it in one place people can find
+Mara saves 10 past workshops with notes the client approved. Before any change goes live, the owner runs the play on all 10 and compares the results with the checklist.
 
-OpenAI's prompting page gives tips that fit any team: keep examples in a short block your team can scan and update, and use clear folder names so teammates can find prompts quickly.
+### Step 4: the hard case
 
-Example: one shared folder called "AI playbook", with one document per play, named by task: "Complaint reply", "Meeting summary", "Invoice extraction".
+**The hard case is a well-meant edit.** Jonas adds one line: "Always mention our new e-learning offer." On the test run, 4 of the 10 notes now push e-learning in the summary, including a note for a client who had complained. The edit never reaches clients. Mara and Jonas move the offer to an optional last line, re-run the 10 tests, and log the change. (The numbers in this example are made up.)
 
-## Treat changes like real changes
+### Step 5: why it is better
 
-A play is a working tool. A careless edit can break it for everyone. OpenAI's guide says to treat prompts like application code: review changes, keep a version history, and be able to roll back. It also says to run your prompt tests every time you publish, because catching issues early is cheaper than fixing them in production.
+- **One version.** Everyone uses the same tested template, so client notes look the same whoever writes them.
+- **Clear blanks.** People fill in materials and a name, and never touch the tested parts.
+- **Safe changes.** An owner, saved tests and a change log caught a bad edit before clients saw it.
+- **Ready for a model change.** The same 10 tests show quickly whether the play still works on a new model.
 
-For a business team, that can be simple:
+## Common mistakes
 
-- One owner per play approves changes.
-- A short change log: what changed, why, and when.
-- Before a change goes live, run the play on its saved test cases.
+1. **No "when to use" line.** People pick the wrong play for a task, or write a new one. Fix: start every play with its name and when to use it.
+2. **Real client data in the examples.** A shared play sends those names and details with every request. Fix: remove names, emails and company details first.
+3. **Blanks that look like normal text.** People overwrite the fixed parts by mistake. Fix: mark every blank clearly, for example `[paste the transcript here]`.
 
-## Re-test when the model changes
+## Try it
 
-A play is tested on one model. Another model may behave differently. OpenAI's guide says different snapshots (versions) of a model can give different results, and it suggests pinning a fixed model version and keeping tests that show how a prompt behaves when you upgrade. Anthropic's guide says a technique measured on one model should be re-checked against your own tests before you use it on another.
+Not graded. A finance team shares this as a "play". List three things it is missing.
 
-Example: IT moves the team to a newer model. Before anyone uses the complaint play on it, the owner runs the 20 saved test emails and checks the replies against the checklist.
+```text
+Monthly budget email:
+Write the monthly budget update email for department heads.
+Use the numbers from the spreadsheet.
+```
 
-## Tools that hold playbooks
+### Answer
 
-Some products can store a playbook so the assistant uses it automatically. Anthropic's **Agent Skills** are an example. Its docs say Skills package instructions and resources, load when relevant, and save you from repeating the same guidance in every conversation. The docs compare them to an onboarding guide for a new team member.
+Any three of these:
 
-Two cautions from the docs:
+- **When to use it**, and **who owns it**, with the model it was tested on and the last test date.
+- **A clear blank** for the numbers, such as `[paste the budget table here]`, so people know where the input goes.
+- **Examples** of one or two approved past emails, with private details removed.
+- **An output format**: sections, length, what to say about over-budget lines.
+- **A review checklist and saved tests**, so a change to the play can be checked before it goes live.
 
-- **Sharing differs by product.** In claude.ai, custom Skills belong to each user and are not shared across the organization. Through the API, they are shared across a workspace.
-- **Use trusted sources only.** Anthropic says a malicious Skill can direct the model to act in ways that don't match its stated purpose. Review a Skill like you would review software before installing it.
+## Recap
 
-Vendor features also change. OpenAI's docs say it is deprecating the reusable prompt objects in its API and now recommends keeping prompts in versioned code. Keep the master copy of your playbook in a place your team controls.
-
-## Key points
-
-- A playbook turns good individual prompts into a shared, tested team tool.
-- Each play has a template, examples, a format, a review checklist, an owner and a test date.
-- Change plays carefully: one owner, a change log, tests before publishing.
-- Re-test every play when the model changes.
-- Product features for storing prompts differ and change. Own your master copy.
+- A playbook turns good individual prompts into shared, tested plays. Each play has a template with clear blanks, examples, a format, a review checklist, an owner and a test date.
+- Change plays with care: one owner, a change log, and saved tests run before every change and every model upgrade.
+- Vendor features for storing prompts differ and change. In claude.ai, custom Skills are per user. Own the master copy, and install Skills only from trusted sources.

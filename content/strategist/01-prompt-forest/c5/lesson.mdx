@@ -1,7 +1,7 @@
 ---
 id: strategist/r1/c5/lesson
 title: Images & voice
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Vision
@@ -26,89 +26,147 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/audio
 ---
 
-## Why it matters
+## Goal
 
-A lot of work is not typed text. It is a screenshot of an error, a photo of a whiteboard, a chart in a slide deck, a recorded call. Many models can now work with images and audio too. The prompting skills from this realm still apply. But each media type has its own strengths, limits and costs.
+After this lesson you can:
 
-## Reading images
+- Brief a model about an image or a recording, and get a result you can use.
+- Name the documented limits of image reading, image making and voice tools, and plan a human check for them.
+- Estimate the token cost of images and audio before you send them.
 
-Models that can "see" are called vision models. The vendors list similar uses:
+## The problem
 
-- OpenAI's guide: describe images, read visible text, and answer questions about objects, shapes, colors or textures.
-- Gemini's guide: image captioning, classification and visual question answering.
-- Anthropic's guide: Claude can interpret and analyze images, and in the claude.ai app you upload an image like a file.
+After each two-day workshop, Mara's trainers send three things: a photo of the whiteboard, a screenshot of the client's bookings chart they discussed, and a recording of the closing session. An assistant types it all up into a follow-up note for the client. It takes about two hours per workshop.
 
-Work examples:
+Mara wants a model that handles pictures and sound to write the first draft. But she has read about models that misread numbers and invent words. She needs to know which parts are a good fit, which need a check, and what it costs. The guidance below is from each vendor's docs (October 2026).
 
-- Paste a screenshot of an error message and ask what the user should try first.
-- Upload a photo of the whiteboard after a workshop and ask for the action items as a list.
-- Share a chart and ask: "What changed between Q1 and Q2? Quote the numbers you read from the chart."
+## The idea
 
-## Brief the model about the image
+Many models can now work with images and audio, not only text. Everything from this realm still applies: a clear brief, examples, a named format and a review step. But each media type has its own strengths and limits.
 
-The brief from earlier in this realm still matters. Say what the image is, what you need from it, and in what format.
+**Reading images.** The vendors list similar uses:
 
-Weak: "What's this?"
-Strong: "This is a photo of a printed delivery note. Extract the supplier name, the date and each line item as a table. Write 'unclear' for anything you can't read."
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/images-vision) say a vision model can "describe images, read visible text, and answer questions about objects, shapes, colors, or textures".
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-understanding) list "image captioning, classification, and visual question answering".
+- The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/vision) say that in the claude.ai app you upload an image "like you would a file".
 
-Give the model a clear picture. Anthropic's and Gemini's tips both say to use clear, non-blurry images that are the right way up. OpenAI's guide warns that rotated images can be misread. Anthropic's guide adds that important text in the image should be legible and not too small.
+**Brief the model about the image.** Say what the image is, what you need from it, and in what format. Give it a clear picture: the Claude docs say images should be "clear and not too blurry", and important text should be "legible and not too small". The Gemini docs say: "Verify that images are correctly rotated."
 
-**Where to put the image is a vendor detail.** Anthropic's guide says Claude works best when images come before the text. Gemini's guide says that with a single image, the text prompt should come before the image. When a detail differs, follow the docs of the tool you use, and test.
+**Where to put the image is a vendor detail.** The Claude docs say "Claude works best when images come before text". The Gemini docs say that for a single image, "place the text prompt _before_ the image". When the vendors differ, follow the docs of the tool you use, and test.
 
-## Where image reading fails
+**Where image reading fails.** The main limits for office work:
 
-Both Anthropic's and OpenAI's guides list limits. The main ones for office work:
+- **Poor images.** The Claude docs say the model can make mistakes with "low-quality, rotated, or very small images". The OpenAI docs add small text, rotated text, and text in non-Latin alphabets such as Japanese or Korean.
+- **Counting.** Both say counts can be approximate, the Claude docs "especially with large numbers of small objects".
+- **Exact positions.** Both say spatial reasoning is approximate or weak.
+- **Charts.** The OpenAI docs say the model "may struggle to understand graphs or text where colors or styles" (such as solid, dashed or dotted lines) vary.
+- **People.** The Claude docs say Claude "cannot be used to name people in images and refuses to do so".
+- **Fakes.** The Claude docs say Claude "cannot determine whether an image is AI-generated".
 
-- **Poor images and small text.** Anthropic's guide says the model can make mistakes with low-quality, rotated or very small images. OpenAI's guide names small text, rotated text, and text in non-Latin alphabets such as Japanese or Korean.
-- **Counting.** Both say counts of objects can be approximate.
-- **Exact positions.** Both say spatial reasoning is weak or approximate.
-- **Charts.** OpenAI's guide says the model may struggle with graphs where colors or line styles (solid, dashed, dotted) vary.
-- **People.** Anthropic's guide says Claude cannot be used to name people in images and refuses to do so.
-- **Fakes.** Anthropic's guide says Claude cannot tell whether an image is AI-generated.
+The Claude docs end the list with: "Always carefully review and verify Claude's image interpretations, especially for high-stakes use cases."
 
-Anthropic's guide says to always review and verify image interpretations, especially for high-stakes use.
+**Making images.** Not every model can. The Claude docs say Claude "cannot generate, produce, edit, manipulate, or create images". OpenAI's GPT Image models can create and edit them. The [OpenAI image docs](https://developers.openai.com/api/docs/guides/image-generation) list limits that matter at work: text placement and clarity, keeping "recurring characters or brand elements" consistent, and placing elements precisely in a layout. Our advice: an AI image is fine for an internal slide. For an advert with your logo and an exact price, a designer should check or finish it.
 
-Example: never let the model's count of items in a warehouse photo replace a stock count.
+**Speech to text.** The [OpenAI transcription docs](https://developers.openai.com/api/docs/guides/speech-to-text) say a prompt can improve "product names, technical terms, and acronyms". They also warn that keyword hints must be tested so they don't cause "unspoken terms to appear". The [Gemini audio docs](https://ai.google.dev/gemini-api/docs/audio) list summarizing, transcription, translation and speaker diarization (who said what).
 
-## Making images
+**Text to speech.** The [OpenAI speech docs](https://developers.openai.com/api/docs/guides/text-to-speech) list uses such as narrating "a written blog post". Their usage policies require "a clear disclosure to end users that the TTS voice they are hearing is AI-generated and not a human voice".
 
-Not every model can create images. Anthropic's guide says Claude can analyze images but cannot generate or edit them. OpenAI's GPT Image models can create new images from text or edit existing ones.
+**Media costs tokens too.** Images and audio become tokens, and tokens are billed.
 
-OpenAI's guide lists the limits that matter at work: text inside the image can still be unclear or misplaced, recurring brand elements may not stay consistent across images, and precise layouts are hard.
+- The OpenAI docs say "images count as tokens and will be billed accordingly".
+- The Claude docs' table shows a 1000×1000 pixel image at 1296 tokens. Bigger images cost more, up to each model's size limit.
+- The Gemini docs count audio at 32 tokens for each second: "1 minute = 1,920 tokens". So a 20-minute recording is about 20 × 1,920 = 38,400 tokens.
 
-Example: an AI-made image is fine for an internal workshop slide. For a product ad with your logo and exact price, a designer should check or finish it.
+Our example: sending a full-screen screenshot to read one number is like printing a whole report to read one line. Crop first.
 
-## Voice: from speech to text
+## Worked example
 
-Recorded meetings, calls and interviews can be turned into text.
+### Step 1: the first attempt
 
-- OpenAI's file transcription turns a recording into a transcript. Its guide says a prompt can improve how names, product terms and acronyms are written.
-- Gemini's audio guide lists summarizing audio, transcription, translation, and speaker diarization (who said what).
+The assistant uploads all three files at once and types:
 
-Example prompt for a sales call: "Transcribe this call. Our product names are Fluxa and Fluxa Pro. Then list the customer's objections and the agreed next step."
+```text
+Write up the workshop.
+```
 
-OpenAI's guide also warns that keyword hints should be checked: they should help accuracy without making words appear that nobody said.
+The note is fluent but thin. It lists only half the whiteboard points, and it says bookings "grew strongly in Q3". The trainers remember a dip.
 
-## Voice: from text to speech
+### Step 2: one task per file, each with a brief
 
-OpenAI's text-to-speech can narrate a written text, such as a blog post, in several languages. Its usage policies require you to clearly tell listeners that the voice is AI-generated and not a human voice.
+**The whiteboard photo** (taken close, upright, with the lights on):
 
-Example: an AI-narrated training module should say so at the start.
+```text
+This is a photo of a whiteboard from a sales workshop.
+List every action item as a table: Action | Owner | Due date.
+Copy the words as written. If a word is hard to read, write
+[unreadable] instead of guessing.
+```
 
-## Media costs tokens too
+**The bookings chart**, cropped to the chart only:
 
-Images and audio are turned into tokens, and you pay for them.
+```text
+This is a line chart of monthly course bookings. The solid line is
+2026, the dashed line is 2025.
+For each quarter, give the 2026 value you read from the chart and say
+how sure you are: clear or hard to read.
+```
 
-- OpenAI's guide says images count as tokens and are billed.
-- Anthropic's guide says the token cost depends on image size. Its table shows a 1000×1000 pixel image at 1,296 tokens.
-- Gemini's guide says audio costs 32 tokens per second: 1,920 tokens per minute. So a 30-minute call is about 57,600 tokens.
+**The recording**, with a transcription prompt:
 
-Example: if you only need the numbers from one corner of a big screenshot, crop it first.
+```text
+A sales workshop for a logistics client. Terms: CRM, QBR, "deal desk",
+the course "Value Selling 2".
+```
 
-## Key points
+### Step 3: the hard case
 
-- Many models can read images; some can also create them, transcribe speech or speak.
-- Brief the model about the image: what it is, what you need, in what format.
-- Use clear, upright images. Expect errors with small text, counts, positions and some charts.
-- Tell people when a voice is AI-generated.
-- Media costs tokens. Crop and trim what you send.
+**The hard case is the chart.** It has two lines that differ only by style, which the OpenAI docs name as a limit. The first draft read the dashed 2025 line as 2026, so "grew strongly" was wrong. With the line styles named in the brief and a "how sure" column, the model marked Q3 as hard to read. The trainer checked the numbers in the client's spreadsheet before they went in the note.
+
+### Step 4: the cost
+
+Mara uses the rates in the docs above to estimate one workshop:
+
+```text
+Whiteboard photo, 1000×1000 (Claude table)    1,296 tokens
+Closing session, 20 minutes (Gemini rate)     20 × 1,920 = 38,400 tokens
+```
+
+Rates differ by vendor and model, so check the live page of the tool you use. The audio is the big cost. Mara asks trainers to record only the closing session, not the whole day.
+
+### Step 5: why it is better
+
+- **One brief per file.** Each one says what the file is, what to extract and in what format.
+- **Gaps are visible.** `[unreadable]` and "hard to read" show where a person must check.
+- **The limits are planned for.** Clear photos, named line styles, and a human check on numbers.
+- **The cost is known before sending.** Cropping and short recordings keep it down.
+
+## Common mistakes
+
+1. **"What's this?" with no context.** The model has to guess what matters in the image. Fix: say what the image is, what you need and in what format.
+2. **Sending the whole screen to read one corner.** You pay for every pixel the model sees. Fix: crop to the part you need.
+3. **Assuming every model makes images.** Some models only read them. Fix: check the vendor's docs before you plan a workflow.
+
+## Try it
+
+Not graded. A marketing coordinator has three ideas. Which ones are a weak fit, based on the documented limits? Why?
+
+```text
+A. Ask the model to confirm that the photos in client testimonials
+   are real and not AI-generated.
+B. Ask the model to name the people in our conference photos for
+   the captions.
+C. Ask the model to turn a clear photo of a printed agenda into a
+   list of session titles and times.
+```
+
+### Answer
+
+- **A is a weak fit.** The Claude docs say it cannot tell whether an image is AI-generated, and it "might be incorrect if asked". Use another way to check the source.
+- **B is a weak fit.** The Claude docs say Claude can't be used to name people in images and refuses. Get names from the attendee list instead.
+- **C is a good fit.** Reading visible text from a clear image is a documented use. A person still checks the times before the agenda is shared.
+
+## Recap
+
+- Many models read images, and some also make images, transcribe speech or speak. Brief them like any other task: what the file is, what you need, what format.
+- Expect errors with poor images, small or rotated text, counts, positions and some charts. Let the model mark what it can't read, and check numbers by hand.
+- Images and audio cost tokens. Crop images, trim recordings, and tell listeners when a voice is AI-generated.
