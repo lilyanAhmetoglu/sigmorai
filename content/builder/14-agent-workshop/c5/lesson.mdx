@@ -23,7 +23,7 @@ sources:
     url: https://learn.chatgpt.com/docs/non-interactive-mode
 ---
 
-Eval Arena, chapter 6 (Evals in CI), ran your eval suite on every change. It covered secrets, fork pull requests and cost caps. Chapter 4 ran a coding agent from a script. This chapter puts that agent inside CI (continuous integration, the jobs that run on each push or pull request): it answers comments, turns issues into pull requests and reviews code. The big question is who may start it, and what it may touch.
+Eval Arena, chapter 6 (Evals in CI), ran your eval suite on every change. It covered secrets (values kept in the repo settings, not in the code), fork pull requests (a fork is another account's copy of the repo; a PR from it is a fork PR) and cost caps. (Our plain glosses.) Chapter 4 ran a coding agent from a script. This chapter puts that agent inside CI (continuous integration, the jobs that run on each push or pull request): it answers comments, turns issues into pull requests and reviews code. The big question is who may start it, and what it may touch.
 
 A note on dates: the action names, inputs and permissions below are from each vendor's page in October 2026.
 
@@ -36,7 +36,7 @@ A note on dates: the action names, inputs and permissions below are from each ve
 | Managed review    | Code Review (`@claude review`)      | Codex code review (`@codex review`) |
 
 - **Mention bot.** Anthropic: with no `prompt` input, "Claude waits for the trigger phrase, `@claude` by default", then answers in a comment. The comment must contain `@claude` "as a complete word, not `/claude` or `@claude-bot`". OpenAI: mention `@codex` with anything other than `review`, and "Codex starts a legacy cloud chat using your pull request as context."
-- **Your own workflow.** Claude: when the workflow gives a `prompt` input, "Claude runs without waiting for a mention". By default the results go to the workflow run log. Codex: the action "installs the Codex CLI, starts the Responses API proxy when you provide an API key, and runs `codex exec` under the permissions you specify." You give it `prompt` or `prompt-file`.
+- **Your own workflow.** (A workflow is a YAML file under `.github/workflows/` that tells GitHub Actions which jobs to run and when; our plain gloss.) Claude: when the workflow gives a `prompt` input, "Claude runs without waiting for a mention". By default the results go to the workflow run log. Codex: the action "installs the Codex CLI, starts the Responses API proxy when you provide an API key, and runs `codex exec` under the permissions you specify." You give it `prompt` or `prompt-file`.
 - **Managed review.** No workflow file to keep. Claude's Code Review is in research preview for Team and Enterprise plans, per Anthropic's page. Codex code review is turned on in Codex settings.
 
 ## Issue to pull request
@@ -48,26 +48,26 @@ OpenAI's "Autofix CI failures" recipe shows a safe shape for this. It splits the
 1. **The Codex job** checks out the failing commit with `contents: read` only. Codex makes the fix, and the job saves the diff as a patch file.
 2. **The `open_pr` job** gets `contents: write` and `pull-requests: write`, applies the patch and opens the PR. In OpenAI's words, it "does not receive `OPENAI_API_KEY`."
 
-So no single job holds both the API key and the right to push (our plain gloss).
+So no single job holds both the API key and the right to push (our reading of the recipe).
 
-GitLab works the same way. (An MR, merge request, is GitLab's name for a pull request; our plain gloss.) Claude Code for GitLab CI/CD is in beta and "maintained by GitLab". "Every change flows through an MR so reviewers see the diff and approvals still apply."
+On GitLab, Claude's changes also go through review. (An MR, merge request, is GitLab's name for a pull request; our plain gloss.) Claude Code for GitLab CI/CD is in beta and "maintained by GitLab". "Every change flows through an MR so reviewers see the diff and approvals still apply."
 
 ## Review bots advise; people decide
 
-A review bot posts comments. It does not approve or block on its own.
+Claude Code Review never approves or blocks a PR. For Codex, OpenAI says review rules "don't replace tests, branch protections, or required approvals." The details:
 
 - **Claude Code Review:** "Findings are tagged by severity and don't approve or block your PR". Its check run "always completes with a neutral conclusion so it never blocks merging through branch protection rules." To gate merges on it, read the severity counts "in your own CI".
-- **Codex code review:** "Codex flags only P0 and P1 issues" in GitHub (the two highest priority levels; our plain gloss). You write review rules in `AGENTS.md`, under a `## Code Review Rules` heading. OpenAI: "Code review rules guide Codex; they don't replace tests, branch protections, or required approvals."
+- **Codex code review:** "Codex flags only P0 and P1 issues" in GitHub (the two highest priority levels; our plain gloss). You write review rules in `AGENTS.md`, under a `## Code Review Rules` heading. OpenAI: "Code review rules guide Codex".
 
-Both read your repo's rules files: Claude Code Review reads `CLAUDE.md` or `REVIEW.md`; Codex reads the `AGENTS.md` "closest to the code the rules govern." OpenAI adds: "Leave mechanical checks in CI." Formatting and lint belong in CI or a hook (chapter 2), not in review rules.
+Both read your repo's rules files: Claude Code Review reads `CLAUDE.md` or `REVIEW.md`; Codex applies the root `AGENTS.md` and any more specific one that covers each changed file; put rules in the file "closest to the code the rules govern." OpenAI adds: "Leave mechanical checks in CI." Formatting and lint belong in CI or a hook (chapter 2), not in review rules (our advice, from that line).
 
 Anthropic's own advice for the action: "Grant the workflow only the permissions it needs, and review Claude's changes before merging." For GitLab: "Review Claude's MRs like any other contributor". So the merge stays with a person (our advice, from these lines).
 
 ## Who may start the agent
 
-An agent in CI acts for whoever triggers it. Both actions check that person first.
+An agent in CI acts for whoever triggers it (our plain gloss). Both actions check that person first.
 
-- **Claude:** "on issue and pull request events, the triggering user must have write access to the repository." To let others in, set `allowed_non_write_users`. Bots are refused unless listed in `allowed_bots`, "which keeps bots from triggering Claude in a loop."
+- **Claude:** "on issue and pull request events, the triggering user must have write access to the repository." To let others in, set `allowed_non_write_users` and pass your own `github_token` input. Bots are refused unless listed in `allowed_bots`, "which keeps bots from triggering Claude in a loop."
 - **Codex:** "By default only users with write access can run the action". `allow-users` and `allow-bots` add more accounts.
 
 Text from a PR or issue is input from outside. OpenAI: "Sanitize prompt inputs from pull requests, commit messages, or issue bodies to avoid prompt injection." (Prompt injection is hidden text that tries to give the agent new orders; our plain gloss.)
@@ -77,7 +77,7 @@ Text from a PR or issue is input from outside. OpenAI: "Sanitize prompt inputs f
 Eval Arena, chapter 6, said to keep keys in secrets and that fork PRs get no secrets on public repos. Agents add two more rules.
 
 - **Keep the key out of the job's environment.** OpenAI: "Do not set `OPENAI_API_KEY` or `CODEX_API_KEY` as a job-level environment variable in workflows that check out or run repository-controlled code." Build scripts, tests or "a compromised action in the same job can read those environment variables." The Codex action's `safety-strategy` defaults to `drop-sudo`, which removes `sudo` (admin rights on the runner, the machine that runs the job; our plain gloss) before Codex runs. OpenAI: "Don't rely on `read-only` alone to protect secrets."
-- **Give the workflow only the scopes it needs.** Anthropic's mention example sets `contents: write`, `pull-requests: write`, `issues: write`, `id-token: write` and `actions: read`. Its review example sets `contents: read`, `pull-requests: read`, `issues: read` and `id-token: write`. In automation mode with a plain-text prompt, "Claude has no shell or GitHub API access until you grant the tools the prompt needs", with `--allowedTools` in `claude_args`.
+- **Give the workflow only the permissions it needs.** Anthropic's mention example sets `contents: write`, `pull-requests: write`, `issues: write`, `id-token: write` and `actions: read` (`actions: read` lets Claude read CI results on PRs). Its review example sets `contents: read`, `pull-requests: read`, `issues: read` and `id-token: write`. In automation mode with a plain-text prompt, "Claude has no shell or GitHub API access until you grant the tools the prompt needs", with `--allowedTools` in `claude_args`.
 
 One trap: "GitHub doesn't trigger workflows on commits made with the default `GITHUB_TOKEN`." If you pass `github_token: ${{ secrets.GITHUB_TOKEN }}` to the Claude action, your tests won't run on Claude's commits. Anthropic's fix: remove it so the action "authenticates as the Claude GitHub App", or pass a custom app token.
 

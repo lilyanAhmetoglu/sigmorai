@@ -1,8 +1,8 @@
 {
   "id": "builder/r14/c4/challenge",
   "title": "The nightly script that half worked",
-  "scenario": "A team runs a nightly script on a shared CI runner. It calls three coding agents with no person at the screen. Last night four steps went wrong. You read the script and the log.\n\nUse the exhibit. The team, the script and the log are made up for this case. Flags and exit codes are from the vendors' pages in October 2026.",
-  "exhibit": "nightly.sh (made up)\n\n  # step 1\n  claude -p \"List the open TODOs as JSON\" | jq '.result'\n\n  # step 2 (inside the repo checkout)\n  codex exec \"Fix the lint errors\"\n  git diff --stat\n\n  # step 3\n  gemini -p \"Summarize today's errors\" < errors.log\n\n  # step 4 (added after a teammate's ~/.claude hook ran\n  #         on the shared runner)\n  claude --bare -p \"Draft the changelog\" --allowedTools \"Read\"\n\nLOG (made up)\n  step 1: jq: parse error: Invalid numeric literal\n  step 2: Codex: \"Fixed 6 lint errors.\"\n          git diff --stat: (no output)\n  step 3: exit code 53\n  step 4: the run fails at login. The runner has the team's\n          Claude subscription login saved. No API key is set.",
+  "scenario": "A team runs a nightly script on a shared CI runner (the machine that runs the jobs). It calls three coding agents with no person at the screen. Last night four steps went wrong. You read the script and the log.\n\nUse the exhibit. The team, the script and the log are made up for this case. Flags and exit codes are from the vendors' pages in October 2026.",
+  "exhibit": "nightly.sh (made up)\n\n  # step 1\n  claude -p \"Count the failing tests per folder\" | jq '.result'\n\n  # step 2 (inside the repo checkout)\n  codex exec \"Update the copyright year in every file\"\n  git diff --stat\n\n  # step 3\n  gemini -p \"Summarize today's errors\" < errors.log\n\n  # step 4 (added after a teammate's ~/.claude hook ran\n  #         on the shared runner)\n  claude --bare -p \"Draft the changelog\" --allowedTools \"Read\"\n\nLOG (made up)\n  step 1: jq: parse error: Invalid numeric literal\n  step 2: Codex: \"Updated 14 files.\"\n          git diff --stat: (no output)\n  step 3: exit code 53\n  step 4: the run fails at login. The runner has the team's\n          Claude subscription login saved.",
   "questions": [
     {
       "prompt": "Step 1: why does jq fail to parse the output?",
@@ -27,7 +27,7 @@
       ]
     },
     {
-      "prompt": "Step 2: Codex says it fixed six errors, but git diff shows nothing. Why?",
+      "prompt": "Step 2: Codex says it updated 14 files, but git diff shows nothing. Why?",
       "options": [
         {
           "text": "codex exec needs --json before it is allowed to edit files",
