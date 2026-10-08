@@ -26,7 +26,7 @@ A note on dates. The file names and limits below are from each vendor's page in 
 
 ## Three vendors, one idea
 
-**Figma** says its MCP server works better with project rules. It calls them "the 'unwritten rules' of a codebase that experienced devs know, and would want to pass on to a new junior hire". Figma says adding them once "can dramatically reduce the need for repetitive prompting". Figma does not choose the file for you: "check your IDE or MCP client's documentation for how to structure rules."
+**Figma** suggests project rules for its MCP server (an MCP server is the plug that lets an agent read a tool's data; see Canvas Workshop). Rules "help guide the AI toward consistent, high-quality output". Figma calls them "the 'unwritten rules' of a codebase that experienced devs know, and would want to pass on to a new junior hire". Figma does not choose the file for you: "check your IDE or MCP client's documentation for how to structure rules."
 
 **Anthropic.** Claude Code reads **CLAUDE.md** files. Claude "reads them at the start of every session". A project file sits at `./CLAUDE.md` or `./.claude/CLAUDE.md` and is shared "with your team through version control".
 
@@ -59,7 +59,7 @@ Figma's own example rules include:
 - "Avoid hardcoded values, use design tokens from Figma where available"
 - "Follow WCAG requirements for accessibility"
 
-It also gives a required order of tools for every Figma task. Run `get_design_context` first. If that is too large, run `get_metadata`, then fetch only the nodes you need. Run `get_screenshot`. Only then build. And "Validate against Figma for 1:1 look and behavior before marking complete."
+Figma's example rules also include a "Required flow" for every Figma task. Run `get_design_context` first. If that is too large, run `get_metadata`, then fetch only the nodes you need. Run `get_screenshot`. Only then build. And "Validate against Figma for 1:1 look and behavior before marking complete."
 
 One Figma rule settles a common fight: "When conflicts arise, prefer design‑system tokens and adjust spacing or sizes minimally to match visuals."
 
@@ -83,7 +83,7 @@ Contradictions are worse than gaps. Anthropic: "if two instructions contradict e
 
 Anthropic is clear that CLAUDE.md is "context, not enforced configuration". To block an action no matter what Claude decides, it points to a **PreToolUse hook**: a script that runs before a tool call and can stop it (our plain gloss).
 
-So use rules to guide and checks to prove (our advice). "Never write a hex code" is a rule. A lint check that fails the build on a hex code in a component is proof. Chapter 5 of this realm does the same for colour contrast.
+So use rules to guide and checks to prove (our advice). "Never write a hex code" is a rule. A lint check (a script that scans the code and fails the build on a rule break) that catches a hex code in a component is proof. A later chapter of this realm, Contrast checks, applies the same idea to colour contrast.
 
 ## What this means for your work
 
@@ -91,6 +91,6 @@ So use rules to guide and checks to prove (our advice). "Never write a hex code"
 - **Know who reads what.** Claude Code: CLAUDE.md. Codex: AGENTS.md. Figma's rules go in whichever file your agent reads.
 - **Share one file.** Put rules in AGENTS.md and import it from CLAUDE.md with `@AGENTS.md`.
 - **Make rules checkable.** Name the file, the component, the token.
-- **Keep it short.** Under 200 lines for a CLAUDE.md; Codex stops at 32 KiB by default.
+- **Keep it short.** Under 200 lines for a CLAUDE.md; Codex stops adding files when the combined files reach 32 KiB by default.
 - **Remove conflicts.** Two rules that disagree make the agent guess.
 - **Back key rules with checks.** A rules file guides; it does not enforce.

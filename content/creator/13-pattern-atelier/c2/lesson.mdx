@@ -44,7 +44,7 @@ Here is a colour collection (our example):
 
 Designers apply `bg/page` once. Then they switch the frame between Light and Dark. Figma says that for a third theme, "all we need to do is create a new mode and input values for that theme." Figma's own ideas for modes include "accessible color themes, like high contrast mode", languages and device sizes.
 
-Three rules decide which value a layer shows:
+Two rules decide which value a layer shows, and one limit applies:
 
 - **The default mode** is "the left-most column" of the collection. A design uses it "until you explicitly set a specific mode".
 - **Auto** is the starting setting for objects. An Auto object takes "the mode of their parent container". If no parent sets a mode, it falls back to the default.
@@ -64,17 +64,17 @@ A Penpot theme turns sets on for "a specific context, such as a brand, a mode or
 
 ## Themes in the standard: the Resolver
 
-The DTCG's **Resolver Module 2025.10** (a stable community group report, like the Format Module) describes this in a file. It names the problem first: theme contexts are "susceptible to combinatorial explosion". **Combinatorial explosion** means every new option multiplies the number of looks (our plain gloss).
+The DTCG's **Resolver Module 2025.10** (a stable community group report, like the Format Module) describes this in a file. A resolver is a file that says which tokens apply for a given choice, such as dark theme plus kids brand (our plain gloss). It names the problem first: theme contexts are "susceptible to combinatorial explosion". **Combinatorial explosion** means every new option multiplies the number of looks (our plain gloss).
 
-A resolver file has **sets** (tokens that always apply) and **modifiers** (tokens that depend on a choice). Each modifier has **contexts**, such as `light` and `dark`, and may name a `default`. The spec counts the results as "the product of all contexts across all modifiers". Two brands times two themes is four.
+A resolver file has **sets** (tokens that always apply) and **modifiers** (tokens that depend on a choice). Each modifier has **contexts**, such as `light` and `dark`, and may name a `default`. A `default` must be one of its contexts. The spec counts the results as "the product of all contexts across all modifiers". Two brands times two themes is four.
 
 The order matters here too: tokens "later in the array" override earlier ones.
 
 ## Brand A and brand B
 
-Two brands that share most tokens need a parent and a child, not two copies (our advice).
+Two brands that share most tokens need a parent and a child, not two copies.
 
-- **Figma (Enterprise plan).** An **extended collection** is a child of a parent collection, one per brand. It "will inherit updates made to any variables that have not been explicitly overridden". You cannot "add additional variables or modes" in the child; change those in the parent.
+- **Figma.** Figma says extended collections need the Enterprise plan. An **extended collection** is a child of a parent collection, one per brand. It "will inherit updates made to any variables that have not been explicitly overridden". You cannot "add additional variables or modes" in the child; change those in the parent.
 - **Penpot.** A Brand theme group with one theme per brand, each turning on its own brand set.
 - **DTCG Resolver.** A `brand` modifier next to a `theme` modifier. The spec warns about **orthogonality**: if both modifiers set `color.button`, "array order determines the final value". Keep brand tokens and theme tokens apart where you can (the spec's advice: it "reduces user error").
 
@@ -82,11 +82,11 @@ Two brands that share most tokens need a parent and a child, not two copies (our
 
 An agent cannot see which mode you mean. It reads what the tool gives it.
 
-The Resolver spec makes this explicit. The chosen contexts are an **input**, such as `{ "theme": "dark", "brand": "kids" }` (our example). Tools that load modifiers "SHOULD throw an error if an accompanying input is not provided". An input with an unknown context, like `"theme": "blue"`, is invalid.
+The Resolver spec makes this explicit. The chosen contexts are an **input**, such as `{ "theme": "dark", "brand": "kids" }` (our example). Tools that load modifiers "SHOULD throw an error if an accompanying input is not provided". An input with an unknown context, like `"theme": "blue"`, is invalid. A modifier that names a `default` can be left out of the input; the spec needs no error for it.
 
-In Figma, the risk is quieter. A frame left on Auto, with no parent mode, shows the default column. An agent that reads that frame reads Light values, even if you are building the dark screen (our note).
+In Figma, the risk is quieter. A frame left on Auto, with no parent mode, shows the default column. So an agent that reads that frame may get the Light values, even if you are building the dark screen (our note).
 
-So write the mode down every time (our advice):
+So write the mode down every time:
 
 - Put it in the request: "Build the dark-mode, Marlow Kids version."
 - Set the mode on the frame in Figma, not Auto, before the agent reads it.
