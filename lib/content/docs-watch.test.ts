@@ -38,6 +38,8 @@ const SOURCES: KbSource[] = [
   source('mcp-spec', 'docs', 'https://modelcontextprotocol.io/specification'),
   source('gemini-docs', 'docs', 'https://ai.google.dev/gemini-api/docs'),
   source('mcp-servers', 'repo', 'https://github.com/modelcontextprotocol/servers'),
+  source('elevenlabs-docs', 'docs', 'https://elevenlabs.io/docs'),
+  source('elevenlabs-use-policy', 'docs', 'https://elevenlabs.io/use-policy'),
 ];
 
 describe('citedPages', () => {
@@ -138,6 +140,11 @@ describe('fetchTargets', () => {
       sourceId: 'mcp-servers',
       lessons: [],
     });
+    // A path-prefix key (elevenlabs.io/docs) gets llms.txt; the same host outside it stays HTML.
+    expect(byUrl('https://elevenlabs.io/docs/llms.txt')?.sourceId).toBe('elevenlabs-docs');
+    expect(byUrl('https://elevenlabs.io/use-policy')?.fetchUrl).toBe(
+      'https://elevenlabs.io/use-policy',
+    );
     expect(targets).toHaveLength(2 + SOURCES.length);
   });
 
