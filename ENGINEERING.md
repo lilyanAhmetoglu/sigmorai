@@ -2,6 +2,13 @@
 
 How Sigmorai is built. Stack, architecture rules, data model, build order. The founding brief is `docs/build-prompt.md`; this file wins where they differ. Never makes aesthetic calls (that's `DESIGN.md`).
 
+## Amendments locked 2026-10-08 (mentor scope)
+
+- **Mentor grounding: the whole curriculum.** The Stack row "Mentor … grounded in lesson sources" and the build prompt's "grounded only in the current lesson's source docs" are superseded: the mentor answers from any lesson plus the pages lessons cite, with the current lesson boosted, and says "not covered" for anything else. Spec: `docs/plans/mentor-design-plan.md`.
+- **Mentor index: pgvector + Voyage AI** (`voyage-4`, 1024 dims) in Neon, table `mentor_chunks`, derived from `content/` and rebuilt by `bun run mentor:index`. Content stays files; the index is disposable. Reverses the knowledge-base plan's 2026-10-06 "embeddings dead" line for the mentor only.
+- **Data model:** `mentor_messages` (build prompt) is not created in v1; no transcript is stored. New `mentor_usage` (one row per question: tokens, cost; cascade from `users`). Both tables need **db-architect** before the migration.
+- **UI never imports a provider** now also covers the Voyage endpoint: only `lib/mentor/**` (and `scripts/eval/**`) may call Anthropic or Voyage.
+
 ## Amendments locked 2026-10-06 (E2E, SIG-26)
 
 - **Scope:** one Chromium flow on every PR (sign in → onboarding → lesson → case fail then pass → quick check → leaderboard) plus axe (WCAG 2.0/2.1 A + AA) on 6 routes: `/`, `/leaderboard`, the c1 lesson and case (signed out), and `/onboarding` + `/dashboard` (signed in, inside the flow). No nightly run, no other browsers, no retries (the setup resets the test user once per run; traces are kept on failure).

@@ -8,6 +8,26 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (clear maps)
+
+- **Maintainer feedback (2026-10-08):** on `/map/<slug>` a chapter showed only a number ("1") or a lock on a side-scrolling strip, and a realm with no art (`scene: false`, r9+) showed an empty purple box. "Numbers only is misleading, make it more professional."
+- **The level map is now a quest path of cards** (maintainer pick). This replaces the 2048×480 scrolling strip with `LevelNode` flags (2026-10-05, SIG-15) and the 2026-10-04 "flags at `(n*16+8)*2`" geometry on this page.
+  - **Banner:** the realm's art (RealmScene, the same four layers) is a short banner at the top, cropped to the ground (no scrolling, no parallax). A `scene: false` realm gets a flat token banner with the realm name, never an empty box and never another realm's art.
+  - **Path:** under the banner, one card per chapter, then the boss card, in a single column joined by a trail line with a node per card (✓ done, the number, B for the boss, a padlock when shut). The same layout on phone and desktop; nothing scrolls sideways.
+  - **Card:** a small tag ("CHAPTER 1" / "BOSS BATTLE"), the title, a one-line goal, the steps (Lesson · Case · Quick check) each with its state as icon + word, the XP it gives, and a status as icon + word: Done / Continue / Open / Locked / Soon. Tier-locked shows as Locked; a chapter with no content file as Soon.
+  - **Goal line:** no new copy. A chapter's goal is its case title ("Case: The summary nobody can use", from its `case.json`); the boss's is its outline `boss.task`. A chapter with no case file yet shows no goal line.
+  - **Links:** unchanged. A playable card's title links to its first open step (a done card: its lesson, replay), and the link covers the whole card. A shut card is an `aria-disabled` button with the hint "Clear chapter N to open." (the boss: the same words the quest action returns).
+  - **Current chapter:** the card holding the player's next step is marked (a Spark edge, `aria-current="step"`, the word Continue) and brought into view on load (only as far as needed, so the header stays when it already shows).
+- **Why cards and not the strip:** a card says what a chapter is, what is left and what it is worth, in words; a numbered flag on busy art said none of that, and on a phone only two flags were in view. The art stays as the banner, so each realm keeps its look.
+- **Removed:** `LEVEL_MAP`, `levelNodeX`, `levelNodeGap` and the strip's scroll-driven parallax CSS (nothing else used them). `LevelNode` stays as a primitive for a later map (Math Tower); its `level-node.css` is not imported in `globals.css` until that map uses it.
+- **Review fixes (same day, cto + ui-ux):**
+  - The page scrolls on load only when the current card is not the first one **and** starts below the fold. A realm with no progress never moves, so the header and "◂ World map" stay in view.
+  - The current card says START while the realm has no cleared step, else CONTINUE: the same word as the header button.
+  - The current card stands out on any realm colour: a raised surface (surface-3) and a 4px Spark edge drawn as a hard inset shadow (no text shift).
+  - A shut card's button is `aria-describedby` its unlock hint. A card shut as a whole drops the LOCKED word on each step (the badge says it once).
+  - The flat banner of a realm with no art is 96px tall (was 192px). The banner preloads only the front art layers (mid, near).
+  - `getChapterGoals` returns facts (`{ kind: 'case' | 'boss', text }`); the card words them ("Case: …").
+
 ## Amendments locked 2026-10-07 (world map, SIG-59)
 
 - **`/map` is the world map, not a redirect.** It shows every realm of a path as a land on one top-down map (`docs/plans/world-map-design-plan.md`). This replaces "/map → redirect to the player's current realm" (2026-10-05). `/map/<slug>` stays the realm's level map and gets a "◂ World map" back link; its title reads "<Realm> · Level map · Sigmorai".

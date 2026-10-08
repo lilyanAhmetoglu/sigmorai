@@ -10,6 +10,17 @@
 
 > **2026-10-07 (SIG-29):** the Frontier is playable (`/frontier`, every chapter open, shared XP, no sample chapter). See `curriculum-design-plan.md` → "Amendments locked 2026-10-07 (SIG-29: the Frontier is playable)".
 
+## Amendments locked 2026-10-08 (mentor scope)
+
+Maintainer decision, 2026-10-08. Layered on top; the 2026-10-06 block below stays for history. Spec: `docs/plans/mentor-design-plan.md`.
+
+- **The mentor answers about the whole curriculum, not only the current lesson.** So it needs retrieval over every lesson and every page a lesson cites.
+- **Embeddings and pgvector come back, for the mentor only.** Voyage AI (`voyage-4`, 1024 dims) on Neon `pgvector`, in a new derived table `mentor_chunks` (lesson MDX + cited source text, never `case.json` / `quick-check.json`). `content/` stays the source of truth; the table is rebuilt by `bun run mentor:index`. **SCHEMA REVIEW REQUIRED: db-architect.**
+- **This reverses only part of the 2026-10-06 "Dead" line:** "embeddings and pgvector (Voyage)" are live again for the mentor. `kb_documents`, `kb_chunks`, `kb_changes`, `kb_source_candidates`, `lesson_sources`, model triage and the rest stay dead.
+- **It replaces** the 2026-10-06 line "The mentor's grounding is now 'the current lesson's cited pages', decided in step 7" and the old "Mentor grounding" section ("filtered to the documents in the current lesson's `lesson_sources`. Never the whole KB"). New rule: the whole curriculum, current lesson boosted, nothing outside it.
+- **Why the 2026-10-06 reason no longer holds:** that block dropped embeddings because docs-watch only needs to answer "did a cited page change?", which a hash in git answers for free. That is still true, and docs-watch is unchanged (no DB, no key). Curriculum-wide Q&A is a different question: "which of ~6,000 passages answers this?" A hash can't answer it, and stuffing all ~2.8 M tokens into every prompt is not possible. A full index rebuild costs about $0.17 and falls inside Voyage's 200 M free tokens.
+- **Reuse:** the indexer fetches source pages with the docs-watch helpers (`citedPages`, `markdownUrl`, `normalise`).
+
 ## Amendments locked 2026-10-07
 
 The knowledge-sync skill (`.claude/skills/knowledge-sync/SKILL.md`) is **run by hand** by the maintainer. There is **no scheduled routine** and no unattended mode; the 2026-10-06 "routine" wording is dropped. Commit and push follow `git-safety.md` as usual; a human still merges every knowledge-sync PR (the 2026-10-06 rule stands). The skill has `disable-model-invocation: true`, so only the maintainer's `/knowledge-sync` runs it. docs-watch (the GitHub Action on `main`) only opens issues.

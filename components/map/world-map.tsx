@@ -190,7 +190,7 @@ function Island({ land, shape, art }: IslandProps) {
  * targets. Everything drawn is decoration (aria-hidden); the markers are the
  * links, and the path list under the box is the text view. ZoomControls sets
  * data-zoom on the box and world-map.css does the rest; with no JS the box
- * shows the overview. On load the box centres the current realm
+ * shows zoom 1. On load the box centres the current realm
  * (ScrollToCurrent).
  */
 export function WorldMap({ view, heroName, tag }: Props) {

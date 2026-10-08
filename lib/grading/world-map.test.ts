@@ -74,6 +74,16 @@ describe('pathRealms', () => {
     expect(rows.map((r) => r.href)).toEqual(CORE.map((r) => `/realms/${r.slug}`));
     expect(rows.filter((r) => r.current).map((r) => r.id)).toEqual([CORE[2].id]);
   });
+
+  test('a realm is "soon" only when no chapter and no boss has a content file', () => {
+    const map = trackMap(NINE_OPEN, 0);
+    const stub = map.realms[1];
+    stub.chapters = stub.chapters.map((c) => ({ ...c, status: 'soon' }));
+    const half = map.realms[2];
+    half.chapters = half.chapters.map((c, i) => (i === 0 ? c : { ...c, status: 'soon' }));
+    const rows = pathRealms(map, (slug) => `/map/${slug}`);
+    expect(rows.filter((r) => r.soon).map((r) => r.id)).toEqual([1]);
+  });
 });
 
 describe('specialist realms (real REALMS, each path in its committed outline order)', () => {

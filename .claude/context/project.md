@@ -59,6 +59,6 @@ Major decisions go into `Amendments locked YYYY-MM-DD` blocks at the top of the 
 - **The curriculum is vendor-neutral.** It teaches AI systems for Claude, OpenAI, Gemini and open models alike; a concept cites more than one vendor where it can. Lessons are built from the official docs first.
 - **Lessons come from official Anthropic and OpenAI docs first, then other official sources.**
 - **Content is never auto-published.** Docs-sync opens a PR; a human merges it.
-- **Every lesson cites its sources.** No claim without a source; the mentor answers only from them.
+- **Every lesson cites its sources.** No claim without a source; the mentor answers only from the lessons and the pages they cite.
 - **Two voices.** Plain technical product voice; lore only in DialogBoxes.
 - **No dark patterns.** No streak shaming, no paid HP refills, no loot boxes.

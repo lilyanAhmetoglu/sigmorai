@@ -20,7 +20,7 @@
 - `db/schema/*.ts`: one file per table group, re-exported from `db/schema/index.ts`.
 - `db/index.ts`: the Neon client + drizzle instance. `import 'server-only'`.
 - `drizzle/`: generated SQL migrations + `meta/` (never hand-edit `meta/`).
-- v1 tables: `users`, `progress`, `submissions`, `xp_events`, `kb_sources`. `mentor_messages` arrives in step 7. Step 8 adds **no** tables: docs-watch keeps its page hashes in git on the `docs-watch` branch, and the other `kb_*` tables, `lesson_sources` and pgvector are dropped (knowledge-base plan, amendment 2026-10-06). `kb_sources` stays but nothing reads it yet; removing it is a later cleanup with db-architect.
+- v1 tables: `users`, `progress`, `submissions`, `xp_events`, `kb_sources`. Step 7 (mentor, amendment 2026-10-08) adds `mentor_chunks` (a derived pgvector index of lessons + cited pages, no user data, rebuilt by `bun run mentor:index`) and `mentor_usage` (one row per question, cascade from `users`); no `mentor_messages` in v1. Step 8 adds **no** tables: docs-watch keeps its page hashes in git on the `docs-watch` branch, and the other `kb_*` tables and `lesson_sources` are dropped (knowledge-base plan, amendment 2026-10-06); pgvector was dropped there too and returns for the mentor only (2026-10-08). `mentor_chunks` is a cache of `content/`: TRUNCATE + `bun run mentor:index` rebuilds it. `kb_sources` stays but nothing reads it yet; removing it is a later cleanup with db-architect.
 
 ## Migrations
 

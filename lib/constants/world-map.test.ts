@@ -186,20 +186,39 @@ describe('labels and pins', () => {
     expect(new Set(shapes).size).toBe(shapes.length);
   });
 
-  test('every realm name fits its plate box (Silkscreen 10px: under 8px a letter, 12px padding)', () => {
+  test('every realm name fits its plate (Silkscreen 10px: under 8px a letter, 12px padding, 2px shadow)', () => {
     const [l, , r] = WORLD_HERO.detail;
-    const long = REALMS.filter((realm) => realm.name.length * 8 + 12 > r - l).map((x) => x.name);
+    const long = REALMS.filter((realm) => realm.name.length * 8 + 12 + 2 > r - l).map(
+      (x) => x.name,
+    );
     expect(long).toEqual([]);
   });
 
-  test('at every zoom, no pin (with its pip) or name plate touches another, or a landmark label', () => {
+  test('world-map.css sizes the label plate like WORLD_HERO.detail (148 × 36, 24px under the anchor)', async () => {
+    const css = await Bun.file(
+      `${import.meta.dir}/../../app/styles/components/world-map.css`,
+    ).text();
+    const [l, t, r, b] = WORLD_HERO.detail;
+    // max-w-37 = 148px and h-9 = 36px on the 4px spacing scale, plus the 2px shadow.
+    expect(r - l).toBe(148 + 2);
+    expect(b - t).toBe(36 + 2);
+    expect(t).toBe(24);
+    // Order-free on purpose: prettier sorts the @apply classes. Each class is
+    // matched with a space on both sides, so h-9 never matches inside another.
+    const rule = css.match(/\.world-marker-label \{([^}]*)\}/)?.[1] ?? '';
+    expect(rule).toContain(' max-w-37 ');
+    expect(rule).toContain(' h-9 ');
+    expect(rule).toContain('top-[calc(100%+--spacing(0.5))]');
+  });
+
+  test('at every zoom, no pin (with its pip) or label plate touches another, or a landmark label', () => {
     const clashes: string[] = [];
     for (const z of ZOOM_STEPS) {
-      // Screen px on the stage; names show from zoom 1.
+      // Screen px on the stage; label plates show from zoom 1.
       const said = anchors.flatMap(([name, p]): [string, Box][] => [
         [`${name} pin`, at(p.x * z, p.y * z, WORLD_HERO.pinBox)],
         ...(z >= 1
-          ? [[`${name} name`, at(p.x * z, p.y * z, WORLD_HERO.detail)] as [string, Box]]
+          ? [[`${name} label`, at(p.x * z, p.y * z, WORLD_HERO.detail)] as [string, Box]]
           : []),
       ]);
       said.forEach(([a, boxA], i) =>
@@ -271,21 +290,21 @@ describe('heroSide', () => {
 });
 
 describe('WORLD_MAP_TEXT.marker', () => {
-  test('starts with the visible number, tag and name, drops the "·"', () => {
-    // On screen: the pin number, the tag above it, the name below it (zoom 1+).
+  test('starts with the visible tag, then name, number and state; drops the "·"', () => {
+    // On screen: the tag above the pin, then the label: name, number + state, count.
     expect(WORLD_MAP_TEXT.marker('01', 'Prompt Forest', 'IN PROGRESS', 2, 7, 'YOU ARE HERE')).toBe(
-      '01 you are here, Prompt Forest, in progress, 2 of 7 cleared',
+      'you are here, Prompt Forest, 01, in progress, 2 of 7 cleared',
     );
-    expect(WORLD_MAP_TEXT.marker('06', 'Eval Arena', 'ADVANCED · LOCKED', 0, 7)).toBe(
-      '06 Eval Arena, advanced locked, 0 of 7 cleared',
+    expect(WORLD_MAP_TEXT.marker('06', 'Eval Arena', 'A · B', 0, 7)).toBe(
+      'Eval Arena, 06, a b, 0 of 7 cleared',
     );
   });
 
   test('a specialist realm says its path right after the name', () => {
     const only = REALMS_TEXT.pathRealm(TRACK_TEXT.creator.label);
     expect(only).toBe('CREATOR ONLY');
-    expect(WORLD_MAP_TEXT.marker('09', 'Canvas Workshop', 'OPEN', 0, 7, undefined, only)).toBe(
-      '09 Canvas Workshop, creator only, open, 0 of 7 cleared',
+    expect(WORLD_MAP_TEXT.marker('09', 'Canvas Workshop', 'SOON', 0, 7, undefined, only)).toBe(
+      'Canvas Workshop, creator only, 09, soon, 0 of 7 cleared',
     );
   });
 });
