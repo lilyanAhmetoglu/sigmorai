@@ -1,7 +1,7 @@
 ---
 id: builder/r0/c1/lesson
 title: Tokens
-minutes: 7
+minutes: 10
 sources:
   - kind: docs
     title: Token counting (Claude docs)
@@ -20,79 +20,136 @@ sources:
     url: https://developers.openai.com/api/docs/guides/prompt-caching
 ---
 
-A model does not read words. It reads **tokens**. Price, context size and rate limits are all counted in tokens. So the first skill of an AI engineer is to think in tokens, not in words.
+## Goal
 
-## What a token is
+After this lesson you can:
 
-A token is a piece of text that the model processes. OpenAI describes tokens as "commonly occurring sequences of characters".
+- Turn a word count into a rough token count, and say when that rough rule is not safe.
+- List every part of a request that counts as input tokens, not only the user's text.
+- Measure tokens before a call with a counting tool, and after a call with the `usage` data.
 
-Both Anthropic and OpenAI give the same rough rule for English:
+## The problem
 
-- 1 token ≈ 4 characters
-- 1 token ≈ 0.75 words
+A team builds a code-review helper. Each request sends a system prompt, one tool called `search_docs`, and the diff that the developer wants reviewed. Before launch, the team lead asks: "How big is one request, and what will it cost?"
 
-Example: a 1,500-word English support article is about 1,500 ÷ 0.75 = **2,000 tokens**.
+A developer counts the words in a typical diff: 1,200 words. He says: "So 1,200 per request." That number is wrong in two ways:
 
-This is only a rule of thumb. Anthropic's pricing FAQ says the exact count "varies by language and content type". Text in other languages, or other kinds of content, may not follow the English rule. Use the rule for a first sketch, then measure.
+1. Models do not count words. They count **tokens**.
+2. The diff is not the only thing in the request.
 
-## Why tokens matter for a system design
+This lesson shows how to get a number you can plan with.
 
-Three things you will design around are measured in tokens:
+## The idea
 
-1. **Cost.** Both vendors price models per million input tokens and per million output tokens. More tokens, bigger bill (chapter 6).
-2. **Context.** A model can only look at a fixed number of tokens per request (chapter 5).
-3. **Throughput.** Rate limits cap tokens per minute, not words per minute (chapter 5).
+A token is a small piece of text. The [OpenAI docs](https://developers.openai.com/api/docs/concepts) say tokens "represent commonly occurring sequences of characters". A common word like "the" can be one token. A longer word can be two or more.
 
-Example: you plan to paste a 300-page manual into every request. Before you write any code, convert pages to tokens. That number decides whether it fits, how much each call costs, and how many calls per minute you can make.
+Think of tokens as the coins the API counts. Price, context size and rate limits are all counted in these coins, not in words:
 
-## Each model family has its own tokenizer
+- **Cost.** Both vendors price input and output per million tokens. The [OpenAI pricing page](https://developers.openai.com/api/docs/pricing) says: "Prices per 1M tokens." Input and output have separate prices.
+- **Context.** A model can only read a fixed number of tokens in one request (chapter 5).
+- **Rate limits.** Limits count tokens per minute, not words per minute (chapter 5).
 
-A **tokenizer** is the part that cuts text into tokens. Different models can use different tokenizers, so the same text can give different counts.
+**The rough rule for English.** Both vendors give the same rule of thumb. The [Claude pricing page](https://platform.claude.com/docs/en/about-claude/pricing) says: "1 token is approximately 4 characters or 0.75 words in English. The exact count varies by language and content type." The OpenAI docs give the same 4 characters or 0.75 words "for English text". So the rule is for a first sketch in English only. For other languages and for code, measure.
 
-Anthropic's docs give a concrete case: Claude 4.7 and later models use a newer tokenizer, and "the same input text produces approximately 30 percent more tokens than on earlier models". The docs say to recount prompts against the model you plan to use, and not to reuse counts measured on an older model.
+**Everything in the request is input.** The system prompt, the conversation history, tool definitions, images and PDF pages all count as input tokens. Tools add more than their own text. The Claude pricing page says that when you use `tools`, "the API also automatically includes a special system prompt for the model that enables tool use." The model's reply is **output**, counted and priced on its own.
 
-Example: your prompt measured 10,000 tokens on an older model. On a model with the newer tokenizer it could be about 13,000. Your cost estimate and your context budget both move.
+**A token count belongs to one model.** Each model family has a **tokenizer**: the part that cuts text into tokens. Two tokenizers can cut the same text differently. The [Claude token counting docs](https://platform.claude.com/docs/en/build-with-claude/token-counting) give a real case: on newer models, "the same input text produces approximately 30 percent more tokens than on earlier models." They also say: "Recount prompts against the model you plan to use rather than reusing counts measured against earlier models."
 
-The rule: **a token count belongs to one model.** When you switch models, recount.
+**Count before the call, then trust `usage` after it.**
 
-## Counting before you send
+```text
+plan:    words / 0.75        -> rough sketch (English only)
+before:  counting tool       -> estimate for one model
+after:   usage in response   -> what you really used
+```
 
-You often want the count before you pay for a call. The vendors offer different tools:
+- **Before.** The Claude token counting endpoint "accepts the same structured list of inputs for creating a message", including system prompts, tools, images and PDFs. It is "free to use" but has its own requests-per-minute limit. The docs say the result is an **estimate**: the real number "might differ by a small amount". The OpenAI docs point to a tokenizer tool to "test specific strings and see how they are translated into tokens".
+- **After.** Every response reports what it used. A Claude response has a `usage` block with `input_tokens` and `output_tokens`. An OpenAI response has a `usage` object too; the [OpenAI caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) reads `usage.input_tokens_details.cached_tokens` from it. Log these numbers on every call. They are the real numbers for cost dashboards.
 
-- **Anthropic** has a token counting endpoint. It "accepts the same structured list of inputs for creating a message", including system prompts, tools, images and PDFs, and returns the total input tokens. It is free to use but has its own requests-per-minute limit. The docs call the result an **estimate**: the real count "might differ by a small amount".
-- **OpenAI** offers a tokenizer tool to "test specific strings and see how they are translated into tokens".
+## Worked example
 
-Example from the Claude docs: a one-line system prompt plus "Hello, Claude" counts 14 input tokens. A one-sentence weather question with one small tool defined counts 403. Most of that gap is the tool. The tool definition is input. The Claude pricing page says the API also adds a tool-use system prompt whenever tools are present.
+### Step 1: the first guess
 
-## Counting after the call
+```text
+diff: 1,200 words  ->  "1,200 tokens per request"
+```
 
-Every response tells you what it really used. A Claude response carries a `usage` block:
+What goes wrong:
+
+- It treats words as tokens.
+- It forgets the system prompt and the tool.
+- It does not say which model the number is for.
+
+### Step 2: convert words to tokens, for every part
+
+The team writes down every part of the request. The diff is code, and the system prompt is English.
+
+```text
+part                 words    rough tokens (words / 0.75)
+system prompt          450      600
+tool: search_docs      120      160   (+ the tool-use system prompt)
+diff (code)          1,200    1,600   <- code: rule may be wrong
+---------------------------------------------------------------
+rough input                    2,360+ tokens
+output (the review)            not input; counted on its own
+```
+
+This is better, but two lines are still guesses. **The hard case is the diff.** It is code, not English prose. The 0.75 rule is for English text, so the real count can be quite different.
+
+### Step 3: measure on the launch model
+
+The team sends one real request (system prompt, tool and a real diff) to the token counting endpoint, with the model they will launch on. The shape of the request is the same as a normal call:
 
 ```json
-"usage": {
-  "input_tokens": 12,
-  "output_tokens": 6
+{
+  "model": "<the launch model id>",
+  "system": "You review code diffs for our team...",
+  "tools": [{ "name": "search_docs", "description": "...", "input_schema": { "type": "object" } }],
+  "messages": [{ "role": "user", "content": "<the real diff>" }]
 }
 ```
 
-OpenAI responses also carry a `usage` object. For example, the OpenAI caching guide points to `usage.input_tokens_details.cached_tokens` to see how many input tokens came from the cache.
+The answer is one number: `{ "input_tokens": ... }`. They repeat this for 20 real diffs, short and long, and use the average.
 
-Log these numbers on every call. They are the ground truth for your cost and capacity dashboards. An estimate from a word count is a plan; `usage` is what happened.
+### Step 4: check with `usage` after launch
 
-## Not only text costs tokens
+In week 1, the app logs `usage.input_tokens` and `usage.output_tokens` for every call. The team compares the logs with the plan and updates the budget.
 
-Plan for every part of a request, not just the user's message:
+### Why it is better
 
-- the system prompt or instructions
-- the whole conversation history you resend (chapter 2)
-- tool definitions (names, descriptions, schemas)
-- images and PDF pages (chapter 4)
+- **Every part counts.** The system prompt and the tool are in the number, not only the diff.
+- **One model.** The count is for the launch model's tokenizer.
+- **Measured, not guessed.** The code diff, the hard case, is measured instead of converted with an English rule.
+- **Checked after launch.** `usage` shows the real numbers, so the plan does not drift.
 
-Example: a chat app with a 2,000-token system prompt and a 50-token user question sends about 2,050 input tokens, not 50.
+## Common mistakes
 
-## Key points
+1. **Counting only the user's text.** The system prompt, the history, tool definitions and images are input too. Fix: list every part of the request, then count all of them.
+2. **Using the English rule for everything.** Code, numbers and other languages can split very differently. Fix: use words ÷ 0.75 only for an English sketch; measure a real sample for the rest.
+3. **Keeping old counts after a model change.** A new tokenizer can change the count for the same text. Fix: recount with the new model id before you update the budget.
 
-- A token is a piece of text. For English, about 4 characters or 0.75 words. Other content varies.
-- Cost, context and rate limits are all measured in tokens.
-- Counts depend on the model's tokenizer. Recount when you change models.
-- Estimate before the call (counting tools), then trust `usage` after it.
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team plans a meeting-notes app. Each request has:
+
+- a system prompt of 300 English words,
+- a meeting transcript of 2,400 English words,
+- no tools.
+
+1. Use the rough rule. About how many input tokens is one request?
+2. Next month, half of the meetings will be in German. Can the team use the same rule for those?
+3. The app goes live. Which number should the monthly cost report use?
+
+### Answer
+
+1. (300 + 2,400) ÷ 0.75 = **about 3,600 input tokens**. This is only a sketch for English text.
+2. **No.** The docs give the rule for English, and the count "varies by language". Fix: measure a few real German transcripts with a counting tool for the model you use.
+3. **The `usage` numbers** from each response. A pre-call count is an estimate; `usage` is what the call really used.
+
+## Recap
+
+- A token is a small piece of text. For English, about 4 characters or 0.75 words. Other languages, code and other content can differ.
+- Every part of a request is input: system prompt, history, tools, images. The reply is output, priced on its own.
+- A count belongs to one model's tokenizer. Recount when you change models. Estimate before the call, then trust `usage` after it.
