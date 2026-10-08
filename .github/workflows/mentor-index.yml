@@ -9,11 +9,20 @@ name: Mentor index
 # dispatch after migrations 0007 + 0008 are applied.
 #
 # GitHub runs scheduled workflows only from the default branch (main).
+# It can race migrate.yml on a release that also changes drizzle/**: if a run
+# fails on a schema change, re-run it by hand after the migration.
 
 on:
   push:
     branches: [main]
-    paths: ['content/**', 'lib/mentor/**']
+    paths:
+      [
+        'content/**',
+        'lib/mentor/**',
+        'lib/constants/mentor.ts',
+        'lib/content/**',
+        'scripts/mentor-index.ts',
+      ]
   schedule:
     # Weekly: catches cited pages that changed without a content commit.
     - cron: '23 5 * * 1'
