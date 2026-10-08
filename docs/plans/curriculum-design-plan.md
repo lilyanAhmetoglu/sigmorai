@@ -35,6 +35,15 @@
 
 - **Blog takes the Math Tower's header slot** (maintainer: the header holds meaningful items and must include Blog). The Math Tower is no longer a nav item. It stays reachable from the dashboard Math Tower panel (a "View the tower" link in every state) and keeps its `/math` routes and certificate. Later it becomes a chapter of the Scientist path. This replaces "a nav item + a dashboard shortcut" for the tower below; the Frontier's nav slot is decided when the Frontier ships.
 
+## Amendments locked 2026-10-08 (Clerk only where needed)
+
+- **`ClerkProvider` leaves the root layout** (devil measure: Clerk cost a plain visitor ~190 KB gzip per page view, its UI included). It mounts in three places, through `ClerkGate`, and **always with its UI**: (1) the `(app)` layout, only for a signed-in player (server `auth()`, which reads the proxy's headers: no DB, no network); (2) the new `(auth)` group, always; (3) the public pages (`(marketing)`) and the site 404, only after hydration and only when the `__client_uat` cookie says a player is likely. A visitor gets no Clerk script, no Clerk chunk and no Clerk request.
+- **Sign-in and sign-up move from `(marketing)` to `(auth)`** (same URLs, same shared header and footer via one public shell). This replaces "sign-in and sign-up live in `(marketing)`" in the one-header block below: they now need Clerk on every visit, the marketing pages don't.
+- **Never `prefetchUI={false}`, never two provider configs.** In Clerk 7.9 a Clerk loaded without its UI stays without it for the tab (UserButton and SignIn then throw), and a second provider reuses the loaded `window.Clerk`. The only lever is mount or don't mount.
+- **Components that use a Clerk hook branch on `useClerkMounted()`** and keep the Clerk branch in a lazy module, so no Clerk hook runs without its provider and `@clerk/*` stays out of a visitor's JS.
+- **E2E signs in from `/sign-in`** (a visitor's `/` no longer loads Clerk for `clerk.signIn`), and checks that a visitor on `/`, `/blog`, `/map` and a 404 loads no Clerk.
+- **Unchanged:** the proxy matcher, the CSP, `GET /api/hud`, `CLERK_WAIT_MS`, and server `auth()` everywhere.
+
 ## Amendments locked 2026-10-08 (one header)
 
 - **One `SiteHeader` on every page** (maintainer): the (app) and (marketing) layouts and the site 404. Same logo, same nav in the same order (`aria-current` on the current section), and a right side that changes only with auth state: Sign in + Start free (plain links to `/sign-in` and `/sign-up`) for a visitor, the HUD for a player. Below `sm` a visitor's Sign in moves into the Menu panel, so the header is one row at 360px. On `/sign-in` and `/sign-up` the link to the current page is left out.

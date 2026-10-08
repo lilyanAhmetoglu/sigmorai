@@ -43,6 +43,7 @@ How Sigmorai is built. Stack, architecture rules, data model, build order. The f
 ## Amendments locked 2026-10-05
 
 - **Auth: Clerk, not Auth.js v5.** Decided by the maintainer: no home-made login. `@clerk/nextjs`, `proxy.ts` with `clerkMiddleware()` (Next 16 name), `await auth()` on the server. Proposed for the schema ticket (db-architect confirms): `users.id` = the Clerk user id (text), row created on first need (upsert), no webhook, no Auth.js adapter tables (`accounts`, `sessions`, `verification_tokens`). Free plan: 50k monthly retained users, up to 3 social logins, email links. The Auth.js lines below are superseded.
+  > **Amended 2026-10-08:** `ClerkProvider` is not in the root layout. `ClerkGate` mounts it, always with its UI, only for a signed-in player in `(app)`, on the `(auth)` pages, and on public pages after hydration when `__client_uat` says a player is likely. See `docs/plans/curriculum-design-plan.md` → "Amendments locked 2026-10-08 (Clerk only where needed)".
 - **Neon: work on the `dev` branch** (project `late-haze-29496360`). `production` is touched only by deploys. `neon.ts` is the CLI project marker (branch policy comes with the schema ticket); `neon link` writes `DATABASE_URL` into `.env.local`.
 
 ## Amendments locked 2026-10-04
