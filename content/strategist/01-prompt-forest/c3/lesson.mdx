@@ -43,9 +43,13 @@ The model had no way to see where offer A ends and offer B starts. It also had n
 
 Structure works in two directions: **structure in the prompt**, so the model reads it right, and **structure in the answer**, so you can use it.
 
-**Mark the parts of your prompt.** The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) suggest **XML tags**, such as `<instructions>` and `<context>`. They say wrapping each type of content in its own tag "reduces misinterpretation". The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-engineering) suggest Markdown headings and lists for sections, and XML tags to show where a piece of content "begins and ends". The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) accept tags or headings, and say: "Choose one format and use it consistently within a single prompt."
+**Mark the parts of your prompt.** The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) suggest **XML tags**, such as `<instructions>` and `<context>`. They say wrapping each type of content in its own tag "reduces misinterpretation".
 
-A tag is just a label in angle brackets, opened and closed: `<offer_a>` … `</offer_a>`. You don't need to know XML.
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-engineering) suggest Markdown headings and lists for sections.
+- They also suggest XML tags to show where a piece of content "begins and ends".
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) accept tags or headings. They say: "Choose one format and use it consistently within a single prompt."
+
+Our example: a tag is like a label on a folder. `<offer_a>` opens it and `</offer_a>` closes it, so the model sees where one offer starts and ends. You don't need to know XML.
 
 **Name the shape of the answer.** The Gemini docs list formats you can ask for: "a table, bulleted list, elevator pitch, keywords, sentence, or paragraph". Two tips from the Claude docs:
 
@@ -58,13 +62,13 @@ The Gemini docs add a trick: write the start of the format yourself and let the 
 
 **When a system reads the answer, use structured outputs.** Sometimes no person reads the answer. It goes into a spreadsheet, a CRM or a booking tool. Then the shape must be the same every time. All three vendors offer **structured outputs**: your technical team sets a **schema** (a fixed list of fields and their types, such as "venue: text, price: number"), and the answer must follow it.
 
-- The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) say structured outputs "guarantee schema-compliant responses". The exceptions are rare, such as a refusal or an answer cut off at the token limit.
-- The [OpenAI docs](https://developers.openai.com/api/docs/guides/structured-outputs) say the model "will always generate responses that adhere to your supplied JSON Schema", so it won't omit a required key. They add there is "No need for strongly worded prompts" to keep the format.
+- The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) say structured outputs "guarantee schema-compliant responses". The docs say this holds "in most cases". Exceptions include a refusal or an answer cut off because it hit the length limit.
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/structured-outputs) say the model "will always generate responses that adhere to your supplied JSON Schema", so a required key is never left out. They add there is "No need for strongly worded prompts" to keep the format.
 - The [Gemini docs](https://ai.google.dev/gemini-api/docs/structured-output) list uses such as data extraction and classification "into predefined categories". The Gemini prompting docs recommend the feature for a more complex JSON Schema.
 
 Without it, the Claude docs warn, even careful prompting can give missing required fields.
 
-**A valid shape is not a correct answer.** The OpenAI docs say: "Structured Outputs can still contain mistakes." The Gemini docs say that while the output is "syntactically correct JSON, always validate values". The field can be in the right place with the wrong number in it. Your job as a business user is to name each field and say exactly what it means.
+**A valid shape is not a correct answer.** The OpenAI docs warn that the output "can still contain mistakes". The Gemini docs add: "While output is syntactically correct JSON, always validate values in your application." JSON is the text format systems use to pass data to each other. A field can be in the right place with the wrong number in it. Your job as a business user is to name each field and say exactly what it means.
 
 **Split big tasks into steps.** The Gemini docs describe **chaining**: each step is its own prompt, and the output of one step "becomes the input of the next". The Claude docs say chaining is still useful "when you need to inspect intermediate outputs".
 
@@ -130,6 +134,8 @@ free_cancel_by  date    last day to cancel at no cost
 - **"Not stated" is allowed**, so a gap stays visible instead of being filled with a guess.
 - **Field meanings are written down.** "Before tax" and "per person" stop two right-looking numbers from meaning different things.
 - **Someone still checks.** A valid record can still hold a wrong value, so the team spot-checks new bookings against the offer.
+
+Our advice: write the field list yourself, with units and "not stated" allowed, before IT builds anything. The person who knows what each number means should name it.
 
 ## Common mistakes
 
