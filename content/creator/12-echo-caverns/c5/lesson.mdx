@@ -1,0 +1,111 @@
+---
+id: creator/r12/c5/lesson
+title: Captions
+minutes: 9
+sources:
+  - kind: docs
+    title: OpenAI docs · Speech to text
+    url: https://developers.openai.com/api/docs/guides/speech-to-text
+  - kind: docs
+    title: OpenAI API reference · Create transcription
+    url: https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create
+  - kind: docs
+    title: Gemini API docs · Audio understanding
+    url: https://ai.google.dev/gemini-api/docs/audio
+  - kind: docs
+    title: ElevenLabs docs · Transcription (speech to text)
+    url: https://elevenlabs.io/docs/overview/capabilities/speech-to-text
+  - kind: docs
+    title: ElevenLabs docs · Subtitles
+    url: https://elevenlabs.io/docs/eleven-creative/products/subtitles
+---
+
+## Why it matters
+
+A cooking channel posts a 4-minute video. Two hosts talk over each other. The chef's name is Aoife, and the dish is "colcannon". The channel wants English subtitles that viewers can switch on.
+
+The first automatic try wrote "Eva" and "cold cannon". The words were also on screen a second too late.
+
+Context Library, chapter 4, showed the basics: turning speech into text, file size limits, and cutting long audio. This chapter is about the next step: **captions**, the words on screen that follow the speech. Here, "captions" and "subtitles" mean the same thing (our plain gloss).
+
+A note on dates: models and limits below are from each vendor's page in October 2026.
+
+## A transcript is not a subtitle file
+
+ElevenLabs has a table about the difference:
+
+| Feature (ElevenLabs)           | Transcripts | Subtitles                                                        |
+| ------------------------------ | ----------- | ---------------------------------------------------------------- |
+| Word-level timestamps          | Yes         | No - only start/end times of cues                                |
+| Speaker names/labels           | Yes         | No                                                               |
+| Constraints                    | No          | Yes - characters per line, lines on screen at once, cue duration |
+| Overlapping segments supported | Yes         | No                                                               |
+
+Some words to know:
+
+- A **timestamp** is the time in the audio when a word or part starts or ends.
+- A **cue** is one subtitle block on screen, with a start time and an end time.
+- **SRT** and **VTT** are two subtitle file types. A video player reads them to show the cues (our plain gloss).
+
+Both OpenAI and ElevenLabs offer these two. OpenAI's API reference lists `srt` and `vtt` as response formats. ElevenLabs' Subtitle Editor exports "SRT" and "VTT".
+
+## Timestamps: words or parts
+
+**OpenAI.** Its guide says to start with `gpt-transcribe` for normal transcripts. It names special models "only if you need speaker labels, word timestamps, subtitle formats, or translation into English." For timestamps: "Use whisper-1 when you need word or segment timestamps." Set `response_format` to `verbose_json` and `timestamp_granularities[]` to `word`, `segment` or both. The reference adds that word timestamps add latency (waiting time); segment timestamps do not.
+
+Model choice matters. The reference says that for `gpt-4o-transcribe` and `gpt-4o-mini-transcribe`, "the only supported format is json". So ask for `srt` or `vtt` with `whisper-1`. OpenAI's guide names a specialized model for "subtitle formats", and talks about using "whisper-1 for timestamps, subtitles, or translation".
+
+**ElevenLabs.** ElevenLabs lists word-level timestamps for Scribe v2. Each word in the result has a `start` and an `end` in seconds (our reading), like `"start": 0.119`. Non-speech sounds come back as `audio_event`, for example laughter or applause.
+
+**Google.** Gemini returns what you ask for in the prompt. Google's example asks: "Provide accurate timestamps for each segment (Format: MM:SS)." You can also ask about one part: "Provide a transcript from 02:30 to 03:29." Our note: MM:SS counts whole seconds, so check these times against the video before you build cues from them.
+
+## Who is speaking (diarisation)
+
+**Diarisation** means marking which speaker said each part (our plain gloss). Context Library, chapter 4, showed OpenAI's `diarized_json` format. Two more details help with captions.
+
+- **OpenAI:** `gpt-4o-transcribe-diarize` can match voices to names. You can supply "up to four short audio references" with `known_speaker_names[]`, each clip "between 2–10 seconds". But this model "doesn't support prompts", and `timestamp_granularities` "is not available" for it.
+- **ElevenLabs:** Scribe v2 has "Speaker diarization, up to 32 speakers". Each word carries a `speaker_id`, like `speaker_0`.
+- **Google:** ask in the prompt. Its example: "Identify distinct speakers (e.g., Speaker 1, Speaker 2)."
+
+Remember the table above: subtitles have no speaker labels. If viewers must know who speaks, that goes in the cue text (our advice).
+
+## Names and rare words
+
+"Eva" for Aoife is a common mistake. Each vendor lets you give a list of words to expect.
+
+- **OpenAI** (`gpt-transcribe`): "Use keywords for literal terms you expect to hear." And "Use prompt for unstructured context about the recording." A warning: "Keywords are hints, not required output. Include only relevant terms, and evaluate whether they improve accuracy without causing unspoken terms to appear."
+- **ElevenLabs:** **keyterm prompting** helps with "product names, names, or other specific terms". Batch transcription "supports up to 1000 keyterms (50 characters each)". ElevenLabs says keyterm prompting costs extra; check its pricing page for the current rate.
+
+For the cooking video (our example): keywords "Aoife" and "colcannon". Not the full menu of the channel.
+
+## Clean or word for word
+
+Should captions keep "um" and "uh"? It depends on the channel.
+
+- **ElevenLabs:** `no_verbatim` "removes filler words, false starts and disfluencies". Its page says this is "suitable for subtitles".
+- **OpenAI:** a prompt can help with "Preserving punctuation, capitalization, and filler words".
+
+## Edit the cues
+
+ElevenLabs' Subtitle Editor shows the rules for each cue. It uses "red and green colors" to show if your subtitles respect "characters per line, lines on screen, and cue length". You can drag a cue's start and end, or type exact times. You can split, merge, add and delete cues.
+
+One trap: "Changes you make to subtitles ... do NOT affect the transcription, and vice versa." So fix the name in the subtitles too, not only in the transcript.
+
+## Check the file
+
+Before you publish (our checklist):
+
+1. **Names.** Search the file for every name and product. Is each one right?
+2. **Timing.** Play the video with the file on. Does each cue appear with its words, not after?
+3. **Length.** Can you read each cue before it goes?
+4. **Sounds.** Laughter or music: keep it, or remove it, on purpose.
+5. **Format.** The file opens in the player you use.
+
+## What this means for your work
+
+- **A transcript is the raw text. A subtitle file is cues with times.** You need both steps.
+- **Pick the model by the output.** On OpenAI, `whisper-1` gives word timestamps. On ElevenLabs, Scribe v2 gives word times and speakers.
+- **Ask for SRT or VTT** where the vendor offers it.
+- **Give a short list of names**, only ones that are spoken.
+- **Edit the cues, then fix them in both places** if the transcript is used too.
+- **Watch the video with the file** before you publish.

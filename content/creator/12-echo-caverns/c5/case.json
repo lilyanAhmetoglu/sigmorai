@@ -1,0 +1,96 @@
+{
+  "id": "creator/r12/c5/challenge",
+  "title": "Captions for a science podcast video",
+  "scenario": "A science podcast posts each episode as a video. This week: two hosts, Mina and Joel, talk with a guest, Dr Okafor, about bee hives. You need an English subtitle file. Your teammate wrote the steps and ran some of them. You check them.\n\nUse the exhibit. The podcast, the people and the steps are made up for this case. The models, settings and limits are from the vendors' pages in October 2026.",
+  "exhibit": "CAPTION STEPS (made up)\n\n  1. OpenAI, model gpt-4o-mini-transcribe,\n     response_format: srt\n     (\"so we get a subtitle file in one step\")\n\n  2. OpenAI, model gpt-4o-transcribe-diarize,\n     response_format: diarized_json\n     prompt: \"The hosts are Mina and Joel. The guest is Dr Okafor.\"\n\n  3. OpenAI, model gpt-transcribe, keywords: all 150 terms from\n     the season glossary (most are not said in this episode)\n\n  4. ElevenLabs: fixed \"Okay for\" to \"Okafor\" in the transcript\n     editor, then exported the subtitles as SRT.\n     Result: the SRT file still says \"Okay for\".",
+  "questions": [
+    {
+      "prompt": "Step 1: why will this request not give a subtitle file?",
+      "options": [
+        {
+          "text": "The SRT format works only for video files, not for audio",
+          "explanation": "OpenAI names no such rule. The reference says gpt-4o-mini-transcribe supports json only."
+        },
+        {
+          "text": "gpt-4o-mini-transcribe supports json as its only format",
+          "explanation": "Right. OpenAI's reference says that for gpt-4o-transcribe and gpt-4o-mini-transcribe the only supported format is json.",
+          "correct": true
+        },
+        {
+          "text": "OpenAI has no srt or vtt format on any transcription model",
+          "explanation": "OpenAI's reference lists srt and vtt as response formats. They are not supported on this model."
+        },
+        {
+          "text": "SRT works only when you ask for speaker labels in the same call",
+          "explanation": "Subtitle files have no speaker labels. The problem is that this model supports json only."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 2: the labels should show the real names. What does OpenAI's guide support?",
+      "options": [
+        {
+          "text": "Keep the prompt, since names in a prompt map the speakers",
+          "explanation": "OpenAI says gpt-4o-transcribe-diarize doesn't support prompts."
+        },
+        {
+          "text": "Move the names into keywords on the diarize model instead",
+          "explanation": "OpenAI documents keywords for gpt-transcribe. For known speakers on the diarize model it uses reference clips."
+        },
+        {
+          "text": "Send known speaker names with a 2 to 10 second clip of each",
+          "explanation": "Right. OpenAI lets you supply up to four short audio references with known_speaker_names[], each between 2 and 10 seconds.",
+          "correct": true
+        },
+        {
+          "text": "Send one 3-minute clip of all three people as the reference",
+          "explanation": "OpenAI asks for short reference clips of 2 to 10 seconds, matched to each name."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 3: what is the risk of the 150-term keyword list?",
+      "options": [
+        {
+          "text": "Terms that nobody says may show up in the transcript",
+          "explanation": "Right. OpenAI says keywords are hints, to include only relevant terms and to check they don't cause unspoken terms to appear.",
+          "correct": true
+        },
+        {
+          "text": "The model will say each keyword aloud in a new voice",
+          "explanation": "Transcription makes text, not audio. The risk OpenAI names is unspoken terms appearing in the text."
+        },
+        {
+          "text": "Keywords turn off the timestamps for the whole file",
+          "explanation": "OpenAI does not link keywords to timestamps. Its warning is about unspoken terms appearing."
+        },
+        {
+          "text": "There is no risk, since the model must use each term",
+          "explanation": "OpenAI says keywords are hints, not required output."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 4: why does the SRT file still say \"Okay for\"?",
+      "options": [
+        {
+          "text": "SRT files cannot hold names that start with a capital",
+          "explanation": "Nothing on the page says so. ElevenLabs says transcript and subtitles are separate."
+        },
+        {
+          "text": "The export takes about a day to pick up transcript edits",
+          "explanation": "ElevenLabs says edits to the transcript never reach the subtitles. Fix the name in the subtitles too."
+        },
+        {
+          "text": "Only VTT keeps edits, so the export should be VTT instead",
+          "explanation": "Both formats come from the subtitles. The fix must be made in the subtitles themselves."
+        },
+        {
+          "text": "Edits to the transcript do not change the subtitles",
+          "explanation": "Right. ElevenLabs says transcripts and subtitles are completely separate, so a change to one does not affect the other.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
