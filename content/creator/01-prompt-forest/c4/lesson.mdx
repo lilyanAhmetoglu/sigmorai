@@ -1,7 +1,7 @@
 ---
 id: creator/r1/c4/lesson
 title: Edit & inpaint
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Gemini API docs · Image generation (Nano Banana)
@@ -14,71 +14,158 @@ sources:
     url: https://platform.claude.com/docs/en/build-with-claude/vision
 ---
 
-## Why it matters
+## Goal
 
-Realm 0 said that an edit tool can fix the one wrong part of a picture. This lesson shows how. The client says: "Love it. Change the sofa." If you regenerate the whole image, the room, the light and the people all change. An **edit** keeps the picture and changes only what you name. **Inpainting** is an edit of one part of the image.
+After this lesson you can:
 
-Anthropic's docs have no editing guide, because Claude is "an image understanding model only" and cannot edit images. This lesson uses OpenAI's and Google's docs.
+- Edit one part of an image with words, and say what must stay the same.
+- Prepare a correct mask file for a mask edit, and know what a mask does not promise.
+- Plan edits one change at a time, and check the result against the original.
 
-## Two ways to say where
+## The problem
 
-You can tell the model where to edit with words, or with a mask.
+A bakery has an approved photo of a chocolate birthday cake. It has fresh strawberries on top, and the words "Happy 30th, Mia" in white icing on the side. The cake stands on a slate board in warm café light.
 
-**With words.** Google calls this "inpainting (semantic masking)": you "conversationally define a mask". Its template:
+The owner says: "Perfect. But we sell this one with blueberries. Swap the strawberries."
 
-> Using the provided image, change only the [specific element] to [new element/description]. Keep everything else in the image exactly the same, preserving the original style, lighting, and composition.
+Her nephew types a new prompt: "a chocolate cake with blueberries on a slate board". The new picture has blueberries. It also has a different cake shape, different light, and "Happy 30th, Mia" now reads "Hapy 30th Mai".
 
-Google's example changes a blue sofa to "a vintage, brown leather chesterfield sofa" and says to keep "the rest of the room, including the pillows on the sofa and the lighting, unchanged".
+He regenerated the whole picture. He needed an **edit**: keep the image and change only one named part. An edit of one area is called **inpainting**.
 
-**With a mask.** OpenAI's edits endpoint accepts an image plus a mask that marks the area to replace. A few facts from its docs:
+## The idea
 
-- The image and the mask must have the same format and size, under 50MB.
-- The mask must have an alpha channel. If you make it in an image editor, "make sure to save the mask with an alpha channel".
-- If you give several input images, the mask applies to the first one.
-- "Masking with GPT Image is entirely prompt-based. The model uses the mask as guidance, but may not follow its exact shape with complete precision."
+An edit is like asking a retoucher to fix one detail in a finished photo, not asking for a new shoot.
 
-That last point matters. A mask is a strong hint, not a pixel-exact cut-out. Look closely at the edges of the edited area.
+Not every model can do it. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/vision) say Claude "is an image understanding model only" and "cannot generate, produce, edit, manipulate, or create images". So this lesson uses the OpenAI and Gemini docs.
 
-In OpenAI's mask example, the prompt describes the whole finished scene: "A sunlit indoor lounge area with a pool containing a flamingo". The mask covers part of the pool. So with a mask, describe the result you want in the picture.
+There are two ways to say where to edit:
 
-## Add, remove, change
+```text
+by words   "change only the X, keep everything else"
+by mask    a file that marks the area to replace
+```
 
-Google lists these edit jobs: add, remove or modify an element. The guide says the model "will match the original image's style, lighting, and perspective". Its template:
+**By words.** The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) call this "Inpainting (semantic masking)". Their template has three parts: the provided image, the one element to change and what it becomes, and an order to keep the rest, "preserving the original style, lighting, and composition".
 
-> Using the provided image of [subject], please [add/remove/modify] [element] to/from the scene. Ensure the change is [description of how the change should integrate].
+For adding or removing things, Google says the model "will match the original image's style, lighting, and perspective". Their template ends with "Ensure the change is [description of how the change should integrate]."
 
-Example: "Using the provided image of the café counter, please remove the paper cup on the left. Ensure the counter looks clean and the light stays the same."
+**By mask.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) accept an image plus a mask. The rules:
 
-The last sentence matters. It tells the model how the edit should blend with the rest.
+- The image and the mask "must be of the same format and size (less than 50MB in size)".
+- "The mask image must also contain an alpha channel."
+- If you send more than one input image, the docs say the mask is used on the first image only.
 
-## One change per turn
+And one warning: masking is "entirely prompt-based". The mask is a guide, and the model may not keep to its outline exactly. So check the edges.
 
-Google says multi-turn conversation is the recommended way to iterate. In its example, the follow-up asks to update an infographic into Spanish and adds: "Do not change any other elements of the image."
+**One change per turn.** Google calls multi-turn conversation "the recommended way to iterate on images". Its own example asks for one change and adds: "Do not change any other elements of the image." In OpenAI's Responses API, setting `action: "edit"` forces an edit "when an image is in context".
 
-OpenAI's Responses API also lets you refine an image across turns. Its image tool can choose by itself whether to make a new image or edit the one in the conversation. If you want an edit, you can set the `action` option to `edit`, and the docs say that forces editing when an image is in context.
+**Size.** Google says: "By default, the model matches the output image size to that of your input image". That helps when the shop needs the same size back.
 
-Our rule of thumb: ask for one change, check the result, then ask for the next. If you ask for four changes and one goes wrong, you can't tell which words caused it.
+## Worked example
 
-## Check what else changed
+### Step 1: the weak plan
 
-An edit can touch more than you asked. After every edit, put the original and the result side by side and look at:
+```text
+A chocolate birthday cake with blueberries on a slate board.
+```
 
-- **Faces and hands.** Are they the same people?
-- **Logos and text.** Is every letter still right? (Chapter 1 and 2 covered why text needs checks.)
-- **Light and shadows.** Does the new element match the light?
-- **Edges.** Is there a halo or a soft seam where the edit meets the rest?
+What goes wrong:
 
-Google adds a size note: by default, the model "matches the output image size to that of your input image". That helps when you need the same banner size back.
+- It is a new image, not an edit. Cake, light and icing all change.
+- Nothing says what must stay the same.
 
-## When to leave the model
+### Step 2: edit by words
 
-Some changes are better made in your design tool. A logo that must be exact, a price, or a mask edge that must be clean to the pixel are examples. This is our advice. It follows from OpenAI's note that a mask is only guidance, and from the text limits in chapter 1. Use the model for the fast, creative part, and your own tool for the exact part.
+Send the approved photo with this prompt:
 
-## What this means for your work
+```text
+Using the provided photo of the cake, change only the strawberries on top
+to a generous pile of fresh blueberries with a light dusting of icing sugar.
+Keep everything else in the image exactly the same, preserving the original
+style, lighting, and composition. Keep the cake shape, the slate board and
+the white icing text on the side unchanged.
+```
 
-- **Edit, don't regenerate**, when the client likes most of the picture.
-- **Name one element, and say what stays the same.** Use Google's "change only the ... keep everything else" pattern.
-- **Prepare masks properly.** Same size, same format, alpha channel.
-- **Don't trust mask edges.** OpenAI says the model may not follow the exact shape.
-- **Compare before and after.** Check faces, text, logos, light and edges.
-- **Finish exact things by hand.**
+The first two sentences follow Google's template. The last sentence names the parts that matter most to the owner.
+
+### Step 3: or edit with a mask
+
+On an OpenAI model you can paint the area instead. Paint only the top of the cake in your image editor. Then save the mask:
+
+```text
+photo:  cake.png   2048x1365  PNG
+mask:   mask.png   2048x1365  PNG, with an alpha channel
+```
+
+Same format, same size, alpha channel. Send `cake.png` as the first input image, because the mask goes with the first input. Then describe the finished picture in the prompt, not only the change: "A chocolate birthday cake topped with fresh blueberries, on a slate board, warm café light."
+
+### Step 4: the hard case, text next to the edit
+
+The icing words sit just below the berries. Even with a good prompt or mask, an edit can touch the area next to it. The mask is only guidance, so the edit can spill over its edge.
+
+Check the result letter by letter: "Happy 30th, Mia". If one letter changed, don't regenerate everything. Use the approved original for that area: copy the side of the cake back from it in your design tool.
+
+**Why this is the hard case:** you asked for berries, so you look at the berries. The damage is in the part you did not ask about.
+
+### Step 5: more changes, one per turn
+
+The owner adds: "Also make the board white marble, and add one gold candle." Do them as two turns:
+
+```text
+Turn 2: Change only the slate board to white marble. Do not change any
+        other elements of the image.
+(check)
+Turn 3: Add one thin gold candle in the centre of the cake, unlit.
+        Ensure the change matches the warm light of the photo.
+(check)
+```
+
+If you ask for both at once and the icing changes, you can't tell which request caused it.
+
+### Step 6: compare before and after
+
+Put the approved photo and the result side by side. Check:
+
+- **Text:** every letter of the icing.
+- **Light and shadow:** does the new part match?
+- **Edges:** a halo or soft seam around the edit?
+- **Everything else:** cake shape, board, background.
+
+### Why it is better
+
+- **An edit, not a new image.** The approved parts stay approved.
+- **The prompt names what stays**, not only what changes.
+- **The mask is correct**, and the photo is the first input.
+- **One change per turn**, with a check after each.
+
+## Common mistakes
+
+1. **Regenerating instead of editing.** A new prompt changes the parts the client already liked. Fix: send the image and edit one element.
+2. **A bad mask file.** A different size, a different format, or no alpha channel. Fix: export the mask from the same image, same size and format, with an alpha channel.
+3. **Checking only the edited area.** Text, faces and edges next to it can change. Fix: compare the whole image with the original.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A travel blogger has a beach photo she loves, but a red rubbish bin stands on the sand on the left. She also wants the sky a bit warmer. Write the edit plan: how many turns, and the prompt for turn 1.
+
+### Answer
+
+Two turns: remove the bin first, check, then warm the sky.
+
+Turn 1, for example:
+
+```text
+Using the provided image of the beach, please remove the red bin from the
+sand on the left. Ensure the sand there matches the texture and light of
+the sand around it. Do not change any other elements of the image.
+```
+
+Then compare with the original, and only then ask for the warmer sky.
+
+## Recap
+
+- Edit, don't regenerate, when most of the image is approved. Name one element and say what stays the same.
+- A mask must match the image in size and format, have an alpha channel, and the image must be the first input. A mask is guidance, not a pixel-exact cut.
+- One change per turn. After each edit, compare the whole image with the original, especially text and edges.
