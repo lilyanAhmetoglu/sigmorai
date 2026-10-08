@@ -180,6 +180,15 @@ export const REALMS = [
     track: 'builder',
     scene: false,
   },
+  {
+    id: 15,
+    slug: 'guild-hall',
+    name: 'Guild Hall',
+    npc: 'Steward Oda',
+    tier: 'beginner',
+    track: 'strategist',
+    scene: false,
+  },
 ] as const satisfies readonly RealmRow[];
 
 /** Whether a realm is on this track: a core realm, or a specialist realm the track owns. */
