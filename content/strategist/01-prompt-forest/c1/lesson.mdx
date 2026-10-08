@@ -1,7 +1,7 @@
 ---
 id: strategist/r1/c1/lesson
 title: Write a brief
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Prompting best practices
@@ -14,68 +14,144 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-## Why it matters
+## Goal
 
-A prompt is a brief. A short, vague brief gets a generic answer. A clear brief gets work you can use. It is a cheap way to get better results, and it needs no tech skills.
+After this lesson you can:
 
-## Brief it like a new colleague
+- Turn a one-line request into a brief with five parts: task, context and reason, audience, constraints and format.
+- Lay out a prompt with a long document: document first, question last.
+- Spot the words in your brief that only your team understands, and define them.
 
-Anthropic's guide gives a simple picture: think of the model as a brilliant but new employee who lacks context on your norms and workflows. It is smart, but it does not know your team, your customers or your goals.
+## The problem
 
-The guide also gives a **golden rule**: show your prompt to a colleague with little context and ask them to follow it. If they would be confused, the model will be too.
+Mara is the operations lead at a company that runs business training courses. From 1 March, clients pay a fee when they cancel a course late. She has a two-page policy document. She asks an AI assistant:
 
-Example of a weak brief:
+```text
+Write an email about the new cancellation rules.
+```
 
-> Write an email about the price change.
+The draft is polite and fluent. It is also useless. It talks about "recent updates to our policies", gives no dates, and sounds like a bank. It does not say what clients must do. Mara rewrites it by hand, and the assistant saved her nothing.
 
-A colleague would ask: to whom? Which change? What tone? How long? The model will not ask. It will guess.
+The model did what it could. It got a one-line request and guessed the rest. This lesson shows how to write a **brief**, so the model has less to guess. The guidance below is from each vendor's docs (October 2026).
 
-## The five parts of a good brief
+## The idea
 
-The three vendors use different words, but their guides cover the same parts. Use them as a checklist.
+**Brief the model like a new colleague.** The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say: "Think of Claude as a brilliant but new employee who lacks context on your norms and workflows." It is smart, but it does not know your clients, your products or your goals. It will not ask questions. It will guess.
 
-**1. The task.** Say exactly what you want. Gemini's guide says clear and specific instructions are an effective and efficient way to customize model behavior.
+The same docs give a **golden rule**: show your prompt to a colleague with minimal context and ask them to follow it. "If they'd be confused, Claude will be too."
 
-**2. The context and the reason.** Give the facts the model needs, and say why the task matters. Anthropic's guide says that explaining the reason behind an instruction helps the model understand your goal. OpenAI's guide lists context as one part of a prompt, for example private data the model was not trained on.
+Our example: you would not hand a new temp a sticky note that says "email the clients". You would tell them who, why, what to say and how long. A prompt needs the same.
 
-**3. The audience and the role.** Say who will read the result. You can also give the model a role. Anthropic's guide says even a single sentence of role makes a difference.
+**The five parts of a brief.** The vendors use different words, but they cover the same ground:
 
-**4. The constraints.** Length, tone, what to include, what to leave out. Gemini's guide shows how to set a limit, such as a one-sentence summary.
+1. **Task.** What you want, exactly. The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) call clear and specific instructions "an effective and efficient way to customize model behavior".
+2. **Context and reason.** The facts the model needs, and why the task matters. The Claude docs say that explaining why an instruction matters "can help Claude better understand your goals". The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-engineering) list context such as private data that is outside the model's training data.
+3. **Audience and role.** Who reads the result. You can also give the model a role. The Claude docs say that for a role, "Even a single sentence makes a difference".
+4. **Constraints.** Length, tone, what to include and what to leave out.
+5. **Format.** The shape of the result: three bullets, a table, a short email. Chapter 3 goes deeper.
 
-**5. The format.** Say what the result should look like: a table, three bullets, a short email. A later chapter covers this in depth.
+**Number the steps when order matters.** The Claude docs suggest numbered lists or bullet points "when the order or completeness of steps matters".
 
-The same email, as a brief:
+**Long document first, question last.** The Claude docs say to put long documents "near the top of your prompt, above your query". They add: "Queries at the end can improve response quality by up to 30 percent in tests." The Gemini docs agree: "supply all the context first" and put the question "at the very end".
 
-> You are writing for our customer success team. Task: an email to existing small-business customers about our price change. Context: the Basic plan goes up on 1 March; current customers keep the old price for 6 months; the reason is new support hours. Audience: busy owners who are not technical. Tone: friendly and direct, no sales language. Length: under 150 words. End with one link to the FAQ page.
+**Define your own words.** The Gemini docs say: "Explicitly explain any ambiguous terms or parameters." Words like "late", "active client" or "urgent" mean something exact inside your company. The model does not know that meaning.
 
-## Write steps when order matters
+**Ask for the extra mile.** The Claude docs say that if you want "above and beyond" behavior, ask for it. Don't hope the model infers it.
 
-If the task has several steps, number them. Anthropic's guide suggests numbered lists or bullets when the order or completeness of the steps matters.
+**How much detail?** The OpenAI docs compare two kinds of model. "A reasoning model is like a senior co-worker": you give a goal and trust it with the details. "A GPT model is like a junior coworker": it does best with explicit instructions. When you are not sure which one you have, a clear brief helps both.
 
-Example: "1. Read the meeting notes. 2. List each decision. 3. Name the owner of each decision. 4. Flag any decision with no owner."
+## Worked example
 
-## Put long documents first
+### Step 1: the first prompt
 
-When you paste a long document, put it at the top and your question at the end. Anthropic's guide says queries at the end can improve response quality by up to 30 percent in tests. Gemini's guide gives the same advice for long context: all the context first, the specific question at the very end.
+```text
+Write an email about the new cancellation rules.
+```
 
-Example: paste the 20-page supplier contract first. Then write: "Based on the contract above, list every date we must act by."
+What goes wrong:
 
-## Say what you mean, including the extra mile
+- **No audience.** Is it for clients, trainers or the finance team?
+- **No facts.** The model has not seen the policy, so it invents vague wording.
+- **No constraints or format.** Length, tone and the call to action are left to chance.
 
-Don't expect the model to read your mind. Anthropic's guide says that if you want "above and beyond" behavior, you should ask for it, not hope the model infers it from a vague prompt.
+### Step 2: the brief
 
-Gemini's guide adds: explain any term that could mean more than one thing. If "active customer" means "bought in the last 90 days" at your company, write that down.
+Mara pastes the policy first and puts her request after it.
 
-How much detail? OpenAI's guide compares two kinds of model. A reasoning model is like a senior co-worker: you give it a goal and trust it with the details. A GPT model is like a junior coworker: it does best with explicit instructions. When you are not sure, a clear brief helps both.
+```text
+<policy>
+[two-page cancellation policy pasted here]
+</policy>
 
-## Expect to try again
+Based on the policy above, write an email to our client contacts.
 
-A first brief is a draft. Gemini's guide says prompt engineering is iterative and suggests trying different phrasing when you don't get the result you want. When an answer misses, ask: what did my brief leave out? Fix the brief, not only the answer.
+Who reads it: HR and training managers at client companies. They
+book courses for their staff. They are busy and not legal experts.
 
-## Key points
+Why: from 1 March a late cancellation costs a fee. We want clients
+to know before they book their spring courses, so nobody is
+surprised by an invoice.
 
-- Brief the model like a smart new colleague with no context.
-- Cover the task, the context and reason, the audience, the constraints and the format.
-- Number the steps when order matters.
-- Long document first, question last.
-- Define your own terms. Ask for the extra mile if you want it.
+Definition: "late cancellation" means less than 10 working days
+before the course starts. Moving a place to a colleague is not a
+cancellation.
+
+Steps:
+1. Say what changes and from which date.
+2. Give the fee and the 10-day rule in one short paragraph.
+3. Say what clients can do instead of cancelling.
+4. End with one link to the FAQ page.
+
+Tone: friendly and direct, no legal language.
+Length: under 150 words. Subject line plus four short paragraphs.
+If you think an important question is not answered by the policy,
+list it after the email so I can check it.
+```
+
+### Step 3: the hard case
+
+**The hard case is the word "late".** Inside the company, everyone knows it means "less than 10 working days". The policy uses the word 14 times but defines it only in a footnote. Without the definition line, the first draft said "a few days before", which is wrong and would cause disputes. With it, the email states the rule exactly.
+
+### Step 4: why it is better
+
+- **All five parts are there.** Task, context and reason, audience, constraints and format.
+- **Document first.** The two pages come before the question, as both vendors suggest.
+- **Steps are numbered**, because the order of the email matters.
+- **The company word is defined**, so the model doesn't guess.
+- **The extra mile is asked for.** The list of open questions is extra work Mara wants, so she says so.
+
+Our advice: keep the brief. Next quarter, when the policy changes again, she edits two lines instead of starting over.
+
+## Common mistakes
+
+1. **The question above a long document.** The model reads pages of text after your request. Fix: paste the document first, then ask, starting with "Based on the document above…".
+2. **Fixing the answer instead of the brief.** You edit the draft by hand and send the same prompt next week. Fix: ask what the brief left out, add it, and try again. The Gemini docs call prompting "iterative".
+3. **Hoping for extra effort.** You wanted a checklist at the end, but you never asked. Fix: write down every extra you expect.
+
+## Try it
+
+Not graded. A sales manager sends this prompt. Name three parts of a brief that are missing, then rewrite it.
+
+```text
+Write a LinkedIn post about our new course.
+```
+
+### Answer
+
+Missing parts: **context** (which course, what is new, why now), **audience** (who should read the post), **constraints** (length, tone, what not to promise) and **format** (one paragraph, hashtags or not, a link). A better brief:
+
+```text
+Write a LinkedIn post for our company page.
+Course: "Negotiation for buyers", a new two-day course, first date
+in April. Why now: many clients asked for a buyer-side version.
+Audience: procurement managers at mid-size companies.
+Tone: confident and plain. No claims about results we can't prove.
+Format: 3 short paragraphs, under 120 words, one link at the end,
+no more than 2 hashtags.
+```
+
+## Recap
+
+- Brief the model like a smart new colleague with no context. If a colleague would be confused, so will the model.
+- A brief has five parts: task, context and reason, audience, constraints and format. Number the steps when order matters.
+- Put long documents first and the question last. Define the words only your company uses, and ask for any extra you want.
