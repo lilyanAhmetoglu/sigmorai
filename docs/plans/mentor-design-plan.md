@@ -4,7 +4,7 @@
 
 ## Status
 
-**STATUS: Substantive stub, waiting for maintainer review. Build step: 7. Track: both (every path, Math Tower, Frontier).**
+**STATUS: Reviewed by devil + db-architect (2026-10-08), amendments locked above. Build step: 7. Track: both (every path, Math Tower, Frontier).**
 
 ## Amendments
 
@@ -12,6 +12,41 @@
 ## Amendments locked YYYY-MM-DD
 - ...
 -->
+
+## Amendments locked 2026-10-08 (devil + db-architect pass)
+
+Both gates said "refine before building". These amendments win over the body below where they disagree. Where the two reviews disagreed, the simpler option was picked and the reason is given.
+
+**Product**
+
+- **Not configured = visible, not hidden.** The ASK MENTOR tab/panel always renders. Without `ANTHROPIC_API_KEY` + `VOYAGE_API_KEY` it shows one plain line ("The mentor isn't available yet."). Same pattern as the newsletter box. E2E and axe cover it with no keys.
+- **One daily cap: 30 questions per UTC day** (`utcDayStart` in `lib/xp/day.ts`). The 150k-token daily cap is dropped: it bound first (~19 questions) and made the "30" message wrong.
+- **"Not covered" is one fixed reply.** No second "related lessons" threshold in v1; one constant `MENTOR_MIN_SIMILARITY`.
+
+**Model call**
+
+- `thinking: { type: 'disabled' }`, `output_config: { effort: 'low' }`, `max_tokens: 1024`. History items are ≤ 6,000 chars (was 4,000, which rejected the mentor's own longer replies on the next turn). If the eval promotes to Sonnet 5.5, use its lowest thinking setting there.
+
+**Data model** (db-architect shape, trimmed by the devil)
+
+- `mentor_chunks`: `id` bigint identity, `kind` (CHECK `oneOf(MENTOR_CHUNK_KINDS)`), `doc_key`, `title`, `heading`, `ord` (CHECK ≥ 0), `body`, `content_hash`, `embedding vector(1024)`, `indexed_at`. **Dropped:** `lesson_id` (= `doc_key` for lessons), `url` (derivable from `kind` + `doc_key`), `token_count` (unread). Indexes: `UNIQUE (doc_key, content_hash)` (also serves `doc_key` lookups, so no separate btree) and HNSW `vector_cosine_ops` with default params. A rebuildable cache of `content/`: TRUNCATE + `bun run mentor:index` restores it (note added to `db/CLAUDE.md`).
+- The indexer collapses duplicate chunks inside one document (first wins) and UPDATEs `ord` on kept rows when a section moves.
+- **Chunk header = `Lesson: <title> › <heading>` / `Source: <title> — <host>`**, with no path or realm, so a shared chapter hashes the same on every path and the retrieval dedupe by `content_hash` works.
+- `mentor_usage` mirrors `submissions`: bigint identity PK, `user_id` FK `ON DELETE CASCADE`, `exercise_id` text (no FK), `status` CHECK `oneOf(MENTOR_USAGE_STATUSES)`, token columns, `cost_microusd` integer (CHECK ≥ 0), `created_at`, `finished_at`. Indexes: `(user_id, created_at desc)` for the caps; `(created_at, cost_microusd)` so the monthly budget sum is index-only.
+- **No in-flight lock.** No partial unique index, no stale-row sweep, no `busy`/409 (devil). Why: the UI disables ASK while loading and the 5/min cap bounds a double-send to about $0.005. The `started` row is still inserted before the model call and updated in `after()`, so caps count in-flight work.
+- **Migrations:** `0007` custom (`bunx drizzle-kit generate --custom --name=vector_extension`: `CREATE EXTENSION IF NOT EXISTS vector;`), then `0008_mentor` generated. A dimension change later needs a new migration. `kb_sources` is dropped later in its own PR, not with the mentor.
+
+**Build details**
+
+- ESLint step dropped: `@anthropic-ai/sdk` is already in `SERVER_ONLY`, and `lib/mentor/**` / `scripts/**` are already allowed. `import 'server-only'` in `lib/mentor/embed.ts` is the fence for the Voyage key.
+- `mentor-index.yml`: triggers = push to `main` on `content/**` + `lib/mentor/**`, a weekly cron, and `workflow_dispatch`; `if: vars.MENTOR_ENABLED == 'true'`. No `workflow_run` chain. The first run is a manual dispatch after the migration. It needs `VOYAGE_API_KEY` + `DATABASE_URL_UNPOOLED`.
+- The script runs as `bun --conditions=react-server scripts/mentor-index.ts`. Tests live in `lib/mentor/*.test.ts` (`bun test` only runs `lib`). Chunking and the empty-state chips reuse `postHeadings` / `headingText` from `lib/content/blog.ts`.
+- The export rows are added in `lib/data/account.ts` (Phase 2 only).
+- The deterministic leak floor scans chunk `title` and `heading` too, not only `body`.
+- The Voyage endpoint `https://ai.mongodb.com/v1/embeddings` was checked against the Claude embeddings docs on 2026-10-08. Check the Atlas billing page for the free-token figure before Phase 1.
+- Corpus counts in Context are as of commit 41784fe (221 lessons, 245 cases). Re-measure; don't trust the table.
+
+**Gates still open:** voice-guardian on `lib/prompts/mentor.ts`, the fixed replies, the intro line and the "MENTOR" label (Phases 2–3).
 
 ## Decisions locked 2026-10-08 (maintainer)
 
