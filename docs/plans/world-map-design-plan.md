@@ -10,6 +10,10 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (creator slots, per-path PR 8a)
+
+- r13 Pattern Atelier → s4, after r3 in the creator trail (r3 → r13 → r4). Checked against the trail-crossing test: clear. This completes the creator slot lean (s1 r11, s2 r12, s10 r10, s4 r13, s5 r9); s3 and s6–s9 stay for builder and strategist realms.
+
 ## Amendments locked 2026-10-07 (creator slots, per-path PR 5a and 7a)
 
 - Creator slot lean swapped 2026-10-07: r10 → s10, r12 → s2, trail r2 → r12 → r10 → r3; the old lean made s2 → r3 cross r4's island.
