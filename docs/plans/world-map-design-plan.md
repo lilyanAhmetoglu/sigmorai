@@ -10,6 +10,43 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (cartography review fixes)
+
+- **Focus:** markers and landmark links keep the global 3px Spark ring, backed by a hard 3px ink-950 ring outside it (zero blur). Spark alone on parchment is under 3:1; ink-950 on parchment is over 10:1. The focused marker shows its name at every zoom and sits above its neighbours.
+- **Overview by height too:** zoom 1 is the overview only from 68rem wide **and** 52rem tall (`WORLD_OVERVIEW_MIN_HEIGHT` = 832px). The box is at most the screen under the 4rem header, so at 1440×900 the whole 768px world fits in the box; shorter screens start at ½.
+- **Pips are 16px:** 7×7 ink shapes at 2px a pixel, one shape per state (a test checks they all differ). The pip box still fits `WORLD_HERO.pinBox`.
+- **Phones:** under the box a "here" line names the current realm next to its tag ("START HERE 00 Bootstrap Village"), so a phone at ½ (names hidden) still says where you are. A name plate on the map at ½ was tried: it hit a neighbour pin for 12 realms across the 3 paths, so it stays off the map.
+- **Crisp at ½:** stipple, hatch and fog dots are 4 art px; the ripple and the inner frame rule are 2 art px from zoom 1 and 4 at ½ (`--world-route`); the inner rule moved to 12; arrow points snap to 4 art px.
+- **Calmer lands:** one ripple line 8 art px out (the dashed second ring is gone); the realm band inside the coast is 4px (was 6).
+- **Fog:** a warm parchment-700 dither from an uneven 8×8 mask, up to 64 art px deep (was a cool ink-400 checker, 48 deep).
+- **Cache:** land shapes (coast, ripple, terrain) are cached per server process in `world-map.tsx`, keyed by land and current realm; `terrainGlyphs` stays pure.
+- The parchment-900 box around the paper is deliberate: it reads as a desk under the map, and the map's inked frame sits on it.
+
+## Amendments locked 2026-10-08 (cartography polish)
+
+- Maintainer feedback on the cartography map: the labels were too big and covered the land, the orange "▸ OPEN" badges were loud, the lands looked like boxes, and the specialist islands were tiny and bare.
+- **Labels:** a realm's name is a thin parchment plate under the pin (10px HUD font, 1px padding, a 2px hard shadow), from zoom 1. No StatusBadge on the map. The state is a **pip**: a 5×5 ink shape on an inked paper square on the pin's top-right corner (tick = cleared, pennant = in progress, ring = open, padlock = advanced locked; `WORLD_STATUS_PIPS`). The words stay in the link's accessible name and in the "Your path" list; the map key gains a row per pip. Landmark links stay 44px tall but are transparent; the name inside is the same thin plate.
+- **Coasts:** rows of 8 art px (`WORLD_MAP.coast`). The row ends follow a superellipse (power 2.6, 90% of the footprint), plus a seeded random walk, a bay on one side and a cape on the other. Every row keeps the middle column, so a land is one piece. Ripples are the coast rows grown by 6 and 12 art px (`rippleLine`), so they follow bays and capes and never cross themselves. This replaces `offsetCoast`.
+- **Footprints are per place** (still rectangles centred on the anchor): cores 160–192 × 120–152, used slots 80–128 × 80–128, landmarks 96×96, unused slots 80×64. Anchors moved to make room: s2 → 532,520 · s3 → 192,284 · s4 → 482,264 · s5 → 792,684 · s8 → 780,150 · Math Tower → 120,132 · the Frontier → 950,158. This supersedes the 160×120 / 80×64 / 80×80 sizes and those anchors in Geometry; the Higgsfield art (PR 3) fits `WORLD_MAP`.
+- **Terrain has two tiers:** glyphs clear at every zoom, then glyphs clear only from zoom 1 (`fromZoom: 1`, hidden at ½, where a 28px pin covers most of a small island). Every land on a map, specialist islands too, shows at least one glyph from zoom 1 (test).
+- **Hero:** the right side sits 24px off the anchor (was 16), past the pip. `WORLD_HERO.pinBox` (pin + pip) is what the hero, terrain and the new label test keep clear of.
+- **New test:** at every zoom, no pin (with its pip), name plate or landmark label touches another. It found two clashes at ½ in the old layout (the Math Tower label over s3's pin, the Frontier label over s8's pin), fixed by the moves above.
+- **Route:** the line keeps its zoom-1 screen weight at ½ (`--world-route`: 2× art px), and the arrows grow with it. Contrast: ink route and coast on the paper sea 7.0:1, name text 14.3:1, ember line on its ink casing 3.7:1, pip ink on paper 14.3:1.
+
+## Amendments locked 2026-10-08 (cartography placeholder)
+
+- The maintainer said the placeholder "looks ugly, doesn't look like a map". The drawn world is now an old pixel cartography map, tokens only. This replaces the PR 1 palette (mint-700 land, parchment-400 beach, byte-700 sea): a blue screen with small green blocks read as a node graph, not a map.
+- Sea: parchment-400 paper with parchment-700 wave marks. Land: the whole footprint (no beach ring), parchment-100 with a stipple, a 6px band of the realm tint inside the coast and a parchment-900 inked coast. Two ripple lines in the water follow each coast (6 and 12 art px out). A specialist (path-only) island has a dashed coast; an advanced, locked realm is hatched.
+- Terrain glyphs (`WORLD_GLYPHS`, `WORLD_TERRAIN`) hint at each realm's theme. They are seeded and keep off every pin at every zoom, every name, landmark label, the compass, and the current tag and hero (`worldKeepClear`; tests check it).
+- Route: square ink footsteps ahead, a solid ember line once cleared, an arrow at each leg's middle. Plus a compass rose (`WORLD_MAP.compass`), a double-rule frame with corner blocks, and a map key under the box (cleared, ahead, current tag, locked, path-only), each a drawn sample plus words. Labels sit on parchment plates; the box around the paper is parchment-900.
+- **Art slot:** `WORLD_MAP_ART` (`/map/world-base.png`, 2048×1536 = the grid at 2×). When `ready` is true the PNG is the base layer (pixelated) and the drawn sea, land fill and terrain are skipped; coasts, route, pins and fog stay on top. A flag, not a runtime file check: a Vercel function does not see `public/`. A test keeps the flag and the file in step.
+
+## Amendments locked 2026-10-08 (builder and strategist slots, per-path PR 9a and 10a)
+
+- r14 Agent Workshop (builder) → **s6**, after r4 in the builder trail (r4 → r14 → r5). Trail-crossing test: clear.
+- r15 Guild Hall (strategist) → **s3**, after r1 in the strategist trail (r1 → r15 → r2). Trail-crossing test: clear; s3 is the only free slot clear after r1. Slots are shared positions; each track draws its own trail, so builder and strategist never clash.
+- s7, s8, s9 remain. Free-slot positions that pass the trail test on a plain core outline: s7 only after r6; s8 after r4, r7, r8; s9 only after r2. More realms than that need a new sea render (Risks).
+
 ## Amendments locked 2026-10-08 (creator slots, per-path PR 8a)
 
 - r13 Pattern Atelier → s4, after r3 in the creator trail (r3 → r13 → r4). Checked against the trail-crossing test: clear. This completes the creator slot lean (s1 r11, s2 r12, s10 r10, s4 r13, s5 r9); s3 and s6–s9 stay for builder and strategist realms.

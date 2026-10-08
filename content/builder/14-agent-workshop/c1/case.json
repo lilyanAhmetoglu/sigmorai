@@ -1,0 +1,96 @@
+{
+  "id": "builder/r14/c1/challenge",
+  "title": "The skill that never fired",
+  "scenario": "A five-person team works in one repo. Three developers use Claude Code and two use Codex. The lead asks you to clean up their agent setup after a messy month.\n\nUse the exhibit. The team, the files and the notes are made up for this case. Folder names and fields are from the vendors' pages in October 2026.",
+  "exhibit": "REPO (made up)\n\n  CLAUDE.md                      410 lines\n    lines 1-60     build, test and naming rules\n    lines 61-410   release runbook (used twice a month)\n\n  .claude/skills/helper/SKILL.md\n    ---\n    name: helper\n    description: Helpers\n    ---\n    (steps to draft release notes from merged PRs)\n\n  .claude/skills/deploy/SKILL.md\n    ---\n    name: deploy\n    description: Deploy the app to production\n    ---\n    (build, push, tag)\n\nTEAM NOTES\n  A. Claude follows the build rules less well since the runbook\n     was added to CLAUDE.md.\n  B. \"Write the release notes\" never starts the helper skill.\n  C. Claude ran the deploy skill on its own after a test run\n     passed. Nobody asked for a deploy.\n  D. The two Codex users never see any of the team's skills.",
+  "questions": [
+    {
+      "prompt": "Note A: where should the 350-line release runbook go?",
+      "options": [
+        {
+          "text": "Into a release skill, so it loads only when someone needs it",
+          "explanation": "Right. CLAUDE.md loads every session; a skill loads on demand. Anthropic says to make a skill when a section of CLAUDE.md has grown into a procedure.",
+          "correct": true
+        },
+        {
+          "text": "To the top of CLAUDE.md, with IMPORTANT written before it",
+          "explanation": "It would still load in every session and cost context each time. The lesson's rule: sometimes needed means a skill."
+        },
+        {
+          "text": "Into the chat at each release, so no file has to hold it",
+          "explanation": "That is the pasting habit Anthropic says a skill replaces. The team would also lose one shared copy."
+        },
+        {
+          "text": "Into a subagent that every session starts before work",
+          "explanation": "A subagent is for a side job in its own context. A runbook the main agent follows sometimes is a skill."
+        }
+      ]
+    },
+    {
+      "prompt": "Note B: why does \"Write the release notes\" never start the helper skill?",
+      "options": [
+        {
+          "text": "The skill folder needs a scripts/ folder before it can load",
+          "explanation": "Scripts are optional in a skill. The problem is the description the agent matches on."
+        },
+        {
+          "text": "The description says nothing about release notes or when to use it",
+          "explanation": "Right. The agent picks a skill from its name and description. Put the use case and trigger words first.",
+          "correct": true
+        },
+        {
+          "text": "Skills only run when typed by name and never start on their own",
+          "explanation": "By default Claude can load a skill when it is relevant. It matches on the description, which is empty of meaning here."
+        },
+        {
+          "text": "The skill body is too short, so Claude skips it as unfinished",
+          "explanation": "The body loads only after the skill is picked. Picking depends on the description, not the body length."
+        }
+      ]
+    },
+    {
+      "prompt": "Note C: how do you stop Claude from starting the deploy skill on its own?",
+      "options": [
+        {
+          "text": "Add disable-model-invocation: true, so only a person runs /deploy",
+          "explanation": "Right. With this field Claude can't invoke the skill on its own. Anthropic gives deploy as the example.",
+          "correct": true
+        },
+        {
+          "text": "Rename the folder to deploy-manual, so Claude reads it as manual",
+          "explanation": "No page says a folder name changes who can start a skill. The frontmatter field does that."
+        },
+        {
+          "text": "Move the deploy steps into CLAUDE.md, so Claude reads them first",
+          "explanation": "Then Claude would see the deploy steps in every session. That does not stop it from deploying."
+        },
+        {
+          "text": "Shorten the description, so Claude finds it harder to match",
+          "explanation": "A vague description is a weak lock that may still match. Use the field made for this."
+        }
+      ]
+    },
+    {
+      "prompt": "Note D: what is the best fix for the Codex users?",
+      "options": [
+        {
+          "text": "Add an agents/openai.yaml file to each skill so Codex can list it",
+          "explanation": "That file is optional metadata. Codex lists skills from the folders it scans, and .claude/skills is not one of them."
+        },
+        {
+          "text": "Rewrite each skill as a section in AGENTS.md for the Codex users",
+          "explanation": "That brings back the always-loaded problem from note A. Codex reads SKILL.md folders too."
+        },
+        {
+          "text": "Keep the skills in .agents/skills and symlink them from .claude/skills",
+          "explanation": "Right. Codex scans .agents/skills, Claude Code reads .claude/skills, and both follow symlinked skill folders. One copy serves both.",
+          "correct": true
+        },
+        {
+          "text": "Tell the Codex users to rename every SKILL.md file to AGENTS.md",
+          "explanation": "Codex reads skills from folders with a SKILL.md file. Renaming it breaks the skill."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+---
+id: builder/r14/c6/lesson
+title: Parallel runs
+minutes: 11
+sources:
+  - kind: docs
+    title: Run parallel sessions with worktrees (Claude Code docs)
+    url: https://code.claude.com/docs/en/worktrees
+  - kind: docs
+    title: Run agents in parallel (Claude Code docs)
+    url: https://code.claude.com/docs/en/agents
+  - kind: docs
+    title: Use Claude Code in the cloud (Claude Code docs)
+    url: https://code.claude.com/docs/en/claude-code-on-the-web
+  - kind: docs
+    title: Checkpointing (Claude Code docs)
+    url: https://code.claude.com/docs/en/checkpointing
+  - kind: docs
+    title: Worktrees (OpenAI Codex docs)
+    url: https://learn.chatgpt.com/docs/environments/git-worktrees
+  - kind: docs
+    title: Codex Cloud (OpenAI Codex docs)
+    url: https://learn.chatgpt.com/docs/cloud
+  - kind: docs
+    title: Git Worktrees (Gemini CLI docs)
+    url: https://geminicli.com/docs/cli/git-worktrees/
+  - kind: docs
+    title: Checkpointing (Gemini CLI docs)
+    url: https://geminicli.com/docs/cli/checkpointing/
+---
+
+Swarm Spire (realm 7) split one job across agents inside one system: chapter 4 (Parallel agents) fanned work out, and chapter 5 (Conflict) handled two agents that change the same thing. This chapter is about something more everyday: you run two or three coding-agent sessions on one repo at the same time, then bring their work back into one branch.
+
+A note on dates: the flags, folders and defaults below are from each vendor's page in October 2026.
+
+## The problem: one folder, many agents
+
+Two sessions in the same folder edit the same files. One session's change can break the other's test run.
+
+The common fix is a **git worktree**: a second folder for the same repo, with its own files and its own branch (our plain gloss).
+
+- **Anthropic:** a worktree is "a separate working directory with its own files and branch, sharing the same repository history and remote as your main checkout."
+- **OpenAI:** "Each worktree has its own copy of every file in your repo but they all share the same metadata (`.git` folder) about commits, branches, etc."
+- **Google:** worktrees give "each Gemini session its own copy of the codebase". "This prevents changes in one session from colliding with another."
+
+## Start a session in a worktree
+
+| Tool        | How                                          | Where it lives                      |
+| ----------- | -------------------------------------------- | ----------------------------------- |
+| Claude Code | `claude --worktree feature-auth` (or `-w`)   | `.claude/worktrees/feature-auth/`   |
+| Codex app   | select **Worktree** under the composer       | `$CODEX_HOME/worktrees`             |
+| Gemini CLI  | `gemini --worktree feature-search` (or `-w`) | `.gemini/worktrees/feature-search/` |
+
+Details that matter:
+
+- **Claude Code** puts the worktree "on a new branch named `worktree-<name>`". Anthropic: "Run the command again with a different name in another terminal to start a second isolated session."
+- **Codex** shows the **Worktree** choice under the composer (the box where you type the prompt; our plain gloss). It lets you pick the starting branch, even "your current branch with unstaged local changes". It works in a "detached HEAD" by default (no branch checked out; our plain gloss), so it can make "several worktrees without polluting your branches."
+- **Gemini CLI** marks worktrees "experimental". You turn them on first, with `"experimental": { "worktrees": true }` in `settings.json`.
+
+## A worktree is a fresh checkout
+
+A new worktree has your tracked files and nothing else.
+
+- **Set it up.** Anthropic: "A worktree is a fresh checkout, so initialize your development environment there". Google says the same: install dependencies "in each new worktree".
+- **Copy ignored files on purpose.** Files like `.env` are gitignored, so they are missing. Claude Code and Codex both read a `.worktreeinclude` file at the repo root. Anthropic: "Only files that match a pattern and are also gitignored are copied, so tracked files are never duplicated."
+- **Check the starting point.** Claude Code branches new worktrees "from the repository's default branch" on the remote by default (`worktree.baseRef: "fresh"`). Set `"head"` to start from "your current local `HEAD`" (the commit you have checked out now; our plain gloss), so the worktree "carries your unpushed commits".
+
+Our example: you run `claude --worktree api-fix` and the tests fail on a missing `DATABASE_URL`. Your `.env` was not copied. Add `.env` to `.worktreeinclude` and start a new worktree.
+
+## One branch, one place
+
+Git lets a branch be checked out in only one folder at a time. OpenAI: "Git only allows a branch to be checked out in one place at a time." If a worktree has `feature/a`, checking it out in your main folder fails with `fatal: 'feature/a' is already used by worktree at '<WORKTREE_PATH>'`. In the Codex app, **Create branch here** turns a worktree into a branch; "From here you can commit your changes, push your branch to your remote repository, and open a pull request." To use the work in your main folder, use **Hand off** to move the chat and its code between the worktree and Local (your main checkout) instead.
+
+## Clean up
+
+Worktrees take disk space. Each tool cleans up differently:
+
+- **Claude Code:** on exit from an interactive session, a clean unnamed worktree is removed; a worktree with work in it makes Claude ask "to keep or remove". But "Non-interactive runs with `-p` have no exit prompt, so Claude doesn't clean up their worktrees." Remove those with `git worktree remove`.
+- **Codex:** "By default, Codex keeps your most recent 15 Codex-managed worktrees." Before it deletes one, "Codex saves a snapshot of the work on it."
+- **Gemini CLI:** "it **does not automatically delete** your worktree or branch. You are responsible for cleaning up your worktrees manually".
+
+## Parallel in the cloud
+
+You can also run sessions on the vendor's machines, so your laptop stays free.
+
+- **Claude Code:** `claude --cloud "<task>"` starts a cloud session. "each `--cloud` command creates its own cloud session that runs independently." Watch the source: "The cloud VM clones your current directory's GitHub remote at your current branch, not your local checkout, so push first if you have local commits." (A VM is a virtual machine; our plain gloss.) `claude --teleport` pulls a cloud session and its branch back into your terminal. Per Anthropic's page, cloud sessions are on Pro, Max and Team plans, and for some Enterprise seats.
+- **Codex Cloud:** a cloud task is one job Codex runs in the cloud, not on your computer, inside an environment you set up first (the repositories, tools and access the project needs; our plain gloss). You start tasks "from a published environment", and "Each task has its own workspace". You review the changes, then "commit or open a pull request when you're ready."
+
+Cost grows with each worker. Anthropic: "Running several sessions or subagents at once multiplies token usage."
+
+## Checkpoints: undo inside one session
+
+A worktree keeps sessions apart. A **checkpoint** is a saved state you can rewind to inside one session (our plain gloss).
+
+- **Claude Code** saves one "before each prompt you send that starts a turn". Run `/rewind`, or press `Esc` twice, to restore code, the conversation, or both.
+- **Gemini CLI** saves one before a file-changing tool runs, as a commit in "a special, shadow Git repository" under `~/.gemini/history/<project_hash>`. It is "disabled by default"; turn it on with `"general": { "checkpointing": { "enabled": true } }` in `settings.json`. Restore with `/restore`.
+
+Know the gaps in Claude Code's checkpoints:
+
+- "Checkpointing does not track files modified by Bash commands." A file removed with `rm` does not come back.
+- "edits from other concurrent sessions are normally not captured". A rewind in one session does not undo another session's work.
+- It is "Not a replacement for version control". Commit with git for real history.
+
+## Bring the work back
+
+Each worktree ends as a branch. Merging is still your job. Claude Code's page asks one question first: "Do the tasks touch the same files?" Worktrees keep edits apart while the agents work, but two branches that change the same lines still conflict when you merge (our plain gloss). Swarm Spire, chapter 5, covered that write clash.
+
+A simple merge order (our advice):
+
+1. Split tasks so each branch owns different files.
+2. Merge one branch, through a pull request with its checks.
+3. Update the next branch from the default branch, and run its tests again.
+4. Fix any conflict in that branch, then merge it.
+5. Remove the worktrees you no longer need.
+
+## Key points
+
+- A worktree is a second folder for the same repo, with its own files and branch.
+- Start one: `claude --worktree <name>`, the Codex app's **Worktree** option, `gemini --worktree <name>` (experimental).
+- A new worktree is a fresh checkout. Set it up; copy gitignored files with `.worktreeinclude`.
+- Claude Code starts worktrees from the remote default branch unless `worktree.baseRef` is `"head"`.
+- One branch can be checked out in only one place at a time.
+- `claude -p` leaves its worktrees behind; Gemini CLI never deletes them; Codex keeps the newest 15.
+- Cloud runs: `claude --cloud` clones the pushed branch, so push first; Codex Cloud gives each task its own workspace.
+- Checkpoints undo inside one session. Claude Code's skip Bash changes; Gemini CLI's are off by default.
+- Merge one branch at a time, and rerun tests after each merge.

@@ -8,10 +8,19 @@ import {
   HERO_SIDES,
   heroClear,
   heroSide,
+  landmarkLabel,
+  WORLD_COMPASS,
+  WORLD_COMPASS_PX,
+  WORLD_GLYPHS,
   WORLD_HERO,
   WORLD_MAP,
+  WORLD_MAP_ART,
   WORLD_MIN_ANCHOR_GAP,
+  WORLD_OVERVIEW_MIN_HEIGHT,
   WORLD_OVERVIEW_MIN_WIDTH,
+  WORLD_STATUS_PIPS,
+  WORLD_TERRAIN,
+  worldKeepClear,
   ZOOM_STEPS,
 } from './world-map';
 
@@ -150,6 +159,61 @@ describe('world-map.css', () => {
     expect(rems.length).toBeGreaterThan(0);
     for (const rem of rems) expect(rem * 16).toBe(WORLD_OVERVIEW_MIN_WIDTH);
   });
+
+  test('zoom 1 is the overview only when the whole stage fits by height too', async () => {
+    const css = await Bun.file(
+      `${import.meta.dir}/../../app/styles/components/world-map.css`,
+    ).text();
+    const media = [
+      ...css.matchAll(/@media \(width >= [\d.]+rem\)( and \(height >= ([\d.]+)rem\))?/g),
+    ];
+    expect(media.length).toBeGreaterThan(0);
+    for (const m of media) expect(Number(m[2]) * 16).toBe(WORLD_OVERVIEW_MIN_HEIGHT);
+    // The box is the screen under the 4rem (64px) header: the 768px stage fits from here.
+    expect(WORLD_OVERVIEW_MIN_HEIGHT - 64).toBeGreaterThanOrEqual(WORLD_MAP.height);
+    expect(css).toContain('height: min(calc(100svh - --spacing(16))');
+  });
+});
+
+describe('labels and pins', () => {
+  type Box = readonly [number, number, number, number];
+  const hit = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+  const at = (x: number, y: number, [l, t, r, b]: Box): Box => [x + l, y + t, x + r, y + b];
+  const anchors = places.filter(([name]) => !WORLD_MAP.landmarks.some((l) => l.id === name));
+
+  test('each state has its own pip shape', () => {
+    const shapes = Object.values(WORLD_STATUS_PIPS).map((rows) => rows.join('/'));
+    expect(new Set(shapes).size).toBe(shapes.length);
+  });
+
+  test('every realm name fits its plate box (Silkscreen 10px: under 8px a letter, 12px padding)', () => {
+    const [l, , r] = WORLD_HERO.detail;
+    const long = REALMS.filter((realm) => realm.name.length * 8 + 12 > r - l).map((x) => x.name);
+    expect(long).toEqual([]);
+  });
+
+  test('at every zoom, no pin (with its pip) or name plate touches another, or a landmark label', () => {
+    const clashes: string[] = [];
+    for (const z of ZOOM_STEPS) {
+      // Screen px on the stage; names show from zoom 1.
+      const said = anchors.flatMap(([name, p]): [string, Box][] => [
+        [`${name} pin`, at(p.x * z, p.y * z, WORLD_HERO.pinBox)],
+        ...(z >= 1
+          ? [[`${name} name`, at(p.x * z, p.y * z, WORLD_HERO.detail)] as [string, Box]]
+          : []),
+      ]);
+      said.forEach(([a, boxA], i) =>
+        said.slice(i + 1).forEach(([b, boxB]) => {
+          if (a.split(' ')[0] !== b.split(' ')[0] && hit(boxA, boxB))
+            clashes.push(`${z}: ${a} × ${b}`);
+        }),
+      );
+      for (const m of WORLD_MAP.landmarks)
+        for (const [a, boxA] of said)
+          if (hit(landmarkLabel(m, z), boxA)) clashes.push(`${z}: ${m.id} label × ${a}`);
+    }
+    expect(clashes).toEqual([]);
+  });
 });
 
 describe('heroSide', () => {
@@ -222,5 +286,49 @@ describe('WORLD_MAP_TEXT.marker', () => {
     expect(WORLD_MAP_TEXT.marker('09', 'Canvas Workshop', 'OPEN', 0, 7, undefined, only)).toBe(
       '09 Canvas Workshop, creator only, open, 0 of 7 cleared',
     );
+  });
+});
+
+describe('cartography decoration', () => {
+  test('every sprite is a rectangle of known letters', () => {
+    for (const rows of [
+      ...Object.values(WORLD_GLYPHS),
+      ...Object.values(WORLD_STATUS_PIPS),
+      WORLD_COMPASS,
+    ]) {
+      expect(new Set(rows.map((r) => r.length)).size).toBe(1);
+      for (const row of rows) expect(row).toMatch(/^[.#+*o]+$/);
+    }
+  });
+
+  test('the compass sprite fits its box, and the box is open sea: no land, ripple or label', () => {
+    const { x, y, size } = WORLD_MAP.compass;
+    expect(WORLD_COMPASS[0].length * WORLD_COMPASS_PX).toBeLessThanOrEqual(size);
+    expect(WORLD_COMPASS.length * WORLD_COMPASS_PX).toBeLessThanOrEqual(size);
+    // Ripples reach 12 art px out from a coast.
+    const box = { x, y, w: size + 24, h: size + 24 };
+    const lands = places.filter(([, p]) => overlap(box, p)).map(([name]) => name);
+    expect(lands).toEqual([]);
+    // Every pin, name and landmark label (worldKeepClear without the compass itself).
+    const own = { x: x - size / 2, y: y - size / 2, w: size, h: size };
+    const said = worldKeepClear(null).filter(
+      (c) => !(c.x === own.x && c.y === own.y && c.w === own.w && c.h === own.h),
+    );
+    const hit = said.some(
+      (c) => c.x < own.x + own.w && own.x < c.x + c.w && c.y < own.y + own.h && own.y < c.y + c.h,
+    );
+    expect(hit).toBe(false);
+  });
+
+  test('every realm in REALMS has its own terrain', () => {
+    expect(REALMS.filter((r) => !WORLD_TERRAIN[r.id]).map((r) => r.id)).toEqual([]);
+    for (const l of WORLD_MAP.landmarks) expect(WORLD_TERRAIN[l.id]).toBeDefined();
+  });
+
+  test('the art slot is the grid at 2×, and `ready` matches the committed file', async () => {
+    expect(WORLD_MAP.width * 2).toBe(WORLD_MAP_ART.width);
+    expect(WORLD_MAP.height * 2).toBe(WORLD_MAP_ART.height);
+    const file = Bun.file(`${import.meta.dir}/../../public${WORLD_MAP_ART.src}`);
+    expect(await file.exists()).toBe(WORLD_MAP_ART.ready);
   });
 });

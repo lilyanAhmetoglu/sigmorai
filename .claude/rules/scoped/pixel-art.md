@@ -40,7 +40,8 @@ From the build prompt and `design/ui_kits/webapp/Sigmorai App.dc.html`. Port, do
 - `/map`: one top-down world, every realm of a path as a land (`docs/plans/world-map-design-plan.md`). Geometry (anchors, rectangle footprints, slots, landmarks) only in `WORLD_MAP` (`lib/constants/world-map.ts`); the art fits it.
 - A native scroll box, like the level map. Zoom steps `ZOOM_STEPS` = ½, 1, 2 only (`data-zoom` on the box); the overview needs no JS (½ under 1024px, else 1). No canvas, no pan/zoom library.
 - Markers are real 44px links that do not scale with the zoom; the art, trail, fog and hero are `aria-hidden`. The "Your path" list under the box is the text view.
-- Until the Higgsfield art lands, the world is a token-coloured SVG placeholder. Never reuse level art.
+- Until the Higgsfield art lands, the world is a token-coloured SVG cartography map (paper sea, organic stepped coasts on an 8 art px grid, seeded terrain glyphs that keep off pins and labels, compass, frame). The art goes in the `WORLD_MAP_ART` slot (2048×1536, pixelated). Never reuse level art.
+- Map labels stay quiet: a thin name plate from zoom 1 and a state pip (a shape, not a colour) on the pin. No badges on the map; the words live in the accessible name, the key and the path list.
 
 ## The UI is not pixel art
 

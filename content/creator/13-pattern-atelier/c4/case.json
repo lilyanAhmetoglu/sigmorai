@@ -1,0 +1,96 @@
+{
+  "id": "creator/r13/c4/challenge",
+  "title": "The agent that built a second badge",
+  "scenario": "A city library builds a booking app in React. The team documents its components in Storybook and wants every agent to reuse them. They installed the Storybook MCP addon. Two developers use Claude Code. After one week, the agents still build new components and copy old ones. You read the setup notes and the log.\n\nUse the exhibit. The library, the files and the log are made up for this case. Tool details are from the vendors' pages in October 2026.",
+  "exhibit": "SETUP NOTES (made up)\n\n  Storybook 10, framework @storybook/react-vite\n  Addon: @storybook/addon-mcp (installed)\n  .storybook/main.ts:\n    features: {}            <- nothing set\n  Claude Code: Ana added the Storybook MCP server with\n    the default (local) scope. Nothing else was changed.\n  Story \"Button / OldStyle2024\": kept to show the docs team\n    the button we no longer use.\n  Badge docs: one prop, variant (\"info\" | \"warning\").\n\nWEEK 1 LOG\n  1. The agent has no docs-list tool. The MCP page says\n     the docs toolset is unavailable.\n  2. Ben's Claude Code sessions show no Storybook tools.\n     Ana's do.\n  3. (after fixing 1) The agent copies the old 2024 button\n     from the OldStyle2024 story into a new page.\n  4. The agent writes <Badge tone=\"warning\">. Badge has no\n     tone prop.",
+  "questions": [
+    {
+      "prompt": "Log 1: why is the docs toolset unavailable here?",
+      "options": [
+        {
+          "text": "The components manifest is off by default; set componentsManifest: true",
+          "explanation": "Right. Storybook says the components manifest is off by default. The docs toolset reads it, and react-vite can make one.",
+          "correct": true
+        },
+        {
+          "text": "React frameworks make no manifest; move the project to another framework",
+          "explanation": "Storybook lists every React framework, including react-vite, as one that makes a components manifest."
+        },
+        {
+          "text": "The docs toolset needs Storybook Test, so install Storybook Test first",
+          "explanation": "Storybook says the docs toolset reads the components manifest. Tests play no part in it, and here the manifest is off."
+        },
+        {
+          "text": "The MCP server runs only in a built Storybook, never on the dev server",
+          "explanation": "The docs toolset reads the components manifest, which is off by default. Fix the setting, not where Storybook runs."
+        }
+      ]
+    },
+    {
+      "prompt": "Log 2: Ben's sessions have no Storybook tools. What is the best fix?",
+      "options": [
+        {
+          "text": "Add the server again with user scope so the whole team can use it",
+          "explanation": "User scope is private to one user account. It does not reach Ben."
+        },
+        {
+          "text": "Write \"use the Storybook MCP\" in AGENTS.md so Ben's agent connects",
+          "explanation": "A rules file tells an agent what to do. It does not connect a server that is not set up."
+        },
+        {
+          "text": "Add it with project scope and check .mcp.json into version control",
+          "explanation": "Right. Anthropic says to check .mcp.json into version control so everyone on the team gets the same MCP tools.",
+          "correct": true
+        },
+        {
+          "text": "Put the server in ~/.codex/config.toml so every agent can find it",
+          "explanation": "That is Codex's file in one person's home folder. Ben uses Claude Code, and it is not shared."
+        }
+      ]
+    },
+    {
+      "prompt": "Log 3: the agent copies the old 2024 button. How do you keep that story but hide it?",
+      "options": [
+        {
+          "text": "Rename the story to DO NOT COPY so the agent will skip it",
+          "explanation": "No page here says a story name keeps it out. The story would still be in the manifest."
+        },
+        {
+          "text": "Add tags: ['!manifest'] to that story so manifests skip it",
+          "explanation": "Right. Removing the manifest tag keeps a story out of the manifests, for example one for instruction only.",
+          "correct": true
+        },
+        {
+          "text": "Turn componentsManifest off again so no story reaches it",
+          "explanation": "That hides every component, and the docs toolset stops working. Only one story needs to go."
+        },
+        {
+          "text": "Delete the Button docs page so the agent stops seeing it",
+          "explanation": "That removes the docs for the button you do want reused. Hide the one story instead."
+        }
+      ]
+    },
+    {
+      "prompt": "Log 4: the agent wrote a tone prop that Badge does not have. Which rule follows Storybook's advice?",
+      "options": [
+        {
+          "text": "Allow props that are common in other libraries, such as tone",
+          "explanation": "Storybook's example rules say not to assume props from patterns in other libraries."
+        },
+        {
+          "text": "Let the agent add a tone prop to Badge when a design needs one",
+          "explanation": "That changes a shared component without asking. Storybook's rules say to check back with the user."
+        },
+        {
+          "text": "Install a new badge from a registry that has a tone prop on it",
+          "explanation": "That makes a second badge, the problem this chapter is about. Use the documented variant prop."
+        },
+        {
+          "text": "Use only documented props, check docs-show, and ask if unsure",
+          "explanation": "Right. Storybook's example rules: use only documented props, query docs-show, and check back with the user.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

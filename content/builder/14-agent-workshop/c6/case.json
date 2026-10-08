@@ -1,0 +1,96 @@
+{
+  "id": "builder/r14/c6/challenge",
+  "title": "Three sessions, four snags",
+  "scenario": "A developer, Lin, ran three coding-agent sessions on one repo yesterday: two in Claude Code and one in the Codex app. Each hit a snag. You read Lin's notes.\n\nUse the exhibit. Lin, the repo and the notes are made up for this case. Commands and behaviour are from the vendors' pages in October 2026.",
+  "exhibit": "LIN'S NOTES (made up)\n\nA. 09:10  claude -w search-api\n          Tests fail: config/secrets.json not found.\n          It is in my main folder, listed in .gitignore.\n\nB. 10:30  Codex app, Worktree chat. I pressed \"Create\n          branch here\" and named it feature/search.\n          On my laptop's main folder:\n            git checkout feature/search\n            fatal: 'feature/search' is already used by\n            worktree at '...'\n\nC. 13:00  Claude ran: rm docs/old-api.md\n          I ran /rewind to before that prompt and picked\n          \"Restore code\". docs/old-api.md is still gone.\n\nD. 16:45  I made 3 commits on feature/ui this morning and\n          did not push them. Then:\n            claude --cloud \"Finish the settings page\"\n          The cloud session has none of my 3 commits.",
+  "questions": [
+    {
+      "prompt": "Note A: why is config/secrets.json missing in the new worktree?",
+      "options": [
+        {
+          "text": "Gitignored files aren't copied; list it in .worktreeinclude",
+          "explanation": "Right. A worktree is a fresh checkout. .worktreeinclude copies gitignored files that match its patterns.",
+          "correct": true
+        },
+        {
+          "text": "Set worktree.baseRef to head so ignored files come along",
+          "explanation": "\"head\" starts the worktree from your local commits. It does not copy gitignored files."
+        },
+        {
+          "text": "Worktrees run only with -p; start the session that way",
+          "explanation": "Interactive worktree sessions work too. The file was never copied."
+        },
+        {
+          "text": "The worktree reads the main folder's files; restart it",
+          "explanation": "A worktree has its own files. Ignored files are not there unless you copy them."
+        }
+      ]
+    },
+    {
+      "prompt": "Note B: why does the checkout fail on Lin's main folder?",
+      "options": [
+        {
+          "text": "The worktree is in detached HEAD, so the branch was never made",
+          "explanation": "Lin made the branch with Create branch here. The error says the worktree already uses it."
+        },
+        {
+          "text": "A branch can be checked out in one place only; use Hand off",
+          "explanation": "Right. OpenAI: Git only allows a branch to be checked out in one place at a time. Hand off moves the chat and code to Local.",
+          "correct": true
+        },
+        {
+          "text": "Codex locks every branch it creates until the chat is archived",
+          "explanation": "No page says that. Git itself refuses a second checkout of the same branch."
+        },
+        {
+          "text": "Branches made in a worktree can't be used outside of Codex",
+          "explanation": "OpenAI says you can commit, push and open a pull request from that branch."
+        }
+      ]
+    },
+    {
+      "prompt": "Note C: why didn't Restore code bring docs/old-api.md back?",
+      "options": [
+        {
+          "text": "Restore code returns the conversation only, never any files",
+          "explanation": "Restore code reverts file changes. The problem is how this file was deleted."
+        },
+        {
+          "text": "Checkpoints are off until Lin turns them on in settings.json",
+          "explanation": "That is Gemini CLI. Claude Code saves a checkpoint before each prompt by itself."
+        },
+        {
+          "text": "Checkpoints skip changes made by Bash commands; use git",
+          "explanation": "Right. Anthropic: checkpointing does not track files modified by Bash commands, such as rm. Git history is the way back.",
+          "correct": true
+        },
+        {
+          "text": "The file lived in another worktree, which a rewind can't see",
+          "explanation": "The note shows the rm ran in this session. The rm itself is the problem."
+        }
+      ]
+    },
+    {
+      "prompt": "Note D: why does the cloud session lack Lin's 3 commits?",
+      "options": [
+        {
+          "text": "Cloud sessions start from an empty repo; Lin must attach files",
+          "explanation": "The cloud session clones the repo from GitHub. It just can't see unpushed commits."
+        },
+        {
+          "text": "Lin should run claude --teleport to send the commits up first",
+          "explanation": "--teleport pulls a cloud session back to the terminal. It does not send local commits."
+        },
+        {
+          "text": "Cloud sessions use the default branch only; merge into main",
+          "explanation": "The cloud VM clones the current branch. It is the unpushed commits that are missing."
+        },
+        {
+          "text": "--cloud clones the remote branch, not the laptop; push first",
+          "explanation": "Right. Anthropic: the cloud VM clones your GitHub remote at your current branch, not your local checkout, so push first.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}

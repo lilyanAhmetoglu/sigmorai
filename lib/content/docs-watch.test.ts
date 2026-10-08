@@ -40,6 +40,9 @@ const SOURCES: KbSource[] = [
   source('mcp-servers', 'repo', 'https://github.com/modelcontextprotocol/servers'),
   source('elevenlabs-docs', 'docs', 'https://elevenlabs.io/docs'),
   source('elevenlabs-use-policy', 'docs', 'https://elevenlabs.io/use-policy'),
+  source('storybook-docs', 'docs', 'https://storybook.js.org'),
+  source('geminicli-docs', 'docs', 'https://geminicli.com'),
+  source('claude-support', 'docs', 'https://support.claude.com'),
 ];
 
 describe('citedPages', () => {
@@ -77,6 +80,10 @@ describe('markdownUrl', () => {
     expect(markdownUrl('https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue')).toBe(
       'https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue.md',
     );
+    // Claude Help Center articles have a .md copy.
+    expect(markdownUrl('https://support.claude.com/en/articles/9517075-what-are-projects')).toBe(
+      'https://support.claude.com/en/articles/9517075-what-are-projects.md',
+    );
   });
 
   test('a host with a path prefix covers only that path (elevenlabs.io/docs)', () => {
@@ -84,6 +91,23 @@ describe('markdownUrl', () => {
       'https://elevenlabs.io/use-policy',
     );
     expect(markdownUrl('https://elevenlabs.io/docsx/a')).toBe('https://elevenlabs.io/docsx/a');
+  });
+
+  test('a /docs prefix key covers only the docs pages of its host (storybook.js.org/docs)', () => {
+    expect(markdownUrl('https://storybook.js.org/docs/ai/manifests')).toBe(
+      'https://storybook.js.org/docs/ai/manifests.md',
+    );
+    expect(markdownUrl('https://ui.shadcn.com/docs/mcp')).toBe('https://ui.shadcn.com/docs/mcp.md');
+    expect(markdownUrl('https://storybook.js.org/blog/a-post')).toBe(
+      'https://storybook.js.org/blog/a-post',
+    );
+    // geminicli.com pages end in a slash; the .md copy drops it.
+    expect(markdownUrl('https://geminicli.com/docs/hooks/')).toBe(
+      'https://geminicli.com/docs/hooks.md',
+    );
+    expect(markdownUrl('https://geminicli.com/extensions/browse/')).toBe(
+      'https://geminicli.com/extensions/browse/',
+    );
   });
 
   test('ai.google.dev uses its own suffix, .md.txt', () => {
@@ -145,6 +169,10 @@ describe('fetchTargets', () => {
     expect(byUrl('https://elevenlabs.io/use-policy')?.fetchUrl).toBe(
       'https://elevenlabs.io/use-policy',
     );
+    // A host-root source (storybook.js.org) reads the site's llms.txt, not /docs/llms.txt.
+    expect(byUrl('https://storybook.js.org/llms.txt')?.sourceId).toBe('storybook-docs');
+    expect(byUrl('https://geminicli.com/llms.txt')?.sourceId).toBe('geminicli-docs');
+    expect(byUrl('https://support.claude.com/llms.txt')?.sourceId).toBe('claude-support');
     expect(targets).toHaveLength(2 + SOURCES.length);
   });
 

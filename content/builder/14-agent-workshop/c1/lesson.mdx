@@ -1,0 +1,131 @@
+---
+id: builder/r14/c1/lesson
+title: Skills
+minutes: 10
+sources:
+  - kind: docs
+    title: Extend Claude with skills (Claude Code docs)
+    url: https://code.claude.com/docs/en/skills
+  - kind: docs
+    title: Extend Claude Code (Claude Code docs)
+    url: https://code.claude.com/docs/en/features-overview
+  - kind: docs
+    title: Build skills (OpenAI Codex docs)
+    url: https://learn.chatgpt.com/docs/build-skills
+  - kind: docs
+    title: Customization (OpenAI Codex docs)
+    url: https://learn.chatgpt.com/docs/customization/overview
+  - kind: docs
+    title: Agent Skills (Gemini CLI docs)
+    url: https://geminicli.com/docs/cli/skills/
+  - kind: docs
+    title: Creating Agent Skills (Gemini CLI docs)
+    url: https://geminicli.com/docs/cli/creating-skills/
+---
+
+Agent Citadel, chapter 5 (Memory), put the rules an agent needs every session in an instruction file: `CLAUDE.md` or `AGENTS.md`. Chapter 4 (Subagents) gave a side job its own context. This chapter adds a third piece: a **skill**, a folder of instructions the agent loads only when a task needs it.
+
+A note on dates: the folder names, fields and limits below are from each vendor's page in October 2026.
+
+## What a skill is
+
+All three vendors use the same shape: a folder with a `SKILL.md` file in it.
+
+- **Anthropic.** "Create a `SKILL.md` file with instructions, and Claude adds it to its toolkit. Claude uses skills when relevant, or you can invoke one directly with `/skill-name`."
+- **OpenAI.** The Codex docs say a skill "packages instructions, resources, and optional scripts". "A skill is a directory with a `SKILL.md` file plus optional scripts and references. The `SKILL.md` file must include `name` and `description`."
+- **Google.** In Gemini CLI, a skill is "a self-contained directory that packages instructions and assets into a discoverable capability."
+
+All three pages point to the same open standard, Agent Skills (agentskills.io). Anthropic says Claude Code skills follow it, a standard "which works across multiple AI tools".
+
+`SKILL.md` has two parts. Anthropic describes them as "YAML frontmatter between `---` markers that tells Claude when to use the skill, and markdown content with the instructions Claude follows when the skill runs." (YAML frontmatter is a short block of `key: value` lines at the top of the file; our plain gloss.)
+
+A small skill (our example):
+
+```md
+---
+name: release-notes
+description: Drafts release notes from merged PRs. Use when the user asks for release notes or a changelog entry.
+---
+
+1. List the PRs merged since the last tag.
+2. Group them as Added, Fixed and Changed.
+3. Write one line per PR, with its number.
+```
+
+The fields differ a little. Codex requires `name` and `description`. In Claude Code, "All fields are optional. Only `description` is recommended". Gemini CLI's built-in creator writes both `name` and `description`.
+
+## The description is the trigger
+
+Skills load in steps. The agent first sees a short card for each skill, and it reads the full file only when it picks that skill (our plain gloss of "progressive disclosure").
+
+- **OpenAI:** "ChatGPT and Codex start with each skill's name and description, then load the full `SKILL.md` instructions when they decide to use that skill." Codex reads references or runs scripts "only when needed".
+- **Anthropic:** by default, "Description always in context, full skill loads when invoked" (the words of its table).
+- **Google:** "Only skill metadata (name and description) is loaded initially." Gemini CLI also asks you first: "You will see a confirmation prompt in the UI detailing the skill's name, purpose, and the directory path it will gain access to."
+
+So the description decides when a skill fires. Both big vendors say to put the use case first, because long lists get cut:
+
+- Codex: "Front-load the key use case and trigger words so a host can still match the skill if descriptions are shortened." The list of names and descriptions Codex shows the model "uses at most 2% of the model's context window", and "Codex shortens skill descriptions first" when many skills are installed.
+- Claude Code: "Put the key use case first". The description plus `when_to_use` "is truncated at 1,536 characters in the skill listing".
+
+Our example: `description: Helpers` never fires, because no task matches it. `description: Drafts release notes from merged PRs. Use when the user asks for release notes.` says what it does and when.
+
+## Skill, instruction file or subagent
+
+Anthropic's docs compare the two in a table:
+
+| Aspect   | CLAUDE.md                    | Skill                                   |
+| -------- | ---------------------------- | --------------------------------------- |
+| Loads    | Every session, automatically | On demand                               |
+| Best for | "Always do X" rules          | Reference material, invocable workflows |
+
+Its advice: "Put it in CLAUDE.md if Claude should always know it". "Put it in a skill if it's reference material Claude needs sometimes (API docs, style guides) or a workflow you trigger with `/<name>`." Anthropic also names the moments to make one: "when you keep pasting the same instructions, checklist, or multi-step procedure into chat, or when a section of CLAUDE.md has grown into a procedure rather than a fact."
+
+OpenAI says the same in its own words: "`AGENTS.md` shapes behavior, memories carry local context forward, skills package repeatable processes". Google: "Unlike general context files (GEMINI.md), which provide persistent workspace-wide background, Skills represent on-demand expertise."
+
+A skill is not a subagent. In Anthropic's table, a skill "Adds to your main window". A subagent "Uses a separate window with its own input and output tokens". They can combine: in Claude Code, a skill with `context: fork` runs "in a forked subagent context".
+
+Rule of thumb (our advice):
+
+- True in every session → the instruction file.
+- Steps or reference you need sometimes → a skill.
+- A big side job whose middle steps you don't need to see → a subagent.
+
+## Who can start a skill
+
+You can call a skill by name, or the agent can pick it from the description.
+
+- **Claude Code:** type `/skill-name`. `disable-model-invocation: true` means "Claude can't invoke the skill on its own". Anthropic's reason: "You don't want Claude deciding to deploy because your code looks ready."
+- **Codex:** type `$` to mention a skill, or run `/skills`. In the optional `agents/openai.yaml`, `allow_implicit_invocation: false` under `policy:` means "Codex won't implicitly invoke the skill based on user prompt; explicit `$skill` invocation still works."
+
+Any skill with side effects, such as deploy or send (our advice), should be started by a person.
+
+## Keep the body short
+
+A loaded skill costs tokens. Anthropic: "Once a skill loads, its content stays in context across turns, so every line is a recurring token cost." Its tip: "Keep `SKILL.md` under 500 lines. Move detailed reference material to separate files."
+
+Codex uses the same folder idea: `scripts/` for "executable code", `references/` for "documentation", `assets/` for "templates, resources". Its best practices: "Keep each skill focused on one job." "Prefer instructions over scripts unless you need deterministic behavior or external tooling."
+
+## Where skills live
+
+| Tool        | Personal                                   | Project (commit it)                                           |
+| ----------- | ------------------------------------------ | ------------------------------------------------------------- |
+| Claude Code | `~/.claude/skills/<name>/SKILL.md`         | `.claude/skills/<name>/SKILL.md`                              |
+| Codex       | `$HOME/.agents/skills`                     | `.agents/skills`, from the current folder up to the repo root |
+| Gemini CLI  | `~/.gemini/skills/` or `~/.agents/skills/` | `.gemini/skills/` or `.agents/skills/`                        |
+
+Codex and Gemini CLI both read `.agents/skills/`. Google calls it "an interoperable path for managing agent-specific expertise that remains compatible across different AI tools." Claude Code's page lists `.claude/skills/` folders.
+
+A team on two agents can keep one copy (our advice). Both Claude Code and Codex follow symlinked skill folders (a symlink is a file-system shortcut to another folder; our plain gloss). So the skill can live in `.agents/skills/`, with a link to it from `.claude/skills/`.
+
+To share skills beyond one repo, both big vendors point to plugins. Anthropic lists "Create a `skills/` directory in your plugin". OpenAI: "Skills remain the authoring format; plugins are the installable distribution unit." Chapter 3 covers plugins.
+
+## Key points
+
+- A skill is a folder with a `SKILL.md`: frontmatter (when to use it) plus instructions.
+- Claude Code, Codex and Gemini CLI all point to the Agent Skills open standard.
+- Only the name and description load first. The full file loads when the skill is picked.
+- The description is the trigger. Put the use case and trigger words first.
+- Always true → instruction file. Sometimes needed → skill. Big side job → subagent.
+- Block auto-start for side effects: `disable-model-invocation` (Claude Code), `policy.allow_implicit_invocation: false` (Codex).
+- Keep `SKILL.md` short; move detail into reference files.
+- Codex and Gemini CLI read `.agents/skills/`; Claude Code reads `.claude/skills/`.

@@ -1,0 +1,118 @@
+{
+  "id": "builder/r14/boss/challenge",
+  "title": "Set up one repo so an agent formats, reviews and ships a small change, and name the step that needs a person",
+  "scenario": "A small team, Pebble Notes, wants coding agents to carry a small change from edit to release. Your teammate wrote the setup: a skill, a format hook, a nightly script, a review rule and a parallel-work plan. You check it before the team turns it on.\n\nUse the exhibit. The team, the files and the logs are made up for this case. Tool details are from the vendors' pages in October 2026.",
+  "exhibit": "BRIEF (made up):\n  Repo: pebble-notes. Four developers use Claude Code,\n  one uses Codex. Goal: every edit is formatted, every\n  PR is reviewed, release notes are drafted each night,\n  and small fixes run side by side.\n\nSKILLS:\n  .agents/skills/release-notes/SKILL.md\n  (.claude/skills/release-notes links to this folder)\n    ---\n    description: Drafts release notes from merged PRs.\n      Use when asked for release notes.\n    ---\n  Claude Code: lists the skill.\n  Codex user: \"release-notes is not in my skills list.\"\n\nHOOKS:\n  .claude/settings.json\n    PostToolUse  matcher \"Edit|Write\"  -> scripts/format.sh\n  .codex/hooks.json\n    PostToolUse  matcher \"Bash\"        -> scripts/format.sh\n  Codex user: \"My file edits are never formatted.\"\n\nSCRIPT (nightly):\n  claude -p \"/release-notes\" --output-format json \\\n    --json-schema '{\"type\":\"object\",\"properties\":{\"notes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}},\"required\":[\"notes\"]}' \\\n    | jq '.result.notes'\n  Log: jq prints null. The run exits 0.\n\nCI:\n  Claude Code Review: on for the repo.\n  AGENTS.md has a \"## Code Review Rules\" section.\n  Draft merge rule: \"Merge any PR once the Claude Code\n  Review check is done and Codex posts no P0 or P1.\n  No human approval.\"\n\nPARALLEL:\n  Dev A has 2 unpushed commits on feature/editor and runs\n    claude --worktree fix-dates\n  (no worktree settings changed). The worktree has\n  neither commit.",
+  "questions": [
+    {
+      "prompt": "SKILLS: Claude Code lists release-notes, but Codex does not. What does the Codex page require that this file lacks?",
+      "options": [
+        {
+          "text": "A path under .claude/skills, the only folder Codex reads",
+          "explanation": "Codex reads .agents/skills, from the current folder up to the repo root. The folder is fine."
+        },
+        {
+          "text": "A name field; Codex requires both name and description",
+          "explanation": "Right. OpenAI: the SKILL.md file must include name and description. This one has only a description.",
+          "correct": true
+        },
+        {
+          "text": "A disable-model-invocation line before Codex will list it",
+          "explanation": "That is a Claude Code field that stops Claude from starting a skill on its own. It does not decide if Codex lists one."
+        },
+        {
+          "text": "A scripts/ folder, since Codex lists only skills with code",
+          "explanation": "OpenAI says a skill has optional scripts. Instructions alone are enough."
+        }
+      ]
+    },
+    {
+      "prompt": "HOOKS: why are the Codex user's file edits never formatted?",
+      "options": [
+        {
+          "text": "Codex has no PostToolUse event; the hook must move to Stop",
+          "explanation": "Codex does have PostToolUse, like Claude Code. The matcher is the problem."
+        },
+        {
+          "text": "format.sh must exit 2 so that Codex waits for the formatter",
+          "explanation": "Exit 2 is the blocking code. It does not decide which tool a hook matches."
+        },
+        {
+          "text": "Codex runs tool hooks only for hosted tools like WebSearch",
+          "explanation": "The opposite: OpenAI says hosted tools such as WebSearch don't use the local hook path."
+        },
+        {
+          "text": "Codex edits use apply_patch; match apply_patch, Edit or Write",
+          "explanation": "Right. In Codex, file edits go through apply_patch, and matcher values can use apply_patch, Edit or Write. \"Bash\" never matches an edit.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "prompt": "SCRIPT: the run exits 0, but jq prints null. Where are the notes?",
+      "options": [
+        {
+          "text": "In structured_output; with --json-schema, result is not it",
+          "explanation": "Right. With --output-format json and --json-schema, Anthropic puts the schema-shaped answer in the structured_output field.",
+          "correct": true
+        },
+        {
+          "text": "Nowhere; --json-schema only works with stream-json output",
+          "explanation": "The schema flag works with --output-format json. The answer is in its own field."
+        },
+        {
+          "text": "In stderr, where a -p run sends its JSON when a schema is set",
+          "explanation": "Claude Code prints the answer on stdout. The schema-shaped answer has its own field there."
+        },
+        {
+          "text": "Nowhere; -p runs need --bare before they can return JSON",
+          "explanation": "--bare changes what the run loads. Any -p run can print JSON with --output-format json."
+        }
+      ]
+    },
+    {
+      "prompt": "CI: which step must stay with a person, and why?",
+      "options": [
+        {
+          "text": "The format step, because review rules must check formatting",
+          "explanation": "OpenAI says to leave mechanical checks such as formatting in CI, not in review rules. A hook formats each edit."
+        },
+        {
+          "text": "The merge approval: the review bots advise and don't replace it",
+          "explanation": "Right. Claude Code Review never approves or blocks a PR, and OpenAI says review rules don't replace required approvals. A person approves the merge.",
+          "correct": true
+        },
+        {
+          "text": "Nothing, because the Code Review check fails on any real bug",
+          "explanation": "The Code Review check run always ends neutral. It never blocks a merge."
+        },
+        {
+          "text": "The nightly notes, because a -p run is never able to write files",
+          "explanation": "A -p run can write files when you allow it, for example with --allowedTools or acceptEdits."
+        }
+      ]
+    },
+    {
+      "prompt": "PARALLEL: why does the new worktree lack Dev A's two commits?",
+      "options": [
+        {
+          "text": "A worktree copies only gitignored files; list the commits in .worktreeinclude",
+          "explanation": ".worktreeinclude copies gitignored files. Commits come from the starting point of the branch."
+        },
+        {
+          "text": "feature/editor is checked out in another place; use Hand off before you start",
+          "explanation": "That is Git's error when one branch is checked out in two places. Here the worktree started from another point."
+        },
+        {
+          "text": "By default it starts from the remote default branch; set baseRef to head",
+          "explanation": "Right. Claude Code branches new worktrees from the default branch on the remote. worktree.baseRef \"head\" starts from your local HEAD, with unpushed commits.",
+          "correct": true
+        },
+        {
+          "text": "A new worktree starts empty, so run a fresh git pull inside it after it opens",
+          "explanation": "A worktree is a fresh checkout with your tracked files. It just started from the remote default branch."
+        }
+      ]
+    }
+  ]
+}

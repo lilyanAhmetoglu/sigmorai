@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
-import { StatusBadge } from '@/components/realms/status-badge';
 import { REALM_STATUS_TEXT, REALMS_TEXT, TRACK_TEXT, WORLD_MAP_TEXT } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
 import type { WorldPlace, WorldRealm } from '@/lib/types';
+import { StatusPip } from './world-map-art';
 
 type Props = {
   realm: WorldRealm & { place: WorldPlace };
@@ -18,9 +18,9 @@ export const anchorStyle = ({ x, y }: WorldPlace) =>
 /**
  * One realm on the world map: a link to its level map, standing on the
  * realm's anchor. The link is a transparent 44px target; inside it, a small
- * visible pin (realm number + state icon), so the land shows around it. The
- * tag sits above it and, from zoom 1, the name and the state as a word
- * (StatusBadge) below it. It does not scale with the zoom. The accessible
+ * visible pin (realm number + a state pip: a shape per state, explained in
+ * the map key), so the land shows around it. The tag sits above it and,
+ * from zoom 1, the name on a thin plate below it. It does not scale with the zoom. The accessible
  * name starts with the visible number and name (WCAG 2.5.3), then state,
  * cleared of total, and the tag; a specialist realm adds "creator only"
  * after its name. Styles: world-map.css.
@@ -48,15 +48,12 @@ export function WorldMarker({ realm, tag }: Props) {
     >
       <span className="world-marker-pin">
         {realmNumber(realm.id)}
-        <span className="world-marker-icon" aria-hidden="true">
-          {state.icon}
+        <span className="world-marker-pip">
+          <StatusPip status={realm.status} />
         </span>
       </span>
       {tag && <span className="world-marker-tag">{tag}</span>}
-      <span className="world-marker-detail">
-        <span className="world-marker-name">{realm.name}</span>
-        <StatusBadge text={state} />
-      </span>
+      <span className="world-marker-name">{realm.name}</span>
     </Link>
   );
 }

@@ -1,0 +1,106 @@
+---
+id: creator/r13/c6/lesson
+title: Publish & sync
+minutes: 8
+sources:
+  - kind: docs
+    title: Figma Learn · Publish a library
+    url: https://help.figma.com/hc/en-us/articles/360025508373-Publish-a-library
+  - kind: docs
+    title: Figma Learn · Review and accept library updates
+    url: https://help.figma.com/hc/en-us/articles/360039234193-Review-and-accept-library-updates
+  - kind: docs
+    title: Figma Learn · Create and manage variables and collections
+    url: https://help.figma.com/hc/en-us/articles/15145852043927-Create-and-manage-variables-and-collections
+  - kind: docs
+    title: Penpot help · Libraries
+    url: https://help.penpot.app/user-guide/design-systems/libraries/
+  - kind: docs
+    title: Design Tokens Community Group · Design Tokens Format Module 2025.10
+    url: https://www.designtokens.org/tr/2025.10/format/
+  - kind: docs
+    title: Claude Code docs · Configure permissions
+    url: https://code.claude.com/docs/en/permissions
+  - kind: docs
+    title: OpenAI Codex docs · Permissions
+    url: https://learn.chatgpt.com/docs/permissions
+---
+
+## Why it matters
+
+Marlow Tea changes its brand green. The designer edits it in Figma. A developer edits the CSS. An agent, asked to "fix the colours", edits the token file. Three people changed the same thing in three places. Next week there are three greens again, the problem from chapter 1.
+
+A token change needs an **owner** and one **path**: one person or team decides, one file changes, and every surface gets the change in the same order (our term).
+
+Chapter 1 chose one home for the token file. Chapter 2 gave each name more than one value. This chapter is about what happens after a change: who makes it, how it reaches Figma, Penpot and the code, and what the agent may not touch.
+
+A note on dates. The tool details below are from each vendor's page in October 2026.
+
+## One owner, one change
+
+Write down who owns the token file (our advice). For a small studio, that is often the design lead. Changes go through a pull request (a proposed change that others review before it is merged), so the owner can review them. Everyone else, people and agents, asks the owner.
+
+Make the change in the smallest place:
+
+- **Change the alias, not every use.** Chapter 1 used aliases for jobs. The DTCG spec says that in a design tool, "changes to the value of a token being referenced by aliases SHOULD be reflected wherever those aliases are being used." So a new brand green is one line.
+- **Retire, don't delete.** The spec's `$deprecated` marks a token people should stop using. Its reasons include "Removing the token now may break existing support". Mark the old token first, with a note on what to use instead. Delete it later (our advice).
+
+## Publish from one library file
+
+In Figma, a variable you create is not shared yet. Figma says: "When you first create a style, component, or variable in a file, it is only accessible from that file. To make it available in other files, you need to publish it as a library." A library is a file whose components, styles and variables other files in the team can use (our plain gloss).
+
+Check the plan first. Figma says publishing is "Available on all paid plans" and "Requires a Full seat with edit access to the library's source file."
+
+After a change in the library file, Figma says "those changes will only appear in the current file until you publish them." Then the other files get them:
+
+- **Publish with a note.** "Every time you publish updates to a library, you'll be prompted to add a description." Figma shows that description to people who accept the update and "in the file's version history."
+- **Others review and accept.** People who use the library see a blue badge. "They can then review and accept the updates." Figma shows the change side by side, or as an overlay, before they click **Update**.
+- **Keep drafts out.** "Hide when publishing" keeps a component, style or variable out of the library.
+
+Two variable settings help the code side. **Code syntax** gives a variable a code name, "one name per platform", for Web, Android and iOS. It shows in Dev Mode (Figma's view for developers) code snippets. And a variable's **description** can "explain how the variable should be used".
+
+Canvas Workshop, chapter 6, showed the Variables REST API for syncing tokens with code. Figma lists it as Enterprise-only, as that chapter says; it is not repeated here.
+
+## Penpot: shared libraries
+
+Penpot works the same way at the start. You can "publish any regular file as a shared library", and its assets can then be connected to "other files that exist in the same team".
+
+Tokens need care. A connected library's tokens are copied into a file with **Import tokens**. Penpot says this "is separate from connecting the library" for components, colours and typographies. Penpot warns: "Importing tokens from a library replaces all tokens, sets and themes in the current file." It says to export your tokens first "if you need to keep a backup."
+
+## Version every change
+
+Context Library, chapter 1, said: one kit version per batch, and pin a number, not "latest". Do the same for tokens (our advice):
+
+- Give the token file a version, such as `marlow-tokens 3.2`.
+- Put that version in the Figma publish description, so it shows in the version history.
+- Name the version in the agent's task, so you know which tokens it used.
+
+## What the agent must not edit
+
+Chapter 3 wrote rules, such as "Never edit `brand.tokens.json`." It also said a rule is not a lock. Both coding agents also have settings that block edits.
+
+- **Claude Code.** Deny rules "prevent Claude Code from using the specified tool". Anthropic says to "add an `Edit` deny rule for paths no tool may change", for example `Edit(./tokens/**)` (our example path). You can "check permission settings into version control" so every developer gets them. Anthropic says "`Edit` rules apply to all built-in tools that edit files." One limit: these rules do not cover a script that opens files by itself. For that, Anthropic points to its sandbox (a walled-off run of the command).
+- **Codex.** Codex permission profiles are in beta: they "are under active development and may change." A profile sets what the commands Codex runs can read or write. A path set to `read` allows reading, but "Commands cannot create, modify, rename, or delete files there." One catch: if the older `sandbox_mode` setting appears in any loaded config file, "Codex uses those older sandbox settings instead" of the profile.
+
+So the agent can read the tokens, propose a change in a pull request, and leave the edit to the owner (our advice).
+
+## The path of one change
+
+Our checklist for Marlow Tea:
+
+1. **The owner changes the token file** in a pull request. Re-point an alias; mark old tokens `$deprecated`.
+2. **The contrast check runs** (chapter 5) for every mode.
+3. **The version goes up.** `3.1` becomes `3.2`.
+4. **The design tool imports the file** (chapter 1). Figma, or Penpot (export a backup first).
+5. **The library is published** with a description that names the version.
+6. **Teams accept the update** in their files.
+7. **The agent reads the new version** from the file or the published variables.
+
+## What this means for your work
+
+- **Name an owner.** One person or team decides token changes.
+- **Change aliases, retire with `$deprecated`.** Small changes, no surprise deletes.
+- **Publish, then accept.** A library change reaches other Figma files when it is published, and each file applies it when someone accepts it.
+- **Back up before a Penpot import.** It replaces all tokens, sets and themes.
+- **Version the file.** Put the version in the publish note and the agent's task.
+- **Lock the token file.** A rule guides; a deny rule or a read-only path enforces.
