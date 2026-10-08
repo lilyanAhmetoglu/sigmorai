@@ -1,7 +1,7 @@
 ---
 id: builder/r5/c2/lesson
 title: Servers & tools
-minutes: 9
+minutes: 12
 sources:
   - kind: docs
     title: Tools (Model Context Protocol)
@@ -23,71 +23,201 @@ sources:
     url: https://github.com/modelcontextprotocol/servers
 ---
 
-Most MCP servers exist to offer tools. An MCP tool looks a lot like the tools you defined in realm 2: a name, a description and a JSON Schema for the input. The difference is where it lives. The definition sits on the server, and any MCP client can list it and call it.
+## Goal
 
-## What a tool definition holds
+After this lesson you can:
 
-The MCP spec lists these fields:
+- Write an MCP tool definition with a valid name, an input schema and safe annotations.
+- Return the right kind of error, so the model can fix its own mistake.
+- Limit which tools each app sees, on Claude, on the OpenAI API and in the OpenAI Agents SDK.
 
-- `name`: the unique identifier for the tool.
-- `title`: an optional display name for people.
+## The problem
+
+A warehouse team builds an MCP server for its stock system. Two AI apps use it. One answers stock questions. The other one also moves and removes stock.
+
+In the first week, the team sees three problems:
+
+1. The model asks for 500 boxes when only 200 are left. The server sends a hard error. The model stops and says "something went wrong".
+2. The question app can also call the remove tool. Nothing stops it.
+3. The host trusts a label on each tool to decide when to ask the user. One label is wrong.
+
+The server works, but the tools are not built for a model.
+
+## The idea
+
+An MCP tool is a function on a server. Any MCP client can list it with `tools/list` and run it with `tools/call`. The [MCP spec's tools page](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) sets the rules.
+
+### What a tool definition holds
+
+- `name`: the unique id of the tool.
+- `title`: an optional name for people.
 - `description`: what the tool does.
-- `inputSchema`: a JSON Schema for the parameters. It must be a valid JSON Schema object, not `null`.
+- `inputSchema`: a JSON Schema for the inputs. The spec says it "**MUST** be a valid JSON Schema object (not `null`)".
 - `outputSchema`: an optional JSON Schema for structured results.
-- `annotations`: optional hints about the tool's behavior.
+- `annotations`: optional hints about how the tool behaves.
 
-The spec's example is `get_weather`, with one required string parameter, `location`. For a tool with no parameters, the spec recommends `"type": "object"` plus `"additionalProperties": false`, which accepts only an empty object.
+For a tool with no inputs, the spec recommends `{ "type": "object", "additionalProperties": false }`. It accepts only an empty object.
 
-## Naming rules
+### Naming rules
 
-The spec says tool names should be 1 to 128 characters, case-sensitive, and use only ASCII letters, digits, underscore, hyphen and dot. No spaces or commas. Valid examples from the spec: `getUser`, `DATA_EXPORT_v2`, `admin.tools.list`.
+The spec says tool names "**SHOULD** be between 1 and 128 characters in length (inclusive)". Names are case-sensitive. The allowed characters are ASCII letters, digits, underscore (`_`), hyphen (`-`) and dot (`.`). No spaces and no commas. The spec's examples include `getUser`, `DATA_EXPORT_v2` and `admin.tools.list`.
 
-Names only need to be unique inside one server. When a host connects to several servers, two of them may both offer `search`. The spec says clients should disambiguate, for example by prefixing tool names with a server identifier. It also warns that the server `name` from `serverInfo` is not guaranteed to be unique, so don't rely on it alone.
+Names only need to be unique inside one server. Two servers can both have a tool called `lookup`. The spec says a client that collects tools from several servers should handle this, for example by putting a server id in front of each tool name. It also warns that a server's own name (from `serverInfo`) "is not guaranteed to be unique across servers". So do not use that name alone.
 
-The OpenAI Agents SDK has an opt-in setting for this, `include_server_in_tool_names`. It shows each tool to the model with a server-prefixed name and still calls the original name on the original server.
+The [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md) has an opt-in setting for this: `include_server_in_tool_names`. The model sees a name with the server in front. The SDK still calls the original tool on the original server.
 
-## Listing and calling
+### Lists and order
 
-A client sends `tools/list` and gets the server's tools. The spec says the list must not vary per connection, but it may vary by the authorization on the request, for example "returning only the tools the caller's granted scopes permit". Servers should return tools in a deterministic order, which helps clients cache the list and improves prompt cache hit rates.
+The list from `tools/list` must not change from one connection to the next. It may change with the caller's rights, for example "returning only the tools the caller's granted scopes permit".
 
-To run a tool, the client sends `tools/call` with the name and arguments. The result has `content`, a list of blocks such as text, images, audio or resource links. A tool can also return `structuredContent`, JSON that matches its `outputSchema`. For backwards compatibility, the spec says such a tool should also return the same JSON as text.
+Order matters too. The spec says servers "**SHOULD** return tools in a deterministic order". A stable order lets clients cache the list, and it "improves LLM prompt cache hit rates" when the model's context includes the tools. Our plain reading: a prompt cache reuses the start of a request only when that start is the same. If the tools come back in a new order, the start is different, so the cache misses. Sorting by name is an easy way to keep the order fixed.
 
-## Two kinds of errors
+### Results and two kinds of errors
 
-This split matters for agents. The spec defines:
+A tool result has `content`: a list of blocks such as text, images, audio or resource links. A tool can also return `structuredContent`, JSON that matches its `outputSchema`. The spec says such a tool "SHOULD also return the serialized JSON in a TextContent block", for older clients.
 
-1. **Protocol errors:** an unknown tool, a malformed request, a server error. They come back as standard JSON-RPC errors. The spec says models are "less likely to be able to fix" these.
-2. **Tool execution errors:** an API failure, a date in the wrong format, a business rule. They come back as a normal result with `isError: true`, with "actionable feedback that language models can use to self-correct".
+The spec splits errors in two:
 
-Example from the spec: "Invalid departure date: must be in the future. Current date is 08/08/2025." The model reads it and retries with a better date. The spec says clients should give tool execution errors to the model.
+| Kind                 | Examples                                         | How it is sent                     |
+| -------------------- | ------------------------------------------------ | ---------------------------------- |
+| Protocol error       | unknown tool, malformed request, server error    | a standard JSON-RPC error          |
+| Tool execution error | API failure, bad input value, business rule fail | a result that sets `isError: true` |
 
-## Annotations are hints, not promises
+The spec says models are "less likely to be able to fix" protocol errors. Tool execution errors carry "actionable feedback that language models can use to self-correct". The spec's example text is "Invalid departure date: must be in the future." Clients **SHOULD** pass tool execution errors to the model.
 
-Annotations describe behavior. The schema reference lists `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`. Two defaults are worth knowing: `readOnlyHint` defaults to false and `destructiveHint` defaults to true.
+Think of a shop assistant. "We have no shop called that" ends the talk. "We only have 200, do you want 200?" lets you try again.
 
-But the schema says "all properties in `ToolAnnotations` are **hints**". The tools page says clients must consider annotations untrusted unless they come from trusted servers. A server can label a delete tool read-only. Your host should not skip a confirmation because of that label alone.
+### Annotations are hints
 
-## Choosing which tools the model sees
+The [schema reference](https://modelcontextprotocol.io/specification/2026-07-28/schema) lists four: `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`. Two defaults matter:
 
-A server may offer far more tools than one app needs. Claude and OpenAI both let you narrow the list:
+- `readOnlyHint`: "Default: false".
+- `destructiveHint`: "Default: true".
 
-- **Claude API MCP connector:** an `mcp_toolset` with `default_config` and per-tool `configs`. To allowlist, set `enabled: false` as the default and enable the tools you want. To denylist, disable single tools. The Claude docs recommend denylisting write or destructive tools for read-only assistants.
-- **OpenAI Responses API:** the `allowed_tools` parameter imports only the tools you list. OpenAI notes that exposing many tools "can result in high cost and latency".
-- **OpenAI Agents SDK:** `create_static_tool_filter` with `allowed_tool_names` and `blocked_tool_names`. The allow list applies first, then the block list.
+So a tool with no annotations counts as one that can change and destroy things. The schema also says: "all properties in `ToolAnnotations` are **hints**". They are "not guaranteed to provide a faithful description of tool behavior". The tools page says clients "**MUST** consider tool annotations to be untrusted unless they come from trusted servers". A label never replaces a confirmation step.
 
-Our rule of thumb: filtering is cheap safety. A tool the model never sees is a tool it can never call by mistake.
+### Limit the tool list per app
 
-## What a server must do
+A server often offers more tools than one app needs. Each vendor lets you narrow the list in the app, without changing the server:
 
-The spec's security list for tools is short and strict. Servers **must** validate all tool inputs, implement proper access controls, rate limit tool invocations and sanitize tool outputs. Clients **should** ask the user to confirm sensitive operations, show tool inputs before calling the server, validate results before passing them to the model, use timeouts and log tool usage.
+- **Claude API MCP connector**: an `mcp_toolset` with `default_config` and per-tool `configs`. For an allowlist, turn every tool off by default (`enabled: false`), then switch on the few you need. For a denylist, turn off single tools. The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) recommend denylisting write or destructive tools "when building read-only assistants".
+- **OpenAI Responses API**: the `allowed_tools` parameter on the `mcp` tool imports only the tools you name. The [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) warn that many tools "can result in high cost and latency". A separate setting, `require_approval`, controls approvals, not the list.
+- **OpenAI Agents SDK**: `create_static_tool_filter` with `allowed_tool_names` and `blocked_tool_names`. The SDK applies the allow list first, then removes blocked tools.
 
-The reference servers in the `modelcontextprotocol/servers` repo show these features in practice. Their README calls them educational examples, "not as production-ready solutions", and tells developers to evaluate their own security requirements.
+A tool the model never sees is a tool it can never call by mistake. A sentence in the system prompt does not do this. The tool is still there.
 
-## Key points
+### What servers and clients must do
 
-- An MCP tool has a name, description, `inputSchema`, an optional `outputSchema` and optional annotations.
-- Names: 1 to 128 characters, no spaces. Across servers, prefix names to avoid collisions.
-- Protocol errors are JSON-RPC errors. Tool execution errors use `isError: true` so the model can self-correct.
-- Annotations such as `readOnlyHint` are hints. Don't trust them from servers you don't trust.
-- Narrow the tool list: Claude's `mcp_toolset` configs, OpenAI's `allowed_tools`, the Agents SDK's tool filter.
-- Servers must validate inputs, control access, rate limit and sanitize outputs.
+The spec's security list:
+
+- Servers **MUST** validate all tool inputs, use proper access controls, rate limit tool calls and sanitize tool outputs.
+- Clients **SHOULD** ask the user to confirm sensitive operations, show tool inputs before the call, validate results before they reach the model, use timeouts and log tool use.
+
+The reference servers in [`modelcontextprotocol/servers`](https://github.com/modelcontextprotocol/servers) show many features in practice. Their README calls them educational examples, "not as production-ready solutions".
+
+## Worked example
+
+### Step 1: the weak server
+
+```text
+tools/list   (order changes on each call)
+  Check Stock     inputSchema: null
+  move_stock      inputSchema: item, from, to, qty
+  remove_item     readOnlyHint: true (in annotations)
+
+move_stock, qty larger than stock:
+  <- JSON-RPC error -32603 "Internal error"
+
+HOST RULE
+  ask the user only if readOnlyHint is false
+```
+
+What goes wrong:
+
+- `Check Stock` has a space. `inputSchema: null` is not allowed.
+- The list order changes each time, so prompt cache hits drop.
+- A business rule failure is sent as a protocol error. The model cannot learn what to change.
+- `remove_item` claims to be read-only. The host trusts the label and skips the question.
+
+### Step 2: fix names, schema and order
+
+```text
+tools/list   (always sorted by name)
+  check_stock   inputSchema: { item: string }
+  move_stock    inputSchema: item, from, to, qty
+  remove_item   annotations: { destructiveHint: true }
+```
+
+`check_stock` uses only allowed characters. Each tool has a real schema object. The order is fixed.
+
+### Step 3: fix the error (the hard case)
+
+The hard question is: which kind of error is "not enough stock"? The request is well formed and the tool exists. The server ran the tool, and a business rule failed. So it is a **tool execution error**:
+
+```json
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Not enough stock: asked for 500, only 200 left in bay B4. Try qty 200 or a second bay."
+    }
+  ],
+  "isError": true
+}
+```
+
+The model can read this and try again with `qty: 200`. A JSON-RPC error stays right only for a tool name that does not exist or a request that is not valid.
+
+### Step 4: fix the host
+
+```text
+HOST RULE
+  confirm every write or delete with the user,
+  whatever the annotations say
+
+Question app (Claude API connector):
+  default_config: { enabled: false }
+  configs: { check_stock: { enabled: true } }
+```
+
+The question app now sees one tool. The stock app still has all three. The server did not change.
+
+### Why it is better
+
+- **Valid names and schemas** work with every client.
+- **A fixed order** keeps prompt caching working.
+- **Tool execution errors** let the model fix its own input.
+- **No trust in labels**: the host confirms writes itself.
+- **Per-app lists**: each app sees only the tools it needs.
+
+## Common mistakes
+
+1. **Every failure as a JSON-RPC error.** The model cannot recover from it. Fix: send input and business rule failures with `isError: true` and a clear message.
+2. **Trusting annotations.** A server can label any tool read-only. Fix: decide confirmations in the host, not from labels.
+3. **Changing the server for one app.** Removing tools from the server breaks other apps. Fix: filter in each app's own setup.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A calendar server has these parts. Find three problems.
+
+```text
+tools/list
+  book room       (books a meeting room)
+  cancel_booking  annotations: {}   host runs it without asking
+search fails because the room API is down:
+  <- JSON-RPC error "Server error"
+```
+
+### Answer
+
+1. **`book room` has a space.** Rename it, for example `book_room`.
+2. **`cancel_booking` runs without a question.** Empty annotations mean `destructiveHint` is true by default. And annotations are only hints. Fix: confirm cancels with the user.
+3. **The API failure is a protocol error.** A failing API counts as a tool execution error in the spec. Fix: return `isError: true` with a message such as "Room API is down, try again in 5 minutes."
+
+## Recap
+
+- A tool has a name (1 to 128 allowed characters), a description, an `inputSchema` object, and optional `outputSchema` and annotations. Keep the list in a fixed order.
+- Unknown tools and bad requests are protocol errors. Input, API and business rule failures go back with `isError: true` so the model can fix them.
+- Annotations are hints. Confirm risky calls in the host, and give each app only the tools it needs.

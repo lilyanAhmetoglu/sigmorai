@@ -1,7 +1,7 @@
 ---
 id: builder/r5/c1/lesson
 title: MCP basics
-minutes: 9
+minutes: 11
 sources:
   - kind: docs
     title: Specification (Model Context Protocol)
@@ -24,43 +24,71 @@ sources:
   - kind: repo
     title: Model context protocol (MCP) (OpenAI Agents SDK docs)
     url: https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md
+  - kind: docs
+    title: Function calling, Remote MCP (Gemini API docs)
+    url: https://ai.google.dev/gemini-api/docs/function-calling
 ---
 
-Realm 2 taught you to define tools for one app. But every app defined its tools in its own way. If ten AI apps wanted to use your issue tracker, someone wrote ten integrations. The Model Context Protocol (MCP) fixes that: you build one server, and any app that speaks MCP can use it.
+## Goal
 
-## What MCP is
+After this lesson you can:
 
-The MCP specification calls it "an open protocol that enables seamless integration between LLM applications and external data sources and tools." It says MCP takes some inspiration from the Language Server Protocol, which did the same job for programming languages in code editors.
+- Name the three MCP roles (host, client, server) and draw how they connect.
+- Sort a feature into a tool, a resource or a prompt by asking who decides when it is used.
+- Say which safety jobs belong to the host, and why the protocol cannot do them alone.
 
-The messages are JSON-RPC 2.0. You don't need to read them by hand, but they explain the names you will see in logs: `tools/list`, `tools/call`, `resources/read`, `prompts/get`.
+## The problem
 
-The spec pages cited in this realm are revision 2026-07-28.
+A travel company has an AI assistant for its agents. It must reach two systems: a booking system and a calendar. Two other teams build AI apps too, and they want the same two systems.
 
-## Three roles: host, client, server
+Today each app writes its own code for each system. That is six integrations for two systems. When the booking system changes, three teams fix three pieces of code.
 
-The spec splits an MCP system into three parts:
+The team asks two questions. Can we build each system's connection once? And if we do, what may each system see and do?
 
-- **Host:** the LLM application, such as a chat app or an IDE. It "initiates connections".
-- **Client:** a connector inside the host. Each client "communicates with exactly one server".
-- **Server:** a service that "provide[s] context and capabilities". It can be a local process or a remote service.
+## The idea
 
-Example: a desktop assistant (the host) connects to a Git server and a database server. It runs two clients, one for each server. A 1:1 link per server keeps the servers apart.
+The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28) calls the Model Context Protocol "an open protocol". It is a shared set of rules, not a product you buy. You build one **server** for a system, and any app that speaks MCP can use it. The spec says MCP takes some inspiration from the Language Server Protocol, which did the same job for programming languages in code editors.
 
-The host has the most jobs. The spec says it enforces security policies and consent requirements, handles user authorization decisions, and coordinates the AI model. Servers stay small and focused.
+Think of a power socket. Any plug that fits the standard works in any socket.
 
-## Servers can't see everything
+The messages are JSON-RPC 2.0. You will see their names in logs: `tools/list`, `tools/call`, `resources/read`, `prompts/get`.
 
-One design principle matters a lot for security. The architecture page says servers "should not be able to read the whole conversation, nor 'see into' other servers". In detail:
+### Three roles
 
-- Servers receive only necessary contextual information.
-- Full conversation history stays with the host.
-- Cross-server interactions are controlled by the host.
+The spec names three parts:
 
-So if your assistant talks to a CRM server and an email server, the CRM server never sees the email server's data unless the host passes it on.
+- **Host**: the AI app, such as a chat app or an IDE. The spec says hosts are LLM applications "that initiate connections".
+- **Client**: a connector inside the host. The host creates it.
+- **Server**: a service that gives context and capabilities. It can be a local process or a remote service.
 
-## Three server primitives
+```text
+host (the AI app)
+ |-- client A ---- server: booking  (remote)
+ |-- client B ---- server: calendar (local)
+```
 
-A server can offer three kinds of things. The spec sorts them by who controls them:
+The [architecture page](https://modelcontextprotocol.io/specification/2026-07-28/architecture) says "each host can run multiple client instances". Each client "communicates with exactly one server", a 1:1 link. The host never skips the client: it reaches every server through its own client.
+
+The host has the most jobs. On the architecture page, the host:
+
+- creates and manages the clients;
+- sets the security rules and the consent rules;
+- makes the decisions about user authorization;
+- coordinates the AI model.
+
+### Servers see only what they need
+
+One design principle matters for privacy. Servers "should not be able to read the whole conversation, nor 'see into' other servers". In plain words:
+
+- Each server gets just the context that one job needs.
+- The host keeps the full chat history.
+- The host decides what, if anything, moves from one server to another.
+
+This does not change for a remote server or a local one. The rule is the same.
+
+### Three server primitives
+
+A server can offer three kinds of things. The [server features page](https://modelcontextprotocol.io/specification/2026-07-28/server) sorts them by who controls them:
 
 | Primitive | Control                | Example from the spec           |
 | --------- | ---------------------- | ------------------------------- |
@@ -68,45 +96,136 @@ A server can offer three kinds of things. The spec sorts them by who controls th
 | Resources | Application-controlled | File contents, git history      |
 | Tools     | Model-controlled       | API POST requests, file writing |
 
-- **Tools:** functions the model can call, like the tools in realm 2.
-- **Resources:** data that gives the model context, picked by the app or the user.
-- **Prompts:** templates that a user chooses, often as a slash command.
+All three can put content in front of the model. The difference is **who decides when**. The user picks a prompt. The app (or the user in it) attaches a resource. The model decides to call a tool.
 
-Chapters 2 to 4 take each one in turn. Features also go the other way: the spec lists elicitation, a client feature for "server-initiated requests for additional information from users".
+Features also go the other way. The spec lists **elicitation** as a client feature. With it, a server can ask the user for more information, through the client.
 
-## How a client learns what a server can do
+### Safety is the host's job
 
-Servers declare what they support, such as tool support or prompt templates. The 2026-07-28 revision is stateless: "every request is self-contained and carries its own protocol version and capabilities." A client can call `server/discover` first to learn the server's supported versions and capabilities.
-
-Then the client asks for lists. For tools, it sends `tools/list`, and the model picks a tool from that list. The client sends `tools/call`, and the result goes back to the model.
-
-## The same server, many hosts
-
-The point of MCP is reuse. Several vendors' products can act as the MCP client:
-
-- **Claude Code** connects to MCP servers directly. Its docs say to connect a server "when you find yourself copying data into chat from another tool, like an issue tracker or a monitoring dashboard."
-- **Claude API:** the MCP connector lets the Messages API connect to remote MCP servers "without a separate MCP client". Its limitation: of the MCP feature set, only tool calls are supported.
-- **OpenAI Responses API:** the `mcp` tool type connects a model to a remote MCP server. The API first lists the server's tools (an `mcp_list_tools` item), then makes calls (`mcp_call` items).
-- **OpenAI Agents SDK:** it "understands multiple MCP transports", so an agent can use a hosted MCP tool or connect to a server itself.
-
-So one server can serve a Claude app and an OpenAI app. That is what the spec's design principles aim for: "Shared protocol enables interoperability."
-
-## Safety comes first
-
-The spec lists key principles for everyone who builds on MCP:
+The spec lists key principles. Here are four of them:
 
 - Users must explicitly consent to and understand all data access and operations.
 - Hosts must obtain explicit user consent before exposing user data to servers.
 - Tools represent arbitrary code execution and must be treated with appropriate caution.
 - Hosts must obtain explicit user consent before invoking any tool.
 
-The spec also says MCP itself "cannot enforce these security principles at the protocol level". The host and the people who build it must do that. Chapter 6 goes deeper on auth and trust.
+Then comes the key line: "MCP itself cannot enforce these security principles at the protocol level". No message in the protocol stops a tool call. The host, and the people who build it, must ask the user. So consent belongs to the host app, not to the model. A line in a system prompt is a request, not a control.
 
-## Key points
+### One server, many hosts
 
-- MCP is an open protocol: build one server, use it from any MCP host.
-- Host = the app. Client = one connection inside it. Server = the service. One client per server.
-- Servers don't see the whole conversation or other servers. The host controls what crosses.
-- Tools are model-controlled, resources are application-controlled, prompts are user-controlled.
-- Claude Code, the Claude API MCP connector, the OpenAI Responses API and the OpenAI Agents SDK can all use MCP servers. The Claude API connector supports only tool calls.
-- Consent is the host's job. The protocol cannot enforce it alone.
+Several vendors' products act as MCP hosts or clients:
+
+- **Claude Code** connects to MCP servers directly. The [Claude Code docs](https://code.claude.com/docs/en/mcp) say to connect a server "when you find yourself copying data into chat from another tool".
+- **Claude API**: the [MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) reaches remote servers "without a separate MCP client". It has two limits. Of the MCP feature set, "only tool calls are currently supported". And "The server must be publicly exposed through HTTP". A server on a private network does not work with it as it is.
+- **OpenAI Responses API**: the `mcp` tool type connects to a remote server. The [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say the API first lists the tools (an `mcp_list_tools` item), then calls them (`mcp_call` items).
+- **OpenAI Agents SDK**: the [SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md) say it "understands multiple MCP transports".
+- **Gemini Interactions API**: the [Gemini docs](https://ai.google.dev/gemini-api/docs/function-calling) say "Remote MCP only works with Streamable HTTP servers".
+
+So one server can serve a Claude app, an OpenAI app and a Gemini app. The spec's design principles say: "Shared protocol enables interoperability." But each host supports a different part of MCP, so check before you design.
+
+## Worked example
+
+The travel team writes a first plan. You improve it step by step.
+
+### Step 1: the weak plan
+
+```text
+Host:    agent-assistant (web app on the Claude API)
+Client:  one client, shared by both servers
+
+Servers:
+  booking-server   remote, internet
+  calendar-server  local process, office network
+
+Calendar team asks: "Send us every message the agent
+types, so we can guess the right dates."
+
+Features:
+  A  /trip-summary     the agent picks it from a menu
+  B  travel policy PDF the app adds it to every chat
+  C  hold_seat         the model calls it when needed
+
+Safety: "The model is told to ask before booking."
+```
+
+What goes wrong:
+
+- One client for two servers breaks the 1:1 rule.
+- The calendar server wants the whole chat. Full history should stay with the host.
+- Consent is left to the model. The spec puts it on the host.
+- The host is the Claude API connector. It supports only tool calls, and it cannot reach a local server on the office network.
+
+### Step 2: fix the roles
+
+```text
+Host:    agent-assistant
+Client:  client-booking  -> booking-server
+         client-calendar -> calendar-server
+```
+
+One client per server. Each link is separate, so one server cannot read the other's traffic.
+
+### Step 3: fix the context
+
+The host sends the calendar server only what one request needs, for example "free slots for agent 14 on 3 March". It keeps the chat to itself. If the booking server's data must reach the calendar, the host passes it on. The servers never talk to each other directly.
+
+### Step 4: sort the features
+
+- **A** is picked by a person from a menu: a **prompt**.
+- **B** is added by the app: a **resource**.
+- **C** is called when the model decides: a **tool**.
+
+**The hard case is B.** The policy PDF changes the model's answers, so it feels like a tool. But nobody asks the model to call it. The app decides to attach it. Ask "who decides when?", not "does the model see it?". The answer is the app, so it is a resource.
+
+### Step 5: fix safety and the host
+
+```text
+Safety: the host shows a consent screen before
+        every hold_seat call, with the inputs.
+Host:   the Claude API connector runs tool calls only.
+        For the prompt (A) and the resource (B), run
+        your own MCP client. Expose calendar-server over
+        public HTTPS, or keep it with a local client.
+```
+
+### Why it is better
+
+- **Clear roles.** Each server has its own client, and the host coordinates.
+- **Private by default.** Servers get small, needed pieces of context.
+- **Right primitive.** Each feature is sorted by who decides when.
+- **Real consent.** A screen in the host, not a line in the system prompt.
+- **Fits the host.** The plan checks what the chosen API supports.
+
+## Common mistakes
+
+1. **"MCP is a vendor's product."** It is an open protocol. Fix: build one server and use it from any MCP host.
+2. **Sorting by what the model sees.** Prompts, resources and tools can all reach the model. Fix: sort by who decides when it is used.
+3. **"The protocol handles consent."** The spec says it cannot enforce it. Fix: build consent screens into the host.
+4. **"MCP support means every feature."** The Claude API connector runs only tool calls. Fix: check each host's limits first.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A hospital builds an MCP setup for its staff assistant. Find three problems.
+
+```text
+- The lab-results server and the pharmacy server
+  both read the full chat, so they "stay in sync".
+- The pharmacy server reads lab results directly
+  from the lab server.
+- Feature: /shift-handover, a nurse starts it from a menu.
+  The team made it a tool.
+```
+
+### Answer
+
+1. **Full chat to servers.** The host keeps the chat. Each server gets just what one request needs.
+2. **Server reads another server.** Servers should not see into other servers. If data must move, the host passes it on.
+3. **Wrong primitive.** A nurse picks `/shift-handover` from a menu, so a person decides when. That is a prompt, not a tool.
+
+## Recap
+
+- MCP is an open protocol. One server works with any MCP host. Each host runs one client per server.
+- The user picks prompts, the app attaches resources, the model calls tools. Sort by who decides when.
+- A server sees just the context it needs. Consent and security are the host's job, because the protocol cannot enforce them.
