@@ -36,6 +36,8 @@ export const DOCS_MD_HOSTS: Readonly<Record<string, string>> = {
   'ai.google.dev': '.md.txt',
   'developer.ideogram.ai': '.md',
   'elevenlabs.io/docs': '.md',
+  'storybook.js.org/docs': '.md',
+  'ui.shadcn.com/docs': '.md',
 };
 /**
  * Hosts whose docs base has an `llms.txt` page index (`<base>/llms.txt`). Same
@@ -48,4 +50,6 @@ export const DOCS_LLMS_TXT_HOSTS = [
   'huggingface.co',
   'developer.ideogram.ai',
   'elevenlabs.io/docs',
+  'storybook.js.org',
+  'ui.shadcn.com',
 ] as const;

@@ -1,0 +1,95 @@
+---
+id: creator/r13/c5/lesson
+title: Contrast checks
+minutes: 8
+sources:
+  - kind: docs
+    title: W3C WAI · Understanding Success Criterion 1.4.3 Contrast (Minimum)
+    url: https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+  - kind: docs
+    title: Claude docs · Vision
+    url: https://platform.claude.com/docs/en/build-with-claude/vision
+  - kind: docs
+    title: OpenAI docs · Images and vision
+    url: https://developers.openai.com/api/docs/guides/images-vision
+---
+
+## Why it matters
+
+Marlow Tea adds a grey for small notes: `text/muted`, `#6e7a74`, on the white page. A designer asks a model: "Is this readable enough?" The model answers: "About 4.5 to 1. It passes." (our example)
+
+It does not pass. The formula below gives 4.469 to 1. That is under the line, and the line is not rounded.
+
+A model can misread a hex code or round a number. The formula cannot (our note). So the model can help you find the colour pairs and write the check, but the number decides.
+
+Agent Citadel, chapter 3, split checks into mechanical (script), model and person checks. Contrast is a mechanical check.
+
+## The rule: WCAG 1.4.3
+
+**WCAG** is the W3C's set of rules for accessible web content (our plain gloss). Rule 1.4.3, "Contrast (Minimum)", is at Level AA, one of WCAG's conformance levels (our plain gloss). Its goal, in the W3C's words: "Text can be seen by more people."
+
+The rule says text needs "a contrast ratio of at least 4.5:1". There are three exceptions:
+
+- **Large text** needs "a contrast ratio of at least 3:1". Large means "at least 18 point or 14 point bold". The W3C says 14pt and 18pt are "approximately 18.5px and 24px".
+- **Incidental text** has "no contrast requirement". That is text in an inactive control, pure decoration, text nobody can see, or text in a picture with "significant other visual content".
+- **Logos.** "Text that is part of a logo or brand name has no contrast requirement."
+
+The logo exception is small. The W3C says: "Beyond logos and logotypes, text that has insufficient contrast due to corporate identity or brand guidelines is not exempted". So a brand colour does not excuse a low-contrast button.
+
+The rule also covers "placeholder text" and text shown on hover or keyboard focus. Charts, graphs and diagrams fall under a different rule, 1.4.11 Non-text Contrast.
+
+## The formula
+
+The W3C defines the **contrast ratio** as:
+
+```
+(L1 + 0.05) / (L2 + 0.05)
+```
+
+L1 is the **relative luminance** of the lighter colour, and L2 of the darker one. Relative luminance is how bright a colour is, from 0 for black to 1 for white (our plain gloss of the W3C's definition). The W3C gives the full sRGB steps (sRGB is the standard colour space for screens): divide each 8-bit channel by 255, convert it, then add `0.2126 * R + 0.7152 * G + 0.0722 * B`. Ratios run "from 1 to 21".
+
+Three notes from the W3C matter for a checker:
+
+- **No rounding.** The ratios are "threshold values", and "the computed values should not be rounded (e.g., 4.499:1 would not meet the 4.5:1 threshold)."
+- **Use the defined colours.** Check "the foreground and background colors obtained from the user agent, or the underlying markup and stylesheets, rather than the text as presented on screen." In a design system, that means the token values, not a screenshot (our reading).
+- **Check pairs that meet.** Contrast is checked "for color pairs specified in the content that an author would expect to appear adjacent". It is also "a failure if no background color is specified when the text color is specified".
+
+## Why not ask a model to look?
+
+Anthropic and OpenAI both warn about the limits of image reading. The vendor details below are from each page in October 2026.
+
+- **Anthropic.** Claude "might hallucinate or make mistakes when interpreting low-quality, rotated, or very small images under 200 pixels." Anthropic says: "Always carefully review and verify Claude's image interpretations, especially for high-stakes use cases."
+- **OpenAI.** "Vision models can make mistakes." The model "may struggle to understand graphs or text where colors or styles—like solid, dashed, or dotted lines—vary." Also, "Images may be resized before analysis".
+
+A screenshot adds a second problem. The W3C says to use the colours from the markup and stylesheets, not the text as shown on screen. So even a perfect reading of a screenshot measures the wrong thing (our note).
+
+## A contrast check you can trust
+
+Here are Marlow Tea's pairs. The numbers are ours, worked out with the W3C formula (our example).
+
+| Pair (mode)                                         | Text size | Ratio | Needs | Result |
+| --------------------------------------------------- | --------- | ----- | ----- | ------ |
+| `text/primary` on `bg/page` (Light)                 | 16px      | 16.89 | 4.5   | pass   |
+| `text/muted` `#6e7a74` on `bg/page` (Light)         | 14px      | 4.469 | 4.5   | fail   |
+| white on `button/primary` `#21734d` (Light)         | 16px      | 5.79  | 4.5   | pass   |
+| white on `button/primary` `#5fbf8f` (Dark)          | 16px      | 2.25  | 4.5   | fail   |
+| `#10201a` text on `button/primary` `#5fbf8f` (Dark) | 16px      | 7.51  | 4.5   | pass   |
+
+The dark button fails with white text and passes with dark text. Chapter 2 gave every name more than one value, so the check runs once per mode.
+
+How to build it (our advice):
+
+1. **List the pairs in a file.** Text token, background token, text size class. A model can draft this list from your screens; you approve it.
+2. **Let a script do the maths.** It reads the token file from chapter 1, resolves the aliases, and applies the formula. No rounding.
+3. **Run it for every mode.** Light and dark, each brand.
+4. **Fail the build on a miss.** Like the lint check in chapter 3, a failed pair stops the change.
+5. **Ask the model to suggest a fix, then re-run the script.** The script, not the model, says when it passes.
+
+## What this means for your work
+
+- **Know the numbers.** 4.5:1 for normal text, 3:1 for large text (about 24px, or 18.5px bold).
+- **Never round.** 4.47 or 4.499 is a fail.
+- **Brand colours get no pass.** Only logo text is exempt.
+- **Check tokens, not screenshots.** The W3C says to use the defined colours.
+- **Use models to list pairs and suggest fixes.** Not to give the verdict.
+- **Check every mode.** A pair that passes in Light can fail in Dark.
