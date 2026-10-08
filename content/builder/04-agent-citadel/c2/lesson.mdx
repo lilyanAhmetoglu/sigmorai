@@ -1,7 +1,7 @@
 ---
 id: builder/r4/c2/lesson
 title: Stop conditions
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: How the agent loop works (Claude Code docs)
@@ -26,82 +26,146 @@ sources:
     url: https://github.com/openai/openai-agents-python/blob/main/docs/guardrails.md
 ---
 
-Chapter 1 ended the loop in one way: the model stops asking for tools. That is the happy path. A real agent needs more ways to stop, and it needs a way to tell a finished run from a run that only stopped.
+## Goal
 
-## The natural stop is not enough
+After this lesson you can:
 
-The Claude docs say that without limits, "the loop runs until Claude finishes on its own." That is fine for well-scoped tasks, but it "can run long on open-ended prompts", such as "improve this codebase". Their advice: "Setting a budget is a good default for production agents."
+- Put a turn cap and a money cap on an agent run.
+- Read how a run ended before you use its answer.
+- Add a done check that stops a run that quits too early, without trapping it forever.
 
-So an agent needs two kinds of stop:
+## The problem
 
-- **A done check:** the task is really finished.
-- **A safety stop:** the run ends even if the task is not finished, before it costs too much.
+Nora's on-call agent from chapter 1 now runs on the Claude Agent SDK. It can also roll back a deploy. After two weeks, the team sees three bad nights:
 
-## Hard limits: turns and money
+1. An alert said "checkout is slow". The agent looked at the same graphs again and again for 95 minutes. Nobody had set a limit.
+2. After the team added a turn limit, the pager message was sometimes empty.
+3. Once the agent wrote "rolled back, errors are normal again". The error rate was still high. It never looked again after the rollback.
 
-**Claude Agent SDK.** Two options, both with no limit by default:
+The loop from chapter 1 ends in only one way: the model stops asking for tools. A real agent needs more ways to stop. It also needs a way to tell a finished run from a run that only stopped.
 
-| Option                            | What it caps              |
-| --------------------------------- | ------------------------- |
-| `max_turns` / `maxTurns`          | Tool-use round trips      |
-| `max_budget_usd` / `maxBudgetUsd` | Cost before the run stops |
+## The idea
 
-At either limit, the SDK returns a `ResultMessage` with subtype `error_max_turns` or `error_max_budget_usd`. The budget cap also covers subagents: their spend counts toward the total.
+Every production agent needs two kinds of stop:
 
-**OpenAI Agents SDK.** The runner takes `max_turns`. If a run goes past it, the SDK raises a `MaxTurnsExceeded` exception. `max_turns=None` turns the limit off. If you want a controlled answer instead of an exception, the runner accepts `error_handlers` with a `"max_turns"` key, which returns a fallback final output.
+- **A safety stop.** The run ends before it costs too much, even if the work is not done.
+- **A done check.** The run does not end until the work is really done.
 
-Example: a research agent gets `max_turns=30` and `max_budget_usd=2.00`. A normal question takes 6 turns and 20 cents. A prompt that sends it in circles stops at 2 dollars, not 200.
+**Safety stops.** In the [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/agent-loop), `max_turns` caps tool-use round trips and `max_budget_usd` caps cost. Both default to "No limit". Without limits, a run "can run long on open-ended prompts", so the docs advise a budget for production agents. Subagent spend counts toward the budget too.
 
-## Always check how the run ended
+The [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) has `max_turns`. Past it, the runner raises a `MaxTurnsExceeded` exception. If you want a planned fallback answer instead of the error, the runner takes an `error_handlers` dict, and its `"max_turns"` entry returns that answer.
 
-A stop is not a success. In the Claude SDK, the `subtype` field "is the primary way to check termination state":
+**A stop is not a success.** In the Claude SDK, the run ends with a `ResultMessage`. Its `subtype` field "is the primary way to check termination state": `success`, `error_max_turns`, `error_max_budget_usd`, `error_during_execution` or `error_max_structured_output_retries`. The answer text sits in `result`, and it "is only present on the `success` variant". So check the subtype first.
 
-| Subtype                               | Meaning                                       |
-| ------------------------------------- | --------------------------------------------- |
-| `success`                             | Claude finished the task normally             |
-| `error_max_turns`                     | Hit the turn limit first                      |
-| `error_max_budget_usd`                | Hit the budget limit first                    |
-| `error_during_execution`              | An error interrupted the loop                 |
-| `error_max_structured_output_retries` | No valid structured output within the retries |
+**Other ways a run ends.** The OpenAI SDK has a few more:
 
-The final `result` text is only present on `success`, so "always check the subtype before reading it". The result also has a `stop_reason`, such as `end_turn`, `max_tokens` or `refusal`.
+- `tool_use_behavior` on an agent can make a tool's output the final answer, for example with `"stop_on_first_tool"` ([agents docs](https://github.com/openai/openai-agents-python/blob/main/docs/agents.md)).
+- A [guardrail](https://github.com/openai/openai-agents-python/blob/main/docs/guardrails.md) tripwire raises an exception. By default an input guardrail runs at the same time as the agent. With `run_in_parallel=False` it runs first, and if it trips, "the agent never executes".
+- An approval is not a stop at all. The [OpenAI guide](https://developers.openai.com/api/docs/guides/agents/running-agents) calls it an expected pause: the run is "intentionally interrupted" and later goes on from the same state. (Chapter 6.)
 
-Example: an app that shows `result` without checking the subtype shows nothing, or crashes, every time the budget runs out.
+**Stopping too early.** In [Anthropic's long-running agent tests](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents), a later agent would sometimes "declare the job done" too soon. A done check that runs in code fixes this. Claude Code and the Claude Agent SDK have a `Stop` hook. The [hooks reference](https://code.claude.com/docs/en/hooks) says `decision: "block"` "prevents Claude from stopping", and the `reason` tells Claude why it should go on.
 
-## Stop on a tool
+Think of a cleaner who must show the room before going home. The supervisor (the hook) can say "not yet". But if the light is broken, the supervisor must let them go, or they stay all night.
 
-Sometimes the right end of a run is a tool call, not a text reply. The OpenAI SDK sets this with `tool_use_behavior`:
+## Worked example
 
-- `"run_llm_again"` (the default): tool results go back to the model.
-- `"stop_on_first_tool"`: the first tool's output becomes the final response.
-- `StopAtTools(stop_at_tool_names=[...])`: stop when any named tool is called.
+### Step 1: no limits
 
-The same page warns about a loop trap. If you force a tool call with `tool_choice`, the model may call a tool again after every result, "ad infinitum". To prevent this, the SDK resets `tool_choice` to `"auto"` after a tool call, controlled by `reset_tool_choice`.
+```python
+options = ClaudeAgentOptions(
+    allowed_tools=["error_rate", "recent_deploys", "search_logs", "rollback"],
+)
+# app: on the ResultMessage -> page the engineer with msg.result
+```
 
-## Stop before you start
+No cap on turns or money. And the app reads `result` without looking at how the run ended.
 
-A guardrail can end a run early. In the OpenAI SDK, an input or output guardrail can trip a "tripwire". The runner "immediately" raises an exception and halts the agent.
+### Step 2: add safety stops
 
-Timing matters. By default an input guardrail runs in parallel with the agent, so when it trips, the agent "may have already consumed tokens and executed tools". In blocking mode (`run_in_parallel=False`), the guardrail finishes first, and if it trips, "the agent never executes".
+```python
+options = ClaudeAgentOptions(
+    allowed_tools=["error_rate", "recent_deploys", "search_logs", "rollback"],
+    max_turns=25,
+    max_budget_usd=3.00,
+)
+```
 
-## A pause is not a stop
+A normal alert takes about 8 turns. A run that goes in circles now stops at 25 turns or 3 dollars, not after 95 minutes. (The numbers are Nora's choice. Measure your own normal runs first.)
 
-Human approval looks like a stop, but it is not one. OpenAI's guide: "Treat approvals as paused runs, not as new turns." The run returns pending `interruptions` and a saved `state`. After the decision, you resume the same run from that state (chapter 6).
+### Step 3: check how the run ended
 
-## The other failure: stopping too early
+```python
+if msg.subtype == "success":
+    page(msg.result)
+elif msg.subtype in ("error_max_turns", "error_max_budget_usd"):
+    page(f"Agent stopped at a limit after {msg.num_turns} turns. Not finished. Please look.")
+else:
+    page(f"Agent run failed ({msg.subtype}). Please look.")
+```
 
-Limits stop runs that go too long. The harder bug is a run that ends too soon. In Anthropic's long-running agent experiments, a later agent session would "look around, see that progress had been made, and declare the job done." Claude also tended "to mark a feature as complete without proper testing."
+This fixes the empty pager message. A limit stop has no `result`, so the old code had nothing to send. Every subtype does carry `num_turns` and `total_cost_usd`, so the app can still report them. One more detail: a single-shot `query()` call yields this message and then raises an error. The docs say: "The raise is intentional." So wrap the loop in a `try` block.
 
-Their fix was a done check the agent could not skip: a JSON list of features, each starting as failing, and a rule to mark one passing only "after careful testing".
+### Step 4: add a done check
 
-Claude Code gives you a mechanical version: a `Stop` hook. When it returns `decision: "block"` with a `reason`, it "prevents Claude from stopping", and Claude gets the reason as the next thing to act on. Example reason: "Run the test suite before finishing." Two guards stop this from looping forever: the hook input has `stop_hook_active`, and Claude Code ends the turn after stop hooks have continued it eight times in a row.
+Nora adds a `Stop` hook script. When the agent wants to stop after a rollback, the script asks the metrics API for the error rate:
 
-## Key points
+```text
+error rate < 1% for 5 minutes  -> allow the stop
+error rate still high          -> decision: "block",
+                                  reason: "Error rate is still 7%. Look again or say you are stuck."
+```
 
-- Every production agent needs a done check and a safety stop.
-- Claude SDK: `max_turns` and `max_budget_usd`, no limit by default. OpenAI SDK: `max_turns`, which raises `MaxTurnsExceeded`.
-- Check the result subtype before you read the answer. A stop is not a success.
-- OpenAI's `tool_use_behavior` can end a run on a tool call.
-- A tripwire in blocking mode stops a run before the agent spends anything.
-- Approvals pause a run; they don't end it.
-- Guard against early "done" too: a feature list or a `Stop` hook that checks the work.
+Now the "errors are normal again" message can't go out while the errors are still high.
+
+### Step 5: the hard case — a check that can never pass
+
+One night the metrics API itself is down. The script can't read the rate, so it blocks. The agent calls `error_rate`, gets an error, and tries to stop. Blocked again. And again.
+
+Does Claude Code stop this? It has a cap: after stop hooks continue the turn "eight times in a row", it ends the turn. But the docs also say the count "resets" whenever Claude uses a tool. Nora's agent calls a tool after every block, so the count never reaches eight. Only `max_turns` and the budget end the run.
+
+The fix is in the hook. Its input has `stop_hook_active`, which is `true` when Claude Code is "already continuing as a result of a stop hook". The docs say to check it, so the hook does not keep blocking on something "that will never resolve". Nora's new rule:
+
+```text
+if stop_hook_active is true and the metrics API is down:
+    allow the stop
+    the agent's last message must say "could not verify"
+```
+
+### Step 6: why it is better
+
+- **Two safety stops.** Turns and money are capped, so a bad night has a known worst case.
+- **Honest endings.** The app checks the subtype and says "not finished" when the run hit a limit.
+- **A real done check.** The hook tests the result in code, not by trust.
+- **A way out.** When the check itself can't run, the agent stops and says so.
+
+## Common mistakes
+
+1. **A cost limit in the prompt.** "Keep it cheap" asks the model, but nothing stops the run. Fix: set `max_budget_usd` (Claude) or `max_turns` (both SDKs).
+2. **Reading the answer first.** The app uses `result` on every run. Fix: check `subtype` first and handle each limit.
+3. **A done check with no exit.** The hook blocks every time the check fails. Fix: read `stop_hook_active`. When the check can't pass, allow the stop and have the agent say why.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Nora's pager app gets these four run endings. What should the pager say for each one?
+
+```text
+1) Claude SDK   subtype: success, result: "Rolled back deploy 812."
+2) Claude SDK   subtype: error_max_budget_usd
+3) Claude SDK   subtype: error_during_execution
+4) OpenAI SDK   result has interruptions and a state (rollback waits for approval)
+```
+
+### Answer
+
+1. Show the `result` text. This is the only case where it exists.
+2. "Stopped at the money limit. Not finished." Show the turns and cost. There is no `result` here.
+3. "The run failed." Show the subtype. Don't show an answer, because there is none.
+4. This is not a stop. It is a paused run. Ask the engineer to approve or reject, then resume the same run from `state`. Don't start a new run.
+
+## Recap
+
+- Give every agent a safety stop (`max_turns`, and in the Claude SDK `max_budget_usd`) and a done check.
+- A stop is not a success. Check the subtype before you read `result`. A paused run is not a stop.
+- A `Stop` hook can block a stop that comes too early. Read `stop_hook_active` so it can't block forever.

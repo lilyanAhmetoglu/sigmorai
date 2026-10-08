@@ -1,7 +1,7 @@
 ---
 id: builder/r4/c1/lesson
 title: The loop
-minutes: 9
+minutes: 11
 sources:
   - kind: blog
     title: Building effective agents (Engineering at Anthropic)
@@ -20,85 +20,142 @@ sources:
     url: https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md
 ---
 
-Realm 2 built the tool loop: call the model, run its tool calls, send the results back, repeat. This realm starts from that loop and asks what turns it into an agent, and what you have to build around it so the agent stays useful and safe.
+## Goal
 
-## Workflow or agent
+After this lesson you can:
 
-Anthropic's post on building agents draws one line through all "agentic systems":
+- Tell a workflow from an agent, and pick the cheaper one when it is enough.
+- Trace an agent run turn by turn and say why it ended.
+- Add a check step and keep big tool outputs from filling the context.
 
-- **Workflows** are "systems where LLMs and tools are orchestrated through predefined code paths."
-- **Agents** are "systems where LLMs dynamically direct their own processes and tool usage, maintaining control over how they accomplish tasks."
+## The problem
 
-The difference is who picks the next step. In a workflow, your code does. In an agent, the model does.
+Nora works on the platform team of a small online shop. At night, alerts wake people up. The team wants an AI helper for the on-call engineer. They have two jobs in mind:
 
-Example: a nightly job that downloads a report, converts it and uploads it always runs the same three steps. That is a workflow. "Find out why checkout tests fail and fix them" has no fixed path. That is a job for an agent.
+1. **Every hour:** read the disk use of three servers and post the numbers in the team chat.
+2. **When an alert fires:** find out why the checkout error rate went up, and suggest a fix.
 
-## When an agent is worth it
+Their first try is one script for both. It pastes some log lines into one model call and asks "what is wrong?". It goes badly:
 
-The same post says agents fit "open-ended problems where it's difficult or impossible to predict the required number of steps, and where you can't hardcode a fixed path."
+- The hourly job costs more than it should, and sometimes it skips a server.
+- For alerts, the model guesses. It sees only the lines the script pasted, so it can't look further.
 
-It also lists the price. Agents trade "latency and cost for better task performance", and their autonomy means "higher costs, and the potential for compounding errors." Its advice is to find "the simplest solution possible" and add complexity only when it improves results. Sometimes that means no agent at all.
+This lesson splits the two jobs and builds the loop for the second one. The rest of this realm builds on Nora's on-call agent.
 
-## The loop, as two SDKs run it
+## The idea
 
-Both Anthropic and OpenAI ship an SDK that runs the loop for you.
+**Workflow or agent.** The [Anthropic post on agents](https://www.anthropic.com/engineering/building-effective-agents) splits "agentic systems" into two kinds:
 
-**Claude Agent SDK.** The docs describe five steps:
+- In a **workflow**, LLMs and tools follow code paths that you wrote in advance.
+- In an **agent**, LLMs direct their own steps and tool use, "maintaining control over how they accomplish tasks."
 
-1. Receive the prompt, with the system prompt, tool definitions and history.
-2. Evaluate and respond: text, one or more tool calls, or both.
-3. Execute the tools and feed the results back.
-4. Repeat steps 2 and 3. "Each full cycle is one turn."
-5. Return the result when Claude "produces a response with no tool calls".
+So the question is: who picks the next step? In a workflow, your code does. In an agent, the model does.
 
-**OpenAI Agents SDK.** The runner loops "until it reaches a real stopping point":
+An agent costs more. The same post says agents trade "latency and cost for better task performance". It says to start with "the simplest solution possible". Use an agent for "open-ended problems where it's difficult or impossible to predict the required number of steps".
 
-1. Call the current agent's model with the prepared input.
-2. Inspect the model output.
-3. If there are tool calls, execute them and continue.
-4. If the model handed off to another specialist, switch agents and continue.
-5. If there is "a final answer with no more tool work", return a result.
+Think of a recipe and a detective. A recipe has fixed steps. A detective decides the next step from the last clue.
 
-Same shape, one extra branch: OpenAI's loop can switch to another agent mid-run (chapter 4 covers handoffs). The SDK docs make the end rule exact: output counts as final when it "produces text output with the desired type, and there are no tool calls."
+**The loop.** An agent is a loop around the model:
 
-## A run, turn by turn
+```text
+prompt -> model -> tool calls? --yes--> run tools -> results back -> model ...
+                              \--no---> final answer, loop ends
+```
 
-The Claude docs walk through the prompt "Fix the failing tests in auth.ts":
+Both big SDKs run this loop for you:
 
-| Turn  | What Claude does                                      |
-| ----- | ----------------------------------------------------- |
-| 1     | Runs the test command. Three tests fail.              |
-| 2     | Reads `auth.ts` and `auth.test.ts`.                   |
-| 3     | Edits `auth.ts`, then runs the tests again. All pass. |
-| Final | Replies in text only, with no tool calls.             |
+- The [Claude Agent SDK docs](https://code.claude.com/docs/en/agent-sdk/agent-loop) count one model call plus its tool work as one turn: "Each full cycle is one turn." The loop goes on until a reply asks for no more tools.
+- The [OpenAI Agents SDK guide](https://developers.openai.com/api/docs/guides/agents/running-agents) has the same steps, plus one more: if the model hands off to another specialist, the runner switches agents and goes on. It ends when the model gives a final answer and asks for no more tools. The [SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) say the output is final when it "produces text output with the desired type, and there are no tool calls."
 
-The docs count this as "four turns: three with tool calls, one final text-only response." Your code did not choose any of these steps. The model did, based on what each tool returned.
+**Ground truth.** The Anthropic post says an agent should get "ground truth" from its environment at each step, for example from tool results or from running code, "to assess its progress". The [Claude Code docs](https://code.claude.com/docs/en/how-claude-code-works) name three phases: gather context, take action and verify results. "These phases blend together."
 
-## Ground truth at every step
+**The context grows.** The Claude Agent SDK docs say the context window keeps everything in one session: "Everything accumulates". Every tool input and every tool output stays in it. A command with long output "can use thousands of tokens in a single turn."
 
-Why run the tests again in turn 3? Anthropic's post says it is "crucial for the agents to gain 'ground truth' from the environment at each step (such as tool call results or code execution) to assess its progress."
+## Worked example
 
-Claude Code describes its own loop in three phases: **gather context**, **take action**, and **verify results**. "These phases blend together." A question may only need context. A bug fix "cycles through all three phases repeatedly."
+### Step 1: the hourly job is a workflow
 
-Example: an agent that edits a file and then says "fixed" has guessed. An agent that edits, re-runs the tests and reads the output has checked.
+The disk check always has the same three steps. No step needs a decision. So Nora writes it as plain code: read three numbers, format one message, post it. There is no model call at all. It is cheaper, and it never skips a server.
 
-## The context grows every turn
+### Step 2: the weak alert helper
 
-The Claude docs are clear that the context window "does not reset between turns within a session." The system prompt, tool definitions, history, tool inputs and tool outputs all add up. Reading one big file or running a command with long output "can use thousands of tokens in a single turn."
+```text
+Here are 200 log lines from the checkout service.
+What is wrong?
 
-When the window gets close to full, the SDK compacts older history into a summary (realm 3, chapter 6). That keeps the loop alive, but early instructions may not survive it. Long-lived rules belong in an instruction file, which is chapter 3 and chapter 5.
+[200 lines pasted by the script]
+```
 
-## Who is in the loop
+The model can only answer from those 200 lines. If the cause is in another service, or in a deploy from an hour ago, it can't see it. So it guesses.
 
-The loop is not only model and tools. Claude Code says "You're part of this loop too": you can interrupt and steer at any point. OpenAI's runner can pause a run for a human approval and resume it later (chapter 6).
+### Step 3: give it tools and a loop
 
-Anthropic's post says the same about agents in general: they "can then pause for human feedback at checkpoints or when encountering blockers."
+Nora gives the agent three read-only tools and lets the SDK run the loop:
 
-## Key points
+```text
+Tools:
+  error_rate(service, minutes)    -> errors per minute
+  recent_deploys(hours)           -> list of deploys with times
+  search_logs(service, text, max) -> matching log lines
 
-- A workflow follows code paths you wrote. An agent picks its own next step.
-- Use an agent when you can't predict the steps. Expect more cost and compounding errors.
-- The loop: model call, tool calls, results back, repeat. It ends when a response has no tool calls.
-- OpenAI's runner adds one branch: a handoff switches the active agent.
-- Each step should get ground truth from the environment, such as test output.
-- Context grows every turn and does not reset inside a session.
+Prompt:
+  The checkout error rate alert fired at 02:10.
+  Find the most likely cause. Check it against the data before you answer.
+  Say what you checked.
+```
+
+A run now looks like this:
+
+| Turn  | What the agent does                                                  |
+| ----- | -------------------------------------------------------------------- |
+| 1     | Calls `error_rate("checkout", 60)`. Errors start at 02:04.           |
+| 2     | Calls `recent_deploys(2)`. The payments service deployed at 02:03.   |
+| 3     | Calls `search_logs("checkout", "payments", 20)`. Timeouts to it.     |
+| 4     | Calls `error_rate("payments", 60)`. Also up since 02:04.             |
+| Final | Text only: "Likely the 02:03 payments deploy. Checked: times match." |
+
+Nora's code did not choose any of these steps. The model chose each one from the last result. The run ended because the last reply had no tool calls.
+
+### Step 4: the hard case — a huge tool result
+
+One night, `search_logs` has no `max` value set. It returns 40,000 lines. All of them go into the context. The rest of the run is slow and expensive, and the important lines are hard to find.
+
+The fix is in the tool, not in the prompt. `search_logs` now always returns at most `max` lines (default 20) plus a total count, like `20 of 40,112 matches`. The agent can search again with a narrower text if it needs more.
+
+### Step 5: why it is better
+
+- **Right tool for each job.** The fixed job is a workflow with no model. Only the open-ended job pays for an agent.
+- **The model looks for itself.** It picks the next tool from each result, so it is not stuck with what the script pasted.
+- **It checks.** Turn 4 tests the guess against real data before the answer. That is ground truth, not a hunch.
+- **Small tool outputs.** The context grows every turn, so each tool returns only what the agent needs.
+
+## Common mistakes
+
+1. **An agent for a fixed job.** The steps never change, but a model decides them anyway. Fix: write a workflow in code.
+2. **An answer with no check.** The agent says "found it" after its first idea. Fix: ask it to test the idea with a tool and to say what it checked.
+3. **Tools that dump everything.** A tool returns a full file or every log line. Fix: limit the output in the tool and return a count.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Nora has two more ideas. For each one, say "workflow" or "agent", and give one reason.
+
+```text
+A) Every Monday, copy last week's alert list into a spreadsheet.
+B) A customer says "my order page is blank". Find out why.
+```
+
+Then: in idea B, the agent's tool `read_page_html(url)` returns the full page, about 300 KB. What would you change?
+
+### Answer
+
+- **A is a workflow.** The steps are the same every week. Plain code is cheaper and does not guess.
+- **B is an agent.** You can't know the steps in advance. It may be the browser, the API or the data. The model must choose the next step from each result.
+- **The big tool.** Change the tool so it returns only what helps, for example the page title, the error messages and the size. Every tool result stays in the context for the rest of the session.
+
+## Recap
+
+- A workflow follows a path your code sets. An agent picks its own next step. Use an agent only when you can't fix the path in advance.
+- The loop is: model call, tool calls, results back, repeat. It ends when a reply has no tool calls.
+- Each step should get ground truth from tools, and each tool should return small results, because the context keeps growing.

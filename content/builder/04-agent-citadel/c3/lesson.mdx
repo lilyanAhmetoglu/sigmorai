@@ -1,7 +1,7 @@
 ---
 id: builder/r4/c3/lesson
 title: The harness
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: How Claude Code works (Claude Code docs)
@@ -23,83 +23,130 @@ sources:
     url: https://developers.openai.com/api/docs/guides/agents-api/architecture
 ---
 
-The model is the part that reasons. Everything around it is the harness: the code that runs the loop, gives the model its tools, decides what goes into its context, and decides what it may do. This chapter is about that layer.
+## Goal
 
-## What both vendors call a harness
+After this lesson you can:
 
-- **Claude Code docs:** Claude Code "is the layer around the model that provides the tools and manages the context the model sees. This surrounding layer is what the term agentic harness refers to."
-- **OpenAI Agents API docs:** the harness is the OpenAI-hosted Codex instance "that runs the model and tool loop and maintains the agent's session."
+- Say what a harness is, and pick who runs the loop: you, a library or the vendor.
+- Put each rule in the right place: an instruction for habits, a hook for rules that must always hold.
+- Hand a new session the state it needs when one task spans many sessions.
 
-Same idea in both: a harness runs the loop, owns the tools and keeps the state. The model only decides the next step.
+## The problem
 
-## Three ways to get a harness
+Nora's on-call agent works. Now the team wants to run it for real. Three questions come up:
 
-Both vendors offer options at three levels, from "you write the loop" to "the vendor runs it for you". The grouping in this table is ours; each vendor's docs compare its own options.
+1. Today the loop is 80 lines of their own code. Should they keep it, use a library, or let a vendor host it?
+2. The prompt says "never roll back the payments service at night". One night the agent rolled it back anyway.
+3. A big incident lasted all night. The team restarted the agent three times. Each new session started from zero and checked the same things again.
 
-| Who runs the loop     | Anthropic        | OpenAI        |
-| --------------------- | ---------------- | ------------- |
-| You write it yourself | Client SDK       | Responses API |
-| A library in your app | Claude Agent SDK | Agents SDK    |
-| The vendor hosts it   | Managed Agents   | Agents API    |
+None of these is about the model. They are about the code around it.
 
-Some details from each side:
+## The idea
 
-- **Anthropic:** with the Client SDK, "You write the tool loop yourself" (or use the SDK's beta tool runner). The Agent SDK is "a library that runs the Claude Code binary" with built-in tools, permissions, sessions and hooks. Managed Agents is "a hosted agent harness that runs the agent loop", with sessions in an Anthropic-managed or self-hosted sandbox.
-- **OpenAI:** its comparison rates the integration effort Low for the Agents API, Medium for the Agents SDK and High for the Responses API. In the Agents API, "OpenAI runs a managed Codex harness". With the Agents SDK, "The SDK runs inside your application".
+**The harness is everything around the model.** The [Claude Code docs](https://code.claude.com/docs/en/how-claude-code-works) say Claude Code is "the layer around the model": it gives the model its tools and "manages the context the model sees". The docs call this layer the agentic harness. The [OpenAI architecture page](https://developers.openai.com/api/docs/guides/agents-api/architecture) means the same thing: there, the harness runs "the model and tool loop" and keeps the session.
 
-Example: a team that must keep all code execution inside its own network picks a library harness, or a hosted harness with its own sandbox. A team that wants the least code picks the hosted harness.
+Think of a race car. The model is the engine. The harness is the car around it: wheels, brakes and dashboard.
 
-## The environment is a separate choice
+**Three levels.** Both vendors let you pick who runs the loop. The grouping is ours; each vendor compares its own options.
 
-The harness is not the same thing as the place where commands run. OpenAI's Agents API splits them into three pieces: the **harness**, the **environment** ("a remote sandbox, your laptop, a Docker container, or an AWS Lambda function") and your **application server**.
+| Who runs the loop  | Anthropic        | OpenAI        |
+| ------------------ | ---------------- | ------------- |
+| Your own code      | Client SDK       | Responses API |
+| A library you host | Claude Agent SDK | Agents SDK    |
+| The vendor         | Managed Agents   | Agents API    |
 
-You can run with no environment (`environment.type: none`). Then the built-in Bash and apply-patch tools and workspace files are unavailable. An `openai_hosted` environment gives the agent a sandbox OpenAI manages; `self_hosted` connects your own compute.
+- The [Claude Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview) says: with the Client SDK, "You write the tool loop yourself". The Agent SDK is "a library that runs the Claude Code binary". It comes with tools, hooks, permissions and sessions built in. Managed Agents is "a hosted agent harness": Anthropic runs the loop for you.
+- The [OpenAI agents guide](https://developers.openai.com/api/docs/guides/agents) rates the work for you as Low for the Agents API, Medium for the Agents SDK and High for the Responses API.
 
-Claude Code has the same split. Its loop and tools are "the same everywhere"; what changes is where code executes: your machine, Anthropic-managed VMs, or self-hosted environments.
+**The environment is a second choice.** Where commands run is not the same as where the loop runs. OpenAI's Agents API can use an OpenAI-hosted sandbox, your own compute (`self_hosted`), or no environment (`none`). Without one, the built-in shell and patch tools are gone too: the docs say "workspace files, and executor MCPs are unavailable." Claude Managed Agents can also run sessions in a self-hosted sandbox.
 
-## What you configure in a harness
+**Requests and guarantees.** The [Claude Code docs on extensions](https://code.claude.com/docs/en/features-overview) list what you add to a harness: an instruction file (`CLAUDE.md`), skills, MCP, subagents and hooks. Their key rule: an instruction in `CLAUDE.md` or a skill "is a request, not a guarantee". A hook "Always fires on its event", while for instructions the "outcome can vary". So a rule that has to hold every single time belongs in a hook, "rather than a prompt instruction."
 
-The Claude Code docs describe the pieces you add to a coding harness. Each one plugs into a different part of the loop:
+## Worked example
 
-| Piece            | Job                                                   |
-| ---------------- | ----------------------------------------------------- |
-| Instruction file | "Persistent context loaded every conversation"        |
-| Skills           | Reusable instructions and workflows, loaded on demand |
-| MCP              | Connections to external services                      |
-| Subagents        | Isolated workers that return a summary                |
-| Hooks            | Code that runs on lifecycle events                    |
-| Permissions      | What the agent may do without asking                  |
+### Step 1: the weak setup
 
-Chapters 4, 5 and 6 cover subagents, memory and permissions. One rule from this page matters right away.
+```text
+Loop:        80 lines of custom code around the Client SDK
+Rules:       all in the system prompt, including the payments rule
+Between runs: nothing is saved
+```
 
-## Requests versus guarantees
+It works, but every new feature (approval, limits, logs) is more custom code. And every rule is only a request.
 
-An instruction in a prompt is something the model reads and tries to follow. A hook is code the harness runs. The Claude Code docs say it directly: "An instruction like 'never edit `.env`' in CLAUDE.md or a skill is a request, not a guarantee. A `PreToolUse` hook that blocks the edit is enforcement." Their rule: "If a rule must hold every time, make it a hook rather than a prompt instruction."
+### Step 2: pick the level
 
-A hook "Always fires on its event". Skills and instructions are interpreted, so the "outcome can vary".
+Nora's team wants hooks, permissions and ready-made tools. They also want the loop inside their own service, next to the metrics and pager code. So Nora picks a library harness: the Claude Agent SDK. (On OpenAI, the match is the Agents SDK.)
 
-Example: "use 2-space indentation" can live in the instruction file. "Never push to `main`" belongs in a hook or a permission rule.
+A team that wants less code could pick a hosted harness instead. If its commands must still run inside its own network, it adds a self-hosted environment or sandbox.
 
-## Harnesses for long tasks
+### Step 3: put each rule in the right place
 
-Anthropic's post on long-running agents shows what a harness adds when one task spans many context windows. The problem: "each new session begins with no memory of what came before." Compaction alone was not enough.
+```text
+CLAUDE.md (habits, can vary):
+  - Error rate comes from error_rate(), not from log counts.
+  - Write times in UTC, like 02:04 UTC.
 
-In Anthropic's experiment, the harness used two prompts on the same tools:
+Skill (loaded when needed):
+  - The payments runbook: steps for a payments incident.
 
-- **An initializer agent**, run once, set up an `init.sh` script, a progress log and a first git commit, plus a feature list with every feature marked failing.
-- **A coding agent**, run every session after that, worked on one feature at a time, then committed to git and wrote a progress update.
+Hook (must hold every time):
+  - PreToolUse on rollback: if service == "payments"
+    and the time is 22:00-07:00 UTC -> deny.
+```
 
-Coding agents were prompted to edit this list only by changing a feature's `passes` field, and were told that removing or editing tests is "unacceptable". Anthropic chose JSON for this list because the model was "less likely to inappropriately change or overwrite JSON files compared to Markdown files."
+The night rule moved from the prompt to a hook. The agent can still try a payments rollback at night, but the hook stops the call before it runs.
 
-Each session started the same way: read the progress file and the git log, pick the next failing feature, start the app and run a basic test. That last check showed quickly if a previous session had left the app broken.
+### Step 4: the hard case — one incident, many sessions
 
-The lesson is not this exact setup. It is that the harness, not the model, decides what each new session starts with.
+The all-night incident is harder. Each session starts with "no memory of what came before", as the [Anthropic post on long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) puts it. In their tests, compaction alone "isn't sufficient".
 
-## Key points
+Their fix was in the harness. A first session set up a progress file, an `init.sh` script and a git commit. Every later session read the progress file and git log first. Nora copies the idea for incidents:
 
-- The harness is everything around the model: loop, tools, context and state.
-- Both vendors offer options at three levels: write the loop, use a library, or use a hosted harness.
-- The environment where commands run is a separate choice from the harness.
-- A coding harness is configured with instruction files, skills, MCP, subagents, hooks and permissions.
-- Prompt instructions are requests. Hooks and permission rules are guarantees.
-- For long tasks, the harness must hand each new session the state it needs.
+```text
+incident-0412/notes.md      what each session found, newest at the top
+incident-0412/checks.json   [ { "check": "payments error rate", "done": false }, ... ]
+
+Each session starts with:
+  1. Read notes.md and checks.json.
+  2. Pick the first check with "done": false.
+  3. Before stopping, add a note and set "done": true only for checks really run.
+```
+
+Why JSON for the checklist? The post found the model "less likely to inappropriately change" a JSON file than a Markdown one.
+
+### Step 5: why it is better
+
+- **Less custom code.** The library runs the loop, tools, hooks and permissions.
+- **Real enforcement.** The payments rule is a hook. It holds even when the model forgets it.
+- **A clean handover.** Each new session starts from the notes, not from zero.
+
+## Common mistakes
+
+1. **A hard rule in the prompt.** "NEVER do X" in capitals is still a request. Fix: make it a hook or a permission rule.
+2. **Mixing up harness and environment.** "Hosted" can mean the loop, the sandbox, or both. Fix: decide each one on its own.
+3. **Hoping memory carries over.** A new session knows only what the harness gives it. Fix: save notes and a checklist, and read them at the start.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Sort these four lines from Nora's draft into "instruction file" or "hook".
+
+```text
+a) Prefer short answers with one line per finding.
+b) Never run DROP TABLE on the orders database.
+c) Use the team's incident template for summaries.
+d) Never send customer emails from the agent.
+```
+
+### Answer
+
+- **Instruction file:** a and c. They are habits. If the agent slips once, nothing breaks.
+- **Hook:** b and d. They must hold every time, and a slip can't be undone. A hook that blocks the call is enforcement. A line in the prompt is only a request.
+
+## Recap
+
+- The harness is the code around the model: loop, tools, context and state. You can write it, use a library, or let the vendor host it.
+- Where commands run (the environment) is a separate choice from who runs the loop.
+- Habits go in instructions. Rules that must always hold go in hooks or permissions. Long tasks need saved notes that each new session reads first.
