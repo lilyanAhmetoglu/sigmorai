@@ -8,6 +8,11 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (lesson template)
+
+- **Every chapter lesson uses one fixed teaching template:** Goal → The problem → The idea → Worked example → Common mistakes → Try it → Recap. Why: the maintainer rated the lessons "messy, blog-like, no examples" (Claude's score 5/10: facts 8, structure 4, examples 4, practice 5, engagement 3). The pilot `builder/r1/c2` passed content-reviewer (0 blockers) and voice-guardian, and the maintainer approved it ("it is better").
+- The exact section and voice rules live in `content/CLAUDE.md` ("Lesson template"). Rollout: one PR per realm and path, each through content-reviewer and voice-guardian; ids, sources, cases and quick checks keep their meaning, so no learner progress is lost.
+
 ## Amendments locked 2026-10-07 (dashboard path list, per-path PR 2)
 
 - **Supersedes "up to `DASHBOARD_REALM_LIMIT` (3) active realms"** (2026-10-05 block below). `/dashboard` now lists every realm of the player's path in "YOUR PATH" (`components/realms/path-list.tsx`, shared with `/map`), with a "View on world map" link to `/map`. `DASHBOARD_REALM_LIMIT` is deleted. See `docs/plans/path-curriculum-design-plan.md` → PR 2.
