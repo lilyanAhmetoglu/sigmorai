@@ -13,3 +13,4 @@ export * from './blog';
 export * from './share';
 export * from './certificates';
 export * from './world-map';
+export * from './mentor';
