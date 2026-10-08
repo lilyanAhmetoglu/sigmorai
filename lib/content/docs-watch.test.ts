@@ -69,6 +69,9 @@ describe('markdownUrl', () => {
     expect(markdownUrl('https://code.claude.com/docs/en/hooks.md')).toBe(
       'https://code.claude.com/docs/en/hooks.md',
     );
+    expect(
+      markdownUrl('https://developer.ideogram.ai/api-reference/images/generate/ideogram-4-5'),
+    ).toBe('https://developer.ideogram.ai/api-reference/images/generate/ideogram-4-5.md');
   });
 
   test('ai.google.dev uses its own suffix, .md.txt', () => {

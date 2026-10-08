@@ -1,7 +1,7 @@
 import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import { CONTENT_DIR, SHARED_CHAPTERS_FILE } from '@/lib/constants';
 import { isSafeLessonUrl } from './mdx';
 import { lengthGiveaways, shapeGiveaways, validateContent } from './validate';
@@ -10,19 +10,24 @@ const REAL = path.resolve(import.meta.dir, '../..', CONTENT_DIR);
 const FIXTURE_LESSON = `${import.meta.dir}/__fixtures__/valid/builder/00-bootstrap-village/c1/lesson.mdx`;
 const C1 = 'builder/00-bootstrap-village/c1';
 
-let tmp: string | undefined;
+// Many tests copy and validate the whole content/ folder, so they grow with every
+// new chapter. The default 5 s is too tight on a slow runner.
+setDefaultTimeout(30_000);
+
+const tmpDirs: string[] = [];
 const pubDirs: string[] = [];
 afterEach(async () => {
-  for (const d of pubDirs.splice(0)) await rm(d, { recursive: true, force: true });
-  if (tmp) await rm(tmp, { recursive: true, force: true });
-  tmp = undefined;
+  for (const d of [...pubDirs.splice(0), ...tmpDirs.splice(0)]) {
+    await rm(d, { recursive: true, force: true });
+  }
 });
 
 /** A throwaway copy of the real content/ folder to break on purpose. */
 async function copyOfContent(): Promise<string> {
-  tmp = await mkdtemp(path.join(tmpdir(), 'sigmorai-content-'));
-  await cp(REAL, tmp, { recursive: true });
-  return tmp;
+  const dir = await mkdtemp(path.join(tmpdir(), 'sigmorai-content-'));
+  tmpDirs.push(dir);
+  await cp(REAL, dir, { recursive: true });
+  return dir;
 }
 
 describe('real content', () => {

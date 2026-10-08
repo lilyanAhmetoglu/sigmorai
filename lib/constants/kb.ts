@@ -32,10 +32,13 @@ export const DOCS_MD_HOSTS: Readonly<Record<string, string>> = {
   'code.claude.com': '.md',
   'modelcontextprotocol.io': '.md',
   'ai.google.dev': '.md.txt',
+  'developer.ideogram.ai': '.md',
 };
 /** Hosts whose docs base has an `llms.txt` page index (`<base>/llms.txt`). */
 export const DOCS_LLMS_TXT_HOSTS = [
   'platform.claude.com',
   'developers.openai.com',
   'code.claude.com',
+  'huggingface.co',
+  'developer.ideogram.ai',
 ] as const;
