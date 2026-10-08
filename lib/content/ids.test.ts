@@ -184,8 +184,9 @@ const GROWN: Record<(typeof TRACKS)[number], Record<number, number>> = {
 };
 
 /**
- * Specialist realms in each track's committed outline, by the core realm they
- * follow. Written by hand on purpose: each new specialist realm adds one entry.
+ * Specialist realms in each track's committed outline: inserted realms in map
+ * order after a core realm. Written by hand on purpose: each new specialist
+ * realm adds one entry.
  */
 const INSERTED: Record<(typeof TRACKS)[number], Record<number, number[]>> = {
   builder: {},

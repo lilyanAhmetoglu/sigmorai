@@ -10,6 +10,10 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (creator slots, per-path PR 5a and 7a)
+
+- Creator slot lean swapped 2026-10-07: r10 → s10, r12 → s2, trail r2 → r12 → r10 → r3; the old lean made s2 → r3 cross r4's island.
+
 ## Amendments locked 2026-10-07 (devil pass, PR 1)
 
 - **Zoom steps are ½, 1, 2 only.** ½ draws `world-512.png` (offline box-downscale) at 1:1; 1 and 2 draw `world.png`. ¼, 3 and 4 are dropped: 3×/4× mix pixel scales with the 2× level art (level-art amendment 2026-10-04), and ¼ was a non-link thumbnail with its own code path. Overview = ½ under 1024px wide, else 1.
@@ -394,7 +398,7 @@ Notes:
 
 - Do you accept a world that the design file does not show yet? Should a Claude Design pass add the world map screen before PR 3?
 - Can PR 3 run in a session where the Higgsfield MCP connects? (It failed to connect on 2026-10-07: proxy 403.) Else, will you render the 18 prompts in the Higgsfield app?
-- Do you want the Creator slot lean (r11→s1, r10→s2, r12→s10, r13→s4, r9→s5)?
+- ~~Do you want the Creator slot lean (r11→s1, r10→s2, r12→s10, r13→s4, r9→s5)?~~ Answered 2026-10-07: shipped as r11→s1, r12→s2, r10→s10, r9→s5 (r13→s4 still planned); see the creator slots amendment.
 
 ## Companion plans
 
