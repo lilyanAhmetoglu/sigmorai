@@ -1,7 +1,7 @@
 ---
 id: builder/r1/c2/lesson
 title: Examples
-minutes: 8
+minutes: 10
 sources:
   - kind: docs
     title: Prompting best practices (Claude docs)
@@ -17,94 +17,163 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-Chapter 1 described the output in words. Often it is faster to show it. A few input/output pairs in the prompt can fix format, tone and labels better than a long paragraph of rules.
+## Goal
 
-## Zero-shot and few-shot
+After this lesson you can:
 
-A prompt with no examples is **zero-shot**. A prompt with a few examples is **few-shot** (Anthropic also says "multishot").
+- Turn a zero-shot prompt into a few-shot prompt with 3–5 tagged examples.
+- Pick examples that are relevant, diverse and in one format, and include a hard case.
+- Spot an example set that teaches the model a pattern you did not mean.
 
-OpenAI describes few-shot learning as including "a handful of input/output examples in the prompt, rather than fine-tuning the model". The model "implicitly 'picks up' the pattern from those examples and applies it".
+## The problem
 
-The Claude docs call examples "one of the most reliable ways to steer Claude's output format, tone, and structure".
+A support team uses a model to route tickets. Each ticket gets one label: `billing`, `bug`, `account` or `other`. A script reads the label and sends the ticket to the right queue. The script expects one lowercase word.
 
-## A small example
+Chapter 1 made the instruction specific. The team still sees three problems:
 
-This is the shape of OpenAI's own review-labelling example, shortened. The instructions name the labels; the examples show them in use.
+1. The format drifts. Some replies are `billing`, some are `Billing`, some are `This looks like a billing issue.` The script fails on the last two.
+2. Tickets with two problems ("I was charged twice and now I can't log in") get a different label each time.
+3. Questions that fit no queue ("Do you have an office in Lisbon?") get forced into `account`.
+
+Rules help. This lesson adds a second tool: show the model a few solved tickets.
+
+## The idea
+
+A prompt with no examples is **zero-shot**. A prompt with a few input/output examples is **few-shot** (Anthropic also says "multishot"). The model picks up the pattern in the examples and applies it to the new input. You steer the model this way without fine-tuning it ([OpenAI](https://developers.openai.com/api/docs/guides/prompt-engineering)).
+
+Think of examples as a teacher's solved problems on the board. Students copy the method, and also the handwriting.
 
 ```text
-# Instructions
-Label each product review as Positive, Negative, or Neutral.
-Output only the label.
-
-# Examples
-<product_review id="example-1">
-I absolutely love these headphones — sound quality is amazing!
-</product_review>
-<assistant_response id="example-1">
-Positive
-</assistant_response>
-
-<product_review id="example-2">
-Battery life is okay, but the ear pads feel cheap.
-</product_review>
-<assistant_response id="example-2">
-Neutral
-</assistant_response>
+zero-shot: rules + input
+           -> model guesses the format
+few-shot:  rules + examples + input
+           -> model copies the pattern
 ```
 
-Notice the second example. It is the hard case: mixed feelings. Examples earn the most where the rule is unclear.
+All three vendor guides teach this technique. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) call examples one of the most reliable ways to steer output format, tone and structure. They say good examples are:
 
-## What good examples look like
+- **Relevant**: close to your real use case.
+- **Diverse**: they cover edge cases and vary, so the model does not pick up unintended patterns.
+- **Structured**: each one in `example` tags, inside `examples` tags, so the model can tell them apart from the instructions.
 
-The Claude docs list three properties:
+Three more rules from the guides:
 
-- **Relevant**: "Mirror your actual use case closely."
-- **Diverse**: "Cover edge cases and vary enough that Claude doesn't pick up unintended patterns."
-- **Structured**: wrap examples in tags (`example` inside `examples`) so the model "can distinguish them from instructions".
+- **Keep one format.** Every example must have the same structure, or the replies can come back in formats you did not want ([Gemini](https://ai.google.dev/gemini-api/docs/prompting-strategies)).
+- **Do not overdo it.** The Claude docs say: "Include 3–5 examples for best results." With too many, "the model may start to overfit the response to the examples" (Gemini).
+- **Mark them clearly.** The Claude docs use tags. The OpenAI docs say examples typically go in the `developer` message.
 
-OpenAI says the same about range: "try to show a diverse range of possible inputs with the desired outputs."
+The vendors' defaults differ. The Gemini docs say: "We recommend to always include few-shot examples in your prompts." For OpenAI reasoning models, the guide says to try zero-shot first and add examples only if needed. When you add them, they must match the instructions closely, or results may be poor ([OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning-best-practices)). So test both versions on your model.
 
-The Gemini docs add **consistent formatting**: "Make sure that the structure and formatting of few-shot examples are the same to avoid responses with undesired formats."
+## Worked example
 
-## Examples teach patterns you did not intend
+### Step 1: the zero-shot prompt
 
-The model copies everything the examples share, not only the part you meant.
+```text
+Label the support ticket as billing, bug, account, or other.
 
-Example: all four examples in a ticket classifier are about billing, and all are one sentence long. In production, the model labels too many tickets "billing" and struggles with long tickets. Nobody wrote "prefer billing", but the examples said it.
+Ticket: I was charged twice and now I can't log in.
+```
 
-Another example: three examples answer with only the label, and one answers "Label: Positive". Now the output format is a coin toss. That is why Gemini insists on consistent formatting.
+What goes wrong:
 
-## How many examples
+- Nothing shows the output format, so the model has to guess it.
+- The ticket has two problems. The prompt does not say which label wins.
+- No example shows when `other` is right.
 
-- The Claude docs suggest: "Include 3–5 examples for best results."
-- The Gemini docs warn: "if you include too many examples, the model may start to overfit the response to the examples."
+### Step 2: write the missing rules
 
-More is not always better. Each example also costs input tokens on every call (realm 0, chapter 6).
+Add the two rules the team had in their heads:
 
-## Vendors differ on the default
+```text
+Label the support ticket as billing, bug, account, or other.
+Output only the label, in lowercase.
+If a ticket has a billing problem and another problem, choose billing.
+```
 
-The guidance is not the same everywhere, so test on your model:
+Rules are a good start, but they still leave room to guess. Does "only the label" allow `Label: billing`? Examples show the exact shape.
 
-- **Gemini**: "We recommend to always include few-shot examples in your prompts." It even says you can sometimes remove instructions if the examples are clear enough.
-- **OpenAI, reasoning models**: "Try zero shot first, then few shot if needed." If you add examples, "ensure that the examples align very closely with your prompt instructions, as discrepancies between the two may produce poor results."
-- **Claude, with thinking on**: "Multishot examples work with thinking." The docs suggest presenting each example as a problem, the method to apply, and the expected answer.
+### Step 3: add examples
 
-A practical rule: start with the vendor's default for your model type, then measure both versions on the same test set.
+```text
+Label the support ticket as billing, bug, account, or other.
+Output only the label, in lowercase.
+If a ticket has a billing problem and another problem, choose billing.
 
-## Where examples go
+<examples>
+<example>
+Ticket: My invoice still shows the old price after I moved to the smaller plan.
+Label: billing
+</example>
+<example>
+Ticket: The export button does nothing.
+Label: bug
+</example>
+<example>
+Ticket: How do I add a second admin to our workspace?
+Label: account
+</example>
+<example>
+Ticket: I was charged twice this month, and since the second charge I can't log in to my account at all.
+Label: billing
+</example>
+<example>
+Ticket: Do you have an office in Lisbon?
+Label: other
+</example>
+</examples>
 
-The vendors keep examples apart from the rest of the prompt in different ways:
+Ticket: [the live ticket text]
+Label:
+```
 
-- OpenAI: "Typically, you will provide examples as part of a `developer` message."
-- Claude: examples sit in `example` tags, separate from the instructions.
+**The hard example is the fourth one.** It has two problems and is the longest ticket. It shows the tie rule from the instructions in use.
 
-Example: your support prompt has an Instructions section, then an Examples section with three tagged pairs, then the live ticket. The model can tell which text is a demo and which is the real job.
+### Step 4: why it is better
 
-## Key points
+- **One format.** Every example ends `Label: <one lowercase word>`, and the prompt ends with `Label:`. The model has one shape to copy.
+- **Diverse.** All four labels appear. Tickets are short and long. One example is a hard case.
+- **Matches the instructions.** The hard example follows the billing rule. Examples and instructions never disagree.
+- **Structured.** Tags keep the examples apart from the instructions and from the live ticket.
+- **Five examples.** That is inside the 3–5 range, and it keeps the prompt short.
 
-- Few-shot = a few input/output pairs in the prompt. It steers format, tone and labels.
-- Good examples are relevant, diverse (cover edge cases) and consistently formatted.
-- The model copies every shared feature of the examples, including ones you did not intend.
-- Claude suggests 3–5 examples. Gemini warns too many can cause overfitting.
-- Defaults differ: Gemini says always use examples; OpenAI says try zero-shot first on reasoning models. Measure.
-- Put examples in the developer part of the prompt, clearly marked.
+Then measure. Run the old and new prompts on the same set of real tickets and compare the labels.
+
+## Common mistakes
+
+1. **Examples that share a pattern you did not mean.** All four examples are billing, or all are one short sentence. The model can then over-use `billing` or struggle with long tickets. Fix: vary the labels and lengths, and include a hard case.
+2. **Mixed formats.** Four examples say `bug`, one says `Category: bug`. Now the prefix can show up in some replies. Fix: give every example exactly the same structure.
+3. **Too many examples.** Forty examples make the prompt long and can make the model overfit. Fix: start with 3–5, and add more only when a test shows a gap.
+
+## Try it
+
+A team labels ticket urgency. Find two problems in these examples before you read the answer.
+
+```text
+<examples>
+<example>
+Ticket: SITE IS DOWN!!! Nobody can pay.
+Urgency: urgent
+</example>
+<example>
+Ticket: PLEASE HELP, ALL OUR ORDERS FAILED
+Urgency: urgent
+</example>
+<example>
+Ticket: small typo on the pricing page
+Priority: normal
+</example>
+</examples>
+```
+
+Not graded. Write your answer down before you read the answer.
+
+### Answer
+
+1. **An unintended pattern.** Every urgent ticket is in capital letters. The model may learn "capitals = urgent". A calm ticket like "Payments have failed since 9am" could then get `normal`. Fix: add an urgent ticket written calmly.
+2. **Mixed formats.** Two examples say `Urgency:`, one says `Priority:`. Fix: use `Urgency:` in every example.
+
+## Recap
+
+- Few-shot means a few input/output examples in the prompt. The model copies their pattern: format, tone and labels.
+- Good examples are relevant, diverse and in one format. Use about 3–5, tagged, and include one hard case.
+- The model copies everything the examples share, including patterns you did not mean. Check what your examples have in common.
