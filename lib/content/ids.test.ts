@@ -190,7 +190,7 @@ const GROWN: Record<(typeof TRACKS)[number], Record<number, number>> = {
  */
 const INSERTED: Record<(typeof TRACKS)[number], Record<number, number[]>> = {
   builder: { 4: [14] },
-  strategist: {},
+  strategist: { 1: [15] },
   creator: { 1: [11], 2: [12, 10], 3: [13], 5: [9] },
 };
 

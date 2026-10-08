@@ -72,6 +72,10 @@ describe('realm lists per track (fixture table: r9 creator, r10 builder)', () =>
     expect(trackRealms('builder')).toContain(REALMS[14]);
     expect(trackRealms('creator')).not.toContain(REALMS[14]);
     expect(trackRealms('strategist')).not.toContain(REALMS[14]);
+    // r15 Guild Hall is the first strategist-only realm.
+    expect(trackRealms('strategist')).toContain(REALMS[15]);
+    expect(trackRealms('builder')).not.toContain(REALMS[15]);
+    expect(trackRealms('creator')).not.toContain(REALMS[15]);
   });
 
   test('a track gets the core realms plus only the specialist realms it owns', () => {
@@ -139,12 +143,13 @@ describe('realm paths', () => {
     },
   );
 
-  test('folders of the real realms with no art yet (r9, r10, r11, r12, r13, r14)', () => {
+  test('folders of the real realms with no art yet (r9, r10, r11, r12, r13, r14, r15)', () => {
     expect(realmFolder(9)).toBe('09-canvas-workshop');
     expect(realmFolder(10)).toBe('10-reel-hollow');
     expect(realmFolder(11)).toBe('11-pigment-bazaar');
     expect(realmFolder(12)).toBe('12-echo-caverns');
     expect(realmFolder(13)).toBe('13-pattern-atelier');
     expect(realmFolder(14)).toBe('14-agent-workshop');
+    expect(realmFolder(15)).toBe('15-guild-hall');
   });
 });

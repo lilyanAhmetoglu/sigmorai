@@ -59,7 +59,8 @@ export const WORLD_MAP = {
    * r11 Pigment Bazaar between r1 Prompt Forest and r2 Tool Forge,
    * r12 Echo Caverns between r2 Tool Forge and r10 Reel Hollow,
    * r13 Pattern Atelier between r3 Context Library and r4 Agent Citadel,
-   * r14 Agent Workshop (builder) between r4 Agent Citadel and r5 MCP Bridgelands.
+   * r14 Agent Workshop (builder) between r4 Agent Citadel and r5 MCP Bridgelands,
+   * r15 Guild Hall (strategist) between r1 Prompt Forest and r2 Tool Forge.
    */
   slotRealms: [
     { slot: 's5', realm: 9 },
@@ -68,6 +69,7 @@ export const WORLD_MAP = {
     { slot: 's2', realm: 12 },
     { slot: 's4', realm: 13 },
     { slot: 's6', realm: 14 },
+    { slot: 's3', realm: 15 },
   ] as readonly WorldSlotRealm[],
   landmarks: [
     {
