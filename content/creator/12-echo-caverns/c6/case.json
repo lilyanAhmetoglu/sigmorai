@@ -1,0 +1,96 @@
+{
+  "id": "creator/r12/c6/challenge",
+  "title": "Dub a hiking video into two languages",
+  "scenario": "An outdoor brand has a 3-minute video about its new rain jacket. The host, Inês, speaks English and agreed in writing to a dub in her own voice. The brand wants Brazilian Portuguese and Japanese versions. Your teammate wrote the dub plan. You check it before anything runs.\n\nUse the exhibit. The brand, the people and the plan are made up for this case. The models, settings and limits are from the vendors' pages in October 2026.",
+  "exhibit": "DUB PLAN (made up)\n\n  Source:  jacket.mp4, 4K, English, one speaker (Inês)\n\n  A. Portuguese: ElevenLabs Dubbing v2 (API)\n       source_language: en\n       target_language: pt-BRA\n\n  B. Japanese: the chain\n       1. Transcribe with OpenAI gpt-transcribe\n       2. Translate the English audio to Japanese with OpenAI\n          /v1/audio/translations (whisper-1)\n       3. Voice: Gemini 3.8 Flash TTS\n\n  C. Speaker similarity (cloning strength) for the dub: 10,\n     \"so it sounds exactly like Inês in every language\"\n\n  D. Delivery: send the dubbed MP4 from ElevenLabs to the\n     brand as the final 4K master.",
+  "questions": [
+    {
+      "prompt": "Plan A: which target tag asks Dubbing v2 for Brazilian Portuguese?",
+      "options": [
+        {
+          "text": "pt-PT, the tag listed for Portuguese",
+          "explanation": "pt-PT is on the list, but it is the Portugal dialect. Brazil is pt-BR."
+        },
+        {
+          "text": "pt-BR, a dialect on the v2 list",
+          "explanation": "Right. ElevenLabs lists pt-BR and pt-PT as the Portuguese dialects on Dubbing v2, and a region tag must be on that list.",
+          "correct": true
+        },
+        {
+          "text": "pt-BRA, as written in the plan",
+          "explanation": "On Dubbing v2, a region-qualified tag must be one of the listed dialects. pt-BRA is not on the list."
+        },
+        {
+          "text": "br, the short code for Brazil",
+          "explanation": "The API takes a BCP-47 language tag. Portuguese is pt, and Brazil's dialect is pt-BR."
+        }
+      ]
+    },
+    {
+      "prompt": "Plan B, step 2: what is wrong with the translation step?",
+      "options": [
+        {
+          "text": "The endpoint works only on audio with one speaker",
+          "explanation": "OpenAI names no such limit. The problem is the output language: English only."
+        },
+        {
+          "text": "whisper-1 can translate only from Japanese audio",
+          "explanation": "It is the other way round: the endpoint translates audio into English only."
+        },
+        {
+          "text": "The endpoint translates into English only",
+          "explanation": "Right. OpenAI says /v1/audio/translations supports translation into English only, so it cannot make Japanese.",
+          "correct": true
+        },
+        {
+          "text": "whisper-1 needs the speaker's name as a prompt",
+          "explanation": "A name does not change the output language. The endpoint returns English text only."
+        }
+      ]
+    },
+    {
+      "prompt": "Plan C: what does ElevenLabs say about a cloning strength of 10?",
+      "options": [
+        {
+          "text": "It may sound less natural and carry over more accent",
+          "explanation": "Right. Higher values can sound less natural across very different languages and carry over more of the original accent.",
+          "correct": true
+        },
+        {
+          "text": "It makes the dub sound natural in every target language",
+          "explanation": "ElevenLabs says lower values give more natural delivery in the target language, at the cost of resemblance."
+        },
+        {
+          "text": "It is the default, so it is the safe choice for most dubs",
+          "explanation": "The default is 7, which ElevenLabs says works well for most content."
+        },
+        {
+          "text": "It only works when you also turn on lip-sync for the video",
+          "explanation": "ElevenLabs does not offer lip-sync as part of Dubbing. Cloning strength is a separate setting."
+        }
+      ]
+    },
+    {
+      "prompt": "Plan D: what does ElevenLabs say about the dubbed video?",
+      "options": [
+        {
+          "text": "It is the 4K master, so you can send it as it is",
+          "explanation": "ElevenLabs says dubbed video is a preview, most commonly 1080p, and may not match the source."
+        },
+        {
+          "text": "It is a preview: put the dubbed audio on your own video",
+          "explanation": "Right. ElevenLabs says dubbed video is a high-quality preview, not a production master, and to replace the audio on your original.",
+          "correct": true
+        },
+        {
+          "text": "It is lip-synced, so the mouths match the new words",
+          "explanation": "ElevenLabs says it does not offer lip syncing as part of Dubbing. The video is a preview."
+        },
+        {
+          "text": "It keeps 5.1 audio, so mix nothing and send it as is",
+          "explanation": "ElevenLabs says 5.1 and other multichannel audio is not preserved. The video is a preview."
+        }
+      ]
+    }
+  ]
+}
