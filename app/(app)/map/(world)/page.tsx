@@ -7,6 +7,7 @@ import { SignInNote } from '@/components/realms/sign-in-note';
 import { TrackSwitch } from '@/components/realms/track-switch';
 import { MAP_HREF, TRACK_PARAM, TRACK_TEXT, WORLD_MAP_TEXT, worldMapHref } from '@/lib/constants';
 import { getRealmsPage } from '@/lib/data/realms';
+import { realmNumber } from '@/lib/content/curriculum';
 import { worldView } from '@/lib/grading/world-map';
 
 const PATH_HEADING_ID = 'your-path';
@@ -35,6 +36,7 @@ export default async function WorldMapPage({ searchParams }: PageProps<'/map'>) 
   // Keep ?track= on the links only when the page got one (as the old redirect did).
   const view = worldView(map, undefined, query[TRACK_PARAM] ? map.track : undefined);
   const tag = heroName ? WORLD_MAP_TEXT.youAreHere : WORLD_MAP_TEXT.startHere;
+  const here = view.realms.find((r) => r.current);
 
   return (
     <div className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6">
@@ -51,6 +53,12 @@ export default async function WorldMapPage({ searchParams }: PageProps<'/map'>) 
       <div className="flex flex-col gap-2">
         <WorldMap view={view} heroName={heroName} tag={tag} />
         <div className="world-map-bar">
+          {here && (
+            <p className="world-map-here">
+              <span className="world-map-here-tag">{tag}</span>
+              {WORLD_MAP_TEXT.here(realmNumber(here.id), here.name)}
+            </p>
+          )}
           <p id={WORLD_MAP_HINT_ID} className="world-map-hint">
             {WORLD_MAP_TEXT.hint}
           </p>

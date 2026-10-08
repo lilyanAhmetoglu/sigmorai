@@ -102,22 +102,25 @@ export function Glyphs({ glyphs }: { glyphs: readonly WorldGlyph[] }) {
   );
 }
 
+/** Snap to the 4 art px grid, so the arrow stays on whole screen px at ½. */
+const snap = (v: number) => Math.round(v / 4) * 4;
+
 /** A chevron at a segment's middle, pointing from `a` to `b` (the walking way). */
 function arrowPoints(s: TrailSegment) {
   const angle = Math.atan2(s.b.y - s.a.y, s.b.x - s.a.x);
-  const cx = (s.a.x + s.b.x) / 2;
-  const cy = (s.a.y + s.b.y) / 2;
+  const cx = snap((s.a.x + s.b.x) / 2);
+  const cy = snap((s.a.y + s.b.y) / 2);
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   return (
     [
-      [-6, -7],
-      [7, 0],
-      [-6, 7],
-      [-2, 0],
+      [-8, -8],
+      [8, 0],
+      [-8, 8],
+      [-4, 0],
     ] as const
   )
-    .map(([x, y]) => `${Math.round(cx + x * cos - y * sin)},${Math.round(cy + x * sin + y * cos)}`)
+    .map(([x, y]) => `${snap(cx + x * cos - y * sin)},${snap(cy + x * sin + y * cos)}`)
     .join(' ');
 }
 
@@ -170,7 +173,7 @@ export function Frame() {
   return (
     <g className="world-frame">
       <rect className="world-frame-outer" x={2} y={2} width={w - 4} height={h - 4} />
-      <rect className="world-frame-inner" x={11} y={11} width={w - 22} height={h - 22} />
+      <rect className="world-frame-inner" x={12} y={12} width={w - 24} height={h - 24} />
       {corners.map(([x, y]) => (
         <g key={`${x},${y}`}>
           <rect data-px="ink" x={x} y={y} width={CORNER} height={CORNER} />

@@ -10,6 +10,18 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (cartography review fixes)
+
+- **Focus:** markers and landmark links keep the global 3px Spark ring, backed by a hard 3px ink-950 ring outside it (zero blur). Spark alone on parchment is under 3:1; ink-950 on parchment is over 10:1. The focused marker shows its name at every zoom and sits above its neighbours.
+- **Overview by height too:** zoom 1 is the overview only from 68rem wide **and** 52rem tall (`WORLD_OVERVIEW_MIN_HEIGHT` = 832px). The box is at most the screen under the 4rem header, so at 1440×900 the whole 768px world fits in the box; shorter screens start at ½.
+- **Pips are 16px:** 7×7 ink shapes at 2px a pixel, one shape per state (a test checks they all differ). The pip box still fits `WORLD_HERO.pinBox`.
+- **Phones:** under the box a "here" line names the current realm next to its tag ("START HERE 00 Bootstrap Village"), so a phone at ½ (names hidden) still says where you are. A name plate on the map at ½ was tried: it hit a neighbour pin for 12 realms across the 3 paths, so it stays off the map.
+- **Crisp at ½:** stipple, hatch and fog dots are 4 art px; the ripple and the inner frame rule are 2 art px from zoom 1 and 4 at ½ (`--world-route`); the inner rule moved to 12; arrow points snap to 4 art px.
+- **Calmer lands:** one ripple line 8 art px out (the dashed second ring is gone); the realm band inside the coast is 4px (was 6).
+- **Fog:** a warm parchment-700 dither from an uneven 8×8 mask, up to 64 art px deep (was a cool ink-400 checker, 48 deep).
+- **Cache:** land shapes (coast, ripple, terrain) are cached per server process in `world-map.tsx`, keyed by land and current realm; `terrainGlyphs` stays pure.
+- The parchment-900 box around the paper is deliberate: it reads as a desk under the map, and the map's inked frame sits on it.
+
 ## Amendments locked 2026-10-08 (cartography polish)
 
 - Maintainer feedback on the cartography map: the labels were too big and covered the land, the orange "▸ OPEN" badges were loud, the lands looked like boxes, and the specialist islands were tiny and bare.

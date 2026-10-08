@@ -59,6 +59,9 @@ const PIPS: Record<string, ReactNode> = {
  * the hatching and a dashed coast mean. Each row is a small drawn sample (decoration,
  * aria-hidden) and words, so nothing depends on colour alone. The samples
  * use the map's own classes and patterns, so key and map always match.
+ * The hatch and stipple fills are url(#world-hatch) and url(#world-stipple)
+ * from the map's own <defs> (world-map.tsx): the key is only ever drawn on
+ * the world map page, next to the map, so it never needs its own copy.
  * Styles: world-map.css.
  */
 export function WorldMapLegend({ tag }: Props) {

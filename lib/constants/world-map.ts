@@ -39,7 +39,7 @@ export const WORLD_MAP = {
    * edge is covered min–max art px deep (whole tiles, seeded, so the inner
    * edge is ragged), drawn from `seed`.
    */
-  edgeFog: { min: 16, max: 48, seed: 7 },
+  edgeFog: { min: 16, max: 64, seed: 7 },
   /**
    * How a drawn coast is shaped (coastBands): rows of `step` art px (4
    * screen px at zoom ½, so a step never splits a pixel); the ends follow a
@@ -188,20 +188,20 @@ export const WORLD_TERRAIN: Readonly<Record<string, readonly WorldGlyphKind[]>> 
 export const WORLD_TERRAIN_DEFAULT: readonly WorldGlyphKind[] = ['hill', 'tree'];
 
 /**
- * The state mark on each world-map pin (world-marker.tsx): a 5×5 ink sprite,
- * one shape per state, so the state is never colour only. The words stay in
+ * The state mark on each world-map pin (world-marker.tsx): a 7×7 ink sprite
+ * at 2px a pixel, one shape per state, so the state is never colour only. The words stay in
  * the link's accessible name and in the "Your path" list; the map key
  * explains the shapes. Same letters as WORLD_GLYPHS (`#` ink, `.` empty).
  */
 export const WORLD_STATUS_PIPS = {
   /** A tick. */
-  cleared: ['....#', '...##', '#.##.', '###..', '.#...'],
-  /** A pennant: you started here. */
-  'in-progress': ['#....', '###..', '#####', '#....', '#....'],
+  cleared: ['.......', '......#', '.....##', '#...##.', '##.##..', '.###...', '..#....'],
+  /** A pennant on a pole: you started here. */
+  'in-progress': ['#......', '#####..', '######.', '#####..', '#......', '#......', '#......'],
   /** An open ring: not started yet. */
-  open: ['.###.', '#...#', '#...#', '#...#', '.###.'],
+  open: ['..###..', '.#...#.', '#.....#', '#.....#', '#.....#', '.#...#.', '..###..'],
   /** A padlock. */
-  'tier-locked': ['.###.', '.#.#.', '#####', '##.##', '#####'],
+  'tier-locked': ['..###..', '.#...#.', '.#...#.', '#######', '###.###', '###.###', '#######'],
 } as const satisfies Record<RealmStatus, readonly string[]>;
 
 /**
@@ -248,6 +248,14 @@ export const ZOOM_STEPS = [0.5, 1, 2] as const;
  */
 export const WORLD_OVERVIEW_MIN_WIDTH = 1088;
 
+/**
+ * Viewport height (px) from which the overview is zoom 1. Mirrors
+ * world-map.css (52rem): the box is at most the screen under the 4rem
+ * header, so zoom 1 shows the whole 768px stage only from 768 + 64 px.
+ * Shorter screens start at ½, so the first view is the whole world.
+ */
+export const WORLD_OVERVIEW_MIN_HEIGHT = 832;
+
 /** Two markers at zoom ½ are at least this far apart (art px), so 44px targets never overlap. */
 export const WORLD_MIN_ANCHOR_GAP = 96;
 
@@ -267,7 +275,7 @@ export const WORLD_HERO = {
   size: 48,
   pin: 28,
   /**
-   * The pin with its state pip (world-map.css → .world-marker-pip: 12px,
+   * The pin with its state pip (world-map.css → .world-marker-pip: 16px,
    * 6px past the pin's top-right corner, plus its 2px drop shadow).
    */
   pinBox: [-14, -20, 22, 14] satisfies Box,

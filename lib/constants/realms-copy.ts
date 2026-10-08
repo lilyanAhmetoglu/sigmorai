@@ -252,6 +252,8 @@ export const WORLD_MAP_TEXT = {
   youAreHere: 'YOU ARE HERE',
   /** On the first open realm, for a visitor. */
   startHere: 'START HERE',
+  /** The line under the map that names the current realm: "00 Bootstrap Village". */
+  here: (number: string, name: string) => `${number} ${name}`,
   /** The list heading: "YOUR PATH" for a player, "REALMS ON THIS PATH" for a visitor. */
   pathHeading: 'YOUR PATH',
   pathHeadingVisitor: 'REALMS ON THIS PATH',

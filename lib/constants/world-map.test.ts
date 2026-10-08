@@ -16,7 +16,9 @@ import {
   WORLD_MAP,
   WORLD_MAP_ART,
   WORLD_MIN_ANCHOR_GAP,
+  WORLD_OVERVIEW_MIN_HEIGHT,
   WORLD_OVERVIEW_MIN_WIDTH,
+  WORLD_STATUS_PIPS,
   WORLD_TERRAIN,
   worldKeepClear,
   ZOOM_STEPS,
@@ -157,6 +159,20 @@ describe('world-map.css', () => {
     expect(rems.length).toBeGreaterThan(0);
     for (const rem of rems) expect(rem * 16).toBe(WORLD_OVERVIEW_MIN_WIDTH);
   });
+
+  test('zoom 1 is the overview only when the whole stage fits by height too', async () => {
+    const css = await Bun.file(
+      `${import.meta.dir}/../../app/styles/components/world-map.css`,
+    ).text();
+    const media = [
+      ...css.matchAll(/@media \(width >= [\d.]+rem\)( and \(height >= ([\d.]+)rem\))?/g),
+    ];
+    expect(media.length).toBeGreaterThan(0);
+    for (const m of media) expect(Number(m[2]) * 16).toBe(WORLD_OVERVIEW_MIN_HEIGHT);
+    // The box is the screen under the 4rem (64px) header: the 768px stage fits from here.
+    expect(WORLD_OVERVIEW_MIN_HEIGHT - 64).toBeGreaterThanOrEqual(WORLD_MAP.height);
+    expect(css).toContain('height: min(calc(100svh - --spacing(16))');
+  });
 });
 
 describe('labels and pins', () => {
@@ -164,6 +180,11 @@ describe('labels and pins', () => {
   const hit = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
   const at = (x: number, y: number, [l, t, r, b]: Box): Box => [x + l, y + t, x + r, y + b];
   const anchors = places.filter(([name]) => !WORLD_MAP.landmarks.some((l) => l.id === name));
+
+  test('each state has its own pip shape', () => {
+    const shapes = Object.values(WORLD_STATUS_PIPS).map((rows) => rows.join('/'));
+    expect(new Set(shapes).size).toBe(shapes.length);
+  });
 
   test('every realm name fits its plate box (Silkscreen 10px: under 8px a letter, 12px padding)', () => {
     const [l, , r] = WORLD_HERO.detail;
@@ -270,7 +291,11 @@ describe('WORLD_MAP_TEXT.marker', () => {
 
 describe('cartography decoration', () => {
   test('every sprite is a rectangle of known letters', () => {
-    for (const rows of [...Object.values(WORLD_GLYPHS), WORLD_COMPASS]) {
+    for (const rows of [
+      ...Object.values(WORLD_GLYPHS),
+      ...Object.values(WORLD_STATUS_PIPS),
+      WORLD_COMPASS,
+    ]) {
       expect(new Set(rows.map((r) => r.length)).size).toBe(1);
       for (const row of rows) expect(row).toMatch(/^[.#+*o]+$/);
     }
