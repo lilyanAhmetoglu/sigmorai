@@ -1,0 +1,96 @@
+{
+  "id": "creator/r13/c2/challenge",
+  "title": "Two brands, two themes, one set of screens",
+  "scenario": "A bike-hire company has two brands, City and Trail, and each needs a light and a dark theme. You keep one set of screens and switch values with modes. An agent builds new screens from the Figma file. Your teammate logged four problems from the first week.\n\nUse the exhibit. The company, the files and the log are made up for this case. Tool details are from the vendors' pages in October 2026.",
+  "exhibit": "WEEK 1 LOG (made up)\n\n  1. Agent task: \"Build the booking screen for City.\"\n     The frame's variable mode is set to Auto. No parent frame\n     or page sets a mode. Collection columns: Light | Dark.\n     Result: the agent's screen uses the Light values. We\n     wanted Dark.\n\n  2. Figma import into a new collection, two files at once:\n       light.tokens.json  -> 42 tokens\n       dark.tokens.json   -> 41 tokens (button/hover is missing)\n     Result: 41 variables. No button/hover variable at all.\n\n  3. resolver.json (DTCG Resolver 2025.10)\n       modifiers: theme (light, dark), brand (city, trail)\n       Both modifiers set color.button.\n     Result: the Trail dark button does not show the Trail colour.\n\n  4. Figma, Enterprise plan. The City and Trail extended\n     collections both come from the parent \"Core\" collection.\n     A Trail designer tried to add a new variable, trail/badge,\n     inside the Trail extended collection. Figma did not allow it.",
+  "questions": [
+    {
+      "prompt": "Log 1: why did the agent get the Light values?",
+      "options": [
+        {
+          "text": "Agents can read only one mode per file, and that mode is always Light",
+          "explanation": "Figma's pages set no such limit. The frame is on Auto with no parent mode, so it shows the default column."
+        },
+        {
+          "text": "The frame is on Auto with no parent mode, so it shows the default mode",
+          "explanation": "Right. Figma says an Auto object takes its parent's mode and, with none set, falls back to the collection's default: the left-most column, Light here.",
+          "correct": true
+        },
+        {
+          "text": "The task named the brand City, and City is the name of the Light mode",
+          "explanation": "The modes here are Light and Dark. The task never named a mode, and the frame was left on Auto."
+        },
+        {
+          "text": "Dark mode exists only in prototypes, so a design frame always shows Light",
+          "explanation": "Figma lets you switch modes on layers, frames and pages in designs. The frame here never set one."
+        }
+      ]
+    },
+    {
+      "prompt": "Log 2: why is there no button/hover variable?",
+      "options": [
+        {
+          "text": "Figma imports at most 41 tokens into a collection from one import",
+          "explanation": "Figma's import page sets no such count. The rule is about tokens missing from one of the files."
+        },
+        {
+          "text": "Figma creates variables only for tokens present in all imported files",
+          "explanation": "Right. Figma creates a variable only for tokens present in all imported files. button/hover is missing from dark.tokens.json.",
+          "correct": true
+        },
+        {
+          "text": "Figma skips any token with a slash in its name during the import",
+          "explanation": "Slash names are normal in Figma, like bg/page. The cause is the token missing from dark.tokens.json."
+        },
+        {
+          "text": "Figma imports only the first file, then copies its values to Dark",
+          "explanation": "Figma creates one new mode for each imported file. Here the dark file lacked one token."
+        }
+      ]
+    },
+    {
+      "prompt": "Log 3: brand and theme both set color.button. What does the Resolver spec say?",
+      "options": [
+        {
+          "text": "Modifiers are merged by name, so the token in brand always wins",
+          "explanation": "The spec says array order decides when two modifiers set the same token. Brand does not win by name."
+        },
+        {
+          "text": "Two modifiers cannot exist in one file, so split it into two files",
+          "explanation": "The spec counts results across all modifiers in one file: two brands times two themes is four."
+        },
+        {
+          "text": "The modifiers are not orthogonal, so array order decides the value",
+          "explanation": "Right. The spec says when two modifiers set the same token, array order determines the final value. Keep them apart to reduce user error.",
+          "correct": true
+        },
+        {
+          "text": "A tool must average the two colours when both modifiers set one token",
+          "explanation": "The spec does not mix values. The later token in the order overrides the earlier one."
+        }
+      ]
+    },
+    {
+      "prompt": "Log 4: the Trail designer wants a trail/badge variable. Where should it be added?",
+      "options": [
+        {
+          "text": "In the Core parent collection, so Trail and City both inherit it",
+          "explanation": "Right. Figma says you cannot add variables or modes in an extended collection. Add them in the parent; the child inherits them.",
+          "correct": true
+        },
+        {
+          "text": "In a third mode of the Trail extended collection, called Badge",
+          "explanation": "Figma says you cannot add modes in an extended collection either. Changes like this go in the parent."
+        },
+        {
+          "text": "In the Trail collection after turning off its inherited updates",
+          "explanation": "Figma's page offers no switch like that. New variables are added in the parent collection."
+        },
+        {
+          "text": "In the frame itself, as a fixed hex value that the agent can read",
+          "explanation": "A fixed hex is not a variable. It would not switch with the mode, and agents would read raw pixels again."
+        }
+      ]
+    }
+  ]
+}

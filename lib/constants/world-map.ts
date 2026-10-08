@@ -57,13 +57,15 @@ export const WORLD_MAP = {
    * (path-curriculum spec): r9 Canvas Workshop sits by r5 MCP Bridgelands,
    * r10 Reel Hollow between r2 Tool Forge and r3 Context Library,
    * r11 Pigment Bazaar between r1 Prompt Forest and r2 Tool Forge,
-   * r12 Echo Caverns between r2 Tool Forge and r10 Reel Hollow.
+   * r12 Echo Caverns between r2 Tool Forge and r10 Reel Hollow,
+   * r13 Pattern Atelier between r3 Context Library and r4 Agent Citadel.
    */
   slotRealms: [
     { slot: 's5', realm: 9 },
     { slot: 's10', realm: 10 },
     { slot: 's1', realm: 11 },
     { slot: 's2', realm: 12 },
+    { slot: 's4', realm: 13 },
   ] as readonly WorldSlotRealm[],
   landmarks: [
     {
