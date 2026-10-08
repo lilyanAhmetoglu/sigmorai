@@ -43,6 +43,9 @@
 - **Components that use a Clerk hook branch on `useClerkMounted()`** and keep the Clerk branch in a lazy module, so no Clerk hook runs without its provider and `@clerk/*` stays out of a visitor's JS.
 - **E2E signs in from `/sign-in`** (a visitor's `/` no longer loads Clerk for `clerk.signIn`), and checks that a visitor on `/`, `/blog`, `/map` and a 404 loads no Clerk.
 - **Unchanged:** the proxy matcher, the CSP, `GET /api/hud`, `CLERK_WAIT_MS`, and server `auth()` everywhere.
+- **After review:** the `(app)` gate also opens on the cookie hint after hydration. Next keeps a layout on client navigation, so its server "no session" can be stale (a player signed in in another tab, then opens `/profile`). A late mount uses a plain `import()`: if the chunk fails, the page stays as it is with no Clerk. While a likely player's chunk downloads, the plain Sign in / Start free are hidden too (space kept, at most `CLERK_WAIT_MS`).
+- **Accepted for v1: one remount on a late mount.** When the gate opens after hydration, React mounts the page again once. An open Menu, focus or half-typed text is lost, and the landing scene restarts. Only a likely player sees it, and only in the first moments.
+- **To measure: a second `clerk.browser.js` request on a late mount.** Clerk's `IsomorphicClerk` constructor starts the download during render, before React adds its own script tag, so two tags can race. Check on a Vercel preview with real keys (Network tab, a signed-in player on `/blog`). A cache hit: note it here. A real second download: open a Clerk issue and consider adding the script tag before mounting the provider.
 
 ## Amendments locked 2026-10-08 (one header)
 
