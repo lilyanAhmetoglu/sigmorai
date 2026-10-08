@@ -19,7 +19,9 @@ Layered on top of the blocks below; this one wins where they disagree. Full cont
 
 - **The main limit is now 20 free questions per calendar month (UTC) + paid credits** (1 credit = 1 question, Stripe Checkout packs). This replaces "30 questions per UTC day for everyone" as the main limit. Why: a daily cap for everyone gave heavy learners no way to keep going and gave light learners more than the budget can carry.
 - **A daily abuse cap stays: 100 questions per user per UTC day** (free + paid). 429 `daily_cap`, new text. The 5/min cap is unchanged.
-- **The $50 global monthly budget stays as a kill switch** for everyone. No credit is spent while the mentor is paused.
+- **The $50 global monthly budget pauses the free tier only;** paid credits keep working (credits plan, devil pass). The Anthropic Console spend limit is the hard stop.
+- **Superseded in the body:** the `busy` 409 row, the "Daily limit (30)" text and the acceptance line "31st question today → 429". The daily number is 100, and there is no 409.
+- **Credits tables ship with this plan's Phase 2** (`0009_credits` right after `0008_mentor`), and the route is built once with the spend transaction.
 - **`no_match` costs nothing; an `error`/`timeout` with no output is given back.** `stopped` is charged.
 - **Route order change:** after the cheap checks, a balance pre-check (402 `no_credits`), then retrieval, then **one transaction** that locks the user row (`FOR UPDATE`), picks free or credit, inserts the `started` usage row and, for a credit, the `spend` ledger row. `mentor_usage` gains `billing` (`free` / `credit` / `none`). SCHEMA REVIEW REQUIRED (db-architect), see the credits plan.
 

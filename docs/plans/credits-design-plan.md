@@ -4,7 +4,7 @@
 
 ## Status
 
-**STATUS: Draft (2026-10-08). Needs devil + db-architect before Phase 1. Build step: after mentor Phase 2 (`mentor_usage` must exist). Track: both.**
+**STATUS: Reviewed by devil + db-architect + security-checker (2026-10-08), amendments locked above. Build step: after mentor Phase 2 (`mentor_usage` must exist). Track: both.**
 
 ## Amendments
 
@@ -12,6 +12,63 @@
 ## Amendments locked YYYY-MM-DD
 - ...
 -->
+
+## Amendments locked 2026-10-08 (devil + db-architect + security pass)
+
+All three gates said "refine before building". This block wins over the body below where they disagree. Where two reviews disagreed, the simpler option or the safer one for money was picked, and the reason is given.
+
+**Order and scope**
+
+- **Phase 1 merges into mentor Phase 2.** `credit_events`, `users.credit_balance` and `mentor_usage.billing` ship with the mentor tables, and the mentor route is built once with the spend transaction. Why: the route and table don't exist yet; building twice is waste. Migrations stay linear: `0007` vector extension → `0008_mentor` → `0009_credits`, each generated only on a branch that already has the previous one.
+- Stripe (credits Phase 2) is a separate PR after that. UI, legal and privacy (credits Phase 3) after Stripe.
+
+**Data model** (db-architect shape, trimmed by the devil)
+
+- `credit_events`: `id` bigint identity, `user_id` FK `ON DELETE CASCADE`, `kind` CHECK `oneOf(CREDIT_EVENT_KINDS)`, signed `amount` (CHECK ≠ 0, plus a sign-by-kind CHECK), `stripe_ref`, `pack_id`, `amount_cents`, `currency`, `livemode` (purchase rows), `mentor_usage_id`, `note`, `created_at`.
+- **Idempotency key = `UNIQUE (kind, stripe_ref) WHERE stripe_ref IS NOT NULL`** (db-architect). No `:won` / `:reinstated` suffixes. A purchase row's `stripe_ref` is the **`pi_…`** id, present on both checkout events, so refunds and disputes find their purchase with no extra column (devil). No `payment_intent` column.
+- **`mentor_usage_id` FK is `ON DELETE SET NULL`**, not cascade: the ledger only shrinks when the user is erased. `UNIQUE (mentor_usage_id, kind) WHERE mentor_usage_id IS NOT NULL`.
+- Shape CHECKs: a purchase has `pack_id` + `amount_cents` + `currency`; `spend` / `reversal` have `mentor_usage_id`.
+- `users.credit_balance integer NOT NULL DEFAULT 0`, a cache of `sum(credit_events.amount)`, may go negative, no CHECK. `mentor_usage.billing` CHECK `oneOf(MENTOR_BILLING)`.
+- Every write copies `recordClear`: insert with `onConflictDoNothing().returning()`, and touch the cache only if a row came back. The user lock reuses `lockUser` (exported from `lib/actions/quest.ts` into a shared module), not a second copy. Spend and the free count share one `now`.
+- `bun run db:check` (`scripts/check-xp.ts`) also checks `credit_balance = sum(amount)`. There is no `scripts/db-check.ts`.
+- Code folder is **`lib/billing/`**, not `lib/credits/`: "credit" already means shared-chapter credit in `lib/grading/credit.ts`.
+- Rollback note: dropping `credit_events` loses the paid ledger. Export it first.
+
+**Webhook**
+
+- **Grant check with no Stripe API call** (devil): `metadata.userId === client_reference_id`, `metadata.packId` is a known pack, `amount_total === CREDIT_PACKS[packId].amountCents`, `currency === 'eur'`, `mode === 'payment'`, `payment_status === 'paid'`, `livemode` matches the key. Price ids in env are used only to create sessions. Never create Payment Links for these prices.
+- **Refunds:** `refund.created` + `refund.updated` when `status === 'succeeded'`, keyed `re_…` (no `refunds.list`). Amount = `-round(pack credits × refund ÷ paid)`. **A result of 0 is skipped** (log `credits_refund_zero`, return 200), so the `amount <> 0` CHECK never makes Stripe retry forever.
+- **Disputes:** `charge.dispute.funds_withdrawn` (−) and `charge.dispute.funds_reinstated` (+), keyed `dp_…` with the kind telling them apart. `dispute.created` / `closed` are ignored: inquiries move no money.
+- **Cap per purchase:** all refund and dispute rows for one `pi_…` together never remove more than the pack's credits (security #4). Reinstated funds give back only what the dispute took.
+- No purchase row for a refund or dispute → log + 200; the maintainer fixes it with `scripts/credits-adjust.ts`. `refund.failed` → log + adjustment.
+- **Only a real data mismatch returns 200.** A database error returns 500 so Stripe retries.
+- **Logs carry ids only** (`pi_`, `re_`, `dp_`, user id, reason). Never log an event or session object: they hold the buyer's email and address.
+
+**Checkout**
+
+- `startCheckout` accepts only `packId` (Zod). No idempotency key from the browser (devil): a double click makes an unpaid session that expires.
+- **Rate limit: 5 checkout starts per user per minute** (security #5).
+- `success_url` / `cancel_url` come from `SITE_URL` (`lib/constants/site.ts`), never from the `Host` header. Session `expires_at` = 30 minutes. Check `session.url` starts with `https://checkout.stripe.com/` before `redirect()`.
+- `consent_collection.terms_of_service: 'required'` needs a Terms URL in Stripe → Settings → Public details. `automatic_tax` needs a digital-services tax code on the product.
+
+**Environments** (security #1, #2, #12)
+
+- Preview and dev use a **non-production Neon branch** and Stripe **test** keys. Live keys exist only in Vercel "Production". `lib/billing/stripe.ts` refuses to start (shows "not configured") if `VERCEL_ENV !== 'production'` and the key starts with `sk_live_` or `rk_live_`.
+- The test webhook points at the stable `canary` alias, with a Deployment Protection bypass for `/api/webhooks/stripe` only. Per-deploy preview URLs don't receive webhooks.
+
+**UI and product**
+
+- **No BUY link before it is needed.** The mentor panel shows counts only. BUY appears only in the out-of-questions state, and `/credits` is linked from Profile (devil: the hard rule "no dark patterns").
+- **No new balance endpoint.** The balance is a `lib/data` server read. After checkout, the success page re-renders with `router.refresh()` every 2 s for up to 30 s.
+- **Every `mentor_usage` row counts** toward the 100/day and 5/min caps, including `no_match`. Only `billing` decides free or credit.
+- **When the $50 budget is hit, only the free tier pauses; paid credits keep working** (devil lean, taken). Why: paid questions earn about 70 %, and a bought pack is a promise. The Anthropic Console spend limit stays the hard stop. _Maintainer can overrule._
+- A failed answer whose reversal write fails in `after()` keeps the spent credit. Rare; accepted for v1; fixed by hand with `credits-adjust.ts`.
+
+**Legal and docs**
+
+- Erasure: our cascade removes the purchase rows; the seller's VAT record duty (EU OSS: 10 years) is met by Stripe's own records. The privacy page says so. **An accountant confirms this, and whether prepaid credits count as digital content (Art. 16(m)) or a service (16(a)), before go-live.**
+- Doc layering in credits Phase 3: an `ENGINEERING.md` Stack row "Payments: Stripe Checkout (hosted)"; `db/CLAUDE.md` invariant 3 covers the second ledger; `project.md` hard rule "Credits buy mentor questions only"; `git-safety.md` never-skip list adds `lib/billing/**`.
+- **Gates still open:** voice-guardian on all panel, `/credits`, error, legal and consent copy.
 
 ## Decisions locked 2026-10-08 (maintainer)
 
