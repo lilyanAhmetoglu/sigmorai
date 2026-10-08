@@ -1,7 +1,7 @@
 ---
 id: builder/r1/c6/lesson
 title: Grounded answers
-minutes: 10
+minutes: 11
 sources:
   - kind: docs
     title: Reduce hallucinations (Claude docs)
@@ -23,85 +23,144 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-Models can state false things with full confidence. The Claude docs define this "hallucination" as text that is "factually incorrect or inconsistent with the given context". A grounded answer is one that comes from text you supplied, not from the model's memory or guesses. This chapter gives four tools: allow "I don't know", restrict the sources, quote before answering, and verify after answering.
+## Goal
 
-## 1. Allow "I don't know"
+After this lesson you can:
 
-If the prompt says "answer every question", the model will answer every question, even when your documents have no answer.
+- Give the model a clear way out when your documents do not contain the answer.
+- Ground long answers with word-for-word quotes, and handle documents that disagree.
+- Check every citation in code before an answer is shown, and know when to use built-in citations.
 
-The Claude docs: "Explicitly give Claude permission to admit uncertainty. This simple technique can drastically reduce false information." Their example tells the model to say "I don't have enough information to confidently assess this" when the report lacks the information.
+## The problem
 
-Gemini's grounding clause ends the same way: "If the exact answer is not explicitly written in the context, you must state that the information is not available."
+The support team's last project is a help-center assistant. Customers ask a question, and the model answers from the team's help articles (about 30k tokens). All the articles go into every request.
 
-Example: an HR assistant gets "What is parental leave for contractors?" The handbook covers employees only. A grounded system replies "The handbook does not cover contractors" and does not invent a number.
+In the first week, a customer asked: "Does the Free plan include single sign-on?" The assistant said: "Yes, single sign-on is included on all plans." No article says that. Single sign-on is only on the Business plan. The customer set up the Free plan and lost a day.
 
-Give the exact fallback sentence. Then your app can detect it and, for example, offer to contact HR.
+The prompt said: "You are a helpful assistant. Answer the customer's question." The model filled the gap from general patterns. That is a **hallucination**: the [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) define it as text that is "factually incorrect or inconsistent with the given context".
 
-## 2. Restrict the answer to the given text
+## The idea
 
-Tell the model which text it may use.
-
-- Claude: "Explicitly instruct Claude to only use information from provided documents and not its general knowledge."
-- Gemini's example prompt: "Answer the question using the text below. Respond with only the text provided."
-- OpenAI's citation rules for injected context include "Never cite outside knowledge or outside authorities."
-
-More context is not always safer. OpenAI's accuracy guide warns that "you can supply too much irrelevant context, which drowns out the real information and causes hallucinations." Send the relevant parts. Realm 3 covers retrieval in depth.
-
-## 3. Quote first, then answer
-
-For long documents, ask the model to pull the exact supporting text before it answers.
-
-The Claude docs: "For tasks involving long documents (>20k tokens), ask Claude to extract word-for-word quotes first before performing its task." Their example also gives a fallback: "If you can't find relevant quotes, state 'No relevant quotes found.'"
+A **grounded** answer comes from text you supplied, not from the model's memory. Think of an open-book exam where the rule is: if it is not in the book, write "not in the book".
 
 ```text
-<handbook>
-...
-</handbook>
-
-1. Find quotes from the handbook that answer the question.
-   Put them in quotes tags. If there are none, write "No relevant quotes found."
-2. Answer using only those quotes. Refer to each quote by its number.
+question -> 1. answer only from the articles
+         -> 2. no answer there?   -> fixed "not covered" sentence
+         -> 3. long articles?     -> quote first, then answer
+         -> 4. after the answer   -> code checks every citation
 ```
 
-Example: asked about leave carry-over, the model first quotes section 4.2. The answer then rests on that quote, and a reviewer can check it in seconds.
+**1. Allow "I don't know".** The Claude docs: "Explicitly give Claude permission to admit uncertainty. This simple technique can drastically reduce false information." The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) end their grounding prompt the same way: "If the exact answer is not explicitly written in the context, you must state that the information is not available."
 
-## 4. Verify the answer against the text
+**2. Restrict the sources.** The Claude docs: "Explicitly instruct Claude to only use information from provided documents and not its general knowledge." The [OpenAI citation guide](https://developers.openai.com/api/docs/guides/citation-formatting) adds: "Never cite outside knowledge or outside authorities." More text is not always safer. The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) warns that "you can supply too much irrelevant context, which drowns out the real information and causes hallucinations."
 
-After the answer, check each claim.
+**3. Quote first.** For long documents (">20k tokens"), the Claude docs say to ask for "word-for-word quotes" before the model does its task. Their example gives a fallback when nothing fits: "No relevant quotes found."
 
-- The Claude docs suggest having the model "verify each claim by finding a supporting quote after it generates a response. If it can't find a quote, it must retract the claim."
-- OpenAI's citation guide describes a full system: "you decide what can be cited, represent that material clearly, instruct the model how to cite it, and validate the result before it renders to the user."
-
-OpenAI's rules for injected context, to put in your prompt:
+**4. Verify and cite.** The Claude docs suggest having the model "verify each claim by finding a supporting quote after it generates a response. If it can't find a quote, it must retract the claim." The OpenAI citation guide describes the full loop: "you decide what can be cited, represent that material clearly, instruct the model how to cite it, and validate the result before it renders to the user." Its rules include:
 
 - "Cite only blocks that appear in the provided context."
 - "Never invent new block IDs."
-- "If the provided blocks conflict, cite the conflicting blocks and describe the conflict accurately."
+- When blocks conflict, cite each of them and describe the conflict.
 
-Give each block a stable ID (chapter 3 showed how to label documents). Then your code can check that every cited ID really exists before the answer is shown.
+**Built-in citations.** The [Claude citations feature](https://platform.claude.com/docs/en/build-with-claude/citations) returns citations that "are guaranteed to contain valid pointers to the provided documents", and the quoted `cited_text` "does not count toward your output tokens". One limit: citations "cannot be used together with structured outputs"; a request with both returns a 400 error. The OpenAI guide notes that hosted tools, such as web search, "provide automatic inline citations".
 
-Example: the answer cites `block7`, but the prompt only had `block1` to `block5`. Your code blocks the answer and retries, or shows "could not verify".
+**Not zero.** The Claude docs: these techniques "significantly reduce hallucinations", but "they don't eliminate them entirely. Always validate critical information, especially for high-stakes decisions."
 
-## Built-in citation features
+## Worked example
 
-You can also let the API produce the citations.
+### Step 1: the old prompt
 
-- **Claude** has a citations feature for documents. The docs say the citations "are guaranteed to contain valid pointers to the provided documents", and the quoted `cited_text` "does not count toward your output tokens". One limit: citations "cannot be used together with structured outputs"; a request with both returns a 400 error.
-- **OpenAI** notes that its hosted tools, such as web search, "provide automatic inline citations".
+```text
+You are a helpful assistant. Answer the customer's question.
+[all help articles]
+Question: Does the Free plan include single sign-on?
+```
 
-Example: a policy assistant on Claude turns on citations for the handbook document. Cited parts of the answer arrive with the exact passage they came from, and the UI shows it on hover.
+What goes wrong:
 
-## Not zero
+- Nothing says to use only the articles.
+- Nothing says what to do when the articles have no answer.
+- The articles have no ids, so nobody can check where a claim came from.
 
-The Claude docs end with a clear warning: these techniques "significantly reduce hallucinations", but "they don't eliminate them entirely. Always validate critical information, especially for high-stakes decisions."
+### Step 2: give every block an id
 
-Example: a grounded HR assistant can answer routine questions directly. An answer about pay or legal rights still links to the source section and invites the employee to confirm with HR.
+Split the articles into short blocks, each with a stable id:
 
-## Key points
+```text
+<blocks>
+<block id="plans-2">Single sign-on (SSO) is available on the Business plan.</block>
+<block id="plans-3">The Free plan includes up to 3 projects and 2 members.</block>
+<block id="limits-1">Free plans can export up to 100 rows per file.</block>
+<block id="limits-old-4">Free plans can export up to 500 rows per file.</block>
+...
+</blocks>
+```
 
-- Give the model an explicit way out ("I don't know", "not available") and a fixed sentence for it.
-- Restrict answers to the supplied text. Send relevant context, not everything.
-- Long documents: extract word-for-word quotes first, then answer from them.
-- Verify: every claim needs a supporting quote; every citation must point to a real, supplied block. Check it in code.
-- Claude's citations feature guarantees valid pointers but cannot be combined with structured outputs.
-- Grounding reduces hallucinations; it does not remove them. Validate high-stakes answers.
+### Step 3: write the grounded prompt
+
+```text
+Answer the customer's question using only the blocks above.
+Do not use general knowledge.
+
+1. First, copy the exact sentences that answer the question into
+   quotes tags, each with its block id. If there are none, write
+   "No relevant quotes found."
+2. Then answer in 2 to 4 sentences, using only those quotes.
+   Put the block id after each claim, like [plans-2].
+3. If no block answers the question, reply exactly:
+   "Our help articles don't cover this. A support agent will reply soon."
+4. If two blocks disagree, cite both and say that they disagree.
+
+Question: Does the Free plan include single sign-on?
+```
+
+### Step 4: check in code
+
+```text
+for each [id] in the answer:
+  id not in the blocks sent?  -> do not show; retry once,
+                                 then send to an agent
+answer is the fixed sentence? -> open a ticket for an agent
+```
+
+**The hard case is the export limit.** Two blocks disagree: 100 rows and 500 rows. The old prompt let the model pick one. The new rule makes it cite both blocks and say they disagree, and the team fixes the outdated article.
+
+### Step 5: why it is better
+
+- **A way out.** The model has an exact sentence for "not covered", and the app can detect it.
+- **Answers rest on quotes**, which an agent can check in seconds.
+- **Conflicts are visible** instead of hidden.
+- **Code checks every id** before the customer sees the answer.
+
+Grounding lowers the risk; it does not remove it. Answers about billing or contracts still link to the source article.
+
+## Common mistakes
+
+1. **Pushing the model to always answer.** Then it fills gaps with guesses. Fix: give an explicit way out and a fixed sentence your app can detect.
+2. **Sending every document "just in case".** Irrelevant text can drown the real answer. Fix: send the blocks that relate to the question.
+3. **Showing citations without checking them.** A cited id can be wrong or invented. Fix: check every id against the blocks you sent, in code, before display.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A product-spec assistant gets blocks `s1` to `s6` and returns this answer:
+
+```text
+The API allows 100 requests per minute [s2]. Webhooks retry 5 times [s9].
+Bulk export is coming next quarter.
+```
+
+Block `s2` says "100 requests per minute". Block `s4` says "60 requests per minute". Find three problems and say how your system should catch each one.
+
+### Answer
+
+1. **An invented id.** `s9` was never sent. Code catches it: every id must be in the list of blocks sent.
+2. **A claim with no citation.** "Bulk export is coming next quarter" has no id. Fix the prompt: every claim needs a quote or an id. Code can flag sentences without one.
+3. **A hidden conflict.** `s2` and `s4` disagree, but the answer cites only one. Fix the prompt: when blocks disagree, cite both and describe the conflict.
+
+## Recap
+
+- Give the model a way out and a fixed sentence for "not covered". Restrict it to the text you send, and send only relevant text.
+- For long documents, quote first, then answer from the quotes. When blocks disagree, cite both.
+- Check every citation in code before display. Grounding reduces hallucinations; it does not remove them.

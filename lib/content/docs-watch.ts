@@ -47,7 +47,8 @@ export async function citedPages(
   return cited;
 }
 
-const hostOf = (url: string) => new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+/** `https://www.Example.com/x` → `example.com`. */
+export const hostOf = (url: string) => new URL(url).hostname.toLowerCase().replace(/^www\./, '');
 
 /** Whether a host list key (`host` or `host/path-prefix`) covers this URL. */
 const covers = (key: string, url: string) => {
@@ -86,8 +87,13 @@ function repoIndex(url: string): Pick<DocsWatchTarget, 'fetchUrl' | 'fallbackUrl
  * the fallback (a moved page can 404 as `.md` but still redirect as HTML).
  */
 function pageTarget(url: string, sourceId: string, lessons: string[]): DocsWatchTarget {
+  return { url, ...pageFetch(url), sourceId, lessons };
+}
+
+/** Where to fetch one cited page: its `.md` variant, with the page itself as the fallback. Also used by the mentor index. */
+export function pageFetch(url: string): Pick<DocsWatchTarget, 'fetchUrl' | 'fallbackUrl'> {
   const md = markdownUrl(url);
-  return { url, fetchUrl: md, ...(md !== url && { fallbackUrl: url }), sourceId, lessons };
+  return { fetchUrl: md, ...(md !== url && { fallbackUrl: url }) };
 }
 
 /** The one page per source that shows "something new" (a page list, a changelog, a feed). */
