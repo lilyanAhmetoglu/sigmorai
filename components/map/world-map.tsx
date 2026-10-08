@@ -1,11 +1,29 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import { PixelAvatar } from '@/components/pixel-avatar';
-import { heroSide, WORLD_MAP, WORLD_MAP_TEXT } from '@/lib/constants';
+import {
+  heroSide,
+  WORLD_MAP,
+  WORLD_MAP_ART,
+  WORLD_MAP_TEXT,
+  WORLD_TERRAIN,
+  WORLD_TERRAIN_DEFAULT,
+  worldKeepClear,
+} from '@/lib/constants';
 import { realmAccent } from '@/lib/content/curriculum';
-import { coastline, edgeFog, shapeSeed } from '@/lib/grading/world-map';
-import type { Accent, RealmStatus, WorldPlace, WorldRealm, WorldView } from '@/lib/types';
+import { coastline, edgeFog, rippleLine, shapeSeed, terrainGlyphs } from '@/lib/grading/world-map';
+import type {
+  Accent,
+  RealmStatus,
+  WorldGlyphKind,
+  WorldPlace,
+  WorldRealm,
+  WorldClearBox,
+  WorldGlyph,
+  WorldView,
+} from '@/lib/types';
 import { ScrollToCurrent } from './scroll-to-current';
+import { Compass, Frame, Glyphs, Trail } from './world-map-art';
 import { anchorStyle, WorldMarker } from './world-marker';
 
 /** The current realm's marker: centred in the box on load. */
@@ -30,52 +48,152 @@ const STAGE_STYLE = {
   '--world-h': `${WORLD_MAP.height}px`,
 } as CSSProperties;
 
-/** Land sits one tile inside its footprint; the beach ring fills the tile around it. */
-const shrink = (p: WorldPlace): WorldPlace => ({
-  ...p,
-  w: p.w - 2 * WORLD_MAP.tile,
-  h: p.h - 2 * WORLD_MAP.tile,
-});
+/** The ripple line in the water around each land: art px out from the coast (a 4 px multiple, crisp at ½). */
+const RIPPLE = 8;
 
-const toPoints = (pts: [number, number][]) => pts.map((p) => p.join(',')).join(' ');
+const toPoints = (pts: readonly [number, number][]) => pts.map((p) => p.join(',')).join(' ');
 
 /** The same edge fog on every request: it depends only on the geometry. */
 const EDGE_FOG = edgeFog();
 
 type Placed = WorldRealm & { place: WorldPlace };
 
-type IslandProps = { place: WorldPlace; seed: number; accent: Accent; status?: RealmStatus };
+/** One land to draw: a placed realm or a landmark. */
+type Land = {
+  key: string;
+  place: WorldPlace;
+  seed: number;
+  accent: Accent;
+  terrain: readonly WorldGlyphKind[];
+  status?: RealmStatus;
+  /** A specialist realm (only on this path): its coast is dashed. */
+  pathOnly?: boolean;
+};
 
-/** One island: a beach ring (the footprint's coastline) with the land one tile inside it. */
-function Island({ place, seed, accent, status }: IslandProps) {
+/** Every land on this path's map: the placed realms, then the landmarks. */
+function landsOf(placed: readonly Placed[]): Land[] {
+  return [
+    ...placed.map((r): Land => ({
+      key: `r${r.id}`,
+      place: r.place,
+      seed: shapeSeed(r.id),
+      accent: realmAccent(r.id),
+      terrain: WORLD_TERRAIN[r.id] ?? WORLD_TERRAIN_DEFAULT,
+      status: r.status,
+      pathOnly: r.track !== null,
+    })),
+    ...WORLD_MAP.landmarks.map((l): Land => ({
+      key: l.id,
+      place: l,
+      seed: shapeSeed(l.id),
+      accent: l.accent,
+      terrain: WORLD_TERRAIN[l.id] ?? WORLD_TERRAIN_DEFAULT,
+    })),
+  ];
+}
+
+/** The drawn shapes of one land: coast and ripple points, and its terrain. */
+type LandArt = { coast: string; ripple: string; glyphs: WorldGlyph[] };
+
+/**
+ * Land shapes are pure geometry (about 29 ms for a whole map), so they are
+ * worked out once per server process and kept here. The key covers every
+ * input: `land.key` fixes the place, seed and terrain (all read from the
+ * WORLD_MAP / WORLD_TERRAIN constants by realm or landmark id), and the
+ * current realm's id fixes the keep-clear boxes (worldKeepClear(current
+ * place)). Status, accent and path-only change only CSS, not shapes. At
+ * most (lands × possible current realms) entries, a few hundred.
+ */
+const LAND_ART = new Map<string, LandArt>();
+const CLEAR = new Map<string, WorldClearBox[]>();
+
+function landArt(land: Land, current: Placed | undefined): LandArt {
+  const currentKey = current ? `r${current.id}` : 'none';
+  const key = `${land.key}:${currentKey}`;
+  let found = LAND_ART.get(key);
+  if (!found) {
+    let clear = CLEAR.get(currentKey);
+    if (!clear) {
+      // Terrain keeps off every pin, name and label, and off the tag and
+      // hero where they really stand (the current realm).
+      clear = worldKeepClear(current?.place ?? null);
+      CLEAR.set(currentKey, clear);
+    }
+    found = {
+      coast: toPoints(coastline(land.place, land.seed)),
+      ripple: toPoints(rippleLine(land.place, land.seed, RIPPLE)),
+      glyphs: terrainGlyphs(land.place, land.seed, land.terrain, clear),
+    };
+    LAND_ART.set(key, found);
+  }
+  return found;
+}
+
+/** An outline in the water that follows a coast (drawn under every land). */
+function Ripple({ shape }: { shape: LandArt }) {
+  return <polygon className="world-ripple" points={shape.ripple} />;
+}
+
+type IslandProps = { land: Land; shape: LandArt; art: boolean };
+
+/**
+ * One land, like an old printed map: paper land with a light stipple, a band
+ * of the realm colour inside the coast (clipped to the land), an inked coast
+ * (dashed on a path-only island) and seeded terrain glyphs. An advanced,
+ * locked realm is hatched. With the art slot filled, only the inked coast is
+ * drawn over the picture.
+ */
+function Island({ land, shape, art }: IslandProps) {
+  const points = shape.coast;
+  const clipId = `world-clip-${land.key}`;
   return (
-    <g data-accent={accent} data-status={status}>
-      <polygon className="world-beach" points={toPoints(coastline(place, seed))} />
-      <polygon className="world-land" points={toPoints(coastline(shrink(place), seed))} />
+    <g
+      className="world-island"
+      data-accent={land.accent}
+      data-status={land.status}
+      data-path-only={land.pathOnly || undefined}
+    >
+      {!art && (
+        <>
+          <clipPath id={clipId}>
+            <polygon points={points} />
+          </clipPath>
+          <polygon className="world-land" points={points} />
+          <polygon className="world-land-texture" points={points} />
+          <polygon className="world-land-band" points={points} clipPath={`url(#${clipId})`} />
+          <Glyphs glyphs={shape.glyphs} />
+        </>
+      )}
+      <polygon className="world-coast" points={points} />
     </g>
   );
 }
 
 /**
  * The world map (world-map spec): one top-down world in a native scroll box,
- * like the level map. Until the Higgsfield art lands (PR 3), the world is a
- * token-coloured placeholder drawn from the geometry constant: sea with
- * sparse waves, islands with a seeded uneven coast (beach, land, a coastline
- * in the realm colour) and a ragged edge of fog. No realm art is reused.
- * Slot fog patches wait for the art too: in PR 1 an empty slot is plain sea.
+ * like the level map. Until the Higgsfield art lands (PR 3), the world is
+ * drawn as an old pixel cartography map from the geometry constant: a paper
+ * sea with wave marks, paper lands with an inked, seeded coast, ripple lines
+ * and themed terrain glyphs, the path's route with arrows, a compass rose, a
+ * framed border and a ragged edge of Hallucinant fog. When
+ * WORLD_MAP_ART.ready, the art PNG replaces the drawn sea, land and terrain.
+ * Slot fog patches wait for the art too: an empty slot is plain sea.
  *
- * Layers: the SVG (sea, fog, islands, trail) scales with the zoom; markers,
- * landmarks and the hero do not (world-map.css positions them by anchor ×
- * zoom), so they stay 44px targets. Everything drawn is decoration
- * (aria-hidden); the markers are the links, and the path list under the box
- * is the text view. ZoomControls sets data-zoom on the box and world-map.css
- * does the rest; with no JS the box shows the overview. On load the box
- * centres the current realm (ScrollToCurrent).
+ * Layers: the SVG scales with the zoom; markers, landmarks and the hero do
+ * not (world-map.css positions them by anchor × zoom), so they stay 44px
+ * targets. Everything drawn is decoration (aria-hidden); the markers are the
+ * links, and the path list under the box is the text view. ZoomControls sets
+ * data-zoom on the box and world-map.css does the rest; with no JS the box
+ * shows the overview. On load the box centres the current realm
+ * (ScrollToCurrent).
  */
 export function WorldMap({ view, heroName, tag }: Props) {
   const placed = view.realms.filter((r): r is Placed => r.place !== null);
   const current = placed.find((r) => r.current);
   const { width, height } = WORLD_MAP;
+  const art = WORLD_MAP_ART.ready;
+  const lands = landsOf(placed);
+  const shapes = new Map(lands.map((land) => [land.key, landArt(land, current)]));
 
   return (
     <section
@@ -97,44 +215,58 @@ export function WorldMap({ view, heroName, tag }: Props) {
           focusable="false"
         >
           <defs>
-            {/* Sparse waves: two 2×1 art px dashes per 32px of sea. */}
-            <pattern id="world-waves" width="32" height="32" patternUnits="userSpaceOnUse">
-              <rect className="world-wave" x="6" y="9" width="2" height="1" />
-              <rect className="world-wave" x="22" y="25" width="2" height="1" />
+            {/* Wave marks: two small stepped zigzags per 64×48 of sea. */}
+            <pattern id="world-waves" width="64" height="48" patternUnits="userSpaceOnUse">
+              <path className="world-wave" d="M8 10h4v2h-4zM12 12h4v2h-4zM16 10h4v2h-4z" />
+              <path className="world-wave" d="M40 34h4v2h-4zM44 36h4v2h-4zM48 34h4v2h-4z" />
             </pattern>
-            {/* 2×2 art px checker: the placeholder's dithered fog. */}
-            <pattern id="world-fog" width="4" height="4" patternUnits="userSpaceOnUse">
-              <rect className="world-fog-dot" width="2" height="2" />
-              <rect className="world-fog-dot" x="2" y="2" width="2" height="2" />
+            {/* Fine details are 4 art px (2 screen px at ½), never a half pixel. */}
+            {/* Land stipple: two 4×4 dots per 32×32, offset. */}
+            <pattern id="world-stipple" width="32" height="32" patternUnits="userSpaceOnUse">
+              <rect className="world-stipple-dot" x="4" y="4" width="4" height="4" />
+              <rect className="world-stipple-dot" x="20" y="20" width="4" height="4" />
+            </pattern>
+            {/* Locked land: stepped diagonal hatching (4 art px dots). */}
+            <pattern id="world-hatch" width="16" height="16" patternUnits="userSpaceOnUse">
+              <rect className="world-hatch-dot" x="0" y="12" width="4" height="4" />
+              <rect className="world-hatch-dot" x="4" y="8" width="4" height="4" />
+              <rect className="world-hatch-dot" x="8" y="4" width="4" height="4" />
+              <rect className="world-hatch-dot" x="12" y="0" width="4" height="4" />
+            </pattern>
+            {/* The Hallucinant's fog: an uneven 4 art px dither (a fixed 8×8 mask, about 40% full). */}
+            <pattern id="world-fog" width="32" height="32" patternUnits="userSpaceOnUse">
+              <path
+                className="world-fog-dot"
+                d="M24 0h4v4h-4zM12 4h4v4h-4zM20 4h4v4h-4zM0 8h12v4h-12zM20 8h4v4h-4zM28 8h4v4h-4zM4 12h8v4h-8zM16 12h8v4h-8zM0 16h4v4h-4zM16 16h4v4h-4zM4 20h24v4h-24zM0 24h4v4h-4zM8 24h8v4h-8zM24 24h4v4h-4zM4 28h4v4h-4zM12 28h4v4h-4zM24 28h4v4h-4z"
+              />
             </pattern>
           </defs>
-          <rect className="world-sea" width={width} height={height} />
-          <rect className="world-waves" width={width} height={height} />
+          {art ? (
+            <image
+              className="world-art-image"
+              href={WORLD_MAP_ART.src}
+              width={width}
+              height={height}
+              preserveAspectRatio="none"
+            />
+          ) : (
+            <>
+              <rect className="world-sea" width={width} height={height} />
+              <rect className="world-waves" width={width} height={height} />
+              {lands.map((land) => (
+                <Ripple key={land.key} shape={shapes.get(land.key)!} />
+              ))}
+            </>
+          )}
           {EDGE_FOG.map((r, i) => (
             <rect key={i} className="world-fog" x={r.x} y={r.y} width={r.w} height={r.h} />
           ))}
-          {placed.map((r) => (
-            <Island
-              key={r.id}
-              place={r.place}
-              seed={shapeSeed(r.id)}
-              accent={realmAccent(r.id)}
-              status={r.status}
-            />
+          {lands.map((land) => (
+            <Island key={land.key} land={land} shape={shapes.get(land.key)!} art={art} />
           ))}
-          {WORLD_MAP.landmarks.map((l) => (
-            <Island key={l.id} place={l} seed={shapeSeed(l.id)} accent={l.accent} />
-          ))}
-          {view.trail.map((s) => (
-            <g
-              key={`${s.from}-${s.to}`}
-              className="world-trail"
-              data-cleared={s.cleared || undefined}
-            >
-              <line className="world-trail-under" x1={s.a.x} y1={s.a.y} x2={s.b.x} y2={s.b.y} />
-              <line className="world-trail-line" x1={s.a.x} y1={s.a.y} x2={s.b.x} y2={s.b.y} />
-            </g>
-          ))}
+          <Trail trail={view.trail} />
+          <Compass />
+          <Frame />
         </svg>
 
         {current && heroName && (
@@ -172,7 +304,7 @@ export function WorldMap({ view, heroName, tag }: Props) {
                   } as CSSProperties
                 }
               >
-                {l.name}
+                <span className="world-landmark-name">{l.name}</span>
               </Link>
             </li>
           ))}

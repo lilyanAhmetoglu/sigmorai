@@ -3,29 +3,39 @@
  * holds the world stage at one zoom step (ZOOM_STEPS: ½, 1, 2 screen px per
  * art px). The page itself never scrolls sideways; the box does.
  *
- * --world-z is the zoom. The overview needs no JS: ½ under 68rem (1088px,
- * WORLD_OVERVIEW_MIN_WIDTH), else 1. The zoom buttons set data-zoom on the
- * box, which changes --world-z only; the box height follows the overview
- * (--world-z-overview), so zooming never makes the page jump. The stage is
- * the 1024×768 grid × --world-z; the SVG art scales with it. Markers,
+ * --world-z is the zoom. The overview needs no JS: 1 when the whole 1024×768
+ * stage fits (width >= 68rem = WORLD_OVERVIEW_MIN_WIDTH and height >= 52rem
+ * = WORLD_OVERVIEW_MIN_HEIGHT), else ½. The zoom buttons set data-zoom on
+ * the box, which changes --world-z only; the box height follows the
+ * overview (--world-z-overview), so zooming never makes the page jump. The
+ * stage is the grid × --world-z; the SVG art scales with it. Markers,
  * landmarks and the hero sit at anchor × --world-z and keep their own size
  * (44px targets at every step).
  *
- * The placeholder world uses tokens only: sea byte-700 with sparse byte-600
- * waves, islands with a parchment-400 beach, mint-700 land and a coastline
- * in the realm tint, fog a dithered ink-400 checker. No gradient, zero
- * radius, hard shadows.
+ * The drawn world is an old pixel cartography map, tokens only: a
+ * parchment-400 paper sea with parchment-700 wave marks; parchment-100
+ * lands with a parchment-400 stipple, a thin band of the realm tint inside
+ * the coast and a parchment-900 inked coast (dashed on a path-only island);
+ * one ripple line in the water; terrain glyphs in ink and shade; an ember
+ * route (solid once cleared, square footsteps ahead) with arrows; a compass
+ * rose, a double-rule frame and a warm parchment-700 dithered Hallucinant
+ * fog. Fine details sit on 4 art px, so zoom ½ stays on whole screen
+ * pixels. The box around the paper is parchment-900, like a desk. Labels
+ * sit on thin parchment plates. No gradient, no blur, zero radius, hard
+ * shadows.
  */
 @layer components {
   .world-map {
-    @apply bg-ink-950 shadow-panel m-0.75 grid overflow-auto;
+    @apply bg-parchment-900 shadow-panel m-0.75 grid overflow-auto;
     --world-z-overview: 0.5;
     --world-z: var(--world-z-overview);
-    /* Never taller than the overview stage, never more than most of the screen. */
-    height: min(70svh, calc(var(--world-h) * var(--world-z-overview)));
-    scrollbar-color: var(--ink-500) var(--ink-950);
+    /* The route keeps at least its zoom-1 screen weight: 2× art px at ½. */
+    --world-route: max(1, calc(1 / var(--world-z)));
+    /* The overview stage, but never taller than the screen under the 4rem header. */
+    height: min(calc(100svh - --spacing(16)), calc(var(--world-h) * var(--world-z-overview)));
+    scrollbar-color: var(--parchment-400) var(--parchment-900);
   }
-  @media (width >= 68rem) {
+  @media (width >= 68rem) and (height >= 52rem) {
     .world-map {
       --world-z-overview: 1;
     }
@@ -49,50 +59,154 @@
   .world-map-art {
     @apply absolute inset-0 block size-full;
   }
+  .world-art-image {
+    image-rendering: pixelated;
+  }
   .world-sea {
-    fill: var(--byte-700);
+    fill: var(--parchment-400);
   }
   .world-waves {
     fill: url(#world-waves);
   }
   .world-wave {
-    fill: var(--byte-600);
+    fill: var(--parchment-700);
   }
-  .world-beach {
-    fill: var(--parchment-400);
+  /* Ripple: one line in the water, 8 art px off the coast. 2 art px wide
+     from zoom 1, 4 at ½ (--world-route), so it is never a half pixel. */
+  .world-ripple {
+    fill: none;
+    stroke: var(--parchment-700);
+    stroke-width: calc(2 * var(--world-route, 1));
+    stroke-linejoin: miter;
   }
   .world-land {
-    fill: var(--mint-700);
+    fill: var(--parchment-100);
+  }
+  .world-land-texture {
+    fill: url(#world-stipple);
+  }
+  .world-stipple-dot {
+    fill: var(--parchment-400);
+  }
+  /* The realm's colour as a thin band inside the coast (8px stroke clipped to the land = 4px). */
+  .world-land-band {
+    fill: none;
     stroke: var(--tint);
+    stroke-width: 8;
+    stroke-linejoin: miter;
+  }
+  .world-coast {
+    fill: none;
+    stroke: var(--parchment-900);
     stroke-width: 4;
     stroke-linejoin: miter;
   }
+  [data-path-only] > .world-coast {
+    stroke-dasharray: 12 4;
+  }
+  /* Advanced, locked: greyed paper, hatched, an ink band instead of the realm colour. */
   [data-status='tier-locked'] > .world-land {
-    fill: var(--ink-600);
+    fill: var(--parchment-200);
+  }
+  [data-status='tier-locked'] > .world-land-texture {
+    fill: url(#world-hatch);
+  }
+  [data-status='tier-locked'] > .world-land-band {
+    stroke: var(--parchment-400);
+  }
+  .world-hatch-dot {
+    fill: var(--parchment-400);
   }
   .world-fog {
     fill: url(#world-fog);
   }
+  /* Warm, uneven dither (4 art px dots): the Hallucinant's fog on the paper. */
   .world-fog-dot {
-    fill: var(--ink-400);
+    fill: var(--parchment-700);
   }
-  /* Trail: square dots on an ink underlay. Solid once its first realm is cleared. */
+
+  /* Sprite pixels (terrain, compass, frame corners). */
+  [data-px='ink'] {
+    fill: var(--parchment-900);
+  }
+  [data-px='shade'] {
+    fill: var(--parchment-400);
+  }
+  [data-px='tint'] {
+    fill: var(--tint, var(--parchment-700));
+  }
+  [data-px='paper'] {
+    fill: var(--parchment-100);
+  }
+  /* A glyph that only keeps clear of the pins from zoom 1 (terrainGlyphs):
+     hidden at ½, shown from 1, like the marker names. */
+  .world-map [data-from-zoom] {
+    display: none;
+  }
+  @media (width >= 68rem) and (height >= 52rem) {
+    .world-map [data-from-zoom] {
+      display: inline;
+    }
+  }
+  .world-map[data-zoom='0.5'] [data-from-zoom] {
+    display: none;
+  }
+  .world-map[data-zoom='1'] [data-from-zoom],
+  .world-map[data-zoom='2'] [data-from-zoom] {
+    display: inline;
+  }
+  .world-compass [data-px='tint'] {
+    fill: var(--ember-600);
+  }
+
+  /* Frame: a thick outer rule and a thin inner rule. */
+  .world-frame-outer,
+  .world-frame-inner {
+    fill: none;
+    stroke: var(--parchment-900);
+  }
+  .world-frame-outer {
+    stroke-width: 4;
+  }
+  /* 2 art px from zoom 1, 4 at ½: never a half pixel. */
+  .world-frame-inner {
+    stroke-width: calc(2 * var(--world-route, 1));
+  }
+
+  /* Route: square ink footsteps ahead; a solid ember line on ink once its
+     first realm is cleared. The arrow at each middle shows the way. */
   .world-trail-under,
   .world-trail-line {
     stroke-linecap: square;
   }
   .world-trail-under {
-    stroke: var(--ink-950);
-    stroke-width: 10;
+    stroke: none;
   }
   .world-trail-line {
-    stroke: var(--ink-200);
-    stroke-width: 6;
-    stroke-dasharray: 12 12;
+    stroke: var(--parchment-900);
+    stroke-width: calc(4 * var(--world-route, 1));
+    stroke-dasharray: calc(2 * var(--world-route, 1)) calc(10 * var(--world-route, 1));
+  }
+  /* The arrow grows with the route at ½, about its own middle. */
+  .world-trail-arrow {
+    fill: var(--parchment-900);
+    transform: scale(var(--world-route, 1));
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .world-trail[data-cleared] .world-trail-under {
+    stroke: var(--parchment-900);
+    stroke-width: calc(10 * var(--world-route, 1));
   }
   .world-trail[data-cleared] .world-trail-line {
-    stroke: var(--spark-500);
+    stroke: var(--ember-600);
+    stroke-width: calc(6 * var(--world-route, 1));
     stroke-dasharray: none;
+  }
+  .world-trail[data-cleared] .world-trail-arrow {
+    fill: var(--ember-600);
+    stroke: var(--parchment-900);
+    stroke-width: 2;
   }
 
   /* Anything placed by anchor: centred on (x, y) × zoom. */
@@ -107,8 +221,8 @@
   }
 
   /* Marker: the link is a transparent 44px target on the anchor, holding a
-     28px pin; the tag sits above it, the name and state word below it (from
-     zoom 1). */
+     28px pin with a small state pip on its corner; the tag sits above it,
+     the name on a thin plate below it (from zoom 1). */
   .world-marker {
     @apply grid size-11 place-items-center no-underline;
   }
@@ -119,41 +233,66 @@
   .world-marker[data-status='tier-locked'] .world-marker-pin {
     @apply bg-ink-700 text-ink-300;
   }
-  .world-marker-icon {
-    @apply bg-ink-950 text-ink-100 font-hud text-micro shadow-notch absolute -right-2.5 -bottom-2.5 px-0.5 leading-none;
+  /* The pip: a 7×7 ink shape at 2px a pixel on a 16px inked paper square
+     (WORLD_STATUS_PIPS), so it reads on any land or pin colour. On the
+     pin's top-right corner: WORLD_HERO.pinBox keeps the hero and terrain
+     off it. */
+  .world-marker-pip {
+    @apply bg-parchment-100 border-parchment-900 shadow-drop-sm absolute -top-1.5 -right-1.5 grid size-4 place-items-center border;
+  }
+  .world-marker-pip > svg {
+    @apply block size-3.5;
+    fill: var(--parchment-900);
   }
   .world-marker-tag,
-  .world-marker-detail {
-    @apply bg-ink-950 shadow-notch absolute left-1/2 w-max -translate-x-1/2;
+  .world-marker-name {
+    @apply absolute left-1/2 w-max -translate-x-1/2 whitespace-nowrap;
   }
   .world-marker-tag {
-    @apply bg-xp text-text-on-accent font-hud text-micro tracking-hud bottom-[calc(100%+--spacing(0.5))] px-2 py-1 whitespace-nowrap;
+    @apply bg-xp text-text-on-accent font-hud text-micro tracking-hud shadow-notch bottom-[calc(100%+--spacing(0.5))] px-2 py-1;
   }
-  .world-marker-detail {
-    @apply text-text-1 top-[calc(100%+--spacing(1))] hidden flex-col items-center gap-1 px-2 py-1 whitespace-nowrap;
-  }
+  /* The name: a thin paper plate with a small hard shadow, like a label
+     pasted on a printed map. Quiet: no colour, no state word. */
   .world-marker-name {
-    @apply font-hud text-micro tracking-hud text-center leading-tight uppercase;
+    @apply bg-parchment-100 text-parchment-900 font-hud text-micro tracking-hud shadow-drop-sm top-[calc(100%+--spacing(0.5))] hidden px-1.5 py-px leading-tight uppercase;
   }
-  /* The detail shows from zoom 1 (overview on a wide screen, or zoomed in). */
-  @media (width >= 68rem) {
-    .world-marker-detail {
-      @apply flex;
+  /* The name shows from zoom 1 (overview on a wide screen, or zoomed in). */
+  @media (width >= 68rem) and (height >= 52rem) {
+    .world-marker-name {
+      @apply block;
     }
   }
-  .world-map[data-zoom='0.5'] .world-marker-detail {
+  .world-map[data-zoom='0.5'] .world-marker-name {
     @apply hidden;
   }
-  .world-map[data-zoom='1'] .world-marker-detail,
-  .world-map[data-zoom='2'] .world-marker-detail {
-    @apply flex;
+  .world-map[data-zoom='1'] .world-marker-name,
+  .world-map[data-zoom='2'] .world-marker-name {
+    @apply block;
+  }
+  /* At every zoom (a phone's ½ too): the name of the marker with keyboard
+     focus, on top of its neighbours. The current realm's name is also in
+     the "here" line under the box (.world-map-here). */
+  .world-map .world-marker:focus-visible .world-marker-name {
+    @apply block;
+  }
+
+  /* Focus: the global 3px Spark ring, backed by a hard 3px ink-950 ring
+     outside it (no blur), so it shows on the paper land and sea (Spark on
+     parchment is under 3:1; ink-950 on parchment is over 10:1). The focused
+     marker sits above its neighbours. */
+  .world-marker:focus-visible,
+  .world-landmark:focus-visible {
+    @apply z-30;
+    box-shadow: 0 0 0 calc(2 * var(--border-2)) var(--ink-950);
   }
 
   /* Hero: a 48px avatar next to the current pin, on the side heroSide picks
      for that place (data-side), so it never hides another pin, a landmark
-     label, or its own tag and name. Left and right sit 16px off the anchor;
-     above and below clear the tag and the name. The offsets are
-     WORLD_HERO.sides (lib/constants/world-map.ts; a test keeps them equal).
+     label, or its own tag, pip and name. Left sits 16px off the anchor,
+     right 24px (past the pip); above and below clear the tag and the name.
+     The offsets are map geometry, not the spacing scale (--spacing(25) and
+     (18) are off the 4…96 scale on purpose): WORLD_HERO.sides
+     (lib/constants/world-map.ts; a test keeps them equal).
      Clamped to the stage's top-left edge. Decoration only: clicks go through. */
   .world-hero {
     @apply pointer-events-none absolute z-20;
@@ -165,7 +304,7 @@
     top: max(0px, calc(var(--hero-y) - --spacing(6)));
   }
   .world-hero[data-side='right'] {
-    left: max(0px, calc(var(--hero-x) + --spacing(4)));
+    left: max(0px, calc(var(--hero-x) + --spacing(6)));
     top: max(0px, calc(var(--hero-y) - --spacing(6)));
   }
   .world-hero[data-side='above'] {
@@ -178,14 +317,16 @@
   }
 
   /* Landmark: a plain link with its name (Math Tower, the Frontier), on the
-     island's south shore, so the island itself stays visible. */
+     island's south shore, so the island itself stays visible. The link is a
+     transparent 44px-tall target; the name inside is a thin plate like a
+     realm's name. */
   .world-landmark {
-    @apply absolute z-10 -translate-x-1/2;
+    @apply absolute z-10 flex min-h-11 -translate-x-1/2 items-center no-underline;
     left: calc(var(--x) * var(--world-z));
     top: calc((var(--y) + var(--half-h)) * var(--world-z) - --spacing(3));
   }
-  .world-landmark {
-    @apply bg-ink-950 text-text-1 font-hud text-micro tracking-hud shadow-notch flex min-h-11 items-center border-b-4 border-(--tint) px-3 text-center whitespace-nowrap uppercase no-underline;
+  .world-landmark-name {
+    @apply bg-parchment-100 text-parchment-900 font-hud text-micro tracking-hud shadow-drop-sm px-1.5 py-px leading-tight whitespace-nowrap uppercase;
   }
   /* Near the east edge: the label ends at the land's right edge, so it stays
      on the stage at zoom ½. */
@@ -194,7 +335,14 @@
     left: calc((var(--x) + var(--half-w)) * var(--world-z));
   }
 
-  /* Under the box: the hint and the zoom buttons, then the path list. */
+  /* Under the box: where you are (tag + realm name, so a phone at ½ still
+     names it), the hint and the zoom buttons, then the path list. */
+  .world-map-here {
+    @apply text-body leading-body text-text-1 m-0 flex w-full flex-wrap items-center gap-2;
+  }
+  .world-map-here-tag {
+    @apply bg-xp text-text-on-accent font-hud text-micro tracking-hud shadow-notch m-0.75 px-2 py-1;
+  }
   .world-map-bar {
     @apply flex flex-wrap items-center justify-between gap-3;
   }
@@ -211,5 +359,32 @@
   }
   .world-zoom-label {
     @apply bg-ink-950 text-ink-100 font-hud text-micro tracking-hud shadow-notch px-3 py-2.5;
+  }
+
+  /* Map key: a parchment cartouche of small drawn samples and plain words
+     (Atkinson, reading text). Wraps on a phone. */
+  .world-legend {
+    @apply bg-parchment-100 text-parchment-900 text-small leading-body shadow-notch m-0.75 flex list-none flex-wrap gap-x-5 gap-y-2 px-3 py-2;
+  }
+  .world-legend-row {
+    @apply flex items-center gap-2;
+  }
+  .world-legend-sample {
+    @apply relative grid h-5 w-8 flex-none place-items-center;
+  }
+  .world-legend-sample > svg {
+    @apply block size-full;
+  }
+  /* A pin mark alone sits in the middle; on the locked land, on its corner. */
+  .world-marker-pip[data-legend] {
+    @apply static;
+  }
+  svg + .world-marker-pip[data-legend] {
+    @apply absolute right-0 bottom-0;
+  }
+  .world-legend-here {
+    fill: var(--xp);
+    stroke: var(--ink-950);
+    stroke-width: 2;
   }
 }
