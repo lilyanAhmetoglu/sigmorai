@@ -1,7 +1,7 @@
 ---
 id: creator/r0/c2/lesson
 title: Tokens & pixels
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Vision
@@ -24,69 +24,157 @@ sources:
   - kind: docs
     title: Gemini API docs · Audio understanding
     url: https://ai.google.dev/gemini-api/docs/audio
+  - kind: docs
+    title: Gemini API docs · Pricing
+    url: https://ai.google.dev/gemini-api/docs/pricing
 ---
 
-## Why it matters
+## Goal
 
-Text models count **tokens**: small pieces of text. Media models count too. An image, a second of audio or a second of video becomes a number of tokens or units, and you pay for that number. Bigger pictures and longer clips usually cost more. This lesson shows how the vendors count, so the bill does not surprise you.
+After this lesson you can:
 
-All numbers below are copied from the vendors' docs, checked on 2026-10-06. They change, so check the page before you plan a budget.
+- Work out roughly how many tokens an image or an audio clip uses.
+- Send a crop instead of a huge image when the detail is small.
+- Pick a cheap output size for drafts and a big one only for finals.
 
-## Media counts as tokens
+## The problem
 
-Google's docs put it simply: "All input to the Gemini API is tokenized, including images, video, and audio." OpenAI's vision guide says images "count as tokens and will be billed accordingly."
+An illustrator scans 12 pencil sketches with a phone. Each scan is a large photo. She sends all 12 to a model and asks: "Which pose reads best? And is my signature in the corner readable?" She also sends a 10-minute client call to get notes.
 
-So a moodboard of 30 photos is not free context. Each photo adds tokens to the request.
+Two things surprise her:
 
-## How an image you send is counted
+1. The bill is much higher than for her usual text chats.
+2. The model says the signature is fine, but it is too small to read on the scan.
 
-Each vendor cuts the image into small squares and counts them. The size of the square differs.
+Both problems have the same cause. The model does not see "a picture". It sees a number of **tokens**, and big files are made smaller before the model sees them.
 
-| Vendor | How it counts an input image                                                                               |
-| ------ | ---------------------------------------------------------------------------------------------------------- |
-| Claude | 28×28-pixel patches. Tokens = ⌈width / 28⌉ × ⌈height / 28⌉                                                 |
-| OpenAI | 32×32-pixel patches on newer models, then a model multiplier (1.2 for gpt-6-astra)                         |
-| Gemini | 258 tokens if both sides are 384 pixels or less; larger images are cut into 768×768 tiles, 258 tokens each |
+## The idea
 
-Worked examples from the docs:
+Text models count **tokens**: small pieces of text. Media counts too. The [Gemini API docs](https://ai.google.dev/gemini-api/docs/tokens) say: "All input to the Gemini API is tokenized, including images, video, and audio." The [OpenAI docs](https://developers.openai.com/api/docs/guides/images-vision) say images "count as tokens and will be billed accordingly."
 
-- **Claude:** a 1000×1000 image costs 1,296 tokens.
-- **OpenAI:** on gpt-6-astra with `high` detail, a 1024×1024 image is 1,024 patches, billed as 1,229 tokens.
+Think of a tiled floor. The bigger the floor, the more tiles you buy. Each vendor uses a different tile size.
 
-## Big images get shrunk
+```text
+image -> cut into small squares (patches or tiles)
+      -> each square costs tokens
+      -> tokens x price = cost
+```
 
-Vendors set a top size. Above it, the image is made smaller before the model sees it.
+All numbers below were checked on the live pages on 2026-10-08. They change, so check before you plan a budget.
 
-Claude's docs give two tiers. On Claude 4.7 and later models, the long edge can be up to 2576 px (max 4,784 tokens). On other models it is 1568 px (max 1,568 tokens). A 3840×2160 (4K) screenshot is shrunk to 2576×1449 on the high-resolution tier.
+**Images you send (input).**
 
-Shrinking caps the cost, but it has a price. Claude's docs warn that a resized image can make text "less legible". Google's docs say the same trade-off for Gemini's `media_resolution` setting: higher resolution helps the model read fine text, "but increase token usage and latency."
+| Vendor | How it counts an input image                                                                   |
+| ------ | ---------------------------------------------------------------------------------------------- |
+| Claude | 28×28-pixel patches: "⌈width / 28⌉ × ⌈height / 28⌉ visual tokens"                              |
+| OpenAI | "32px x 32px patches" on some models, then a model multiplier (1.2 for gpt-6-astra)            |
+| Gemini | "258 tokens" if both sides are 384 pixels or less; larger images use 768×768 tiles, 258 tokens |
 
-Example: you ask a model to proofread the small print on a packaging mock-up. Send a crop of the small print at a good size. Don't send the full 4K artboard and hope.
+Two examples from the docs: on Claude, a 1000×1000 image is 1,296 tokens. On OpenAI's gpt-6-astra, a 1024×1024 image is 1,024 patches, billed as "ceil(1024 × 1.2) = 1229 tokens".
 
-## How an image the model makes is counted
+**Big images get shrunk.** Each model has a top size. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/vision) list two tiers. Claude 4.7 and later models allow a long edge of "2576 px" (max 4,784 tokens). All other models allow "1568 px" (max 1,568 tokens). For example, a 3840×2160 (4K) image becomes 2576×1449 on the high-resolution tier. Shrinking caps the cost, but the Claude docs warn it can "make text less legible". The [Gemini API docs](https://ai.google.dev/gemini-api/docs/image-understanding) say the same about higher resolution: it helps read fine text, "but increase token usage and latency."
 
-Output is counted too. Google's docs list the tokens for each Nano Banana 2.1 output size:
+**Images the model makes (output).** Output is counted too. The [Gemini API docs](https://ai.google.dev/gemini-api/docs/image-generation) give this size table:
 
-| Output size | Example (1:1) | Tokens |
-| ----------- | ------------- | ------ |
-| 1K          | 1024×1024     | 1,120  |
-| 2K          | 2048×2048     | 1,680  |
-| 4K          | 4096×4096     | 2,520  |
+| Size step | Example (1:1) | Tokens |
+| --------- | ------------- | ------ |
+| 1K        | 1024×1024     | 1,120  |
+| 2K        | 2048×2048     | 1,680  |
+| 4K        | 4096×4096     | 2,520  |
 
-The shape does not change the count. A 3:2 image at 1K (1264×848) is also 1,120 tokens. The size step (1K, 2K, 4K) is what matters.
+The shape does not change the count: a 3:2 image at 1K (1264×848) uses the same 1,120 tokens. Only a bigger size step raises the cost.
 
-OpenAI also prices image generation per token. Its pricing page lists image output tokens for its GPT Image models, and points you to a calculator in the image generation guide for a cost per image.
+The [Gemini pricing page](https://ai.google.dev/gemini-api/docs/pricing) bills by model: Nano Banana 2.1 is 1,120 (1K), 1,680 (2K) and "3780 tokens" (4K); Nano Banana 2 is 2,520 at 4K. For a budget, use the pricing page row for your model. OpenAI also bills image generation by tokens; its [pricing page](https://developers.openai.com/api/docs/pricing) lists image output tokens for GPT Image models.
 
-## Audio and video count by the second
+**Audio and video (input).** The [Gemini API docs](https://ai.google.dev/gemini-api/docs/audio) say audio is "32 tokens per second of audio (1 minute = 1,920 tokens)". Video is "263 tokens per second" for static processing; other modes vary.
 
-- **Gemini audio input:** 32 tokens per second, so 1 minute = 1,920 tokens.
-- **Gemini video input:** 263 tokens per second (standard processing; other modes vary).
+## Worked example
 
-Example: you ask a model to summarize a 3-minute client voice memo. That is 3 × 1,920 = 5,760 audio tokens before you type a word.
+### Step 1: count one sketch (before)
 
-## What this means for your work
+The phone scan is 2000×1500 pixels. You send it to a Claude model on the standard tier. The Claude docs have this exact size in their table:
 
-- **Size is a cost choice.** Send the smallest image that still shows the detail you need.
-- **Draft small, finish big.** Make draft images at 1K. Make the final hero at 2K or 4K.
-- **Crop, don't just shrink.** When the detail is small text, a crop keeps it readable. Keep the context the question needs (for example, the edge of the label).
-- **Count before you run.** Photos × tokens per photo × price per token gives a rough cost. Chapter 5 turns this into a budget.
+```text
+2000x1500 on the standard tier
+-> shrunk to 1269x952
+-> 1,564 tokens (the cap is 1,568)
+-> 12 sketches = 18,768 tokens per question
+```
+
+The whole image shrinks, so the signature shrinks too. It loses about a third of its width. Small text gets hard to read.
+
+### Step 2: do the maths for a smaller file
+
+Use the Claude formula on a 1200×800 image:
+
+```text
+⌈1200 / 28⌉ × ⌈800 / 28⌉
+= 43 × 29
+= 1,247 tokens
+```
+
+The vendor table gives one more data point. A 1920×1080 screenshot is shrunk to 1456×819 on the standard tier (1,560 tokens). On the high-resolution tier it is not shrunk (2,691 tokens).
+
+### Step 3: split the job (after)
+
+The two questions need different images:
+
+```text
+Question A: "Which pose reads best?"
+-> send all 12 sketches at about 1200x900
+-> about 1,419 tokens each
+
+Question B: "Is the signature readable?"
+-> send one crop of the corner, at a good size
+-> keep a little of the edge, so the model sees where it is
+```
+
+**The hard case is question B.** Shrinking the full scan makes the cost lower, but it also makes the signature smaller. A crop fixes both: fewer pixels to pay for, and the small detail stays big.
+
+### Step 4: the client call
+
+```text
+10 minutes x 60 s x 32 tokens = 19,200 audio tokens
+```
+
+That is before you type a word. If you only need notes on the last 3 minutes, send only those minutes.
+
+### Step 5: why it is better
+
+- **Each question gets the image it needs.** Pose needs the whole sketch. The signature needs a close crop.
+- **The cost is known before you run.** Formula × number of images gives tokens.
+- **The answer is more reliable.** The model reads small text at a size it can see.
+
+## Common mistakes
+
+1. **Sending the biggest file "to be safe".** It is shrunk anyway, and you pay up to the cap. Fix: send the smallest image that still shows the detail.
+2. **Shrinking when you should crop.** Shrinking makes small text even smaller. Fix: crop to the detail, and keep a little context around it.
+3. **Making every draft at full size.** Most drafts are thrown away. Fix: make drafts at 1K and only the chosen ones at 2K or 4K.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A podcast team wants three things:
+
+```text
+1. Notes on a 5-minute audio interview (Gemini).
+2. 30 cover-art ideas, then one final cover at 4K
+   (Nano Banana 2.1).
+3. A check that the episode number on the final cover
+   is readable.
+```
+
+Estimate the audio tokens. Then say what size to use for the ideas, and what image to send for the check.
+
+### Answer
+
+1. **Audio.** 5 minutes × 1,920 tokens per minute = 9,600 tokens.
+2. **Sizes.** Make the 30 ideas at 1K (1,120 tokens each). Make only the chosen one at 4K.
+3. **Check.** Send a crop of the episode number at a readable size, not the full 4K file.
+
+## Recap
+
+- Media is counted in tokens: images by patches or tiles, audio and video by the second.
+- Big images are shrunk to a top size. That caps the cost, but small text can become hard to read, so crop to the detail.
+- For images you make, the size step (1K, 2K, 4K) sets the token count. Draft small, finish big.

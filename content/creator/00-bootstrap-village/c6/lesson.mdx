@@ -1,7 +1,7 @@
 ---
 id: creator/r0/c6/lesson
 title: Rights & safety
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Anthropic Usage Policy
@@ -29,77 +29,143 @@ sources:
     url: https://c2pa.org
 ---
 
-## Why it matters
+## Goal
 
-A client asks for "our ad, with a famous singer's face, and don't say it's AI". Can you make it? The model may refuse. And even if it doesn't, the vendor's rules may forbid it. This lesson shows what the vendors' policies and docs say about people, rights and the origin of AI media.
+After this lesson you can:
 
-**This is not legal advice.** It covers only what vendor policies and docs say. Laws differ by country. For a contract or a legal question, ask a lawyer.
+- Review a creative brief against the vendors' usage policies: rights, real people, honest origin.
+- Handle a blocked request without trying to get around the filter.
+- Explain what C2PA metadata and SynthID watermarks are, what removes them, and why a provenance check is not proof.
 
-## Each vendor has a usage policy
+**This is not legal advice.** It is limited to the rules written in vendor policies and docs. Laws differ by country. For a contract or a legal question, ask a lawyer.
 
-When you use a model, you agree to that vendor's rules. Two examples:
+## The problem
 
-- **Anthropic Usage Policy** (effective September 15, 2025). It applies to "anyone who can submit inputs" to Anthropic's products.
-- **Google Generative AI Prohibited Use Policy** (last modified December 17, 2024). Gemini's image docs say: "Your use of this generative AI service is subject to our Prohibited Use Policy."
+A city museum plans a poster and video series for a history festival. The brief has four ideas:
 
-OpenAI's image guide says: "All prompts and generated images are filtered in accordance with our content policy."
+1. Use scans of paintings from the museum's own collection as style references.
+2. Use 20 photos from a travel blog as references. Nobody asked the blogger.
+3. Make a short video of a famous 19th-century writer "speaking" to visitors.
+4. Export the final posters, edit them in a design tool, and post them online.
 
-Read the policy of every model you use. The wording differs, but the rules below come up again and again.
+The team wants to start today. Some ideas are fine. Some break vendor rules. One needs a clear label. And one quietly removes the file's AI label.
 
-## Rules that touch creative work
+## The idea
 
-**Other people's rights.** Anthropic's policy forbids using its products to "infringe, misappropriate, or violate the intellectual property rights of a third party". Google's policy forbids content that "violates the rights of others, including privacy and intellectual property rights". Gemini's image docs add a reminder before you edit: "Make sure you have the necessary rights to any images you upload."
+When you use a model, you agree to that vendor's rules. Think of them as the house rules of a rented studio: you can make almost anything, but some uses are not allowed.
 
-Example: a stock photo you have not licensed is not yours to upload as a reference.
+**Each vendor has a usage policy.**
 
-**Real people.** Google's policy forbids "impersonating an individual (living or dead) without explicit disclosure, in order to deceive". Anthropic's policy forbids impersonating "real entities" or creating "fake personas to falsely attribute content or mislead others about its origin without consent or legal right".
+- The [Anthropic Usage Policy](https://www.anthropic.com/legal/aup) applies "to anyone who submits inputs to Anthropic's products or services". The page shows a new version that takes effect on November 12, 2026 ("Effective November 12, 2026"); until then the previous version applies.
+- The [Google Generative AI Prohibited Use Policy](https://policies.google.com/terms/generative-ai/use-policy) ("Last Modified: December 17, 2024"). The [Gemini API docs](https://ai.google.dev/gemini-api/docs/image-generation) say: "Your use of this generative AI service is subject to our Prohibited Use Policy."
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) say: "All prompts and generated images are filtered in accordance with our content policy."
 
-**Passing AI work off as human.** Google's policy forbids "misrepresenting the provenance of generated content by claiming it was created solely by a human, in order to deceive". Anthropic's policy forbids using its products to "impersonate a human by presenting results as human-generated".
+**Rules that touch creative work.**
 
-**Harmful content.** Both policies forbid sexual content involving minors. Google's also lists non-consensual intimate imagery, harassment and hate speech.
+- **Other people's rights.** Anthropic forbids using its products to "Infringe, misappropriate, or violate the intellectual property rights of a third party". Google forbids content that "Violates the rights of others, including privacy and intellectual property rights". The Gemini API docs add: "Make sure you have the necessary rights to any images you upload."
+- **Real people.** Google forbids "Impersonating an individual (living or dead) without explicit disclosure, in order to deceive". Anthropic forbids impersonating "real individuals or entities", or creating "fake personas", to "mislead audiences about its origin". Anthropic adds: "This does not prohibit clearly disclosed parody, satire, or fiction."
+- **Honest origin.** Google forbids "Misrepresenting the provenance of generated content by claiming it was created solely by a human, in order to deceive".
+- **Harmful content.** Both policies forbid sexual content involving minors. Both also list non-consensual intimate imagery and harassment.
+- **Filters.** Google forbids "Circumvention of abuse protections or safety filters".
 
-Note the word "deceive" in Google's rules. Google also says it "may make exceptions" for educational, documentary, scientific or artistic reasons. You don't decide those exceptions. The vendor does.
+Google also says it "may make exceptions" for educational, documentary, scientific or artistic reasons. The vendor decides those exceptions.
 
-## What gets blocked, and what you see
+**What gets blocked, and what you see.**
 
-Models check prompts and outputs. You will see some refusals. Plan for them.
+- **OpenAI image models.** A blocked request returns the code `moderation_blocked`. It can include a `moderation_stage`: `input` (your prompt or images) or the output. The OpenAI docs say: "Don't automatically retry these errors without modifying the prompt or input images."
+- **Veo 3.1.** The [Veo docs](https://ai.google.dev/gemini-api/docs/veo) say: "Prompts that violate our terms and guidelines are blocked." Videos also pass "safety filters and memorization checking processes that help mitigate privacy, copyright and bias risks". You are not charged for a blocked video.
+- **People in Veo.** The `personGeneration` setting controls people in videos. From an image or with reference images, only `allow_adult` is allowed. "In EU, UK, CH, MENA locations, allow_adult is the only allowed value".
+- **Claude vision.** The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/vision) say Claude "cannot be used to name people in images and refuses to do so". It also does not process explicit images that break Anthropic's policy.
 
-- **OpenAI image models.** A blocked request returns the error code `moderation_blocked`. It can say whether the block came from the **input** (your prompt or images) or the **output** (the generated image). OpenAI's guide says not to retry these errors automatically "without modifying the prompt or input images".
-- **Veo 3.1.** Google's docs say "Prompts that violate our terms and guidelines are blocked". Videos also pass through filters and "memorization checking processes that help mitigate privacy, copyright and bias risks". You are not charged for a blocked video.
-- **People in Veo.** The `personGeneration` setting controls people in videos. When you start from an image or use reference images, only `allow_adult` is allowed. In the EU, UK, CH and MENA regions, `allow_adult` is the only allowed value.
-- **Claude vision.** Claude "cannot be used to name people in images and refuses to do so". It also does not process explicit images that break Anthropic's policy.
+**Provenance: a label inside the file.** **Provenance** means where media came from and how it was made. Two signals carry it:
 
-## Provenance: a label inside the file
+- **C2PA Content Credentials.** [C2PA](https://c2pa.org) is "an open technical standard" to "establish the origin and edits of digital content". Its site says they work "like a nutrition label for digital content". The [OpenAI docs](https://developers.openai.com/api/docs/guides/content-provenance) call them "Signed metadata with issuer and AI-use details".
+- **SynthID.** A watermark inside the media itself. The Gemini API docs say: "All generated images include a SynthID watermark." Veo videos "are watermarked using SynthID". OpenAI's provenance check also looks for SynthID in images and audio.
 
-**Provenance** means where a piece of media came from and how it was made. Two technologies carry it.
+| Signal                   | Where it lives             | What can remove it                                                         |
+| ------------------------ | -------------------------- | -------------------------------------------------------------------------- |
+| C2PA Content Credentials | metadata in the file       | "Editing, converting, or sharing a file can remove its metadata." (OpenAI) |
+| SynthID watermark        | inside the pixels or audio | It "may survive some transformations", so not every edit removes it.       |
 
-- **C2PA Content Credentials.** C2PA is "an open technical standard" to show "the origin and edits of digital content". Its site compares Content Credentials to "a nutrition label for digital content". OpenAI's docs describe them as "signed metadata with issuer and AI-use details".
-- **SynthID.** A watermark built into the media itself. Google's docs say all Nano Banana images include a SynthID watermark, and Veo videos are watermarked with SynthID. OpenAI's provenance check also looks for SynthID in images and audio.
+The OpenAI docs add: "Visible watermarks and labels are separate from the provenance signals checked by the API."
 
-The two behave differently when a file moves around:
+**A check is not a lie detector.** OpenAI's provenance check "isn't a general-purpose AI detector". It checks for OpenAI's own signals only. A `not_detected` result means "the tool didn't find supported signals". The metadata may have been stripped, and the tool "doesn't currently detect content generated by another company's AI model". The Claude docs say the same about vision: Claude "cannot determine whether an image is AI-generated".
 
-| Signal                   | Where it lives             | What can remove it                                                            |
-| ------------------------ | -------------------------- | ----------------------------------------------------------------------------- |
-| C2PA Content Credentials | metadata in the file       | "Editing, converting, or sharing a file can remove its metadata." (OpenAI)    |
-| SynthID watermark        | inside the pixels or audio | It "may survive some transformations", so not every edit removes it. (OpenAI) |
+## Worked example
 
-OpenAI's docs also say visible watermarks and labels are "separate from the provenance signals".
+### Step 1: the brief before
 
-## A check is not a lie detector
+```text
+1. Our own painting scans as style references.
+2. 20 travel-blog photos as references (no permission).
+3. Video: famous 19th-century writer "speaking".
+4. Export, edit in a design tool, post online.
+```
 
-OpenAI offers a provenance check for its own images and audio. It is not proof either way:
+### Step 2: check each item against a policy line
 
-- It "isn't a general-purpose AI detector". It looks only for OpenAI's signals.
-- A `not_detected` result does not prove a person made the file. The metadata may have been stripped, or another company's model may have made it.
+```text
+1. Own scans     -> GO. The museum owns the rights.
+2. Blog photos   -> STOP. "Make sure you have the necessary
+                    rights to any images you upload."
+                    Ask the blogger, license them, or use own photos.
+3. Writer video  -> CHANGE. Google forbids impersonating a person
+                    "(living or dead) without explicit disclosure,
+                    in order to deceive". Label it clearly on
+                    screen as an AI reenactment. The vendor may
+                    still block it.
+4. Export + edit -> CHANGE. Editing can remove C2PA metadata.
+                    Keep the original files. Label the posts
+                    if your platform or client asks.
+```
 
-Claude's docs say the same about vision models: Claude "cannot determine whether an image is AI-generated". Don't ask a model to judge it.
+**The hard case is item 3.** The writer is dead, but Google's rule covers "living or dead". The key words are "explicit disclosure" and "deceive". A video that says clearly "AI reenactment" is not trying to deceive. Still, the vendor decides, and a law in your country may say more. If the request is blocked, change the idea. Don't reword the prompt to get past the filter.
 
-## What this means for your work
+### Step 3: the brief after
 
-This is Sigmorai's checklist, not a vendor rule:
+```text
+1. Own painting scans as references.              GO
+2. Own photos of the city, or licensed ones.      GO after licence
+3. Writer video, labelled "AI reenactment".       TEST, then review
+4. Keep originals; label posts where needed.      GO
+```
 
-- **Own your inputs.** Upload only images you have the rights to use.
-- **No real person without consent.** No look-alikes of real people meant to deceive.
-- **Keep the credentials.** Ask how your export, edit and upload steps treat metadata. Keep an original file.
-- **Don't promise "AI-free".** A failed check is not proof.
-- **Read the policy, then ask a lawyer.** Policies tell you what the vendor allows. They don't answer legal questions.
+### Step 4: why it is better
+
+- **Every input is owned or licensed.**
+- **No one is misled.** The reenactment says what it is.
+- **The origin trail is kept.** Original files keep their metadata.
+- **Blocks are handled honestly.** A block means change the request, not hide it.
+
+## Common mistakes
+
+1. **"It's only a reference."** A reference image is still an upload. Fix: use only images you own or have a licence for.
+2. **Rewording a blocked prompt until it passes.** Google forbids getting around safety filters. Fix: read why it was blocked, then change the idea.
+3. **Treating "no signal found" as proof.** Metadata can be stripped, and a check only finds its own vendor's signals. Fix: keep original files, and never promise that a file is "not AI".
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Mark each request GO, CHANGE or STOP, and give one reason.
+
+```text
+a. A shop asks for a product video made from photos its
+   own team shot.
+b. A band asks for a poster "in the exact photo" of a
+   magazine cover they found online.
+c. A client asks you to strip all metadata from AI images
+   and post them as "hand-painted by our artist".
+```
+
+### Answer
+
+- **a. GO.** The shop owns the photos.
+- **b. STOP or CHANGE.** The magazine photo is not theirs to upload. Get a licence, or use their own photos.
+- **c. STOP.** Google forbids claiming generated content "was created solely by a human, in order to deceive". Offer honest wording, such as "made with AI tools".
+
+## Recap
+
+- Read each vendor's usage policy. Use only inputs you have the rights to, and don't impersonate real people or hide AI origin to deceive.
+- When a request is blocked, change the request. Don't try to get past the filter.
+- C2PA metadata can be removed by editing or sharing; SynthID lives inside the media. A "not detected" result is not proof that a person made a file.

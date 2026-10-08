@@ -1,7 +1,7 @@
 ---
 id: creator/r0/c1/lesson
 title: Media models
-minutes: 6
+minutes: 10
 sources:
   - kind: docs
     title: Claude docs · Vision
@@ -26,60 +26,129 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/speech-generation
 ---
 
-## Why it matters
+## Goal
 
-"AI" is not one tool. Some models make pictures. Some make video. Some make a voice. Some only look at your pictures and write about them. If you pick the wrong kind, the job fails before you write a single prompt. This lesson gives you a simple map.
+After this lesson you can:
 
-## Input and output
+- Read a model's inputs and outputs, and say what it can make.
+- Split a creative brief into jobs and match each job to an image, video, speech or vision model.
+- Choose an edit instead of a new generation when most of an image is already right.
 
-Every model has **inputs** (what it can read) and **outputs** (what it can make). The kinds of media are called **modalities**: text, image, video, audio.
+## The problem
 
-Read the output side first. It tells you what the model can make for you.
+A small museum plans a new exhibition. The brief from the marketing lead says:
 
-Example: Anthropic's model overview says all current Claude models support text and image input and text output. So Claude can look at your poster and tell you the logo is too small. But the Claude vision docs say it plainly: Claude "cannot generate, produce, edit, manipulate, or create images." It reads images. It does not make them.
+- A poster with the show title and the dates.
+- A short looping video for the screen in the lobby.
+- An audio guide, read in two languages.
+- Alt text (a short written description) for 50 photos of the artworks, for the website.
 
-## Four kinds of media model
+The team opens one chat app and types all four jobs into it. The poster never appears. The video never appears. They get only text back. They lose an afternoon.
 
-**1. Image models.** You write a prompt, the model makes an image.
+The problem is not the prompt. The problem is the model. Each job needs a model that **makes** that kind of media.
 
-- OpenAI's image API has two parts: _Generations_ (make an image from a text prompt) and _Edits_ (change an existing image, in part or entirely).
-- Google calls Gemini's image generation "Nano Banana". Its docs list text-to-image, editing with text and an image, and mixing up to 14 reference images into one result.
+## The idea
 
-**2. Video models.** You write a prompt, or give a first frame, and the model makes a short clip.
+Every model has **inputs** (what it can read) and **outputs** (what it can make). The kinds of media are called **modalities**: text, image, video, audio. The **output modality** is what comes out: the type of media you get back.
 
-- Google's Veo 3.1 makes 8-second videos (720p, 1080p or 4k) with natively generated audio. It can start from reference images or from a first and last frame.
+Read the output side first. Think of a kitchen: an oven bakes and a blender mixes. You don't ask the blender for bread.
 
-**3. Speech models (text to speech).** You give a script, the model makes a voice track.
+```text
+input (reads)            output (makes)
+text            ->  [image model]   ->  image
+text or image   ->  [video model]   ->  video
+text (a script) ->  [speech model]  ->  audio
+image + text    ->  [vision model]  ->  text
+```
 
-- OpenAI's speech endpoint can "narrate a written blog post" and speak in many languages.
-- Gemini's speech models take text-only input and give audio-only output. One request can have up to 2 speakers.
+The vendor docs show four kinds of media model:
 
-**4. Vision models (image in, text out).** You give an image, the model describes or checks it. Claude is one example. Chapter 3 compares vendors.
+- **Image models.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) list two endpoints. _Generations_ make images "from scratch based on a text prompt". _Edits_ "modify existing images using a new prompt, either partially or entirely". The [Gemini API docs](https://ai.google.dev/gemini-api/docs/image-generation) call Google's image models Nano Banana. You can "mix up to 14 reference images" into one result.
+- **Video models.** The [Gemini API docs](https://ai.google.dev/gemini-api/docs/veo) say Veo 3.1 is "a model for generating 8-second videos (720p, 1080p, or 4k) with natively generated audio". You can also give it the first and last frames.
+- **Speech models** (text to speech). The [OpenAI docs](https://developers.openai.com/api/docs/guides/text-to-speech) say the speech endpoint can "narrate a written blog post" and make spoken audio in many languages. The [Gemini API docs](https://ai.google.dev/gemini-api/docs/speech-generation) say its speech models "accept text-only inputs and produce audio-only outputs". One request supports "up to 2 speakers".
+- **Vision models** (image in, text out). The [Claude docs](https://platform.claude.com/docs/en/models/overview) say: "All current models support text and image input, text output". So Claude can look at a poster and write feedback. But the [Claude vision docs](https://platform.claude.com/docs/en/build-with-claude/vision) are clear: Claude "cannot generate, produce, edit, manipulate, or create images." It reads images. It does not make them.
 
-## Text inside images
+**Text inside images** needs extra care. The OpenAI docs say their model "can still struggle with precise text placement and clarity". The Gemini API docs say Nano Banana can make "legible, stylized text for infographics, menus, diagrams, and marketing assets". They also give a tip: Gemini "works best if you first generate the text and then ask for an image with the text". Either way, check every word by eye.
 
-Designers often need words in the picture: a headline, a price, a menu. The vendors differ here, so read their notes.
+## Worked example
 
-- OpenAI's limits section says the model "can still struggle with precise text placement and clarity".
-- Google's docs say Nano Banana can make "legible, stylized text for infographics, menus, diagrams, and marketing assets". It also gives a tip: generate the text first, then ask for an image with that text.
+### Step 1: the plan before
 
-Example: a café wants a menu board image with ten prices. Plan to check every price by eye. If one is wrong, you fix it or set the text in your design tool.
+```text
+Tool: one chat model (text + image in, text out)
+Prompt: "Make our exhibition poster, a lobby video loop,
+an audio guide in English and French, and alt text for
+50 artwork photos."
+```
 
-## One campaign, four models
+What goes wrong:
 
-A sneaker brand launches a new shoe. Here is how the jobs map to model types:
+- The chat model's output is text. It can't make the poster, the video or the audio.
+- Only the alt text job fits this model.
+- Four different jobs sit in one prompt, so nobody checks each one.
 
-| Job                                      | Output you need | Model type                  |
-| ---------------------------------------- | --------------- | --------------------------- |
-| Hero image for the web page              | image           | image model                 |
-| 8-second vertical teaser with sound      | video + audio   | video model                 |
-| Voice-over for the teaser, two languages | audio           | speech model                |
-| Check 40 shop photos for the logo        | text (a report) | vision model (image → text) |
+### Step 2: write the output for each job
 
-No single model in this lesson does all four jobs. A media project is usually a small chain of models, with you in the middle.
+Start from what you must deliver, not from the tool.
 
-## What this means for your work
+| Job                         | Output you need | Input you give        |
+| --------------------------- | --------------- | --------------------- |
+| Poster with title and dates | image           | text prompt           |
+| Lobby video loop            | video           | text prompt or image  |
+| Audio guide, two languages  | audio           | the written script    |
+| Alt text for 50 photos      | text            | the photos + a prompt |
 
-- **Start from the output.** "I need a 9:16 video with sound" points to a video model. "I need feedback on my layout" points to a vision model.
-- **Edit is not the same as generate.** If the client likes 90% of an image, an edit tool can change the part that is wrong. You don't have to start again.
-- **Check the vendor's own list.** What a model can read and make is in its docs. A model that reads images may not make them.
+### Step 3: match each job to a model type
+
+```text
+Poster          -> image model  (generate; edit later)
+Lobby loop      -> video model  (short clips, cut together)
+Audio guide     -> speech model (one script per language)
+Alt text        -> vision model (image in, text out)
+```
+
+**The hard case is the poster.** It has words in it: a title and dates. Image models can still get text wrong. So the plan adds a check: read every letter and every date on the result. If one is wrong, fix it with an edit, or set the text in your design tool.
+
+### Step 4: the client asks for a change
+
+The client likes the poster but wants a warmer sky. This is an **edit**, not a new generation. You give the existing image and a new prompt. The rest of the poster stays the same, so you don't start again.
+
+### Step 5: why it is better
+
+- **Every job has a model that makes its output.** No job is sent to a model that can't make it.
+- **The inputs are clear.** The speech model gets a finished script. The vision model gets the photos.
+- **The risky part has a check.** Text in the image is read by a person.
+- **Changes are cheap.** An edit keeps the parts the client already likes.
+
+## Common mistakes
+
+1. **Choosing by brand, not by output.** "We use model X for everything." Fix: write the output of each job first, then pick a model that makes it.
+2. **Starting again for a small change.** The client wants one detail changed, and you write a brand-new prompt. Fix: use an edit on the existing image.
+3. **Trusting text in an image.** A date or a price comes out wrong. Fix: check every word by eye before you send the file.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A yoga teacher sends you this brief:
+
+```text
+1. A 5-minute guided relaxation, as a voice track.
+2. A square thumbnail for the video page.
+3. Read 20 screenshots of student feedback and
+   list the three most common requests.
+```
+
+For each job, write the output and the model type.
+
+### Answer
+
+1. **Voice track.** Output: audio. Model: a speech model. Input: the written script.
+2. **Thumbnail.** Output: image. Model: an image model. If it has text on it, check the text by eye.
+3. **Feedback summary.** Output: text. Model: a vision model, because the input is screenshots (images) and the output is a written list.
+
+## Recap
+
+- Read a model's output first. It tells you what the model can make.
+- Most media projects use several models, one per job: image, video, speech and vision.
+- A model that reads images may not make them. Claude takes images in and gives text out; it does not draw.
