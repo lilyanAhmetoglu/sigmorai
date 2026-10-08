@@ -23,7 +23,7 @@ A note on dates: the event names and fields below are from each vendor's page in
 
 ## One idea, three sets of names
 
-A hook is a script the agent's harness runs at a fixed moment, such as before a tool call (our plain gloss). Anthropic: hooks give "deterministic control: certain actions always happen rather than relying on the LLM to choose to run them." OpenAI's Codex docs call hooks "an extensibility framework for Codex". Google: Gemini CLI runs hooks "at specific points in the agentic loop".
+A hook is a script the agent's harness runs at a fixed moment, such as before a tool call (our plain gloss). Anthropic: hooks give "deterministic control: certain actions always happen rather than relying on the LLM to choose to run them." Google: Gemini CLI runs hooks "at specific points in the agentic loop".
 
 The moments have different names per tool:
 
@@ -43,14 +43,14 @@ All three use the same three levels in JSON: an event, a `matcher` that filters 
 
 ## How a hook answers
 
-The hook gets the event as JSON on stdin (standard input; our plain gloss). It answers with an exit code and, sometimes, JSON on stdout.
+The hook gets the event as JSON on stdin (standard input; our plain gloss). It answers with an exit code (the number a script returns when it ends; 0 means OK) and, sometimes, JSON on stdout (the script's normal output). A reason for a block goes to stderr (its error output). Our plain glosses.
 
-- **Exit 2 blocks** in all three. Claude Code: "Claude Code blocks the action. Write a reason to stderr." Codex: "You can also use exit code `2` and write the blocking reason to `stderr`." Gemini CLI: "The target action (tool, turn, or stop) is aborted."
+- **Exit 2 blocks a tool call** in all three. Claude Code: "Claude Code blocks the action. Write a reason to stderr." Codex: "You can also use exit code `2` and write the blocking reason to `stderr`." Gemini CLI: "The target action (tool, turn, or stop) is aborted."
 - **Exit 0 is not a yes.** Claude Code: for `PreToolUse`, exit 0 "doesn't approve the tool call: the normal permission flow still applies."
 - **Other codes don't block on their own.** In Claude Code, with plain text or empty stdout, the action "proceeds as a non-blocking error". In Gemini CLI, "the interaction proceeds using original parameters."
 - **Keep stdout clean in Gemini CLI.** "Your script must not print any plain text to `stdout` other than the final JSON object."
 
-Example (our example): a guard script that prints nothing and exits 1 by mistake does not block anything. It only shows an error.
+Our example: a guard script that prints nothing and exits 1 by mistake does not block anything. It only shows an error.
 
 ## Recipe 1: format on edit
 
@@ -94,7 +94,7 @@ Claude gets the stderr text as feedback, so it can change its plan. In Codex, a 
 
 Three facts make a guard strong or weak:
 
-- **Claude Code: a deny holds in every mode.** "A hook that returns `permissionDecision: "deny"` blocks the tool even in `bypassPermissions` mode".
+- **Claude Code: a deny holds in every mode.** "A hook that returns `permissionDecision: "deny"` blocks the tool even in `bypassPermissions` mode" (the mode that skips every permission prompt; our plain gloss).
 - **Hooks run side by side.** Claude Code: "One hook returning `deny` doesn't stop sibling hooks from executing." Codex: "one hook can't prevent another matching hook from starting."
 - **Codex: not every tool passes the hook.** Hosted tools such as `WebSearch` "don't use the local function-tool hook path". OpenAI's advice: "Treat tool hooks as a useful guardrail, not a complete enforcement boundary."
 
@@ -102,7 +102,7 @@ Three facts make a guard strong or weak:
 
 Claude Code fires `Notification` "when Claude is waiting for input or permission". Anthropic's example sends a desktop alert, "so you can switch to other tasks without checking the terminal." Gemini CLI also has `Notification`, for "Forward to desktop alerts, logging". Google marks its impact "Advisory".
 
-Codex's hooks page lists no `Notification` event. A `Stop` hook runs at the end of each turn, so it can send the alert there (our advice).
+Codex's hooks page lists no `Notification` event. Two other events can send the alert (our advice): `Stop`, which runs at the end of each turn, and `PermissionRequest`, which "runs when Codex is about to ask for approval".
 
 ## Recipe 4: validate before the turn ends
 
@@ -121,7 +121,7 @@ A hook is code that runs on your machine. Anthropic: "Command hooks execute shel
 ## Key points
 
 - Hooks run at fixed moments. Claude Code and Codex say `PreToolUse` / `PostToolUse`; Gemini CLI says `BeforeTool` / `AfterTool`.
-- Exit 2 blocks in all three. In Claude Code, exit 0 is not approval. Other codes don't block on their own.
+- Exit 2 blocks a tool call in all three. In Claude Code, exit 0 is not approval. Other codes don't block on their own.
 - Format with a post-tool hook. It can't undo, so guard with a pre-tool hook.
 - Claude Code: a `PreToolUse` deny holds even in `bypassPermissions` mode.
 - Codex: hosted tools skip tool hooks. A hook is a guardrail, not a full wall.

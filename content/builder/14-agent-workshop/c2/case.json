@@ -2,7 +2,7 @@
   "id": "builder/r14/c2/challenge",
   "title": "Hooks that did not hold",
   "scenario": "A team added hooks to its repo last week. Most developers use Claude Code; one uses Codex. A nightly job also runs `claude -p` on pull requests, including pull requests from forks. Four things went wrong. You review the hooks and the notes.\n\nUse the exhibit. The team, the scripts and the notes are made up for this case. Event names and behaviour are from the vendors' pages in October 2026.",
-  "exhibit": "REPO .claude/settings.json (made up)\n\n  PreToolUse   matcher \"Edit|Write\"   -> scripts/format.sh\n  PreToolUse   matcher \"Bash\"         -> scripts/guard.sh\n\nscripts/guard.sh (made up)\n  if the command contains \"git push --force\":\n     print \"force push blocked\" to stderr\n     exit 1\n  exit 0\n\nTEAM NOTES\n  A. Files are formatted, but the formatter runs on the old\n     text. The new edit lands unformatted.\n  B. Claude ran \"git push --force\" yesterday. The guard printed\n     its message, and the push still went through.\n  C. The nightly claude -p job ran a hook from a fork's\n     .claude/settings.json that nobody had reviewed.\n  D. The Codex user edited the team's .codex/hooks.json. Now\n     Codex skips that hook.",
+  "exhibit": "REPO .claude/settings.json (made up)\n\n  PreToolUse   matcher \"Edit|Write\"   -> scripts/format.sh\n  PreToolUse   matcher \"Bash\"         -> scripts/guard.sh\n\nscripts/guard.sh (made up)\n  if the command contains \"git push --force\":\n     print \"force push blocked\" to stderr\n     exit 1\n  exit 0\n\nTEAM NOTES\n  A. format.sh runs on every edit, but files Claude edits are\n     still left unformatted.\n  B. Claude ran \"git push --force\" yesterday. The guard printed\n     its message, and the push still went through.\n  C. The nightly claude -p job ran a hook from a fork's\n     .claude/settings.json that nobody had reviewed.\n  D. The Codex user edited the team's .codex/hooks.json. Now\n     Codex skips that hook.",
   "questions": [
     {
       "prompt": "Note A: why does the new edit land unformatted, and what is the fix?",
@@ -44,7 +44,7 @@
         },
         {
           "text": "Hooks can never block a command that a person approved",
-          "explanation": "A PreToolUse deny holds even in bypassPermissions mode. This guard simply never denied."
+          "explanation": "A PreToolUse deny holds even in bypassPermissions mode (the mode that skips every permission prompt; our plain gloss). This guard simply never denied."
         }
       ]
     },
@@ -75,7 +75,7 @@
       "options": [
         {
           "text": "Codex keeps trust by the hook's hash; a changed hook waits for review",
-          "explanation": "Right. Codex records trust against the hook's hash, so new or changed hooks are skipped until someone trusts them in /hooks.",
+          "explanation": "Right. Codex records trust against the hook's hash, so new or changed hooks are skipped until someone reviews and trusts them again.",
           "correct": true
         },
         {

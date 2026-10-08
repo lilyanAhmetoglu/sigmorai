@@ -208,7 +208,8 @@ describe('trackExerciseIds', () => {
 
   test('every chapter step and boss of one track, in map order, all unique', async () => {
     const ids = trackExerciseIds('builder', await realOutline('builder'));
-    expect(ids).toHaveLength(gridIds('builder', GROWN.builder, INSERTED.builder).length);
+    // +1 = r14 Agent Workshop, the one builder specialist realm.
+    expect(ids).toHaveLength((CORE_IDS.length + 1) * (MIN_CHAPTERS * CHAPTER_STEPS.length + 1));
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids[0]).toBe('builder/r0/c1/lesson');
     expect(ids.at(-1)).toBe(`builder/r${CORE_IDS.at(-1)}/boss/challenge`);
