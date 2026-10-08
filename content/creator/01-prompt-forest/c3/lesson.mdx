@@ -1,7 +1,7 @@
 ---
 id: creator/r1/c3/lesson
 title: Style & brand
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Gemini API docs · Image generation (Nano Banana)
@@ -23,68 +23,150 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/image-understanding
 ---
 
-## Why it matters
+## Goal
 
-One good image is easy. Thirty images that look like one brand are hard. If each prompt describes the style in new words, each image gets a new look. A client will see that at once. This lesson shows how to turn "our look" into text you can reuse, and how to check that it holds.
+After this lesson you can:
 
-## Style is something you name
+- Write a **style block**: a fixed text that describes the look, separate from the subject.
+- Keep style words out of the subject lines, so the block stays in charge.
+- Use a vision model to draft the block, check its draft, and catch drift with an anchor image.
 
-Google's docs give a template for stylised images: "A [style] of a [subject, with details about accessories or actions] doing [activity]. The design features [visual qualities, e.g., bold outlines, cel-shading, etc.] and [color/background preference]." The guide says to describe the artistic style, subject and medium, and to be "specific about the visual detail (bold lines, colors, etc.) for consistent results".
+## The problem
 
-Google's own example: "A kawaii-style sticker of a happy red panda wearing a tiny bamboo hat... The design features bold, clean outlines, simple cel-shading, and a vibrant color palette. The background must be white."
+Leo makes a small fantasy game. He needs 20 inventory icons: a sword, a key, a potion, a map and so on. In the game they sit side by side in one grid, so they must look like one set.
 
-Notice the split. The subject (red panda, bamboo hat) is one part. The look (kawaii, bold outlines, cel-shading, white background) is another. You can change the first and keep the second.
+Leo writes each prompt on its own. The sword comes back as a glossy 3D render. The key is a watercolour. The potion is a flat cartoon with thick lines. Each icon is fine alone. Together they look like three games.
 
-## Write a style block
+The cause: each prompt describes the look in new words, or not at all. The model fills every gap in a new way.
 
-A **style block** is a short paragraph that describes the look and nothing else. It is our own method, built from the template above. Put the same block at the top of every prompt for the campaign. Change only the subject.
+## The idea
 
-Example for a café brand:
+Split every prompt into two parts. The **subject** changes from icon to icon. The **style** stays the same. Think of a uniform: every player's name is different, but the shirt is the same.
 
-> Style: flat vector illustration with bold, clean outlines and simple cel-shading. Palette: cream background, forest green, terracotta, small touches of mustard. Soft top-left light, no gradients. Plain cream background.
+The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) show this split in their template for stylized images: "A [style] of a [subject...] doing [activity]. The design features [visual qualities...] and [color/background preference]." They add: "Be specific about the visual detail (bold lines, colors, etc.) for consistent results."
 
-Then each post only adds a subject: "Subject: a hand holding a green cup." Or: "Subject: a croissant on a plate."
+A **style block** is our own method, built from that template. It is a short text that describes only the look. You put the same block in every prompt and change only the subject line.
 
-What to put in a style block:
+```text
+[style block v1]  same text in every prompt
+[subject line]    the only part that changes
+```
 
-- **Medium and technique.** Flat vector, studio photograph, 3D render, paper cut-out.
-- **Line, shape and texture.** Bold outlines, soft edges, grain.
-- **Colour.** Name the colours in words, and the background.
-- **Light and camera.** Soft side light, low-angle, shallow focus.
-- **Rules in positive words.** "Plain cream background", not "no busy background" (chapter 1).
+What goes in a style block:
 
-Test the block (our habit). Results vary, so run it on three different subjects and compare the results side by side before you start the campaign.
+- **Medium:** flat vector, pixel art, studio photo, 3D render.
+- **Line and shape:** bold outlines, soft edges, chunky shapes.
+- **Colour:** named colours, and the background.
+- **Light:** where it comes from, hard or soft.
+- **Rules in positive words:** "plain dark-slate background", not "no busy background".
 
-## Style from pictures
+**Pictures can help.** Vision models from Anthropic, OpenAI and Google can read images and answer in text. The [OpenAI vision docs](https://developers.openai.com/api/docs/guides/images-vision) say you can ask about "objects, shapes, colors, or textures". The [Claude vision docs](https://platform.claude.com/docs/en/build-with-claude/vision) say Claude can analyze several images in one request "jointly". So a vision model can draft your block from existing art. But check the draft. The Claude docs warn that errors are more likely with "low-quality, rotated, or very small images under 200 pixels". The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-understanding) say to use clear images.
 
-Words are one tool. Pictures are another. Google lists "style references" for its Nano Banana Pro model, up to 3 per request (chapter 2). Google also has a style-transfer template: "Transform the provided photograph of [subject] into the artistic style of [artist/art style]. Preserve the original composition but render it with [description of stylistic elements]."
+**Consistency is not promised.** The [OpenAI image docs](https://developers.openai.com/api/docs/guides/image-generation) list visual consistency over many generations as a limit. Two habits help:
 
-Naming a living artist or another brand's style can touch other people's rights. Realm 0, chapter 6 covers what the vendor policies say. Prefer your client's own references.
+- Keep one approved image as an **anchor** and compare every new image with it (our habit).
+- Reuse earlier images. For a character from many angles, Google says to "include previously generated images in subsequent prompts to maintain consistency".
 
-## Let a vision model help you write the block
+The [Claude prompting docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say a few good examples "improve accuracy and consistency". That is about text prompts, but the idea carries over: approved images are your examples.
 
-Claude, OpenAI's models and Gemini can all read images and answer in text. Anthropic's vision docs say you can send several images in one request, and that Claude analyses them jointly. Label each image "Image 1:", "Image 2:" and so on.
+## Worked example
 
-A workflow, ours and not a vendor's: send 4 or 5 of the client's best existing pieces and ask for a plain-word description of the shared look: medium, line, colour, light. Then edit that draft into your style block.
+### Step 1: the weak prompts
 
-You must check what comes back. Anthropic's docs say Claude "might hallucinate or make mistakes" with low-quality, rotated or very small images, and that you should "always carefully review and verify" its image interpretations. A vision model can call a vector illustration a watercolour. You know your client's work. Correct it.
+```text
+A cool sword icon.
+A key icon, magical watercolour feel.
+A potion bottle, cartoon style, fun.
+```
 
-Anthropic's prompting guide also says a few well-made examples improve accuracy and consistency. That advice is for text prompts, but the idea carries over: your approved images are the examples for your style block.
+What goes wrong:
 
-## Consistency is not guaranteed
+- Each line describes a different look, or none.
+- Style words ("watercolour", "cartoon") are mixed into the subject.
 
-OpenAI's limits list says the model "may occasionally struggle to maintain visual consistency for recurring characters or brand elements across multiple generations". Treat the style block as your best tool, not a promise.
+### Step 2: draft the block with a vision model
 
-Ways to keep a set together:
+Leo has three old icons he likes. Each file is 48 px wide. He sends them to a vision model and asks for the shared look. The draft says: "soft watercolour washes, no outlines".
 
-- **Keep an approved image as the anchor.** Give it as a reference in later prompts (chapter 2).
-- **Stay in one conversation.** Google calls multi-turn conversation the recommended way to iterate. OpenAI's Responses API also supports multi-turn image work. For views of one character, Google advises including previously generated images in later prompts.
-- **Review as a set.** Put the new image next to the anchor. Do the lines, colours and light match?
+Leo can see the icons have hard black outlines and flat colour. The draft is wrong. Why? The icons are tiny, under 200 pixels, which is where the Claude docs warn about mistakes. Leo exports the icons again from his source files at 512 px, sends them, then edits the new draft by hand.
 
-## What this means for your work
+### Step 3: freeze the block
 
-- **Separate subject from style.** The subject changes. The style block does not.
-- **Write the block once, test it, then freeze it.** Version it like a file: "style-block v2".
-- **Use pictures and words together.** Words are easy to reuse. Pictures carry what words miss.
-- **Verify what a vision model tells you.** Treat its description as a draft.
-- **Review every image against the anchor.** Drift is normal. Catch it early.
+```text
+Style block v1:
+Flat vector game icon, centred, filling most of the frame.
+Bold black outlines of even width, flat colour fills, one small
+white highlight on the top-left of each object.
+Palette: dark slate background, warm gold, deep teal, brick red.
+Plain dark-slate square background. Square 1:1.
+```
+
+Each prompt is then the block plus one line:
+
+```text
+[style block v1]
+Subject: a short steel sword with a leather-wrapped handle.
+```
+
+### Step 4: test before you make all 20
+
+Run the block with three very different subjects: a sword, a rolled map, a round potion. Put the results side by side. Do the outlines, colours and light match? If one is off, fix the block, call it v2, and test again.
+
+### Step 5: the hard case, style words in the subject line
+
+Icon 14 comes back glossy and realistic. Its subject line:
+
+```text
+Subject: a realistic, shiny golden crown with photographic detail.
+```
+
+"Realistic", "shiny" and "photographic" are style words. They fight the block, and here they won. Fix the subject line so it names only the object:
+
+```text
+Subject: a golden crown with five points and three red gems.
+```
+
+**Why this is the hard case:** the block is fine, so it is easy to blame the model. The leak is in the line you change every time.
+
+### Step 6: review against the anchor
+
+The approved sword is the anchor. Put each new icon next to it. Check outline width, palette and the highlight. Fix any icon that drifts before it goes into the game.
+
+### Why it is better
+
+- **One look, written once.** The style words are identical in all 20 prompts.
+- **Subject lines carry only objects**, so they can't pull the style.
+- **The vision draft is checked**, with large, clear files.
+- **Every icon is compared** with one anchor.
+
+## Common mistakes
+
+1. **New style words in every prompt.** Each rewording is a new look. Fix: copy the same block, word for word, and version it (v1, v2).
+2. **Style words in the subject line.** "Realistic", "watercolour" or "3D" in the subject can override the block. Fix: the subject line names only the object and its parts.
+3. **Trusting a vision draft of tiny images.** Small, blurry or rotated files cause wrong readings. Fix: send larger, clear files, and correct the draft yourself.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A candle shop wants 10 product illustrations. Here is the prompt for candle 3:
+
+```text
+Flat illustration, thin brown outlines, cream background, sage and
+amber colours. Subject: a tall pillar candle in a glossy, photorealistic
+glass jar with dramatic cinematic lighting.
+```
+
+1. Which words in the subject line break the style?
+2. Rewrite the subject line.
+
+### Answer
+
+1. "glossy", "photorealistic" and "dramatic cinematic lighting". They describe a look, not the object. They fight "flat illustration".
+2. For example: "Subject: a tall pillar candle in a clear glass jar with a cork lid."
+
+## Recap
+
+- Split every prompt into a fixed style block and a subject line. Change only the subject.
+- Keep style words out of the subject line. Test the block on a few different subjects, then freeze it.
+- A vision model can draft the block, but check it, and send clear, large images. Compare every output with an anchor.

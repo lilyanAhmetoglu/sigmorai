@@ -1,7 +1,7 @@
 ---
 id: creator/r1/c2/lesson
 title: Reference images
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Gemini API docs · Image generation (Nano Banana)
@@ -17,64 +17,156 @@ sources:
     url: https://platform.claude.com/docs/en/build-with-claude/vision
 ---
 
-## Why it matters
+## Goal
 
-Words are a poor way to describe a logo, a sneaker's exact shape or a person's face. "A green leaf logo" gives you a green leaf. It does not give you your client's leaf. A **reference image** is a picture you give the model along with the prompt, so it can use what it sees. This lesson shows what references do, what the limits are, and how to write the prompt that goes with them.
+After this lesson you can:
 
-## What a reference can do
+- Sort your reference images into jobs (object, character, style) and pick a model whose limits fit.
+- Write a prompt that gives every reference image a clear role.
+- Protect the details that must not change, and check the result against the original.
 
-OpenAI's edits endpoint lets you "generate new images using other images as a reference". Its example gives 4 input images and asks for a gift basket that holds the items from all four. Google's docs describe the same idea: you can mix several reference images into one result.
+## The problem
 
-In practice a reference does one of three jobs. This grouping is ours, based on the way Google lists its limits:
+A yoga teacher, Ana, sells a steel water bottle with her studio's sun logo. She wants photos for her shop: Ana herself, holding the bottle, in her bright studio.
 
-- **Object.** A product, a logo, a prop that must look exact.
-- **Character.** A person or mascot that must stay recognisable.
-- **Style.** A picture that shows the look you want.
+She has the files: a portrait photo of herself and a clean packshot of the bottle. She uploads both and types "make a nice yoga photo with these". Two things go wrong:
 
-## The limits depend on the model
+1. The woman in the result looks a bit like Ana, but not enough. Her students will notice.
+2. The sun logo on the bottle has gained extra rays.
 
-Google's table for its Nano Banana models shows that one model is not like the next:
+Words cannot describe a face or a logo well enough. A **reference image** is a picture you give the model with the prompt, so it can use what it sees. But the model still needs to know what each picture is for.
 
-| Reference job               | Nano Banana 2.1 and Nano Banana 2 | Nano Banana Pro (Gemini 3 Pro Image) |
-| --------------------------- | --------------------------------- | ------------------------------------ |
-| Objects, high fidelity      | up to 10                          | up to 6                              |
-| Characters, kept consistent | up to 4                           | up to 5                              |
-| Style references            | N/A in the table                  | up to 3                              |
+## The idea
 
-The docs also say Nano Banana 2 Lite is "not optimized for multiple reference inputs". Google's limits note adds that Nano Banana 2.1 and Nano Banana 2 support character resemblance for "up to 4 characters and the fidelity of up to 10 objects in a single workflow".
+A reference image is like a photo you hand to a set designer: "this exact bottle, this person". Without a note, they don't know if you want a copy or just the mood.
 
-Example: a campaign needs one product, one logo, two models and a style board. Count the jobs first, then pick the model whose table covers all of them.
+The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) say the edits endpoint can "Generate new images using other images as a reference". The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) list what a reference can be used for. We group it into three jobs (our grouping, based on Google's table):
 
-## Say what each reference is for
+```text
+object     a product or logo that must look exact
+character  a person or mascot that must stay the same
+style      a picture that shows the look you want
+```
 
-Giving the model an image is not enough. Tell it the role of each one. Google's template for combining images reads: "Take the [element from image 1] and place it with/on the [element from image 2]. The final image should be a [description of the final scene]."
+**Limits depend on the model.** Google's table, shortened:
 
-Example: "Take the white sneaker from the first image and place it on the concrete step in the second image. The final image should be a product photo with the same side light as the second image."
+| Reference job               | Nano Banana 2 Lite | Nano Banana 2.1 and Nano Banana 2 | Nano Banana Pro |
+| --------------------------- | ------------------ | --------------------------------- | --------------- |
+| Objects, high fidelity      | up to 14           | up to 10                          | up to 6         |
+| Characters, kept consistent | N/A                | up to 4                           | up to 5         |
+| Style references            | N/A                | N/A                               | up to 3         |
 
-Anthropic's vision docs give the same habit for text-and-image prompts: when you send several images, introduce each one with a short label such as "Image 1:" so you can refer to it by name. Gemini's image-understanding docs show multiple images in one prompt too.
+The limits count images. The docs also say Nano Banana 2 Lite is "Not optimized for multiple reference inputs". So count your jobs before you pick a model.
 
-## Keep the critical details safe
+**Give every image a role.** Google's template for a composite scene: "Take the [element from image 1] and place it with/on the [element from image 2]." To protect a face or a logo, Google says to "describe them in great detail along with your edit request". The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/vision) give a habit for prompts with several images: label each one ("Image 1:", "Image 2:") so you can refer to it by name.
 
-Google's guide has a tip for logos and faces: "describe them in great detail along with your edit request". Its template adds a sentence such as "Ensure that the features of [element from image 1] remain completely unchanged."
+**A reference helps. It does not promise a copy.** The OpenAI docs warn that the model "may occasionally struggle to maintain visual consistency for recurring characters or brand elements across multiple generations".
 
-Example: "Take the first image of the woman with brown hair and blue eyes. Add the logo from the second image onto her black t-shirt. Ensure her face and features remain completely unchanged. The logo should look naturally printed on the fabric."
+Three more facts:
 
-Even then, check the result against the original file. OpenAI's limits list says the model "may occasionally struggle to maintain visual consistency for recurring characters or brand elements across multiple generations". A reference helps. It does not promise an exact copy.
+- **Clear images.** The [Gemini image-understanding docs](https://ai.google.dev/gemini-api/docs/image-understanding) say: "Use clear, non-blurry images." The Claude docs say the same.
+- **Rights.** Before its editing examples, Google says: "Make sure you have the necessary rights to any images you upload."
+- **Cost.** Every reference picture counts as an image input. The OpenAI docs say "edit requests that include reference images can use more input tokens", and to use the response's `usage` to measure what a request used.
 
-## Order, clarity and rights
+## Worked example
 
-- **Image order differs by vendor.** Anthropic says Claude works best when images come before text. Google says that, with a single image and text, you should place the text prompt before the image. Follow the docs of the model you use.
-- **Use clear images.** Both Anthropic and Google say to use clear, non-blurry images. Google adds: check that images are rotated correctly. Anthropic notes that a large image may be resized, which can make small text hard to read.
-- **Mind the rights.** Google's reminder before its editing examples: "Make sure you have the necessary rights to any images you upload." Realm 0 covered this. A client's licensed packshot is fine. A photo you found online may not be.
+### Step 1: the weak prompt
 
-## Cost and speed
+```text
+Make a nice yoga photo with these.
+```
 
-OpenAI bills image input tokens, and every reference image is an image input. Its docs say to "use the response's `usage` to measure token consumption for your prompts, sizes, and quality settings". Before you run a large batch with many references, test one request and look at what it used.
+What goes wrong:
 
-## What this means for your work
+- No image has a role. The model guesses which one is the person and which is the product.
+- Nothing says what must stay exact.
 
-- **List the jobs.** Object, character, style. Then check the model's reference limits.
-- **Label every image in the prompt.** First image, second image, and what each one is for.
-- **Describe what must not change.** Logo shape, face, product colour.
-- **Compare with the original.** The model's copy of a brand element can drift.
-- **Use only images you have the right to use.**
+### Step 2: list the jobs, then pick the model
+
+```text
+ana-portrait.jpg   character  (Ana, her own photo)
+bottle-pack.png    object     (the product with the sun logo)
+```
+
+One character and one object. Nano Banana 2.1 covers this (up to 4 characters, up to 10 objects). The Lite model is not a good fit: it is not optimized for several references.
+
+### Step 3: give each image a role
+
+```text
+Image 1: a portrait photo of Ana.
+Image 2: a product photo of a steel water bottle with a sun logo.
+
+Create a lifestyle photo for an online shop. Take the woman from image 1
+and let her hold the bottle from image 2 in her right hand, label facing
+the camera. She stands in a bright yoga studio with pale wooden floors
+and large windows. Soft daylight from the left. Medium shot, eye level.
+Portrait 4:5.
+```
+
+### Step 4: protect the details
+
+Add the details that must not drift, in words:
+
+```text
+Ensure that Ana's face, her short curly dark hair and her features remain
+completely unchanged. The sun logo on the bottle has exactly eight straight
+rays around a plain circle. Keep its shape and colour as in image 2.
+```
+
+### Step 5: the hard case, a group photo with a mood board
+
+Ana now wants a class photo: Ana plus four students (all have signed a photo release), the bottle, and her mood-board photo for the look.
+
+```text
+characters  5   (Ana + 4 students)
+objects     1   (bottle)
+style       1   (mood board)
+```
+
+Nano Banana 2.1 allows only 4 characters and shows N/A for style. Nano Banana Pro allows up to 5 characters, up to 6 objects and up to 3 style references. So this job needs Pro.
+
+**Why this is the hard case:** the model that was fine in Step 2 fails here, and the reason is in one table row. Count first, then pick.
+
+### Step 6: check against the original
+
+Put the result next to `ana-portrait.jpg` and `bottle-pack.png`. Count the logo rays. If the logo still drifts, place the real logo file in your design tool.
+
+### Why it is better
+
+- **Every image has a role**, so the model does not guess.
+- **The critical details are in words**: face, hair, the logo's shape.
+- **The model fits the jobs**, checked against the vendor's table.
+- **You compare with the source files**, because the docs say drift can happen.
+
+## Common mistakes
+
+1. **References with no roles.** The model mixes up which image is the person and which is the product. Fix: label each image and say what to take from it.
+2. **Ignoring the model's limits.** Too many characters, or a style reference on a model that shows N/A. Fix: count the jobs and read the table for that exact model.
+3. **Trusting the copy.** A logo can lose or gain a detail. Fix: compare with the original file, and place the exact logo by hand if needed.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A children's author wants a book-launch image. She has: 2 drawings of her mascot (a hedgehog), 1 photo of the printed book, and 2 paintings that show the style she wants. Answer:
+
+1. How many images does each job (object, character, style) use?
+2. Which model in the table fits all of them in one request?
+3. Write the first two lines of the prompt.
+
+### Answer
+
+1. Character: 2 images (the mascot drawings). Object: 1 image (the book). Style: 2 images (the paintings).
+2. Nano Banana Pro. It is the only column with style references (up to 3). Its character and object limits also fit.
+3. For example:
+
+```text
+Image 1 and Image 2: the hedgehog mascot. Image 3: the printed book.
+Image 4 and Image 5: style references for the colours and brush texture.
+```
+
+## Recap
+
+- Sort references into jobs: object, character, style. Then check the table for the model you use.
+- Give every image a label and a role, and describe in words what must not change.
+- A reference is guidance, not a copy. Compare with the original file before you send.
