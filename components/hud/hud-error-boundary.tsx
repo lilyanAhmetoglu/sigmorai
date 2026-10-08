@@ -13,7 +13,7 @@ type ErrorViewProps = { onRetry: () => void };
  */
 export function HudErrorView({ onRetry }: ErrorViewProps) {
   return (
-    <div className="hud-bar" role="alert">
+    <div className="hud-bar" data-state="error" role="alert">
       <span className="hud-stat" data-empty>
         {HUD_TEXT.error}
       </span>

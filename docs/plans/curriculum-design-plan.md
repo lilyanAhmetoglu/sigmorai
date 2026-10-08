@@ -30,6 +30,13 @@
 
 - **Blog takes the Math Tower's header slot** (maintainer: the header holds meaningful items and must include Blog). The Math Tower is no longer a nav item. It stays reachable from the dashboard Math Tower panel (a "View the tower" link in every state) and keeps its `/math` routes and certificate. Later it becomes a chapter of the Scientist path. This replaces "a nav item + a dashboard shortcut" for the tower below; the Frontier's nav slot is decided when the Frontier ships.
 
+## Amendments locked 2026-10-08 (one header)
+
+- **One `SiteHeader` on every page** (maintainer): the (app) and (marketing) layouts and the site 404. Same logo, same nav in the same order (`aria-current` on the current section), and a right side that changes only with auth state: Sign in + Start free (plain links to `/sign-in` and `/sign-up`) for a visitor, the HUD for a player. Below `sm` a visitor's Sign in moves into the Menu panel, so the header is one row at 360px. On `/sign-in` and `/sign-up` the link to the current page is left out.
+- **Removed:** the landing nav (`LandingNav`) and `MarketingHeader`. Before this, public pages drew their own header (logo only, or logo + CTA); they duplicated it. The landing hero copy sits in the header's column (`max-w-app`, same inset).
+- **Sign-in and sign-up live in `(marketing)`** (same URLs), so they get the shared header and footer.
+- **Public pages stay static and read the HUD on the client:** `PublicHud` reads Clerk in the browser and, for a player, calls **`GET /api/hud`** (`private, no-store`; signed out = `{ status: 'signed-out' }` with no DB query; a generic 500). The response is parsed with `HudStateSchema` (`lib/types/hud.ts`); a bad body or a 10s timeout is the HUD error view with Retry. While Clerk loads, the visitor buttons are hidden only when Clerk's cookie says a player is likely signed in, and for at most 3s.
+
 ## Amendments locked 2026-10-06 (bosses)
 
 - **A boss is a `case.json`, same schema as a chapter case.** `CaseSchema`, `loadCase`, the quest page, `submitCase`, the open check and the map already handle `<track>/r<N>/boss/challenge`. No new format, no code. Supersedes "Out of scope: boss format" and the "Stub: … bosses" row (2026-10-05).

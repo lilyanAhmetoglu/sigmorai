@@ -4,10 +4,12 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { SHELL_TEXT } from '@/lib/constants';
 import { NavLinks } from './nav-links';
+import { MenuSignIn } from './signed-out-actions';
 
 /**
  * Nav below lg. A native <details>, so it opens and closes without JS.
- * With JS it also closes on navigation and on Escape.
+ * With JS it also closes on navigation and on Escape. Below sm it also holds
+ * a visitor's Sign in (MenuSignIn), which has no room in the header bar there.
  */
 export function MobileMenu() {
   const ref = useRef<HTMLDetailsElement>(null);
@@ -31,6 +33,7 @@ export function MobileMenu() {
       </summary>
       <nav className="mobile-menu-panel" aria-label={SHELL_TEXT.navLabel}>
         <NavLinks />
+        <MenuSignIn />
       </nav>
     </details>
   );

@@ -3,7 +3,8 @@ import { PixelButton } from '@/components/pixel-button';
 import { XPBar } from '@/components/xp-bar';
 import { HUD_TEXT, ONBOARDING_HREF, TRACK_ACCENTS } from '@/lib/constants';
 import type { HudState, HudStats } from '@/lib/types';
-import { AccountButton, SignedOutActions } from './auth-controls';
+import { AccountButton } from './auth-controls';
+import { SignedOutActions } from './signed-out-actions';
 
 type Props = { state: HudState };
 
@@ -12,12 +13,13 @@ type Props = { state: HudState };
  * XP, streak and the account button for a player. Presentational: the
  * server (HudSlot) or the client (PublicHud) passes the state.
  * No HP here: HP is per case and lives in the quest panel (quest-actions
- * spec). Styles: hud-bar.css.
+ * spec). `data-state` sets the layout (hud-bar.css): a visitor's two buttons
+ * stay on the logo row; a player's stats wrap to their own row below lg.
  */
 export function HudBar({ state }: Props) {
   if (state.status === 'signed-out') {
     return (
-      <div className="hud-bar">
+      <div className="hud-bar" data-state={state.status}>
         <SignedOutActions />
       </div>
     );
@@ -26,6 +28,7 @@ export function HudBar({ state }: Props) {
   return (
     <div
       className="hud-bar"
+      data-state={state.status}
       role={ready ? 'group' : undefined}
       aria-label={ready ? HUD_TEXT.label : undefined}
     >

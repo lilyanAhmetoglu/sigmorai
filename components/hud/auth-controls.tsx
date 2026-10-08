@@ -1,22 +1,5 @@
-import { Show, SignInButton, SignUpButton, UserButton } from '@clerk/nextjs';
-import { PixelButton } from '@/components/pixel-button';
-import { AUTH_TEXT } from '@/lib/constants';
-
-/** Sign in + Start free: the header's right side for a visitor. */
-export function SignedOutActions() {
-  return (
-    <div className="flex items-center gap-3">
-      <SignInButton>
-        <PixelButton variant="secondary" size="sm">
-          {AUTH_TEXT.signIn}
-        </PixelButton>
-      </SignInButton>
-      <SignUpButton>
-        <PixelButton size="sm">{AUTH_TEXT.startFree}</PixelButton>
-      </SignUpButton>
-    </div>
-  );
-}
+import { Show, UserButton } from '@clerk/nextjs';
+import { SignedOutActions } from './signed-out-actions';
 
 /** Clerk's account button (it owns sign-out). Its trigger is ~28px; grown to the 44px tap target. */
 export function AccountButton() {

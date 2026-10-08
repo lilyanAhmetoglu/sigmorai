@@ -1,15 +1,14 @@
 'use client';
 
-import { useAuth, useClerk } from '@clerk/nextjs';
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { HUD_API_HREF } from '@/lib/constants';
-import type { HudState } from '@/lib/types';
+import { useAuth } from '@clerk/nextjs';
+import { useCallback, useEffect, useState } from 'react';
+import { useHideSignedOut } from '@/components/use-hide-signed-out';
+import { HUD_API_HREF, HUD_FETCH_TIMEOUT_MS } from '@/lib/constants';
+import { type HudState, HudStateSchema } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { HudBar } from './hud-bar';
 import { HudErrorView } from './hud-error-boundary';
 import { HudSkeleton } from './hud-skeleton';
-
-// Same "has hydrated" check as components/landing/landing-cta.tsx.
-const noSubscribe = () => () => {};
 
 const SIGNED_OUT: HudState = { status: 'signed-out' };
 
@@ -22,18 +21,16 @@ type Loaded = { userId: string; state: HudState } | { userId: string; failed: tr
  * client and, for a player, fetches the same HudState the in-app header
  * reads on the server (app/api/hud). Same HudBar, skeleton and error view as
  * the in-app slot.
- * The static HTML ships Sign in + Start free (they work before JS). While
- * Clerk loads they are hidden but keep their space, so a player never sees
- * them flash; if Clerk fails to load they show again.
+ * Until Clerk says "signed in" it shows Sign in + Start free: plain links in
+ * the static HTML, so they work before JS and when Clerk fails. They are
+ * hidden (space kept) only while a likely player's Clerk loads, for at most
+ * CLERK_WAIT_MS (useHideSignedOut). The fetch times out after
+ * HUD_FETCH_TIMEOUT_MS; a timeout, a bad status or a body that fails
+ * HudStateSchema is the error view with Retry.
  */
 export function PublicHud() {
   const { isLoaded, isSignedIn, userId } = useAuth();
-  const { status } = useClerk();
-  const isClient = useSyncExternalStore(
-    noSubscribe,
-    () => true,
-    () => false,
-  );
+  const hideSignedOut = useHideSignedOut();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [attempt, setAttempt] = useState(0);
   const retry = useCallback(() => {
@@ -44,21 +41,21 @@ export function PublicHud() {
   useEffect(() => {
     if (!isSignedIn || !userId) return;
     const controller = new AbortController();
-    fetch(HUD_API_HREF, { cache: 'no-store', signal: controller.signal })
-      .then((res) => (res.ok ? (res.json() as Promise<HudState>) : Promise.reject(res.status)))
-      .then((state) => setLoaded({ userId, state }))
+    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(HUD_FETCH_TIMEOUT_MS)]);
+    fetch(HUD_API_HREF, { cache: 'no-store', signal })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HUD ${res.status}`))))
+      .then((body: unknown) => setLoaded({ userId, state: HudStateSchema.parse(body) }))
       .catch(() => {
+        // Aborted by the cleanup (unmount, user switch): not an error to show.
         if (!controller.signal.aborted) setLoaded({ userId, failed: true });
       });
     return () => controller.abort();
   }, [isSignedIn, userId, attempt]);
 
-  if (!isClient || status === 'error' || (isLoaded && !isSignedIn)) {
-    return <HudBar state={SIGNED_OUT} />;
-  }
-  if (!isLoaded) {
+  if (!isLoaded || !isSignedIn || !userId) {
+    // `contents` keeps the header's flex layout; `invisible` keeps the space.
     return (
-      <div className="invisible contents">
+      <div className={cn('contents', hideSignedOut && 'invisible')}>
         <HudBar state={SIGNED_OUT} />
       </div>
     );
