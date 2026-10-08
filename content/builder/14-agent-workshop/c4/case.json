@@ -1,0 +1,96 @@
+{
+  "id": "builder/r14/c4/challenge",
+  "title": "The nightly script that half worked",
+  "scenario": "A team runs a nightly script on a shared CI runner (the machine that runs the jobs). It calls three coding agents with no person at the screen. Last night four steps went wrong. You read the script and the log.\n\nUse the exhibit. The team, the script and the log are made up for this case. Flags and exit codes are from the vendors' pages in October 2026.",
+  "exhibit": "nightly.sh (made up)\n\n  # step 1\n  claude -p \"Count the failing tests per folder\" | jq '.result'\n\n  # step 2 (inside the repo checkout)\n  codex exec \"Update the copyright year in every file\"\n  git diff --stat\n\n  # step 3\n  gemini -p \"Summarize today's errors\" < errors.log\n\n  # step 4 (added after a teammate's ~/.claude hook ran\n  #         on the shared runner)\n  claude --bare -p \"Draft the changelog\" --allowedTools \"Read\"\n\nLOG (made up)\n  step 1: jq: parse error: Invalid numeric literal\n  step 2: Codex: \"Updated 14 files.\"\n          git diff --stat: (no output)\n  step 3: exit code 53\n  step 4: the run fails at login. The runner has the team's\n          Claude subscription login saved.",
+  "questions": [
+    {
+      "prompt": "Step 1: why does jq fail to parse the output?",
+      "options": [
+        {
+          "text": "Print mode sends its answer to stderr; add 2>&1 to the pipe",
+          "explanation": "Claude Code prints the answer on stdout. The problem is the format: the default is plain text."
+        },
+        {
+          "text": "The default output is plain text; add --output-format json",
+          "explanation": "Right. text is the default. With --output-format json, the answer is in the result field that jq reads.",
+          "correct": true
+        },
+        {
+          "text": "jq can't read Claude Code output at all; switch to --bare",
+          "explanation": "--bare changes what the run loads, not the output format. jq reads JSON fine once the run prints JSON."
+        },
+        {
+          "text": "The -p flag allows one line of output; ask for a short list",
+          "explanation": "No page sets a one-line limit. The run printed plain text, which jq can't parse as JSON."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 2: Codex says it updated 14 files, but git diff shows nothing. Why?",
+      "options": [
+        {
+          "text": "codex exec needs --json before it is allowed to edit files",
+          "explanation": "--json changes the output to JSONL events. It does not give write access."
+        },
+        {
+          "text": "Codex edits files only in a second codex exec resume --last run",
+          "explanation": "resume continues a session. It is not what allows edits."
+        },
+        {
+          "text": "codex exec runs read-only by default; add --sandbox workspace-write",
+          "explanation": "Right. OpenAI: by default, codex exec runs in a read-only sandbox. workspace-write allows edits.",
+          "correct": true
+        },
+        {
+          "text": "Codex refused the folder; add --skip-git-repo-check to the step",
+          "explanation": "The step runs inside the repo checkout, so the git check passes. The sandbox is the limit."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 3: the Gemini CLI run exits with code 53. What happened?",
+      "options": [
+        {
+          "text": "The run hit its turn limit before it finished",
+          "explanation": "Right. Google's headless reference lists 53 as Turn limit exceeded.",
+          "correct": true
+        },
+        {
+          "text": "The prompt or the arguments were not valid",
+          "explanation": "That is exit code 42, Input error, in Google's list."
+        },
+        {
+          "text": "The API call failed with a general error",
+          "explanation": "That is exit code 1 in Google's list."
+        },
+        {
+          "text": "Piped stdin is not read in headless mode",
+          "explanation": "Gemini CLI reads piped stdin as context. 53 means the turn limit was exceeded."
+        }
+      ]
+    },
+    {
+      "prompt": "Step 4: why does the --bare run fail at login?",
+      "options": [
+        {
+          "text": "Bare mode never reads OAuth logins; set ANTHROPIC_API_KEY",
+          "explanation": "Right. In bare mode Claude Code never reads OAuth credentials or the keychain. Anthropic says to set ANTHROPIC_API_KEY.",
+          "correct": true
+        },
+        {
+          "text": "Bare mode reads the login from CLAUDE.md, which is missing",
+          "explanation": "Bare mode skips CLAUDE.md. Logins never come from it."
+        },
+        {
+          "text": "Print mode can't run in CI; move the step to the Agent SDK",
+          "explanation": "Anthropic offers the CLI for scripts and CI/CD. The login source is the problem."
+        },
+        {
+          "text": "--allowedTools \"Read\" blocks the login; remove the flag",
+          "explanation": "--allowedTools pre-approves tools. It has nothing to do with login."
+        }
+      ]
+    }
+  ]
+}
