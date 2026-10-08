@@ -42,6 +42,7 @@ const SOURCES: KbSource[] = [
   source('elevenlabs-use-policy', 'docs', 'https://elevenlabs.io/use-policy'),
   source('storybook-docs', 'docs', 'https://storybook.js.org'),
   source('geminicli-docs', 'docs', 'https://geminicli.com'),
+  source('claude-support', 'docs', 'https://support.claude.com'),
 ];
 
 describe('citedPages', () => {
@@ -78,6 +79,10 @@ describe('markdownUrl', () => {
     ).toBe('https://developer.ideogram.ai/api-reference/images/generate/ideogram-4-5.md');
     expect(markdownUrl('https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue')).toBe(
       'https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue.md',
+    );
+    // Claude Help Center articles have a .md copy.
+    expect(markdownUrl('https://support.claude.com/en/articles/9517075-what-are-projects')).toBe(
+      'https://support.claude.com/en/articles/9517075-what-are-projects.md',
     );
   });
 
@@ -167,6 +172,7 @@ describe('fetchTargets', () => {
     // A host-root source (storybook.js.org) reads the site's llms.txt, not /docs/llms.txt.
     expect(byUrl('https://storybook.js.org/llms.txt')?.sourceId).toBe('storybook-docs');
     expect(byUrl('https://geminicli.com/llms.txt')?.sourceId).toBe('geminicli-docs');
+    expect(byUrl('https://support.claude.com/llms.txt')?.sourceId).toBe('claude-support');
     expect(targets).toHaveLength(2 + SOURCES.length);
   });
 

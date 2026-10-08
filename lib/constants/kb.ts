@@ -39,6 +39,7 @@ export const DOCS_MD_HOSTS: Readonly<Record<string, string>> = {
   'storybook.js.org/docs': '.md',
   'ui.shadcn.com/docs': '.md',
   'geminicli.com/docs': '.md',
+  'support.claude.com': '.md',
 };
 /**
  * Hosts whose docs base has an `llms.txt` page index (`<base>/llms.txt`). Same
@@ -54,4 +55,5 @@ export const DOCS_LLMS_TXT_HOSTS = [
   'storybook.js.org',
   'ui.shadcn.com',
   'geminicli.com',
+  'support.claude.com',
 ] as const;
