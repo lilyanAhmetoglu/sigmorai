@@ -1,7 +1,7 @@
 ---
 id: strategist/r0/c6/lesson
 title: Data & privacy
-minutes: 7
+minutes: 9
 sources:
   - kind: docs
     title: Claude docs · API and data retention
@@ -14,50 +14,113 @@ sources:
     url: https://developers.openai.com/api/docs/guides/your-data
 ---
 
-## Your prompt leaves the building
+## Goal
 
-When you use an AI model from a vendor, the text you type and the files you upload are sent to that vendor's systems to be processed. So before you paste anything, ask: **may this data go to this vendor, under these terms?**
+After this lesson you can:
 
-Example: a recruiter pastes 30 CVs into an AI chat to compare candidates. Those CVs hold names, phone numbers and work history: personal data. Whether that is allowed depends on which tool and which account the recruiter used, and on company rules.
+- Explain where your prompt goes, and why the account and plan you use matter.
+- Tell "not used for training" apart from "not stored".
+- Prepare a prompt that shares only what the task needs, and know when to ask legal or IT first.
 
-## Not every account has the same terms
+## The problem
 
-The same vendor can treat data differently depending on the product and plan.
+An account manager has a renewal meeting tomorrow. She has the transcript of last week's call with the client. She wants an AI summary of the client's concerns, so she can prepare an offer.
 
-- **Business and developer use (the API).** OpenAI's docs say data sent to the OpenAI API is not used to train or improve its models unless you explicitly opt in. Anthropic's docs say retained API data is never used for model training without your express permission.
-- **Personal plans.** Consumer apps have their own terms. Anthropic's docs point consumer plans to a separate consumer data retention policy, and list consumer plans (Free, Pro and Max) as not covered by its zero-data-retention option.
+The transcript holds the client contact's name and mobile number, the client's internal budget figures, and the discount she is thinking of offering. It is late, so she is about to paste it all into the AI app on her phone.
 
-Example: the recruiter used a personal account on their phone instead of the company's approved tool. Even if the AI does the same task, the data terms are different, and the company may not have agreed to them.
+When you use an AI model from a vendor, the text you type and the files you upload are sent to that vendor's systems. So before you paste, ask: **may this data go to this vendor, under these terms?** The terms below come from each vendor's docs (October 2026). These are habits, not legal advice; your company's policy comes first.
 
-## How long data is kept
+## The idea
 
-"Not used for training" is not the same as "not stored". Vendors may keep some data for a time, for example to detect abuse.
+**Not every account has the same terms.** One vendor can treat data differently by product and plan.
 
-- OpenAI's docs say abuse monitoring logs are kept for up to 30 days by default, unless the law requires longer or it is needed to protect against harm.
-- Anthropic's docs say that even under special arrangements, it may keep data where the law requires it, or where its automated safety systems flag it. Flagged inputs and outputs may be kept for up to 2 years.
+- **Business use through the API.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/your-data) say data sent to the API "is not used to train or improve OpenAI models (unless you explicitly opt in to share data with us)." The [Claude docs](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention) say: "Retained data is never used for model training without your express permission."
+- **Personal plans.** Consumer apps have their own terms. The Claude docs point consumer plans to a separate "consumer data retention policy". They also list "Claude Free, Pro, and Max plans" among the products their zero-data-retention option does not cover.
 
-## Options for sensitive work
+**"Not used for training" is not the same as "not stored".** Vendors may keep some data for a time, for example to detect abuse.
 
-Both vendors offer stricter options for organizations that need them. These are set up by the company, usually by contract, not by one user.
+- The OpenAI docs say abuse monitoring logs are "retained for up to 30 days" by default, unless the law requires longer.
+- The Claude docs say API conversation content "is not retained by default", but some models "require 30-day retention". And even under special arrangements, "if a chat or session is flagged, Anthropic may retain inputs and outputs for up to 2 years."
 
-- **Zero data retention (ZDR).** Under Anthropic's ZDR arrangement, prompts and responses are not stored after the response is returned. OpenAI offers zero data retention and modified abuse monitoring controls. Both need approval from the vendor. Anthropic's docs also list products and features that its ZDR does not cover.
-- **Data residency.** Both vendors let eligible customers choose where data is processed or stored, for example in the United States or, at OpenAI, in Europe and other regions. This can cost more: both vendors' docs list a price uplift for it.
+**Stricter options exist, but the company sets them up.** They are arranged with the vendor, usually by contract, not by one user.
 
-Example: a hospital group wants AI to draft letters that include patient details. That is a job for the company's legal and IT teams to set up with the vendor first, with the right agreement in place, before anyone pastes patient data.
+- **Zero data retention (ZDR).** Under Anthropic's ZDR, it "does not store customer prompts or responses at rest after the API response is returned". OpenAI offers ZDR and Modified Abuse Monitoring; both are "subject to prior approval by OpenAI". Anthropic also lists products and models its ZDR does not cover.
+- **Data residency.** Eligible customers can choose where data is processed or stored, for example the United States, or at OpenAI, the EU and other regions. It can cost more: OpenAI lists a "10% uplift" for eligible newer models, and the [Claude pricing page](https://platform.claude.com/docs/en/about-claude/pricing) lists "a 1.1x multiplier" for US-only processing.
 
-## Rules you can use today
+**Data classes.** Most companies sort data into classes, such as public, internal, confidential and personal. **Personal data** is anything about a person who can be identified: a name, a phone number, a home address.
 
-These are habits, not legal advice. Your company's policy comes first.
+Our example: treat pasting into an AI tool like sending an email outside the company. You would check who receives it, and you would not attach more than they need.
 
-1. **Use the approved tool and account.** Not your personal one.
-2. **Share the minimum.** Remove names, account numbers and other personal details when the task doesn't need them. "Customer A" works as well as a real name for most drafting.
-3. **Never paste secrets.** Passwords, API keys and access codes don't belong in a prompt.
-4. **Know your data's class.** Public, internal, confidential, personal. If you're not sure, ask before you paste.
-5. **Ask who decided.** For anything sensitive, check that legal or IT has approved this vendor and plan for this kind of data.
+## Worked example
 
-## Key points
+### Step 1: list what is in the data
 
-- Prompts and files go to the vendor. Treat pasting like sending an email outside the company.
-- Terms differ by product and plan. Business API terms are not the same as a personal app's terms.
-- "Not used for training" does not mean "never stored".
-- Strict options exist (zero retention, data residency), but the company sets them up.
+```text
+Client contact's name and mobile number   personal data
+Client's internal budget figures          confidential (client's)
+Our planned discount                      confidential (ours)
+Concerns the client raised on the call    internal
+```
+
+### Step 2: check the tool and account
+
+The phone app is her personal account. The company has an approved business account, set up by IT under a contract. The terms differ, and the company has agreed only to the business terms. She uses the approved tool.
+
+### Step 3: remove what the task doesn't need
+
+The summary needs the client's concerns. It doesn't need the contact's name or mobile number. "The client contact" works as well as a real name.
+
+### Step 4: the hard case
+
+The budget figures and the discount are confidential, and the summary is less useful without them. **This is the hard case**: she can't simply delete them. Our advice: check the company policy for confidential data in the approved tool. If it isn't clear, ask legal or IT before you paste.
+
+### Step 5: the prompt after
+
+Her policy allows internal and confidential data in the approved tool, so the budget figures stay. The discount isn't needed for a summary of the client's concerns, so she leaves it out.
+
+```text
+Tool: company-approved business account
+
+Summarize the client's main concerns from this call transcript
+for a renewal meeting. List each concern with the line where
+it was raised. Keep it under 150 words.
+
+[transcript: names and phone numbers replaced with
+"the client contact"; budget figures kept; no discount]
+```
+
+### Step 6: why it is better
+
+- **Right tool and terms.** The data goes to a vendor the company agreed terms with.
+- **Minimum data.** Personal details that the summary can do without are gone.
+- **Hard case handled on purpose.** Confidential figures are included only because the policy allows it, not by habit.
+
+## Common mistakes
+
+1. **Using a personal app for work data.** The terms are different, and the company may not have agreed to them. Fix: use the approved tool and account.
+2. **Reading "no training" as "never kept".** Logs and flagged chats can be stored for a time. Fix: check the retention terms, not only the training terms.
+3. **Pasting secrets.** Passwords, API keys and access codes don't belong in a prompt. Fix: never paste them; describe the problem without them.
+
+## Try it
+
+Not graded. For each request, choose: **OK as is**, **remove details first**, or **stop and ask**.
+
+```text
+A. Summarize a competitor's public press release, in the approved tool.
+B. Write party invitations from a list of 200 customer names and
+   email addresses, in a free personal app.
+C. Ask why the payroll system rejects your login, pasting your
+   password so the model can "check it".
+```
+
+### Answer
+
+- **A: OK as is.** The data is public, and the tool is approved.
+- **B: Stop and ask.** It is personal data in a personal app. Move to the approved tool. The invitation text doesn't need the list at all: write one template, and merge the names in your email system.
+- **C: Stop.** Never paste a password. Describe the error message instead, or contact IT.
+
+## Recap
+
+- Prompts and files go to the vendor. The terms depend on the product and plan, so use the approved account.
+- "Not used for training" does not mean "not stored". Logs and flagged content can be kept for a time.
+- Share the minimum, never paste secrets, and let legal or IT set up stricter options such as zero retention or data residency.

@@ -1,7 +1,7 @@
 ---
 id: strategist/r0/c5/lesson
 title: Choosing a model
-minutes: 6
+minutes: 9
 sources:
   - kind: docs
     title: Claude docs · Choosing the right model
@@ -17,60 +17,121 @@ sources:
     url: https://developers.openai.com/api/docs/guides/text
 ---
 
-## Why it matters
+## Goal
 
-Every vendor offers several models. Some are stronger and slower. Some are faster and cheaper. There is no single best model. There is a best model **for one task**, at your quality bar and your budget.
+After this lesson you can:
 
-This lesson gives you a way to choose that still works when the model names change.
+- Weigh capability, speed and cost for one task, and pick a starting model.
+- Run a small test with your own examples and choose the lightest option that passes.
+- Keep the choice stable when vendors release or retire models.
 
-## The three questions
+## The problem
 
-Anthropic's guide names three main things to balance (it also lists effort, covered below):
+A finance team receives about 400 supplier invoices a day as PDFs. They want AI to pull out the supplier, the invoice number and the amount. Results are needed by the end of the day, not in seconds.
 
-- **Capabilities.** What must the model be able to do? Example: read scanned invoices, or reason through a 40-page contract.
-- **Speed.** How fast must it answer? A live chat with customers needs fast replies. A weekly report can wait.
-- **Cost.** What is the budget, both for testing and for daily use?
+Every vendor offers several models. Some are stronger and slower. Some are faster and cheaper. There is no single best model. There is a best model **for one task**, at your quality bar and your budget. This lesson gives a way to choose that still works when the model names change. Model names and settings change often; the guidance below is from each vendor's docs (October 2026).
 
-OpenAI's guide asks similar questions: how often does the workflow run, and how quickly do you need the result?
+## The idea
 
-Example: a team summarizes 5,000 short support tickets every day. Speed and cost matter a lot, and the task is simple. A team that drafts one investment memo a month cares most about quality, and cost barely matters.
+**Weigh three things first.** The [Claude docs](https://platform.claude.com/docs/en/about-claude/models/choosing-a-model) list the factors to evaluate first:
 
-## Two ways to start
+- **Capabilities.** What must the model be able to do? For example, read scanned documents.
+- **Speed.** How fast must it answer? A live chat needs replies in seconds. A nightly report can wait.
+- **Cost.** What's the budget, both for testing and for daily use?
 
-Anthropic's guide describes two starting points.
+The same list adds a fourth, **effort**, covered below. The [OpenAI docs](https://developers.openai.com/api/docs/guides/model-selection) ask similar questions: "How often does your workflow run?" and "How quickly do you need the result?"
 
-**Efficiency-first.** Start with a fast, low-cost model. Test it on your task. Move up only if it falls short. The guide says this suits prototypes, tight speed needs, cost-sensitive work and high-volume, simple tasks.
+**Two ways to start.** The Claude guide describes both:
 
-**Capability-first.** Start with a strong model. Get the quality right. Then try to save money with a lighter model or setting over time. The guide says this suits complex reasoning, nuanced understanding, and work where accuracy matters more than cost.
+- **Efficiency-first.** Begin with a quick, cheaper model. Test it, and upgrade "only if necessary". It suits prototypes, tight speed needs, cost-sensitive work and "high-volume, straightforward tasks".
+- **Capability-first.** Start with a strong model, get the quality right, then try lighter options "down the line". It suits complex reasoning, nuanced understanding, and work "where accuracy outweighs cost considerations".
 
-OpenAI's guide lands in the same place: experiment, compare results on the same inputs, and "keep the lightest setting that meets your quality bar".
+The OpenAI guide lands in the same place: compare options on the same inputs, then keep the lightest setting that is good enough for your quality bar.
 
-## Settings matter, not only the model
+**Settings matter, not only the model.** Many models have a setting for how hard they think. Anthropic calls it **effort**; OpenAI calls it **reasoning effort**. The Claude guide says: "Tuning effort is often a better lever than switching models." It trades quality for speed and cost inside one model.
 
-Many models now have a setting for how hard they think. Anthropic calls it **effort**; OpenAI calls it **reasoning effort**. Anthropic's guide says tuning effort is often a better lever than switching models, because it trades quality for speed and cost inside one model.
+**Test with your own work.** A benchmark on a vendor's page is not your task. The Claude guide says "having a good evaluation set is the most important step". An **evaluation set** is a fixed list of real examples with known right answers.
 
-Example: a quick email triage can run on low effort. A careful contract review can run on high effort with the same model.
+**Keep it stable.** Vendors update and retire models. The [OpenAI text guide](https://developers.openai.com/api/docs/guides/text) recommends "Pinning your production applications to specific model snapshots" (fixed versions) "to ensure consistent behavior", plus tests to re-run when you upgrade. The [Claude model table](https://platform.claude.com/docs/en/models/overview) lists a retirement date for each model.
 
-## Test with your own work
+Our example: choosing a model is like hiring for one role. You write the job needs, try a few candidates on real work, and hire the one who meets the bar at the right salary, not the most famous name.
 
-Benchmarks on a vendor's page are not your task. Anthropic's guide says having a good evaluation set (a fixed set of test cases) is "the most important step" when choosing or changing models.
+## Worked example
 
-A simple test any team can run:
+### Step 1: write the needs
 
-1. Collect 20–30 real examples of the task, with what a good answer looks like.
-2. Run them through two or three candidate models or settings.
-3. Score each answer: correct? usable? any made-up facts?
-4. Compare quality, speed and cost. Pick the lightest option that passes.
+```text
+Task:          pull supplier, invoice number and amount from PDFs
+Capabilities:  read scanned invoices; no long reasoning
+Speed:         same day is fine
+Cost:          400 a day, every day, so the price adds up
+```
 
-## Keep it stable
+High volume and a straightforward task point to **efficiency-first**.
 
-Vendors update and retire models. OpenAI's text guide recommends pinning production apps to a specific model snapshot (a fixed version) for consistent behaviour, and keeping tests so you can check quality when you upgrade. Anthropic's model table lists the earliest date each model may be retired.
+### Step 2: build the test set
 
-Example: your team's report tool works well today. Note which model version it uses and keep your test set. When the vendor releases a new model, rerun the tests before you switch.
+The team takes 25 past invoices where they already know the right values. They set the bar: at least 24 of 25 fully correct.
 
-## Key points
+### Step 3: run the candidates
 
-- Choose for the task: capability, speed and cost.
-- Start cheap and move up, or start strong and move down. Both are valid.
-- Try effort or reasoning settings before you change models.
-- Decide with your own test examples, not with the newest headline.
+```text
+Option                       Correct   Cost
+Light model, low effort      21 / 25   lowest
+Light model, high effort     24 / 25   low
+Strong model, default        25 / 25   about 5x the light model
+```
+
+The prices and scores are made up for this example.
+
+### Step 4: the hard case
+
+The light model at low effort failed on the handwritten invoices. **This is the hard case.** Before switching to the strong model, the team raised the effort setting on the same light model. That fixed three of the four failures. The one left is a smudged scan that people also struggle to read, so it goes to a person.
+
+### Step 5: the decision memo
+
+```text
+Choice: light model, high effort, pinned to version [x].
+Why: 24/25 meets our bar at a low cost. The strong model
+scored 25/25 at about 5x the cost.
+Hard cases: invoices the model can't read go to the finance desk.
+Upkeep: keep the 25-invoice test set. When the vendor releases
+or retires a model, re-run the test before we switch.
+```
+
+### Step 6: why it is better
+
+- **Fits the task.** The needs came first, so the team didn't pay for power it doesn't use.
+- **Tested on their own invoices**, not on a public leaderboard.
+- **Effort before switching.** A cheaper fix was tried first.
+- **Stable.** A pinned version and a saved test set make the next change safe.
+
+## Common mistakes
+
+1. **Picking the newest, biggest model by default.** It may cost far more for no gain on your task. Fix: write the needs first and test a lighter option.
+2. **Judging by a few nice-looking outputs.** A handful of tries hides the hard cases. Fix: score a fixed set of real examples with known answers.
+3. **Letting the model change under you.** An automatic upgrade can change results overnight. Fix: pin a version and re-run your tests before you switch.
+
+## Try it
+
+Not graded. For each task, choose efficiency-first or capability-first, and say why.
+
+```text
+A. Tag 10,000 product reviews a day as positive, negative or mixed.
+B. Draft the four-page commentary for the quarterly board pack.
+   It runs four times a year and must be accurate.
+```
+
+Then: the vendor releases a new model next month. What should the team do before using it for task A?
+
+### Answer
+
+- **A: efficiency-first.** High volume, a simple task, and cost adds up every day. Start light and move up only if the tests fail.
+- **B: capability-first.** It runs rarely, so cost barely matters, and accuracy matters most. Start strong, then try lighter options later.
+- **New model:** run the saved test set on it and compare with the current, pinned version. Switch only if it meets the bar.
+
+## Recap
+
+- Choose for the task: capability, speed and cost. Start cheap and move up, or start strong and move down.
+- Try a higher or lower effort setting before you change models.
+- Decide with your own test examples, keep the lightest option that passes, and pin the version.
