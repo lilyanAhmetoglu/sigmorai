@@ -6,10 +6,7 @@ import { usePathname } from 'next/navigation';
 import { PixelButton } from '@/components/pixel-button';
 import { useHideSignedOut } from '@/components/use-hide-signed-out';
 import { AUTH_ROUTES, AUTH_TEXT } from '@/lib/constants';
-
-/** On that auth page (or one of Clerk's steps under it, e.g. /sign-in/factor-one). */
-const isOn = (pathname: string, route: string) =>
-  pathname === route || pathname.startsWith(`${route}/`);
+import { isUnderPath } from '@/lib/utils';
 
 /**
  * Sign in + Start free: the header's right side for a visitor. Plain links,
@@ -22,7 +19,7 @@ export function SignedOutActions() {
   const pathname = usePathname();
   return (
     <div className="hud-actions">
-      {!isOn(pathname, AUTH_ROUTES.signIn) && (
+      {!isUnderPath(pathname, AUTH_ROUTES.signIn) && (
         <PixelButton
           href={AUTH_ROUTES.signIn}
           variant="secondary"
@@ -32,7 +29,7 @@ export function SignedOutActions() {
           {AUTH_TEXT.signIn}
         </PixelButton>
       )}
-      {!isOn(pathname, AUTH_ROUTES.signUp) && (
+      {!isUnderPath(pathname, AUTH_ROUTES.signUp) && (
         <PixelButton href={AUTH_ROUTES.signUp} size="sm">
           {AUTH_TEXT.startFree}
         </PixelButton>
@@ -50,7 +47,7 @@ export function MenuSignIn() {
   const pathname = usePathname();
   const { isLoaded, isSignedIn } = useAuth();
   const hide = useHideSignedOut();
-  if ((isLoaded && isSignedIn) || hide || isOn(pathname, AUTH_ROUTES.signIn)) return null;
+  if ((isLoaded && isSignedIn) || hide || isUnderPath(pathname, AUTH_ROUTES.signIn)) return null;
   return (
     <ul className="nav-list mobile-menu-auth">
       <li>

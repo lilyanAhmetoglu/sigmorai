@@ -40,16 +40,24 @@ export function PublicHud() {
 
   useEffect(() => {
     if (!isSignedIn || !userId) return;
+    // One controller for both the timeout and the cleanup (no AbortSignal.any:
+    // it is missing before Safari 17.4). `cancelled` tells the two apart.
     const controller = new AbortController();
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(HUD_FETCH_TIMEOUT_MS)]);
-    fetch(HUD_API_HREF, { cache: 'no-store', signal })
+    const timer = setTimeout(() => controller.abort(), HUD_FETCH_TIMEOUT_MS);
+    let cancelled = false;
+    fetch(HUD_API_HREF, { cache: 'no-store', signal: controller.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HUD ${res.status}`))))
       .then((body: unknown) => setLoaded({ userId, state: HudStateSchema.parse(body) }))
       .catch(() => {
         // Aborted by the cleanup (unmount, user switch): not an error to show.
-        if (!controller.signal.aborted) setLoaded({ userId, failed: true });
-      });
-    return () => controller.abort();
+        if (!cancelled) setLoaded({ userId, failed: true });
+      })
+      .finally(() => clearTimeout(timer));
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [isSignedIn, userId, attempt]);
 
   if (!isLoaded || !isSignedIn || !userId) {
