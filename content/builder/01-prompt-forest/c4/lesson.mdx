@@ -1,7 +1,7 @@
 ---
 id: builder/r1/c4/lesson
 title: Chain of thought
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: Prompting best practices (Claude docs)
@@ -23,87 +23,158 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-Some tasks need steps: compare a policy with an order, plan a migration, debug a failing check. "Chain of thought" means the model works through the steps before it gives the answer. There are two ways to get it: a built-in reasoning mode, or a prompt that asks for it. Today the built-in mode is the main one, so start there.
+## Goal
 
-## Built-in reasoning
+After this lesson you can:
 
-Current models from all three vendors can reason internally before they answer.
+- Control built-in reasoning with a setting (effort or thinking level), not with "think step by step".
+- Size the output cap and the effort so reasoning has room and costs stay predictable.
+- Use manual chain of thought, with the answer in tags, when a model has no thinking turned on.
 
-- OpenAI: reasoning models "use internal reasoning tokens before producing a response", which helps them "plan, use tools effectively, inspect alternatives, recover from ambiguity, and solve harder multi-step tasks".
-- Gemini: models "use a 'thinking process' that significantly improves their reasoning and multi-step planning abilities".
-- Claude: thinking is adaptive: "the model evaluates each request and decides for itself whether to think and how much."
+## The problem
 
-You control it with a setting, not with a sentence in the prompt.
+The support team now wants to catch duplicate bug reports. A new bug ticket arrives. The model compares it with the 15 open bugs and returns the id of the matching bug, or `new`.
 
-## The setting differs by vendor
-
-- **Claude**: an effort level at `output_config.effort`. The levels run from `low` ("Skips thinking for simple tasks where speed matters most") to `max`. Which levels a model supports varies by model. Check the effort page before you choose.
-- **OpenAI**: `reasoning.effort`. Values are "model-dependent and can include `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, and `max`".
-- **Gemini**: `thinking_level`, for example `low`, `medium` or `high`, depending on the model.
-
-Defaults differ by model too. Read the model's page before you choose; do not assume.
-
-## Don't ask a reasoning model to "think step by step"
-
-Old prompts often say "think step by step". With built-in reasoning, that line is usually not needed.
-
-- OpenAI's reasoning guide: "Avoid chain-of-thought prompts". It also says that "think step by step" may not enhance performance "(and can sometimes hinder it)".
-- Gemini: "it's generally not necessary to have the model outline, plan, or detail reasoning steps in the returned response itself." For very hard problems, a short request like "Think very hard before answering" can help, "though at the cost of extra thinking tokens".
-- Claude: "Prefer general instructions over prescriptive steps. A prompt like 'think thoroughly' often produces better reasoning than a hand-written step-by-step plan." On the current Claude models named in the prompting guide (Fable 5.1, Fable 5, Opus 5.5, Opus 5, Sonnet 5.5), a prompt that asks the model to write its reasoning out in the reply "may be declined"; the docs say to rely on thinking instead.
-
-Example: a prompt says "Think step by step and write your full reasoning, then the answer." On a reasoning model, delete the first half. Keep a precise goal and success criteria (chapter 1).
-
-## Manual chain of thought, as a fallback
-
-When thinking is off, the Claude docs still allow the classic method: ask the model "to think through the problem before it answers, and to put the final answer in `<answer>` tags so you can extract it".
+The prompt was written a year ago for an older model:
 
 ```text
-Check whether this order can be refunded under the policy.
-Work through the policy conditions first.
-Then give only "eligible" or "not eligible" inside answer tags.
+Let's think step by step. First, list every open bug. Then compare the
+new ticket with each one. Write out all of your reasoning. Then answer.
 ```
 
-Your code reads only the text inside the answer tags. Use this for models or modes without built-in thinking.
+The team moved it to a reasoning model and turned effort to the highest level "to be safe". Now:
 
-## Ask for a self-check
+1. Each reply is 600 words of reasoning, and the code must dig out the bug id.
+2. The bill grew more than the team expected.
+3. Easy tickets ("the export button is broken" when an open bug has that exact title) take as long as hard ones.
 
-The Claude docs suggest adding a line like "Before you finish, verify your answer against [test criteria]." They say this "catches errors reliably, especially for coding and math". One caution from the same page: on Claude Opus 5, such lines can cause over-verification, so remove them there.
+## The idea
 
-Example: "Before you finish, check that every refund decision cites a policy clause."
+**Chain of thought** means the model works through the steps before it answers. There are two ways to get it.
 
-## Reasoning costs tokens
+**1. Built-in reasoning (the main way today).** The [OpenAI docs](https://developers.openai.com/api/docs/guides/reasoning) say reasoning models "use internal reasoning tokens before producing a response". The [Gemini docs](https://ai.google.dev/gemini-api/docs/thinking) describe a "thinking process" that improves reasoning and multi-step planning. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost) say "the model evaluates each request and determines whether to think and how much".
 
-Reasoning is not free. It is billed even when you do not see it.
+You control it with a setting:
 
-- OpenAI: reasoning tokens "are not visible via the API", but "still occupy space in the model's context window and are billed as output tokens".
-- Claude: thinking tokens are "billed as output tokens", and "You are billed for the full thinking process, not the thinking content visible in the response."
-- Gemini: "response pricing is the sum of output tokens and thinking tokens."
+```text
+Claude:  output_config.effort             e.g. "low" ... "max"
+OpenAI:  reasoning.effort                 e.g. "none" ... "max"
+Gemini:  generation_config.thinking_level e.g. "low", "medium", "high"
+```
 
-Example: the visible answer is 200 tokens, but the model used 3,000 reasoning tokens. You pay for 3,200 output tokens.
+Which values exist depends on the model. OpenAI: values are "model-dependent". Defaults differ too, so check the model's page.
 
-## Leave room in the output cap
+**With built-in reasoning, drop "think step by step".** The [OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning-best-practices) says "Avoid chain-of-thought prompts", because asking to think step by step may not help "(and can sometimes hinder it)". The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) say "it's generally not necessary to have the model outline, plan, or detail reasoning steps in the returned response itself". The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say to "prefer general instructions over prescriptive steps". On the current Claude models listed there, a prompt that asks the model to write out its reasoning "may be declined".
 
-The output cap includes the reasoning:
+**2. Manual chain of thought (the fallback).** When thinking is off, the Claude docs suggest asking the model "to think through the problem before it answers, and to put the final answer in `<answer>` tags so you can extract it".
 
-- Claude: `max_tokens` "is a hard cap on total output for the request, thinking and response text combined".
-- OpenAI: when the cap is reached you get `status` `incomplete` with reason `max_output_tokens`. "This might occur before any visible output tokens are produced, meaning you could incur costs for input and reasoning tokens without receiving a visible response." OpenAI recommends "reserving at least 25,000 tokens for reasoning and outputs when you start experimenting".
-- Gemini: `max_output_tokens` includes thought tokens. To cut cost without cutting answers, lower `thinking_level` "instead of setting a small `max_output_tokens`".
+**A self-check line can help.** The Claude docs suggest "Before you finish, verify your answer against [test criteria]." It "catches errors reliably, especially for coding and math". One exception on the same page: on Claude Opus 5, remove such lines, because they can cause over-verification.
 
-So a tiny cap is the wrong tool for saving money. Lower the effort instead, and size the cap for reasoning plus answer.
+**Reasoning costs money, even when hidden.** OpenAI: reasoning tokens are not visible, but they "are billed as output tokens". Claude: "You are billed for the full thinking process, not the thinking content visible in the response." Gemini: "response pricing is the sum of output tokens and thinking tokens." Example: a 50-token answer after 2,000 reasoning tokens costs 2,050 output tokens.
 
-## Match effort to the task
+**The output cap includes reasoning.** Claude: `max_tokens` "is a hard cap on total output for the request, thinking and response text combined". OpenAI: when the cap is hit, the response is `incomplete`, and this "might occur before any visible output tokens are produced". OpenAI recommends "reserving at least 25,000 tokens for reasoning and outputs when you start experimenting". Gemini: to cut cost, lower the thinking level "instead of setting a small `max_output_tokens`".
 
-OpenAI's effort guide gives use cases: `none` for things like "voice, fast information retrieval, and classification"; `low` for work such as "customer support / chat assistant workflows"; `high` for "hard reasoning, complex debugging, deep planning". For `xhigh`: "Only use when your evals show a clear benefit that justifies the extra latency and cost."
+**Match effort to the task.** OpenAI's effort guide maps `low` to "customer support / chat assistant workflows" and `high` to "hard reasoning, complex debugging, deep planning". For `xhigh`: "Only use when your evals show a clear benefit that justifies the extra latency and cost." The Claude docs say the same about any change: "measure before you ship".
 
-The Claude docs agree on method: "measure before you ship". Compare quality, output tokens and latency with and without the change.
+## Worked example
 
-Example: a router sends simple FAQ questions to low effort and multi-step refund disputes to high effort. One test set checks both paths.
+### Step 1: the old setup
 
-## Key points
+```text
+model: a reasoning model
+effort: the highest level
+max output: 1,000 tokens
 
-- Built-in reasoning is a setting: Claude `output_config.effort`, OpenAI `reasoning.effort`, Gemini `thinking_level`.
-- With built-in reasoning, drop "think step by step". Give a clear goal instead.
-- Manual chain of thought (reason, then answer in tags) is a fallback when thinking is off.
-- Reasoning tokens are billed as output, even when hidden.
-- The output cap includes reasoning. Lower effort to save cost; don't shrink the cap.
-- Pick effort per task and measure the difference.
+Let's think step by step. First, list every open bug. Then compare the
+new ticket with each one. Write out all of your reasoning. Then answer.
+
+New ticket: ...
+Open bugs: ...
+```
+
+What goes wrong:
+
+- The prompt asks for written reasoning on top of the hidden reasoning. You pay twice.
+- The highest effort is used for a matching task.
+- The answer has no fixed format, so the code must search the text.
+- The cap is small for a reasoning model. A long think could use all of it before the answer.
+
+### Step 2: move reasoning into the setting
+
+Delete the step-by-step lines. Start with a low effort, and raise it only if your test set shows a gain. Give the cap room for reasoning and answer (OpenAI suggests at least 25,000 tokens while you experiment).
+
+### Step 3: write the goal and the success rules
+
+```text
+Decide if the new bug ticket describes the same problem as one of the
+open bugs.
+
+Same problem means: the same feature fails in the same way.
+Different wording, devices or customers do not make it a new problem.
+
+Reply with one line only: the matching bug id (for example BUG-112),
+or "new" if no open bug matches.
+
+<open_bugs>
+...15 open bugs, each with its id and description...
+</open_bugs>
+
+<new_ticket>
+...
+</new_ticket>
+```
+
+**The hard case:** the ticket says "the app freezes when I attach my 80 MB design file". An open bug says "uploads over 50 MB never finish". Different words, likely the same problem. The rule "same feature fails in the same way" gives the model a clear test. The model does the reasoning itself, inside its budget.
+
+### Step 4: if the model has no thinking
+
+On a model without built-in thinking, use the manual fallback:
+
+```text
+Compare the new ticket with each open bug before you answer.
+Then put only the bug id, or "new", inside answer tags.
+```
+
+Your code reads only the text inside the answer tags.
+
+### Step 5: why it is better
+
+- **Cheaper.** No written reasoning, and a lower effort for a simple task.
+- **Parseable.** One line, one id.
+- **Safer.** The cap leaves room for reasoning, so answers do not come back empty.
+- **Measured.** Run the same 30 past tickets at two effort levels. Keep the lower one if accuracy is the same.
+
+## Common mistakes
+
+1. **Old "think step by step" lines on a reasoning model.** They add cost and can hurt quality. Fix: delete them and write a clear goal with success rules.
+2. **A small output cap to save money.** The reasoning can use the whole cap before any answer appears. Fix: lower the effort instead, and give the cap room for both the reasoning and the answer.
+3. **One effort level for every request.** Easy and hard tasks then cost the same. Fix: pick the effort per task type, and check the choice on a test set.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team reviews code changes with a Gemini model. Here is their setup:
+
+```text
+generation_config:
+  thinking_level: high
+  max_output_tokens: 300
+
+Outline your plan step by step in your answer, then list any bugs
+you find in this code change.
+```
+
+Some replies come back empty. Find three problems and fix them.
+
+### Answer
+
+1. **The cap is too small.** `max_output_tokens` includes thinking tokens. With a high thinking level, the model can use all 300 tokens before it writes the list. Fix: raise the cap, and lower `thinking_level` if cost is the worry.
+2. **The plan is requested in the reply.** The Gemini docs say this is generally not necessary with thinking. Fix: delete "Outline your plan step by step in your answer".
+3. **No output format and no success rule.** Fix: ask for one line per bug with the file, the line and the problem, and "none found" when there are no bugs. Then test two thinking levels on past code changes.
+
+## Recap
+
+- Built-in reasoning is a setting: Claude `output_config.effort`, OpenAI `reasoning.effort`, Gemini `thinking_level`. Drop "think step by step" and give a clear goal.
+- Reasoning tokens are billed as output, and the output cap includes them. Lower the effort to save money; do not shrink the cap.
+- When thinking is off, ask for reasoning first and the answer in tags. Measure any change on a test set.
