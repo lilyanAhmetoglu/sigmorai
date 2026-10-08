@@ -1,7 +1,7 @@
 ---
 id: builder/r2/c2/lesson
 title: Define a tool
-minutes: 10
+minutes: 11
 sources:
   - kind: docs
     title: Define tools (Claude docs)
@@ -20,89 +20,159 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/function-calling
 ---
 
-The Claude docs say the model never sees your implementation: it only sees the schema you provided and the result you returned. So the definition is a prompt, and everything from realm 1 applies: be specific, give the reason, remove guesses.
+## Goal
 
-## Three core parts
+After this lesson you can:
+
+- Write a tool definition: a clear name, a detailed description and an input schema.
+- Use names, types and enums so that wrong calls are hard to make.
+- Decide which values the model should fill and which your code should fill.
+
+## The problem
+
+The library assistant from chapter 1 now has a tool to place a hold on a book. A developer wrote it in five minutes:
+
+```json
+{
+  "name": "hold",
+  "description": "Puts a hold on a book.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "user": { "type": "string" },
+      "book": { "type": "string" },
+      "branch": { "type": "string" }
+    },
+    "required": ["user", "book", "branch"]
+  }
+}
+```
+
+The logs show three problems:
+
+1. `book` gets the ISBN printed on the back cover. The hold system needs the catalogue record id, so the call fails.
+2. `branch` gets `Riverside`, `riverside library` and `RIV`. Only one of them works.
+3. The assistant asks readers for their library card number. The website already knows who is logged in.
+
+## The idea
+
+**The definition is a prompt.** Chapter 1 showed that the model never sees your code. It only sees the definition and the results. So everything from realm 1 applies: be specific, and remove guesses.
 
 Claude, OpenAI and Gemini all use three core parts:
 
 - a **name**, such as `get_order_status`;
 - a **description** of what the tool does and when to use it;
-- a **schema** for the inputs. It is written in JSON Schema on Claude and OpenAI (`input_schema` / `parameters`). Gemini's `parameters` uses a subset of the OpenAPI schema.
+- a **schema** for the inputs. Claude and OpenAI use JSON Schema (`input_schema` and `parameters`). Gemini's `parameters` uses "a subset of the OpenAPI schema" ([Gemini docs](https://ai.google.dev/gemini-api/docs/function-calling)).
 
-Example:
+**The description matters most.** The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) ask for "extremely detailed" descriptions and call them "by far the most important" thing for tool performance. A good description covers the job of the tool, when to call it and when to skip it, the meaning of each parameter, and what the tool does not return. They suggest "at least 3–4 sentences for each tool description". The [OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling) say: "Explicitly describe the purpose of the function and each parameter (and its format), and what the output represents." They also give a test: "Pass the intern test." Could a new person use the function with only what you gave the model?
+
+Think of a form at a post office. A box labelled only "Number" gets phone numbers, house numbers and parcel numbers. A box labelled "Parcel number (12 digits, on the yellow slip)" gets the right one.
+
+**Names and types.** Anthropic's [engineering post on tools](https://www.anthropic.com/engineering/writing-tools-for-agents) says to name parameters so they cannot be misread: "instead of a parameter named `user`, try a parameter named `user_id`." OpenAI: "Use enums and object structure to prevent invalid states." Its example is `toggle_light(on: bool, off: bool)`, which allows a call with both set to true. The Gemini docs say: "Use specific types (integer, string, enum)."
+
+**Strict mode.** Without it, the model can send inputs that break your schema. The [Claude strict tool use page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/strict-tool-use) says Claude "might return incompatible types" and gives an example: a `passengers` field may arrive as `"two"` or `"2"` instead of `2`. Setting `strict: true` "guarantees Claude's tool inputs match your JSON Schema". OpenAI says strict mode makes calls "reliably adhere to the function schema, instead of being best effort. We recommend always enabling strict mode." OpenAI's strict mode needs `additionalProperties: false` and every field in `required`; to make a field optional, add `null` as a type. Both vendors support only part of JSON Schema in strict mode. Strict mode checks the shape of the input. It does not check that a value is real: a well-formed id can still point to nothing.
+
+**Let code fill what code knows.** OpenAI: "Don't make the model fill arguments you already know." Its example: if you already have the `order_id`, define `submit_refund()` with no parameters and pass the id in your own code.
+
+**Keep the list short.** OpenAI: "Aim for fewer than 20 functions" at the start of a turn, and it calls this a soft suggestion. Gemini: "Keep active set to 10-20 tools maximum." The Claude docs: "Consolidate related operations into fewer tools", for example one tool with an `action` parameter instead of `create_pr`, `review_pr` and `merge_pr`. Claude suggests service prefixes such as `github_list_prs`; OpenAI has namespaces such as `crm` and `billing`. OpenAI also says: "Combine functions that are always called in sequence."
+
+## Worked example
+
+### Step 1: fix the name and description
+
+`hold` says almost nothing. The new name says the service and the action: `catalog_place_hold`. The description answers the intern's questions:
+
+```text
+Places a hold on one catalogue record, so the reader is told when a
+copy is ready to collect. Use it only after check_availability shows
+no copy on the shelf at the reader's branch. Do not use it to renew a
+loan. Returns the hold id and the reader's place in the queue. It does
+not say when the copy will arrive.
+```
+
+### Step 2: fix the inputs
 
 ```json
 {
-  "name": "get_order_status",
-  "description": "Returns the shipping status of one order placed in our web shop. Use it when the customer asks where an order is or when it will arrive. Do not use it for returns or refunds. Returns the carrier, the status and the expected delivery date. It does not return the items in the order.",
+  "name": "catalog_place_hold",
+  "description": "Places a hold on one catalogue record ... (the text from step 1)",
+  "strict": true,
   "input_schema": {
     "type": "object",
     "properties": {
-      "order_id": {
+      "record_id": {
         "type": "string",
-        "description": "The order number printed on the receipt, for example 4417."
+        "description": "The catalogue record id returned by check_availability, for example b2291047. Not the ISBN printed on the book."
+      },
+      "pickup_branch": {
+        "type": "string",
+        "enum": ["central", "riverside", "northgate"],
+        "description": "The branch where the reader will collect the book."
       }
     },
-    "required": ["order_id"]
+    "required": ["record_id", "pickup_branch"],
+    "additionalProperties": false
   }
 }
 ```
 
-The Claude docs also allow optional `input_examples`: sample inputs that must match the schema. They help most for complex or format-sensitive inputs, and they add tokens to the prompt.
+**The hard case is the book id.** A reader holding a book sees an ISBN, and the model sees "book". Strict mode cannot fix this, because an ISBN is a valid string. Only the name `record_id`, the format example and the "not the ISBN" line tell the model which number to send.
 
-## The description does most of the work
+### Step 3: remove what the code knows
 
-The Claude docs are direct: "Provide extremely detailed descriptions. This is by far the most important factor in tool performance." A good description says:
+`user` is gone. The website session knows the reader. Your code adds the reader id when it runs the call:
 
-- what the tool does;
-- when to use it, and when not to;
-- what each parameter means;
-- caveats, such as what the tool does not return.
+```text
+model sends:   catalog_place_hold(record_id="b2291047", pickup_branch="riverside")
+code adds:     reader id from the login session
+code runs:     the hold, for that reader only
+```
 
-They suggest "at least 3–4 sentences for each tool description". The example above follows that list.
+### Step 4: why it is better
 
-OpenAI says the same: "Explicitly describe the purpose of the function and each parameter (and its format), and what the output represents." It adds a test you can run in your head. "Pass the intern test": could a person use the function correctly with nothing but what you gave the model? If not, add the answers to their questions.
+- **The right id.** The parameter name, description and example point to one number.
+- **No spelling games.** The enum gives three branch values, and strict mode enforces them.
+- **No questions the website can answer.** The model never asks for the card number, and it cannot place a hold for someone else.
+- **Clear limits.** The description says when not to use the tool and what it does not return.
 
-Anthropic's engineering post on writing tools adds one more habit: name parameters so they can't be misread. Instead of a parameter named `user`, use `user_id`.
+## Common mistakes
 
-## Make wrong calls hard
+1. **A one-line description.** "Gets data." leaves the model to guess when to call the tool. Fix: write 3–4 sentences: what, when, when not, and what comes back.
+2. **Expecting strict mode to check values.** Strict mode guarantees the shape, not the facts. Fix: clear names and descriptions for the meaning, and a check in your code for the value.
+3. **Many near-twin tools.** `get_hold`, `list_holds` and `hold_status` overlap, and the model picks at random. Fix: merge them into one tool, and prefix names by service.
 
-A good schema blocks mistakes before they happen. OpenAI: "Use enums and object structure to prevent invalid states." Its example: `toggle_light(on: bool, off: bool)` allows a call where both are true. One `state` field with the values `"on"` and `"off"` cannot be wrong that way. The Gemini best practices agree: use specific types such as integer, string and enum.
+## Try it
 
-Example: a `priority` field typed as a free string will get "urgent", "HIGH" and "p1". An enum of `low`, `normal`, `high` gets one of three.
+Not graded. Write your answer down before you read the answer.
 
-## Strict mode
+A cinema app has this tool. Logged-in members book seats by chat. Find three problems and fix them.
 
-Without strict mode, the model can send inputs that break your schema. Claude: it "might return incompatible types". OpenAI calls non-strict calls "best effort". OpenAI's Responses API tries strict mode by default when the schema allows it. Both Anthropic and OpenAI offer a strict mode that enforces the schema.
+```json
+{
+  "name": "book",
+  "description": "Books seats.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "member": { "type": "string" },
+      "show": { "type": "string" },
+      "seats": { "type": "string" }
+    },
+    "required": ["member", "show", "seats"]
+  }
+}
+```
 
-- Claude: setting `strict: true` "guarantees Claude's tool inputs match your JSON Schema". The docs' example: a booking tool needs `passengers` as an integer. Without strict mode, Claude might send `"two"` or `"2"`. With it, the input is always `2`.
-- OpenAI: strict mode makes calls "reliably adhere to the function schema, instead of being best effort. We recommend always enabling strict mode." It has two rules: `additionalProperties` must be `false`, and every field must be listed as required. To make a field optional, allow `null` as one of its types.
+### Answer
 
-Both vendors support only part of JSON Schema in strict mode, so check the limits on their pages.
+1. **Vague name and description.** Fix: `cinema_book_seats`, with 3–4 sentences: what it books, when to use it, when not (for example not for refunds), and what it returns.
+2. **`member` is known from the login.** Fix: remove it, and add the member id in code.
+3. **`seats` is free text.** It will get "two", "2" and "A4, A5". Fix: an `integer` count, or an array of seat codes with a format example like `F12`, and turn on strict mode.
 
-## Don't ask for what you already know
+Also rename `show` to `showing_id` and describe where the id comes from.
 
-OpenAI: "Don't make the model fill arguments you already know." Its example: if your app already has the `order_id`, define `submit_refund()` with no parameters and pass the id in your own code.
+## Recap
 
-Example: a support chat where the user is logged in. The customer id comes from the session. Leave `customer_id` out of the schema and add it in your code. OpenAI's heading for this advice is "Offload the burden from the model and use code where possible."
-
-## Fewer, clearer tools
-
-OpenAI says to keep the number of tools available at the start small "for higher accuracy". The Claude docs say fewer tools "reduce selection ambiguity".
-
-- OpenAI: "Aim for fewer than 20 functions available at the start of a turn", and calls this a soft suggestion. Gemini: "Keep active set to 10-20 tools maximum."
-- Claude: "Consolidate related operations into fewer tools." Instead of `create_pr`, `review_pr` and `merge_pr`, use one tool with an `action` parameter.
-- Claude and OpenAI both suggest grouping by service. Claude uses name prefixes such as `github_list_prs` and `slack_send_message`. OpenAI has namespaces such as `crm` and `billing`.
-- OpenAI: "Combine functions that are always called in sequence."
-
-Anthropic's engineering post gives an example of the same idea: instead of a `list_contacts` tool that returns everyone, build `search_contacts`, so the model does not read the whole address book.
-
-## Key points
-
-- Every definition has a name, a description and a schema for inputs.
-- The description matters most: what, when, when not, each parameter, caveats.
-- Use enums and clear types to make invalid calls impossible.
-- Turn on strict mode where your schema fits the supported subset.
-- Don't make the model fill values your code already knows.
-- Keep the tool list short; merge related or always-chained operations.
+- A tool definition is a prompt: a name, a detailed description and an input schema. The description does most of the work.
+- Make wrong calls hard: clear parameter names, enums, specific types and strict mode. Strict mode checks shape, not truth.
+- Let your code fill values it already knows, and keep the tool list short.
