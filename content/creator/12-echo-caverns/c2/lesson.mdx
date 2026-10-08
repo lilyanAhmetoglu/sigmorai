@@ -1,0 +1,109 @@
+---
+id: creator/r12/c2/lesson
+title: Dialogue
+minutes: 8
+sources:
+  - kind: docs
+    title: Gemini API docs · Speech generation (text-to-speech)
+    url: https://ai.google.dev/gemini-api/docs/speech-generation
+  - kind: docs
+    title: ElevenLabs docs · Text to Dialogue
+    url: https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue
+  - kind: docs
+    title: OpenAI docs · Text to speech
+    url: https://developers.openai.com/api/docs/guides/text-to-speech
+---
+
+## Why it matters
+
+A pottery studio wants a 45-second trailer for its new podcast. Two hosts talk: Mia asks, Theo answers. You could record two people. Or you could generate the whole talk from a script.
+
+Bootstrap Village, chapter 1, said one Gemini speech request can have up to 2 speakers. Chapter 1 of this realm showed how to direct one voice. This chapter puts two or more voices in one clip, and shows how to write a script they can act.
+
+A note on dates. The model names and limits below are the ones on each vendor's page in October 2026.
+
+## One request, or one request per line
+
+Vendors handle a conversation in different ways.
+
+| Vendor (October 2026)       | How a dialogue is built            | Speakers                                  |
+| --------------------------- | ---------------------------------- | ----------------------------------------- |
+| Google Gemini 3.8 TTS       | one request, a list of turns       | up to 2 per request, prebuilt voices only |
+| ElevenLabs Text to Dialogue | one request, a list of turns       | "no limit to the number of speakers"      |
+| OpenAI speech endpoint      | one request per line (our reading) | one `voice` per request                   |
+
+**Gemini.** You list the speakers in `speech_config.speakers`, each with a name and a voice (for example Joe with `Puck`, Jane with `Kore`). Then each turn is its own text item with a `speech_metadata` note. Google says: "Every turn in a multi-speaker request must explicitly include `speaker`", and the name must match one of the configured speakers. A turn can also have its own `style`.
+
+There is a limit. Multi-speaker generation "supports up to 2 speakers using prebuilt voices". For a designed or cloned voice (chapter 3), Google says to "synthesize each speaker's turn individually" and join the audio yourself.
+
+**ElevenLabs.** Text to Dialogue works with Eleven v4 and Eleven v3 (v4 is recommended). "Each dialogue turn has its own text and voice": you send a list of turns, each with a `voice_id`. There is no speaker limit. There is a length limit: keep all the turn texts together "at or below 2,000 characters per request". Split a longer script and join the audio.
+
+**OpenAI.** The speech endpoint takes three inputs: the model, the text and "The voice that will speak the output". So for two hosts, make one request per line, with the right voice each time, and join the files in order (our reading).
+
+## Joining the pieces
+
+When you join clips yourself, check the file format first. Tool Forge, chapter 4, covers formats. Gemini gives one specific warning: a non-streaming Gemini 3.8 TTS request returns WAV "with a 44-byte RIFF header". A **header** is a small block of setup data at the start of a file (our plain gloss). Before you join turns, Google says to request raw PCM audio or strip each header.
+
+## Write turns a voice can act
+
+A dialogue script is not an article. It is something people say. The vendor guides give practical rules.
+
+**Label every turn.** One speaker per turn. On Gemini this is required.
+
+**New mood, new turn.** Google: "If the emotion or prosody shifts mid-dialogue, split the script into separate turns with distinct `style` values for each turn." **Prosody** is the music of speech: pitch, rhythm and stress (our plain gloss).
+
+**Write how people talk.** Google suggests writing "natural conversational disfluencies and hesitations", like "Oh uh yeah I think... hm, so that's interesting". **Disfluencies** are the small "uh"s and restarts in real speech (our plain gloss). Use a few. A clean, formal script sounds read, not spoken.
+
+**Show interruptions with punctuation.** ElevenLabs shows a dash where one speaker is cut off, and a tag on the next turn:
+
+- Turn 1: "[cautiously] Hello, is this seat-"
+- Turn 2: "[jumping in] Free? [cheerfully] Yes it is."
+
+Ellipses show a sentence that trails off: "[indecisive] Hi, can I get uhhh..."
+
+**Let the listener react without a new turn.** Gemini has a special form for this. Put the listener's short reaction in pipe characters inside the active speaker's turn: `So the launch is Thursday |oh hmm| Are we actually ready?` Google calls these **backchannels**: the "mm-hm" and "oh really?" a listener says while the other person talks (our plain gloss).
+
+## Sound effects: the vendors disagree
+
+ElevenLabs lets dialogue tags be more than voice. Its Text to Dialogue page lists "Audio events" such as `[leaves rustling]`, `[gentle footsteps]` and `[applause]`. It also lists "Overall direction" tags like `[auctioneer]`.
+
+Gemini 3.8 TTS goes the other way. Its migration notes say: "Avoid sound-effect tags (such as applause or thuds)". Inline tags there are for human sounds: `<laugh>`, `<sigh>`, `<breath>`.
+
+So a door bell at the start of the trailer is a tag on ElevenLabs, but a separate sound on Gemini. Chapter 4 of this realm covers sound effects. Either way, our advice: if the exact timing of a sound matters, add it in your audio editor.
+
+## Takes, not one shot
+
+ElevenLabs says it plainly: "Several generations might be required to achieve the desired results." It suggests you generate several and choose the best. The models are **nondeterministic**: the same request can sound different each time. A `seed` parameter gives "more consistent results", "though subtle differences may still occur."
+
+Plan time for takes. Listen for the joins between turns, wrong names, and lines given to the wrong voice.
+
+## The trailer, in two formats
+
+The same three lines, written for each vendor (our examples).
+
+Gemini: speakers `Mia` → `Kore`, `Theo` → `Puck`. Then three turns:
+
+```text
+Mia  (style: "curious, upbeat")  So Theo, what happens in a first class?
+Theo (style: "warm, relaxed")    You get muddy |ha| Very muddy. And uh... you make a bowl.
+Mia  (style: "laughing")         <laugh> A wobbly bowl, I bet.
+```
+
+ElevenLabs Text to Dialogue: three turns, each with a `voice_id`:
+
+```text
+voice A: [curious] So Theo, what happens in a first class?
+voice B: [warmly] You get muddy. Very muddy. And uh... you make a bowl.
+voice A: [laughing] A wobbly bowl, I bet.
+```
+
+Note the small change: the pipe reaction is a Gemini form. On ElevenLabs, write it as a normal turn or leave it out.
+
+## What this means for your work
+
+- **Check the speaker limit first.** Gemini: 2 prebuilt voices per request. ElevenLabs: no limit, but 2,000 characters or fewer per request.
+- **Custom voices may mean one request per turn.** Then join the audio yourself, and check the file headers.
+- **Label every turn.** New mood, new turn.
+- **Write speech, not prose.** A few "uh"s, dashes for cut-offs, ellipses for trailing lines.
+- **Put sound effects where the vendor allows them.** Or add them in the edit.
+- **Plan for several takes.** Listen for wrong voices and bad joins.

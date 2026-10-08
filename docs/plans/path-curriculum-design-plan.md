@@ -10,6 +10,15 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-07 (PR 7 devil pass)
+
+- **r12 Echo Caverns ships with 6 chapters, not 8.** Creator r0 c1, r2 c4, r3 c4 and r0 c6 already teach speech models, audio formats, transcription basics and the impersonation rules; r12 does not repeat them. Chapters: c1 Voice direction · c2 Dialogue · c3 Design or clone · c4 Music & effects · c5 Captions · c6 Dub & localise. Each lesson links back to the core chapter it builds on. "Voice rights" is folded into c3 as the consent recording the APIs require (Google, OpenAI) and ElevenLabs' own-voice rule, with one link to r0 c6.
+- **r12 sits on slot s2, placed before r10 in the creator outline:** `0, 1, 11, 2, 12, 10, 3, 4, 5, 9, 6, 7, 8`. With r12 after r10, the s2 → r3 leg crosses r4's island (the trail test); before r10 every leg is clear. Beginner (r12) before intermediate (r10) also reads better.
+- **r12 sources are first-party docs pages:** Gemini API (speech-generation, voice-design, voice-replication, music-generation, lyria-prompt-guide, audio), OpenAI docs (text-to-speech, speech-to-text, custom-voices) and ElevenLabs docs. `gemini-cookbook` (GitHub 403) and `openai-usage-policies` (403) are dropped; OpenAI's custom-voices page states the consent rule. Stability (JS shell), Suno (Notion page) and Udio (no docs) can't be cited. No loudness chapter (EBU R128 is 403; formats are r2 c4). Real-time voice agents are out of scope for a beginner creator realm.
+- **ElevenLabs joins the registry** as `elevenlabs-docs` → `https://elevenlabs.io/docs` and `elevenlabs-use-policy` → `https://elevenlabs.io/use-policy` (`trustTier: official`; never the only vendor in a chapter). Google's Cloud TTS custom-voice page is covered by a `google-cloud-docs` base entry only if c3 cites it.
+- **PR 7 is two PRs.** 7a = `REALMS` row 12 (`echo-caverns`, `npc: 'Bard Lio'`, `tier: 'beginner'`, `track: 'creator'`, `scene: false`), `slotRealms` += `{ slot: 's2', realm: 12 }`, outline entry after r2 and before r10, `INSERTED.creator` → `{ 1: [11], 2: [12, 10], 5: [9] }`, c1–c3 (+ cases, quick checks). 7b = c4–c6 + `boss/case.json`. Count line: 3 + 6 + 6 + 6 + 6 + 7 = 34 new creator chapters + 5 bosses.
+- **Build notes from PR 7a (2026-10-07 fetches).** (1) ElevenLabs now leads with Eleven v4 ("We recommend Eleven v4"); the v3 prompting URL redirects to `/docs/overview/capabilities/text-to-speech/best-practices`, which covers v4 and v3, so lessons say "Eleven v4 (and v3)". (2) The ElevenLabs voice-design URL redirects to `/docs/eleven-creative/voices/voice-design`; lessons cite the final URLs. (3) c3 does not cite Google Cloud TTS, so no `google-cloud-docs` entry is added. (4) OpenAI's TTS page says "11 built-in voices" in its intro and lists 13; c1 uses the list. (5) c1 also cites the OpenAI API reference (create speech) for the `instructions` limit and the `speed` range, under the existing `openai-api-reference` entry.
+
 ## Amendments locked 2026-10-07 (PR 6 devil pass)
 
 - **r11 Pigment Bazaar ships with 6 chapters, not 8.** r1 c1/c3/c4/c7/c9, r2 c1/c2 and r0 c1/c4/c5 already teach prompt dialects, chat editing, the order form (size, quality, background), text-in-image caveats and model choice; r11 does not repeat them. Chapters: c1 Model dialects · c2 Hex & palettes · c3 Text & layout · c4 Seeds & steps · c5 Styles & tuning · c6 Open weights. Each lesson links back to the core chapter it builds on. "Pick per job" lives in the boss, not in a chapter.
@@ -420,22 +429,22 @@ NPC (draft): Dyer Sabe. Topic: "Image craft per model: colours, text, seeds, sty
 
 Boss task: "Write one launch brief as prompts and settings for four different image models, and mark which outputs need a human check" (PR 6b; no trailing period, it is the boss title verbatim)
 
-### r12 Echo Caverns: Voice & audio (beginner, 8 chapters)
+### r12 Echo Caverns: Voice & audio (beginner, 6 chapters)
 
-NPC (draft): Bard Lio. Topic: "Speech, voices, music and sound effects from generation models."
+6 chapters, not 8: see "Amendments locked 2026-10-07 (PR 7 devil pass)". The old c1 "Audio models" repeats creator r0 c1, r2 c4 and r3 c4; c8 "Voice rights" is folded into c3 (consent recording, own-voice rule, one link to r0 c6). Status F (curl) = fetched with curl on 2026-10-07 and every quoted line grepped in the saved text.
 
-| Ch. | Title           | Teaches                                                       | Sources (status)                                                                  |
-| --- | --------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| c1  | Audio models    | Text-to-speech, speech-to-text, music and sound-effect models | `openai-audio` (R) · `gemini-speech` (R) · `el-docs` (S)                          |
-| c2  | Voice direction | Steering tone, pace and emotion with words and tags           | `openai-tts` (R) · `gemini-speech` (R) · `el-audio-tags` (S)                      |
-| c3  | Dialogue        | Two or more speakers in one clip                              | `gemini-speech` (R) · `el-dialogue` (S)                                           |
-| c4  | Custom voices   | Designed and cloned voices; consent first                     | `gemini-cookbook` (F, Get_Started_Voices) · `el-voices` (X) · `anthropic-aup` (F) |
-| c5  | Music prompts   | Genre, mood, tempo and structure in a music prompt            | `gemini-cookbook` (F, Get_started_Lyria) · `lyria-vertex` (S)                     |
-| c6  | Sound effects   | Describing an effect; length; layering under video            | `el-sfx` (X) · `gemini-veo` (R)                                                   |
-| c7  | Dub & localise  | Translating a voice-over; checking timing and names           | `el-dubbing` (S) · `openai-stt` (R) · `openai-tts` (R)                            |
-| c8  | Voice rights    | Likeness, impersonation, disclosure; what policies forbid     | `anthropic-aup` (F) · `google-genai-policy` (R) · `openai-usage-policies` (X)     |
+NPC (draft): Bard Lio. Topic: "Audio with AI: voice direction, consent, music, captions, dubs". Builds on r2 (map order: r2 → r12 → r10).
 
-Boss task (draft): "Plan the voice-over, music and sound for a short explainer in three languages."
+| Ch. | Title           | Teaches                                                                                                                                                                                                                                                                                                                                             | Sources (status)                                                                                                                                                                                      |
+| --- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| c1  | Voice direction | Where direction goes so it is not read aloud: OpenAI `instructions` (not on `tts-1`/`tts-1-hd`), Gemini `speech_metadata.style` + angle-bracket tags, ElevenLabs v4/v3 audio tags; speed ranges; capitals for stress; start plain; pick the voice first; AI disclosure. Formats stay in r2 c4                                                       | OpenAI text-to-speech, API reference (create speech) · Gemini speech generation · ElevenLabs text-to-speech, best practices (v4/v3 prompting), voices (all F, curl) — PR 7a                           |
+| c2  | Dialogue        | Two or more speakers in one clip: Gemini `speakers` (2 prebuilt voices per request; custom voices turn by turn), ElevenLabs Text to Dialogue (no speaker limit, ≤ 2,000 characters per request), OpenAI one voice per request; labelled turns, disfluencies, cut-offs, backchannels; sound-effect tags differ; takes and seeds                      | Gemini speech generation · ElevenLabs text-to-dialogue · OpenAI text-to-speech (all F, curl) — PR 7a                                                                                                  |
+| c3  | Design or clone | Design from words (Gemini voice design, ElevenLabs Voice Design) vs a replica of a real voice (Gemini voice replication, OpenAI custom voices, ElevenLabs instant and professional cloning); consent recordings and exact phrases; own-voice-only PVC; a passed check is not permission; ElevenLabs use policy; TTL. Rights link to r0 c6 and r3 c6 | Gemini voice design, voice replication · OpenAI custom voices, text-to-speech · ElevenLabs voice design, voices, instant and professional cloning, cloning concepts, use policy (all F, curl) — PR 7a |
+| c4  | Music & effects | Music and sound-effect prompts                                                                                                                                                                                                                                                                                                                      | Gemini music generation, Lyria prompt guide · ElevenLabs music, sound effects — PR 7b                                                                                                                 |
+| c5  | Captions        | Transcripts, timestamps and subtitle files                                                                                                                                                                                                                                                                                                          | OpenAI speech-to-text · Gemini audio · ElevenLabs speech-to-text — PR 7b                                                                                                                              |
+| c6  | Dub & localise  | Translating a voice-over; checking timing and names                                                                                                                                                                                                                                                                                                 | ElevenLabs dubbing · OpenAI speech-to-text, text-to-speech · Gemini speech generation — PR 7b                                                                                                         |
+
+Boss task: "Plan the voice, music and captions for a 60-second explainer in three languages: one consented voice, one music bed, subtitle files and a dub check" (PR 7b; no trailing period, it is the boss title verbatim)
 
 ### r13 Pattern Atelier: Design systems with AI (intermediate, 7 chapters)
 
@@ -453,7 +462,7 @@ NPC (draft): Weaver Hale. Topic: "Tokens, components and rules that keep AI outp
 
 Boss task (draft): "Design the tokens, components and rules an agent reads before it touches a brand."
 
-**Count:** 3 + 6 + 6 + 6 + 8 + 7 = **36 new creator chapters + 5 bosses** (r12 and r13 still get their own devil pass).
+**Count:** 3 + 6 + 6 + 6 + 6 + 7 = **34 new creator chapters + 5 bosses** (r13 still gets its own devil pass).
 
 ## Later: builder and strategist specialist realms (no detail yet)
 
