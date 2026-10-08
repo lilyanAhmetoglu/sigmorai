@@ -10,6 +10,12 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (builder and strategist slots, per-path PR 9a and 10a)
+
+- r14 Agent Workshop (builder) → **s6**, after r4 in the builder trail (r4 → r14 → r5). Trail-crossing test: clear.
+- r15 Guild Hall (strategist) → **s3**, after r1 in the strategist trail (r1 → r15 → r2). Trail-crossing test: clear; s3 is the only free slot clear after r1. Slots are shared positions; each track draws its own trail, so builder and strategist never clash.
+- s7, s8, s9 remain. Free-slot positions that pass the trail test on a plain core outline: s7 only after r6; s8 after r4, r7, r8; s9 only after r2. More realms than that need a new sea render (Risks).
+
 ## Amendments locked 2026-10-08 (creator slots, per-path PR 8a)
 
 - r13 Pattern Atelier → s4, after r3 in the creator trail (r3 → r13 → r4). Checked against the trail-crossing test: clear. This completes the creator slot lean (s1 r11, s2 r12, s10 r10, s4 r13, s5 r9); s3 and s6–s9 stay for builder and strategist realms.

@@ -171,6 +171,15 @@ export const REALMS = [
     track: 'creator',
     scene: false,
   },
+  {
+    id: 14,
+    slug: 'agent-workshop',
+    name: 'Agent Workshop',
+    npc: 'Foreman Ryn',
+    tier: 'intermediate',
+    track: 'builder',
+    scene: false,
+  },
 ] as const satisfies readonly RealmRow[];
 
 /** Whether a realm is on this track: a core realm, or a specialist realm the track owns. */

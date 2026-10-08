@@ -68,6 +68,10 @@ describe('realm lists per track (fixture table: r9 creator, r10 builder)', () =>
     expect(trackRealms('creator')).toContain(REALMS[11]);
     expect(trackRealms('creator')).toContain(REALMS[12]);
     expect(trackRealms('creator')).toContain(REALMS[13]);
+    // r14 Agent Workshop is the first builder-only realm.
+    expect(trackRealms('builder')).toContain(REALMS[14]);
+    expect(trackRealms('creator')).not.toContain(REALMS[14]);
+    expect(trackRealms('strategist')).not.toContain(REALMS[14]);
   });
 
   test('a track gets the core realms plus only the specialist realms it owns', () => {
@@ -135,11 +139,12 @@ describe('realm paths', () => {
     },
   );
 
-  test('folders of the real realms with no art yet (r9, r10, r11, r12, r13)', () => {
+  test('folders of the real realms with no art yet (r9, r10, r11, r12, r13, r14)', () => {
     expect(realmFolder(9)).toBe('09-canvas-workshop');
     expect(realmFolder(10)).toBe('10-reel-hollow');
     expect(realmFolder(11)).toBe('11-pigment-bazaar');
     expect(realmFolder(12)).toBe('12-echo-caverns');
     expect(realmFolder(13)).toBe('13-pattern-atelier');
+    expect(realmFolder(14)).toBe('14-agent-workshop');
   });
 });

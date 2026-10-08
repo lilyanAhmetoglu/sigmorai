@@ -1,0 +1,115 @@
+---
+id: builder/r14/c3/lesson
+title: Plugins
+minutes: 10
+sources:
+  - kind: docs
+    title: Plugins overview (Claude Code docs)
+    url: https://code.claude.com/docs/en/plugins/overview
+  - kind: docs
+    title: Plugin security and trust (Claude Code docs)
+    url: https://code.claude.com/docs/en/plugins/security
+  - kind: docs
+    title: Extend Claude Code (Claude Code docs)
+    url: https://code.claude.com/docs/en/features-overview
+  - kind: docs
+    title: Plugins (OpenAI Codex docs)
+    url: https://learn.chatgpt.com/docs/plugins
+  - kind: docs
+    title: Customization (OpenAI Codex docs)
+    url: https://learn.chatgpt.com/docs/customization/overview
+  - kind: docs
+    title: Gemini CLI extensions (Gemini CLI docs)
+    url: https://geminicli.com/docs/extensions/
+  - kind: docs
+    title: Extension reference (Gemini CLI docs)
+    url: https://geminicli.com/docs/extensions/reference/
+---
+
+Chapter 1 wrote skills. Chapter 2 wrote hooks. MCP Bridgelands (realm 5) connected an agent to outside tools with MCP servers. Now a second repo needs the same setup. Anthropic's answer for that moment: "Package it as a plugin".
+
+A **plugin** is one installable package that holds skills, hooks, MCP servers and more (our plain gloss). Gemini CLI calls the same idea an **extension**.
+
+A note on dates: the file names, scopes and commands below are from each vendor's page in October 2026.
+
+## What a plugin holds
+
+- **Anthropic:** "A Claude Code plugin is a directory of skills, agents, hooks, MCP servers, or other components that Claude Code installs and loads as one unit." Its manifest (the file that names the package; our plain gloss) sits at `.claude-plugin/plugin.json`.
+- **OpenAI:** "Plugins bundle capabilities into reusable workflows in ChatGPT and Codex. They can include skills and MCP servers." The Codex page also lists browser extensions and hooks as parts.
+- **Google:** "Gemini CLI extensions package prompts, MCP servers, custom commands, themes, hooks, sub-agents, and agent skills". Each extension "must have a `gemini-extension.json` file in its root directory."
+
+| Part        | Claude Code plugin | Codex plugin | Gemini CLI extension     |
+| ----------- | ------------------ | ------------ | ------------------------ |
+| Skills      | yes                | yes          | yes (`skills/`)          |
+| Hooks       | yes                | yes          | yes (`hooks/hooks.json`) |
+| MCP servers | yes                | yes          | yes                      |
+| Subagents   | yes                | not listed   | yes                      |
+
+The MCP part is the same server idea from realm 5. The plugin only ships the server's settings with the rest.
+
+Plugin skills get a prefix. Anthropic: "Plugin skills are namespaced (like `/my-plugin:review`) so multiple plugins can coexist." In Gemini CLI, an extension command that clashes with a user or project command gets the extension name in front, "for example, `/gcp.deploy`".
+
+## When you need one
+
+You often don't. Anthropic: "Skills, subagents, hooks, and MCP servers all work on their own, without a plugin." Use a plugin "when you want several skills, subagents, hooks, or MCP servers packaged as one unit."
+
+OpenAI draws the same line for skills: "Skills remain the authoring format; plugins are the installable distribution unit."
+
+Our example: one `release-notes` skill for one repo is a folder in that repo. A `release-notes` skill plus a format hook plus a GitHub MCP server, for twelve repos, is a plugin.
+
+## Marketplaces: where plugins come from
+
+A **marketplace** is a list of plugins and where to get each one (our plain gloss).
+
+- **Claude Code:** "A marketplace is a repository or directory with a `.claude-plugin/marketplace.json` file that lists plugins and where to fetch each one. It's a catalog, not a hosted store." You install by name, such as `commit-commands@claude-plugins-official`.
+- **Codex:** ChatGPT and Codex share one public catalog: "Both products use one universal plugin directory". A team can also share "through a marketplace source, such as a repo marketplace for a project or team." In Codex CLI, `/plugins` opens a browser that "groups plugins by marketplace".
+- **Gemini CLI:** you install from "its GitHub repository URL or a local file path". "Gemini CLI creates a copy of the extension during installation. You must run `gemini extensions update` to pull changes from the source."
+
+## Install scope: who gets it
+
+Claude Code asks for a scope when you install:
+
+- **User:** "enabled for you in every project on this computer"
+- **Project:** "enabled for everyone who works in this repository, through the committed `.claude/settings.json`". But "Each collaborator still installs it on their own machine".
+- **Local:** "enabled for you in this repository only"
+
+Gemini CLI: "Extensions are enabled globally by default." You can turn one off with `--scope user` or `--scope workspace`.
+
+Codex CLI: after you install, "start a new session before using its bundled skills or tools". Press Space on an installed plugin "to turn it on or off".
+
+## An enabled plugin is always on
+
+Anthropic: "An enabled plugin is part of every session, not only the sessions where you use it." For each skill or agent Claude can start by itself, "the name and description are in Claude's context on every turn". "The full text of a skill or agent loads only when it's used." MCP servers "run alongside each session where it's enabled, and its hooks fire at their events."
+
+So turn off plugins you don't use (our advice). In Claude Code you can "disable the plugin with `/plugin`" without uninstalling it.
+
+## Trust: a plugin runs as you
+
+- Anthropic: "A Claude Code plugin you install can execute arbitrary code on your machine with your user privileges."
+- The source is not a review. "A marketplace's name tells you who publishes the catalog, not what each plugin in it does".
+- Your permission rules don't cover everything. They "cover the tool calls Claude makes, not the code a plugin runs by itself". Hooks, MCP servers and other plugin processes run "outside the sandbox".
+- Files can change after you look. With auto-update on, "the files you reviewed can change on disk."
+
+The other vendors have the same warnings. OpenAI, on plugin hooks: "Review and trust plugin hooks before they run." For plugins that run through a Codex host, "the host's sandbox and approval policy applies." Gemini CLI's install flag `--consent` exists to "Acknowledge security risks and skip the confirmation prompt."
+
+A short review before you install (our advice):
+
+1. Read the hooks file first. Hooks run shell commands as you.
+2. List the MCP servers and what each one can reach.
+3. Pick the narrowest scope that works.
+4. Pin or review updates. Gemini CLI's `--ref` installs a fixed git branch, tag or commit.
+
+## Removing one
+
+OpenAI warns that removing a plugin is not a full clean-up: "Separately connected MCP server integrations remain connected in ChatGPT until you disconnect them there." Check connected services too (our advice).
+
+## Key points
+
+- A plugin bundles skills, hooks, MCP servers and more. Gemini CLI calls it an extension.
+- You don't need one for one repo. Use one to share a setup across repos or teams.
+- Manifests: `.claude-plugin/plugin.json` (Claude Code), `gemini-extension.json` (Gemini CLI).
+- A marketplace is a catalog of plugins, not a review of them.
+- Claude Code scopes: user, project, local. Project scope still needs each person to install.
+- An enabled plugin costs context every turn, even when unused.
+- A plugin runs code as you, outside the sandbox. Read its hooks before you install.
+- After removing a ChatGPT or Codex plugin, disconnect its MCP connections too.
