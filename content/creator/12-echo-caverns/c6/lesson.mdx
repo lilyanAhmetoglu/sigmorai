@@ -1,0 +1,101 @@
+---
+id: creator/r12/c6/lesson
+title: Dub & localise
+minutes: 9
+sources:
+  - kind: docs
+    title: ElevenLabs docs · Dubbing
+    url: https://elevenlabs.io/docs/overview/capabilities/dubbing
+  - kind: docs
+    title: ElevenLabs docs · Dubbing product guide
+    url: https://elevenlabs.io/docs/eleven-creative/products/dubbing
+  - kind: docs
+    title: OpenAI docs · Speech to text
+    url: https://developers.openai.com/api/docs/guides/speech-to-text
+  - kind: docs
+    title: OpenAI docs · Text to speech
+    url: https://developers.openai.com/api/docs/guides/text-to-speech
+  - kind: docs
+    title: Gemini API docs · Speech generation
+    url: https://ai.google.dev/gemini-api/docs/speech-generation
+---
+
+## Why it matters
+
+A bike shop makes a 2-minute repair video. The host, Tomás, shows how to fit the shop's own brake pad, the "GripLock". Now the shop wants the video in Mexican Spanish and in German.
+
+Subtitles (chapter 5) let people read along. A **dub** goes further: it replaces the spoken voice with a new language. **Localise** means to adapt it for one place: the language, the region, and the names people know (our plain glosses).
+
+There are two ways to make a dub:
+
+- **One step:** a dubbing tool takes the video and gives back the new language.
+- **A chain:** transcript, then translation, then a new voice track. You control each step.
+
+A note on dates: models and limits below are from each vendor's page in October 2026. Dubbing v2 is in "alpha", so expect changes.
+
+## One step: ElevenLabs dubbing
+
+ElevenLabs dubbing "translates audio and video across 90+ languages while preserving the emotion, timing, tone and unique characteristics of each speaker." And: "The original background audio is retained". So the music and sound effects from chapter 4 stay.
+
+**Language tags.** The API takes a BCP-47 tag (a short language code), "for example `fr` or `es-MX`". On Dubbing v2, a tag with a region "must be one of the supported dialects" on its list. Spanish lists `es-AR`, `es-CL`, `es-ES` and `es-MX`. Portuguese lists `pt-BR` and `pt-PT`. German is plain `de`.
+
+**Cloning strength.** Dubbing keeps each speaker's own voice. A setting called **Speaker similarity** sets how close, "on a scale of 0 to 10". "The default value of 7 works well for most content." Higher values sound more like the original, but "can sound less natural across languages with very different phonetic characteristics", and "can also carry over more of the original accent". Lower values sound more natural in the new language, but less like the speaker. A dub copies a real voice, so chapter 3's consent rules apply: ask Tomás first (our advice).
+
+**Editing.** This is the big trap. Dubbing v2 "is automatic and has no in-app editor". Editing the transcript and making the audio again through the API are "available on Enterprise plans only". The older v1 model has **Dubbing Studio**, with "transcript editing, speaker reassignment, and per-clip regeneration". **Speaker reassignment** means moving a line to the right speaker (our plain gloss). But Dubbing Studio "is in maintenance mode and receives critical bug fixes only".
+
+**Output.** "Dubbed video is a high-quality preview, not a production master." It is "most commonly output at 1080p". ElevenLabs' advice: "download the dubbed audio and use it to replace the audio track on your original video."
+
+**Lip-sync.** Lip-sync means moving the speaker's mouth to match the new words (our plain gloss). ElevenLabs says it "does not offer lip syncing as part of Dubbing."
+
+**Watermark.** Free-tier dubs are watermarked automatically; paid-tier dubs are not.
+
+## The chain: transcript, translation, voice
+
+The chain takes more work. But you see and fix the text at every step.
+
+**1. Transcript.** Chapter 5 showed how. On OpenAI, list the names you expect, such as "GripLock" and "Tomás", as `keywords`: "literal terms you expect to hear".
+
+**2. Translation.** OpenAI has a translation endpoint, but read the limit: it "supports translation into English only". So it cannot turn English into Spanish or German. For English to Spanish, use a translator or a text model for this step, then check it (our note).
+
+**3. New voice.** Send the translated text to a speech model.
+
+- **OpenAI:** you can make speech in another language "by providing input text in the language of your choice". But its voices are "optimized for English".
+- **Google:** Gemini TTS models "detect the input language automatically". Gemini 3.8 Flash TTS "supports over 130 languages". Google's tip: pick "a regional voice from the Extended Voice Library that matches your target language".
+
+OpenAI's TTS guide also says you must give "a clear disclosure to end users that the TTS voice they are hearing is AI-generated".
+
+## Timing
+
+Each line has a slot in the video. A translated line can be longer than the slot (our note). ElevenLabs dubbing works to keep "timing". In the chain, you check it yourself (our advice):
+
+- Play the new voice over the picture. Does each line end before the next shot?
+- If a line runs long, shorten the translated text. Don't speed the voice so much that it sounds wrong. Chapter 1 showed the speed settings.
+
+## Names
+
+Product names are easy to lose. "GripLock" could come back translated, or said in a strange way (our example).
+
+- **Before:** write down which names stay the same in every language.
+- **In the one-step dub:** if a name is wrong, you need an editor. On v2 that is the API on Enterprise plans, or a v1 Dubbing Studio project.
+- **In the chain:** fix the name in the translated text before the voice step.
+
+## A native-speaker check
+
+A dub can sound smooth and still be wrong. Ask a person who speaks the language to watch the whole video (our advice). Check:
+
+1. **Meaning.** Does each line say what the original says?
+2. **Names.** Are product names and people's names right?
+3. **Region.** Mexican Spanish for Mexico, not a mix.
+4. **Timing.** Does speech match the picture?
+5. **Sound.** Is the background music still there, at the right level?
+
+ElevenLabs also offers "Human-verified dubs via ElevenLabs Productions" if you need that.
+
+## What this means for your work
+
+- **One step is fast. The chain gives you control.** Pick by how much you need to edit.
+- **Use exact language tags**, like `es-MX`, from the vendor's list.
+- **Start cloning strength at the default (7).** Higher sounds more like the speaker, but can carry the accent.
+- **Know your edit path before you start.** Dubbing v2 has no in-app editor.
+- **OpenAI's translation endpoint gives English only.**
+- **Use the dubbed audio on your own master video**, and get a native speaker to check it.
