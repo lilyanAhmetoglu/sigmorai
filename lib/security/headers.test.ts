@@ -100,6 +100,6 @@ test('securityHeaders sets every SIG-27 header', () => {
 });
 
 test('HSTS covers subdomains but is not on the preload list', () => {
-  expect(HSTS).toBe('max-age=63072000');
+  expect(HSTS).toBe('max-age=63072000; includeSubDomains');
   expect(HSTS).not.toContain('preload');
 });
