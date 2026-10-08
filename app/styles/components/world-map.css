@@ -3,11 +3,13 @@
  * holds the world stage at one zoom step (ZOOM_STEPS: ½, 1, 2 screen px per
  * art px). The page itself never scrolls sideways; the box does.
  *
- * --world-z is the zoom. The overview needs no JS: 1 when the whole 1024×768
- * stage fits (width >= 68rem = WORLD_OVERVIEW_MIN_WIDTH and height >= 52rem
- * = WORLD_OVERVIEW_MIN_HEIGHT), else ½. The zoom buttons set data-zoom on
- * the box, which changes --world-z only; the box height follows the
- * overview (--world-z-overview), so zooming never makes the page jump. The
+ * --world-z is the zoom. It starts at 1 on every screen, with no JS, so the
+ * marker labels are readable on a phone too (clear-maps amendment). The box
+ * height follows the overview (--world-z-overview): the whole 1024×768 stage
+ * when it fits (width >= 68rem = WORLD_OVERVIEW_MIN_WIDTH and height >=
+ * 52rem = WORLD_OVERVIEW_MIN_HEIGHT), else the ½ stage's height. The zoom
+ * buttons set data-zoom on the box, which changes --world-z only, so
+ * zooming never makes the page jump. The
  * stage is the grid × --world-z; the SVG art scales with it. Markers,
  * landmarks and the hero sit at anchor × --world-z and keep their own size
  * (44px targets at every step).
@@ -28,7 +30,7 @@
   .world-map {
     @apply bg-parchment-900 shadow-panel m-0.75 grid overflow-auto;
     --world-z-overview: 0.5;
-    --world-z: var(--world-z-overview);
+    --world-z: 1;
     /* The route keeps at least its zoom-1 screen weight: 2× art px at ½. */
     --world-route: max(1, calc(1 / var(--world-z)));
     /* The overview stage, but never taller than the screen under the 4rem header. */
@@ -139,21 +141,9 @@
     fill: var(--parchment-100);
   }
   /* A glyph that only keeps clear of the pins from zoom 1 (terrainGlyphs):
-     hidden at ½, shown from 1, like the marker names. */
-  .world-map [data-from-zoom] {
-    display: none;
-  }
-  @media (width >= 68rem) and (height >= 52rem) {
-    .world-map [data-from-zoom] {
-      display: inline;
-    }
-  }
+     hidden at ½, shown from 1, like the marker labels. */
   .world-map[data-zoom='0.5'] [data-from-zoom] {
     display: none;
-  }
-  .world-map[data-zoom='1'] [data-from-zoom],
-  .world-map[data-zoom='2'] [data-from-zoom] {
-    display: inline;
   }
   .world-compass [data-px='tint'] {
     fill: var(--ember-600);
@@ -222,16 +212,16 @@
 
   /* Marker: the link is a transparent 44px target on the anchor, holding a
      28px pin with a small state pip on its corner; the tag sits above it,
-     the name on a thin plate below it (from zoom 1). */
+     the label plate below it (from zoom 1). */
   .world-marker {
     @apply grid size-11 place-items-center no-underline;
   }
   .world-marker-pin {
-    @apply text-text-on-accent font-hud text-micro shadow-notch inset-shadow-bevel relative grid size-7 place-items-center;
+    @apply shadow-notch inset-shadow-bevel relative grid size-7 place-items-center;
     @apply bg-(--tint);
   }
   .world-marker[data-status='tier-locked'] .world-marker-pin {
-    @apply bg-ink-700 text-ink-300;
+    @apply bg-ink-700;
   }
   /* The pip: a 7×7 ink shape at 2px a pixel on a 16px inked paper square
      (WORLD_STATUS_PIPS), so it reads on any land or pin colour. On the
@@ -244,36 +234,41 @@
     @apply block size-3.5;
     fill: var(--parchment-900);
   }
-  .world-marker-tag,
-  .world-marker-name {
-    @apply absolute left-1/2 w-max -translate-x-1/2 whitespace-nowrap;
-  }
   .world-marker-tag {
-    @apply bg-xp text-text-on-accent font-hud text-micro tracking-hud shadow-notch bottom-[calc(100%+--spacing(0.5))] px-2 py-1;
+    @apply bg-xp text-text-on-accent font-hud text-micro tracking-hud shadow-notch absolute bottom-[calc(100%+--spacing(0.5))] left-1/2 w-max -translate-x-1/2 px-2 py-1 whitespace-nowrap;
   }
-  /* The name: a thin paper plate with a small hard shadow, like a label
-     pasted on a printed map. Quiet: no colour, no state word. */
-  .world-marker-name {
-    @apply bg-parchment-100 text-parchment-900 font-hud text-micro tracking-hud shadow-drop-sm top-[calc(100%+--spacing(0.5))] hidden px-1.5 py-px leading-tight uppercase;
+  /* The label: a parchment plate like a label pasted on a printed map, in
+     three rows: name; number tag + status (icon + word); segmented bar +
+     "2/7". At most 148px wide and exactly 44px tall, 24px under the anchor:
+     WORLD_HERO.detail (a test checks this rule's max-w-37 and h-11). */
+  .world-marker-label {
+    @apply bg-parchment-100 text-parchment-900 font-hud text-micro tracking-hud shadow-drop-sm absolute top-[calc(100%+--spacing(0.5))] left-1/2 flex h-11 w-max max-w-37 -translate-x-1/2 flex-col justify-center gap-1 px-1.5 py-0.5 leading-none whitespace-nowrap uppercase;
   }
-  /* The name shows from zoom 1 (overview on a wide screen, or zoomed in). */
-  @media (width >= 68rem) and (height >= 52rem) {
-    .world-marker-name {
-      @apply block;
-    }
+  .world-marker-state,
+  .world-marker-progress {
+    @apply flex items-center gap-1;
   }
-  .world-map[data-zoom='0.5'] .world-marker-name {
+  .world-marker-number {
+    @apply bg-parchment-900 text-parchment-100 px-0.5;
+  }
+  .world-marker-bar {
+    @apply flex h-1.5 min-w-10 flex-1 gap-px;
+  }
+  .world-marker-cell {
+    @apply bg-parchment-400 flex-1;
+  }
+  .world-marker-cell[data-lit] {
+    @apply bg-parchment-900;
+  }
+  /* Zoom ½: the anchors are 48px apart, so no plate fits; the pin and pip
+     stay. The focused marker still shows its plate, on top of its
+     neighbours. The current realm is also named in the "here" line under
+     the box (.world-map-here). */
+  .world-map[data-zoom='0.5'] .world-marker-label {
     @apply hidden;
   }
-  .world-map[data-zoom='1'] .world-marker-name,
-  .world-map[data-zoom='2'] .world-marker-name {
-    @apply block;
-  }
-  /* At every zoom (a phone's ½ too): the name of the marker with keyboard
-     focus, on top of its neighbours. The current realm's name is also in
-     the "here" line under the box (.world-map-here). */
-  .world-map .world-marker:focus-visible .world-marker-name {
-    @apply block;
+  .world-map[data-zoom='0.5'] .world-marker:focus-visible .world-marker-label {
+    @apply flex;
   }
 
   /* Focus: the global 3px Spark ring, backed by a hard 3px ink-950 ring
@@ -288,8 +283,8 @@
 
   /* Hero: a 48px avatar next to the current pin, on the side heroSide picks
      for that place (data-side), so it never hides another pin, a landmark
-     label, or its own tag, pip and name. Left sits 16px off the anchor,
-     right 24px (past the pip); above and below clear the tag and the name.
+     label, or its own tag, pip and label. Left sits 16px off the anchor,
+     right 24px (past the pip); above and below clear the tag and the label.
      The offsets are map geometry, not the spacing scale (--spacing(25) and
      (18) are off the 4…96 scale on purpose): WORLD_HERO.sides
      (lib/constants/world-map.ts; a test keeps them equal).
@@ -335,7 +330,7 @@
     left: calc((var(--x) + var(--half-w)) * var(--world-z));
   }
 
-  /* Under the box: where you are (tag + realm name, so a phone at ½ still
+  /* Under the box: where you are (tag + realm name, so the map at ½ still
      names it), the hint and the zoom buttons, then the path list. */
   .world-map-here {
     @apply text-body leading-body text-text-1 m-0 flex w-full flex-wrap items-center gap-2;

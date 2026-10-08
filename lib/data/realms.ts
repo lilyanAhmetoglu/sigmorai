@@ -5,8 +5,10 @@ import { cache } from 'react';
 import { db } from '@/db';
 import { progress } from '@/db/schema';
 import {
+  BOSS_STEP,
   DEFAULT_TRACK,
   FRONTIER_AREA,
+  MAP_TEXT,
   MATH_AREA,
   REALMS,
   realmPageTrack,
@@ -14,7 +16,7 @@ import {
 } from '@/lib/constants';
 import { mathExerciseIds, realmExerciseIds, trackExerciseIds } from '@/lib/content/ids';
 import { outlineChapterCount } from '@/lib/content/curriculum';
-import { hasContent } from '@/lib/content/load';
+import { hasContent, loadCase } from '@/lib/content/load';
 import { applyCredit, creditorsForTrack, type Credit } from '@/lib/content/shared';
 import { sharedGroups } from '@/lib/grading/credit';
 import { trackOutline } from '@/lib/grading/outline';
@@ -194,6 +196,48 @@ export type RealmPage = {
   prev: RealmView | null;
   after: RealmView | null;
 };
+
+/** A case's title. Content ships with the deploy: production reads each case once per server. */
+const caseTitleMemo = new Map<string, Promise<string>>();
+const caseTitlePerRequest = cache(async (id: string) => (await loadCase(id)).title);
+
+function caseTitle(id: string): Promise<string> {
+  if (process.env.NODE_ENV !== 'production') return caseTitlePerRequest(id);
+  let title = caseTitleMemo.get(id);
+  if (!title) {
+    title = loadCase(id).then((c) => c.title);
+    caseTitleMemo.set(id, title);
+    title.catch(() => caseTitleMemo.delete(id));
+  }
+  return title;
+}
+
+/**
+ * Each level-map card's one-line goal, in `realm.chapters` order
+ * (clear-maps amendment): "Case: <case title>" for a chapter, the outline's
+ * boss task for the boss. No new copy. Only the case title leaves this
+ * module, never the case's options or answers. Null when a chapter's case
+ * has no file yet, or fails to load: the card still shows, without a goal.
+ */
+export async function getChapterGoals(
+  track: Track,
+  realm: Pick<RealmView, 'id' | 'chapters'>,
+): Promise<(string | null)[]> {
+  const [outline, live] = await Promise.all([trackOutline(track), liveIds(track)]);
+  const task = outline.realms.find((r) => r.id === realm.id)?.boss.task ?? null;
+  return Promise.all(
+    realm.chapters.map(async (chapter) => {
+      if (chapter.chapter === null) return task;
+      const kase = chapter.steps.find((s) => s.step === BOSS_STEP);
+      if (!kase || !live.has(kase.exerciseId)) return null;
+      try {
+        return MAP_TEXT.caseGoal(await caseTitle(kase.exerciseId));
+      } catch {
+        return null;
+      }
+    }),
+  );
+}
 
 /**
  * null for an unknown slug, or a realm not in the shown track's outline

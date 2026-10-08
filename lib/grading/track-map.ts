@@ -7,6 +7,7 @@ import {
   REALMS,
   realmRow,
   SIDE_STEPS,
+  XP_REWARDS,
 } from '@/lib/constants';
 import { isRealmOpen } from '@/lib/content/curriculum';
 import { buildExerciseId } from '@/lib/content/ids';
@@ -144,6 +145,21 @@ export function levelStatus(chapter: ChapterView, isCurrent: boolean): LevelStat
   if (chapter.status === 'open') return isCurrent ? 'current' : 'open';
   return 'locked';
 }
+
+/**
+ * A level-map card's state (clear-maps amendment): levelStatus, except a
+ * chapter with no content file at all is "soon", not "locked".
+ */
+export function stopStatus(chapter: ChapterView, isCurrent: boolean): LevelStatus | 'soon' {
+  return chapter.status === 'soon' ? 'soon' : levelStatus(chapter, isCurrent);
+}
+
+/**
+ * The XP a card gives when every step is cleared, from XP_REWARDS only:
+ * lesson + case + quick check for a chapter (165), the boss case for the boss (500).
+ */
+export const chapterXp = (chapter: Pick<ChapterView, 'chapter' | 'steps'>): number =>
+  chapter.steps.reduce((sum, s) => sum + XP_REWARDS[chapter.chapter === null ? 'boss' : s.step], 0);
 
 /**
  * Where a level-map node links: the chapter's first open step; for a done

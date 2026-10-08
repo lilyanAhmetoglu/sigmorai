@@ -1,59 +1,141 @@
 /*
- * Level map (Sigmorai App.dc.html → isMap): a strip that scrolls sideways,
- * holding the 2048×480 stage (art at exactly 2×) and the level nodes on the
- * ground line. Only this strip scrolls sideways; the page never does.
- * Stage size and ground come from LEVEL_MAP (level-map.tsx sets --map-*).
- * Tokens only. --level-px is one art pixel on screen (2×), local to the map,
- * not a design token.
- *
- * Parallax: CSS scroll-driven animations, no rAF loop. The near layer and the
- * nodes scroll 1:1 (no transform). The layers behind lag: each is pushed right
- * by --lag × the scroll offset, so it moves at (1 - lag) speed. Sky 0, far
- * 0.3, mid 0.6. The push is rounded down to whole art pixels so the art stays
- * sharp. Only with support and prefers-reduced-motion: no-preference; else
- * every layer scrolls 1:1 (plain scroll).
+ * Level map (/map/<slug>; clear-maps amendment, level-art spec): a short
+ * banner of the realm's art, then a quest path of cards, one per chapter and
+ * the boss, joined by a trail. One column on every screen; nothing scrolls
+ * sideways. Realm colour from data-accent (accents.css) on the page. Tokens
+ * only: zero radius, hard shadows, no gradient. Reading text (goal, steps,
+ * hint) is Atkinson; tags, states and XP are the HUD font.
  */
 @layer components {
-  .level-map {
-    @apply bg-ink-950 shadow-panel m-0.75 overflow-x-auto overflow-y-hidden;
-    container-type: inline-size;
-    scroll-timeline: --level-map x;
-    scrollbar-color: var(--ink-500) var(--ink-950);
+  .quest-map {
+    @apply flex flex-col gap-4;
   }
 
-  .level-map-stage {
-    @apply relative;
-    --level-px: 2px;
-    width: var(--map-w);
-    height: var(--map-h);
+  /* Banner: the 2048×480 stage (the art at exactly 2×) centred and cropped
+     to the ground line, so the pixels stay whole. 192px tall: the stage's
+     bottom 64px (roots, under the ground) is cut off. */
+  .quest-map-banner {
+    @apply bg-ink-950 shadow-panel relative m-0.75 h-48 overflow-hidden;
   }
-  .level-map-stage > .realm-scene {
+  .quest-map-banner > .quest-map-scene {
+    @apply absolute -bottom-16 left-1/2 h-120 w-512 -translate-x-1/2;
+  }
+  /* A realm with no art yet: a flat dark surface with its name, never an empty box. */
+  .quest-map-banner[data-flat] {
+    @apply bg-surface-3 grid place-items-center px-4;
+  }
+  .quest-map-banner-name {
+    @apply font-display text-h3 text-text-2 m-0 text-center leading-tight font-semibold text-balance;
+  }
+  .quest-map-note {
+    @apply text-body leading-body text-text-2 m-0;
+  }
+
+  /* The path: a node column (48px) and the cards. The trail is a 4px line
+     down the node column, from each node to the next; mint once the node
+     before it is done. */
+  .quest-path {
+    @apply m-0 flex list-none flex-col gap-4 p-0;
+  }
+  .quest-stop {
+    @apply relative grid grid-cols-[--spacing(12)_minmax(0,1fr)] items-start gap-3;
+  }
+  /* From this node's centre (12px margin + 24px) to the next one's (16px gap + 36px). */
+  .quest-stop::before {
+    @apply bg-ink-700 absolute top-9 -bottom-13 left-5.5 w-1;
+    content: '';
+  }
+  .quest-stop:last-child::before {
+    @apply hidden;
+  }
+  .quest-stop[data-status='done']::before {
+    @apply bg-success;
+  }
+
+  .quest-stop-node {
+    @apply text-text-on-accent font-display text-h4 shadow-notch inset-shadow-bevel relative mt-3 grid size-12 place-items-center font-bold;
+    @apply bg-(--tint);
+  }
+  .quest-stop[data-status='done'] .quest-stop-node {
+    @apply bg-success;
+  }
+  .quest-stop[data-status='locked'] .quest-stop-node,
+  .quest-stop[data-status='soon'] .quest-stop-node {
+    @apply bg-ink-700 text-ink-400;
+  }
+
+  /* The card: the title link covers it (one big target). */
+  .quest-stop-card {
+    @apply bg-surface-2 shadow-card relative m-0.75 flex min-w-0 flex-col items-start gap-2 p-4;
+  }
+  .quest-stop:has(a.quest-stop-link:hover) .quest-stop-card {
+    @apply bg-surface-3;
+  }
+  /* The current card: a 4px edge in the realm colour and the word CONTINUE.
+     Never an outline: that is the focus ring's. */
+  .quest-stop[data-status='current'] .quest-stop-card {
+    @apply border-l-4 border-(--tint);
+  }
+  .quest-stop-head {
+    @apply flex flex-wrap items-center justify-between gap-2 self-stretch;
+  }
+  .quest-stop-tag {
+    @apply font-hud text-micro tracking-hud m-0 text-(--tint);
+  }
+  .quest-stop[data-status='locked'] .quest-stop-tag,
+  .quest-stop[data-status='soon'] .quest-stop-tag {
+    @apply text-text-3;
+  }
+  .quest-stop-title {
+    @apply font-display text-h4 m-0 leading-snug font-semibold text-balance break-words;
+  }
+  .quest-stop-link {
+    @apply text-text-1 cursor-pointer border-0 bg-transparent p-0 text-left no-underline;
+    font: inherit;
+  }
+  .quest-stop-link::after {
     @apply absolute inset-0;
+    content: '';
+  }
+  .quest-stop-link[aria-disabled='true'] {
+    @apply text-text-3 cursor-not-allowed;
+  }
+  /* The one focus ring (3px Spark), drawn round the whole card the link covers. */
+  .quest-stop-link:focus-visible {
+    outline: none;
+  }
+  .quest-stop-link:focus-visible::after {
+    outline: var(--border-2) solid var(--spark-500);
+  }
+  .quest-stop-goal {
+    @apply font-body text-body leading-body text-text-2 m-0 text-pretty;
   }
 
-  .level-map-nodes {
-    @apply absolute inset-0 m-0 list-none p-0;
+  /* Steps: Lesson · Case · Quick check, each with its state as icon + word. */
+  .quest-stop-steps {
+    @apply m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0;
   }
-  /* Centred on its x; the tile stands on the ground line, the label below it. */
-  .level-map-node {
-    @apply absolute -translate-x-1/2;
-    left: var(--node-x);
-    top: calc(var(--map-ground) - --spacing(12));
+  .quest-stop-step {
+    @apply font-body text-small leading-body text-text-2 flex items-center gap-1.5;
   }
-  .level-map-node[data-boss] {
-    top: calc(var(--map-ground) - --spacing(16));
+  .quest-stop-step[data-status='done'] {
+    @apply text-text-1;
   }
-  /* Labels sit on busy art: give them a dark plate like the design. A label
-     may be as wide as the gap to the next node, less --spacing(8) of air
-     (--node-gap from levelNodeGap: 224px → 192px for 6 chapters, 144px →
-     112px for 12), so it can be wider than the primitive's 96px. */
-  .level-map .level-node-label {
-    @apply bg-ink-950 shadow-notch px-2 py-1;
-    max-width: calc(var(--node-gap) - --spacing(8));
+  .quest-stop-step[data-status='done'] > [aria-hidden] {
+    @apply text-success;
   }
-  /* The boss sits alone near the end: one line reads better than two. */
-  .level-map-node[data-boss] .level-node-label {
-    @apply max-w-none whitespace-nowrap;
+  .quest-stop-step-state {
+    @apply font-hud text-micro tracking-hud text-text-3;
+  }
+
+  .quest-stop-foot {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1;
+  }
+  .quest-stop-xp {
+    @apply font-hud text-micro tracking-hud text-xp;
+  }
+  .quest-stop-hint {
+    @apply font-body text-small leading-body text-text-2;
   }
 
   /* Header: "2/7 CLEARED" between the realm arrows (design: progressLabel). */
@@ -71,46 +153,5 @@
   }
   .map-hint {
     @apply text-small leading-body text-text-2 m-0;
-  }
-
-  .level-map .realm-scene-layer[data-layer='sky'] {
-    --lag: 1;
-  }
-  .level-map .realm-scene-layer[data-layer='far'] {
-    --lag: 0.7;
-  }
-  .level-map .realm-scene-layer[data-layer='mid'] {
-    --lag: 0.4;
-  }
-
-  @supports (animation-timeline: scroll()) {
-    @media (prefers-reduced-motion: no-preference) {
-      .level-map .realm-scene-layer:not([data-layer='near']) {
-        /* The duration is ignored: the scroll position drives progress.
-           animation-timeline must come after the animation shorthand. */
-        animation: level-map-parallax 1ms linear both;
-        animation-timeline: --level-map;
-        /* 100cqw = the strip's visible width, so the max(…) is the scroll range. */
-        translate: round(
-            down,
-            calc(var(--level-shift) * var(--lag) * max(0px, var(--map-w) - 100cqw)),
-            var(--level-px)
-          )
-          0;
-      }
-    }
-  }
-}
-
-/* Scroll progress 0 → 1, as a number the layers can multiply. */
-@property --level-shift {
-  syntax: '<number>';
-  inherits: false;
-  initial-value: 0;
-}
-
-@keyframes level-map-parallax {
-  to {
-    --level-shift: 1;
   }
 }

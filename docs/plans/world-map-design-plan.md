@@ -10,6 +10,15 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (clear maps)
+
+- **Maintainer feedback (2026-10-08):** the realm markers were numbered squares. "Numbers only is misleading, make it more professional." This replaces the "Map labels stay quiet" rule of the cartography polish below (thin name plate only, no state word on the map).
+- **Marker label (maintainer pick):** under the pin, one parchment plate with three short rows: the realm name; the realm number as a small corner tag plus the status as icon + word (In progress / Done / Open / Locked / Soon); a small segmented progress bar with "cleared/total". The pin keeps its colour and its state pip, but no number. "Soon" is a realm with no content file yet; tier-locked reads Locked.
+- **Size and overlap:** the plate is at most 148px wide and sits 24 to 70px under the anchor (`WORLD_HERO.detail`, now [-76, 24, 76, 70]). The existing label test checks it against every pin, plate and landmark label at zoom 1 and 2 (no clash), and terrain and the hero keep clear of it.
+- **Zoom ½:** the anchors are only 48 screen px apart there, so no words fit (the 12 clashes found in the cartography review still hold). At ½ the plate stays hidden, as before: the pin and its state pip show, and the plate shows on keyboard focus; the "here" line and the path list carry the words. (A bar-only plate at ½ was tried: it hit the Frontier label.)
+- **Phones start at zoom 1, not ½.** The box keeps its height (the ½ overview height on a small screen), but the first view is zoom 1, centred on the current realm, so the labels are readable at 390px. The − button still shows the whole world at ½. This replaces "the overview needs no JS (½ under 1024px, else 1)" for the zoom; the box size rule is unchanged.
+- **Accessible name** still starts with the visible text in screen order (WCAG 2.5.3): "<tag>, <Realm name>, <number>, <status>, <cleared> of <total> cleared", for example "you are here, Prompt Forest, 01, in progress, 2 of 7 cleared". A specialist realm adds "creator only" after its name.
+
 ## Amendments locked 2026-10-08 (Lighthouse)
 
 - The marker's accessible name now starts with its visible text, in screen order: "<number> <tag>, <Realm name>, <state>, <cleared> of <total> cleared". Example: "01 you are here, Prompt Forest, in progress, 2 of 7 cleared". Why: WCAG 2.5.3 (label in name); Lighthouse flagged the old order, which put "you are here" last.

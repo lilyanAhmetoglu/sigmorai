@@ -27,21 +27,19 @@ From the build prompt and `design/ui_kits/webapp/Sigmorai App.dc.html`. Port, do
 - **Canvas gets `aria-hidden="true"`** and a sibling text alternative describing the scene.
 - No `setState` per frame. Game state lives in refs inside the loop; React only hears about events (XP popups) if it must.
 
-## Level map (`components/map/`)
+## Level map (`components/map/`, clear-maps 2026-10-08)
 
-- 2048×480 level from `/public/levels/realm-0N/{sky,far,mid,near}.png` at 2× via RealmScene, horizontally scrollable on every screen size.
-- Flags at `x = (n × 16 + 8) × 2`, nodes from `LEVEL_MAP` (`lib/constants/level-map.ts`), not in the component.
-- Flags are real links (or aria-disabled `<button>`s when locked, ≥44px hit area) with labels; the art is decoration.
-- Parallax is CSS scroll-driven (`level-map.css`), no rAF loop. Reduced motion or no support → 1:1 scroll.
-- Later (follow-up ticket): click a flag → hero walks there in 800ms with `steps(16)`, flipped when moving left, and the scroller follows. Reduced motion → jump, no walk.
+- `/map/<slug>` is a quest path, not a scrolling strip (`docs/plans/level-art-design-plan.md` → clear maps). The realm's four layers are a short banner at exactly 2× (RealmScene, cropped to the ground, no parallax); a `scene: false` realm gets a flat token banner with its name, never an empty box.
+- Under it, one card per chapter, then the boss, in one column joined by a trail. Each card: tag, title, goal, steps with icon + word, XP, status icon + word (Done / Continue / Open / Locked / Soon). Same layout on every screen; nothing scrolls sideways.
+- The card's title is a real link (or an aria-disabled `<button>` when shut, with an unlock hint) that covers the card. The current card is marked and brought into view.
 
 ## World map (`components/map/world-map.tsx`, 2026-10-07)
 
 - `/map`: one top-down world, every realm of a path as a land (`docs/plans/world-map-design-plan.md`). Geometry (anchors, rectangle footprints, slots, landmarks) only in `WORLD_MAP` (`lib/constants/world-map.ts`); the art fits it.
-- A native scroll box, like the level map. Zoom steps `ZOOM_STEPS` = ½, 1, 2 only (`data-zoom` on the box); the overview needs no JS (½ under 1024px, else 1). No canvas, no pan/zoom library.
+- A native scroll box. Zoom steps `ZOOM_STEPS` = ½, 1, 2 only (`data-zoom` on the box); it starts at 1 with no JS. No canvas, no pan/zoom library.
 - Markers are real 44px links that do not scale with the zoom; the art, trail, fog and hero are `aria-hidden`. The "Your path" list under the box is the text view.
 - Until the Higgsfield art lands, the world is a token-coloured SVG cartography map (paper sea, organic stepped coasts on an 8 art px grid, seeded terrain glyphs that keep off pins and labels, compass, frame). The art goes in the `WORLD_MAP_ART` slot (2048×1536, pixelated). Never reuse level art.
-- Map labels stay quiet: a thin name plate from zoom 1 and a state pip (a shape, not a colour) on the pin. No badges on the map; the words live in the accessible name, the key and the path list.
+- Marker labels (clear-maps 2026-10-08): from zoom 1, one parchment plate under the pin: the name, the number as a small tag with the status as icon + word, and a segmented bar with "cleared/total". Its box is `WORLD_HERO.detail`; a test keeps it off every pin, plate and landmark label. At ½ only the pin and its state pip show (the plate on focus). The map starts at zoom 1 on every screen.
 
 ## The UI is not pixel art
 

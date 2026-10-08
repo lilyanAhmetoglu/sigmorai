@@ -10,7 +10,7 @@ type Props = {
   boxId: string;
 };
 
-/** The box's zoom step: its data-zoom, else the overview world-map.css chose (½ or 1). */
+/** The box's zoom step: its data-zoom, else world-map.css's start (1). */
 function readZoom(boxId: string): ZoomStep | null {
   const box = document.getElementById(boxId);
   if (!box) return null;
@@ -25,7 +25,7 @@ function readZoom(boxId: string): ZoomStep | null {
  * limit is aria-disabled (it stays focusable). The step is read from the box
  * (an external store: data-zoom changes and viewport resizes), so it is null
  * on the server and during hydration, and the buttons render only after it:
- * with no JS the map keeps the CSS overview. Styles: world-map.css.
+ * with no JS the map keeps the CSS start zoom. Styles: world-map.css.
  */
 export function ZoomControls({ boxId }: Props) {
   const subscribe = useCallback(

@@ -47,6 +47,7 @@ export function pathRealms(map: TrackMap, hrefFor: (slug: string) => string): Pa
     href: hrefFor(realm.slug),
     current: realm.id === current,
     track: realm.track,
+    soon: realm.chapters.every((c) => c.status === 'soon'),
   }));
 }
 

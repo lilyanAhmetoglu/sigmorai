@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { CONTENT_DIR, coreRealms, MIN_CHAPTERS, OUTLINE_FILE, REALMS } from '@/lib/constants';
+import {
+  CONTENT_DIR,
+  coreRealms,
+  MIN_CHAPTERS,
+  OUTLINE_FILE,
+  REALMS,
+  XP_REWARDS,
+} from '@/lib/constants';
 import {
   CORE_IDS,
   CREATOR_ORDER,
@@ -20,8 +27,10 @@ import {
   buildTrackMap,
   clearedLevels,
   frontierSummary,
+  chapterXp,
   levelStatus,
   playableStep,
+  stopStatus,
   realmChapterCount,
   realmNeighbours,
   towerSummary,
@@ -226,6 +235,29 @@ describe('levelStatus', () => {
   test('done wins over current', () => {
     const c1 = realm(map(ALL_LIVE, new Set([caseId(0, 1)])).realms, 0).chapters[0];
     expect(levelStatus(c1, true)).toBe('done');
+  });
+});
+
+describe('stopStatus', () => {
+  test('is levelStatus, except a chapter with no content file is soon', () => {
+    const soon = realm(map(NONE, NONE).realms, 0).chapters[0];
+    expect(stopStatus(soon, true)).toBe('soon');
+    const adv = realm(map(ALL_LIVE, NONE).realms, ADVANCED).chapters[0];
+    expect(stopStatus(adv, false)).toBe('locked');
+    const chapters = realm(map(ALL_LIVE, new Set([caseId(0, 1)])).realms, 0).chapters;
+    expect(stopStatus(chapters[0], false)).toBe('done');
+    expect(stopStatus(chapters[1], true)).toBe('current');
+    expect(stopStatus(chapters[2], false)).toBe('locked');
+  });
+});
+
+describe('chapterXp', () => {
+  test('a chapter gives lesson + case + quick check, the boss its boss reward', () => {
+    const chapters = realm(map(ALL_LIVE, NONE).realms, 0).chapters;
+    expect(chapterXp(chapters[0])).toBe(
+      XP_REWARDS.lesson + XP_REWARDS.challenge + XP_REWARDS['quick-check'],
+    );
+    expect(chapterXp(chapters.at(-1)!)).toBe(XP_REWARDS.boss);
   });
 });
 

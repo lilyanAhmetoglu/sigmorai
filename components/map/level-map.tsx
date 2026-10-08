@@ -1,94 +1,202 @@
-import type { CSSProperties } from 'react';
-import { LevelNode } from '@/components/level-node';
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { LockGlyph } from '@/components/lock-glyph';
+import { unlockHint } from '@/components/realms/chapter-list';
 import { RealmScene } from '@/components/realms/realm-scene';
+import { StatusBadge } from '@/components/realms/status-badge';
 import {
-  LEVEL_MAP,
-  levelNodeGap,
-  levelNodeX,
+  LEVEL_GLYPHS,
   MAP_TEXT,
+  QUEST_STOP_TEXT,
   questHref,
   REALMS_TEXT,
+  STEP_STATUS_TEXT,
+  STEP_TEXT,
+  TRACK_TEXT,
 } from '@/lib/constants';
-import { realmAccent } from '@/lib/content/curriculum';
-import { levelStatus, playableStep, realmChapterCount } from '@/lib/grading/track-map';
-import type { RealmView } from '@/lib/types';
+import { chapterXp, playableStep, realmChapterCount, stopStatus } from '@/lib/grading/track-map';
+import type { ChapterView, LevelStatus, RealmView } from '@/lib/types';
 import { ScrollToCurrent } from './scroll-to-current';
 
 type Props = {
   realm: RealmView;
   /** The exercise id of the player's next step in this realm, if any. */
   nextId?: string;
+  /** Each card's one-line goal, in `realm.chapters` order (getChapterGoals). */
+  goals: readonly (string | null)[];
 };
 
-const SCROLLER_ID = 'level-map';
+type StopStatus = LevelStatus | 'soon';
+
 const HEADING_ID = 'level-map-heading';
+/** The card holding the next step: brought into view on load. */
+const CURRENT_SELECTOR = '.quest-stop[data-status="current"]';
 
-/** Stage size and ground line in screen px, from LEVEL_MAP, for level-map.css. */
-const STAGE_STYLE = {
-  '--map-w': `${LEVEL_MAP.width * LEVEL_MAP.scale}px`,
-  '--map-h': `${LEVEL_MAP.height * LEVEL_MAP.scale}px`,
-  '--map-ground': `${LEVEL_MAP.groundY * LEVEL_MAP.scale}px`,
-} as CSSProperties;
+/** The node on the trail: ✓ when done, a padlock when shut, else the number (B for the boss). */
+function nodeGlyph(chapter: ChapterView, status: StopStatus): ReactNode {
+  if (status === 'done') return LEVEL_GLYPHS.done;
+  if (status === 'locked') return <LockGlyph />;
+  return chapter.chapter ?? REALMS_TEXT.bossGlyph;
+}
 
-/**
- * One realm's level map (Sigmorai App.dc.html → isMap): the four art layers
- * at exactly 2× in a strip that scrolls sideways, and a node per chapter plus
- * the boss on the ground line (6 to 12 chapters: levelNodeX spaces them,
- * and `--node-gap` caps each label's width). The art is decoration; the
- * nodes are real links (or aria-disabled buttons when locked). Parallax:
- * level-map.css.
- */
-export function LevelMap({ realm, nextId }: Props) {
-  const accent = realmAccent(realm.id);
-  const chapters = realmChapterCount(realm);
-  const nodesStyle = { '--node-gap': `${levelNodeGap(chapters)}px` } as CSSProperties;
+/** One stop on the quest path: a node on the trail and the chapter's card. */
+function QuestStop({
+  chapter,
+  status,
+  goal,
+  chapterCount,
+}: {
+  chapter: ChapterView;
+  status: StopStatus;
+  goal: string | null;
+  chapterCount: number;
+}) {
+  const text = QUEST_STOP_TEXT[status];
+  const step = playableStep(chapter);
+  const hint = unlockHint(chapter, chapterCount);
+  // The status word is also read with the title: a link list says it too.
+  const title = (
+    <>
+      {chapter.title}
+      <span className="sr-only">, {text.label.toLowerCase()}</span>
+    </>
+  );
   return (
-    <section aria-labelledby={HEADING_ID} className="level-map" id={SCROLLER_ID}>
-      <h2 id={HEADING_ID} className="sr-only">
-        {MAP_TEXT.levels}
-      </h2>
-      <div className="level-map-stage" style={STAGE_STYLE}>
-        <RealmScene realm={realm.id} sizes={`${LEVEL_MAP.width * LEVEL_MAP.scale}px`} preload />
-        <ol className="level-map-nodes" style={nodesStyle}>
-          {realm.chapters.map((chapter, i) => {
-            const isCurrent = chapter.steps.some((s) => s.exerciseId === nextId);
-            const status = levelStatus(chapter, isCurrent);
-            const step = playableStep(chapter);
-            const node = {
-              index: chapter.chapter ?? REALMS_TEXT.bossGlyph,
-              label: chapter.title,
-              accent,
-              boss: chapter.chapter === null,
-            };
+    <li
+      className="quest-stop"
+      data-status={status}
+      data-boss={chapter.chapter === null || undefined}
+    >
+      <span className="quest-stop-node" aria-hidden="true">
+        {nodeGlyph(chapter, status)}
+      </span>
+      <article className="quest-stop-card">
+        <div className="quest-stop-head">
+          <p className="quest-stop-tag">
+            {chapter.chapter === null ? MAP_TEXT.bossTag : MAP_TEXT.chapterTag(chapter.chapter)}
+          </p>
+          <StatusBadge text={text} />
+        </div>
+        <h3 className="quest-stop-title">
+          {step ? (
+            <Link
+              href={questHref(step.exerciseId)}
+              className="quest-stop-link"
+              aria-current={status === 'current' ? 'step' : undefined}
+            >
+              {title}
+            </Link>
+          ) : (
+            // Nothing to play: a focusable, aria-disabled button, so the lock is announced.
+            <button type="button" className="quest-stop-link" aria-disabled="true">
+              {title}
+            </button>
+          )}
+        </h3>
+        {goal && <p className="quest-stop-goal">{goal}</p>}
+        <ul className="quest-stop-steps" aria-label={MAP_TEXT.steps}>
+          {chapter.steps.map((s) => {
+            const state = STEP_STATUS_TEXT[s.status];
             return (
-              <li
-                key={chapter.chapter ?? 'boss'}
-                className="level-map-node"
-                data-boss={node.boss || undefined}
-                style={{ '--node-x': `${levelNodeX(i, chapters)}px` } as CSSProperties}
-              >
-                {step ? (
-                  <LevelNode {...node} status={status} href={questHref(step.exerciseId)} />
-                ) : (
-                  // Nothing to play: a locked, aria-disabled button.
-                  <LevelNode {...node} status="locked" />
-                )}
+              <li key={s.exerciseId} className="quest-stop-step" data-status={s.status}>
+                <span aria-hidden="true">{state.icon}</span>
+                {STEP_TEXT[s.step]}
+                <span className="quest-stop-step-state">{state.label}</span>
               </li>
             );
           })}
-        </ol>
-      </div>
-      {/* Keyed on the next step: a new current node re-runs the centring. */}
-      <ScrollToCurrent key={nextId ?? 'none'} scrollerId={SCROLLER_ID} />
+        </ul>
+        <div className="quest-stop-foot">
+          <span className="quest-stop-xp">{MAP_TEXT.xp(chapterXp(chapter))}</span>
+          {hint && <span className="quest-stop-hint">{hint}</span>}
+          {chapter.creditedFrom && (
+            <span className="quest-stop-hint">
+              {REALMS_TEXT.creditedFrom(TRACK_TEXT[chapter.creditedFrom].label)}
+            </span>
+          )}
+        </div>
+      </article>
+    </li>
+  );
+}
+
+/**
+ * One realm's level map (clear-maps amendment, level-art spec): the realm's
+ * art as a short banner (a flat banner with the name when it has no art
+ * yet), then a quest path: one card per chapter and the boss, in one column
+ * joined by a trail. Each card has its tag, title, goal, steps (state as
+ * icon + word), XP and status (icon + word). The title links to the first
+ * open step (a done card: replay); a shut card is an aria-disabled button
+ * with an unlock hint. The current card is marked and brought into view.
+ * The same layout on every screen; nothing scrolls sideways. Styles:
+ * level-map.css.
+ */
+export function LevelMap({ realm, nextId, goals }: Props) {
+  const chapterCount = realmChapterCount(realm);
+  const nothingLive = realm.chapters.every((c) => c.status === 'soon');
+  return (
+    <section aria-labelledby={HEADING_ID} className="quest-map">
+      <h2 id={HEADING_ID} className="sr-only">
+        {MAP_TEXT.levels}
+      </h2>
+      <LevelMapBanner realm={realm} />
+      {nothingLive && <p className="quest-map-note">{REALMS_TEXT.nothingLive}</p>}
+      <ol className="quest-path">
+        {realm.chapters.map((chapter, i) => (
+          <QuestStop
+            key={chapter.chapter ?? 'boss'}
+            chapter={chapter}
+            status={stopStatus(
+              chapter,
+              chapter.steps.some((s) => s.exerciseId === nextId),
+            )}
+            goal={goals[i] ?? null}
+            chapterCount={chapterCount}
+          />
+        ))}
+      </ol>
+      {/* Keyed on the next step: a new current card re-runs it. */}
+      <ScrollToCurrent key={nextId ?? 'none'} selector={CURRENT_SELECTOR} />
     </section>
   );
 }
 
-/** The empty strip at full size, for loading.tsx (no layout jump). */
+/**
+ * The banner: the four art layers at exactly 2× (whole-number scale),
+ * cropped to the ground line. Decoration (RealmScene is aria-hidden); a
+ * realm with no art gets a flat banner with its name, never an empty box.
+ */
+function LevelMapBanner({ realm }: { realm?: Pick<RealmView, 'id' | 'name' | 'scene'> }) {
+  if (!realm) return <div className="quest-map-banner" />;
+  if (!realm.scene) {
+    return (
+      <div className="quest-map-banner" data-flat="">
+        <p className="quest-map-banner-name" aria-hidden="true">
+          {realm.name}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="quest-map-banner">
+      <RealmScene realm={realm.id} sizes="2048px" preload className="quest-map-scene" />
+    </div>
+  );
+}
+
+/** The banner and three card placeholders at their final size, for loading.tsx. */
 export function LevelMapSkeleton() {
   return (
-    <div className="level-map">
-      <div className="level-map-stage" style={STAGE_STYLE} />
+    <div className="quest-map">
+      <LevelMapBanner />
+      <div className="quest-path">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="quest-stop">
+            <span className="quest-stop-node" />
+            <div className="quest-stop-card min-h-40" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
