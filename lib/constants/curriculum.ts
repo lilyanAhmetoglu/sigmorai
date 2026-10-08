@@ -162,6 +162,15 @@ export const REALMS = [
     track: 'creator',
     scene: false,
   },
+  {
+    id: 13,
+    slug: 'pattern-atelier',
+    name: 'Pattern Atelier',
+    npc: 'Weaver Hale',
+    tier: 'intermediate',
+    track: 'creator',
+    scene: false,
+  },
 ] as const satisfies readonly RealmRow[];
 
 /** Whether a realm is on this track: a core realm, or a specialist realm the track owns. */
