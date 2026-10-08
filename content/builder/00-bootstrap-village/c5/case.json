@@ -2,7 +2,7 @@
   "id": "builder/r0/c5/challenge",
   "title": "Launch-day limits",
   "scenario": "A study-helper chat app launched on Monday. By noon there are three complaints: replies take 20 seconds to appear, some requests fail at peak hours, and long explanations stop mid-sentence. The team also hard-coded the context size in several files. You read the incident notes (exhibit).",
-  "exhibit": "incident notes, Monday\n\n12:01  p95 time to full reply: 20s (UI shows spinner until done)\n12:14  HTTP 429 x 340, header retry-after: 12\n       app behaviour: retries instantly, 5 times\n12:30  replies cut: stop_reason = max_tokens (cap: 300)\n12:45  plan: move to vendor B; vendor B docs: 'rate limit is\n       calculated as the maximum of max_tokens and the estimated\n       number of tokens'; proposal: set max_tokens = 100000\n       on every call 'to be safe'",
+  "exhibit": "incident notes, Monday\n\n12:01  p95 time to full reply: 20s (UI shows spinner until done)\n12:14  HTTP 429 x 340, header retry-after: 12\n       app behaviour: retries instantly, 5 times\n12:30  replies cut: stop_reason = max_tokens (cap: 300)\n12:45  plan: move to vendor B; vendor B docs: 'rate limit is\n       the larger of max_tokens and the estimated\n       number of tokens'; proposal: set max_tokens = 100000\n       on every call 'to be safe'",
   "questions": [
     {
       "prompt": "Users stare at a spinner for 20 seconds. What change helps them most?",
@@ -31,7 +31,7 @@
       "options": [
         {
           "text": "Wait for the retry-after time, then retry with exponential backoff and jitter.",
-          "explanation": "Right. Claude sends retry-after saying how long to wait; OpenAI recommends exponential backoff with jitter and honouring Retry-After.",
+          "explanation": "Right. Claude sends retry-after saying how long to wait; OpenAI recommends waiting longer after each failure, with random delay added, and honouring Retry-After.",
           "correct": true
         },
         {
@@ -58,7 +58,7 @@
         },
         {
           "text": "The context window is full, so the model had no room left to finish the answer.",
-          "explanation": "A full context window has its own signal (model_context_window_exceeded on Claude). This is your output cap."
+          "explanation": "A full context window gives a different signal (model_context_window_exceeded on Claude). This is your output cap."
         },
         {
           "text": "The model refused to answer partway, so the reply ended early.",
