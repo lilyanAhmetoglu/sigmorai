@@ -1,7 +1,7 @@
 ---
 id: builder/r0/c5/lesson
 title: Models & limits
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: Models overview (Claude docs)
@@ -35,85 +35,147 @@ sources:
     url: https://developers.openai.com/api/docs/guides/reasoning
 ---
 
-Every model has limits: how much it can read, how much it can write, how many calls you can make per minute, and how fast it answers. A good design picks a model and then fits the system inside these limits. This chapter teaches how to find the limits and design around them, not to memorise numbers. Numbers change; the reading skill does not.
+## Goal
 
-## Choosing a model
+After this lesson you can:
 
-Vendors sell a family of models, from large and slow to small and fast. You trade capability, speed and price.
+- Check that a request fits the context window, with input and output in one budget.
+- Pick an output cap and handle rate-limit errors (HTTP 429) the way the vendors document.
+- Decide when to stream a reply, and read model limits from the vendor's data instead of memory.
 
-- The Claude models overview compares models by "Comparative latency", pricing, context window, max output and knowledge cutoff.
-- The OpenAI models page also shows "Context window" and "Max output" for each model, and suggests a flagship model if you are not sure where to start, or a smaller one "for cost-sensitive, high-volume workloads".
+## The problem
 
-A practical method: start with a strong model to prove the task works. Then try a smaller, cheaper one on the same test cases. Keep the smallest model that still passes.
+A company builds a wiki assistant. Staff ask questions, and the app sends the matching wiki pages plus the chat history to the model. In the first week:
 
-Example: a ticket-tagging job runs 50,000 times a day. If a small model tags as well as a large one on your test set, the small one wins on cost and speed.
+1. Some requests fail with HTTP 400 when a user asks about a very long page.
+2. At 9:00, when everyone starts work, many requests fail with HTTP 429.
+3. Some answers are only half there.
+4. The model's context size is typed by hand in four different files.
 
-## Read limits from the source, not from memory
+The team asks: "Which model, and how do we stay inside its limits?"
 
-Model names and numbers change often. Build systems that read them.
+## The idea
 
-- The Claude models API returns `max_input_tokens`, `max_tokens` and a `capabilities` object for each model.
-- The Claude docs also state that "every Claude model ID is a pinned snapshot". A pinned ID keeps pointing at the same model snapshot, so changing models is a deliberate code change.
+Every model has limits: how much it reads, how much it writes, how many calls you may make, and how fast it answers. Numbers change often, so learn where to read them and how to design around them.
 
-Example: instead of hard-coding "context = 200k" in ten places, load the limit for the configured model once at startup.
+**Choosing a model.** Vendors offer a family, from large and slow to small and fast. The [Claude models overview](https://platform.claude.com/docs/en/models/overview) compares "Comparative latency", pricing, context window and max output. The [OpenAI models page](https://developers.openai.com/api/docs/models) names a flagship model "if you're not sure where to start", and a smaller one "for cost-sensitive, high-volume workloads". A good method: prove the task on a strong model, then try smaller ones on the same tests, and keep the smallest that passes.
 
-## The context window
+**Read limits from the source.** The Claude docs say the Models API response "includes `max_input_tokens`, `max_tokens`, and a `capabilities` object" for each model. They also say: "Every Claude model ID is a pinned snapshot." So a model change is a code change you make on purpose.
 
-The context window is the model's working space for one request. The Claude docs: it "refers to all the text a language model can reference when generating a response, including the response itself". OpenAI: "the maximum number of tokens that can be used in a single request", which "includes input, output, and reasoning tokens".
+**The context window** is the model's working space for one request. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/context-windows) say it is all the text the model can reference "including the response itself", and say it "is different from the large corpus of data the language model was trained on". The [OpenAI docs](https://developers.openai.com/api/docs/guides/conversation-state) call it "the maximum number of tokens that can be used in a single request", which "includes input, output, and reasoning tokens". Think of it as one suitcase: your prompt and the reply must both fit inside.
 
-So input and output share one budget. Everything counts: system prompt, history, tool definitions, images, documents, and the reply.
+```text
+context window
+[ system | tools | history | documents | question ][ reply ]
+ \_____________________ input ____________________/ \output/
+```
 
-What happens when you go over differs by vendor:
+When it does not fit, vendors act differently. Claude: if the input alone is too big, "the API returns a 400 `invalid_request_error` ("prompt is too long")". OpenAI: "Tokens generated in excess of the context window limit may be truncated in API responses."
 
-- Claude returns a 400 `invalid_request_error` ("prompt is too long") if the input alone is too big.
-- OpenAI notes that "tokens generated in excess of the context window limit may be truncated in API responses".
+Bigger is not always better. The Claude docs say "more context isn't automatically better", because accuracy and recall degrade as the token count grows. They call this "context rot". Send what the task needs.
 
-Bigger is not always better. The Claude docs: "more context isn't automatically better. As token count grows, accuracy and recall degrade", which they call context rot. Send what the task needs, not everything you have.
+**The output cap.** Each request sets a ceiling on reply length: `max_tokens` on Claude, `max_output_tokens` on OpenAI. It is a ceiling, not a target. (OpenAI's rate-limit text calls the same output cap `max_tokens`.) When a reply hits it, Claude sets `stop_reason` to `max_tokens` ([stop reasons](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons)). A full context window has its own signal, `model_context_window_exceeded`, and a refusal has `refusal`. On OpenAI, the reply gets `status` `incomplete` with the reason `max_output_tokens`. Hidden reasoning uses this budget too. The [OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning) says reasoning tokens "still occupy space in the model's context window and are billed as output tokens".
 
-Example: a model has a 200k-token window. You plan a 150k-token document, 30k tokens of history and a 25k-token reply. That is 205k, so it does not fit. Cut the document to the relevant parts, or summarise the history.
+**Rate limits** cap how much you send per minute.
 
-## Max output
+- Claude counts requests per minute (RPM), input tokens per minute (ITPM) and output tokens per minute (OTPM). The [Claude docs](https://platform.claude.com/docs/en/api/rate-limits) say: "Limits are set at the organization level."
+- OpenAI uses RPM, RPD, TPM, TPD and IPM. The [OpenAI docs](https://developers.openai.com/api/docs/guides/rate-limits) say: "Rate limits are defined at the organization level and at the project level".
 
-Each request sets a cap on output length: `max_tokens` on Claude, `max_output_tokens` on OpenAI. When the cap is hit:
+Over the limit, both return HTTP 429. Claude sends a `retry-after` header: "The number of seconds to wait until you can retry the request. Earlier retries will fail." OpenAI: treat `Retry-After` as a minimum, "wait at least that long and add a small random delay"; if it is missing, "fall back to exponential backoff with jitter". **Backoff** means each new retry waits longer; **jitter** is a small random extra wait so clients do not all retry at once.
 
-- Claude: `stop_reason` is `max_tokens`. The docs suggest raising the cap or continuing the response.
-- OpenAI: the response has `status` `incomplete`, with `incomplete_details.reason` set to `max_output_tokens`.
+Three vendor details change a design:
 
-Hidden reasoning also uses this budget. OpenAI says reasoning tokens "still occupy space in the model's context window and are billed as output tokens". Example: a reasoning model with a tight output cap can spend the whole budget thinking and return an incomplete answer.
+- **The cap and the limit.** OpenAI: "Your rate limit is calculated as the maximum of `max_tokens` and the estimated number of tokens based on the character count of your request." Claude: "The `max_tokens` parameter does not factor into OTPM rate limit calculations". So on OpenAI a very large cap on every call uses up the limit early.
+- **Cached tokens.** Claude: "For most Claude models, only uncached input tokens count toward your ITPM rate limits." Caching (chapter 6) can raise real throughput.
+- **Bursts.** Claude: "a rate of 60 requests per minute (RPM) might be enforced as 1 request per second". A burst can fail even when the minute total looks fine.
 
-## Rate limits
+**Streaming** shows the reply while it is being written. Both vendors use `stream: true` and server-sent events (SSE). OpenAI: streaming "lets you start printing or processing the beginning of the model's output while it continues generating the full response". The model still writes the whole reply; only the wait for the first words gets shorter. Costs: errors can arrive mid-stream (the [Claude streaming docs](https://platform.claude.com/docs/en/build-with-claude/streaming) show an `overloaded_error` event), and [OpenAI notes](https://developers.openai.com/api/docs/guides/streaming-responses) that streaming makes output "more difficult to moderate".
 
-Rate limits cap how much you can send per period. Both vendors measure requests and tokens per minute:
+## Worked example
 
-- Claude: requests per minute (RPM), input tokens per minute (ITPM) and output tokens per minute (OTPM), per model, by usage tier, at the organization level.
-- OpenAI: RPM, RPD, TPM, TPD and IPM, set "at the organization level and at the project level", varying by model and tier.
+### Step 1: the first design
 
-When you go over, both return HTTP 429. Claude adds a `retry-after` header that says how long to wait. OpenAI recommends exponential backoff with jitter and honouring `Retry-After`.
+```text
+model:       largest one, name typed in 4 files
+context:     "200k" typed in 4 files
+request:     whole wiki page + whole history + question
+max_tokens:  250
+on 429:      retry at once, in a loop
+UI:          waits for the full reply
+```
 
-Two vendor differences that change a design:
+### Step 2: read the limits once
 
-- **`max_tokens` and limits.** OpenAI: "Your rate limit is calculated as the maximum of `max_tokens` and the estimated number of tokens" of your request. Claude: "The `max_tokens` parameter does not factor into OTPM rate limit calculations". On OpenAI, a huge cap on every call can use up your limit early.
-- **Cached tokens.** Claude: "For most Claude models, only uncached input tokens count toward your ITPM rate limits." Caching (chapter 6) can raise your real throughput.
+At startup the app reads `max_input_tokens` and `max_tokens` for the configured model from the Models API. One config value names the model. No numbers are typed by hand.
 
-Also plan for bursts. The Claude docs note that 60 RPM "might be enforced as 1 request per second", so a burst can fail even when the minute total is fine.
+### Step 3: fit the budget
 
-## Streaming
+Say the model's window is 200,000 tokens (read from the API, not typed). A long question plans:
 
-A long answer can take many seconds. With streaming, the user sees text as it is written.
+```text
+system + tools        3,000
+history              40,000
+wiki page           170,000
+reply (cap)           4,000
+------------------------------
+total               217,000   -> does not fit
+```
 
-- Both vendors use `stream: true` and server-sent events (SSE).
-- OpenAI: streaming "lets you start printing or processing the beginning of the model's output while it continues generating the full response."
-- A Claude stream starts with a `message_start` event, and errors can arrive inside the stream (for example `overloaded_error`).
+Fix: send only the 6 most relevant sections of the page (about 20,000 tokens) and the last 10 turns of history. The new total is about 37,000. It fits, and less text also helps against context rot.
 
-Streaming changes when the user sees the first words; the model still writes the whole reply. It has costs: OpenAI notes it "makes it more difficult to moderate the content of the completions, as partial completions may be more difficult to evaluate". Your client must also handle an error that arrives halfway through.
+### Step 4: set a cap that fits the answers
 
-Example: a chat UI streams replies so the first words appear quickly. A nightly batch job does not stream, because nobody is watching.
+Logs show good answers are 300–900 tokens. The team sets the cap to 1,500, and checks the stop signal on every reply.
 
-## Key points
+**The hard case is the cap on OpenAI.** Someone suggests a cap of 64,000 "just in case". On OpenAI, the rate-limit count uses whichever is bigger: the output cap or the estimated size of the request. So this would use up the limit fast. On Claude, OTPM ignores `max_tokens`. Either way, 1,500 fits the task.
 
-- Pick the smallest model that passes your tests. Read limits from the vendor's model data.
-- The context window holds input and output together. More context is not always better.
-- Set an output cap and check the stop signal.
-- Rate limits cap requests and tokens per minute. Handle 429 with backoff and retry-after.
-- `max_tokens` affects rate limits on OpenAI but not Claude OTPM. Know your vendor.
-- Stream for user-facing replies; handle mid-stream errors.
+### Step 5: handle 429 properly
+
+```text
+on 429:
+  wait = retry-after header (seconds), if present
+         else 1s, 2s, 4s, 8s ... (exponential backoff)
+  add a small random extra wait (jitter)
+  stop after a few tries and show a clear error
+```
+
+The team also spreads the 9:00 load, because a burst can fail even inside the per-minute total.
+
+### Step 6: stream to the chat UI
+
+The chat UI streams, so the first words show quickly. The client also handles an error event that arrives halfway. A nightly report job does not stream: nobody watches it.
+
+### Why it is better
+
+- **No surprise 400s.** The request is planned against the window, input plus reply.
+- **No silent half answers.** The cap fits the task, and the app reads the stop signal.
+- **429s recover.** Waiting, backoff and jitter stop the retry storm.
+- **One place for limits.** The model and its limits come from config and the Models API.
+
+## Common mistakes
+
+1. **Forgetting the reply is in the window.** Input alone fits, but input plus reply does not. Fix: add the output cap (and reasoning) to the budget.
+2. **Retrying a 429 at once.** It hits the same limit and adds load. Fix: wait for `retry-after`, then back off with jitter.
+3. **Filling the window "to be safe".** Extra text adds cost, and long inputs can make answers less accurate. Fix: send only what the task needs.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A translation service uses a model with a 128,000-token window. One request has a 2,000-token system prompt, a 70,000-token document, and an output cap of 60,000 tokens.
+
+1. Does it fit the window?
+2. The service runs on OpenAI. Why is a 60,000 cap risky there, beyond the window?
+3. Users wait a long time before they see anything. What helps?
+
+### Answer
+
+1. 2,000 + 70,000 + 60,000 = **132,000 tokens**. It does not fit. Split the document or lower the cap to what a translation of that part needs.
+2. On OpenAI, the rate-limit count uses **whichever is bigger**: the output cap or the estimated size of the request. A huge cap on every call uses up the limit early.
+3. **Streaming**, so the first part of the translation shows while the rest is written.
+
+## Recap
+
+- Input and output share one context window. More context is not always better; send what the task needs.
+- Set an output cap that fits the task and read the stop signal. On OpenAI the cap also counts toward rate limits.
+- Handle 429 with `retry-after`, backoff and jitter. Stream user-facing replies, and read model limits from the vendor's data.
