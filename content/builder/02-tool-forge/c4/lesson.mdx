@@ -1,7 +1,7 @@
 ---
 id: builder/r2/c4/lesson
 title: The tool loop
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: Tool use with Claude (Claude docs)
@@ -32,78 +32,157 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/function-calling
 ---
 
-One tool call is a round trip. Real tasks often need several: look up the customer, then their order, then the refund rule. The code that keeps those round trips going is the tool loop. It is small, but it decides when your system stops.
+## Goal
 
-## One round trip
+After this lesson you can:
 
-OpenAI describes the flow in five steps:
+- Write a tool loop that keeps the full history and stops on the right signal.
+- Add your own round limit, and tell the user what happened when it is hit.
+- Handle each stop reason, and choose a tool choice setting your model supports.
 
-1. Make a request to the model with tools it could call.
-2. Receive a tool call from the model.
-3. Execute code on the application side with input from the tool call.
-4. Make a second request to the model with the tool output.
-5. Receive a final response from the model (or more tool calls).
+## The problem
 
-The last step is the key: "or more tool calls". The Gemini docs say the same process "can be repeated over multiple turns".
+A reader asks the library assistant: "Is there a children's book about bees on the shelf at Riverside? If not, put a hold on one for me."
 
-## The loop
+That takes several steps: search the catalogue, read the result, maybe place a hold, then answer. The first version of the code calls the model once and runs one tool. The team sees:
 
-The Claude docs give the shape: a `while` loop keyed on the stop reason. While the response's `stop_reason` is `"tool_use"`, run the tools, send the results, and ask again. The loop exits on any other stop reason: `"end_turn"`, `"max_tokens"`, `"stop_sequence"` or `"refusal"`.
+1. The assistant says "I found two books" and stops. The hold never happens.
+2. One reply is cut off in the middle, and the half-written text is shown to the reader as the answer.
+3. Some readers get an answer from memory, with no search at all.
 
-OpenAI's Agents SDK runs the same loop for you: call the model, inspect the output, run any tool calls and continue, and return a result when there is a final answer "with no more tool work".
+The code that keeps the steps going is the tool loop. It is small, but it decides when your system stops.
+
+## The idea
+
+**One round trip.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling) describe five steps: send a request with tools, receive a tool call, run the code, send a second request with the tool output, and "Receive a final response from the model (or more tool calls)". The last part is the key: "or more tool calls". The [Gemini docs](https://ai.google.dev/gemini-api/docs/function-calling) say the process "can be repeated over multiple turns".
+
+**The loop.** The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works) give the shape: a `while` loop keyed on `stop_reason`. While it is `"tool_use"`, run the tools, send the results and call again. The loop exits on any other stop reason: `"end_turn"`, `"max_tokens"`, `"stop_sequence"` or `"refusal"`. OpenAI's [Agents SDK](https://developers.openai.com/api/docs/guides/agents/running-agents) runs the same loop for you, and returns a result when the model gives "a final answer with no more tool work".
+
+Think of a cook following a recipe. After each step, they read the recipe again to see what comes next. They stop when the dish is done, or when the kitchen closes.
+
+**Keep the whole history.** The [Claude tutorial](https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent) says: instead of rebuilding the messages on each request, "keep a running list and append to it". Then "Every turn sees the complete prior context." OpenAI says the same, and adds that for reasoning models, "any reasoning items returned in model responses with tool calls must also be passed back with tool call outputs."
+
+**Add your own limit.** A loop that stops only when the model is done has no upper bound.
+
+- Anthropic's engineering post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) says the model "will potentially operate for many turns". It says it is "common to include stopping conditions" to keep control, for example a cap on iterations.
+- The same post warns of "higher costs, and the potential for compounding errors."
+- The OpenAI Agents SDK lists "max-turn limits" among the failures your code must handle.
+- Anthropic's own server tools work the same way. Their loop "has an iteration limit". When it is hit, the response stops with `"pause_turn"`.
+- That work "isn't finished". Send the conversation again, with the paused response, and the model continues.
+
+**Handle every stop reason.** Not every stop is a finished answer.
+
+- `end_turn`: the normal finish.
+- `max_tokens`: the reply hit your output limit. The [Claude stop reasons page](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons) says that if this cuts a tool call in half, you must send the request again with "a higher `max_tokens` value to get the full tool use."
+- `refusal`: the model declined. Do not continue the loop. Read `stop_details`, which names the policy category. The Claude docs say a refused request on some newer models, such as Claude Opus 5.5, "can usually be served by retrying on another Claude model".
+
+**Who decides to call a tool.** By default the model decides. A tool choice setting changes that:
+
+- **On Claude**: `auto` ("the default value when `tools` are provided"), `any` (must use some tool), `tool` (must use one named tool), `none`.
+- **On OpenAI**: `auto` (the default), `required` (call one or more functions), one forced function, `allowed_tools` (limit to a subset), `none`.
+- **On Gemini**: `auto` (the default), `any` (the model is "constrained to always predict a function call"), `none`, and `validated` (the model "ensures function schema adherence").
+
+Forcing does not work on every model. The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools) say that on Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.1 and Claude Mythos 5.1, `any` and `tool` return a 400 error. They suggest `auto` with strict tool use instead. A prompt also steers `auto`: the [Claude overview](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) says a line like "Use the tools to investigate before responding." increases tool use.
+
+## Worked example
+
+### Step 1: the loop
 
 ```text
-messages = [user question]
-loop:
-    response = call model(messages, tools)
-    add response to messages
-    if response has no tool calls: stop
-    run each tool call
-    add every result to messages
+MAX_ROUNDS = 6
+history = [reader's question]
+
+for round in 1 .. MAX_ROUNDS:
+    response = send(history, tools)
+    history.append(response)                   # keep the tool calls
+    reason = response.stop_reason
+
+    if reason == "tool_use":
+        results = run every tool call (check each one first)
+        history.append(user message with all results)
+        continue
+
+    if reason == "end_turn":
+        the answer is final; show it; stop
+    if reason == "max_tokens":
+        if a tool call was cut off: drop that reply from history and
+            send this round again with a higher max_tokens
+        else: show what came back, marked as cut off; stop
+    if reason == "refusal":
+        log stop_details; retry on another model or show a clear message; stop
+
+after the last round:
+    stop handler (step 3)
 ```
 
-## Keep the whole history
+The history only grows. Each round, the model sees its earlier calls and their results.
 
-Each request must carry what happened before. The Claude tutorial says to keep "a running list and append to it" instead of rebuilding the messages each time, so "Every turn sees the complete prior context."
+### Step 2: a normal run
 
-OpenAI says the same: you send back the tool definitions, the original prompt, the model's tool call and the tool output. For reasoning models, it adds that "any reasoning items returned in model responses with tool calls must also be passed back with tool call outputs."
+```text
+round 1  search_catalog(query="bees", audience="children", branch="riverside")
+         -> 2 results, none on the shelf
+round 2  catalog_place_hold(record_id="b2291047", pickup_branch="riverside")
+         -> hold H-6012, place 1 in the queue
+round 3  end_turn: "No bee book is on the shelf at Riverside right now.
+         I placed a hold on The Bee Book. You are first in the queue."
+```
 
-Example: the model looked up order 4417 in round 1. If round 2 drops that result, the model has to look it up again or guess.
+### Step 3: the hard case, the limit is hit
 
-## Add your own stop rule
+**The hard case is a limit hit after an action already happened.** Say the hold was placed in round 2, and then the model kept searching other branches until round 6 ended. Saying "Something went wrong" would hide a real change. Starting again could place a second hold.
 
-A loop that only stops when the model is done has no upper bound. Anthropic's post on building agents says the model "will potentially operate for many turns", and: "it's also common to include stopping conditions (such as a maximum number of iterations) to maintain control." The same post warns that agents bring "higher costs, and the potential for compounding errors."
+The stop handler:
 
-OpenAI's Agents SDK lists "max-turn limits" among the failures your code must handle. Anthropic does the same for its own server-run tools: that loop has an iteration limit, and when it is hit the response stops with `"pause_turn"`.
+```text
+1. Do not call the model again.
+2. Save the full trace to the logs, with the reason "round limit".
+3. Tell the reader what was done and what was not:
+   "I placed a hold on The Bee Book at Riverside (you are first
+    in the queue). I could not finish checking the other branches."
+```
 
-Example rule: at most 8 rounds per user message. On round 8, stop, log the trace, and tell the user what was done and what was not. The number is yours to choose; the point is that there is one.
+Your code can write this message from the trace, because the trace shows which actions returned success.
 
-## Handle every way the loop can end
+### Step 4: make the search happen
 
-Not every stop is a finished answer.
+The team wants a catalogue search before every answer about books. Their model is Claude Opus 5.5, so `tool_choice` `any` returns a 400 error. They keep `auto`, turn on strict tool use, and add to the system prompt: "Use the tools to investigate before responding."
 
-- `max_tokens`: the reply hit your output limit. The Claude docs warn that if this cuts off a tool call halfway, you must retry with a higher `max_tokens` to get the full call.
-- `refusal`: the model declined. Don't continue the tool loop. Read `stop_details`, which names the policy category. The Claude docs say a refusal on some newer models (such as Claude Opus 5.5) can usually be served by retrying on another Claude model. Otherwise, show a clear message.
-- `end_turn`: the normal finish.
+### Step 5: why it is better
 
-Example: a loop that treats every non-tool stop as success will show a half-written reply as if it were final.
+- **Multi-step requests finish.** The loop runs until the model has no more calls.
+- **No lost work.** The history keeps every call and result.
+- **A hard ceiling on cost.** Six rounds at most, whatever the model does.
+- **Honest endings.** A cut-off reply, a refusal or a limit each has its own path.
 
-## Who decides to call a tool
+## Common mistakes
 
-By default the model decides. All three vendors let you change that with a tool choice setting:
+1. **Appending the results but not the model's own reply.** The next request then has results with no calls before them. Fix: add the full model response to the history first, then the results.
+2. **Treating every non-tool stop as success.** A refusal or a cut-off reply reaches the user as if it were the answer. Fix: check `stop_reason` and give each value its own branch.
+3. **Raising the limit when it is hit.** A higher limit only moves the problem. Fix: keep the limit, and look at the trace to see why the model kept going.
 
-- **Claude**: `auto` (the default when you send tools), `any` (must use some tool), `tool` (must use one named tool), `none`.
-- **OpenAI**: `auto` (the default), `required` (one or more calls), one forced function, `allowed_tools` (limit to a subset), `none`.
-- **Gemini**: `auto` (the default), `any` (always predict a function call), `none`, `validated` (the model ensures schema adherence).
+## Try it
 
-Example: a support bot must check the order system before it answers any order question. On a model that supports it, `any` or `required` makes a tool call happen; `auto` leaves it to the model.
+Not graded. Write your answer down before you read the answer.
 
-Forcing is not supported everywhere. The Claude docs say that on Claude Opus 5.5, Claude Sonnet 5.5, Claude Fable 5.1 and Claude Mythos 5.1, `any` and `tool` return a 400 error, and suggest `auto` with strict tool use instead. Prompting also steers the choice: the Claude docs say a line like "Use the tools to investigate before responding." increases tool use.
+What should the code do in each case?
 
-## Key points
+```text
+A. A calendar assistant on Claude stops with stop_reason "refusal".
+B. A Claude request uses the server-side web search tool. The
+   response comes back with stop_reason "pause_turn".
+C. A Gemini app must make the model predict a function call on
+   every turn.
+```
 
-- The loop: call the model, run the tool calls, send the results, repeat until there are no more calls.
-- Keep the full message history, including tool calls and results (and reasoning items on OpenAI reasoning models).
-- Always add your own limit, such as a maximum number of rounds.
-- Handle each stop reason. `max_tokens` can cut a tool call in half.
-- Tool choice can force, allow or forbid tool calls, but check which models support forcing.
+### Answer
+
+- **A.** Do not run more rounds. Read `stop_details` to see the policy category. Retry on another Claude model if the model supports it, or show the user a clear message.
+- **B.** The server-side loop hit its iteration limit, and the work is not finished. Send the conversation again, including the paused response, so the model can continue.
+- **C.** Set the function calling mode to `any`. With `auto`, the model may answer in text instead.
+
+## Recap
+
+- The loop: call the model, run every tool call, send the results, repeat while the stop reason is `tool_use`. Keep the full history.
+- Always set your own round limit. When it is hit, end the run, keep the trace in your logs, and tell the user what was and was not done.
+- Handle each stop reason. Use tool choice to force tools only where the model supports it; otherwise use `auto` with a prompt line.
