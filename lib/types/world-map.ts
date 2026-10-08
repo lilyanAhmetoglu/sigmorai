@@ -1,4 +1,4 @@
-import type { WORLD_MAP, ZOOM_STEPS } from '@/lib/constants';
+import type { WORLD_GLYPHS, WORLD_MAP, ZOOM_STEPS } from '@/lib/constants';
 import type { Track } from './exercise';
 import type { RealmStatus } from './realms';
 import type { Accent } from './ui';
@@ -26,6 +26,12 @@ export type WorldLandmark = WorldPlace & {
 export type WorldRect = { x: number; y: number; w: number; h: number };
 
 export type WorldGeometry = typeof WORLD_MAP;
+
+/** A terrain sprite name (WORLD_GLYPHS). */
+export type WorldGlyphKind = keyof typeof WORLD_GLYPHS;
+
+/** One terrain sprite placed on a land: its top-left corner and size in art px. */
+export type WorldGlyph = WorldRect & { kind: WorldGlyphKind };
 
 export type ZoomStep = (typeof ZOOM_STEPS)[number];
 

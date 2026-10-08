@@ -255,6 +255,17 @@ export const WORLD_MAP_TEXT = {
   /** The list heading: "YOUR PATH" for a player, "REALMS ON THIS PATH" for a visitor. */
   pathHeading: 'YOUR PATH',
   pathHeadingVisitor: 'REALMS ON THIS PATH',
+  /**
+   * The map key under the box. Each row pairs a small drawn sample with
+   * words; the "you are here" row reuses the tag (YOU ARE HERE / START HERE).
+   */
+  legendLabel: 'Map key',
+  legend: {
+    cleared: 'Cleared route',
+    ahead: 'Route ahead',
+    locked: 'Advanced, locked',
+    pathOnly: 'Only on this path',
+  },
   /** The level map's link back to the world map. */
   backIcon: '◂',
   back: 'World map',

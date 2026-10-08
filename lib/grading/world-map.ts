@@ -1,4 +1,4 @@
-import { mapHref, WORLD_MAP } from '@/lib/constants';
+import { mapHref, WORLD_GLYPH_PX, WORLD_GLYPHS, WORLD_MAP } from '@/lib/constants';
 import type {
   PathRealm,
   RealmView,
@@ -6,6 +6,8 @@ import type {
   TrailSegment,
   Track,
   WorldGeometry,
+  WorldGlyph,
+  WorldGlyphKind,
   WorldPlace,
   WorldRealm,
   WorldRect,
@@ -78,8 +80,9 @@ export function worldView(
 }
 
 /**
- * Placeholder art shapes (until the Higgsfield art, PR 3). Pure and seeded,
- * so a land has the same shape on every request and every device.
+ * Drawn map shapes (the cartography placeholder until the Higgsfield art,
+ * PR 3): coasts, ripples and terrain. Pure and seeded, so a land has the
+ * same shape on every request and every device.
  */
 
 /** A small seeded random source (mulberry32): the same seed gives the same numbers. */
@@ -102,15 +105,18 @@ export function shapeSeed(key: number | string): number {
   return h >>> 0;
 }
 
+/** One 16px row of a land: its top and bottom, and where the land starts and ends. */
+type Band = { top: number; bottom: number; left: number; right: number };
+
 /**
  * An uneven coastline inside a footprint, on whole tiles: the footprint cut
  * into 16px rows, each row's left and right ends moved in by 0 or 1 tile
  * (seeded), the top and bottom rows by one more tile, so corners round off.
  * Every row keeps at least one tile and shares its middle tiles with its
  * neighbours, so the outline is one simple polygon. It never leaves the
- * footprint (the rectangle-footprint amendment). Returns polygon points.
+ * footprint (the rectangle-footprint amendment). Returns the rows, top first.
  */
-export function coastline(place: WorldPlace, seed: number, tile: number = WORLD_MAP.tile) {
+export function coastBands(place: WorldPlace, seed: number, tile: number = WORLD_MAP.tile): Band[] {
   const l = place.x - place.w / 2;
   const r = place.x + place.w / 2;
   const t = place.y - place.h / 2;
@@ -121,7 +127,7 @@ export function coastline(place: WorldPlace, seed: number, tile: number = WORLD_
   const maxIn = Math.max(0, Math.floor((cols - 1) / 2));
   const next = seeded(seed);
   const inset = (end: boolean) => Math.min(maxIn, (end ? 1 : 0) + (next() < 0.5 ? 0 : 1)) * tile;
-  const bands = Array.from({ length: rows }, (_, i) => {
+  return Array.from({ length: rows }, (_, i) => {
     const end = rows > 2 && (i === 0 || i === rows - 1);
     const top = t + i * tile;
     return {
@@ -131,11 +137,113 @@ export function coastline(place: WorldPlace, seed: number, tile: number = WORLD_
       right: r - inset(end),
     };
   });
+}
+
+/** The coastline of coastBands as polygon points (clockwise on screen). */
+export function coastline(place: WorldPlace, seed: number, tile: number = WORLD_MAP.tile) {
+  const bands = coastBands(place, seed, tile);
   const points: [number, number][] = [];
   for (const band of bands) points.push([band.right, band.top], [band.right, band.bottom]);
   for (const band of [...bands].reverse())
     points.push([band.left, band.bottom], [band.left, band.top]);
   return points;
+}
+
+/**
+ * A coastline pushed `d` art px out to sea (the ripple lines around a land).
+ * The coast only has straight and right-angle turns, so each corner moves by
+ * d along both of its edges' outward normals. Repeated and in-line points
+ * are dropped first. Expects the clockwise points of `coastline`.
+ */
+export function offsetCoast(points: readonly [number, number][], d: number): [number, number][] {
+  const n = points.length;
+  const unique = points.filter((p, i) => {
+    const q = points[(i + n - 1) % n];
+    return p[0] !== q[0] || p[1] !== q[1];
+  });
+  const m = unique.length;
+  const corners = unique.filter((p, i) => {
+    const a = unique[(i + m - 1) % m];
+    const c = unique[(i + 1) % m];
+    // In line: a, p and c share x or share y.
+    return !((a[0] === p[0] && p[0] === c[0]) || (a[1] === p[1] && p[1] === c[1]));
+  });
+  const k = corners.length;
+  // Outward normal of a clockwise (screen) edge from a to b: (dy, -dx), unit length.
+  const normal = (a: [number, number], b: [number, number]): [number, number] => [
+    Math.sign(b[1] - a[1]),
+    -Math.sign(b[0] - a[0]),
+  ];
+  return corners.map((p, i) => {
+    const before = normal(corners[(i + k - 1) % k], p);
+    const after = normal(p, corners[(i + 1) % k]);
+    return [p[0] + d * (before[0] + after[0]), p[1] + d * (before[1] + after[1])];
+  });
+}
+
+/** Free space (art px) between a glyph and the coast, and between two glyphs. */
+const GLYPH_MARGIN = 4;
+
+/** At most one glyph per this many square art px of footprint (a core land: 6). */
+const GLYPH_AREA = 3200;
+
+/**
+ * Terrain on one land: up to one glyph per GLYPH_AREA, cycling through
+ * `kinds`, each placed whole inside the coast (with GLYPH_MARGIN) and outside
+ * every `clear` box (pins, names, tags, the hero: worldKeepClear). Seeded,
+ * so a land shows the same terrain on every request and device. A land with
+ * no free spot simply gets fewer glyphs.
+ */
+export function terrainGlyphs(
+  place: WorldPlace,
+  seed: number,
+  kinds: readonly WorldGlyphKind[],
+  clear: readonly WorldRect[],
+  tile: number = WORLD_MAP.tile,
+): WorldGlyph[] {
+  if (kinds.length === 0) return [];
+  const bands = coastBands(place, seed, tile);
+  const top = bands[0].top;
+  const bottom = bands[bands.length - 1].bottom;
+  const max = Math.max(1, Math.floor((place.w * place.h) / GLYPH_AREA));
+  const size = (kind: WorldGlyphKind) => {
+    const rows = WORLD_GLYPHS[kind];
+    return { w: rows[0].length * WORLD_GLYPH_PX, h: rows.length * WORLD_GLYPH_PX };
+  };
+  const onLand = (g: WorldRect) =>
+    g.y >= top + GLYPH_MARGIN &&
+    g.y + g.h <= bottom - GLYPH_MARGIN &&
+    bands
+      .filter((b) => b.bottom > g.y && b.top < g.y + g.h)
+      .every((b) => g.x >= b.left + GLYPH_MARGIN && g.x + g.w <= b.right - GLYPH_MARGIN);
+  const touches = (a: WorldRect, b: WorldRect, gap: number) =>
+    a.x < b.x + b.w + gap &&
+    b.x < a.x + a.w + gap &&
+    a.y < b.y + b.h + gap &&
+    b.y < a.y + a.h + gap;
+
+  // Candidate corners on a 4 art px grid, in a seeded order.
+  const step = 2 * WORLD_GLYPH_PX;
+  const spots: [number, number][] = [];
+  for (let y = top; y < bottom; y += step)
+    for (let x = place.x - place.w / 2; x < place.x + place.w / 2; x += step) spots.push([x, y]);
+  const next = seeded(seed * 31 + 7);
+  for (let i = spots.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [spots[i], spots[j]] = [spots[j], spots[i]];
+  }
+
+  const placed: WorldGlyph[] = [];
+  for (const [x, y] of spots) {
+    if (placed.length >= max) break;
+    const kind = kinds[placed.length % kinds.length];
+    const g = { kind, x, y, ...size(kind) };
+    if (!onLand(g)) continue;
+    if (clear.some((c) => touches(g, c, 0))) continue;
+    if (placed.some((p) => touches(g, p, GLYPH_MARGIN))) continue;
+    placed.push(g);
+  }
+  return placed;
 }
 
 /**

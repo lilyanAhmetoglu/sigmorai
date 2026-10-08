@@ -11,19 +11,24 @@
  * landmarks and the hero sit at anchor × --world-z and keep their own size
  * (44px targets at every step).
  *
- * The placeholder world uses tokens only: sea byte-700 with sparse byte-600
- * waves, islands with a parchment-400 beach, mint-700 land and a coastline
- * in the realm tint, fog a dithered ink-400 checker. No gradient, zero
- * radius, hard shadows.
+ * The drawn world is an old pixel cartography map, tokens only: a
+ * parchment-200 paper sea with parchment-400 wave marks; parchment-100
+ * lands with a parchment-400 stipple, a band of the realm tint inside the
+ * coast and a parchment-900 inked coast (dashed on a path-only island);
+ * ripple lines in the water; terrain glyphs in ink and shade; an ember route
+ * (solid once cleared, square footsteps ahead) with arrows; a compass rose,
+ * a double-rule frame and a dithered ink-400 Hallucinant fog. The box around
+ * the paper is parchment-900, like a desk. Labels sit on parchment plates.
+ * No gradient, no blur, zero radius, hard shadows.
  */
 @layer components {
   .world-map {
-    @apply bg-ink-950 shadow-panel m-0.75 grid overflow-auto;
+    @apply bg-parchment-900 shadow-panel m-0.75 grid overflow-auto;
     --world-z-overview: 0.5;
     --world-z: var(--world-z-overview);
     /* Never taller than the overview stage, never more than most of the screen. */
     height: min(70svh, calc(var(--world-h) * var(--world-z-overview)));
-    scrollbar-color: var(--ink-500) var(--ink-950);
+    scrollbar-color: var(--parchment-400) var(--parchment-900);
   }
   @media (width >= 68rem) {
     .world-map {
@@ -49,26 +54,65 @@
   .world-map-art {
     @apply absolute inset-0 block size-full;
   }
+  .world-art-image {
+    image-rendering: pixelated;
+  }
   .world-sea {
-    fill: var(--byte-700);
+    fill: var(--parchment-400);
   }
   .world-waves {
     fill: url(#world-waves);
   }
   .world-wave {
-    fill: var(--byte-600);
+    fill: var(--parchment-700);
   }
-  .world-beach {
-    fill: var(--parchment-400);
+  /* Ripples: an inked line close to the coast, a dashed faint one further out. */
+  .world-ripple {
+    fill: none;
+    stroke: var(--parchment-700);
+    stroke-width: 2;
+    stroke-linejoin: miter;
+  }
+  .world-ripple[data-ring='1'] {
+    stroke-dasharray: 6 6;
   }
   .world-land {
-    fill: var(--mint-700);
+    fill: var(--parchment-100);
+  }
+  .world-land-texture {
+    fill: url(#world-stipple);
+  }
+  .world-stipple-dot {
+    fill: var(--parchment-400);
+  }
+  /* The realm's colour as a band inside the coast (12px stroke clipped to the land = 6px). */
+  .world-land-band {
+    fill: none;
     stroke: var(--tint);
+    stroke-width: 12;
+    stroke-linejoin: miter;
+  }
+  .world-coast {
+    fill: none;
+    stroke: var(--parchment-900);
     stroke-width: 4;
     stroke-linejoin: miter;
   }
+  [data-path-only] > .world-coast {
+    stroke-dasharray: 8 4;
+  }
+  /* Advanced, locked: greyed paper, hatched, an ink band instead of the realm colour. */
   [data-status='tier-locked'] > .world-land {
-    fill: var(--ink-600);
+    fill: var(--parchment-200);
+  }
+  [data-status='tier-locked'] > .world-land-texture {
+    fill: url(#world-hatch);
+  }
+  [data-status='tier-locked'] > .world-land-band {
+    stroke: var(--parchment-400);
+  }
+  .world-hatch-dot {
+    fill: var(--parchment-400);
   }
   .world-fog {
     fill: url(#world-fog);
@@ -76,23 +120,67 @@
   .world-fog-dot {
     fill: var(--ink-400);
   }
-  /* Trail: square dots on an ink underlay. Solid once its first realm is cleared. */
+
+  /* Sprite pixels (terrain, compass, frame corners). */
+  [data-px='ink'] {
+    fill: var(--parchment-900);
+  }
+  [data-px='shade'] {
+    fill: var(--parchment-400);
+  }
+  [data-px='tint'] {
+    fill: var(--tint, var(--parchment-700));
+  }
+  [data-px='paper'] {
+    fill: var(--parchment-100);
+  }
+  .world-compass [data-px='tint'] {
+    fill: var(--ember-600);
+  }
+
+  /* Frame: a thick outer rule and a thin inner rule. */
+  .world-frame-outer,
+  .world-frame-inner {
+    fill: none;
+    stroke: var(--parchment-900);
+  }
+  .world-frame-outer {
+    stroke-width: 4;
+  }
+  .world-frame-inner {
+    stroke-width: 2;
+  }
+
+  /* Route: square ink footsteps ahead; a solid ember line on ink once its
+     first realm is cleared. The arrow at each middle shows the way. */
   .world-trail-under,
   .world-trail-line {
     stroke-linecap: square;
   }
   .world-trail-under {
-    stroke: var(--ink-950);
-    stroke-width: 10;
+    stroke: none;
   }
   .world-trail-line {
-    stroke: var(--ink-200);
-    stroke-width: 6;
-    stroke-dasharray: 12 12;
+    stroke: var(--parchment-900);
+    stroke-width: 4;
+    stroke-dasharray: 4 8;
+  }
+  .world-trail-arrow {
+    fill: var(--parchment-900);
+  }
+  .world-trail[data-cleared] .world-trail-under {
+    stroke: var(--parchment-900);
+    stroke-width: 10;
   }
   .world-trail[data-cleared] .world-trail-line {
-    stroke: var(--spark-500);
+    stroke: var(--ember-600);
+    stroke-width: 6;
     stroke-dasharray: none;
+  }
+  .world-trail[data-cleared] .world-trail-arrow {
+    fill: var(--ember-600);
+    stroke: var(--parchment-900);
+    stroke-width: 2;
   }
 
   /* Anything placed by anchor: centred on (x, y) × zoom. */
@@ -130,7 +218,7 @@
     @apply bg-xp text-text-on-accent font-hud text-micro tracking-hud bottom-[calc(100%+--spacing(0.5))] px-2 py-1 whitespace-nowrap;
   }
   .world-marker-detail {
-    @apply text-text-1 top-[calc(100%+--spacing(1))] hidden flex-col items-center gap-1 px-2 py-1 whitespace-nowrap;
+    @apply bg-parchment-100 text-parchment-900 top-[calc(100%+--spacing(1))] hidden flex-col items-center gap-1 px-2 py-1 whitespace-nowrap;
   }
   .world-marker-name {
     @apply font-hud text-micro tracking-hud text-center leading-tight uppercase;
@@ -185,7 +273,7 @@
     top: calc((var(--y) + var(--half-h)) * var(--world-z) - --spacing(3));
   }
   .world-landmark {
-    @apply bg-ink-950 text-text-1 font-hud text-micro tracking-hud shadow-notch flex min-h-11 items-center border-b-4 border-(--tint) px-3 text-center whitespace-nowrap uppercase no-underline;
+    @apply bg-parchment-100 text-parchment-900 font-hud text-micro tracking-hud shadow-notch flex min-h-11 items-center border-b-4 border-(--tint) px-3 text-center whitespace-nowrap uppercase no-underline;
   }
   /* Near the east edge: the label ends at the land's right edge, so it stays
      on the stage at zoom ½. */
@@ -211,5 +299,22 @@
   }
   .world-zoom-label {
     @apply bg-ink-950 text-ink-100 font-hud text-micro tracking-hud shadow-notch px-3 py-2.5;
+  }
+
+  /* Map key: a parchment cartouche of small drawn samples and plain words
+     (Atkinson, reading text). Wraps on a phone. */
+  .world-legend {
+    @apply bg-parchment-100 text-parchment-900 text-small leading-body shadow-notch m-0.75 flex list-none flex-wrap gap-x-5 gap-y-2 px-3 py-2;
+  }
+  .world-legend-row {
+    @apply flex items-center gap-2;
+  }
+  .world-legend-sample {
+    @apply h-5 w-8 flex-none;
+  }
+  .world-legend-here {
+    fill: var(--xp);
+    stroke: var(--ink-950);
+    stroke-width: 2;
   }
 }

@@ -8,10 +8,16 @@ import {
   HERO_SIDES,
   heroClear,
   heroSide,
+  WORLD_COMPASS,
+  WORLD_COMPASS_PX,
+  WORLD_GLYPHS,
   WORLD_HERO,
   WORLD_MAP,
+  WORLD_MAP_ART,
   WORLD_MIN_ANCHOR_GAP,
   WORLD_OVERVIEW_MIN_WIDTH,
+  WORLD_TERRAIN,
+  worldKeepClear,
   ZOOM_STEPS,
 } from './world-map';
 
@@ -222,5 +228,45 @@ describe('WORLD_MAP_TEXT.marker', () => {
     expect(WORLD_MAP_TEXT.marker('09', 'Canvas Workshop', 'OPEN', 0, 7, undefined, only)).toBe(
       '09 Canvas Workshop, creator only, open, 0 of 7 cleared',
     );
+  });
+});
+
+describe('cartography decoration', () => {
+  test('every sprite is a rectangle of known letters', () => {
+    for (const rows of [...Object.values(WORLD_GLYPHS), WORLD_COMPASS]) {
+      expect(new Set(rows.map((r) => r.length)).size).toBe(1);
+      for (const row of rows) expect(row).toMatch(/^[.#+*o]+$/);
+    }
+  });
+
+  test('the compass sprite fits its box, and the box is open sea: no land, ripple or label', () => {
+    const { x, y, size } = WORLD_MAP.compass;
+    expect(WORLD_COMPASS[0].length * WORLD_COMPASS_PX).toBeLessThanOrEqual(size);
+    expect(WORLD_COMPASS.length * WORLD_COMPASS_PX).toBeLessThanOrEqual(size);
+    // Ripples reach 12 art px out from a coast.
+    const box = { x, y, w: size + 24, h: size + 24 };
+    const lands = places.filter(([, p]) => overlap(box, p)).map(([name]) => name);
+    expect(lands).toEqual([]);
+    // Every pin, name and landmark label (worldKeepClear without the compass itself).
+    const own = { x: x - size / 2, y: y - size / 2, w: size, h: size };
+    const said = worldKeepClear(null).filter(
+      (c) => !(c.x === own.x && c.y === own.y && c.w === own.w && c.h === own.h),
+    );
+    const hit = said.some(
+      (c) => c.x < own.x + own.w && own.x < c.x + c.w && c.y < own.y + own.h && own.y < c.y + c.h,
+    );
+    expect(hit).toBe(false);
+  });
+
+  test('every realm in REALMS has its own terrain', () => {
+    expect(REALMS.filter((r) => !WORLD_TERRAIN[r.id]).map((r) => r.id)).toEqual([]);
+    for (const l of WORLD_MAP.landmarks) expect(WORLD_TERRAIN[l.id]).toBeDefined();
+  });
+
+  test('the art slot is the grid at 2×, and `ready` matches the committed file', async () => {
+    expect(WORLD_MAP.width * 2).toBe(WORLD_MAP_ART.width);
+    expect(WORLD_MAP.height * 2).toBe(WORLD_MAP_ART.height);
+    const file = Bun.file(`${import.meta.dir}/../../public${WORLD_MAP_ART.src}`);
+    expect(await file.exists()).toBe(WORLD_MAP_ART.ready);
   });
 });

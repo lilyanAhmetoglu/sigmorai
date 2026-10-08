@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { WORLD_MAP_BOX_ID, WORLD_MAP_HINT_ID, WorldMap } from '@/components/map/world-map';
+import { WorldMapLegend } from '@/components/map/world-map-legend';
 import { ZoomControls } from '@/components/map/zoom-controls';
 import { PathList } from '@/components/realms/path-list';
 import { SignInNote } from '@/components/realms/sign-in-note';
@@ -25,7 +26,8 @@ export const metadata: Metadata = {
  * and "START HERE". `?track=` picks the path, like the realm pages.
  * In a route group so this loading.tsx never wraps /map/<slug>, whose layout
  * must 404 a bad slug before anything streams.
- * Not built yet: the Higgsfield art (PR 3); the world is a token placeholder.
+ * Not built yet: the Higgsfield art (PR 3); the world is drawn as a token
+ * cartography map, with an art slot (WORLD_MAP_ART) ready for the PNG.
  */
 export default async function WorldMapPage({ searchParams }: PageProps<'/map'>) {
   const query = await searchParams;
@@ -54,6 +56,7 @@ export default async function WorldMapPage({ searchParams }: PageProps<'/map'>) 
           </p>
           <ZoomControls boxId={WORLD_MAP_BOX_ID} />
         </div>
+        <WorldMapLegend tag={tag} />
       </div>
 
       <section aria-labelledby={PATH_HEADING_ID} className="flex flex-col gap-3">

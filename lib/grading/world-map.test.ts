@@ -1,7 +1,36 @@
 import { describe, expect, test } from 'bun:test';
-import { CONTENT_DIR, coreRealms, OUTLINE_FILE, REALMS, TRACKS, WORLD_MAP } from '@/lib/constants';
-import type { RealmStatus, RealmView, Track, TrackMap, WorldGeometry } from '@/lib/types';
-import { coastline, edgeFog, pathRealms, realmPlace, shapeSeed, worldView } from './world-map';
+import {
+  CONTENT_DIR,
+  coreRealms,
+  OUTLINE_FILE,
+  REALMS,
+  TRACKS,
+  WORLD_HERO,
+  WORLD_MAP,
+  WORLD_TERRAIN,
+  WORLD_TERRAIN_DEFAULT,
+  worldKeepClear,
+  ZOOM_STEPS,
+} from '@/lib/constants';
+import type {
+  RealmStatus,
+  RealmView,
+  Track,
+  TrackMap,
+  WorldGeometry,
+  WorldPlace,
+  WorldRect,
+} from '@/lib/types';
+import {
+  coastline,
+  edgeFog,
+  offsetCoast,
+  pathRealms,
+  realmPlace,
+  shapeSeed,
+  terrainGlyphs,
+  worldView,
+} from './world-map';
 
 /** A realm view with 6 chapters + boss; only the fields worldView reads matter. */
 function realm(id: number, status: RealmStatus, cleared = 0): RealmView {
@@ -237,5 +266,104 @@ describe('edgeFog', () => {
     }
     expect(edgeFog()).toEqual(rects);
     expect(new Set(rects.map((r) => Math.max(r.w, r.h))).size).toBeGreaterThan(1);
+  });
+});
+
+describe('offsetCoast', () => {
+  const bbox = (pts: [number, number][]) => {
+    const xs = pts.map((q) => q[0]);
+    const ys = pts.map((q) => q[1]);
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  };
+
+  test('pushes the whole coast out by d: its box grows by d on every side', () => {
+    for (const [id, p] of Object.entries(WORLD_MAP.realms)) {
+      const coast = coastline(p, shapeSeed(Number(id)));
+      const [l, t, r, b] = bbox(coast);
+      expect(bbox(offsetCoast(coast, 6))).toEqual([l - 6, t - 6, r + 6, b + 6]);
+    }
+  });
+
+  test('keeps right angles only, and drops repeated or in-line points', () => {
+    const coast = coastline(WORLD_MAP.realms[0], shapeSeed(0));
+    const ring = offsetCoast(coast, 12);
+    ring.forEach((p, i) => {
+      const q = ring[(i + 1) % ring.length];
+      // Each edge is straight across or straight down, never zero length.
+      expect(p[0] === q[0] || p[1] === q[1]).toBe(true);
+      expect(p[0] === q[0] && p[1] === q[1]).toBe(false);
+    });
+    expect(ring.length).toBeLessThanOrEqual(coast.length);
+  });
+});
+
+describe('terrainGlyphs', () => {
+  /** Every land that can show terrain: core realms, slots, landmarks. */
+  const lands: [string, WorldPlace][] = [
+    ...Object.entries(WORLD_MAP.realms).map(([id, p]): [string, WorldPlace] => [id, p]),
+    ...WORLD_MAP.slots.map((s): [string, WorldPlace] => [s.id, s]),
+    ...WORLD_MAP.landmarks.map((l): [string, WorldPlace] => [l.id, l]),
+  ];
+  /** Where the hero and tag could stand: nowhere, or on any realm or slot. */
+  const currents = [null, ...Object.values(WORLD_MAP.realms), ...WORLD_MAP.slots];
+
+  const hit = (a: WorldRect, b: WorldRect) =>
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  /** Every pin's 28px box at every zoom, in art px (worked out apart from worldKeepClear). */
+  const pins = ZOOM_STEPS.flatMap((z) =>
+    [...Object.values(WORLD_MAP.realms), ...WORLD_MAP.slots].map((p) => {
+      const half = WORLD_HERO.pin / 2 / z;
+      return { x: p.x - half, y: p.y - half, w: 2 * half, h: 2 * half };
+    }),
+  );
+
+  const glyphsOf = (key: string, place: WorldPlace, current: WorldPlace | null) => {
+    const seed = shapeSeed(/^\d+$/.test(key) ? Number(key) : key);
+    const kinds = WORLD_TERRAIN[key] ?? WORLD_TERRAIN_DEFAULT;
+    return terrainGlyphs(place, seed, kinds, worldKeepClear(current));
+  };
+
+  test('never covers a pin at any zoom, wherever the hero stands', () => {
+    const clashes: string[] = [];
+    for (const current of currents)
+      for (const [key, place] of lands)
+        for (const g of glyphsOf(key, place, current))
+          if (pins.some((p) => hit(g, p))) clashes.push(`${key} ${g.kind}@${g.x},${g.y}`);
+    expect(clashes).toEqual([]);
+  });
+
+  test('stays inside its footprint, and glyphs never touch each other', () => {
+    for (const current of currents)
+      for (const [key, place] of lands) {
+        const glyphs = glyphsOf(key, place, current);
+        for (const g of glyphs) {
+          expect(g.x).toBeGreaterThanOrEqual(place.x - place.w / 2);
+          expect(g.y).toBeGreaterThanOrEqual(place.y - place.h / 2);
+          expect(g.x + g.w).toBeLessThanOrEqual(place.x + place.w / 2);
+          expect(g.y + g.h).toBeLessThanOrEqual(place.y + place.h / 2);
+        }
+        glyphs.forEach((a, i) => glyphs.slice(i + 1).forEach((b) => expect(hit(a, b)).toBe(false)));
+      }
+  });
+
+  test('never covers the current tag or the hero', () => {
+    for (const current of Object.values(WORLD_MAP.realms)) {
+      const own = worldKeepClear(current);
+      for (const [key, place] of lands)
+        for (const g of glyphsOf(key, place, current))
+          expect(own.some((c) => hit(g, c))).toBe(false);
+    }
+  });
+
+  test('the same land gets the same terrain; every core realm shows some', () => {
+    const p = WORLD_MAP.realms[1];
+    expect(glyphsOf('1', p, null)).toEqual(glyphsOf('1', p, null));
+    for (const [id, place] of Object.entries(WORLD_MAP.realms))
+      expect({ id, some: glyphsOf(id, place, null).length > 0 }).toEqual({ id, some: true });
+  });
+
+  test('no kinds, no glyphs', () => {
+    expect(terrainGlyphs(WORLD_MAP.realms[0], 1, [], [])).toEqual([]);
   });
 });

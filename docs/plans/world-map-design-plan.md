@@ -10,6 +10,14 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (cartography placeholder)
+
+- The maintainer said the placeholder "looks ugly, doesn't look like a map". The drawn world is now an old pixel cartography map, tokens only. This replaces the PR 1 palette (mint-700 land, parchment-400 beach, byte-700 sea): a blue screen with small green blocks read as a node graph, not a map.
+- Sea: parchment-400 paper with parchment-700 wave marks. Land: the whole footprint (no beach ring), parchment-100 with a stipple, a 6px band of the realm tint inside the coast and a parchment-900 inked coast. Two ripple lines in the water follow each coast (6 and 12 art px out). A specialist (path-only) island has a dashed coast; an advanced, locked realm is hatched.
+- Terrain glyphs (`WORLD_GLYPHS`, `WORLD_TERRAIN`) hint at each realm's theme. They are seeded and keep off every pin at every zoom, every name, landmark label, the compass, and the current tag and hero (`worldKeepClear`; tests check it).
+- Route: square ink footsteps ahead, a solid ember line once cleared, an arrow at each leg's middle. Plus a compass rose (`WORLD_MAP.compass`), a double-rule frame with corner blocks, and a map key under the box (cleared, ahead, current tag, locked, path-only), each a drawn sample plus words. Labels sit on parchment plates; the box around the paper is parchment-900.
+- **Art slot:** `WORLD_MAP_ART` (`/map/world-base.png`, 2048×1536 = the grid at 2×). When `ready` is true the PNG is the base layer (pixelated) and the drawn sea, land fill and terrain are skipped; coasts, route, pins and fog stay on top. A flag, not a runtime file check: a Vercel function does not see `public/`. A test keeps the flag and the file in step.
+
 ## Amendments locked 2026-10-08 (builder and strategist slots, per-path PR 9a and 10a)
 
 - r14 Agent Workshop (builder) → **s6**, after r4 in the builder trail (r4 → r14 → r5). Trail-crossing test: clear.

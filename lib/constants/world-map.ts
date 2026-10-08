@@ -1,4 +1,12 @@
-import type { HeroSide, WorldLandmark, WorldPlace, WorldSlot, WorldSlotRealm } from '@/lib/types';
+import type {
+  HeroSide,
+  WorldLandmark,
+  WorldPlace,
+  WorldGlyphKind,
+  WorldRect,
+  WorldSlot,
+  WorldSlotRealm,
+} from '@/lib/types';
 import { FRONTIER, MATH_TOWER } from './curriculum';
 import { FRONTIER_HREF, MATH_HREF } from './nav';
 
@@ -91,7 +99,107 @@ export const WORLD_MAP = {
       ...LANDMARK,
     },
   ] as readonly WorldLandmark[],
+  /**
+   * The compass rose (decoration), centred on (x, y), `size` art px square.
+   * In open sea north of the middle: a test keeps it off every land, pin
+   * and label.
+   */
+  compass: { x: 470, y: 96, size: 76 },
 } as const;
+
+/**
+ * The art slot for the Higgsfield world (PR 3). When `ready` is true, the
+ * page draws `src` (a 2048×1536 PNG: the 1024×768 grid at 2×, so ½, 1 and 2
+ * stay whole-number scales) as the base layer, pixelated, under the
+ * coastlines, trail and pins, and skips the drawn sea, land fill and
+ * terrain. Flip `ready` in the same PR that commits the file: a test checks
+ * that `ready` and the file agree. A flag, not a runtime file check, because
+ * a Vercel function does not see `public/` on disk.
+ */
+export const WORLD_MAP_ART = {
+  src: '/map/world-base.png',
+  width: 2048,
+  height: 1536,
+  ready: false,
+} as const;
+
+/**
+ * Terrain glyphs: tiny pixel sprites drawn on the lands, one sprite pixel =
+ * `WORLD_GLYPH_PX` art px (so 2 screen px at zoom ½, never a half pixel). Rows of the same
+ * length; `#` is ink, `+` is shade, `*` is the realm tint, `.` is empty.
+ */
+export const WORLD_GLYPH_PX = 4;
+
+export const WORLD_GLYPHS = {
+  tree: ['..#..', '.#+#.', '#+++#', '.###.', '..#..'],
+  pine: ['..#..', '.#+#.', '.#+#.', '#+++#', '#####', '..#..'],
+  mountain: ['....#....', '...#+#...', '..#.++#..', '.#..+++#.', '#########'],
+  hill: ['..###..', '.#+++#.', '#+++++#'],
+  house: ['..#..', '.#*#.', '#***#', '.#+#.', '.###.'],
+  tower: ['#.#.#', '#####', '.#*#.', '.#+#.', '.#+#.', '.###.'],
+  spire: ['..#..', '..#..', '.#*#.', '.#+#.', '##+##', '#+++#', '#####'],
+  forge: ['.+...', '+....', '.##..', '.##..', '#####', '#*+*#', '#####'],
+  tent: ['..*..', '..#..', '.#+#.', '#+*+#', '#+#+#'],
+  bridge: ['#######', '#+#+#+#', '#.....#'],
+  cave: ['.###.', '#+++#', '#+.+#', '#...#'],
+} as const;
+
+/**
+ * Which glyphs each land shows, by realm id or landmark id: a hint of its
+ * theme (Prompt Forest: trees, Production Peaks: mountains). A realm not
+ * listed gets hills and trees.
+ */
+export const WORLD_TERRAIN: Readonly<Record<string, readonly WorldGlyphKind[]>> = {
+  0: ['house', 'tree', 'house'],
+  1: ['pine', 'tree'],
+  2: ['forge', 'hill'],
+  3: ['tower', 'hill'],
+  4: ['tower', 'mountain'],
+  5: ['bridge', 'hill'],
+  6: ['tent', 'hill'],
+  7: ['spire', 'mountain'],
+  8: ['mountain', 'mountain', 'hill'],
+  9: ['house', 'tree'],
+  10: ['hill', 'tree'],
+  11: ['tent', 'house'],
+  12: ['cave', 'mountain'],
+  13: ['house', 'tower'],
+  14: ['forge', 'house'],
+  15: ['house', 'tent'],
+  math: ['tower'],
+  frontier: ['tent', 'pine'],
+};
+
+export const WORLD_TERRAIN_DEFAULT: readonly WorldGlyphKind[] = ['hill', 'tree'];
+
+/**
+ * The compass rose sprite (same letters as WORLD_GLYPHS, plus `*` = north,
+ * `o` = paper), drawn at WORLD_COMPASS_PX art px per pixel and centred in
+ * WORLD_MAP.compass. The N sits on top of the north arm.
+ */
+export const WORLD_COMPASS_PX = 4;
+
+export const WORLD_COMPASS = [
+  '....#...#....',
+  '....##..#....',
+  '....#.#.#....',
+  '....#..##....',
+  '....#...#....',
+  '.............',
+  '......#......',
+  '.....#*#.....',
+  '..#..#*#..#..',
+  '.....#*#.....',
+  '.....#*#.....',
+  '.#####*#####.',
+  '#+++++o+++++#',
+  '.#####+#####.',
+  '.....#+#.....',
+  '.....#+#.....',
+  '..#..#+#..#..',
+  '.....#+#.....',
+  '......#......',
+] as const;
 
 /**
  * Zoom steps, in screen px per art px. Whole-number scales of an asset only:
@@ -167,6 +275,49 @@ const at = (x: number, y: number, [l, t, r, b]: Box): Box => [x + l, y + t, x + 
 /** Two boxes overlap (touching edges do not count). */
 const hits = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
 
+/** A landmark's label box at zoom `z` (screen px, stage origin). */
+function landmarkLabel(m: WorldLandmark, z: number): Box {
+  const w = m.name.length * LANDMARK_LABEL.char + LANDMARK_LABEL.pad;
+  const left = m.align === 'end' ? (m.x + m.w / 2) * z - w : m.x * z - w / 2;
+  const top = (m.y + m.h / 2) * z + LANDMARK_LABEL.top;
+  return [left, top, left + w, top + LANDMARK_LABEL.h];
+}
+
+/** Extra screen px kept free around a pin, so drawn terrain never touches it. */
+const PIN_GAP = 4;
+
+/**
+ * Everything on the stage that says something, as boxes in art px, at every
+ * zoom step: every pin (core realms and slots, plus PIN_GAP), every marker's
+ * name and state (shown from zoom 1), landmark labels, the compass, and for
+ * the current realm its tag and the hero. Drawn terrain (terrainGlyphs)
+ * stays out of all of them, so a glyph never hides a pin or a word.
+ */
+export function worldKeepClear(
+  current: { x: number; y: number } | null = null,
+  geometry: typeof WORLD_MAP = WORLD_MAP,
+): WorldRect[] {
+  const half = WORLD_HERO.pin / 2 + PIN_GAP;
+  const anchors = [...Object.values(geometry.realms), ...geometry.slots];
+  const boxes: Box[] = [];
+  for (const z of ZOOM_STEPS) {
+    const art = ([l, t, r, b]: Box): Box => [l / z, t / z, r / z, b / z];
+    for (const p of anchors) {
+      boxes.push(at(p.x, p.y, art([-half, -half, half, half])));
+      if (z >= 1) boxes.push(at(p.x, p.y, art(WORLD_HERO.detail)));
+    }
+    for (const m of geometry.landmarks) boxes.push(art(landmarkLabel(m, z)));
+    if (current) {
+      boxes.push(at(current.x, current.y, art(WORLD_HERO.tag)));
+      const side = heroSide(current, geometry) ?? 'left';
+      boxes.push(at(current.x, current.y, art(heroBox(side))));
+    }
+  }
+  const { x, y, size } = geometry.compass;
+  boxes.push([x - size / 2, y - size / 2, x + size / 2, y + size / 2]);
+  return boxes.map(([l, t, r, b]) => ({ x: l, y: t, w: r - l, h: b - t }));
+}
+
 /**
  * Is the hero clear on this side of `anchor` at zoom `z`? Clear means it
  * stays on the stage and touches nothing that says something: no pin (its
@@ -189,12 +340,7 @@ export function heroClear(
   const pins = [...Object.values(geometry.realms), ...geometry.slots].map((p) =>
     at(p.x * z, p.y * z, [-half, -half, half, half]),
   );
-  const labels = geometry.landmarks.map((m) => {
-    const w = m.name.length * LANDMARK_LABEL.char + LANDMARK_LABEL.pad;
-    const left = m.align === 'end' ? (m.x + m.w / 2) * z - w : m.x * z - w / 2;
-    const top = (m.y + m.h / 2) * z + LANDMARK_LABEL.top;
-    return [left, top, left + w, top + LANDMARK_LABEL.h] as Box;
-  });
+  const labels = geometry.landmarks.map((m) => landmarkLabel(m, z));
   const own = [
     at(ax, ay, [-half, -half, half, half]),
     at(ax, ay, WORLD_HERO.tag),
