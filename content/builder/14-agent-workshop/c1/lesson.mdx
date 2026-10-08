@@ -59,26 +59,26 @@ The fields differ a little. Codex requires `name` and `description`. In Claude C
 Skills load in steps. The agent first sees a short card for each skill, and it reads the full file only when it picks that skill (our plain gloss of "progressive disclosure").
 
 - **OpenAI:** "ChatGPT and Codex start with each skill's name and description, then load the full `SKILL.md` instructions when they decide to use that skill." Codex reads references or runs scripts "only when needed".
-- **Anthropic:** by default the "Description always in context, full skill loads when invoked".
+- **Anthropic:** by default, "Description always in context, full skill loads when invoked" (the words of its table).
 - **Google:** "Only skill metadata (name and description) is loaded initially." Gemini CLI also asks you first: "You will see a confirmation prompt in the UI detailing the skill's name, purpose, and the directory path it will gain access to."
 
 So the description decides when a skill fires. Both big vendors say to put the use case first, because long lists get cut:
 
-- Codex: "Front-load the key use case and trigger words so a host can still match the skill if descriptions are shortened." Its first skills list "uses at most 2% of the model's context window", and "Codex shortens skill descriptions first" when many skills are installed.
+- Codex: "Front-load the key use case and trigger words so a host can still match the skill if descriptions are shortened." The list of names and descriptions Codex shows the model "uses at most 2% of the model's context window", and "Codex shortens skill descriptions first" when many skills are installed.
 - Claude Code: "Put the key use case first". The description plus `when_to_use` "is truncated at 1,536 characters in the skill listing".
 
-Example (our example): `description: Helpers` never fires, because no task matches it. `description: Drafts release notes from merged PRs. Use when the user asks for release notes.` says what it does and when.
+Our example: `description: Helpers` never fires, because no task matches it. `description: Drafts release notes from merged PRs. Use when the user asks for release notes.` says what it does and when.
 
 ## Skill, instruction file or subagent
 
-Anthropic's comparison table is the clearest:
+Anthropic's docs compare the two in a table:
 
 | Aspect   | CLAUDE.md                    | Skill                                   |
 | -------- | ---------------------------- | --------------------------------------- |
 | Loads    | Every session, automatically | On demand                               |
 | Best for | "Always do X" rules          | Reference material, invocable workflows |
 
-Its advice: "Put it in CLAUDE.md if Claude should always know it". "Put it in a skill if it's reference material Claude needs sometimes (API docs, style guides) or a workflow you trigger with `/<name>`." Anthropic also names the moment to make one: "when a section of CLAUDE.md has grown into a procedure rather than a fact."
+Its advice: "Put it in CLAUDE.md if Claude should always know it". "Put it in a skill if it's reference material Claude needs sometimes (API docs, style guides) or a workflow you trigger with `/<name>`." Anthropic also names the moments to make one: "when you keep pasting the same instructions, checklist, or multi-step procedure into chat, or when a section of CLAUDE.md has grown into a procedure rather than a fact."
 
 OpenAI says the same in its own words: "`AGENTS.md` shapes behavior, memories carry local context forward, skills package repeatable processes". Google: "Unlike general context files (GEMINI.md), which provide persistent workspace-wide background, Skills represent on-demand expertise."
 
@@ -95,7 +95,7 @@ Rule of thumb (our advice):
 You can call a skill by name, or the agent can pick it from the description.
 
 - **Claude Code:** type `/skill-name`. `disable-model-invocation: true` means "Claude can't invoke the skill on its own". Anthropic's reason: "You don't want Claude deciding to deploy because your code looks ready."
-- **Codex:** type `$` to mention a skill, or run `/skills`. In the optional `agents/openai.yaml`, `allow_implicit_invocation: false` means "Codex won't implicitly invoke the skill based on user prompt; explicit `$skill` invocation still works."
+- **Codex:** type `$` to mention a skill, or run `/skills`. In the optional `agents/openai.yaml`, `allow_implicit_invocation: false` under `policy:` means "Codex won't implicitly invoke the skill based on user prompt; explicit `$skill` invocation still works."
 
 Any skill with side effects, such as deploy or send (our advice), should be started by a person.
 
@@ -126,6 +126,6 @@ To share skills beyond one repo, both big vendors point to plugins. Anthropic li
 - Only the name and description load first. The full file loads when the skill is picked.
 - The description is the trigger. Put the use case and trigger words first.
 - Always true → instruction file. Sometimes needed → skill. Big side job → subagent.
-- Block auto-start for side effects: `disable-model-invocation` (Claude Code), `allow_implicit_invocation: false` (Codex).
+- Block auto-start for side effects: `disable-model-invocation` (Claude Code), `policy.allow_implicit_invocation: false` (Codex).
 - Keep `SKILL.md` short; move detail into reference files.
 - Codex and Gemini CLI read `.agents/skills/`; Claude Code reads `.claude/skills/`.
