@@ -25,7 +25,7 @@ import {
   MENTOR_SOURCE_MAX_CHUNKS,
 } from '@/lib/constants';
 import { postSections } from '@/lib/content/blog';
-import { sha256 } from '@/lib/content/docs-watch';
+import { hostOf, sha256 } from '@/lib/content/docs-watch';
 import type { MentorChunkDraft, MentorChunkKind } from '@/lib/types';
 
 /** A piece of a document before it gets a header and a hash. */
@@ -43,9 +43,6 @@ export const estimateTokens = (text: string) => Math.ceil(text.length / MENTOR_C
 export function lessonText(raw: string): string {
   return raw.replace(/\r\n/g, '\n').replace(FRONTMATTER, '').replace(DIALOG_BOX, '').trim();
 }
-
-/** `https://www.Example.com/x` → `example.com`. */
-export const hostOf = (url: string) => new URL(url).hostname.toLowerCase().replace(/^www\./, '');
 
 export const lessonHeader = (title: string, heading: string | null) =>
   heading ? `Lesson: ${title} › ${heading}` : `Lesson: ${title}`;

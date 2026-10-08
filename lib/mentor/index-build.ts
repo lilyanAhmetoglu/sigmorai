@@ -9,10 +9,11 @@ import { mentorChunks } from '@/db/schema';
 import {
   CONTENT_DIR,
   LESSON_FILE,
+  MENTOR_EMBED_BATCH,
   MENTOR_EMBED_USD_PER_MTOK,
   MENTOR_FETCH_CONCURRENCY,
 } from '@/lib/constants';
-import { markdownUrl } from '@/lib/content/docs-watch';
+import { pageFetch } from '@/lib/content/docs-watch';
 import { fetchPageWithFallback, type FetchFn } from '@/lib/content/fetch-page';
 import { parseExerciseId } from '@/lib/content/ids';
 import { contentPath, parseMdx } from '@/lib/content/load';
@@ -254,9 +255,6 @@ async function mapLimit<T, R>(
   return out;
 }
 
-/** Embed new chunks once per batch of documents, then write each document. */
-const FLUSH_AT = 64;
-
 export async function buildIndex(options: BuildOptions): Promise<IndexSummary> {
   const { store, embed, root = CONTENT_DIR, fetchFn = fetch, log = () => {} } = options;
   const summary: IndexSummary = {
@@ -285,12 +283,8 @@ export async function buildIndex(options: BuildOptions): Promise<IndexSummary> {
     [...sources],
     options.concurrency ?? MENTOR_FETCH_CONCURRENCY,
     async ([key, { url, title }]) => {
-      const md = markdownUrl(url);
       try {
-        const page = await fetchPageWithFallback(
-          { fetchUrl: md, ...(md !== url && { fallbackUrl: url }) },
-          fetchFn,
-        );
+        const page = await fetchPageWithFallback(pageFetch(url), fetchFn);
         return {
           key,
           url,
@@ -358,7 +352,7 @@ export async function buildIndex(options: BuildOptions): Promise<IndexSummary> {
     if (isEmptyPlan(plan)) continue;
     pending.push({ docKey, plan });
     pendingChunks += plan.insert.length;
-    if (pendingChunks >= FLUSH_AT) {
+    if (pendingChunks >= MENTOR_EMBED_BATCH) {
       await flush();
       pendingChunks = 0;
     }

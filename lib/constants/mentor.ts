@@ -13,8 +13,10 @@ export const MENTOR_CHUNK_KINDS = ['lesson', 'source'] as const;
 // `{ object: 'list', data: [{ object: 'embedding', embedding: number[], index }], model,
 // usage: { total_tokens } }`. voyage-4: 32,000-token context, 1024 dims by default
 // (256 / 512 / 2048 via `output_dimension`), unit-normalised (cosine = dot product).
+// Re-checked 2026-10-08 (same page): endpoint, header, body and response unchanged.
 // docs.voyageai.com and mongodb.com were not reachable from the build box, so the
-// per-request batch limit was not re-read; 64 inputs of ≤ ~800 tokens stays far below it.
+// per-request input and token limits were not re-read there; 64 inputs of ≤ ~800
+// tokens (~51k tokens) is the size to confirm on the first manual run.
 
 /** The Atlas endpoint for a model API key (a geography-scoped key uses its own host). */
 export const MENTOR_EMBED_URL = 'https://ai.mongodb.com/v1/embeddings';
