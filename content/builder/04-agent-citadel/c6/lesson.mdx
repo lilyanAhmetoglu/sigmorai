@@ -1,7 +1,7 @@
 ---
 id: builder/r4/c6/lesson
 title: Permissions
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: Configure permissions (Claude Agent SDK, Claude Code docs)
@@ -26,82 +26,139 @@ sources:
     url: https://modelcontextprotocol.io/specification/2025-11-25/server/tools
 ---
 
-The model decides which tool to call. The harness decides whether that call may run. Permissions are where you draw that line, before an agent deletes a folder, pushes to `main` or refunds the wrong customer.
+## Goal
 
-## Why the model can't be the only check
+After this lesson you can:
 
-Anthropic's agents post warns that autonomy brings "higher costs, and the potential for compounding errors," and recommends "extensive testing in sandboxed environments, along with the appropriate guardrails." The MCP specification says: "there **SHOULD** always be a human in the loop with the ability to deny tool invocations."
+- Sort an agent's tools into allow, ask and deny by risk.
+- Predict which rule wins in Claude Code, and pick a safe permission mode.
+- Pause an OpenAI Agents SDK run for approval and resume it, even hours later.
 
-The Claude docs state the split clearly: "Claude determines which tools to call based on the task, but you control whether those calls are allowed to execute."
+## The problem
 
-## Three answers to every tool call
+Nora's on-call agent can now do real things. Its tools: read metrics and logs, list pods with `kubectl get`, restart a service, roll back a deploy, and delete old log data.
 
-Claude Code's permission rules give each call one of three outcomes:
+The first setup was "allow everything, it runs on our own server". The prompt said "ask before a rollback". One night the agent restarted the search service three times in ten minutes. Nobody was asked. Another night it started to delete log data "to free disk space".
 
-- **Allow:** run it without asking.
-- **Ask:** pause and get a decision from a person or your code.
-- **Deny:** block it. The model gets a rejection as the tool result.
+The model decides which tool to call. The harness must decide if that call may run.
 
-OpenAI's approval flow uses the same idea: a call that needs review pauses until it is approved or rejected. And in the Claude SDK, a denied call is not a crash: "Claude receives a rejection message as the tool result and typically attempts a different approach or reports that it couldn't proceed."
+## The idea
 
-## Claude: rules and modes
+**Why the model can't be the only check.** The [Anthropic post on agents](https://www.anthropic.com/engineering/building-effective-agents) warns of "the potential for compounding errors" and advises "the appropriate guardrails". The [MCP specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) says there "**SHOULD** always be a human in the loop with the ability to deny tool invocations." The [agent loop docs](https://code.claude.com/docs/en/agent-sdk/agent-loop) put it plainly: Claude picks the tools, "but you control whether those calls are allowed to execute."
 
-Claude Code and the Claude Agent SDK use allow, ask and deny rules. A rule can name a whole tool (`Bash`) or scope it (`Bash(npm *)`). The order is fixed: "Rules are evaluated in order: deny, then ask, then allow. The first match in that order determines the outcome, and rule specificity doesn't change the order."
+**Three answers.** Every tool call gets one: **allow** (run it), **ask** (pause for a person or your code), or **deny** (block it). A denied call is not a crash. Claude gets a rejection as the tool result and "typically attempts a different approach or reports that it couldn't proceed."
 
-So a narrow allow can never punch a hole in a broad deny. Example: deny `Bash(aws *)` and allow `Bash(aws s3 ls)`. The call `aws s3 ls` is denied.
+**Claude: rules, then mode.** The [Claude Code permissions docs](https://code.claude.com/docs/en/permissions) fix the order: "Rules are evaluated in order: deny, then ask, then allow." They add: "The first match in that order determines the outcome". A more specific rule does not jump the line. A bare deny such as `Bash` removes the tool; a scoped one such as `Bash(rm *)` keeps the tool and blocks matching calls ([SDK permissions](https://code.claude.com/docs/en/agent-sdk/permissions)).
 
-Deny rules come in two strengths. A bare name like `Bash` "removes the tool from Claude's context entirely". A scoped rule like `Bash(rm *)` keeps the tool and blocks matching calls.
+A permission mode handles calls that no rule settles. In short:
 
-On top of rules sits a **permission mode**:
+| Mode                | What it does with the rest                                 |
+| ------------------- | ---------------------------------------------------------- |
+| `default`           | Sends them to your `canUseTool` callback                   |
+| `dontAsk`           | Denies anything that would prompt                          |
+| `acceptEdits`       | Approves file edits and file commands like `mkdir`, `rm`   |
+| `plan`              | Explores and plans; never auto-approves a file edit        |
+| `auto`              | A model classifier allows or blocks each action it reviews |
+| `bypassPermissions` | Approves almost everything; for isolated environments only |
 
-| Mode                | Behavior, in short                                                |
-| ------------------- | ----------------------------------------------------------------- |
-| `default`           | Calls that need approval go to your `canUseTool` callback         |
-| `dontAsk`           | Never prompts; anything that would prompt is denied               |
-| `acceptEdits`       | Auto-approves file edits and common filesystem commands           |
-| `plan`              | Explores and plans; edits are never auto-approved                 |
-| `auto`              | A model classifier allows or blocks each action it reviews        |
-| `bypassPermissions` | Runs allowed tools without asking; for isolated environments only |
+Hooks run before all of this. A `PreToolUse` hook can deny a call, and "a hook deny applies even in `bypassPermissions` mode."
 
-Two traps from the SDK docs:
+**OpenAI: approval on the tool.** In the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/human_in_the_loop.md), set `needs_approval=True` on a tool, or pass a function that decides per call. Local MCP servers use `require_approval`. The [OpenAI guide](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) says the run "records an approval interruption" and does not run the tool yet. The result returns `interruptions` plus a resumable `state`.
 
-- **`allowed_tools` does not limit `bypassPermissions`.** It only pre-approves the listed tools. "Setting `allowed_tools=["Read"]` alongside `permission_mode="bypassPermissions"` still approves every tool, including `Bash`, `Write`, and `Edit`."
-- **For a locked-down headless agent, pair `allowedTools` with `dontAsk`.** Listed tools run; every other call that would prompt is denied.
+Think of a bank. Anyone can look at the balance. A big transfer needs a second signature. Nobody can delete the vault.
 
-Hooks come first in the SDK's order. A `PreToolUse` hook "can deny the call outright", and "a hook deny applies even in `bypassPermissions` mode." A hook "allow" does not skip the deny and ask rules.
+## Worked example
 
-## OpenAI: approvals and guardrails
+### Step 1: the weak setup
 
-The OpenAI Agents SDK works at the level of each tool. Set `needs_approval=True` on a function tool to always require approval, or pass a function that decides per call. MCP servers use `require_approval`.
+```python
+options = ClaudeAgentOptions(
+    permission_mode="bypassPermissions",
+    system_prompt="... Always ask before a rollback. ...",
+)
+```
 
-The approval flow pauses the run instead of executing the tool:
+Every call runs. The prompt line is only a request (chapter 3).
 
-1. The run records an approval interruption.
-2. The result returns `interruptions` plus a resumable `state`.
-3. Your app approves or rejects the pending items.
-4. You resume the same run from `state`, not a new user turn.
+### Step 2: sort the tools by risk
 
-If review takes hours, "serialize `state`, store it, and resume later. That's still the same run."
+| Risk           | Tools                                          | Answer |
+| -------------- | ---------------------------------------------- | ------ |
+| Read only      | `error_rate`, `search_logs`, `kubectl get ...` | allow  |
+| Changes things | `rollback`, `kubectl rollout restart ...`      | ask    |
+| Can't undo     | `delete_log_data`, `kubectl delete ...`        | deny   |
 
-Guardrails are automatic checks. They have edges you must know: "Input guardrails run only for the first agent in the chain", output guardrails only for the agent that produces the final output, and tool guardrails only on the tools they are attached to. OpenAI's advice: "Put validation next to the tool that creates the side effect."
+### Step 3: write the rules
 
-## Pick by risk
+```python
+options = ClaudeAgentOptions(
+    permission_mode="default",            # unsettled calls -> canUseTool
+    allowed_tools=["error_rate", "search_logs", "Bash(kubectl get *)"],
+    disallowed_tools=["delete_log_data", "Bash(kubectl delete *)"],
+)
+# + a canUseTool callback that pages the on-call engineer and waits
+# .claude/settings.json: "ask": ["rollback", "Bash(kubectl rollout restart *)"]
+```
 
-The two vendors use different words. Our summary of the design moves in these docs:
+(Short tool names here. Custom tools get MCP-style names in a real config, like `mcp__ops__rollback`.)
 
-- Reads can often run freely; side effects get a check. OpenAI lists cancellations, edits, shell commands and sensitive MCP actions as cases for approval.
-- Put the hard rule in code (a deny rule, a hook, `needs_approval`), not in the prompt.
-- Put the check next to the tool that does the damage.
-- Keep fully unattended modes for isolated environments. The Claude docs reserve `bypassPermissions` for "CI, containers, or other isolated environments".
+`delete_log_data` is a bare name, so the agent never even sees that tool. `kubectl delete` stays blocked for every `kubectl delete` call. A rollback or a restart now pages the engineer first.
 
-Example for a support agent: `lookup_order` runs freely, `issue_refund` needs approval above 50 euros, and `delete_account` is not in the agent's tool list at all.
+### Step 4: a rule that does not work
 
-## Key points
+A teammate wants restarts to stop asking for one safe service. He adds an allow rule:
 
-- The model proposes tool calls; the harness allows, asks or denies them.
-- Claude rules: deny, then ask, then allow. First match wins; specificity doesn't matter.
-- `bypassPermissions` approves unlisted tools. For headless agents, use `allowedTools` with `dontAsk`.
-- A `PreToolUse` hook deny holds in every mode.
-- OpenAI: `needs_approval` pauses the run; approve or reject, then resume from `state`.
-- Agent-level guardrails have edges. Validate next to the tool with the side effect.
-- MCP: a human SHOULD always be able to deny tool invocations.
+```text
+ask:   Bash(kubectl rollout restart *)
+allow: Bash(kubectl rollout restart deploy/search)
+```
+
+It still asks. Ask comes before allow in the order, so the ask rule decides. A narrow allow can't cut a hole in a broader ask or deny. To change it, he must change the ask rule itself.
+
+### Step 5: the hard case — approval at 3 a.m.
+
+The engineer's chat agent runs on the OpenAI Agents SDK. Its `rollback` tool is marked `needs_approval=True`. At 03:12 the agent wants a rollback, so the run stops and waits for a decision. The engineer answers at 03:50. By then the chat server has restarted.
+
+Starting a new run with the same question would repeat the whole investigation, and it is not the same run. The OpenAI guide says: "serialize `state`, store it, and resume later. That's still the same run." So Nora's app saves the state when the pause happens. When the answer comes, it loads the state, calls approve or reject on the interruption, and resumes.
+
+One more edge from the same guide: input guardrails run "only for the first agent" in a chain. Text that arrives later, for example in a log line, is not checked by them. So the check lives on the `rollback` tool itself, next to the side effect.
+
+### Step 6: why it is better
+
+- **Risk decides the answer.** Reads run, changes ask, and actions that can't be undone are blocked.
+- **Rules in code.** Deny and ask rules hold whatever the prompt says.
+- **Approvals survive a restart.** The run pauses, waits and resumes as the same run.
+
+## Common mistakes
+
+1. **`bypassPermissions` with a short tool list.** The list only pre-approves those tools; the mode approves the rest. Fix: for a headless agent, list its tools in `allowedTools` and set the mode to `dontAsk`, so anything else is denied.
+2. **A narrow allow under a broad deny.** It never wins, because deny is checked first. Fix: make the deny rule narrower instead.
+3. **Approval as a new turn.** Starting over loses the run's state. Fix: resolve the interruption and resume from the saved `state`.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A Claude Code project has these rules. What happens to each call?
+
+```text
+deny:  Bash(rm *)
+ask:   Bash(git push *)
+allow: Bash(git *)
+
+1) git log --oneline
+2) git push origin fix-login
+3) rm -rf build
+```
+
+### Answer
+
+1. **Runs.** No deny or ask rule matches. The allow rule `Bash(git *)` does.
+2. **Asks.** Both the ask rule and the allow rule match. Ask is checked before allow, so the ask wins.
+3. **Blocked.** The deny rule matches first. No other rule can change that.
+
+## Recap
+
+- The model proposes a call; the harness allows, asks or denies it. Sort tools by risk: read, change, can't undo.
+- Claude Code checks deny rules first, then ask, then allow. The first rule that matches decides. A hook deny holds in every mode. Keep `bypassPermissions` for isolated environments.
+- In the OpenAI SDK, `needs_approval` pauses the run. Save the `state`, then approve or reject and resume the same run.

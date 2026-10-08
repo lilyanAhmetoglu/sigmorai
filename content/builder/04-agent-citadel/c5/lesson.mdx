@@ -1,7 +1,7 @@
 ---
 id: builder/r4/c5/lesson
 title: Memory
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: How Claude remembers your project (Claude Code docs)
@@ -23,75 +23,144 @@ sources:
     url: https://developers.openai.com/api/docs/guides/agents/sandboxes
 ---
 
-Context does not carry over on its own. The Claude Code docs put it plainly: "Each Claude Code session begins with a fresh context window." Anything an agent remembers later is text that something saved and loaded back. So memory is a harness question: what do you save, where, and what do you load next time?
+## Goal
 
-## Three kinds of memory
+After this lesson you can:
 
-It helps to split memory by how long it lives. This split is ours, but each vendor has a tool for each kind.
+- Sort what an agent should remember by how long it must last.
+- Put human rules in an instruction file and agent notes in a memory store.
+- Write a memory handler that a bad path or a secret can't break.
 
-| Kind            | Lives for          | Example                                |
-| --------------- | ------------------ | -------------------------------------- |
-| Working context | One run or session | The tool results of the last 10 turns  |
-| Session history | One conversation   | A chat the user comes back to tomorrow |
-| Long-term notes | Across sessions    | "This repo uses Bun, not npm"          |
+## The problem
 
-Working context is the context window from chapter 1. The other two need storage outside the model.
+Nora's on-call agent forgets everything between nights.
 
-## Session history
+- Every night at 03:00 the search service shows errors for ten minutes. It is the nightly reindex, and it is harmless. The agent finds this out again every night, after 15 turns.
+- The engineer on duty chats with the agent during an incident. When the chat app restarts, the agent loses the whole chat.
+- A teammate wants to "just put everything in the system prompt". It is already 300 lines long.
 
-Session history lets the next turn continue the same conversation.
+An agent remembers nothing on its own. Anything it "remembers" is text that something saved and loaded back. So memory is a harness job: what to save, where, and what to load next time.
 
-**OpenAI Agents SDK.** The guide calls sessions "the best default when you want durable memory, resumable approval flows, or storage that your application controls." The `openai-agents-python` sessions docs add that, with a session, the runner gets the conversation history "before each run" and stores all new items "after each run". Other options keep the state on OpenAI's side, with `conversation_id` or `previous_response_id`. OpenAI's advice: "pick one strategy per conversation", because mixing local and server-managed state "can duplicate context".
+## The idea
 
-History grows forever unless you cap it. `SessionSettings(limit=N)` retrieves "only the most recent `N` items". The default, `limit=None`, retrieves everything.
+**Split memory by how long it lives.** This split is ours, but each vendor has a tool for each kind.
 
-**Claude Code.** A new session does not carry the old one's conversation. Two other mechanisms carry knowledge across sessions: instruction files and auto memory. Both are below.
+| Kind            | Lives for        | In Nora's agent                      |
+| --------------- | ---------------- | ------------------------------------ |
+| Working context | One run          | Tonight's tool results               |
+| Session history | One conversation | The chat with tonight's engineer     |
+| Long-term notes | Across sessions  | "Search errors at 03:00 are reindex" |
 
-## Long-term notes the human writes
+**Session history.** In the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/sessions/index.md), a session loads the history "Before each run" and stores new items "After each run". `SessionSettings(limit=N)` fetches "only the most recent `N` items"; the default, `limit=None`, fetches all. The [OpenAI guide](https://developers.openai.com/api/docs/guides/agents/running-agents) says to "pick one strategy per conversation", because mixing your own history with server-managed state "can duplicate context".
 
-For rules that must be there every session, both ecosystems use an instruction file in the repo.
+**Notes a human writes.** The [Claude Code docs](https://code.claude.com/docs/en/memory) say: "Each Claude Code session begins with a fresh context window." An instruction file, `CLAUDE.md` (or a repo's `AGENTS.md`), loads at the start of each session. The docs give three rules:
 
-Claude Code reads `CLAUDE.md` files at the start of every session. It can also read a repository's `AGENTS.md`, a file other coding agents use, on its own or alongside `CLAUDE.md`. OpenAI's sandbox guide also says to put repo-local instructions in workspace files "such as `repo/task.md` or `AGENTS.md`".
+- Make lines "concrete enough to verify": "Use 2-space indentation" instead of "Format code properly".
+- Keep each file under 200 lines. A long file costs more context and can "reduce adherence."
+- Remove conflicts: with two rules that disagree, Claude "may pick one arbitrarily."
 
-The Claude Code docs give clear rules for writing one:
+**Notes the agent writes.** The [Anthropic post on context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) calls this structured note-taking: the agent writes notes "outside of the context window", and they "get pulled back into the context window at later times." Three versions:
 
-- Make each line verifiable: "Use 2-space indentation" instead of "Format code properly".
-- Keep each file under 200 lines. "Longer files consume more context and reduce adherence."
-- Remove conflicts: "if two instructions contradict each other, Claude may pick one arbitrarily."
+- The [Claude memory tool](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool) stores files under `/memories`. It "operates client-side": Claude asks, your code reads and writes.
+- Claude Code auto memory keeps a `MEMORY.md` index. At the start of a conversation it loads "The first 200 lines of `MEMORY.md`, or the first 25KB, whichever comes first". Detail goes in topic files.
+- [OpenAI sandbox memory](https://developers.openai.com/api/docs/guides/agents/sandboxes) puts `memory_summary.md` in at the start of a run. The agent searches `MEMORY.md` only "when prior work looks relevant".
 
-They also say when to add a line: when Claude "makes the same mistake a second time", or when a review catches something Claude should have known.
+Think of a desk and a filing cabinet. A short summary sits on the desk every day. The full files stay in the cabinet until you need one.
 
-## Long-term notes the agent writes
+**Memory is not a lock.** The Claude Code docs say Claude treats loaded memory "as context, not enforced configuration". To block an action, use a hook.
 
-The other direction is memory the agent writes for itself. Anthropic's context engineering post calls it structured note-taking: "the agent regularly writes notes persisted to memory outside of the context window. These notes get pulled back into the context window at later times." Its examples are Claude Code's to-do list and "a NOTES.md file".
+## Worked example
 
-Three versions of this from the docs:
+### Step 1: the weak setup
 
-- **Claude Code auto memory:** notes Claude writes from your corrections and preferences. `MEMORY.md` is an index of the memory files. Its first 200 lines or 25KB, whichever comes first, load at the start of every conversation. Detailed notes go into separate topic files that Claude reads during the session.
-- **Claude memory tool:** Claude reads and writes files under `/memories`. The tool is client-side: "Claude requests file operations, and your application executes them." With it on, Claude "automatically checks its memory directory before starting a task."
-- **OpenAI sandbox memory:** distills "useful lessons from prior workspace runs into files the agent can read later". It is "separate from SDK-managed conversational `Session` memory". At the start of a run the SDK injects `memory_summary.md`, and the agent searches `MEMORY.md` when prior work looks relevant.
+```text
+System prompt: 300 lines (rules, old incident stories, service facts)
+Chat history:  kept in the app's RAM, lost on restart
+Agent notes:   none
+```
 
-Note the pattern on both sides: a short summary is always loaded, and the details are read only when needed.
+### Step 2: human rules go in the instruction file
 
-## Memory is context, not configuration
+Nora moves the team's rules out of the prompt into `CLAUDE.md` and cuts them hard:
 
-Loaded memory is still just text the model reads. The Claude Code docs: Claude "treats them as context, not enforced configuration. To block an action regardless of what Claude decides, use a PreToolUse hook instead." Chapter 3 said the same about instruction files.
+```text
+Before:  "Be careful with times."
+After:   "Write all times in UTC, like 02:04 UTC."
 
-## Memory is also an attack surface
+Before:  "Search can be noisy at night."   (line 40)
+         "Treat every search error as real." (line 212)   <- conflict
+After:   one line, the second one deleted
+```
 
-A memory store is files that a model asks your code to read and write. The memory tool docs list what your handler must do:
+The old incident stories leave the file. They are notes, not rules. The file is now 60 lines.
 
-- **Path traversal:** "A malicious path such as `/memories/../../secrets.env` can reach files outside the `/memories` directory." Validate every path, resolve it to its canonical form and reject `../` sequences.
-- **Sensitive data:** Claude "usually refuses" to write it, but "For stronger guarantees, add validation that strips sensitive data" before writing.
-- **Size and age:** cap file sizes and delete files that haven't been accessed in a long time.
+### Step 3: the agent's own notes go in a memory store
 
-Example: a support agent stores one memory folder per customer. If the handler does not check paths, a crafted path can read another customer's folder.
+The agent gets the memory tool. Nora's handler maps `/memories` to one folder per service:
 
-## Key points
+```text
+/memories/index.md               one line per note, read first
+/memories/search/known-noise.md  "03:00-03:10 UTC errors = nightly reindex.
+                                   Seen 14 nights. Ignore unless > 10 min."
+/memories/payments/deploys.md    ...
+```
 
-- Context does not carry over by itself. The harness decides what to save and what to load.
-- Session history continues one conversation. OpenAI sessions load it before a run and save after; cap it with `SessionSettings(limit=N)`.
-- Instruction files (`CLAUDE.md`, `AGENTS.md`) hold rules a human writes. Keep them short, verifiable and free of conflicts.
-- Agent-written notes: Claude Code auto memory, the Claude memory tool, OpenAI sandbox memory.
-- Loaded memory is context, not enforcement.
-- Treat memory files as untrusted input and output: validate paths, strip secrets, cap size.
+With the tool on, Claude "automatically checks its memory directory before starting a task." So tonight it reads the index, opens `search/known-noise.md`, and skips the 15 turns.
+
+### Step 4: the chat survives a restart
+
+The engineer's chat goes through the chat app, which runs on the OpenAI Agents SDK. Nora gives it an `SQLiteSession` per incident and `SessionSettings(limit=40)`. A restart now loads the last 40 items. A long incident can't flood the context.
+
+### Step 5: the hard case — the handler is the attack surface
+
+The service name in a memory path comes from the alert text. The alert text comes from an outside monitor. One day a bad alert sets the service name to `..%2f..%2fconfig`. A naive handler builds:
+
+```text
+"/data/memories/" + "..%2f..%2fconfig" + "/known-noise.md"
+-> after URL decoding: /data/config/known-noise.md     (outside the store!)
+```
+
+The memory tool docs warn: "A malicious path such as `/memories/../../secrets.env` can reach files outside the `/memories` directory." Their list of checks includes:
+
+- Resolve each path "to their canonical form" and check that it stays inside the memory folder.
+- Reject `../` and also "URL-encoded traversal sequences (`%2e%2e%2f`)".
+
+Two more rules from the same page fit Nora's agent. A log line with an API key once ended up in a note. Claude "usually refuses" to store such data, but "For stronger guarantees", strip it in the handler before you write. And cap file sizes, and delete notes no one has read in a long time.
+
+### Step 6: why it is better
+
+- **Each memory has a home.** Rules in a short instruction file, chat in a session, lessons in notes.
+- **Small loads.** An index loads every time; details load only when needed.
+- **A safe handler.** Paths are checked in code, secrets are stripped, and size has a cap.
+
+## Common mistakes
+
+1. **Everything in the prompt.** Old stories and rules mix, and the prompt grows. Fix: rules in a short instruction file, lessons in notes.
+2. **Trusting memory to block things.** A note like "never page the CEO" is only context. Fix: put hard rules in a hook.
+3. **A handler that trusts the path.** Any path can come from model output or outside text. Fix: resolve it, check it stays in the folder, reject `../` in every form.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Where does each item belong: instruction file, session history, agent notes, or a hook?
+
+```text
+a) "Write all times in UTC."
+b) What the engineer said ten minutes ago in tonight's chat.
+c) "The shipping API is slow every Monday at 09:00 UTC; it recovers by itself."
+d) "Never restart the database."
+```
+
+### Answer
+
+- **a) Instruction file.** A team rule a human writes. It loads every session.
+- **b) Session history.** It belongs to this one conversation.
+- **c) Agent notes.** A lesson learned from past nights. The agent can read it back when shipping looks slow.
+- **d) A hook.** It must hold every time. Memory and instructions are only context, so they can't block a call.
+
+## Recap
+
+- An agent remembers only what the harness saves and loads back. Sort memory into working context, session history and long-term notes.
+- Human rules go in a short, concrete instruction file with no conflicts. Agent notes go in a store with a small index that loads first.
+- Memory is context, not enforcement. Your handler must check every path, strip secrets and cap size.
