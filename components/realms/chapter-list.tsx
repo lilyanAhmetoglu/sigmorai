@@ -31,8 +31,9 @@ function glyph(chapter: ChapterView): ReactNode {
 /**
  * What opens a chapter-locked row: the same words the quest action returns.
  * `chapterCount` is the realm's chapter count (its rows without the boss).
+ * The level map's cards say the same (components/map/level-map.tsx).
  */
-function unlockHint(chapter: ChapterView, chapterCount: number): string | null {
+export function unlockHint(chapter: ChapterView, chapterCount: number): string | null {
   if (chapter.status !== 'locked') return null;
   return chapter.chapter === null
     ? bossNotOpenText(chapterCount)

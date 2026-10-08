@@ -238,23 +238,23 @@ export const WORLD_COMPASS = [
 /**
  * Zoom steps, in screen px per art px. Whole-number scales of an asset only:
  * ½ will draw world-512.png at 1:1, 1 and 2 draw world.png (level art is 2×,
- * so nothing goes above 2). The overview is ½ under WORLD_OVERVIEW_MIN_WIDTH,
- * else 1 (world-map.css picks it, so it works with no JS).
+ * so nothing goes above 2). The map starts at 1 on every screen, with no JS
+ * (clear-maps amendment: the marker labels need it); ½ shows the whole world.
  */
 export const ZOOM_STEPS = [0.5, 1, 2] as const;
 
 /**
- * Viewport width (px) from which the overview is zoom 1 instead of ½. Mirrors
- * world-map.css (68rem): the 1024px stage plus the page gutters and box edge
- * must fit, or zoom 1 would scroll sideways.
+ * Viewport width (px) from which the box is as big as the whole zoom-1 stage
+ * (the overview), not the ½ stage. Mirrors world-map.css (68rem): the
+ * 1024px stage plus the page gutters and box edge must fit.
  */
 export const WORLD_OVERVIEW_MIN_WIDTH = 1088;
 
 /**
- * Viewport height (px) from which the overview is zoom 1. Mirrors
- * world-map.css (52rem): the box is at most the screen under the 4rem
- * header, so zoom 1 shows the whole 768px stage only from 768 + 64 px.
- * Shorter screens start at ½, so the first view is the whole world.
+ * Viewport height (px) from which the box is as big as the whole zoom-1
+ * stage. Mirrors world-map.css (52rem): the box is at most the screen under
+ * the 4rem header, so it holds the whole 768px stage only from 768 + 64 px.
+ * Smaller screens get the ½ stage's height and scroll the zoom-1 map in it.
  */
 export const WORLD_OVERVIEW_MIN_HEIGHT = 832;
 
@@ -271,7 +271,7 @@ type Box = readonly [number, number, number, number];
  * 28px pin; world-map.css uses the same numbers (a test checks). Left sits
  * 16px off the anchor, right 24px (past the state pip), at the pin's height. Above and below clear
  * the current marker's own text too: the tag above the pin ("YOU ARE HERE")
- * and, from zoom 1, the name and state below it.
+ * and the label plate below it.
  */
 export const WORLD_HERO = {
   size: 48,
@@ -289,8 +289,12 @@ export const WORLD_HERO = {
   } satisfies Record<HeroSide, readonly [number, number]>,
   /** The current marker's tag ("YOU ARE HERE", the wider one), measured. */
   tag: [-53, -47, 53, -24] satisfies Box,
-  /** Its name plate from zoom 1, measured (one row; the width allows a long name). */
-  detail: [-80, 24, 80, 44] satisfies Box,
+  /**
+   * Its label plate from zoom 1 (world-map.css → .world-marker-label, clear-maps
+   * amendment): name, number + status, progress bar. At most 148px wide and
+   * 36px tall, 24px under the anchor, plus its 2px hard shadow.
+   */
+  detail: [-74, 24, 76, 62] satisfies Box,
 } as const;
 
 /** The sides the hero tries, in order: left is the default look. */
@@ -336,8 +340,8 @@ const PIN_GAP = 4;
 /**
  * Everything on the stage that says something, as boxes in art px, each
  * tagged with the zoom step it is for (null: the compass, every zoom):
- * every pin (core realms and slots, plus PIN_GAP), every marker's name
- * (shown from zoom 1), landmark labels, the compass, and for the current
+ * every pin (core realms and slots, plus PIN_GAP), every marker's label
+ * plate (shown from zoom 1), landmark labels, the compass, and for the current
  * realm its tag and the hero. Drawn terrain (terrainGlyphs) stays out of
  * every box of each zoom it shows at, so a glyph never hides a pin or a word.
  */

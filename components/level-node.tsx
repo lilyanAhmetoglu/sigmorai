@@ -27,7 +27,8 @@ type Props = ButtonProps | LinkProps;
 /**
  * A stop on a realm's level map (/map/<slug>). Locked stays focusable (aria-disabled) so the
  * lock is announced, and its clicks are ignored. A locked node is never a
- * link, even with `href`. Styles: level-node.css.
+ * link, even with `href`. Styles: level-node.css (not imported in globals.css
+ * while nothing uses LevelNode; clear-maps amendment: re-add the import with its next user).
  */
 export function LevelNode({
   index,

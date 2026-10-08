@@ -20,7 +20,7 @@ import {
   worldMapHref,
 } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
-import { getRealmMeta, getRealmPage } from '@/lib/data/realms';
+import { getChapterGoals, getRealmMeta, getRealmPage } from '@/lib/data/realms';
 
 /** Every realm slug is known up front; layout.tsx gives a bad slug its 404. */
 export const dynamicParams = false;
@@ -45,13 +45,12 @@ export async function generateMetadata({ params }: PageProps<'/map/[realm]'>): P
 }
 
 /**
- * One realm's level map (Sigmorai App.dc.html → isMap): header with the
- * previous / next realm (in the track's outline order), the track switch
- * (core realms only), the Start / Continue button, the
- * level strip and the realm's NPC. Public; a visitor sees no progress.
- * Not built yet (follow-up ticket): hero walk and Hallucinant ghosts, the
- * selected-level card, the NEW LEVEL banner, the ALL REALMS grid (/realms
- * has it) and the Math Tower map.
+ * One realm's level map: header with the previous / next realm (in the
+ * track's outline order), the track switch (core realms only), the Start /
+ * Continue button, the quest path (art banner + one card per chapter and the
+ * boss; clear-maps amendment, level-art spec) and the realm's NPC. Public;
+ * a visitor sees no progress.
+ * Not built yet (follow-up ticket): the NEW LEVEL banner and the Math Tower map.
  */
 export default async function MapRealmPage({ params, searchParams }: PageProps<'/map/[realm]'>) {
   const [{ realm: slug }, query] = await Promise.all([params, searchParams]);
@@ -60,6 +59,7 @@ export default async function MapRealmPage({ params, searchParams }: PageProps<'
 
   // prev / after follow the track's outline order (path-curriculum spec).
   const { viewer, realm, track, next, prev, after } = page;
+  const goals = await getChapterGoals(track, realm);
 
   return (
     <div
@@ -122,7 +122,7 @@ export default async function MapRealmPage({ params, searchParams }: PageProps<'
       )}
 
       <div className="flex flex-col gap-2">
-        <LevelMap realm={realm} nextId={next?.step.exerciseId} />
+        <LevelMap realm={realm} nextId={next?.step.exerciseId} goals={goals} />
         <p className="map-hint">{MAP_TEXT.hint}</p>
       </div>
 

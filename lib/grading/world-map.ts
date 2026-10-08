@@ -16,6 +16,7 @@ import type {
   WorldRect,
   WorldView,
 } from '@/lib/types';
+import { realmIsSoon } from './track-map';
 
 /**
  * The world map's view of one path (world-map spec → API contract). Pure:
@@ -47,6 +48,7 @@ export function pathRealms(map: TrackMap, hrefFor: (slug: string) => string): Pa
     href: hrefFor(realm.slug),
     current: realm.id === current,
     track: realm.track,
+    soon: realmIsSoon(realm.chapters),
   }));
 }
 

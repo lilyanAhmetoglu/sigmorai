@@ -68,6 +68,8 @@ export type PathRealm = {
   current: boolean;
   /** The owner: null = a core realm; a track = a specialist realm (r9+), badged "<PATH> ONLY". */
   track: Track | null;
+  /** No chapter or boss has a content file yet: the marker says SOON (clear-maps amendment). */
+  soon: boolean;
 };
 
 /** A realm on the world map: its list row plus where it stands. */

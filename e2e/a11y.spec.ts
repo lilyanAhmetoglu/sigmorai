@@ -11,6 +11,8 @@ const PUBLIC_ROUTES = [
   '/leaderboard',
   '/frontier',
   '/map',
+  '/map/prompt-forest',
+  '/map/canvas-workshop',
   '/blog',
   '/blog/be-specific',
   '/quest/strategist/r0/c1/lesson',
