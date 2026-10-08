@@ -57,17 +57,22 @@ All three vendors take a JSON Schema. Only the request field differs:
 - **OpenAI** (Responses API): `text.format` with `type: "json_schema"` and `strict: true`.
 - **Gemini** (Interactions API): `response_format` with `type: "text"`, `mime_type: "application/json"` and a `schema` ([Gemini docs](https://ai.google.dev/gemini-api/docs/structured-output)).
 
-**Design the schema well.** OpenAI: "Name keys clearly and intuitively" and "Create clear titles and descriptions for important keys". Gemini: "Use the `description` field to guide the model" and "Use specific types (`integer`, `string`, `enum`)." An `enum` limits a field to a fixed list. OpenAI's strict mode needs every field in `required` and `additionalProperties: false`. To allow a missing value, "emulate an optional parameter by using a union type with `null`". Schemas have size limits too. For example, Claude allows 24 "total optional parameters across all strict tool schemas and JSON output schemas" in one request, and OpenAI allows "up to 10 levels of nesting".
+**Design the schema well.**
 
-**A valid shape is not a correct answer.** Gemini: "While output is syntactically correct JSON, always validate values in your application." OpenAI: "Structured Outputs can still contain mistakes." OpenAI also warns that the model "will always try to adhere to the provided schema, which can result in hallucinations if the input is completely unrelated to the schema". So tell the model what to return when the input does not fit.
+- OpenAI: "Name keys clearly and intuitively" and "Create clear titles and descriptions for important keys".
+- The Gemini docs: "Use the `description` field to guide the model" and "Use specific types (`integer`, `string`, `enum`)."
+
+An `enum` limits a field to a fixed list. OpenAI's strict mode needs every field in `required` and `additionalProperties: false`. To allow a missing value, "emulate an optional parameter by using a union type with `null`". Schemas have size limits too. For example, Claude allows 24 "total optional parameters across all strict tool schemas and JSON output schemas" in one request, and OpenAI allows "up to 10 levels of nesting".
+
+**A valid shape is not a correct answer.** The Gemini docs: "While output is syntactically correct JSON, always validate values in your application." OpenAI: "Structured Outputs can still contain mistakes." OpenAI also warns that the model "will always try to adhere to the provided schema, which can result in hallucinations if the input is completely unrelated to the schema". So tell the model what to return when the input does not fit.
 
 **Some replies still miss the schema.** Check these before you parse:
 
-- **Refusal.** Claude: `stop_reason` is `refusal`, and "the output may not match your schema". OpenAI adds a `refusal` field, so refusals are "programmatically detectable".
-- **Cut off.** Claude: with `stop_reason` `max_tokens`, "the output may be incomplete and not match your schema". OpenAI lists a max tokens limit as a similar case.
-- **Enum casing (Claude).** Claude "may return a value that differs from your schema only in capitalization". The docs say to "compare enum values case-insensitively".
+- **Refusal.** The Claude docs: `stop_reason` is `refusal`, and "the output may not match your schema". OpenAI adds a `refusal` field, so refusals are "programmatically detectable".
+- **Cut off.** The Claude docs: with `stop_reason` `max_tokens`, "the output may be incomplete and not match your schema". OpenAI lists a max tokens limit as a similar case.
+- **Enum casing (Claude).** The Claude docs say the model "may return a value that differs from your schema only in capitalization". The docs say to "compare enum values case-insensitively".
 
-**Two Claude rules.** A property that asks for the model's step-by-step reasoning "may lead to a `reasoning_extraction` refusal. Ask for a short explanation instead." And the old trick of prefilling the reply with `{` is no longer supported on the last assistant turn for Claude 4.6 models and later: such requests "return a 400 error" ([Claude prompting docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)).
+**Two Claude rules.** A property that asks for the model's step-by-step reasoning "may lead to a `reasoning_extraction` refusal. Ask for a short explanation instead." And the old trick of prefilling the reply with `{` is no longer supported. Starting with Claude 4.6 models, prefilled responses on the last assistant turn return a 400 error ([Claude prompting docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices)).
 
 **Split big jobs.** One call that extracts the data and also writes a reply to the customer is hard to check. OpenAI suggests "splitting tasks into simpler subtasks" when outputs contain mistakes. The Claude docs say chaining is useful "when you need to inspect intermediate outputs". Extract first, check the data, then use the checked data in the next step.
 

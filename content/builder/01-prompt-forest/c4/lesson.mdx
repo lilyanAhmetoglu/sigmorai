@@ -64,17 +64,27 @@ Gemini:  generation_config.thinking_level e.g. "low", "medium", "high"
 
 Which values exist depends on the model. OpenAI: values are "model-dependent". Defaults differ too, so check the model's page.
 
-**With built-in reasoning, drop "think step by step".** The [OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning-best-practices) says "Avoid chain-of-thought prompts", because asking to think step by step may not help "(and can sometimes hinder it)". The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) say "it's generally not necessary to have the model outline, plan, or detail reasoning steps in the returned response itself". The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say to "prefer general instructions over prescriptive steps". On the current Claude models listed there, a prompt that asks the model to write out its reasoning "may be declined".
+**With built-in reasoning, drop "think step by step".** The [OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning-best-practices) says "Avoid chain-of-thought prompts", because asking to think step by step may not help "(and can sometimes hinder it)". The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) say "it's generally not necessary to have the model outline, plan, or detail reasoning steps in the returned response itself". The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say to "prefer general instructions over prescriptive steps". On the newest Claude models (the docs list which), a prompt that asks the model to write out its reasoning "may be declined".
 
 **2. Manual chain of thought (the fallback).** When thinking is off, the Claude docs suggest asking the model "to think through the problem before it answers, and to put the final answer in `<answer>` tags so you can extract it".
 
 **A self-check line can help.** The Claude docs suggest "Before you finish, verify your answer against [test criteria]." It "catches errors reliably, especially for coding and math". One exception on the same page: on Claude Opus 5, remove such lines, because they can cause over-verification.
 
-**Reasoning costs money, even when hidden.** OpenAI: reasoning tokens are not visible, but they "are billed as output tokens". Claude: "You are billed for the full thinking process, not the thinking content visible in the response." Gemini: "response pricing is the sum of output tokens and thinking tokens." Example: a 50-token answer after 2,000 reasoning tokens costs 2,050 output tokens.
+**Reasoning costs money, even when hidden.**
 
-**The output cap includes reasoning.** Claude: `max_tokens` "is a hard cap on total output for the request, thinking and response text combined". OpenAI: when the cap is hit, the response is `incomplete`, and this "might occur before any visible output tokens are produced". OpenAI recommends "reserving at least 25,000 tokens for reasoning and outputs when you start experimenting". Gemini: to cut cost, lower the thinking level "instead of setting a small `max_output_tokens`".
+- OpenAI: reasoning tokens are not visible, but they "are billed as output tokens".
+- The Claude docs: "You are billed for the full thinking process, not the thinking content visible in the response."
+- The Gemini docs: "response pricing is the sum of output tokens and thinking tokens."
 
-**Match effort to the task.** OpenAI's effort guide maps `low` to "customer support / chat assistant workflows" and `high` to "hard reasoning, complex debugging, deep planning". For `xhigh`: "Only use when your evals show a clear benefit that justifies the extra latency and cost." The Claude docs say the same about any change: "measure before you ship".
+Example: a 50-token answer after 2,000 reasoning tokens costs 2,050 output tokens.
+
+**The output cap includes reasoning.**
+
+- The Claude docs: `max_tokens` "is a hard cap on total output for the request, thinking and response text combined".
+- OpenAI: when the cap is hit, the response is `incomplete`, and this "might occur before any visible output tokens are produced". OpenAI recommends "reserving at least 25,000 tokens for reasoning and outputs when you start experimenting".
+- The Gemini docs: to cut cost, lower the thinking level "instead of setting a small `max_output_tokens`".
+
+**Match effort to the task.** OpenAI's effort guide maps `low` to "customer support / chat assistant workflows" and `high` to "hard reasoning, complex debugging, deep planning". For `xhigh`: "Only use when your evals show a clear benefit that justifies the extra latency and cost." The Claude docs say to treat a steering change like any prompt change: "measure before you ship".
 
 ## Worked example
 
