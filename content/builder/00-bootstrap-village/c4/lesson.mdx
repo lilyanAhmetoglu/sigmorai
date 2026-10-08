@@ -1,7 +1,7 @@
 ---
 id: builder/r0/c4/lesson
 title: Multimodal input
-minutes: 9
+minutes: 12
 sources:
   - kind: docs
     title: Vision (Claude docs)
@@ -26,78 +26,142 @@ sources:
     url: https://developers.openai.com/api/docs/guides/audio
 ---
 
-Real users do not only type. They send screenshots, photos of receipts, PDF contracts and voice notes. "Multimodal input" means the model takes more than text. This chapter shows how images, documents and audio enter a system, what they cost, and where vendors differ.
+## Goal
 
-## Images go inside a message
+After this lesson you can:
 
-An image is one more **content block** in a user message, next to text blocks (chapter 2). A Claude user message with an image looks like this (trimmed):
+- Send an image or a PDF as a content block, and estimate its token cost.
+- Cut image cost with resizing and file IDs.
+- Say where vision is not exact, and plan a speech-to-text step when a model takes no audio.
+
+## The problem
+
+A factory builds a helper for repair technicians. A technician takes a photo of a machine's nameplate, attaches the machine's PDF manual, and asks: "Which spare part do I need?" Some technicians also want to send a voice memo instead of typing.
+
+After one week the team sees:
+
+1. Each chat costs much more than the plan. Photos are sent at full phone size, and the chat goes on for many turns.
+2. On a few blurry photos, the model read a serial number wrong.
+3. Product asks: "Can we just send the voice memo to the model?"
+
+This lesson gives the team a plan for images, PDFs and audio.
+
+## The idea
+
+**Multimodal input** means the model takes more than text. An image or a PDF goes in as one more **content block** in a user message, next to a text block (chapter 2):
 
 ```json
 {
   "role": "user",
   "content": [
-    { "type": "image", "source": { "type": "url", "url": "https://example.com/receipt.jpg" } },
-    { "type": "text", "text": "What is the total on this receipt?" }
+    { "type": "image", "source": { "type": "url", "url": "https://example.com/nameplate.jpg" } },
+    { "type": "text", "text": "What is the model number on this plate?" }
   ]
 }
 ```
 
-Both vendors accept an image in three ways:
+**Three ways to send an image.** The [Claude vision docs](https://platform.claude.com/docs/en/build-with-claude/vision) list base64 data in the request, a URL, or a `file_id` from the Files API. The [OpenAI vision docs](https://developers.openai.com/api/docs/guides/images-vision) list a URL, "a Base64-encoded data URL", or "a file ID". On order, the Claude docs say "Claude works best when images come before text".
 
-- **Anthropic**: base64 data in the request, a URL, or a `file_id` from the Files API.
-- **OpenAI**: a URL, a Base64-encoded data URL, or a file ID from the Files API.
+**Images cost input tokens.** Claude cuts an image into small squares called patches. The docs say: "Each patch is a 28×28-pixel block of the image", and an image "costs `⌈width / 28⌉ × ⌈height / 28⌉` visual tokens". Images above a model's size limit "are downscaled before processing", which caps the cost. The docs give a 1000×1000 image as 1296 tokens. Their advice: "downsample images before sending to control token costs". OpenAI also turns images into patches, and a `detail` setting controls how much detail it keeps. The OpenAI docs add: "Image tokens also count toward your tokens per minute (TPM) limits."
 
-Order can matter. The Claude docs say "Claude works best when images come before text", though other orders "still perform well".
+**Images in long chats.** The API is stateless, so each turn resends the history, images too. The Claude docs warn that with base64, "the full image bytes are included in the payload on every turn". Uploading once and sending the `file_id` "keeps request payloads small". OpenAI accepts file IDs too.
 
-## Images cost tokens
+```text
+base64:  turn 1 [photo bytes] turn 2 [photo bytes] turn 3 [photo bytes] ...
+file id: upload once -> turn 1 [id] turn 2 [id] turn 3 [id] ...
+```
 
-An image is turned into tokens, and you pay for them as input.
+**Vision is not exact.** Both vendors list limits, and they overlap:
 
-- **Anthropic** cuts an image into 28×28-pixel patches. Cost in tokens is about `⌈width / 28⌉ × ⌈height / 28⌉`. Very large images are downscaled first, which caps the cost.
-- **OpenAI** also converts images into billable tokens from patches, and a `detail` setting (`low`, `high`, `original` or `auto`, depending on the model) controls image preprocessing. OpenAI notes that "image tokens also count toward your tokens per minute (TPM) limits".
+- **Counting.** The Claude docs: Claude "can give approximate counts". The OpenAI docs: the model "may give approximate counts for objects in images".
+- **Position.** Claude's location outputs "are approximate". OpenAI says the model "struggles with tasks requiring precise spatial localization".
+- **Poor images.** Claude "might hallucinate or make mistakes" on low-quality, rotated or very small images. For small text, OpenAI says: "Enlarge text within the image to improve readability."
 
-Example (Claude formula): a 1000×1000 image is ⌈1000/28⌉ × ⌈1000/28⌉ = 36 × 36 = **1,296 tokens**. That is about as much as a 970-word English text.
+The Claude docs say: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight."
 
-Design rule: **resize before you send.** The Claude docs advise that if you do not need extra detail, you should "downsample images before sending to control token costs". A 4K phone photo of a receipt rarely needs 4K.
+**PDFs are text plus page images.** In the [Claude PDF docs](https://platform.claude.com/docs/en/build-with-claude/pdf-support), "The system converts each page of the document into an image", and the text of each page "is extracted and provided alongside each page's image". The [OpenAI file inputs docs](https://developers.openai.com/api/docs/guides/file-inputs) say that on vision models "the API extracts both text and page images and sends both to the model". So each page costs text tokens and image tokens. The Claude docs say each page "typically uses 1,500–3,000 tokens per page" of text, before the image cost. Both vendors also set size limits per request; check them before you design bulk uploads.
 
-## Images in long conversations
+**Audio differs by vendor.** The [OpenAI audio docs](https://developers.openai.com/api/docs/guides/audio) list file transcription ("A transcript of an audio file"), audio input in Chat Completions, and the Realtime API for speech-to-speech agents. The Claude docs document image input (vision) and PDF support; the [features overview](https://platform.claude.com/docs/en/build-with-claude/overview) and the [models overview](https://platform.claude.com/docs/en/models/overview) do not list audio input. So if your chosen model takes no audio, add a **speech-to-text** step: turn the audio into text first, then send the text.
 
-The API is stateless, so every turn resends the history (chapter 2), including old images. The Claude docs warn that with base64 images "the full image bytes are included in the payload on every turn". Uploading once with a Files API and sending the `file_id` "keeps request payloads small". OpenAI also accepts file IDs.
+## Worked example
 
-Example: a support chat where the user sent three screenshots in turn 1. By turn 20, base64 would resend those three screenshots 20 times. With file IDs, each later request only carries short references instead of the image bytes.
+### Step 1: the first design
 
-## What vision is bad at
+```text
+photo:   2000×1500, base64, kept in the chat
+manual:  PDF, 80 pages, sent with every question
+voice:   "send the audio file to the model"
+answer:  shown to the technician as final
+```
 
-Both vendors list limits. They overlap:
+What goes wrong:
 
-- **Counting**: Claude "can give approximate counts"; OpenAI says the model "may give approximate counts for objects in images".
-- **Spatial reasoning**: Claude's location outputs "are approximate"; OpenAI lists spatial reasoning as a weak spot.
-- **Small or low-quality images**: Claude "might hallucinate or make mistakes" on low-quality, rotated or very small images. OpenAI notes that small text works better when enlarged.
+- The photo is large and its bytes go again on every turn.
+- 80 pages of text and page images go with every question.
+- The plan assumes every model takes audio.
+- A misread serial number goes straight to the technician.
 
-Design rule: do not build a system where an exact answer depends on these. The Claude docs say: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight." Example: an app that reads damage photos can draft a claim, but a person approves it.
+### Step 2: estimate the photo, then resize
 
-## PDFs: text plus page images
+On a Claude high-resolution model, the docs' table gives a 2000×1500 photo as 3888 tokens (not resized). A nameplate does not need that much detail. The app resizes it to 1120×840 first:
 
-Both vendors read a PDF the same broad way:
+```text
+⌈1120 / 28⌉ × ⌈840 / 28⌉ = 40 × 30 = 1,200 tokens
+```
 
-- Claude: "The system converts each page of the document into an image" and "the text from each page is extracted and provided alongside each page's image."
-- OpenAI: on vision models, "the API extracts both text and page images and sends both to the model."
+That is less than a third of the tokens. Test that the serial number is still easy to read at this size.
 
-So a PDF page costs **text tokens plus image tokens**. The Claude docs estimate 1,500–3,000 text tokens per page, plus the image cost for each page. Example: a 40-page contract could use 60,000–120,000 text tokens before you count the page images. Both vendors set request size limits, and Claude also caps pages per request; check the current numbers in their docs before you design a bulk-upload feature.
+### Step 3: upload once, then send the file ID
 
-## Audio: vendors differ
+The app uploads the resized photo once and keeps the `file_id`. Turn 1 and every later turn carry the short ID, not the image bytes.
 
-Audio support is **not** the same across vendors. Check each vendor's docs before you design a voice feature.
+### Step 4: send only the pages you need
 
-- **OpenAI** documents several audio inputs: a transcription endpoint for "a transcript of an audio file", audio input in Chat Completions, and a Realtime API for speech-to-speech agents.
-- **Anthropic**: the Claude features overview lists vision and PDF support as inputs, and the models overview says current models support "text and image input". Neither page lists audio input.
+At 1,500–3,000 text tokens per page, 80 pages is about 120,000–240,000 text tokens, plus 80 page images. The app sends only the parts list pages (say 4 pages) for this machine.
 
-Design consequence: if the model you chose takes no audio, your system needs a speech-to-text step first, then sends the transcript as text. Example: a voice-note feature records audio, sends it to a transcription service, then passes the transcript to the model of your choice.
+### Step 5: plan the voice memo
 
-## Key points
+The team checks each vendor's docs. If the chosen model takes audio, they can test it. If it does not, the pipeline is:
 
-- Images and PDFs enter as content blocks inside a user message.
-- Images and PDF pages cost input tokens. Resize images before sending.
-- Use file IDs instead of base64 when images stay in a long conversation.
-- Vision is approximate for counting, location and tiny details. Keep a human on high-stakes calls.
-- Audio input differs by vendor. Read the docs, then design the pipeline.
+```text
+voice memo -> speech-to-text service -> transcript (text) -> model
+```
+
+### Step 6: the hard case
+
+**The hard case is a blurry nameplate.** A wrong serial number orders the wrong part. The app shows the number it read next to the photo, and the technician confirms it before the order goes out.
+
+### Why it is better
+
+- **Cheaper images.** Resizing cut the photo's tokens by more than two thirds, and file IDs keep later turns small.
+- **Smaller PDFs.** Only the needed pages are sent.
+- **Works on any vendor.** A transcription step covers models without audio input.
+- **A person checks the risky part.** Exact numbers from photos are confirmed before an action.
+
+## Common mistakes
+
+1. **Sending full-size photos by default.** Pixels cost tokens. Fix: shrink each image to the size the job needs, then test on real images.
+2. **Base64 images in a long chat.** The bytes are resent every turn. Fix: upload once and reference the file ID.
+3. **Trusting an exact reading from an image.** Counts, positions and tiny text are approximate. Fix: keep a person in the loop for exact or high-stakes values.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A recipe app lets users photograph a page of a cookbook. The photo is 1400×700 pixels. Assume it is not downscaled.
+
+1. Use the Claude formula. How many tokens is the image?
+2. The user then chats for 15 turns about the recipe. How should the app send the image so it is not resent as bytes each turn?
+3. The app wants to read the exact grams of each ingredient from the photo and order them automatically. What is the risk?
+
+### Answer
+
+1. ⌈1400 / 28⌉ × ⌈700 / 28⌉ = 50 × 25 = **1,250 tokens**.
+2. Upload it once with a Files API and send the **file ID** on later turns.
+3. Small text in photos can be **misread**. Show the values to the user to confirm before any order.
+
+## Recap
+
+- Images and PDFs go in as content blocks in a user message. They cost input tokens: images by patches, PDF pages as text plus a page image.
+- Resize images to the detail you need, and use file IDs when an image stays in a long chat.
+- Vision is approximate for counts, positions and tiny details; keep a person on high-stakes values. Audio input differs by vendor; add speech-to-text when the model takes no audio.
