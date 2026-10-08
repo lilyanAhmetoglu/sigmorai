@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { clerkFapiOrigin, contentSecurityPolicy, securityHeaders } from './headers';
+import { clerkFapiOrigin, contentSecurityPolicy, HSTS, securityHeaders } from './headers';
 
 const key = (prefix: string, host: string) =>
   `${prefix}${Buffer.from(`${host}$`).toString('base64')}`;
@@ -90,9 +90,16 @@ test('securityHeaders sets every SIG-27 header', () => {
   const names = securityHeaders({ fapi: null, dev: false, preview: false }).map((h) => h.key);
   expect(names).toEqual([
     'Content-Security-Policy',
+    'Strict-Transport-Security',
+    'Cross-Origin-Opener-Policy',
     'X-Frame-Options',
     'X-Content-Type-Options',
     'Referrer-Policy',
     'Permissions-Policy',
   ]);
+});
+
+test('HSTS covers subdomains but is not on the preload list', () => {
+  expect(HSTS).toBe('max-age=63072000');
+  expect(HSTS).not.toContain('preload');
 });

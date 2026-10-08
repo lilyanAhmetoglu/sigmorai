@@ -234,8 +234,10 @@ export const WORLD_MAP_TEXT = {
   mapLabel: 'World map',
   hint: 'Scroll or swipe to move around the map. Zoom with + and −.',
   /**
-   * "03 Prompt Forest, in progress, 2 of 7 cleared, you are here": starts with
-   * the visible number and name (WCAG 2.5.3); the "·" in a state word is dropped.
+   * "03 you are here, Prompt Forest, in progress, 2 of 7 cleared": starts with
+   * the visible text in its order on screen (WCAG 2.5.3): the number, the tag
+   * when there is one, then the name (shown from zoom 1). The "·" in a state
+   * word is dropped.
    */
   marker: (
     number: string,
@@ -247,7 +249,7 @@ export const WORLD_MAP_TEXT = {
     /** "CREATOR ONLY" on a specialist realm (REALMS_TEXT.pathRealm). */
     only?: string,
   ) =>
-    `${number} ${name}${only ? `, ${only.toLowerCase()}` : ''}, ${state.replace(/\s*·\s*/g, ' ').toLowerCase()}, ${cleared} of ${total} cleared${tag ? `, ${tag.toLowerCase()}` : ''}`,
+    `${number}${tag ? ` ${tag.toLowerCase()},` : ''} ${name}${only ? `, ${only.toLowerCase()}` : ''}, ${state.replace(/\s*·\s*/g, ' ').toLowerCase()}, ${cleared} of ${total} cleared`,
   /** On the current realm, for a player with a hero. */
   youAreHere: 'YOU ARE HERE',
   /** On the first open realm, for a visitor. */

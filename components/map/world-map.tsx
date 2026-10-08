@@ -53,8 +53,14 @@ const RIPPLE = 8;
 
 const toPoints = (pts: readonly [number, number][]) => pts.map((p) => p.join(',')).join(' ');
 
-/** The same edge fog on every request: it depends only on the geometry. */
-const EDGE_FOG = edgeFog();
+/**
+ * The same edge fog on every request: it depends only on the geometry. One
+ * path of all its rects (about 200), not one node each. Same look: every
+ * rect runs the same way round and the fog is one fill, so overlaps stay filled.
+ */
+const EDGE_FOG = edgeFog()
+  .map((r) => `M${r.x} ${r.y}h${r.w}v${r.h}h${-r.w}z`)
+  .join('');
 
 type Placed = WorldRealm & { place: WorldPlace };
 
@@ -258,9 +264,7 @@ export function WorldMap({ view, heroName, tag }: Props) {
               ))}
             </>
           )}
-          {EDGE_FOG.map((r, i) => (
-            <rect key={i} className="world-fog" x={r.x} y={r.y} width={r.w} height={r.h} />
-          ))}
+          <path className="world-fog" d={EDGE_FOG} />
           {lands.map((land) => (
             <Island key={land.key} land={land} shape={shapes.get(land.key)!} art={art} />
           ))}
@@ -293,6 +297,8 @@ export function WorldMap({ view, heroName, tag }: Props) {
             <li key={l.id}>
               <Link
                 href={l.href}
+                // Like the markers: no prefetch of every place in view on load.
+                prefetch={false}
                 className="world-landmark"
                 data-accent={l.accent}
                 data-align={l.align}
@@ -320,11 +326,36 @@ export function WorldMap({ view, heroName, tag }: Props) {
   );
 }
 
-/** The empty box at its final size, for loading.tsx (no layout jump). */
+/** The empty box at its final size (no layout jump). */
 export function WorldMapSkeleton() {
   return (
     <div className="world-map" style={STAGE_STYLE}>
       <div className="world-map-stage" />
     </div>
+  );
+}
+
+/**
+ * Everything under the /map header while the data loads, at its final
+ * size: track switch, map box, hint + zoom row, path rows. No spinner. A
+ * fragment, so the page's own gap spaces it. For the page's Suspense and
+ * its loading.tsx.
+ */
+export function WorldMapBodySkeleton() {
+  return (
+    <>
+      <span role="status" className="sr-only">
+        {WORLD_MAP_TEXT.loading}
+      </span>
+      <div className="bg-surface-2 h-11 w-60" />
+      <WorldMapSkeleton />
+      {/* Hint + zoom row */}
+      <div className="bg-surface-2 h-11" />
+      <div className="flex flex-col gap-3">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="bg-surface-2 h-11" />
+        ))}
+      </div>
+    </>
   );
 }

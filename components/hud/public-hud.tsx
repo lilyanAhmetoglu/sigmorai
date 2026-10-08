@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useCallback, useEffect, useState } from 'react';
 import { useHideSignedOut } from '@/components/use-hide-signed-out';
 import { HUD_API_HREF, HUD_FETCH_TIMEOUT_MS } from '@/lib/constants';
-import { type HudState, HudStateSchema } from '@/lib/types';
+import type { HudState } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { HudBar } from './hud-bar';
 import { HudErrorView } from './hud-error-boundary';
@@ -45,9 +45,18 @@ export function PublicHud() {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), HUD_FETCH_TIMEOUT_MS);
     let cancelled = false;
-    fetch(HUD_API_HREF, { cache: 'no-store', signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HUD ${res.status}`))))
-      .then((body: unknown) => setLoaded({ userId, state: HudStateSchema.parse(body) }))
+    // The schema (and Zod, ~95 KB gzipped) loads only here, for a player:
+    // this component is on every page (the root 404 ships with each one),
+    // and a visitor never needs it. Fetched in parallel with the HUD.
+    Promise.all([
+      fetch(HUD_API_HREF, { cache: 'no-store', signal: controller.signal }).then((res) =>
+        res.ok ? (res.json() as Promise<unknown>) : Promise.reject(new Error(`HUD ${res.status}`)),
+      ),
+      import('@/lib/types'),
+    ])
+      .then(([body, { HudStateSchema }]) =>
+        setLoaded({ userId, state: HudStateSchema.parse(body) }),
+      )
       .catch(() => {
         // Aborted by the cleanup (unmount, user switch): not an error to show.
         if (!cancelled) setLoaded({ userId, failed: true });

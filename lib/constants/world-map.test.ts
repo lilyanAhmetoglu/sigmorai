@@ -271,9 +271,10 @@ describe('heroSide', () => {
 });
 
 describe('WORLD_MAP_TEXT.marker', () => {
-  test('starts with the visible number and name, drops the "·", adds the tag', () => {
+  test('starts with the visible number, tag and name, drops the "·"', () => {
+    // On screen: the pin number, the tag above it, the name below it (zoom 1+).
     expect(WORLD_MAP_TEXT.marker('01', 'Prompt Forest', 'IN PROGRESS', 2, 7, 'YOU ARE HERE')).toBe(
-      '01 Prompt Forest, in progress, 2 of 7 cleared, you are here',
+      '01 you are here, Prompt Forest, in progress, 2 of 7 cleared',
     );
     expect(WORLD_MAP_TEXT.marker('06', 'Eval Arena', 'ADVANCED · LOCKED', 0, 7)).toBe(
       '06 Eval Arena, advanced locked, 0 of 7 cleared',

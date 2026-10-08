@@ -114,10 +114,22 @@ export const PERMISSIONS_POLICY = [
   'browsing-topics=()',
 ].join(', ');
 
+/**
+ * HTTPS only, for two years. Same as Vercel's default. No
+ * `includeSubDomains` or `preload` yet: browsers keep both for two years, so
+ * adding them is the maintainer's call.
+ */
+export const HSTS = 'max-age=63072000';
+
 /** Every header next.config.ts sets on every route. */
 export function securityHeaders(options: CspOptions): { key: string; value: string }[] {
   return [
     { key: 'Content-Security-Policy', value: contentSecurityPolicy(options) },
+    { key: 'Strict-Transport-Security', value: HSTS },
+    // Cuts the link to a window that opened this page, or that this page
+    // opened, unless this page opened it as a popup (Clerk's OAuth popups
+    // still work; sign-in itself is a redirect).
+    { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
     { key: 'X-Frame-Options', value: 'DENY' },
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
