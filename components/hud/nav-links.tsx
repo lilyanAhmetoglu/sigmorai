@@ -3,10 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LIVE_NAV_ITEMS } from '@/lib/constants';
-
-function isCurrent(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+import { isUnderPath } from '@/lib/utils';
 
 /**
  * The live nav items as links, aria-current on the current one.
@@ -21,7 +18,7 @@ export function NavLinks() {
           <Link
             href={item.href}
             className="nav-link"
-            aria-current={isCurrent(pathname, item.href) ? 'page' : undefined}
+            aria-current={isUnderPath(pathname, item.href) ? 'page' : undefined}
           >
             {item.label}
           </Link>

@@ -13,7 +13,7 @@ export const SITE_DESCRIPTION = 'A pixel-art RPG for learning AI engineering and
 /** --ink-900 (--surface-1): browser theme colour and the app icon background. */
 export const BRAND_COLOR = '#131126';
 
-/** Clerk's sign-in and sign-up pages (app/sign-in, app/sign-up). */
+/** Clerk's sign-in and sign-up pages (app/(marketing)/sign-in, app/(marketing)/sign-up). */
 export const AUTH_ROUTES = {
   signIn: '/sign-in',
   signUp: '/sign-up',
@@ -22,7 +22,7 @@ export const AUTH_ROUTES = {
 /** The query param Clerk's sign-in/sign-up keep through every step and redirect to at the end. */
 export const CLERK_REDIRECT_PARAM = 'redirect_url';
 
-/** Labels for the links to AUTH_ROUTES (HUD auth controls, landing nav and hero). */
+/** Labels for the links to AUTH_ROUTES (header auth controls and the landing hero). */
 export const AUTH_TEXT = {
   signIn: 'Sign in',
   startFree: 'Start free',

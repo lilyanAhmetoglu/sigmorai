@@ -1,14 +1,12 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { type ReactNode, useSyncExternalStore } from 'react';
+import type { ReactNode } from 'react';
 import { PixelButton } from '@/components/pixel-button';
+import { useHideSignedOut } from '@/components/use-hide-signed-out';
 import { DASHBOARD_HREF, LANDING_TEXT } from '@/lib/constants';
 import type { ButtonSize } from '@/lib/types';
 import { cn } from '@/lib/utils';
-
-// Same "has hydrated" check as components/quest/reset-note.tsx.
-const noSubscribe = () => () => {};
 
 type Props = {
   size: ButtonSize;
@@ -25,11 +23,7 @@ type Props = {
  */
 export function LandingCta({ size, signedInHref = DASHBOARD_HREF, children }: Props) {
   const { isLoaded, isSignedIn } = useAuth();
-  const isClient = useSyncExternalStore(
-    noSubscribe,
-    () => true,
-    () => false,
-  );
+  const hide = useHideSignedOut();
 
   if (isLoaded && isSignedIn) {
     return (
@@ -39,9 +33,9 @@ export function LandingCta({ size, signedInHref = DASHBOARD_HREF, children }: Pr
     );
   }
 
-  // Hidden only while JS runs and Clerk is still loading: a signed-in player
-  // never sees or tabs to Sign in / Start free, and `invisible` keeps their
-  // space (no layout shift). The static HTML (isClient false) shows them, so
-  // they still work if JS fails. `contents` keeps the parent's flex gap.
-  return <div className={cn('contents', isClient && !isLoaded && 'invisible')}>{children}</div>;
+  // Same rule as the header (useHideSignedOut): hidden only while a likely
+  // player's Clerk loads, at most CLERK_WAIT_MS, so a visitor sees no flicker
+  // and the CTAs still show if Clerk never loads. `invisible` keeps their
+  // space (no layout shift); `contents` keeps the parent's flex gap.
+  return <div className={cn('contents', hide && 'invisible')}>{children}</div>;
 }

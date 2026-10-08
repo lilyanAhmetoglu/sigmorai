@@ -22,7 +22,6 @@ export const LANDING_META = {
 } as const;
 
 export const LANDING_TEXT = {
-  navLabel: 'Account',
   /** Replaces Sign in / Start free for a signed-in visitor (links to the dashboard). */
   continueQuest: 'Continue quest',
   eyebrow: 'AI ENGINEERING · PIXEL-ART RPG',

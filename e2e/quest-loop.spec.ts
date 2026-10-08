@@ -57,6 +57,13 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   await expect(page.getByRole('group', { name: HUD_TEXT.label })).toContainText(hero);
   // The signed-in a11y check (a11y.spec.ts covers the public routes).
   await expectNoViolations(page);
+  // One header everywhere: the static pages show the same HUD (PublicHud reads /api/hud).
+  for (const path of ['/', '/blog']) {
+    await page.goto(path);
+    await expect(
+      page.getByRole('banner').getByRole('group', { name: HUD_TEXT.label }),
+    ).toContainText(hero);
+  }
 
   // Lesson: one step at a time. Continue moves focus to each step (named by
   // its heading); the last button moves it to "Lesson done", which still needs a press.

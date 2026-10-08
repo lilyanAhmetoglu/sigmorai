@@ -25,6 +25,7 @@ They don't overlap: engineering never makes aesthetic calls, design never makes 
 app/                Routes (App Router). Pages are thin: read via lib/data, render components.
   api/mentor/       Streamed mentor replies → lib/mentor.
   api/account/      GET export: the player's data as a JSON download.
+  api/hud/          GET the header HUD state for static public pages (PublicHud). Never cached.
   api/webhooks/     Clerk webhook (user.deleted → erase the users row). Verified, erasure only.
 components/         Design-system primitives, flat (pixel-button.tsx, panel.tsx, xp-bar.tsx, …).
   hud/ scenes/ map/ quest/ …   Area components. Never import the DB or a provider SDK.

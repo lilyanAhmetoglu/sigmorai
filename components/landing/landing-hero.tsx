@@ -22,18 +22,20 @@ export function LandingHero() {
           <div key={layer} className="landing-layer" data-layer={layer} />
         ))}
       </div>
-      <div className="landing-hero-copy">
-        <p className="landing-eyebrow">{LANDING_TEXT.eyebrow}</p>
-        <h1 id="landing-title" className="landing-title">
-          {LANDING_TEXT.title}
-        </h1>
-        <p className="landing-lede">{LANDING_TEXT.lede}</p>
-        <div>
-          <LandingCta size="lg">
-            <PixelButton href={AUTH_ROUTES.signUp} size="lg">
-              {AUTH_TEXT.startFree}
-            </PixelButton>
-          </LandingCta>
+      <div className="landing-hero-inner">
+        <div className="landing-hero-copy">
+          <p className="landing-eyebrow">{LANDING_TEXT.eyebrow}</p>
+          <h1 id="landing-title" className="landing-title">
+            {LANDING_TEXT.title}
+          </h1>
+          <p className="landing-lede">{LANDING_TEXT.lede}</p>
+          <div>
+            <LandingCta size="lg">
+              <PixelButton href={AUTH_ROUTES.signUp} size="lg">
+                {AUTH_TEXT.startFree}
+              </PixelButton>
+            </LandingCta>
+          </div>
         </div>
       </div>
     </section>

@@ -114,10 +114,23 @@ export const PERMISSIONS_POLICY = [
   'browsing-topics=()',
 ].join(', ');
 
+/**
+ * HTTPS only, for two years, on every subdomain too (maintainer, 2026-10-08;
+ * clerk.sigmorai.com and accounts.sigmorai.com are HTTPS). Browsers keep this
+ * for two years, so every future *.sigmorai.com host must serve HTTPS. No
+ * `preload`: the browser preload list is hard to leave.
+ */
+export const HSTS = 'max-age=63072000; includeSubDomains';
+
 /** Every header next.config.ts sets on every route. */
 export function securityHeaders(options: CspOptions): { key: string; value: string }[] {
   return [
     { key: 'Content-Security-Policy', value: contentSecurityPolicy(options) },
+    { key: 'Strict-Transport-Security', value: HSTS },
+    // Cuts the link to a window that opened this page, or that this page
+    // opened, unless this page opened it as a popup (Clerk's OAuth popups
+    // still work; sign-in itself is a redirect).
+    { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
     { key: 'X-Frame-Options', value: 'DENY' },
     { key: 'X-Content-Type-Options', value: 'nosniff' },
     { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

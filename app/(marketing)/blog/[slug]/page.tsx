@@ -8,7 +8,6 @@ import { PostCard } from '@/components/blog/post-card';
 import { PostScene } from '@/components/blog/post-scene';
 import { PostToc } from '@/components/blog/post-toc';
 import { QuestBox } from '@/components/blog/quest-box';
-import { MarketingHeader } from '@/components/hud/marketing-header';
 import { JsonLd } from '@/components/json-ld';
 import { LessonBody } from '@/components/quest/lesson-body';
 import { SourceList } from '@/components/quest/source-list';
@@ -82,7 +81,6 @@ export default async function BlogPostPage({ params }: PageProps<'/blog/[slug]'>
   return (
     <>
       <JsonLd data={articleJsonLd(post, SITE_URL)} />
-      <MarketingHeader />
       <main id={MAIN_CONTENT_ID} tabIndex={-1} className="blog-main" data-page="post">
         <nav aria-label={BLOG_TEXT.breadcrumbLabel}>
           <ol className="post-breadcrumb" data-accent={place.accent}>

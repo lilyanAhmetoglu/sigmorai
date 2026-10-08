@@ -16,6 +16,16 @@ export const BLOG_FEED_HREF = `${BLOG_HREF}/feed.xml`;
 export const ACCOUNT_EXPORT_HREF = '/api/account/export';
 /** The file name of that download. */
 export const ACCOUNT_EXPORT_FILENAME = 'sigmorai-data.json';
+/** The signed-in player's HUD values as JSON (app/api/hud), for the header on static pages. */
+export const HUD_API_HREF = '/api/hud';
+/** PublicHud stops waiting for /api/hud after this and shows the HUD error view (Retry). */
+export const HUD_FETCH_TIMEOUT_MS = 10_000;
+/**
+ * The longest a public page hides Sign in / Start free while Clerk loads (only
+ * when a session cookie says a player is likely signed in). After it, the
+ * signed-out buttons show, so a visitor is never left without them.
+ */
+export const CLERK_WAIT_MS = 3_000;
 /** The delete-account form's confirm checkbox: its name, and the value it sends when ticked. */
 export const DELETE_CONFIRM_FIELD = 'confirm';
 export const DELETE_CONFIRM_VALUE = 'yes';

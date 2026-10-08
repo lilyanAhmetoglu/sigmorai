@@ -41,28 +41,48 @@ function spriteRuns(rows: readonly string[]): Run[] {
   return runs;
 }
 
-/** Runs of each glyph kind, built once. */
-const GLYPH_RUNS = Object.fromEntries(
-  Object.entries(WORLD_GLYPHS).map(([kind, rows]) => [kind, spriteRuns(rows)]),
-) as Record<keyof typeof WORLD_GLYPHS, Run[]>;
+/**
+ * A sprite's runs as one path per colour (`[data-px, d]`): a few nodes per
+ * sprite instead of one rect per run. Same look: a sprite's runs never
+ * overlap, and every run is a whole-pixel rectangle (crispEdges).
+ */
+function spritePaths(runs: readonly Run[], px: number): [string, string][] {
+  const byPx = new Map<string, string>();
+  for (const r of runs) {
+    const d = `M${r.x * px} ${r.y * px}h${r.w * px}v${px}h${-r.w * px}z`;
+    byPx.set(r.px, (byPx.get(r.px) ?? '') + d);
+  }
+  return [...byPx];
+}
 
-const COMPASS_RUNS = spriteRuns(WORLD_COMPASS);
+type SpriteProps = { paths: [string, string][]; x: number; y: number; fromZoom?: 1 };
 
-const PIP_RUNS = Object.fromEntries(
-  Object.entries(WORLD_STATUS_PIPS).map(([status, rows]) => [status, spriteRuns(rows)]),
-) as Record<RealmStatus, Run[]>;
-
-type SpriteProps = { runs: Run[]; x: number; y: number; px: number; fromZoom?: 1 };
-
-function Sprite({ runs, x, y, px, fromZoom }: SpriteProps) {
+function Sprite({ paths, x, y, fromZoom }: SpriteProps) {
   return (
     <g transform={`translate(${x} ${y})`} data-from-zoom={fromZoom}>
-      {runs.map((r, i) => (
-        <rect key={i} data-px={r.px} x={r.x * px} y={r.y * px} width={r.w * px} height={px} />
+      {paths.map(([px, d]) => (
+        <path key={px} data-px={px} d={d} />
       ))}
     </g>
   );
 }
+
+/** Paths of each glyph kind, the compass and each status pip, built once. */
+const GLYPH_PATHS = Object.fromEntries(
+  Object.entries(WORLD_GLYPHS).map(([kind, rows]) => [
+    kind,
+    spritePaths(spriteRuns(rows), WORLD_GLYPH_PX),
+  ]),
+) as Record<keyof typeof WORLD_GLYPHS, [string, string][]>;
+
+const COMPASS_PATHS = spritePaths(spriteRuns(WORLD_COMPASS), WORLD_COMPASS_PX);
+
+const PIP_PATHS = Object.fromEntries(
+  Object.entries(WORLD_STATUS_PIPS).map(([status, rows]) => [
+    status,
+    spritePaths(spriteRuns(rows), 1),
+  ]),
+) as Record<RealmStatus, [string, string][]>;
 
 /**
  * A realm's state as a small ink shape (WORLD_STATUS_PIPS), for a pin and
@@ -79,7 +99,7 @@ export function StatusPip({ status, className }: { status: RealmStatus; classNam
       aria-hidden="true"
       focusable="false"
     >
-      <Sprite runs={PIP_RUNS[status]} x={0} y={0} px={1} />
+      <Sprite paths={PIP_PATHS[status]} x={0} y={0} />
     </svg>
   );
 }
@@ -91,10 +111,9 @@ export function Glyphs({ glyphs }: { glyphs: readonly WorldGlyph[] }) {
       {glyphs.map((g) => (
         <Sprite
           key={`${g.x},${g.y}`}
-          runs={GLYPH_RUNS[g.kind]}
+          paths={GLYPH_PATHS[g.kind]}
           x={g.x}
           y={g.y}
-          px={WORLD_GLYPH_PX}
           fromZoom={g.fromZoom}
         />
       ))}
@@ -150,7 +169,7 @@ export function Compass() {
   const h = WORLD_COMPASS.length * WORLD_COMPASS_PX;
   return (
     <g className="world-compass">
-      <Sprite runs={COMPASS_RUNS} x={x - w / 2} y={y - h / 2} px={WORLD_COMPASS_PX} />
+      <Sprite paths={COMPASS_PATHS} x={x - w / 2} y={y - h / 2} />
     </g>
   );
 }
