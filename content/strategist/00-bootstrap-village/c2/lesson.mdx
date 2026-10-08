@@ -1,7 +1,7 @@
 ---
 id: strategist/r0/c2/lesson
 title: Strengths & limits
-minutes: 7
+minutes: 9
 sources:
   - kind: docs
     title: Claude docs · Glossary
@@ -23,50 +23,119 @@ sources:
     url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
 ---
 
-## Why it matters
+## Goal
 
-An LLM is very good at some work and weak at other work. Knowing which is which is the first skill of using AI at work. This lesson gives you a simple map.
+After this lesson you can:
 
-## What models do well
+- Name the work models do well, and four limits to plan around.
+- Test any task with three questions before you hand it to a model.
+- Turn a vague AI idea into a plan that gives the model the right facts and the right amount of checking.
 
-Models are strong at work made of text and language.
+## The problem
 
-- **Write and rewrite.** First drafts, replies, summaries in a set tone. OpenAI's docs say models can write "almost any kind of text response", including human-like prose and structured data.
-- **Summarize and answer from a document.** Anthropic's glossary lists answering questions and summarizing information.
-- **Sort and label.** Anthropic's use-case guides include ticket routing: classifying customer support tickets and sending each to the right team. They also include content moderation and legal document summaries.
+A sales operations manager is asked: "Can AI write the weekly account summaries for the leadership meeting?" Today, account owners spend an hour each on them.
 
-Example: a support lead pastes 40 new tickets and asks the model to tag each one "billing", "bug" or "how-to". This is sorting text, and models handle it well. A person still spot-checks the tags.
+Her first idea is one line in a chat: "Summarize how each key account is doing this quarter." The replies read well. But they mention no real deal, and one says a client is "growing fast" when it just cut its order.
 
-## Limit 1: knowledge stops at a date
+Some of this work fits a model well, and some does not. This lesson gives you a simple map to tell which is which. The model facts below come from each vendor's docs (October 2026).
 
-A model learns from data collected up to a point in time. Anthropic's model table lists a "reliable knowledge cutoff" for each model: the date through which its knowledge is most reliable. OpenAI's accuracy guide names out-of-date knowledge as one reason a model gets things wrong.
+## The idea
 
-Example: you ask "What changed in our country's tax rules this month?" The model may not know, or may describe the old rules as if they are still true. Give it the new text, or check an official source.
+**What models do well.** Models are strong at work made of language:
 
-## Limit 2: it doesn't know your company
+- **Write and rewrite.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/text) say models can generate "almost any kind of text response", including "human-like prose" and "structured JSON data".
+- **Summarize and answer from a document.** The [Claude docs](https://platform.claude.com/docs/en/about-claude/glossary) list "answer questions, summarize information" among the tasks.
+- **Sort and label.** The Claude [use-case guides](https://platform.claude.com/docs/en/about-claude/use-case-guides/overview) include ticket routing: classifying support tickets and sending each to the right team. They also cover content moderation and legal summaries.
 
-Your price list, your customers and your internal policies were not in the training data. OpenAI's guide lists "proprietary information" as knowledge a model lacks.
+**Four limits to plan around.**
 
-The fix is to give the model the information in the prompt. This is the idea behind **RAG** (retrieval augmented generation): find the right documents, then pass them to the model with the question. Anthropic's glossary says this lets a model use information beyond its training data and improves accuracy. The glossary also says RAG is only as good as the documents you retrieve.
+1. **Knowledge stops at a date.** The [Claude model table](https://platform.claude.com/docs/en/models/overview) lists a **reliable knowledge cutoff** for each model: the date through which its knowledge is "most extensive and reliable". Anything newer, the model may not know, or may describe the old version as current.
+2. **It doesn't know your company.** The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) lists "proprietary information" as knowledge a model lacks. The fix is to give it the facts. This is the idea behind **RAG** (retrieval augmented generation): find the right documents, then pass them to the model with the question. The Claude glossary says RAG lets a model "use information beyond its training data". It also warns that RAG depends on "the quality and relevance" of what you retrieve.
+3. **More text is not always better.** The context window has a size limit. And inside it, the [Claude docs](https://platform.claude.com/docs/en/build-with-claude/context-windows) say: "As token count grows, accuracy and recall degrade, a phenomenon known as _context rot_." The OpenAI guide warns that "too much irrelevant context" can drown out the real information and cause hallucinations.
+4. **Answers vary and can be wrong.** Output is non-deterministic (OpenAI text guide), and a model can state a false thing in a confident tone. The next chapter covers that.
 
-Example: an HR assistant answers leave questions well only when the current leave policy is given to it. With an old policy, it gives old answers.
+**The three-question test.** Ask these before you hand any task to a model:
 
-## Limit 3: more text is not always better
+```text
+1. Is it mostly about language?           drafting, summarizing, sorting
+2. Does it need facts the model can't have? recent or private -> supply them
+3. What does a mistake cost?               higher cost -> more human checking
+```
 
-The context window has a size limit. And even inside the limit, Anthropic's docs say that as the token count grows, accuracy and recall degrade, which they call _context rot_. OpenAI's guide warns that too much irrelevant context can drown out the real information and cause hallucinations.
+For question 3, the OpenAI guide gives a clear contrast: "a bad copy that a human needs to fix vs. refunding a customer $1000 rather than $100."
 
-Example: you paste ten long reports to answer one question about one report. Paste the one report that matters.
+Our example: a model is like a fast, well-read intern. Great with words. But it has not read this week's news or your files, and you check its work in proportion to the stakes.
 
-## Limit 4: answers vary and can be wrong
+## Worked example
 
-Output is non-deterministic: the same prompt can give different answers (OpenAI's text guide). And models can state false things in a confident tone. The next chapter covers that in detail.
+### Step 1: the first plan
 
-## A simple test for any task
+```text
+Task: AI writes the weekly key-account summaries.
+Prompt: "Summarize how each key account is doing this quarter."
+Input: none.
+Review: none. Summaries go straight into the leadership deck.
+```
 
-Ask three questions before you hand a task to a model:
+### Step 2: run the three questions
 
-1. **Is it mostly about language?** Drafting, summarizing, sorting and rewriting fit well.
-2. **Does it need facts the model can't have?** Recent events or company data → you must supply them.
-3. **What happens if it is wrong?** OpenAI's guide puts it plainly: a bad draft a person must fix is very different from refunding a customer $1000 instead of $100. The higher the cost of a mistake, the more human checking you need.
+- **Mostly language?** Yes. Turning notes and numbers into a short summary is writing work.
+- **Facts the model can't have?** Yes, all of them. Orders, meeting notes and renewal dates are private. They live in the CRM (the sales system).
+- **Cost of a mistake?** Medium. Leadership may move budget or staff based on a wrong "growing fast".
 
-Example: drafting a meeting summary passes all three. Deciding a customer refund alone does not pass question 3. There, the AI can draft and a person decides.
+The task fits a model, but only with the facts supplied and a person checking.
+
+### Step 3: the hard case
+
+One client announced a merger last Monday. The account owner wrote it in the CRM notes. The news is newer than any model's knowledge cutoff. **This is the hard case.** If the notes are not in the prompt, the summary will miss the biggest change on the account.
+
+### Step 4: the better plan
+
+```text
+Task: draft a summary for ONE key account at a time.
+Input: that account's CRM notes and order numbers for this quarter only.
+Prompt:
+  You are drafting a leadership update for one client account.
+  Use only the notes and numbers below.
+  Write 4 bullet points: orders vs last quarter, open deals,
+  risks, and any news from the notes.
+  If something is not in the notes, write "not in notes".
+
+  [this account's notes and numbers]
+Review: the account owner checks every number and sends the draft on.
+```
+
+### Step 5: why it is better
+
+- **The right facts.** Each request gets that account's notes, so the merger shows up, and private numbers come from the CRM, not from a guess.
+- **Not too much.** One account per request, not the whole CRM export. Less text means less context rot.
+- **Checking fits the stakes.** The owner reads a draft in five minutes instead of writing it in an hour, and wrong numbers are caught before leadership sees them.
+
+## Common mistakes
+
+1. **Asking about anything recent with nothing attached.** The model may describe the old situation as if it is current. Fix: paste the new text, or check an official source.
+2. **Pasting everything "just in case".** A whole drive of files buries the part that matters. Fix: pass only the documents that match the question.
+3. **The same checking for every task.** A typo in an internal note and a wrong number for leadership are not the same risk. Fix: decide the review step by asking what a mistake costs.
+
+## Try it
+
+Not graded. A legal team lists three AI ideas. Run the three-question test on each, then pick the best first idea.
+
+```text
+1. Turn a 40-page supplier contract into a one-page plain summary
+   for the buyer, who checks it with the lawyer.
+2. Tell staff which of today's competitor prices are lower than ours.
+3. Send final contract terms to clients without anyone reading them.
+```
+
+### Answer
+
+1. **Good first idea.** Mostly language. The facts are in the contract you give it. The cost of a mistake is lower because a lawyer checks.
+2. **Weak as written.** Today's competitor prices are newer than the knowledge cutoff and are not in any file you gave it. It only works if you supply current price data.
+3. **No.** Sending contract terms is a high-cost mistake. A model can draft, but a person must read and decide.
+
+## Recap
+
+- Models are strong at language work: drafting, summarizing, sorting and rewriting.
+- They don't know recent events or your company's data. Supply the documents that matter, and only those.
+- Before you hand over a task, ask three things: is it language work, does it need facts the model lacks, and what does an error cost? Then set the checking to match.
