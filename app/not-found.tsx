@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
-import { MarketingHeader } from '@/components/hud/marketing-header';
+import { PublicHud } from '@/components/hud/public-hud';
 import { SiteFooter } from '@/components/hud/site-footer';
+import { SiteHeader } from '@/components/hud/site-header';
 import { SkipLink } from '@/components/hud/skip-link';
 import { PixelButton } from '@/components/pixel-button';
 import {
@@ -19,13 +20,14 @@ export const metadata: Metadata = {
 /**
  * The site-wide 404: every unknown URL and any notFound() with no nearer
  * not-found file. It renders inside the root layout only, which has no header
- * or footer, so it brings the public-page shell itself (as the marketing layout does).
+ * or footer, so it brings the public-page shell itself: the same header and
+ * footer as the marketing layout.
  */
 export default function NotFound() {
   return (
     <>
       <SkipLink />
-      <MarketingHeader />
+      <SiteHeader hud={<PublicHud />} />
       <main
         id={MAIN_CONTENT_ID}
         tabIndex={-1}

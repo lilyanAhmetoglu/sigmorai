@@ -1,0 +1,46 @@
+import { describe, expect, test } from 'bun:test';
+import { Glob } from 'bun';
+
+/**
+ * One header on every page (maintainer, 2026-10-08). These checks keep a page
+ * without it, or a second header, from coming back. e2e/header.spec.ts checks
+ * the rendered result.
+ */
+const ROOT = `${import.meta.dir}/../..`;
+
+/** The only places that render SiteHeader: the two route-group layouts and the site 404. */
+const SHELLS = ['app/(app)/layout.tsx', 'app/(marketing)/layout.tsx', 'app/not-found.tsx'];
+
+async function files(pattern: string): Promise<string[]> {
+  return Array.fromAsync(new Glob(pattern).scan({ cwd: ROOT }));
+}
+
+describe('the one site header', () => {
+  test('every page is inside the (app) or (marketing) group', async () => {
+    const pages = await files('app/**/page.{ts,tsx,mdx}');
+    expect(pages.length).toBeGreaterThan(0);
+    const outside = pages.filter(
+      (path) => !path.startsWith('app/(app)/') && !path.startsWith('app/(marketing)/'),
+    );
+    expect(outside).toEqual([]);
+  });
+
+  test('both group layouts and the site 404 render SiteHeader', async () => {
+    for (const path of SHELLS) {
+      const source = await Bun.file(`${ROOT}/${path}`).text();
+      expect(source).toContain('<SiteHeader');
+    }
+  });
+
+  test('no other component draws its own site header', async () => {
+    const sources = await files('{app,components}/**/*.tsx');
+    expect(sources).toContain('components/hud/site-header.tsx');
+    const others: string[] = [];
+    for (const path of sources) {
+      if (path === 'components/hud/site-header.tsx') continue;
+      const source = await Bun.file(`${ROOT}/${path}`).text();
+      if (/className="site-header"/.test(source)) others.push(path);
+    }
+    expect(others).toEqual([]);
+  });
+});

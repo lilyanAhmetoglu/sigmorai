@@ -3,7 +3,6 @@ import { FeaturedPost } from '@/components/blog/featured-post';
 import { NewsletterBox } from '@/components/blog/newsletter-box';
 import { PostCard } from '@/components/blog/post-card';
 import { PostFilters } from '@/components/blog/post-filters';
-import { MarketingHeader } from '@/components/hud/marketing-header';
 import { JsonLd } from '@/components/json-ld';
 import { Panel } from '@/components/panel';
 import {
@@ -42,7 +41,6 @@ export default async function BlogPage() {
   return (
     <>
       <JsonLd data={blogJsonLd(posts, SITE_URL)} />
-      <MarketingHeader />
       <main id={MAIN_CONTENT_ID} tabIndex={-1} className="blog-main">
         <header className="blog-header">
           <p className="blog-eyebrow">{BLOG_TEXT.eyebrow}</p>

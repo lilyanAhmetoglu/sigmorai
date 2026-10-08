@@ -3,7 +3,6 @@ import { JsonLd } from '@/components/json-ld';
 import { AudienceSection } from '@/components/landing/audience-section';
 import { HowItWorks } from '@/components/landing/how-it-works';
 import { LandingHero } from '@/components/landing/landing-hero';
-import { LandingNav } from '@/components/landing/landing-nav';
 import { LatestPosts } from '@/components/landing/latest-posts';
 import { RealmsPreview } from '@/components/landing/realms-preview';
 import {
@@ -37,7 +36,6 @@ export default async function LandingPage() {
   return (
     <>
       <JsonLd data={siteJsonLd(SITE_URL)} />
-      <LandingNav />
       <main id={MAIN_CONTENT_ID} tabIndex={-1} className="landing-main">
         <LandingHero />
         <RealmsPreview outline={outline} />
