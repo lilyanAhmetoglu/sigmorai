@@ -1,7 +1,7 @@
 ---
 id: strategist/r4/c5/lesson
 title: Agent permissions
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude Code docs · Configure permissions
@@ -23,75 +23,154 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/aistudio-agents
 ---
 
-## Why it matters
+## Goal
 
-An agent can only do what its connections let it do. Give it a shared drive with delete rights, and one bad step can delete files. Give it read-only access, and the worst case is a wrong summary.
+After this lesson you can:
 
-**Permissions** are the limits on what an agent can reach and do: which tools, which actions, with whose account. Setting them is a business decision, not only an IT task.
+- Give an agent only the access its task needs: split read, write and delete for each connection.
+- Explain how allow, ask and deny rules work together, and why a deny rule wins.
+- Choose between an end-user account and a shared agent account, and limit where the agent can go online.
 
-## Assume it will use everything you give it
+## The problem
 
-Google's AI Studio agents page states the rule plainly: the agent may use any credential it has access to in order to complete its task. So only give credentials whose full scope you are willing to grant. Its advice:
+A wine distributor has 40 sales reps. The sales operations team builds an agent for them. It reads the customer database, updates deal notes, emails price lists to customers and tidies the shared sales drive.
 
-- Use **least-privilege** credentials: only the permissions the agent needs.
-- Prefer short-lived tokens over long-lived keys.
-- Rotate credentials on a regular schedule.
+To make it work fast, IT connects everything with the sales director's own login, because "that login can see everything". The agent can also open any website. The only rule in the prompt says: "Don't touch the contracts folder."
 
-OpenAI's safety guide for building agents makes the same point: even with safeguards, agents can make mistakes or be tricked, so use caution in what access you give them.
+In a test, a rep asks the agent to "clean up old files for the Riverside account". The agent deletes two signed contracts, because the sales director's login is allowed to delete them. The prompt line did not stop it.
 
-## Read, write, delete
+This lesson shows how to set limits that the agent can't step over. The guidance below is from each vendor's docs (October 2026).
 
-Most connections offer more than one kind of action. Split them:
+## The idea
 
-- **Read:** search, open, list.
-- **Write:** create, edit, send.
-- **Delete:** remove, cancel.
+**Permissions** are the limits on what an agent can reach and do: which tools, which actions, and with whose account. Setting them is a business decision, not only an IT task.
 
-OpenAI's cookbook does this for its sales brief agent. It allows only read actions on the calendar. On SharePoint it allows a broad set of reads but prevents bulk writes and deletes. It also notes that admins can enforce connector actions at the workspace level, for example read actions only, no writes.
+**Assume the agent will use everything you give it.** The [Google AI Studio agents page](https://ai.google.dev/gemini-api/docs/aistudio-agents) says: "The agent may use any credential it has access to in order to complete the task you have given it." (A **credential** is a login, a password or an access key.) So: "Only provide credentials whose full scope of access you are willing to grant." The page's advice:
 
-Google's page says the same for tools: if a tool supports read-only mode, prefer it unless writes are strictly needed.
+- **Least privilege:** give "only the permissions your agent needs". Avoid "broad or administrative access".
+- **Short-lived tokens:** prefer access that expires over keys that last for years.
+- **Rotate:** change credentials "on a regular schedule".
+- **Read-only first:** if a tool supports read-only mode, "prefer that unless writes are strictly necessary".
 
-## Allow, ask, deny
+Our reading: rotating a key keeps it fresh, but it does not make the key do less. Only a smaller scope does that.
 
-Claude Code's permissions docs use three kinds of rules:
+The [OpenAI guide on safety in building agents](https://developers.openai.com/api/docs/guides/agent-builder-safety) gives the reason: even with safeguards, "agents won't be perfect and can still make mistakes or be tricked". So "use caution in what access you give agents".
+
+**Split read, write and delete.** Most connections offer more than one kind of action:
+
+```text
+read    search, open, list
+write   create, edit, send
+delete  remove, cancel
+```
+
+The [OpenAI cookbook](https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep) does this for its sales meeting agent. For the calendar, the cookbook turns on read actions only. For SharePoint it allows "a broad set of read actions" but prevents "bulk write actions" and "deletes". It also says admins can enforce connector actions for the whole workspace, for example read actions only, with no writes.
+
+**Allow, ask, deny.** The [Claude Code permissions docs](https://code.claude.com/docs/en/permissions) use three kinds of rules:
 
 - **Allow:** the agent may use the tool without asking.
-- **Ask:** the agent must get confirmation each time.
+- **Ask:** the agent must get a yes each time.
 - **Deny:** the agent may not use the tool.
 
-The order matters. Rules are checked deny first, then ask, then allow. A broad deny rule blocks a call even if a narrower allow rule also matches. In business terms: "never delete" wins over "may tidy up old files".
+The order matters: "Rules are evaluated in order: deny, then ask, then allow. The first match in that order determines the outcome, and rule specificity doesn't change the order." So it does not matter which rule you wrote first, or which one is narrower. "An allow rule can't carve an exception out of a deny rule." In business terms: "never delete contracts" wins over "you may tidy the drive".
 
-OpenAI's MCP guide offers similar controls for connected tools. An `allowed_tools` setting limits which of a server's tools the model can use. A `require_approval` setting decides which calls need approval. The guide says to use these so any sensitive action needs an approval.
+The same docs explain why a prompt line is not enough: "Permission rules are enforced by Claude Code, not by the model." Instructions in a prompt "don't change what Claude Code allows."
 
-## Whose account does it use?
+The [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) has similar controls for connected tools. (**MCP** is a standard way to connect a model to outside tools.) The `allowed_tools` setting limits which of a server's tools the model can use. The `require_approval` setting decides which calls need a yes. The guide says: use them "to ensure that any sensitive actions require an approval flow."
 
-OpenAI's cookbook shows a choice that is easy to miss. Each connection can use:
+**Whose account does it use?** The OpenAI cookbook shows a choice that is easy to miss. Each connection can use:
 
-- an **end-user account**: each person signs in, and the agent sees only that person's data, or
-- an **agent-owned account**: one shared account. Anyone the agent is shared with can then reach everything that account can reach.
+- an **end-user account**: each person signs in with their own login, and the agent sees only that person's data, or
+- an **agent-owned account**: one shared account. The cookbook warns that "anyone we share the agent with will be able to access" what that account can reach.
 
-Example: an HR agent with an agent-owned account on the HR drive, shared with all managers, lets every manager reach every salary file through the agent. With end-user accounts, each manager sees only what they could already see.
+**Limit where it can go.** Permissions are also about places:
 
-## Limit where it can go
+- The [Claude computer use docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) suggest "a dedicated virtual machine or container with minimal privileges", no access to sensitive data "such as account login information", and internet access limited "to an allowlist of domains". (An **allowlist** is the list of the only sites the agent may reach.)
+- In Google AI Studio, outbound network access from the agent's space is restricted by default. You add each domain the agent may reach. (The page notes that through the API, "the network is open by default".)
 
-Permissions are also about places. Anthropic's computer use docs suggest a dedicated virtual machine or container with minimal privileges, no access to sensitive data such as login details, and internet access limited to an allowlist of domains. Google's AI Studio restricts outbound network access by default; you add each domain the agent may reach.
+**Pick connections you can trust.** The OpenAI MCP guide says to "Pick official servers hosted by the service providers themselves". It says remote MCP servers "have not been verified by OpenAI", recommends "logging any data sent to MCP servers", and warns: "MCP servers may update tool behavior unexpectedly".
 
-Connections can change, too. OpenAI's MCP guide says to prefer official servers hosted by the service provider, to log the data you send, and warns that MCP servers may update tool behaviour unexpectedly.
+Our example: giving an agent the director's login is like giving a temp worker the master key to the building. A good office gives the temp a key card that opens only the rooms the job needs.
 
-## A permission sheet
+## Worked example
 
-This one-page sheet is a tool for this course. Fill one line per connection:
+### Step 1: the weak setup
 
-1. **Connection:** calendar, CRM, shared drive.
-2. **Actions allowed:** read / write / delete, each one named.
-3. **Account:** end-user or agent-owned, and who the agent is shared with.
-4. **Approval:** which actions ask first.
-5. **Owner and review date:** who checks it, and when.
+```text
+Sales agent: permissions v1
+Connection       Account               Actions               Approval
+Customer DB      director's login      read, write, delete   none
+Shared drive     director's login      read, write, delete   none
+Email            director's login      send                  none
+Web              any site              read                  -
+Prompt rule: "Don't touch the contracts folder."
+Shared with: all 40 reps
+```
 
-## Key points
+What goes wrong:
 
-- Assume the agent will use every permission and credential you give it.
-- Split read, write and delete; allow only what the task needs.
-- Deny rules win over allow rules; use ask for sensitive actions.
-- Agent-owned accounts share their reach with everyone who uses the agent.
-- Limit places too: a separated machine and an allowlist of sites.
+- Every rep now reaches everything the director can reach, through the agent.
+- Delete is allowed on the drive. A prompt line is the only thing in the way.
+- Emails go out from the director's address with no check.
+- Any website can feed text to the agent.
+
+### Step 2: the good setup
+
+```text
+Sales agent: permissions v2
+Connection    Account              Actions                Approval
+Customer DB   end-user (each rep)  read; edit deal notes  none
+Shared drive  end-user (each rep)  read; move to Archive  none
+Email         end-user (each rep)  send price list        ask first
+Web           allowlist: 3 sites   read                   -
+Rules:
+  deny:  delete anything on the shared drive
+  deny:  any action in /Contracts
+  allow: move files older than 2 years to /Archive
+Owner: sales ops lead. Review: every 3 months.
+```
+
+### Step 3: the hard case
+
+**This is the hard case.** The sales director asks for a weekly report across all reps' deals. With end-user accounts, each rep sees only their own deals, so the report can't be built. One shared account is tempting. The safer fix: create a separate, read-only agent account for the report, and share that agent only with the director. The everyday reps' agent keeps end-user accounts.
+
+### Step 4: why it is better
+
+- **Each rep reaches only their own data.** The agent adds no new access.
+- **Delete is gone.** The deny rules block it, whatever the prompt or the allow rule says.
+- **Sending is checked.** Emails to customers ask first.
+- **The web is narrow.** The agent reads only the sites the job needs.
+
+## Common mistakes
+
+1. **Using an admin login "so nothing breaks".** Then one mistake can do admin-sized damage. Fix: create an account with only the rights the task needs.
+2. **Writing limits into the prompt.** The model may still act, because the account allows it. Fix: block the action with a permission or a deny rule.
+3. **Expecting a narrow allow rule to beat a broad deny.** Deny is checked first, so the allow rule never gets a chance. Fix: write deny rules for what must never happen, and check them against your allow rules.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A school group sets up an agent for its 25 office staff. Find the problem in each line, and fix it.
+
+```text
+1. Student records: agent-owned account (head office admin),
+   read and write. Shared with all office staff.
+2. Rules: allow "update phone numbers"; deny "edit records".
+   Staff expect phone updates to work.
+3. Web: open to any site, "because it only reads".
+4. Credentials: one admin key that never expires.
+```
+
+### Answer
+
+1. **Agent-owned admin account.** Every office worker can reach all student records through the agent. Use end-user accounts, so each person sees only what they already may see.
+2. **Deny wins.** Updating a phone number is an edit, so the deny rule blocks it. Make the deny rule narrower (for example, deny edits to grades) if phone updates are wanted.
+3. **Open web.** Pages can carry harmful text, and the agent may send data to any site. Use an allowlist of the sites the task needs.
+4. **One long-lived admin key.** Use a least-privilege credential that expires, and rotate it on a schedule.
+
+## Recap
+
+- Assume the agent will use every permission and credential you give it. Grant only what the task needs, and prefer read-only.
+- Deny rules are checked first and win over allow rules. Use ask for sensitive actions. A prompt line is not a permission.
+- Agent-owned accounts share their reach with everyone who uses the agent. Limit places too: a separated machine and an allowlist of sites.

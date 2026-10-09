@@ -1,7 +1,7 @@
 ---
 id: strategist/r4/c4/lesson
 title: No-code agents
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI Cookbook · Building workspace agents in ChatGPT
@@ -23,58 +23,133 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/aistudio-agents
 ---
 
-## Why it matters
+## Goal
 
-You don't need a developer to try an agent any more. OpenAI, Anthropic and Google now let you describe one in plain words, or set it up on a screen with switches and boxes. That makes agents fast to start. It also means a business team can connect an agent to company data before anyone has checked what it may reach.
+After this lesson you can:
 
-This chapter shows what the no-code options do, and what still needs a careful owner.
+- Describe the main no-code ways to build an agent, and say which ones still need code to go live.
+- Read the small print before you pick a tool: where it runs, what it costs, who must switch it on, and how long the product will exist.
+- Test a no-code agent on past cases and share it in stages.
 
-## Describe it in plain words
+## The problem
 
-OpenAI's cookbook shows ChatGPT **workspace agents**. You build one through a conversational builder: you describe the workflow, and the builder drafts the agent's name, instructions and connected apps. The cookbook says they are in research preview for ChatGPT Business, Enterprise and Edu customers.
+A hotel group has 12 hotels. Its revenue manager wants a morning summary of the room prices at nearby hotels, sent to each hotel manager before 8:00. There is no developer free this quarter.
 
-Its example agent prepares sales meeting briefs. It runs on a schedule (each day at 4pm), reads calendars, searches SharePoint and the web, writes a brief and sends a summary. The agent can also use **skills** (packaged instructions and files for a repeated task) and **memory** (a folder where it keeps notes between runs). The cookbook notes that this memory is not shared between different users of the agent.
+Over two evenings, the revenue manager builds three prototypes without code:
 
-## Set it up on a screen
+- a ChatGPT workspace agent,
+- a scheduled task in a desktop app on their own laptop, which they close each night,
+- an agent in a web playground, with the prompt "Find all hotel prices in our cities".
 
-Other tools give you a visual screen instead of a chat:
+The playground run took 50 minutes. The revenue manager wants to send the summary to all 12 managers from Monday. Nobody has checked the output against real prices, and nobody is named to look after it.
 
-- **Anthropic's Console** lets you create and test Claude Managed Agents visually: pick a model, write the system prompt, add tools, MCP servers (connections to outside tools) and skills. You can run a test session on the page. Console shows the matching API request, and you then run the agent from your code. So the setup needs no code, but going live does. Managed Agents is in beta.
-- **Google AI Studio** has an agents playground to prototype managed agents without writing API calls. You start from templates and switch built-in tools on or off, such as Google Search or file tools.
-- **Claude Code Desktop** can run scheduled tasks, for example a morning briefing from your calendar and inbox. You write the instructions like a normal message and pick a schedule.
+This lesson shows what each kind of no-code tool does, and what still needs a careful owner. The guidance below is from each vendor's docs (October 2026).
 
-## Know the small print
+## The idea
 
-No-code tools still have rules you must read. Three examples from the docs:
+**No-code** means you build the agent by describing it in plain words or by setting switches on a screen. You don't write a program. That makes agents fast to try. It also means a team can connect an agent to company data before anyone checks what it can reach.
 
-- **Where it runs.** Claude Code Desktop's local tasks run only while the app is open and the computer is awake. After a missed run, Desktop starts one catch-up run, so the docs warn a 9am task might run at 11pm.
-- **What it costs.** Google warns that one prompt to its playground agent can lead to unbounded token use, because the agent plans, runs code and repeats. It advises clear stop criteria in the prompt and a narrow task. Templates also call the Gemini API with your key, which can add charges.
-- **Who switches it on.** OpenAI's cookbook lists admin steps first: agents enabled for the workspace, permission to build and share, and the needed apps enabled.
+**Describe it in plain words.** The [OpenAI cookbook](https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep) shows ChatGPT **workspace agents**. You tell a chat-style builder what the workflow should do. The cookbook says the first draft gives you "a working agent with a name, description, instructions, and a set of connected apps". Workspace agents are "in research preview for ChatGPT Business, Enterprise, and Edu customers".
 
-## Products change fast
+A workspace agent can run on a schedule, use **skills** (packaged instructions and files for a repeated task) and use **memory** (a folder where it keeps notes between runs). The cookbook says: "this memory is not shared across different end users of our agent."
 
-OpenAI's **Agent Builder** is a visual canvas where you connect steps (nodes) into a workflow. OpenAI is deprecating it, and its docs say it is scheduled to shut down on November 30, 2026.
+**Set it up on a screen.** Other tools give you a visual screen instead of a chat:
 
-OpenAI's migration guide offers two paths: export the workflow as Agents SDK code, or rebuild it as a ChatGPT workspace agent. It warns that the export does not convert your workflow graph or guarantee that every behaviour transfers unchanged. Workflows that rely on fixed, predictable steps may not move well to a workspace agent.
+- **Claude Console.** The [Console page for Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/onboarding) offers "a visual interface for creating and configuring agents". You pick a model, write the system prompt, and add tools, MCP servers (links to outside tools) and skills. You can start a test session on the page. Console "shows the equivalent API request so you can copy it into your code". To run the agent for real, your code creates sessions with the agent's ID. So setup is no-code, but going live needs code. Managed Agents is marked beta.
+- **Google AI Studio.** The [AI Studio agents playground](https://ai.google.dev/gemini-api/docs/aistudio-agents) lets you prototype managed agents "without having to create and write API calls". You start from templates and switch built-in tools on or off, such as Google Search or file tools.
+- **Claude Code Desktop.** The [Desktop scheduled tasks page](https://code.claude.com/docs/en/desktop-scheduled-tasks) lets you run a task at a set time, for example a morning briefing from your calendar and inbox. You write the instructions like a normal message and pick a schedule.
 
-Example: a team built a fixed invoice-checking flow on a visual canvas. When the canvas closes, it must rebuild and retest. The team that kept its test cases and expected results can compare old and new in a day. The team that didn't must start from memory.
+**Read the small print.** No-code tools still have rules. Four questions to ask:
 
-## Test before you share
+- **Where does it run?** Desktop's local tasks only run "while the app is open and your computer is awake". If the computer sleeps through the time, "the run is skipped". "Closing the laptop lid still puts it to sleep." When the computer wakes, Desktop checks the last seven days and starts "exactly one catch-up run for the most recently missed time". The docs warn: "A task scheduled for 9am might run at 11pm if your computer was asleep all day." For work that must run when the computer is off, the page points to cloud routines instead.
+- **What does it cost?** The AI Studio page warns that the agent plans, runs code and repeats, so "a single prompt can result in unbounded token consumption". Its advice: "provide clear termination criteria in your prompts and scope the tasks narrowly". (**Termination criteria** say when to stop.) The page also says the agent in a template makes Gemini API calls "using your configured API key, which can incur additional token charges". If a run goes wrong, you can press the Stop button.
+- **Who switches it on?** The cookbook lists admin settings to confirm first: agents enabled for the workspace, permission to build and share, and the needed apps enabled.
+- **How long will it exist?** OpenAI's **Agent Builder** is a visual canvas where you connect steps (nodes) into a workflow. The [Agent Builder docs](https://developers.openai.com/api/docs/guides/agent-builder) say: "OpenAI is deprecating Agent Builder." The product "is scheduled to shut down on November 30, 2026."
 
-The cookbook gives a simple test: ask the agent to prepare a brief for a meeting you already had last week, and compare it with the brief a person wrote. It also notes that a new agent is, by default, available only to its maker. Keep it that way until the tests pass.
+**Moving off a closing product.** The [OpenAI migration guide](https://developers.openai.com/api/docs/guides/agent-builder/migrate-from-agent-builder) offers two paths: export the workflow as code for the Agents SDK, or rebuild it as a ChatGPT workspace agent. It warns that the process "does not convert your workflow graph or guarantee that every behavior transfers unchanged." It also says: "Workflows with strong determinism at their core may not migrate faithfully to a workspace agent." (**Determinism** means the same input always gives the same steps.)
 
-This checklist is a tool for this course:
+Our advice: store your instructions, your test cases and the answers you expect in a place outside any tool. Then a move to a new tool is a re-test, not a rebuild from memory.
 
-1. **Name an owner** who updates the instructions and checks the results.
-2. **Test on past cases** with known good answers.
-3. **Check the connections** and what each one can do (next chapter).
-4. **Write the stop rule and budget** into the instructions.
-5. **Keep an exit plan:** your instructions, tests and examples, outside the tool.
+**Test before you share.** The cookbook gives a simple test: ask the agent to prepare a brief for "a meeting that you already had last week", and compare it with one a person wrote. It also says that a new agent "is by default available only to you". Our advice: keep it that way until your tests pass.
 
-## Key points
+Our example: a no-code agent is like a rental van. Anyone can drive it away in ten minutes. But someone still has to check the fuel, the insurance and the return date.
 
-- No-code agents are built by describing them or by setting switches on a screen.
-- Some tools are no-code to set up but need code to go live (Anthropic's Console).
-- Read the small print: where it runs, what it costs, who must switch it on.
-- Products change: OpenAI's Agent Builder shuts down on November 30, 2026.
-- Test on past cases, share late, and keep your tests outside the tool.
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+Hotel price summary: plan v1
+- Tool: whichever prototype looks best on Friday.
+- Laptop task at 7:00 (laptop is closed overnight).
+- Playground prompt: "Find all hotel prices in our cities."
+- Share with all 12 managers on Monday.
+- Tests: "the output looks right".
+- Owner after launch: none.
+```
+
+What goes wrong:
+
+- The laptop sleeps at 7:00, so the run is skipped. A single catch-up run follows once it wakes up, after the managers need it.
+- The open prompt has no stop rule, so it can run long and the token bill has no limit.
+- Nobody has compared the output with real prices.
+- If the tool changes or the owner leaves, nobody can fix it.
+
+### Step 2: the good plan
+
+```text
+Hotel price summary: plan v2
+Owner: revenue analyst (updates the prompt, checks the output).
+Tool: one hosted tool that runs without the owner's laptop.
+Prompt: "Check today's price for a standard double room at
+  these 8 named hotels in each of our 3 cities. Then write
+  one table per city and stop. Do not search other hotels."
+Tests: run it for the last 10 days and compare with the prices
+  the team wrote down by hand on those days.
+Sharing: owner only -> 2 hotel managers for 2 weeks -> all 12.
+Exit plan: prompt, hotel list, test days and expected tables
+  kept in a shared folder outside the tool.
+```
+
+### Step 3: the hard case
+
+**This is the hard case.** The revenue manager says: "The old Agent Builder version works fine. Let's just use that." It does work today. But the docs give a shutdown date of November 30, 2026, and the migration guide says the export may not keep every behaviour. A summary that must run the same way every day is the kind of fixed workflow that may not move cleanly to a workspace agent. So the team builds on a tool that will last, and keeps the test days, so any later move is a one-day re-test.
+
+### Step 4: why it is better
+
+- **It runs when needed.** It doesn't depend on a sleeping laptop.
+- **The cost has a shape.** A narrow task with a clear end stops early.
+- **The output is checked against known answers** before anyone relies on it.
+- **Sharing grows in steps,** and the owner can fix problems before everyone sees them.
+
+## Common mistakes
+
+1. **Choosing a tool by its demo.** A tool that works today may close or change soon. Fix: check the product status and its shutdown date first, and keep an exit plan.
+2. **"Find everything" prompts.** Open prompts have no natural end, and the bill can grow. Fix: name the scope, the output and the stop rule in the prompt.
+3. **Sharing with the whole company on day one.** Many people see untested output, and there is no owner to fix it. Fix: name an owner and test on past cases. Share with a few people first.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A legal team plans a no-code agent that lists new court rulings each week. Find the problem in each note.
+
+```text
+1. "We'll run it as a local Desktop task on Sam's laptop,
+    Fridays at 6:00. Sam usually starts work at 9:30."
+2. "Prompt: research every ruling that could ever matter to us."
+3. "We built it in Console with no code, so it's ready to
+    go live in our intranet tomorrow."
+```
+
+### Answer
+
+1. **The laptop is probably asleep at 6:00.** The run is skipped, and a single catch-up run follows once it wakes up. If timing matters, use a cloud option, or add a rule to the prompt for late runs.
+2. **No scope and no stop rule.** The run can go on for a long time and cost a lot. Name the courts, the date range and the output, and say when to stop.
+3. **Console setup is no-code, but going live is not.** Console shows the API request. A developer must use it in code to run sessions in the intranet.
+
+## Recap
+
+- No-code agents are built by describing them or by setting switches on a screen. Some tools, like Claude Console, need code to go live.
+- Read the small print: where it runs, what it costs, who must switch it on, and when the product closes. Agent Builder shuts down on November 30, 2026.
+- Name an owner, test on past cases with known answers, share in stages, and keep your tests outside the tool.
