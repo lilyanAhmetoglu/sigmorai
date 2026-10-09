@@ -1,7 +1,7 @@
 ---
 id: creator/r3/c5/lesson
 title: Consistent cast
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: Gemini API docs · Image generation (Nano Banana)
@@ -17,87 +17,149 @@ sources:
     url: https://docs.dev.runwayml.com/recipes/reference-media
 ---
 
-## Why it matters
+## Goal
 
-A cereal brand has an otter mascot. It appears in thirty posts and four short videos. A model does not remember the otter between requests. Each request starts new, so a new otter can appear every time.
+After this lesson you can:
 
-OpenAI's image guide lists this as a known limit: the model "may occasionally struggle to maintain visual consistency for recurring characters or brand elements across multiple generations". So consistency is something you build and check. This lesson shows how to build a **cast**: the recurring characters of a brand. You decide how they are kept. You do not write the requests.
+- Build a cast sheet with a clean anchor image and approved extra views.
+- Plan shots around a model's reference limit.
+- Stop a character from drifting over many images.
 
-Prompt Forest, chapter 3 covered style, and chapter 2 covered reference images. Here we apply them to characters that must look the same every time.
+## The problem
 
-## A cast sheet
+A toothpaste brand, Brightbite, has a mascot: Zip, a small blue robot. Zip appears in 40 posts and six short videos. Each designer makes Zip from the last image they have.
 
-A **cast sheet** is one page per character. It is our method.
+After two months:
 
-| Part         | Example                                                         |
-| ------------ | --------------------------------------------------------------- |
-| Name         | Pip, the otter mascot                                           |
-| Anchor       | One clear front view, neutral, even light                       |
-| Views        | Side, three-quarter, back, each approved                        |
-| In words     | A fixed description, used in every prompt                       |
-| Never change | Red scarf with a white stripe on the left, black ear tips       |
-| Permission   | Who made it or who it shows, and where the proof is (chapter 6) |
+- Zip's antenna has moved from the left side to the middle.
+- The blue is now closer to purple.
+- One video shows Zip next to a real dentist, but the photo of the dentist was taken at a party, laughing, with a hat.
 
-## Start with a clean anchor
+A model does not remember Zip between requests. Each request starts new. The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) list this as a known limit: the model "may occasionally struggle to maintain visual consistency for recurring characters or brand elements across multiple generations". So consistency is something you build and check.
 
-Everything else is built from the anchor, so choose it with care. Runway's guide has advice for people and talent references. It is written for Runway's own Recipes. Using it with any tool is our method:
+## The idea
 
-- Use "a clear, well-lit reference with the face visible and unobstructed".
+**A cast sheet** is one page per recurring character. It is our method:
+
+```text
+Name          Zip, the robot mascot
+Anchor        one clear front view, neutral, even light
+Views         side, three-quarter, back, each approved
+In words      a fixed description, used in every prompt
+Never change  the details a stranger could check at a glance
+Permission    who made it or who it shows, and where the proof is
+```
+
+**Start with a clean anchor.** The [Runway docs](https://docs.dev.runwayml.com/recipes/reference-media) give advice for talent references in its Recipes. Using it for any character is our method:
+
+- "Use a clear, well-lit reference with the face visible and unobstructed."
 - "Choose a neutral expression and framing unless you want a specific look carried through."
 
-The second line matters for any character. A photo of a laughing model, lit from one side, will carry that laugh and that shadow into other images. A neutral anchor leaves room to add expression later.
+A laugh, a hat or a side light in the anchor can carry into every later image. Writing "neutral face" in the prompt does not undo what the picture shows. Fix the picture. For a real person, that means a new photo, taken with their permission. The Runway docs say: "only use references of people you have permission to depict." Also: "One subject per reference". So the anchor shows one character, not a group.
 
-Runway also says to use one subject per reference. So the anchor shows one character, not a group.
+**Build the other views from the anchor.** The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) describe a 360-degree method:
 
-## Build the other views from the anchor
+- Ask for each angle in turn: "iteratively prompting for different angles".
+- "include previously generated images in subsequent prompts to maintain consistency".
+- "For complex poses, include a reference image of the selected pose."
 
-Google's image guide has a method for new angles: "You can generate 360-degree views of a character by iteratively prompting for different angles. For best results, include previously generated images in subsequent prompts to maintain consistency. For complex poses, include a reference image of the selected pose."
+Our rule adds a check: approve each new view against the anchor before you use it.
 
-So the steps are (the check and approve steps are ours):
+**Say what must not change, in detail.** The Gemini docs advise: "Be hyper-specific". Their example: not "fantasy armor" but "ornate elven plate armor, etched with silver leaf patterns, with a high collar and pauldrons shaped like falcon wings." Write the never-change line the same way, so anyone can check it. For a small edit, the Gemini docs suggest a follow-up that keeps the rest of the image the same and changes only one thing, such as the expression.
 
-1. Start from the anchor and ask for one new view, such as a side view.
-2. Compare it with the anchor (Prompt Forest, chapter 6).
-3. If it is right, approve it and add it to the sheet.
-4. Ask for the next view, again giving the earlier images.
+**Count the reference slots.**
 
-Do not use a view before it is approved.
+- **Images:** the Gemini docs say Nano Banana 2.1 supports "character resemblance of up to 4 characters". Nano Banana Pro takes "Up to 5 images of characters".
+- **Video:** the [Veo docs](https://ai.google.dev/gemini-api/docs/veo) say "Veo 3.1 now accepts up to 3 reference images", and to "Provide images of a person, character, or product". The docs' own example uses three images: a dress, a woman and a pair of glasses. So a person, a mascot and a product can each take one of the same 3 slots. The image-model limits do not apply to Veo.
 
-## Say what must not change
+A collage of four characters in one image is not a trick around the limit. It is a reference with several competing subjects, which the Runway docs advise against.
 
-Words and pictures work together. Google's guide advises: "Be hyper-specific". Its example: not "fantasy armor" but "ornate elven plate armor, etched with silver leaf patterns, with a high collar and pauldrons shaped like falcon wings."
+**Go back to the sheet.** Our habit: for each new asset, give the approved sheet image, not the latest result. If each result feeds the next request, tiny mistakes add up, like a photocopy of a photocopy. The Gemini advice to include earlier images is for building the views. A higher quality setting is not the fix: the OpenAI docs list consistency as a limit and do not tie it to quality. A good sheet lowers the risk, but the limit still applies, so compare each new image with the anchor before it ships.
 
-Write the "Never change" line in that way. "Keep her look" is too vague to check. "Red scarf with a white stripe on the left, black ear tips, cream belly" can be checked at a glance.
+## Worked example
 
-For an edit, Google gives a pattern: "Keep everything the same, but change the character's expression to be more serious."
+### Step 1: the setup before
 
-## How many can be in one shot?
+```text
+Zip         made from "the last good image"
+Dentist     one party photo: laughing, hat, side light
+Shot list   Shot A: Zip, the dentist, the toothbrush and the tube, together
+```
 
-Models take a limited number of references, and they are shared with everything else in the shot.
+What goes wrong:
 
-- **Images:** Google's limits note says Nano Banana 2.1 and Nano Banana 2 support character resemblance of up to 4 characters. Its table lists up to 5 for Nano Banana Pro (Prompt Forest, chapter 2).
-- **Video:** Veo 3.1 accepts up to 3 reference images "of a person, character, or product" to preserve the subject's appearance. Those 3 slots are shared. A shot with an otter, a girl and a cereal box already uses all three.
+- No anchor, so every image copies the drift of the one before.
+- The dentist photo will carry the laugh and the hat.
+- Shot A needs four references. Veo 3.1 takes up to 3.
 
-A shot with four things that need references does not fit. Plan the shot list around the slots (this planning habit is ours). Split the shot in two. Or decide which thing the words can carry, such as a simple prop.
+### Step 2: choose the anchor and write the never-change line
 
-Do not put four characters into one collage to save slots. Runway advises against references with several competing subjects, and a collage is exactly that.
+```text
+Anchor:       zip-front-v1.png, front view, even light, plain background
+Never change: sky-blue body, one antenna on the LEFT side, two round
+              white eyes, orange heart on the chest, three-finger hands
+```
 
-## Check for drift
+A reviewer can tick off each detail in seconds. "Keep Zip cute" cannot be ticked off.
 
-Look at the whole set, not only the last image. A character can change a little each time. After twenty images the scarf is orange.
+### Step 3: build the side view
 
-One habit helps, and it is ours: **always give the approved sheet image, not the latest result.** If you feed each result into the next request, small errors pile up, like a copy of a copy. Google's advice to include earlier images is for building the views. For each new asset, go back to the sheet.
+```text
+Image 1: zip-front-v1.png (the anchor)
 
-OpenAI's limit above still applies. A good sheet lowers the risk. It does not remove it. Compare new work with the anchor before it ships.
+Create a side view of the robot in image 1, facing right, same pose,
+same plain background and light. Keep the sky-blue body, the antenna
+on the left side of the head, the round white eyes and the orange
+heart exactly as in image 1.
+```
 
-## People are not characters
+Put the result next to the anchor. Approve it, add it to the sheet, then ask for the three-quarter view with both images.
 
-An invented otter shows no real person. A photo of a real person is different. Runway says: "only use references of people you have permission to depict". It adds: "You are responsible for the rights to any likeness you submit." Chapter 6 shows what to record. This course gives no legal advice.
+### Step 4: fix the dentist reference
 
-## What this means for your work
+First get the dentist's written permission, and record it on the sheet. Then take a new photo: even light, the whole face in view, a calm face, no hat.
 
-- **One sheet per character.** Name, anchor, views, words, never-change, permission.
-- **A neutral, clear anchor.** Face visible, even light, one subject.
-- **Approve each view.** Build it from the anchor, check it, then add it.
-- **Be specific.** Write the never-change line so a stranger can check it.
-- **Count the slots.** Plan shots around the reference limit.
-- **Return to the sheet.** Do not chain one result into the next.
+### Step 5: the hard case, too many things in one shot
+
+Shot A needs four references: Zip, the dentist, the toothbrush and the tube. Veo 3.1 has 3 slots, and they are shared. Plan around them:
+
+```text
+Shot A1  Zip, the dentist, the tube         3 references
+Shot A2  Zip, the toothbrush, the tube      3 references
+```
+
+Another option: if the toothbrush is a plain white brush, describe it in words and keep it out of the slots.
+
+### Step 6: protect the next 30 posts
+
+For every new post, give `zip-front-v1.png` and the approved views, never last week's result. Before each post ships, put it next to the anchor and check the never-change line.
+
+### Why it is better
+
+- **One clean anchor** is the source for everything.
+- **Each view is approved** before use.
+- **Shots fit the slots**, so no reference is dropped or mixed.
+- **Drift is stopped at the source**, because every request starts from the sheet.
+
+## Common mistakes
+
+1. **Chaining results.** Each new image is made from the one before, and errors add up. Fix: always start from the approved sheet image.
+2. **A vague never-change line.** "Same as usual" cannot be checked. Fix: name colours, positions and shapes.
+3. **A lively anchor.** A laugh or a hard shadow in the anchor shows up everywhere. Fix: a neutral, evenly lit anchor; add expression in the prompt later.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A pet-food brand plans a Veo 3.1 shot with its parrot mascot, a real child actor, a dog and the food bag. All four need a reference image. Plan the shots, and say what you need before the child's photo can be used.
+
+### Answer
+
+- **Four references do not fit** in Veo 3.1's 3 shared slots. Split the shot, for example: parrot, child, food bag; then parrot, dog, food bag. Or describe a simple element in words instead of using a slot.
+- **The child's photo:** written permission on file first (for a child, ask your producer what form is needed). Then a clear, evenly lit photo with the face visible, a neutral expression and one subject.
+
+## Recap
+
+- One cast sheet per character: a clean, neutral anchor, approved views, and a never-change line anyone can check.
+- Count the reference slots before you plan a shot. Veo 3.1 takes up to 3 images, and any mix of person, mascot or product shares them.
+- For every new asset, start from the approved sheet, not the last result, and compare with the anchor.
