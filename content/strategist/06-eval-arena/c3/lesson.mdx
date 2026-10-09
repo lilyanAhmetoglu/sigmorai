@@ -1,7 +1,7 @@
 ---
 id: strategist/r6/c3/lesson
 title: KPIs that matter
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -23,82 +23,165 @@ sources:
     url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
 ---
 
-## Why it matters
+## Goal
 
-A **KPI** (key performance indicator) is a number that tells leaders if something is working. AI tools produce many numbers: chats, tokens, words written. Most of them show activity, not value. This chapter helps you pick the few numbers that answer "Is this worth it?"
+After this lesson you can:
 
-## Three layers of numbers
+- Tell activity numbers (how much the tool is used) from outcome numbers (what changed for the business).
+- Compare AI results with a baseline, and add guard numbers that catch hidden costs.
+- Compare two models on cost per completed task, and read feedback buttons with care.
 
-This split is a tool for this course. Track one or two numbers from each layer:
+## The problem
 
-1. **Quality:** is the output right? (from your evals, chapter 2)
-2. **Operations:** speed, errors, cost per task.
-3. **Business outcome:** what changed for customers or the company?
+A wholesale company gets 30,000 customer payments a month. A finance team matches each payment to the right invoice. Six months ago it added an AI tool that suggests the match.
 
-Anthropic's success-criteria guide lists metrics for all three. Its examples include generic quality metrics such as accuracy, operational metrics such as response time and uptime, and user feedback such as task completion rates.
+The vendor's dashboard shows big numbers:
 
-## Activity is not value
+```text
+Payments read by the AI          180,000
+Match suggestions made           176,500
+Suggestion accept rate           93%
+Staff rating                     4.7 / 5  (11 of 40 staff rated it)
+```
 
-Some numbers are easy to count but say little. Claude Code's analytics page is a useful example because it explains its own metrics carefully.
+The CFO asks a simple question: "Is it worth the money?" None of these numbers answers it. They show that the tool is busy. They don't show if payments are matched faster or more correctly than before.
 
-- **Lines of code accepted** counts lines that users accepted. The page says it excludes rejected suggestions and does not track later deletions. So a line that was accepted and then deleted still counts.
-- **Suggestion accept rate** is the share of times users accept the tool's edits.
+This lesson helps you pick the few numbers that answer "Is this worth it?". The guidance below is from each vendor's docs (October 2026).
 
-These are activity numbers. The same page points to outcome numbers for return on investment (ROI): track pull requests (finished pieces of work) per user over time, and compare work shipped with and without the tool. It says to use them alongside engineering KPIs the team already tracks. It also calls its contribution metrics "deliberately conservative": they count only work where the tool's part is clear.
+## The idea
 
-Example: a sales team uses an AI email writer. "Emails drafted" is activity. "Replies per email sent" and "meetings booked per rep" are outcomes.
+A **KPI** (key performance indicator) is a number that tells leaders if something is working. AI tools produce many numbers. Most of them show activity, not value.
 
-## Compare with a baseline
+**Three layers of numbers.** This split is ours, a tool for this course. Track one or two numbers from each:
 
-A number alone means little. You need something to compare it with. OpenAI's accuracy guide describes a customer service pilot. The team measured the process for humans and for AI side by side:
+```text
+quality     is the output right?            (from your evals)
+operations  speed, errors, cost per task
+outcome     what changed for customers or the company?
+```
 
-- the customer satisfaction (CSAT) score for human vs AI conversations,
-- decision accuracy on cases reviewed afterwards, human vs AI,
-- time to resolution, human vs AI.
+The [Claude docs on success criteria](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) give example metrics for all three: generic ones like "Accuracy", operational ones like "Response time (ms), uptime (%)", and user feedback through "Implicit measures like task completion rates."
 
-Anthropic's guide also lists A/B testing against a baseline model or an earlier version as a way to measure.
+**Activity is not value.** Some numbers are easy to count but say little. The [Claude Code analytics page](https://code.claude.com/docs/en/analytics) is a useful example, because it explains its own numbers carefully:
 
-Example: an IT service desk says "the AI resolved 3,000 tickets". The better KPI is "resolution rate and time to resolution, AI vs human, on the same ticket types".
+- **Lines of code accepted** counts lines that users accepted. The page says it "excludes rejected suggestions and does not track subsequent deletions". So a line that was accepted and then deleted still counts.
+- **Suggestion accept rate** is how often users accept the tool's edits.
 
-## Count cost per finished task
+These show use. For return on investment (ROI), the same page points to outcomes: "Track changes in PRs per user over time" (a PR, or pull request, is a finished piece of work), and "Compare PRs and lines of code shipped with vs. without Claude Code". It says to use these next to the other KPIs the team already tracks. It also calls its own contribution numbers "deliberately conservative": they count only work where the tool's part is clear.
 
-Price lists are written per token. Anthropic's cost guide says you pay for completed tasks, so compare models on **cost per completed task**, not cost per token. A stronger model can do less work per task: fewer turns, less searching and less backtracking.
+Our example: a phone call log shows how many calls you made. It doesn't show how many sales you closed.
 
-The guide also says to look at the hardest tasks, not only the typical one. A failed task still bills its tokens, then the retry, then whatever the failure costs later.
+**Compare with a baseline.** A number alone means little. You need something to compare it with: people doing the same work, an older version, or no tool. The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) describes a customer service pilot that measured the process for people and for AI side by side:
 
-Anthropic's post on evals lists numbers you can track on a fixed set of test tasks: latency, token usage, cost per task and error rates.
+- "The CSAT score for purely human interactions vs. AI ones" (CSAT is customer satisfaction)
+- "The decision accuracy for retrospectively reviewed cases for human vs. AI"
+- "The time to resolution for human vs. AI"
 
-Example: model X costs less per token than model Y. On 500 real tickets, X needs two tries on many of them. Cost per resolved ticket can then be higher for X.
+The Claude docs also list "A/B testing: Compare performance against a baseline model or earlier version."
 
-## Be careful with feedback buttons
+**Add guard numbers.** A main KPI can rise while something important gets worse. In the OpenAI pilot, the AI saved money even though it passed more cases to people than wanted. But "where the cost of failure was very high, such as a fraud case being incorrectly resolved", a person stayed in charge. So next to each main KPI, track a few **guard numbers** (our term): serious errors, complaints, work sent back or redone.
 
-Thumbs-up rates are popular. Anthropic's post lists the limits of user feedback: it is sparse and self-selected, it skews toward severe issues, and users rarely explain why something failed. The post also lists strengths: it shows problems you didn't expect, with real examples.
+**Count cost per finished task, not per token.** A **token** is a small piece of text; AI price lists charge per token. The [Claude docs on cost](https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence) say: "You pay for completed tasks, though, so compare models on cost per completed task." A stronger model can need "fewer turns, less searching, less re-reading of its own context, and less backtracking".
 
-OpenAI's guide uses positive ratings as one metric among several (its Q&A example sets "70+% positively rated answers" next to two other metrics). It also says to combine metrics with human judgment.
+Two more points from the same page:
 
-Example: if only 4% of users press a button, the rating describes those 4%, not everyone.
+- Look at the hard tasks: "compare models on the hardest tenth of your tasks, not the typical one."
+- Failures cost more than they seem: "a failed task still bills its tokens, then the retry, then whatever the failure costs downstream."
 
-## Watch the guard numbers too
+It adds: "The ranking flips by workload, and no price list tells you which way." So test on your own work, and test again when prices change. The Anthropic post [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) lists numbers you can track on a fixed set of test tasks: "latency, token usage, cost per task, and error rates".
 
-A KPI can rise while something important gets worse. OpenAI's guide shows this in the customer service pilot. The AI saved money even though it passed more cases to humans than wanted. Where a mistake was very costly, such as a fraud case, the team kept a human in charge.
+**Read feedback buttons with care.** The Anthropic post lists the limits of user feedback:
 
-So track a few **guard numbers** next to the main KPI. Examples: share of serious errors, complaints, cases sent back to a person.
+- "Sparse and self-selected": few people vote, and they choose to.
+- "Skews toward severe issues".
+- "Users rarely explain why something failed".
 
-## A KPI card
+It also lists strengths: it brings up problems you did not expect, and it comes "with real examples from actual human users". The [OpenAI evaluation guide](https://developers.openai.com/api/docs/guides/evaluation-best-practices) treats ratings as one number next to others: its Q&A example sets "70+% positively rated answers" next to two other targets. It also says: "Combine metrics with human judgment".
 
-This card is a tool for this course. One card per KPI:
+Our advice: don't set a target for the rating itself. People then push for votes, not for better work.
 
-- **Name:** time to resolution
-- **Layer:** operations
-- **Baseline:** human team, same ticket types, last quarter
-- **Target:** 30% faster with no rise in reopened tickets
-- **Source:** ticket system, not the AI vendor's dashboard
-- **Owner:** service desk manager
+## Worked example
 
-## Key points
+The payment tool from the problem.
 
-- Pick a few numbers from quality, operations and business outcome.
-- Activity numbers (lines accepted, chats) are not value on their own.
-- Always compare with a baseline: human, old version or no tool.
-- Use cost per completed task, not cost per token.
-- Treat feedback buttons as one signal; add guard numbers for serious errors.
+### Step 1: the weak one-pager
+
+```text
+AI matching: month 6
+- 180,000 payments read
+- 93% of suggestions accepted
+- Staff rating 4.7 / 5
+Conclusion: success, renew the contract
+```
+
+What goes wrong:
+
+- Payments read and suggestions made are activity. They grow with volume, not value.
+- The accept rate counts clicks. It doesn't show if the match was right.
+- The rating comes from 11 of 40 staff, and has no baseline.
+
+### Step 2: pick numbers from each layer, with a baseline
+
+The team compares AI-assisted payments with payments matched by hand last year, for the same customer types:
+
+```text
+                                     AI-assisted   By hand (last year)
+Quality  right first time            96%           97%
+Ops      minutes per 100 payments    35            140
+Ops      cost per right match        $0.11         $0.62
+Outcome  days to close the month     4             7
+Guard    matches reversed at         2.8%          0.9%
+         month-end
+```
+
+Cost per right match uses the full cost of each method (tool fees plus staff time), divided by matches that were right.
+
+### Step 3: the hard case
+
+**This is the hard case.** The 93% accept rate looked like quality. But the guard number shows reversed matches tripled, from 0.9% to 2.8%. The team reads 30 reversed cases. Staff were accepting suggestions on payments with no invoice number, often without checking. Like "lines accepted", the accept rate counted the click and ignored the later fix.
+
+So the one-pager shows the speed gain and the reversals side by side. The team adds a rule: payments with no invoice number need a second look. It tracks reversals every month.
+
+### Step 4: why it is better
+
+- **Outcomes, not activity.** Month-end close and cost per right match answer the CFO's question.
+- **A baseline.** Every number has a "by hand" number next to it.
+- **A guard number.** The reversal rate stops the speed number from telling half the story.
+- **Feedback in its place.** The rating can go in a footnote, with "11 of 40 staff".
+
+## Common mistakes
+
+1. **Reporting activity as value.** Chats, messages and accepted suggestions show use, not results. Fix: report outcomes, such as time, cost per finished task or errors.
+2. **Comparing with nothing.** "The AI did 5,000 tasks" means little alone. Fix: put people, an old version or "no tool" next to it, on the same type of work.
+3. **Choosing a model by token price.** A cheap model that fails and retries can cost more per finished task. Fix: test candidates on your own tasks, including the hardest ones, and divide total spend by tasks completed.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A university uses a chat assistant to answer questions from applicants. The admissions head shares this:
+
+```text
+Conversations                     12,000
+Messages written by the bot       81,000
+Thumbs-up rate                    94%  (2% of users voted)
+Questions answered without staff  58%  (email team, same question types: 71%)
+Applications finished after chat  1,900
+Complaints to the admissions office about wrong answers: 40 (last year: 12)
+```
+
+1. Which two numbers are activity only?
+2. What is the problem with "94% thumbs-up"?
+3. Which number is the guard number, and what does it say?
+
+### Answer
+
+1. **Conversations and messages written.** They show use, not results.
+2. **It comes from 2% of users** who chose to vote. Few people voted, and they chose to, so it is one signal, not everyone's view. It can still show real problems worth reading.
+3. **Complaints about wrong answers.** They more than tripled, from 12 to 40. Together with the lower answer rate than the email team (58% vs 71%), it says the bot is not yet as good as the baseline, even with happy voters.
+
+## Recap
+
+- Pick a few numbers from quality, operations and outcome. Activity numbers show use, not value.
+- Compare with a baseline on the same work, and add guard numbers for serious errors and redone work.
+- Compare models on cost per finished task, measured on your own work. Treat feedback buttons as one signal among several.
