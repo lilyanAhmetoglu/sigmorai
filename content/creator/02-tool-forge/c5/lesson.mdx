@@ -1,7 +1,7 @@
 ---
 id: creator/r2/c5/lesson
 title: Errors & retries
-minutes: 6
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · API errors
@@ -32,77 +32,182 @@ sources:
     url: https://docs.dev.runwayml.com/api-details/moderation
 ---
 
-## Why it matters
+## Goal
 
-Overnight, your studio sends 200 requests. In the morning, 14 failed. What now? "Run them all again" is the usual reflex. It is often wrong. Some failures fix themselves if you wait. Some will fail the same way every time. Some cost money each time you try.
+After this lesson you can:
 
-You don't need to read code. You need to read the **error** and choose the next step. This lesson gives you a way to do that.
+- Sort a failed request into one of three groups: change the request, wait and retry, or fix the account.
+- Plan a safe retry: growing pauses, a little randomness, and a limit on tries and time.
+- Check what a failure costs before you retry many jobs at once.
 
-## Three questions, three buckets
+## The problem
 
-This is Sigmorai's sorting method, not a vendor rule. For every failure, ask what has to change:
+A podcast network makes 60 episode covers and 12 short promo clips in one night. In the morning, 9 jobs have failed. A developer writes a script: "retry every failed job, every 2 seconds, until it works". He also wraps it around the vendor's own client library.
 
-| Bucket                    | What has to change                 | Retry the same request? |
-| ------------------------- | ---------------------------------- | ----------------------- |
-| **1. Change the request** | The prompt, the input or a setting | No                      |
-| **2. Wait**               | Nothing. The service is busy       | Yes, after a pause      |
-| **3. Fix the account**    | Credits, limits or the key         | No, not until fixed     |
+By lunch, nothing new has worked. Some jobs failed the same way again and again. One vendor account is close to suspension for too many blocked requests. The team paid credits for some failures twice. And the request count is much higher than anyone planned.
 
-The vendors' docs back each bucket.
+Retrying is not a fix. It is one of three different answers. This lesson shows how to pick the right one.
 
-## Bucket 1: change the request
+## The idea
 
-These errors say the request itself is the problem.
+### Three groups of failures
 
-- **OpenAI.** Some image failures are "user-correctable" and carry `error.type = "image_generation_user_error"`. The docs say: "Don't automatically retry these errors without modifying the prompt or input images." One such code is `moderation_blocked`.
-- **Runway.** `SAFETY.INPUT.*` means an input was rejected by moderation: "You should not retry these generations." `ASSET.INVALID` means an input file is not acceptable, "often" because of its "dimensions, duration, or other properties". A `400` is also marked as not retryable.
-- **Anthropic.** `invalid_request_error` (400) means a problem with the format or content of the request.
-- **Google.** Do not retry client errors such as `400`: they point to "bad syntax" or other request problems.
+Think of a letter that comes back from the post office. If the address is wrong, sending it again changes nothing: you fix the address. If the post office was closed, you try again tomorrow. If you had no stamp, you buy a stamp first.
 
-One Runway case is special. `INTERNAL.BAD_OUTPUT.01` may be retried; Runway says it may succeed after you fix these causes. The docs list common causes: logos, watermarks or overlaid text in the input media, explicit text generation requests in the prompt, and prompts that ask for a prompt to be written. Example: a product photo with a watermark fails. Remove the watermark first. Then retry.
+```text
+failure
+  |-- the request is wrong   -> CHANGE the request, then send   (no plain retry)
+  |-- the service is busy    -> WAIT, then send again slowly    (retry is fine)
+  |-- the account is blocked -> FIX credits, limits or the key  (no retry until fixed)
+```
 
-## Bucket 2: wait, then try again
+This sorting is ours, not a vendor rule. The vendor docs say which errors go where.
 
-These errors say the service is busy, not that your request is wrong.
+### Group 1: change the request
 
-- **OpenAI.** On a `429` rate limit, "follow the `Retry-After` header when it's present". On a `503` overload, follow `Retry-After`, then retry.
-- **Anthropic.** `529` means the API is "temporarily overloaded". A `500` should be retried "with exponential backoff". A `504` is a timeout.
-- **Google.** Retry transient errors such as `429 RESOURCE_EXHAUSTED` and `503 UNAVAILABLE`.
-- **Runway.** Retry `429`, `502`, `503` and `504`. For `THIRD_PARTY.UNAVAILABLE`, "wait and retry".
+These failures come from your prompt, your input or a setting.
 
-How to wait: **exponential backoff** means waiting longer after each failure. Google's example is 1, 2, 4, then 8 seconds. **Jitter** adds a small random delay, so many clients don't retry at the same instant. Runway says to add "a random delay of up to 50%". Always **set a limit** on the number of tries. OpenAI says to limit both the attempts and the total time spent retrying.
+- **OpenAI.** The [image docs](https://developers.openai.com/api/docs/guides/image-generation) say some failures are "user-correctable" with `error.type = "image_generation_user_error"`, for example `moderation_blocked`. They say: "Don't automatically retry these errors without modifying the prompt or input images."
+- **Runway moderation.** The [task failures page](https://docs.dev.runwayml.com/errors/task-failures) says a `SAFETY.INPUT.*` code means an input was rejected, and: "You should not retry these generations." The last part of the code is only a hint. `SAFETY.INPUT.TEXT` points to the prompt text, but the page says to "treat these as diagnostic messages only".
+- **Runway bad inputs.** `ASSET.INVALID` is "often" about "the dimensions, duration, or other properties" of your file.
+- **Plain 400 errors.** The [Runway error table](https://docs.dev.runwayml.com/errors/errors) marks `400` as not safe to retry. The [Gemini troubleshooting page](https://ai.google.dev/gemini-api/docs/troubleshooting) says: "Do not retry on client errors (like `400`, `402`, or `403`)". The [Claude docs](https://platform.claude.com/docs/en/api/errors) call a 400 a problem "with the format or content of your request".
 
-Do not spam. OpenAI warns that "unsuccessful requests contribute to your per-minute limit, so continuously resending a request won’t work."
+One Runway code sits in between: `INTERNAL.BAD_OUTPUT.01`. The name sounds like a server problem, but the common causes are in your request:
 
-## Bucket 3: fix the account
+- "Logos, watermarks, or overlaid text in input media"
+- a prompt with explicit requests to generate text
+- a prompt that asks for a media prompt to be written, instead of giving one
 
-Look at the code, not only the number. A `429` is not always "wait".
+The page says you "may retry" these, and they "may succeed if corrections were made". So: fix first, then retry.
 
-- **OpenAI.** `429` with `credit_balance_exhausted`, or a spend limit code: "Retrying billing, spend, or quota errors won't restore API access." Add credits or change limits first.
-- **Anthropic.** A `429` caused by a tier's monthly spend cap "has no `retry-after` header and keeps failing until access resumes".
-- **Anthropic.** A `400` can also mean a spend limit you set was reached.
-- **Runway.** A `401` means the API key is not valid. Retry is not allowed.
-- **Anthropic and Google** list billing errors too: `402`. Google says not to retry it.
+### Group 2: wait, then retry
 
-Example: the 14 failures all show `429`. If the message says your credits are used up, waiting will not help. Someone has to add credits.
+These failures mean the service is busy for a short time.
 
-## Does a failure cost money?
+- **OpenAI** ([rate limits](https://developers.openai.com/api/docs/guides/rate-limits)): for a `429` or a `503`, "Follow `Retry-After` when it's present". That header tells you how many seconds to wait.
+- **Gemini**: retry errors such as `429 RESOURCE_EXHAUSTED` and `503 UNAVAILABLE`.
+- **Claude**: `529` means "The API is temporarily overloaded."
+- **Runway**: `429`, `502`, `503` and `504` may be retried. For `THIRD_PARTY.UNAVAILABLE`, you "may wait and retry".
 
-It depends on the vendor. Read the rule before you retry in bulk.
+How to wait:
 
-- Runway: "Moderated generations have the same credit cost as successful generations." Credits are not refunded for `SAFETY.INPUT.*` failures. Too many moderated requests can lead to account suspension.
-- Google: for Veo 3.1, if audio processing blocks a video, "You will not be charged if your video is blocked from generating." (Cost per asset was covered in Bootstrap Village, chapter 5.)
+- **Backoff.** Wait a little, then longer after each failure. The Gemini page gives an example: 1 second, then "2s, 4s, 8s".
+- **Jitter.** Add a small random delay, so that many apps do not hit the service in the same second. The Runway docs say: "add a random delay of up to 50%".
+- **A cap.** The OpenAI docs say: "Limit both the number of attempts and the total time spent retrying."
 
-So a retry loop on a blocked prompt can burn credits on Runway. Fix the prompt first.
+Fast retries make things worse. The OpenAI docs warn: "unsuccessful requests contribute to your per-minute limit, so continuously resending a request won't work."
 
-## Auto retries are already on
+### Group 3: fix the account
 
-Anthropic's SDK retries "transient failures" twice by default and honors `retry-after`. Google's Python SDK retries transient errors up to four times. OpenAI's SDKs retry eligible `429` and `503` responses. OpenAI also warns that if your app adds its own retry loop, nested loops can multiply requests. Ask your tool's owner what is already retried.
+The status number is not enough. Read the code too. A `429` can mean "busy" or "no money".
 
-## What this means for your work
+- **OpenAI** ([error codes](https://developers.openai.com/api/docs/guides/error-codes)): the code `credit_balance_exhausted` on a `429` means no prepaid credits are left. The page says: "Retrying billing, spend, or quota errors won't restore API access." Top up the credits, or raise the limit, before you send again.
+- **Claude**: a `429` from a monthly spend cap "has no `retry-after` header and keeps failing until access resumes".
+- **Runway**: `401` means "The provided API key is not valid." Not safe to retry.
 
-- **Sort before you retry.** Change the request, wait, or fix the account.
-- **Read the code, not just the number.** A `429` can mean "wait" or "out of credits".
-- **Ask what a failure costs.** Some vendors charge for moderated requests.
-- **Cap the tries.** Three or four retries with growing pauses is a plan. An endless loop is not.
-- **Keep the request id.** Anthropic asks for it when you contact support. OpenAI says to log it.
+### Does a failure cost money?
+
+Check this before any bulk retry. The rules differ:
+
+- **Runway**: "Moderated generations have the same credit cost as successful generations." And for `SAFETY.INPUT.*`, "credits are not refunded". Too many moderated requests can get your account suspended.
+- **Veo 3.1**: the [Veo docs](https://ai.google.dev/gemini-api/docs/veo) say it sometimes blocks a video because of the audio, and "You will not be charged if your video is blocked from generating."
+
+So retrying a blocked prompt on Runway pays again for the same rejection.
+
+### Retries may already be on
+
+Client libraries (SDKs) often retry for you:
+
+- The Claude docs: the SDK retries transient failures "twice by default".
+- The OpenAI docs: each official SDK "automatically retries eligible `429` and `503` responses".
+- The Gemini docs: the official SDKs include "automatic retry logic with exponential backoff by default".
+
+If you add your own loop around them, the tries multiply. The OpenAI docs say to "disable SDK retries or account for them" in your limits, "so nested retry loops don't multiply requests". Example: 3 SDK tries inside 5 tries of your own can send 15 requests for one job.
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+For every failed job:
+  retry every 2 seconds until it works
+  (inside the SDK, which also retries)
+```
+
+### Step 2: sort the 9 failures
+
+```text
+cover-07  OpenAI image  image_generation_user_error / moderation_blocked
+cover-19  Runway        FAILED  SAFETY.INPUT.IMAGE
+cover-33  Runway        FAILED  ASSET.INVALID
+promo-02  Runway        FAILED  INTERNAL.BAD_OUTPUT.01
+                        (prompt: "write a prompt for a neon studio scene")
+promo-05  Runway        HTTP 503
+promo-08  Gemini        429 RESOURCE_EXHAUSTED
+promo-09  Claude        529 overloaded_error   (script writing step)
+cover-41  OpenAI        429 organization_spend_limit_exceeded
+promo-11  Runway        FAILED  THIRD_PARTY.UNAVAILABLE
+```
+
+```text
+CHANGE   cover-07  rewrite the prompt or change the input image
+         cover-19  replace the input image; do not resend as is
+         cover-33  fix the file size, length or shape
+         promo-02  give the scene prompt directly, then retry
+WAIT     promo-05, promo-08, promo-09, promo-11
+         backoff + jitter, max 4 tries or 10 minutes
+FIX      cover-41  raise the spend limit or add credits first
+```
+
+### Step 3: the hard case
+
+**The hard case is promo-02.** Its code starts with `INTERNAL`, so the developer put it in "wait". But the Runway docs list "write a prompt for..." requests as a common cause. A plain retry repeats the same mistake. Fix the prompt first. Then a retry is allowed and may work.
+
+### Step 4: the good plan
+
+```text
+1. Sort first. Never retry a CHANGE or FIX job unchanged.
+2. WAIT jobs: follow Retry-After if present; else 1s, 2s, 4s, 8s
+   plus a random extra of up to 50%. Stop after 4 tries or 10 min.
+3. Our loop only, with SDK retries off (or counted in the cap).
+4. Before resending Runway jobs, remember: moderated jobs cost credits.
+```
+
+### Step 5: why it is better
+
+- **Each failure gets the right answer.** Nothing is sent again unchanged when the request was the problem.
+- **The load stays low.** Backoff, jitter and a cap stop a flood of requests.
+- **No hidden multiplier.** One retry loop, with a known maximum.
+- **Money is checked.** Blocked prompts are fixed before they are paid for again.
+
+## Common mistakes
+
+1. **Retrying a rejected prompt as is.** It fails again, and on some services it costs again. Fix: change the prompt or input first.
+2. **Reading only the status number.** A `429` can mean "too fast" or "no credits". Fix: read the error code and message too.
+3. **Stacking your own loop on the SDK's loop.** Requests multiply. Fix: turn one loop off, or count both in one limit.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Put each failure in a group (change, wait or fix), and say the next step:
+
+```text
+a) Gemini 400, bad syntax in the request body
+b) Claude 529 overloaded_error
+c) Runway 401
+d) Runway FAILED INTERNAL.BAD_OUTPUT.01, the input poster has a big title text on it
+```
+
+### Answer
+
+- **a) Change.** A 400 is a client error. Fix the request body, then send it.
+- **b) Wait.** The API is temporarily overloaded. Send again after growing pauses, with jitter, and stop after a few tries.
+- **c) Fix.** The API key is not valid. Replace the key. Retrying will not help.
+- **d) Change, then retry.** Overlaid text in the input is a common cause. Use a version without the title, then retry.
+
+## Recap
+
+- Sort first: change the request, wait, or fix the account. Read the error code, not only the number.
+- Retry only busy errors. Use growing pauses and jitter, and set a maximum for tries and for time. Fast resending counts against your limit.
+- Check the cost of failures, and check what the SDK already retries, so loops do not multiply.
