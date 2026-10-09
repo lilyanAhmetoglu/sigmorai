@@ -64,8 +64,8 @@ You get a time window, not a speed:
 Batches also use separate capacity:
 
 - **OpenAI docs:** "using the Batch API will not consume tokens from your standard per-model rate limits".
-- **Claude:** batch usage "does not affect rate limits in the Messages API". The Batches API has its own limits, including how many batch requests can wait in the queue.
-- **Gemini:** batch requests are "subject to their own rate limits".
+- **Claude docs:** batch usage "does not affect rate limits in the Messages API". The Batches API has its own limits, including how many batch requests can wait in the queue.
+- **Gemini docs:** batch requests are "subject to their own rate limits".
 
 ### Per-batch limits
 
@@ -74,7 +74,7 @@ Batches also use separate capacity:
 | Per batch | 100,000 requests or 256 MB, whichever comes first | 50,000 requests; input file up to 200 MB | Inline under 20 MB; input file up to 2 GB |
 | Expiry    | 24 hours                                          | 24-hour window                           | After 48 hours                            |
 
-On OpenAI, "each input file can only include requests to a single model", and you can create up to 2,000 batches per hour.
+The OpenAI docs say "each input file can only include requests to a single model", and you can create up to 2,000 batches per hour.
 
 Some options do not work in a Claude batch. `stream: true` is not supported, because "Batch results come back as a single file, not a stream". Fast mode's `speed` setting and `max_tokens: 0` are not supported either.
 
@@ -84,7 +84,7 @@ Claude validates every request's `params` in the background, and "validation err
 
 ### Match by id, never by position
 
-Every request needs a unique `custom_id`. On Claude it is 1 to 64 characters: letters, digits, hyphens and underscores. The Claude docs say results "can be returned in any order". OpenAI says the output line order "may not match" the input order. So read the `custom_id` on each result. Sorting your input first does not fix the output order.
+Every request needs a unique `custom_id`. On Claude it is 1 to 64 characters: letters, digits, hyphens and underscores. The Claude docs say results "can be returned in any order". The OpenAI docs say the output line order "may not match" the input order. So read the `custom_id` on each result. Sorting your input first does not fix the output order.
 
 ### Plan for partial failure
 
@@ -120,7 +120,7 @@ Flex can run out of room and return `429 Resource Unavailable`. The docs say: "Y
 
 ### What the vendor keeps
 
-Claude stores batch request and response data "for up to 29 days after batch creation". You can delete a batch after processing. Chapter 4 covers what this means for data rules.
+The Claude docs say batch data is stored "for up to 29 days after batch creation". You can delete a batch after processing. Chapter 4 covers what this means for data rules.
 
 ## Worked example
 
@@ -129,17 +129,15 @@ Our example: the news archive's 180,000 summaries on Claude's Message Batches AP
 ### Step 1: the weak plan
 
 ```text
-submit:  one batch with all 180,000 requests
+submit:  two batches of 90,000 requests
 check:   none before the run
-read:    results file line by line, line N = article N
 retry:   if anything failed, run the whole batch again
 ```
 
 What goes wrong:
 
-- 180,000 is over the 100,000-request limit.
+- 90,000 is under the request limit, but each batch is too big in MB (step 3).
 - A wrong field fails every request, and you only learn it at the end.
-- Line order is not input order, so summaries land on the wrong articles.
 - A full rerun pays again for thousands of good results.
 
 ### Step 2: test one request first
@@ -164,14 +162,16 @@ Give each request an id from your own data, such as `article-20190412-0031`. Whe
 
 ### Step 5: retry only the failures
 
-Our example counts for batch 1: 44,710 succeeded, 170 errored, 0 canceled, 120 expired.
+Batch 1 ends. Sort the results that did not succeed by type:
 
 ```text
-failed = 170 errored + 120 expired = 290 ids
-check:   44,710 + 170 + 0 + 120 = 45,000
+errored, invalid request  -> fix the params, then resend
+errored, server error     -> resend as it is
+expired                   -> resend as it is
+succeeded                 -> keep; never resend
 ```
 
-Read the error type of the 170. Fix the invalid ones, then put all 290 ids into one new, small batch. The 44,710 good summaries stay as they are.
+Put the resend ids into one new, small batch. The good summaries stay as they are.
 
 ### Step 6: why it is better
 

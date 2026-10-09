@@ -64,7 +64,7 @@ The [OpenAI latency guide](https://developers.openai.com/api/docs/guides/latency
 Think of a phone call: listening to a long question is quick, but the reply is spoken one word at a time. So the order of work is:
 
 1. **A smaller or faster model,** if your evals still pass. The OpenAI guide: "smaller models usually run faster (and cheaper)". For speed-critical apps, the Claude guide names Claude Haiku 5.5.
-2. **Shorter output.** The Claude guide says that asking for an exact word count "is not as effective" as limits in sentences or paragraphs. It calls `max_tokens` "a blunt technique", because a reply can stop mid-sentence. For structured output, OpenAI suggests shorter function names and less syntax.
+2. **Shorter output.** The Claude guide says that asking for an exact word count "is not as effective" as limits in sentences or paragraphs. It calls `max_tokens` "a blunt technique", because a reply can stop mid-sentence. For structured output, the OpenAI guide suggests shorter function names and less syntax.
 3. **Shorter input,** only when the context is very large, or to save money.
 
 ### Do less, and do it in parallel
@@ -84,9 +84,7 @@ The OpenAI guide lists these ways to make users wait less:
 - **Chunking:** process the output in parts, and show each part when it is ready.
 - **Showing your steps and loading states:** these have "a mostly psychological effect".
 
-Streaming and chunking, by contrast, really do cut the time before users can read.
-
-The Claude guide says streaming improves "perceived responsiveness". But streaming does not make the full answer finish sooner.
+The OpenAI guide adds that streaming and chunking "genuinely do reduce overall latency once you consider the app + user system: the user will finish reading a response sooner". The model's work does not shrink. The [Claude guide](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-latency) says streaming lets the model "start sending back its response before the full output is complete". So the last word arrives at the same time; the reader just starts earlier.
 
 ### Paying for speed
 
@@ -112,12 +110,12 @@ Retries add up too. The [OpenAI rate limits guide](https://developers.openai.com
 
 ### Scale the app around the model
 
-The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) lists horizontal scaling, vertical scaling, caching and load balancing. Caching frequently used data can "improve response times without needing to make repeated calls to our API". Our additions:
+The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) lists horizontal scaling (more servers), vertical scaling (bigger servers), caching and load balancing. Caching frequently used data can "improve response times without needing to make repeated calls to our API". Our additions:
 
 - **Keep servers stateless.** Store conversation state in a database, so any server can take any request.
 - **Size workers from your limits.** Divide the limit by the tokens per request. Our example: a limit of 2 million input tokens a minute and 10,000 uncached input tokens per request allow about 200 requests a minute. Queue the rest, and show a "busy" message when the queue grows too long.
 
-Even within your own limits, Claude can return 529 `overloaded_error` when "the API experiences high traffic across all users". Chapter 6 covers a fallback.
+Even within your own limits, the Claude errors page says a 529 `overloaded_error` can happen when "the API experiences high traffic across all users". Chapter 6 covers a fallback.
 
 ## Worked example
 
@@ -133,7 +131,7 @@ D  model: write the comparison, 600 tokens  3.0 s   (needs B and C)
 in a row: 0.3 + 2.5 + 2.5 + 3.0 = 8.3 s
 ```
 
-Cutting the prompt in half would save 1 to 5% of each model call, so well under half a second in total. That is the weak idea.
+Cutting the prompt in half would save 1 to 5% of each model call, so at most about 0.4 s in total (5% of 8.0 s of model time). That is the weak idea.
 
 ### Step 2: run B and C in parallel
 
@@ -145,7 +143,7 @@ B and C do not depend on each other. Run them at the same time.
 
 ### Step 3: cut the output of D
 
-The comparison was 600 tokens of long paragraphs. Ask for "three short sentences per product, then one sentence with the better pick". It comes out at about 300 tokens. By OpenAI's rule of thumb, half the output may cut about half the time of D.
+The comparison was 600 tokens of long paragraphs. Ask for "three short sentences per product, then one sentence with the better pick". It comes out at about 300 tokens. By the OpenAI guide's rule of thumb, half the output may cut about half the time of D.
 
 ```text
 0.3 + 2.5 + about 1.5 = about 4.3 s
@@ -157,19 +155,19 @@ Users now see the first words of the comparison a short time after D starts. The
 
 ### Step 5: the hard case, retries and a deadline
 
-The team's client has a 30 s timeout per attempt and 3 attempts. On a bad day one click can take 3 × 30 = 90 s before the user sees an error. Our fix: one deadline of 15 s for the whole button. When it passes, stop retrying and show a clear message with a retry button.
+The team's client has a 30 s timeout per attempt and 3 attempts. On a bad day one click can take at least 3 × 30 = 90 s, plus the waits between tries, before the user sees an error. Our fix: one deadline of 15 s for the whole button. When it passes, stop retrying and show a clear message with a retry button.
 
 ### Step 6: why it is better
 
 - 8.3 s became about 4.3 s, with the first words much sooner.
 - No fast mode was needed, so the price per call did not go up.
-- The worst case is now 15 s, not 90 s.
+- The worst case is now 15 s, not 90 s or more.
 
 ## Common mistakes
 
 1. **Trimming the prompt first.** Input cuts rarely save much time. Fix: cut output, or use a smaller model that still passes your evals.
 2. **Fast mode for background jobs.** It costs a premium for speed nobody needs. Fix: use batch or Flex for jobs that can wait.
-3. **A huge `max_tokens` with no streaming.** Idle connections can drop. Fix: stream long replies, or use the Batch API when nobody is waiting.
+3. **A huge `max_tokens` with no streaming.** Idle connections can drop. Fix: turn on streaming for any reply that can run for minutes. If no person waits for it, send it as a batch job.
 
 ## Try it
 

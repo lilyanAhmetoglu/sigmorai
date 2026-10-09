@@ -68,13 +68,13 @@ trace      -> one multi-step run: every call and tool in order
 
 ### Your own id, for calls that never came back
 
-A timeout or a network error can leave you with no server id. OpenAI lets you send your own id in the `X-Client-Request-Id` header. The rules: "only ASCII characters and be no more than 512 characters long; otherwise, the request will fail with a 400 error". Make it unique per request. In cases like timeouts, you can share it with support "to look up whether OpenAI received the request and when". A timeout on your side does not prove the request never arrived.
+A timeout or a network error can leave you with no server id. OpenAI lets you send your own id in the `X-Client-Request-Id` header. The OpenAI API reference sets the rules: "only ASCII characters and be no more than 512 characters long; otherwise, the request will fail with a 400 error". Make it unique per request. In cases like timeouts, you can share it with support "to look up whether OpenAI received the request and when". A timeout on your side does not prove the request never arrived.
 
 [Claude Code's telemetry](https://code.claude.com/docs/en/monitoring-usage) uses the same idea. Its `api_error` events carry a `client_request_id`, which stays available "for failures such as timeouts that never produced a server `request_id`".
 
 ### Your time versus the vendor's time
 
-OpenAI responses also carry `openai-processing-ms`. The reference gives it one line: "Time taken processing your API request". Compare it with the time your client measured. Our example: the client measured 3.0 s, and the header says 2,600 ms. The other 0.4 s happened before or after that processing, for example in the network, your server or a queue.
+OpenAI responses also carry `openai-processing-ms`. The reference gives it one line: "Time taken processing your API request". Log it next to the time your client measured. Our reading: the header covers only the vendor's processing. So when your client time is much bigger, the extra time is outside it: in the network, your server or a queue. When the two are close, look at the model work itself (chapter 5).
 
 ### What to chart and alert on
 
@@ -82,7 +82,7 @@ A final status of 200 can hide trouble. Our list of numbers worth a chart:
 
 - **Errors by status code.** More 429 means a limit (chapter 1). More 5xx means the vendor.
 - **Attempts per call.** A call that needed three tries made the user wait, and the failed tries used up rate limit.
-- **Latency as p50 and p95**, not only the average. A few very slow calls hide in an average.
+- **Latency as p50 and p95**, not only the average. p95 is the time that 95 of every 100 calls finish within; only the slowest 5% take longer. A few very slow calls hide in an average.
 - **Time to first token.** The [Claude latency guide](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-latency) defines it as the time "to generate the first token of the response, from when the prompt was sent".
 - **Reply length (output tokens) for each feature.** Generating tokens is usually the slowest step (chapter 5), so longer replies mean slower replies and a bigger bill.
 - **Cost per day, by feature.**
@@ -91,7 +91,7 @@ Alert on change, not only on fixed limits. A prompt edit can double reply length
 
 ### The vendor's own numbers
 
-Your logs show what you sent. The vendor shows what it counted. The [Claude Usage and Cost API](https://platform.claude.com/docs/en/manage-claude/usage-cost-api) is part of the Admin API. It breaks usage down by model, workspace and service tier, can filter by API key, and uses `1m`, `1h` or `1d` buckets. The cost endpoint is daily only, and Priority Tier costs are not in it. From the docs:
+Your logs show what you sent. The vendor shows what it counted. The [Claude Usage and Cost API](https://platform.claude.com/docs/en/manage-claude/usage-cost-api) is part of the Admin API. It breaks usage down by model, workspace and service tier, can filter by API key, and uses `1m`, `1h` or `1d` buckets. The cost endpoint has "Daily granularity only (`1d`)", and Priority Tier costs are not in it. From the docs:
 
 - One listed use is "Cost reconciliation".
 - Data "typically appears within 5 minutes of API request completion".
@@ -103,7 +103,7 @@ Your logs show what you sent. The vendor shows what it counted. The [Claude Usag
 An agent run is many calls and tools. One log line per call cannot show how they connect.
 
 - **OpenAI Agents SDK.** The [tracing page](https://developers.openai.com/api/docs/guides/agents/integrations-observability) says tracing "is enabled by default in the normal server-side SDK path". Every run can record "model calls, tool calls, handoffs, guardrails, and custom spans", and you can view them in the Traces dashboard. `withTrace` groups several runs into one trace. The docs name two uses: debug one run, and feed good examples into evals.
-- **Claude Code.** It exports metrics and events with OpenTelemetry, and traces in beta. Each user prompt starts a `claude_code.interaction` span, and API calls and tool calls are its children. The `prompt.id` attribute links "all events produced while processing a single user prompt".
+- **Claude Code.** It exports metrics and events with OpenTelemetry (an open standard for sending metrics, logs and traces), and traces in beta. Each user prompt starts a `claude_code.interaction` span (one timed step inside a trace), and API calls and tool calls are its children. The `prompt.id` attribute links "all events produced while processing a single user prompt".
 
 ### Logs hold customer data
 
@@ -131,11 +131,11 @@ It cannot tell you which call it was, how slow it was, how many tries it took, o
 ```text
 time=2026-10-07T13:42:10Z feature=expenses model=<model id>
 user=hash:5f2a... server_id=req_8c1d... client_id=bot-7f3e21
-status=200 attempts=1 total_ms=3000 vendor_ms=2600 first_token_ms=900
+status=200 attempts=1 total_ms=2900 vendor_ms=2750 first_token_ms=900
 in_tokens=2400 out_tokens=180 cached_tokens=2000
 ```
 
-The user is a hash, not a name or email. The prompt and reply text are not in the line.
+The user is a hash, not a name or email. The prompt and reply text are not in the line. Here `total_ms` and `vendor_ms` are close, so this call spent its time in processing, not on the way there.
 
 ### Step 3: the hard case, a call with no answer
 
@@ -169,7 +169,7 @@ check:  daily totals vs the vendor's usage report
 ## Common mistakes
 
 1. **Watching only the final status.** A 200 after three tries still cost time and limit. Fix: log and chart attempts and 429s too.
-2. **Logging every full prompt "for debugging".** You store a copy of customer data. Storing a hash of the text instead does not help you debug, because you cannot read the original words back from it. Fix: log metadata by default, and turn content on only for a small sample with limited access.
+2. **Logging every full prompt "for debugging".** You store a copy of customer data. Storing a hash of the text instead does not help you debug, because you cannot read the original words back from it. Fix: keep ids, status, timings and token counts in every line. Turn on prompt text only when you debug, for a short time and for a few people.
 3. **Ids as metric labels.** Each new id makes a new series, and storage grows without end. Fix: keep ids on events and log lines.
 
 ## Try it
