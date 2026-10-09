@@ -46,7 +46,11 @@ The project lead must choose a design and write a budget line for the finance te
 
 A **knowledge base** is the set of documents your assistant can use. The model does not read all of it for every question. Something must choose the right parts and hand them over.
 
-**Small library: put it all in the prompt.** The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) (September 2024) gives a rule of thumb. If the knowledge base is smaller than "200,000 tokens", which the post puts at "about 500 pages of material", you can include all of it in the prompt, "with no need for RAG or similar methods". (**Tokens** are the small pieces of text a model reads.) The post adds that **prompt caching** (the vendor reuses the already-read start of a prompt) makes this "significantly faster and more cost-effective". Caching lowers the cost of a big prompt. It does not make a far larger library fit.
+**Small library: put it all in the prompt.** The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) (September 2024) offers this size rule:
+
+- If the knowledge base is smaller than "200,000 tokens", which the post puts at "about 500 pages of material", you can include all of it in the prompt, "with no need for RAG or similar methods". (**Tokens** are the small pieces of text a model reads.)
+- **Prompt caching** (the vendor reuses the already-read start of a prompt) makes this "significantly faster and more cost-effective".
+- Caching lowers the cost of a big prompt. It does not make a far larger library fit.
 
 **Large library: retrieval (RAG).** For larger libraries, the same post describes **RAG** (retrieval-augmented generation):
 
@@ -69,7 +73,7 @@ A **knowledge base** is the set of documents your assistant can use. The model d
 
 **Two places where RAG breaks.** The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) names two areas:
 
-- **Retrieval.** Search brings the wrong context, so the model can't answer. Or it brings too much unrelated context. The guide says this "drowns out" the real facts and "causes hallucinations".
+- **Retrieval.** Search brings the wrong context, so the model can't answer. Or it brings too much unrelated context. The guide says this "drowns out" the real facts and "causes hallucinations" (made-up answers stated as fact).
 - **The model.** The guide says it "can also get the right context and do the wrong thing with it".
 
 The fixes are different, so find out which one it is. The Anthropic post also shows that search can get much better. In its tests, adding a short context to each chunk cut failed retrievals "by 49% and, when combined with reranking, by 67%". (**Reranking** means a second step that re-sorts the found chunks.) Those are results on Anthropic's test data, not a promise for yours.

@@ -64,7 +64,11 @@ A source that changes every week but syncs once a month is wrong for most of the
 
 **Replace, don't pile up.** When a document changes, remove the old file in the same step as you add the new one. If both stay, search may return either.
 
-The [OpenAI retrieval guide](https://developers.openai.com/api/docs/guides/retrieval) adds a timing detail: "Removing files from a vector store is eventually consistent". For a short time, search can still show text from the removed file. **Eventually consistent** means the change reaches every part of the system after a short delay, not at once. So after a swap, ask your check question again until only the new file appears. Then announce the change. Uploading the new file a second time does not help; it only makes a duplicate. You also don't need to rebuild the whole store for each change.
+The [OpenAI retrieval guide](https://developers.openai.com/api/docs/guides/retrieval) adds a timing detail: "Removing files from a vector store is eventually consistent". For a short time, search can still show text from the removed file. **Eventually consistent** means the change reaches every part of the system after a short delay, not at once. Our advice:
+
+- After a swap, ask your check question again until only the new file appears. Then announce the change.
+- Do not upload the file twice. That only makes a duplicate.
+- You don't need to rebuild the whole store for each change.
 
 The same guide offers two more tools:
 
@@ -73,15 +77,15 @@ The same guide offers two more tools:
 
 **When the facts are outside your files.** Some facts live on the public web: local events, a new law, a partner's public prices. Both vendors offer a web search tool.
 
-- The [Claude web search page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool) says the tool gives "up-to-date information beyond its knowledge cutoff". Claude searches "when the request depends on information that is current, changing, or outside its training data", and when the user asks it to search. For "stable knowledge", such as "math, science fundamentals, or coding concepts", it answers directly.
+- The [Claude web search page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool) says the tool gives "up-to-date information beyond its knowledge cutoff". The page says the tool is used "when the request depends on information that is current, changing, or outside its training data", and when the user asks it to search. For "stable knowledge", such as "math, science fundamentals, or coding concepts", it answers directly.
 - The [OpenAI web search guide](https://developers.openai.com/api/docs/guides/tools-web-search) says the tool gives "up-to-date information from the internet" with "sourced citations".
 
-**Limit where results come from.** The Claude tool takes `allowed_domains` or `blocked_domains` ("not both"). The OpenAI tool takes "up to 100 `allowed_domains` or up to 100 `blocked_domains`". This filter "is only available in the Responses API with the `web_search` tool" (the Responses API is OpenAI's main API for model requests). Without such limits, answers may draw on forums or outdated blog posts.
+**Limit where results come from.** The Claude tool takes `allowed_domains` or `blocked_domains` ("not both"). The OpenAI tool takes "up to 100 `allowed_domains` or up to 100 `blocked_domains`". This filter "is only available in the Responses API with the `web_search` tool" (the Responses API is OpenAI's main API for model requests). Our advice: set such limits, or answers may draw on forums or outdated blog posts.
 
 **What it costs.** Search fees come on top of tokens (the small pieces of text a model reads):
 
 - **Claude:** "$10 per 1,000 searches, plus standard token costs for search-generated content."
-- **OpenAI** ([pricing page](https://developers.openai.com/api/docs/pricing)): the web search tool costs "$10.00 / 1k calls + Search content tokens billed at model rates". The older preview tool has a different price.
+- **OpenAI** ([pricing page](https://developers.openai.com/api/docs/pricing)): the web search tool costs "$10.00 / 1k calls + Search content tokens billed at model rates". The older preview tool costs the same for reasoning models, but "$25.00 / 1k calls" for non-reasoning models.
 
 So $10 per 1,000 is one cent per search. 1,000 searches cost $10 in search fees on either platform, before tokens.
 
