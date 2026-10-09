@@ -1,7 +1,7 @@
 ---
 id: strategist/r6/c6/lesson
 title: Reporting up
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -20,94 +20,165 @@ sources:
     url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
 ---
 
-## Why it matters
+## Goal
 
-You have success criteria, evals, KPIs, an ROI model and a pilot. Now you must tell leaders what it all means. A board or an executive team has a few minutes. It wants to know one thing: should we spend more, fix it or stop?
+After this lesson you can:
 
-A report can fail in two ways. It can hide problems to look good. Or it can bury the decision under forty numbers. This chapter is about a short report that is honest and clear.
+- Write a one-page report that starts with the decision you ask for.
+- Show results against the targets set before the pilot, on the real mix of work, with sample sizes and labels.
+- Recommend a scope that fits the cost of a mistake, instead of all or nothing.
 
-## Lead with the decision
+## The problem
 
-Start the page with what you ask for and why. This structure is a tool for this course:
+A city transport company runs buses and trams. It publishes about 600 customer notices a month: timetable changes, service updates and safety notices. Each notice must go out in five languages. For three months it piloted an AI tool that translates them. Human translators checked a sample.
 
-1. **The ask.** "Approve a rollout to the clean-document team" or "Stop the pilot."
-2. **The evidence in one line.** The best number against its target.
-3. **The risks.** What could go wrong, and the cost of it.
-4. **What we don't know yet.** And how we will find out.
-5. **The next step and its date.**
+The project lead drafted the summary for the executive team:
 
+> "AI translation: 97% accurate, 100% on safety phrases, saves $120,000 a year. Recommend full rollout."
+
+The data behind it is less simple. The test used only Spanish and French. Polish and Arabic notices were tested on a small set, with weaker results. The $120,000 is the vendor's estimate. The executive team will read the page for three minutes, then decide: spend more, fix or stop.
+
+This lesson shows how to report AI results honestly and clearly. The guidance below is from each vendor's docs (October 2026).
+
+## The idea
+
+A report can fail in two ways. It can hide problems to look good. Or it can bury the decision under forty numbers.
+
+**Lead with the decision.** This structure is ours, a tool for this course:
+
+```text
+1. The ask             "Approve X" or "Stop the pilot"
+2. Evidence, one line  the key results against their targets
+3. Risks               what could go wrong, and its cost
+4. Unknowns            what we haven't tested, and how we'll find out
+5. Next step, date
 Everything else goes in a short appendix.
+```
 
-## Compare with the target you set
+Background ("the pilot ran for three months at...") is not an opening line. It goes later.
 
-In chapter 1 you wrote targets before the pilot. Report against them. Do not choose new goals after you see the results.
+**Compare with the targets you set before.** Report against the targets written before the pilot. Don't pick new goals after you see results. The [Claude docs on success criteria](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say: "Most use cases need multidimensional evaluation along several success criteria." So show a few rows, each with a target, a result and "pass" or "miss". A mix of passes and misses is a normal result. Say so.
 
-Anthropic's success-criteria guide says most use cases need evaluation along several criteria. So the report shows a few rows, each with a target, a result and a pass or miss.
+**Test the real mix, not the easy part.** The [OpenAI evaluation guide](https://developers.openai.com/api/docs/guides/evaluation-best-practices) lists "Biased design" as an anti-pattern: "Creating eval datasets that don't faithfully reproduce production traffic patterns." If the test holds only easy cases, the headline number is too high.
 
-| Criterion      | Target   | Result | Status |
-| -------------- | -------- | ------ | ------ |
-| Accuracy       | 95%      | 91%    | Miss   |
-| Time per task  | -30%     | -41%   | Pass   |
-| Serious errors | Under 1% | 2%     | Miss   |
-| Cost per task  | $1.20    | $0.95  | Pass   |
+To get the real figure, weight each group's result by its share of real work. This arithmetic is ours. Our example: a tool scores 99% on short emails and 75% on long ones. If 40% of real emails are long, the real figure is about 0.6 × 99% + 0.4 × 75% ≈ 89%.
 
-Example (made up): two passes and two misses is a mixed result. Say so. A mixed result is a normal outcome of a good pilot.
+**Put a sample size next to every number.** A result from 20 cases is a hint, not a fact. Write "80% (16 of 20)", not "80%". Say when a figure needs a bigger test. Don't drop a weak small result; that hides the problem. Don't present it as proof either.
 
-## Show the real mix, not the easy test
+**Read the examples before you trust the score.** The Anthropic post [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) says: "we do not take eval scores at face value until someone digs into the details of the eval and reads some transcripts." If grading is unfair, tasks are unclear or good answers are marked wrong, it says the eval must change.
 
-A strong number on an easy test set misleads. OpenAI's evaluation guide lists "biased design" as an anti-pattern: eval datasets that don't faithfully reproduce production traffic patterns. If your test set holds only clean examples but real work is half messy, the headline accuracy is too high.
+It also warns about **saturation**: "An eval at 100% tracks regressions but provides no signal for improvement." A perfect score can mean the test is too easy.
 
-Example: an AI reads forms. It scores 99% on typed forms and 60% on handwritten ones. If half of real forms are handwritten, the real figure is about 80%. Report both rows and the mix. This arithmetic is ours.
+**Use more than one kind of evidence.** The post says "no single evaluation layer catches every issue". It names the "Swiss Cheese Model from safety engineering": what slips through one layer is caught by another. The OpenAI guide says: "Combine metrics with human judgment to ensure you're answering the right questions." In a report, show the score, a few real examples, and what staff and customers said.
 
-## Put sample sizes next to every number
+**Be honest about money and limits.** Three habits (ours):
 
-A result from 20 cases is a hint, not a fact. Show how many cases stand behind each number: "70% (14 of 20 scans)". Say when a figure needs a bigger test.
+- **Label every number:** "measured", "estimated" or "vendor claim".
+- **Show a range:** "$40,000 to $90,000 a year" is more honest than "$65,000".
+- **Put every cost in.** If review time is missing from the slide, add it to total cost before you work out ROI.
 
-Anthropic's post says they don't take eval scores at face value until someone digs into the details and reads some transcripts. If grading is unfair or tasks are ambiguous, the eval should be revised. Do the same before you put a score on a slide. Read the examples that failed, and make sure they fail for fair reasons.
+The [Claude Code analytics page](https://code.claude.com/docs/en/analytics) is a good model. It calls its contribution numbers "deliberately conservative" and "an underestimate" of the tool's real impact: "Only lines and PRs where there is high confidence in Claude Code's involvement are counted." It suggests using them next to the engineering KPIs the team already tracks. A modest number you can defend beats a big one you can't.
 
-The post also warns about **saturation**: an eval at 100% tracks regressions but gives no signal for improvement. A perfect score may mean the test is too easy.
+**Recommend a scope that fits the risk.** You don't have to say yes or no to everything. The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) shows a middle path. "Where the cost of failure was very high, such as a fraud case being incorrectly resolved, we decided the human would drive and the AI would function as an assistant." It used "the decision accuracy stat" to make that call. Where most failures were early hand-offs to a person, "an accuracy of even 85% could be ok".
 
-## Use more than one kind of evidence
+Our example: a new driver may drive in town but not yet on the motorway. You widen the scope after a test.
 
-Anthropic's post says no single evaluation layer catches every issue. It compares this to the Swiss cheese model from safety engineering: a failure that slips through one layer is caught by another. The most effective teams combine automated evals, production monitoring and periodic human review.
+## Worked example
 
-OpenAI's evaluation guide says the same in a business way: don't rely on scores alone. Combine metrics with human judgment, and use human feedback to calibrate automated scoring.
+### Step 1: the weak summary
 
-In a report this means: show the score, a few real examples, and what staff and customers said.
+```text
+AI translation: 97% accurate, 100% on safety phrases,
+saves $120,000 a year. Recommend full rollout.
+```
 
-## Be honest about uncertainty and limits
+What goes wrong:
 
-Three habits make a report trusted:
+- 97% comes from Spanish and French only.
+- "100% on safety phrases" has no sample size and nobody checked what was tested.
+- $120,000 is a vendor estimate, with no range and no review cost.
+- "Full rollout" ignores that a wrong safety notice costs far more than a wrong timetable note.
 
-- **Label every number.** Measured in the pilot, estimated, or taken from a vendor? Use three words: "measured", "estimated", "vendor claim".
-- **Show a range.** "Net benefit $2,000 to $9,000 a month" is more honest than "$5,000".
-- **State what you did not test.** Other languages, peak season, new document types.
+### Step 2: the data, sorted
 
-Claude Code's analytics page gives an example of honest reporting. It says its contribution metrics are deliberately conservative. They count only the lines and pull requests where the tool's part is clear, so they are an underestimate of the real impact. It also says to use these numbers to demonstrate ROI next to the engineering KPIs the team already tracks. A conservative number that you can defend is worth more than a big one you can't.
+```text
+Target agreed in advance: 95% correct on the real mix of languages
 
-## Recommend a scope that fits the risk
+Main test, Spanish + French:  291 of 300 correct (97%)   measured
+Polish, small test:            34 of 40 correct (85%)    measured
+Arabic, small test:            21 of 30 correct (70%)    measured
+Real mix last year: Spanish + French 70%, Polish 20%, Arabic 10%
+Real-mix estimate: 0.7 × 97% + 0.2 × 85% + 0.1 × 70% ≈ 92%   (miss)
 
-You do not have to say yes to everything or no to everything. OpenAI's accuracy guide shows the middle path. Where the cost of failure was very high, such as a fraud case resolved wrongly, the team decided that a human would drive and the AI would assist. Where most failures were early hand-offs to a person, even 85% accuracy could be fine.
+Translator fees saved: $120,000 a year   vendor claim
+Pilot fees saved: $5,000 to $7,000 a month (average $6,000)
+                                         measured, 3 months
+Extra review of Polish and Arabic: $1,500 a month   measured
+```
 
-So a good recommendation often reads: "Go live for the cases where errors are cheap. Keep a person in charge where they are costly. Re-test the weak group by a set date."
+### Step 3: the hard case
 
-## A one-page scorecard
+**This is the hard case.** The "100% on safety phrases" row. The team reads the 50 test items. All are short fixed phrases like "Do not lean on the doors". Real safety notices are long: a closed station, a diversion, what to do in a fire. The 100% says the tool can translate short phrases. It says nothing about real safety notices. So the row becomes "50 of 50 on short phrases; full safety notices not tested yet".
 
-This checklist is a tool for this course:
+### Step 4: the one-page report
 
-1. Is the ask in the first line?
-2. Are results shown against targets set before the pilot?
-3. Is the test mix like real work?
-4. Does each number have a sample size and a label?
-5. Is there a range for the money figure?
-6. Are guard numbers and failures shown?
-7. Does the scope match the cost of a mistake?
-8. Did someone read real examples before the numbers went on the slide?
+```text
+ASK: Approve AI translation for timetable and service notices in
+Spanish and French. Keep safety notices, Polish and Arabic with
+human translators. Re-test Polish and Arabic on 200 notices by June.
 
-## Key points
+EVIDENCE: Spanish + French 97% (291 of 300), measured. Real-mix
+estimate 92% against a 95% target: miss. Polish 85% (34 of 40),
+Arabic 70% (21 of 30), both small tests.
 
-- Lead with the decision, then the evidence, risks and next step.
-- Report against targets written before the pilot, with pass or miss.
-- Test on the real mix and show sample sizes; read examples before trusting a score.
-- Label measured, estimated and vendor numbers; show ranges.
-- Match the scope to the cost of a mistake: AI alone where it is cheap, a person in charge where it is not.
+MONEY: $6,000 a month saved, minus $1,500 review = $4,500 net,
+measured over 3 months. Vendor estimate ($10,000 a month) not
+yet confirmed. Range: $3,500 to $5,500 net a month.
+
+RISKS: a wrong safety notice could put riders in danger.
+UNKNOWNS: full safety notices; peak-season volume.
+NEXT STEP: bigger language test, results by 30 June.
+```
+
+### Step 5: why it is better
+
+- **The ask comes first**, and it is a scope, not all or nothing.
+- **Results sit against the target set before**, on the real mix.
+- **Every number has a sample size and a label.**
+- **The risky part stays with people** until it passes a test.
+
+## Common mistakes
+
+1. **Reporting the easy test as the headline.** Fix: weight each group by its share of real work, and show the groups as separate rows.
+2. **Dropping a weak small result, or calling it proof.** Fix: show it with its sample size, and say a bigger test is needed.
+3. **All or nothing.** Fix: approve the low-risk part, keep the costly part with people, and set a date to re-test.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+An airline uses AI to draft replies to lost-baggage claims. The draft summary says: "The tool is 94% accurate and saves 3,100 staff hours. We recommend going ahead." The data:
+
+```text
+Target agreed in advance: 95% correct on all claims
+Claims under $500:  480 of 500 drafts correct (96%)   measured
+Claims over $2,000:  17 of 21 drafts correct (81%)   measured
+3,100 hours saved: vendor's calculation
+```
+
+Write a better first line (the ask) and the evidence line.
+
+### Answer
+
+A strong version:
+
+- **Ask:** "Approve AI drafts for claims under $500. Keep claims over $2,000 with staff, and re-test them on a bigger set by a set date."
+- **Evidence:** "Small claims 96% (480 of 500, measured), above the 95% target. Large claims 81% (17 of 21, measured), below target and a small test. Hours saved: vendor claim, not yet measured."
+
+Why: it leads with a scoped ask, shows sample sizes and labels, and keeps the costly claims with people.
+
+## Recap
+
+- Lead with the ask, then evidence, risks, unknowns and the next step.
+- Report against targets set before the pilot, on the real mix of work, with sample sizes and labels. Read real examples before you trust a score.
+- Match the scope to what a mistake costs: AI where errors are cheap, people in charge where they are costly.

@@ -1,7 +1,7 @@
 ---
 id: strategist/r6/c5/lesson
 title: A/B pilots
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -17,90 +17,158 @@ sources:
     url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
 ---
 
-## Why it matters
+## Goal
 
-Evals tell you if the AI does a task well on a test set. They do not tell you if real people get better results. For that you need a pilot: a small, planned trial in real work. The best pilot compares two groups at the same time. One group uses the AI. The other works as before. That is an **A/B test**.
+After this lesson you can:
 
-This chapter covers where the pilot fits, how to run it fairly, and how to read the result.
+- Say where a pilot fits: after automated evals, before a full rollout.
+- Design a fair A/B pilot: random groups, the same weeks, one change, and a size and length fixed in advance.
+- Read a pilot result honestly: the size of the gap, luck, guard numbers and the "why".
 
-## Where a pilot fits
+## The problem
 
-Anthropic's post on evals lists several ways to understand how an AI system performs: automated evals, production monitoring, A/B testing, user feedback, transcript review and human studies. It says no single method catches every issue, and the most effective teams combine them.
+An energy supplier has 80 call-centre agents. A vendor offers an AI "live assist" tool. During a call, it listens and suggests answers to the agent on screen.
 
-It also says when to use each one:
+The head of customer service ran a pilot. The best team (10 agents) got the tool in January. Their results were compared with the whole call centre's results from last October. In the same month, the pilot team also started a new bonus for short calls. The pilot was stopped after nine days, "because the numbers already look great".
 
-- **Automated evals** are most useful before launch and in CI/CD (the automatic checks that run on each change). They run on each change and model upgrade as the first line of defense.
-- **Production monitoring** starts after launch. It catches drift (real-world input changing over time) and failures nobody expected.
-- **A/B testing** validates significant changes once you have enough traffic.
+Calls were 25% shorter. The head wants the tool for all 80 agents. The call centre manager asks: "Was it the tool, the best team, the bonus, or January?"
 
-So the order is: evals first, then a pilot with real users. Do not use real users to find problems that a cheap test would have caught.
+This lesson shows how to run a pilot that can answer that question. The guidance below is from each vendor's docs (October 2026).
 
-## What an A/B test is good for
+## The idea
 
-Anthropic's post lists the strengths and limits of A/B testing:
+**Evals first, then a pilot.** Evals test the AI on a fixed set of tasks. They don't show whether real people get better results at work. For that you need a **pilot**: a small, planned trial in real work. The fairest pilot compares two groups at the same time: one uses the AI, one works as before. That is an **A/B test**.
 
-- It compares variants with real user traffic.
-- It measures actual user outcomes, such as retention and task completion.
-- It controls for confounds. A **confound** is another reason why two groups differ.
-- It is slow: the post says days or weeks to reach significance, and it needs sufficient traffic.
-- It only tests changes you deploy.
-- It gives less signal on the "why" unless you also read transcripts.
+The Anthropic post [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) lists several ways to see how an AI system performs: automated evals, production monitoring, A/B testing, user feedback, transcript review and human studies. It says "no single evaluation layer catches every issue", like the "Swiss Cheese Model from safety engineering": what slips through one layer is caught by another. It also says when each one fits:
 
-Anthropic's success-criteria guide also lists A/B testing as a way to measure: compare against a baseline model or an earlier version. OpenAI's accuracy guide describes the same idea for a customer service pilot. The team measured human and AI side by side: customer satisfaction, decision accuracy on reviewed cases and time to resolution.
+- **Automated evals** help most before launch and in CI/CD (the automatic checks that run on every change). They run on each change and model upgrade as the "first line of defense".
+- **Production monitoring** "kicks in post-launch". It catches drift (real input changing over time) and failures nobody expected.
+- **A/B testing** is for checking big changes, and only once enough real users or cases flow through.
+- **User feedback and transcript review** are "ongoing practices to fill the gaps".
 
-## Six rules for a fair pilot
+So don't use real customers to find problems a cheap test would catch.
 
-Neither vendor's page spells out these rules. They are standard practice, and they are ours.
+**What an A/B test is good for.** The post's table lists its strengths and limits:
 
-**1. Pick the question and the numbers first.** Use the success sheet from chapter 1 and the KPI card from chapter 3. Write down the main metric, the guard numbers and what result means "go", "fix" or "stop". Do it before the pilot starts.
+- It "Measures actual user outcomes (retention, task completion)".
+- It "Controls for confounds". A **confound** is another reason why two groups differ, like a better team or a busy season.
+- It is "Slow; days or weeks to reach significance and requires sufficient traffic".
+- It "Only tests changes you deploy".
+- It gives less signal on the "why" unless you also review the transcripts (the records of real conversations).
 
-**2. Assign people by chance.** Do not let people choose. Volunteers are often your keenest staff. Managers tend to pick their best people. Either way, the AI group was already better. Draw names at random, or split by a coin toss.
+The [Claude docs on success criteria](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) list the same method: "A/B testing: Compare performance against a baseline model or earlier version." The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) describes a pilot that measured human and AI work side by side: customer satisfaction, decision accuracy on reviewed cases, and time to resolution. Where a wrong decision was very costly, a person stayed in charge.
 
-**3. Run both groups at the same time.** Seasons, product launches and holidays change results. Comparing December with September measures the calendar as much as the tool. Comparing a group with its own past has the same problem.
+**Six rules for a fair pilot.** Neither vendor page spells these out. They are standard practice, and they are ours:
 
-**4. Change one thing.** If the AI group also gets a new script and a new bonus, you can't say which one caused the result.
+1. **Pick the question and the numbers first.** Write down the main metric, the guard numbers, and what result means "go", "fix" or "stop", before the start.
+2. **Assign by chance.** Don't let people volunteer, and don't let managers choose. Keen volunteers and hand-picked staff were better already. Draw names at random. Splitting by region or office is also risky, because places differ.
+3. **Run both groups at the same time.** Seasons, launches and holidays change results. Comparing January with October measures the season, not only the tool. So does comparing a group with its own past.
+4. **Change one thing.** If the tool group also gets a new bonus or script, you cannot tell which change caused the result. A random draw does not fix this: it makes the groups alike, but it can't tell apart two changes that hit the same group. And a big gap doesn't tell you which change caused it.
+5. **Fix the size and length in advance.** A small group over a few days can show a big gap by luck. Don't stop on the first good week, and don't keep going until you like the result.
+6. **Watch the guard numbers.** A main metric can go up while another number gets worse.
 
-**5. Plan the length and size.** Anthropic's post says A/B tests need days or weeks and enough traffic. A pilot of 12 people for 3 days can show a big gap by luck. Decide the number of people and days before you start. Do not stop on the first good day.
+Our example: to test a fertiliser, you don't use only the sunniest field. You pick fields by coin toss, plant on one day, and change nothing else.
 
-**6. Look at the guard numbers.** A main metric can rise while something else gets worse. OpenAI's pilot kept human control where a failure was very costly, using decision accuracy to decide. Check complaints, errors and later outcomes, not only the headline number.
+**Keep the pilot connected to your evals.** The [OpenAI evaluation guide](https://developers.openai.com/api/docs/guides/evaluation-best-practices) says evaluation is continuous: "run evals on every change, monitor your app to identify new cases of nondeterminism, and grow the eval set over time." It also says "Log everything", so you can "mine your logs for good eval cases". Every real failure in the pilot should become a new test case.
 
-Example: an insurer tests an AI note-taking tool with 40 claims handlers. Twenty handlers, chosen by random draw, use it for six weeks. Twenty do not. The team plans to compare claims closed per week, and to watch reopened claims.
+**Read the result with four questions** (ours):
 
-## Keep the pilot connected to your evals
+1. **How big is the gap?** Give numbers for both groups.
+2. **Could luck explain it?** With few people or few days, maybe. Say so.
+3. **Did a guard number get worse?** Then the gain may not be worth it.
+4. **Why did it happen?** Read a sample of transcripts.
 
-Do not drop your test set when the pilot starts. OpenAI's evaluation guide says evaluation is continuous: run evals on every change, monitor your app and grow the eval set over time. It also says to log everything, so you can mine the logs for good eval cases.
+## Worked example
 
-A pilot is a source of new test cases. Every real failure in the pilot should become a test.
+### Step 1: the weak pilot
 
-## Read the result
+```text
+Group with tool:  best team, 10 agents, January
+Comparison:       all agents, last October
+Also changed:     new bonus for short calls (pilot team only)
+Stop rule:        "when the numbers look good" (stopped day 9)
+Main number:      call length
+```
 
-Answer four questions:
+What goes wrong:
 
-1. **How big is the gap?** Give the numbers for both groups, not just "better".
-2. **Could luck explain it?** With few people or days, the answer may be yes. Say so.
-3. **Did a guard number get worse?** If so, the gain may not be worth it.
-4. **Why did it happen?** Anthropic's post says A/B tests give less signal on the "why". Read a sample of transcripts before you decide.
+- The best team was better already, and January differs from October.
+- The bonus alone could shorten calls.
+- Nine days and 10 agents is thin, and the stop rule invites luck.
+- Shorter calls are not the goal. A rushed call can mean a call back.
 
-Example: the AI group closes 30% more claims, but reopened claims have tripled. That is not a clear win. It is a reason to fix the notes and test again.
+### Step 2: the fair plan
 
-## A pilot plan
+```text
+Question:      Does live assist help agents solve the problem on the first call?
+Groups:        80 agents, drawn at random: 40 with the tool, 40 without
+Period:        the same 8 weeks, March to April, for both groups
+One change:    the tool. No new bonus or script for either group.
+Main metric:   problems solved on the first call (customer doesn't call
+               back within 7 days)
+Guard numbers: complaints, call length, wrong advice found in a weekly
+               sample of 20 recorded calls per group
+Go / fix / stop, written before the start:
+  go    first-call solve up 5 points or more, no guard number worse
+  fix   up, but a guard number worse
+  stop  no gain after 8 weeks
+Size and end: 40 + 40 agents, 8 weeks, no early stop
+```
 
-This card is a tool for this course:
+### Step 3: the hard case
 
-| Item                   | Example                            |
-| ---------------------- | ---------------------------------- |
-| Question               | Does the tool raise claims closed? |
-| Groups                 | 20 and 20 handlers, random draw    |
-| Period                 | Same 6 weeks                       |
-| Main metric            | Claims closed per handler per week |
-| Guard numbers          | Reopened claims, complaints        |
-| Go / fix / stop        | Written before the start           |
-| Who reads transcripts? | Team lead, 20 claim notes a week   |
+**This is the hard case.** In week 4, IT wants to launch a new help-article search for all 80 agents. Must the pilot restart?
 
-## Key points
+Our reasoning: the new search reaches **both** groups on the same day. So the gap between the groups can still be read fairly. If it went to the tool group only, it would be a second change, and the pilot could no longer show the tool's own effect. The team notes the date in the report and carries on.
 
-- Run evals first; use a pilot to measure real outcomes.
-- Assign people by chance and run both groups over the same weeks.
-- Fix the metric, the guard numbers, the size and the length before the start.
-- A/B tests are slow and need enough traffic; do not stop on a lucky day.
-- Read transcripts to learn why, and turn pilot failures into tests.
+### Step 4: reading the result
+
+```text
+                         With tool   Without
+First-call solve         78%         72%
+Complaints per 1,000     2.9         3.0
+Wrong advice in sample   6 of 160    2 of 160
+```
+
+The main metric rose 6 points, which passes the "go" bar. But wrong advice in the call sample went from 2 to 6. Both numbers are small, so luck is possible. The team reads the 6 calls: the tool suggested an old tariff that ended last year. So the result is "fix": update the tool's tariff list, add the 6 calls to the eval set, and re-test for 4 weeks.
+
+### Step 5: why it is better
+
+- **Random groups, same weeks, one change.** The gap points to the tool, not the team or the season.
+- **Rules set in advance.** Nobody can stop on a lucky day or move the goalposts.
+- **Guard numbers and transcripts.** They turned a "go" into a better "fix".
+
+## Common mistakes
+
+1. **Volunteers or hand-picked groups.** Fix: draw people at random from everyone eligible.
+2. **Two changes at once, or two different periods.** Fix: change only the tool, and keep both groups in the same weeks.
+3. **Stopping when the numbers look good.** Fix: set the size, length and main metric before the start, and stick to them.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+An online furniture shop wants to test AI-written product pages. Here is the plan:
+
+```text
+Week of a big sale: show AI pages to all visitors
+Normal week before: old pages
+Main number: orders per 1,000 visitors
+Stop rule: after day 1 if orders are up
+```
+
+Find three problems and fix them. Then name one guard number.
+
+### Answer
+
+1. **Different weeks, one with a sale.** The sale alone lifts orders. Fix: in the same weeks, show half of visitors the AI pages and half the old pages, chosen at random.
+2. **A one-day stop rule.** One day can be luck. Fix: set the length and the number of visitors in advance, for example 4 weeks.
+3. **No plan for the "why".** Fix: read a sample of AI pages and customer questions each week, and add failures to the eval set.
+
+**Guard number:** returns, for example "item not as described". Pages that oversell can lift orders and returns together.
+
+## Recap
+
+- Run automated evals first. Use an A/B pilot to measure real outcomes, knowing it is slow and needs enough traffic.
+- Draw groups at random, run them over the same weeks, and change one thing only.
+- Fix the metric, guard numbers, size and length before the start. Read transcripts to learn why, and turn failures into tests.
