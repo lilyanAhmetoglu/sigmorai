@@ -1,7 +1,7 @@
 ---
 id: builder/r7/c2/lesson
 title: Handoffs
-minutes: 12
+minutes: 14
 sources:
   - kind: docs
     title: Orchestration and handoffs (OpenAI API docs)
@@ -68,11 +68,17 @@ The guide says agents as tools is usually the better fit when the manager should
 
 Think of a hospital. A handoff is a transfer to another doctor, who now talks to the patient. An agent-as-tool is a lab test: the same doctor orders it, reads it and explains it.
 
-**A handoff is a tool.** The [handoffs docs](https://github.com/openai/openai-agents-python/blob/main/docs/handoffs.md) say: "Handoffs are represented as tools to the LLM." By default the tool name is `transfer_to_<agent_name>`, so a "Tech agent" becomes `transfer_to_tech_agent`. You can change it with `tool_name_override`, but you set that name once, in code. If you pass a plain `Agent`, its `handoff_description` is added to the tool description. The guide's advice: give each specialist a narrow job, and keep that description "short and concrete". With several specialists, the docs say to "register one handoff per destination and let the model choose".
+**A handoff is a tool.** The [handoffs docs](https://github.com/openai/openai-agents-python/blob/main/docs/handoffs.md) say:
+
+- "Handoffs are represented as tools to the LLM." By default the tool name is `transfer_to_<agent_name>`, so a "Tech agent" becomes `transfer_to_tech_agent`. `tool_name_override` changes it, once, in code.
+- A plain `Agent` adds its `handoff_description` to the tool description. The guide's advice: give each specialist a narrow job, and keep that description "short and concrete".
+- With several specialists, "register one handoff per destination and let the model choose".
 
 **What the next agent sees: two defaults.**
 
-- **OpenAI handoffs pass the history.** The docs: the new agent "gets to see the entire previous conversation history." To change that, set an `input_filter`. A ready-made filter, `handoff_filters.remove_all_tools`, strips the tool call and tool result items. But tool data that was already written into a normal message stays. The docs say the filter "does not redact" that text. The docs also say to "Treat the receiving agent and its model provider as recipients of the forwarded history."
+- **OpenAI handoffs pass the history.** The docs: the new agent "gets to see the entire previous conversation history." To change that, set an `input_filter`. A ready-made filter, `handoff_filters.remove_all_tools`, strips the tool call and tool result items.
+  - Tool data already written into a normal message stays. The docs say the filter "does not redact" that text.
+  - The docs also say to "Treat the receiving agent and its model provider as recipients of the forwarded history."
 - **Claude subagents start fresh.** The [Claude Agent SDK docs](https://code.claude.com/docs/en/agent-sdk/subagents) say a subagent's window "starts fresh". It has none of the parent's conversation. The only thing passed down is the prompt that the Agent tool sends. The exception is a fork, which inherits the parent conversation.
 
 The two defaults fail in opposite ways. Full history can leak data. A fresh start can miss the one fact the worker needed. With a fresh start, the brief is everything. The [Anthropic research-system post](https://www.anthropic.com/engineering/multi-agent-research-system) lists what a good brief has: "an objective, an output format, guidance on the tools and sources to use, and clear task boundaries."
@@ -91,7 +97,7 @@ The two defaults fail in opposite ways. Full history can leak data. A fresh star
 
 **Claude Code puts a boundary on the way back.** The [subagents docs](https://code.claude.com/docs/en/sub-agents) say a subagent's report arrives under a header. It says that instructions or approval claims inside are the subagent's words and "carry no authority from you."
 
-**The next turn.** The [results guide](https://developers.openai.com/api/docs/guides/agents/results) says to reuse `last_agent` in Python "after handoffs" when the same specialist should answer next time.
+**The next turn.** The [results guide](https://developers.openai.com/api/docs/guides/agents/results) points, in Python, to `last_agent` on the result: reuse it "after handoffs" when the same specialist should answer next time.
 
 ## Worked example
 
@@ -155,7 +161,7 @@ async def check_seats(ctx: RunContextWrapper[AppContext], data: SeatChange):
 plan_handoff = handoff(plan_agent, input_type=SeatChange, on_handoff=check_seats)
 ```
 
-If `check_seats` returns normally, the SDK goes on with the transfer. If it raises, the transfer stops. Your app catches the error and sends the user to sales.
+If `check_seats` returns normally, the SDK goes on with the transfer. If it raises, the transfer stops. Your app code then has to handle the error and send the user to sales (our app code: test how the error reaches you).
 
 ### Step 4: keep the specialist for the next turn
 
@@ -163,6 +169,8 @@ If `check_seats` returns normally, the SDK goes on with the transfer. If it rais
 result = await Runner.run(current_agent, history + [new_message])
 current_agent = result.last_agent
 ```
+
+Simplified: `history` stands for the earlier turns. The real names are `Runner.run` and `last_agent`.
 
 "It still crashes" now goes straight to the tech agent.
 

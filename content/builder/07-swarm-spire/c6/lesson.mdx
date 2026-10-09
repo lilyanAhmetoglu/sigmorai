@@ -1,7 +1,7 @@
 ---
 id: builder/r7/c6/lesson
 title: Cost control
-minutes: 12
+minutes: 14
 sources:
   - kind: blog
     title: How we built our multi-agent research system (Engineering at Anthropic)
@@ -88,7 +88,7 @@ Think of a taxi with a meter. More riders and more stops mean a bigger fare. The
 **Depth and the tree.** The [Agent SDK docs](https://code.claude.com/docs/en/agent-sdk/subagents) say "a subagent can spawn subagents of its own, so one prompt can grow into a tree of agents." They list three caps, for TypeScript SDK v0.3.219 and Python SDK v0.2.127 and later:
 
 - **Depth**: `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`. The default is "`3` layers of subagents below your main agent", and a value of 1 means your subagents can start no subagents of their own.
-- **Concurrency**: `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, default 20 at once. Our reading: a value of 1 would also block nesting while a worker runs, but it would stop all parallel work too. Depth is the dial made for nesting.
+- **Concurrency**: `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, default 20 at once. It caps how many workers run together. Depth is the dial made for nesting.
 - **Spend**: `max_budget_usd`. Default: "No limit".
 
 A prompt like "never start sub-workers" only guides the model. The docs say an instruction "only steers Claude", so set the limits too. Claude Code applies them no matter how the model chooses to delegate.
@@ -101,13 +101,13 @@ A prompt like "never start sub-workers" only guides the model. The docs say an i
 - It "stops background subagents that are still running".
 - It ends the query with the `error_max_budget_usd` result subtype.
 
-Your app should check that subtype and show what it can. Note the scope: one cap covers the full query. There is no per-worker share. If one worker should stop early, give it a turn cap.
+Your app should check that subtype and show what it can. In Python, a single-shot `query()` also raises after that result, so catch the error too. Note the scope: one cap covers the full query. Our reading: there is no per-worker share. If one worker should stop early, give it a turn cap.
 
 **Model tier.** The Building effective agents post describes sending "easy/common questions" to smaller models that cost less. The subagents docs list "Control costs by routing tasks to faster, lower-cost models like Haiku". For agent teams, the cost docs say: "Use Sonnet for teammates." Keep the strongest model for the hard parts, like planning and the final judgment.
 
 **Result size.** A subagent keeps its working steps to itself. Only its final message returns to the parent. So ask workers for short, structured results. For big outputs, the research post says to store them in files and pass references back. This cuts "token overhead from copying large outputs through conversation history."
 
-**Idle teammates.** The cost docs give three habits for agent teams: keep teams small, keep spawn prompts focused, and shut teammates down when they finish. The docs warn that a teammate that is still active keeps "consuming tokens" until it stops or the session is over.
+**Idle teammates.** For agent teams, the cost docs also say: keep teams small, keep spawn prompts focused, use Sonnet for teammates, and shut teammates down when they finish. The docs warn that a teammate that is still active keeps "consuming tokens" until it stops or the session is over.
 
 **Measure first.** You cannot fix a cost you cannot see.
 
@@ -146,13 +146,13 @@ options = ClaudeAgentOptions(
 )
 ```
 
-The names are real SDK names. `REVIEW_AGENTS` is our own dictionary of `AgentDefinition` objects. Depth 1 stops the tree: workers cannot start workers. Three workers can still run in parallel.
+The names are the ones in the SDK docs. `REVIEW_AGENTS` is our own dictionary of `AgentDefinition` objects. Depth 1 stops the tree: workers cannot start workers. Three workers can still run in parallel.
 
 ### Step 4: the hard case, one worker eats the budget
 
 With `max_budget_usd=10.0`, a liability worker gets stuck on a 90-page appendix and loops. It uses $8 alone. One cap covers the full query, so the other workers run out of room. The result has the subtype `error_max_budget_usd`.
 
-Setting `max_budget_usd` lower does not help. It still counts the whole query, so the run just stops sooner. The fix is a per-worker turn cap: `maxTurns` in each worker's definition. The stuck worker stops early, returns partial output, and the others keep their share. The app checks for the `error_max_budget_usd` subtype anyway and shows a partial memo instead of an empty page.
+Setting `max_budget_usd` lower does not help. It still counts the whole query, so the run just stops sooner. The fix is a per-worker turn cap: `maxTurns` in each worker's definition. The stuck worker stops early, returns partial output, and the others keep their share. The app checks for the `error_max_budget_usd` subtype anyway and shows a partial memo instead of an empty page. In Python it also catches the error that a single-shot `query()` raises after that result.
 
 ### Step 5: cheaper models and smaller results
 

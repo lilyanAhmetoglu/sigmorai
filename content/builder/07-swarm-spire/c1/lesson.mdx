@@ -1,7 +1,7 @@
 ---
 id: builder/r7/c1/lesson
 title: Agent graphs
-minutes: 11
+minutes: 14
 sources:
   - kind: blog
     title: Building effective agents (Engineering at Anthropic)
@@ -47,7 +47,7 @@ The team has three questions. Which boxes are needed? Which shape fits each part
 
 **A graph is a drawing of your system.** "Graph" is our word for it, not a vendor term. A **node** is one step: a model call, an agent, a tool, a check or a person who approves. An **edge** is the path from one step to the next. Think of it like a metro map. The stations are the steps. The lines show where you can go next.
 
-OpenAI's Agent Builder made this drawing a real product. It is a visual canvas, and in it "Each connection between nodes becomes a typed edge" ([Agent Builder docs](https://developers.openai.com/api/docs/guides/agent-builder)). Its [node reference](https://developers.openai.com/api/docs/guides/node-reference) has nodes like Start, Agent, If/else, While, Human approval and Set state. The docs also say: "All workflows have start and agent nodes." But Agent Builder is being retired. The docs say it "is scheduled to shut down on November 30, 2026." So use it as an idea, not as a platform choice. You can draw the same graph on paper and build it in code.
+OpenAI's Agent Builder made this drawing a real product: "Each connection between nodes becomes a typed edge" ([Agent Builder docs](https://developers.openai.com/api/docs/guides/agent-builder)). Its [node reference](https://developers.openai.com/api/docs/guides/node-reference) has nodes like Start, Agent, If/else, While, Human approval and Set state. But the docs say it "is scheduled to shut down on November 30, 2026." Use it as an idea, not a platform. You can draw the same graph on paper and build it in code.
 
 **Workflows and agents.** The [Anthropic post on building effective agents](https://www.anthropic.com/engineering/building-effective-agents) splits systems in two:
 
@@ -84,9 +84,9 @@ The docs list four code patterns:
 - Use a `while` loop: a task agent writes, an evaluator agent checks, and the loop stops when the check passes.
 - Run independent agents at the same time, for example with `asyncio.gather`.
 
-These match Anthropic's shapes: routing, chaining, evaluator-optimizer and parallelization. The docs also say: "You can mix and match these patterns." A common mix: code picks the big path, and a model decides the details inside one step.
+These match Anthropic's shapes: routing, chaining, evaluator-optimizer and parallelization. The docs also say: "You can mix and match these patterns." One mix we use in this lesson (our example): code picks the big path, and a model decides the details inside one step.
 
-**Start small.** The Anthropic post says to find "the simplest solution possible, and only increasing complexity when needed." The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says: "Start with one agent whenever you can." It gives four reasons to add a specialist. Add one only when it clearly improves:
+**Start small.** The Anthropic post recommends "finding the simplest solution possible, and only increasing complexity when needed." The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says: "Start with one agent whenever you can." It gives four reasons to add a specialist. Add one only when it clearly improves:
 
 - **capability isolation**: only this agent gets certain tools.
 - **policy isolation**: only this agent may do certain actions.
@@ -109,11 +109,7 @@ message
   -> reply
 ```
 
-What goes wrong:
-
-- The top agent picks the path for a booking change. A prompt can push it, but the choice is still a model's choice, every time.
-- The four research agents always run, even when a trip needs only one kind of research.
-- The greeting and language agents have no tools of their own, no special rules and no separate job. They only add prompts and traces.
+This is the weak start. A model picks every path, and all four research agents always run. The next steps fix it.
 
 ### Step 2: let code pick the big path
 
@@ -154,7 +150,7 @@ trip
   -> reply
 ```
 
-Code owns the outer path. A model owns the choice of research inside one node. That is the mix the OpenAI docs describe.
+Code owns the outer path. A model owns the choice of research inside one node. The OpenAI docs say you can mix and match the two styles. This split is our example of such a mix.
 
 ### Step 5: remove boxes that give no reason
 
