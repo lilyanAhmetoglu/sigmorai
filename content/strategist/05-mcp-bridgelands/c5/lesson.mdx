@@ -1,7 +1,7 @@
 ---
 id: strategist/r5/c5/lesson
 title: Total cost
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Pricing
@@ -35,65 +35,135 @@ sources:
     url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
 ---
 
-## Why it matters
+## Goal
 
-A demo of an AI integration costs almost nothing. The bill that matters comes later, when thousands of requests a day each carry the same overhead. Leaders who only ask "what is the price per million tokens?" get surprised. The better question is: what does one finished task cost, and what will it cost next year?
+After this lesson you can:
 
-This chapter gives you a method, not a price list. Prices change often, so always read them from the vendor's live page.
+- Find the hidden tokens an integration adds to every request, and price one finished task.
+- Use caching and batch discounts, and say when each one does not apply.
+- Build a cost view that covers building, running, upkeep and checking, for both build and buy.
 
-## Step 1: count the tokens you didn't think about
+## The problem
 
-Both vendors bill by **tokens**, small pieces of text. Input and output have separate prices. Anthropic's pricing page lists prices "per MTok" (million tokens). OpenAI's pricing page lists "prices per 1M tokens", with separate rates for input, cached input and output.
+An energy supplier has a billing helpdesk. Its AI assistant uses 25 tools to look up meter readings, tariffs and payment plans. The demo cost a few dollars. Three months after launch, the monthly bill is many times what the project plan said, and the finance director wants to know why.
 
-An integration adds tokens beyond the user's question:
+The team had priced the assistant like this: "average question 300 tokens, average answer 400 tokens, times the price per million tokens." That sum leaves out most of the bill. This lesson shows what it missed. The guidance below is from each vendor's docs (October 2026). Prices change often, so always read them from the vendor's live page.
 
-- **Tool definitions.** Anthropic's page says tool requests are priced on all input tokens sent, "including in the `tools` parameter" (tool names, descriptions and schemas). OpenAI's function calling guide says function definitions "count against the model's context limit and are billed as input tokens."
-- **Tool calls and results.** Anthropic lists the `tool_use` and `tool_result` content blocks as extra tokens too. A big result, such as a whole document, costs as much as a big question.
-- **A hidden tool prompt.** When you use tools, Anthropic's API adds its own system prompt. The page lists the size per model, for example 496 tokens for Claude Haiku 4.5.
-- **Tool fees.** Some server-side tools add usage charges. Anthropic's page lists web search at $10 per 1,000 searches, plus tokens. OpenAI's MCP guide says you only pay for tokens when importing tool definitions or making tool calls, with no extra fee per tool call.
+## The idea
 
-OpenAI's guide suggests keeping the tools loaded at the start of a turn to fewer than 20, as a soft suggestion. Anthropic's MCP connector and OpenAI's `allowed_tools` let you switch off tools you don't need. This is the same control you met in the security chapter, now saving money too.
+**Everything is tokens.** Both vendors bill by **tokens**, small pieces of text (a token is often part of a word). Input and output have separate prices. The [Claude pricing page](https://platform.claude.com/docs/en/about-claude/pricing) gives prices per "MTok" (a million tokens). The [OpenAI pricing page](https://developers.openai.com/api/docs/pricing) says "Prices per 1M tokens", with columns for input, cached input and output.
 
-Tokens also differ by model. Anthropic's page says Claude 4.7 and later models use a newer tokenizer that produces "approximately 30% more tokens for the same text." So the same task can cost more tokens after a model change, even at the same price per token.
+Our example: a token bill is like a phone bill that charges for every word, including the words the app says before you speak.
 
-## Step 2: do the sum for one task
+**The hidden tokens.** An integration adds text you never see on screen:
 
-Prices below come from Anthropic's pricing page, **checked on 2026-10-06**. Claude Haiku 4.5 is listed at $1 per MTok for input, $5 per MTok for output and $0.10 per MTok for a cache hit. The workload is our own made-up example.
+- **Tool definitions.** Each tool has a name, a description and a **schema** (the list of inputs it takes). The Claude page says tool requests are priced on all input tokens, "including in the `tools` parameter". The [OpenAI function calling guide](https://developers.openai.com/api/docs/guides/function-calling) says function definitions "count against the model's context limit and are billed as input tokens."
+- **Tool calls and results.** The Claude page counts the `tool_use` and `tool_result` blocks too. A tool that returns a whole document costs as much as a long question.
+- **A tool system prompt.** When you send tools, the Claude API adds its own instructions. The [Claude tool use page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) lists the size per model, for example "496 tokens" for Claude Haiku 4.5.
+- **Tool fees.** Some server tools charge per use. The Claude pricing page lists web search at "$10 per 1,000 searches", plus tokens. For MCP, the [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) says you "only pay for tokens" when importing tool definitions or making tool calls: "No additional fees apply per tool call."
 
-A support assistant has tools that need 3,000 tokens of definitions. It handles 100,000 requests a month.
+**Fewer tools, smaller bill.** The OpenAI function calling guide suggests you "Aim for fewer than 20 functions available at the start of a turn", and calls this "just a soft suggestion". The OpenAI MCP guide adds that many tools "can result in high cost and latency" (latency means waiting time). Its `allowed_tools` setting, and the allowlist in the [Claude MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector), switch off tools you don't need. It is the same control as in the security chapter; here it also saves money.
 
-- Definitions: 3,000 × 100,000 = 300 million tokens, or $300 a month.
-- That is spent before the user has typed a word.
+**Same text, more tokens.** The Claude pricing page says Claude 4.7 and later models use a newer tokenizer (the part that cuts text into tokens). It "produces approximately 30% more tokens for the same text". The page adds: "The exact increase depends on the content and workload shape." Older models, up to Claude Sonnet 4.6, keep the old one. So a model change can raise the bill even when the price per token stays the same.
 
-Cut the tool list to what the task needs and this line falls with it.
+**Discount 1: caching.** **Prompt caching** reuses an unchanged start of the prompt at a lower price. Tool definitions can be part of that cached start; the Claude caching page lists them first in the order it caches.
 
-## Step 3: use the two discounts
+- On the Claude pricing page, a cache read costs "0.1x base input price" on most models (a few models are lower). A 5-minute cache write costs "1.25x base input price".
+- The [OpenAI caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) says that for GPT-5.6 and later, writes cost "1.25×" the input rate and reads "0.1×" on most of these models. Earlier models use a cached-input price set per model, with "No additional cache-write charge".
 
-**Caching.** Both vendors let you reuse an unchanged start of the prompt at a lower price. Anthropic's pricing page says a cache read costs 0.1x the base input price on most models (less on a few), and a 5-minute cache write costs 1.25x. OpenAI's caching guide says that on GPT-5.6 and later, a cache read costs 0.1x the input price on most of these models and a cache write costs 1.25x. Older OpenAI models use a cached-input price set per model, with no write charge.
+The catch: the cached start must stay the same. The [Claude caching page](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) says "Modifying tool definitions (names, descriptions, parameters) invalidates the entire cache". The OpenAI guide lists changes to tool "names, descriptions, schemas, ordering" as changes that affect the cached prefix. One small edit to one tool, and every request pays full price again until the cache is rebuilt.
 
-In the example, reading the definitions from cache would cost about $30 instead of $300. (We ignore the write cost to keep it simple.)
+**Discount 2: batch.** A **Batch API** runs requests later, not live.
 
-There is a catch. Anthropic's caching page says changing tool definitions (names, descriptions, parameters) "invalidates the entire cache". OpenAI's guide says changing tool names, descriptions, schemas or order breaks cached prefixes. So frequent edits to your tools cost real money.
+- The Claude page lists "a 50% discount on both input and output tokens". The [Claude batch page](https://platform.claude.com/docs/en/build-with-claude/batch-processing) says most batches finish "in less than 1 hour".
+- The [OpenAI batch guide](https://developers.openai.com/api/docs/guides/batch) lists a "50% cost discount compared to synchronous APIs", and says "Each batch completes within 24 hours".
 
-**Batch.** Anthropic's pricing page lists a 50% discount on input and output for the Batch API. OpenAI's batch guide also lists a 50% discount compared to synchronous APIs. Anthropic says most batches finish in under an hour. OpenAI says results come within 24 hours. Use batch for work nobody waits on, such as overnight summaries or evaluations. Don't use it for a live chat.
+Batch fits work nobody waits for: overnight reports, test runs. It does not fit a live chat. The Claude pricing page says batch and caching discounts "can be combined".
 
-Anthropic's page says these discounts can stack with each other.
+**The rest of the bill.** The vendor's page covers model usage only. This four-line view is our own framework:
 
-## Step 4: add what the price page can't show
+1. **Build:** engineer time to connect, test and secure the integration.
+2. **Run:** model usage per task, times the volume.
+3. **Maintain:** hours spent keeping tools, prompts and tests up to date. Vendors retire models (chapter 6).
+4. **Review and support:** people who check outputs and handle errors.
 
-The vendor page covers model usage only. The rest of the bill is yours. This checklist is our own framework for this course:
+**Build or buy?** Buying moves lines 1 and 3 to a supplier, but adds a licence fee and a dependency. Building costs more at the start and gives control. Our advice: compare all four lines for both options over two or three years.
 
-1. **Build once.** Engineer time to connect, test and secure the integration.
-2. **Run.** Model usage per task, from steps 1 to 3, times the volume you expect.
-3. **Maintain.** Time to update tools, prompts and tests. Vendors retire models, and each retirement is a small project. The next chapter covers this.
-4. **Review and support.** People who check outputs and handle errors.
+## Worked example
 
-**Build or buy?** Buying a ready-made integration moves lines 1 and 3 to a supplier, but adds a licence fee and a dependency on that supplier. Building costs more at the start and gives you control. Neither is always cheaper. Compare the four lines for both options over two or three years.
+Prices are Claude Haiku 4.5 from the Claude pricing page, checked October 2026: $1 per MTok input, $5 per MTok output, $0.10 per MTok cache hit. The workload is our own made-up example.
 
-## Key points
+### Step 1: the weak estimate
 
-- Tool definitions, tool calls and results all count as input tokens, on every request.
-- Price one finished task, not one million tokens.
-- Caching and batch can each cut cost, but stable tool lists and non-urgent work are the conditions.
-- Switching models can change the token count for the same text.
-- Add build, run, maintain and review costs, and compare build and buy over several years.
+```text
+150,000 requests a month
+question  300 tokens -> 45M tokens x $1 = $45
+answer    400 tokens -> 60M tokens x $5 = $300
+Estimate: $345 a month
+```
+
+What goes wrong: the 25 tool definitions are missing. They take 4,000 tokens and go out with every request.
+
+### Step 2: the honest sum
+
+```text
+tool definitions  4,000 tokens -> 600M tokens x $1 = $600
+question            300 tokens ->  45M tokens x $1 =  $45
+answer              400 tokens ->  60M tokens x $5 = $300
+Total: $945 a month (before tool results)
+```
+
+The definitions are the biggest line, and the user typed none of it.
+
+### Step 3: cut and cache
+
+- Load only the 12 tools the helpdesk needs. Definitions fall to about 2,000 tokens: 300M tokens, or $300.
+- Cache them. At the cache-hit price, 300M tokens cost about $30 (we ignore the write cost to keep it simple).
+- New total: $30 + $45 + $300 = **about $375**, down from $945.
+- Freeze tool edits into one planned release a month, so the cache is not broken every few days.
+
+### Step 4: the hard case
+
+**The hard case: IT wants to move to a newer Claude model, with no change to the price per token.** It looks free. But a 4.7-or-later model uses the newer tokenizer: about 30% more tokens for identical text. On the input lines above, $75 of input becomes about $98. Output tokens are counted with the new tokenizer too. The real rise varies with your text, so run a week of real requests through both models and compare the token counts before you sign off.
+
+### Step 5: move the night job
+
+The helpdesk also writes summaries of 40,000 closed calls each night for the morning team. Nobody reads them before 9 am. Through a Batch API, that job costs half.
+
+### Step 6: why it is better
+
+- **Priced per task**, with every hidden line included.
+- **Discounts used where they fit**, and their conditions named.
+- **Model changes tested**, not assumed to cost the same.
+
+## Common mistakes
+
+1. **Pricing only questions and answers.** Tool definitions, calls and results are input tokens on every request. Fix: count them in the per-task price.
+2. **Editing tools whenever someone has an idea.** Each change breaks the cache. Fix: group tool changes into planned releases.
+3. **Comparing only the licence fee with the model bill.** Build, upkeep and review time are real costs. Fix: use the four-line view for both build and buy.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team runs 50,000 requests a month. Tool definitions are 2,000 tokens. Use made-up prices: $2 per MTok input, $0.20 per MTok cache read. Answer three questions.
+
+```text
+1. What do the definitions cost a month, uncached?
+2. About what do they cost if read from cache
+   (ignore writes)?
+3. A weekly report job runs at 3 am; results are read
+   at noon. Which discount fits?
+```
+
+### Answer
+
+1. 2,000 × 50,000 = 100M tokens. At $2 per MTok, that is **$200**.
+2. 100M tokens at $0.20 per MTok is **$20**, if the definitions don't change.
+3. **Batch.** Nobody waits for the result, and both vendors list 50% off.
+
+## Recap
+
+- Tool definitions, calls and results all count as input tokens in each request. Price one finished task, not a million tokens.
+- Caching and batch can each cut the bill, but caching needs stable tools and batch needs work nobody waits for.
+- A model change can change the token count. Count building, running, upkeep and checking costs over several years.
