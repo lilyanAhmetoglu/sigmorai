@@ -1,7 +1,7 @@
 ---
 id: creator/r4/c1/lesson
 title: Creative agents
-minutes: 6
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic · Building effective agents
@@ -17,68 +17,199 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/agents
 ---
 
-## Why it matters
+## Goal
 
-In Tool Forge you gave a chat assistant a few tools, and a person asked for each step. An **agent** goes one step further. You give it a goal, and it chooses the steps itself: draft a plan, make an image, look at the result, try again.
+After this lesson you can:
 
-You will be asked whether a job needs an agent. Often the honest answer is no. This lesson gives you a way to decide, and a way to see what an agent costs you.
+- Tell a workflow from an agent, and say who picks the next step in each one.
+- Place a creative job on a ladder: one call, a workflow, or an agent.
+- Explain why the number of loops in an agent run, and so its cost, is unknown at the start.
 
-## Two kinds of chain
+## The problem
 
-Anthropic splits "agentic systems" into two kinds:
+An illustrator makes picture books for small publishers. A publisher sends a new job: a 12-page book about a fox who is afraid of rain. The publisher has approved the text and one style sheet (colours, line weight, how the fox looks).
 
-- **Workflows** are systems where models and tools are "orchestrated through predefined code paths". The steps are fixed. Someone decided them in advance.
-- **Agents** are systems where the model "dynamically" directs "its own processes and tool usage". The model decides the next step.
+The illustrator reads about AI agents and writes this plan:
 
-Example: "Every Monday, export the approved hero ad as 9:16, 1:1 and 16:9." The steps never change, so this is a workflow. Example: "Find three creative directions for a new snack brand, try them, and drop the weak ones." Nobody can list the steps in advance, so this needs an agent, if it needs any chain at all.
+> One agent does the whole book. It reads the text, decides the style, draws all 12 pages, checks them, fixes what it does not like, and exports a print file. I just wait for the result.
 
-Anthropic's post is from December 2024. It says much of the tooling it describes has changed since then. The two definitions are the part to keep.
+The plan sounds modern. It has three hidden problems:
 
-## What an agent does, step by step
+1. Some parts of the job never change. The export is the same every time. Nobody needs a model to decide it.
+2. Some parts are already decided. The style sheet is approved, so "decide the style" is work the agent should not do.
+3. Nobody knows how long the agent will run, or what it will cost. The plan has no number at all.
 
-OpenAI describes an agent as something that can "plan and complete tasks using tools, work with other agents, and maintain context across steps". Its Agents SDK runs a loop:
+This lesson gives you a way to split a job like this. Each part goes to the simplest tool that can do it.
 
-1. Call the model with the current input.
-2. If the model asks for a tool, run the tool, add the result, and go round again.
-3. If the model gives a final answer with no more tool work, stop.
+## The idea
 
-For a creative agent, a loop could look like this. The model asks for an image. Your app runs the image tool. The image comes back. The model looks at it and asks for another version. That is three trips round the loop for one picture.
+### Two kinds of chain
 
-Two things follow:
+The [Anthropic engineering post on agents](https://www.anthropic.com/engineering/building-effective-agents) calls both kinds "agentic systems", but it draws one clear line between them:
 
-- **Each trip costs time and money.** Every trip is a model call, and the tool call can cost too.
-- **The model decides how many trips.** You do not know the count when you start.
+- A **workflow** is a system where models and tools run on paths that were written in code beforehand. The post calls them "predefined code paths". A person chose the steps.
+- An **agent** is a system where the model chooses. In the post's words, the model "dynamically" directs "its own processes and tool usage".
 
-Google's managed agents show the size of this. Its page says one interaction "can trigger multiple reasoning loops, typically consuming 100k to 3M tokens". Google lists managed agents as a Public Preview, so details may change. The spread is the point: one interaction can use thirty times more tokens than another.
+So the key question is simple: **who picks the next step?** In a workflow, your code does. In an agent, the model does.
 
-## The simplest thing that works
+A small comparison helps. A workflow is a recipe card: step 1, step 2, step 3, the same each time. An agent is a cook who tastes the soup and decides what to add next.
 
-Anthropic's advice is: "find the simplest solution possible, and only increase complexity when needed. This might mean not building agentic systems at all." It adds that agentic systems often trade latency and cost for better task performance. You should ask if that trade makes sense for the job.
+The post is from December 2024. A note at the top says much of the tooling it describes "has changed since December 2024". The two definitions are still the useful part.
 
-Use a ladder:
+### The agent loop
 
-1. **One call.** One prompt, one image. Many jobs end here.
-2. **A workflow.** Fixed steps, in a fixed order. You can predict the cost and the result.
-3. **An agent.** The model picks the steps. Use it when the work is open-ended and you cannot predict the steps.
+The [OpenAI agents docs](https://developers.openai.com/api/docs/guides/agents) describe agents as systems that "can plan and complete tasks using tools, work with other agents, and maintain context across steps".
 
-Anthropic says agents suit "open-ended problems" where you cannot predict the number of steps or hardcode a path. It also says "the autonomous nature of agents means higher costs, and the potential for compounding errors". It recommends extensive testing in sandboxed environments and the right guardrails.
+The [OpenAI Agents SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) show how the loop runs:
 
-## Questions to ask before you pick an agent
+```text
+1. call the model with the current input
+2. look at what the model returned:
+   - a final answer (text, no tool calls)  -> stop, return it
+   - a handoff to another agent            -> switch agent, go to 1
+   - one or more tool calls                -> run them, add the
+                                              results, go to 1
+```
 
-This checklist is ours, not a vendor's.
+For a picture, one image can take several trips. The model asks for an image. Your app runs the image tool. The image comes back. The model looks and asks for a new version. Then it looks again and gives its answer. That is three model calls for one picture.
 
-| Question                                                        | If the answer is yes          |
-| --------------------------------------------------------------- | ----------------------------- |
-| Can I write the steps on one page before the job starts?        | A workflow is enough          |
-| Is it one asset from one prompt?                                | One call is enough            |
-| Do I need the model to try, look and change plan on its own?    | An agent may fit              |
-| Can I live with an unknown number of tries and an unknown bill? | An agent may fit, with limits |
+Two things follow from this loop:
 
-The last row matters most. If nobody can accept an unknown bill, the job needs limits before it needs an agent. Chapter 4 is about those limits.
+- **Every trip costs something.** Each trip is a model call, and model calls use tokens. The tool call may cost money too.
+- **The model sets the number of trips.** You do not know the count when you press start. A long run is how the loop works. It is not, by itself, a bug.
 
-## What this means for your work
+### How big the spread can be
 
-- **Name the job in one sentence.** If you can list the steps, build a workflow.
-- **Start at the bottom of the ladder.** Move up only when the lower step fails.
-- **Expect an unknown count of tries.** Ask for a cap before you start.
-- **Treat an agent as a junior teammate on a trial.** It can do real work. It also needs a brief, a checklist and a person who looks at the result. The next chapters add those.
+The [Gemini agents docs](https://ai.google.dev/gemini-api/docs/agents) put a number on this for Google's managed agents. Their pricing is pay-as-you-go, "based on Gemini model tokens and tool usage". The docs say: "A single interaction can trigger multiple reasoning loops, typically consuming 100k to 3M tokens."
+
+The top of that range is 30 times the bottom. So there is no "normal" number of loops you can budget for. The same docs list managed agents as a **Public Preview**, so these details may change.
+
+### The ladder
+
+The Anthropic post gives the main advice: "we recommend finding the simplest solution possible, and only increasing complexity when needed. This might mean not building agentic systems at all."
+
+It explains the trade. Agentic systems "often trade latency and cost for better task performance". And for many applications, one well-built model call "is usually enough".
+
+So think of three steps on a ladder:
+
+```text
+3  agent      the model picks the steps    open-ended work
+2  workflow   fixed steps, in code         known, repeated work
+1  one call   one prompt, one result       many jobs end here
+```
+
+Start at the bottom. Climb only when the step below fails.
+
+### When an agent fits
+
+The Anthropic post says agents fit "open-ended problems where it's difficult or impossible to predict the required number of steps, and where you can't hardcode a fixed path".
+
+It also names the price: "The autonomous nature of agents means higher costs, and the potential for compounding errors." Its advice is to test agents a lot in sandboxed environments, with the right guardrails.
+
+Our reading: if a job repeats with the same steps, a model that "chooses" the steps only adds risk. There is nothing to choose.
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+ONE AGENT, whole book:
+  read text -> decide style -> draw 12 pages -> self-check
+  -> fix -> export print PDF
+  limits: none
+```
+
+What goes wrong:
+
+- The style is already approved. If the agent "decides" it again, page 1 may not match the style sheet.
+- The export has fixed settings. A model gains nothing by choosing them.
+- There is no limit. The run could be 20 trips or 200.
+
+### Step 2: split the job into parts
+
+Write each part on its own line. Then ask one question for each: **can I write the steps before the job starts?**
+
+```text
+PART                         STEPS KNOWN?   WHY
+A  export a print PDF        yes            same settings every book
+B  one cover sketch for      yes            one prompt, approved style
+   the sales sheet
+C  12 page illustrations     yes            one page = one prompt + check
+D  find a new idea for the   no             the publisher wants
+   back cover: "surprise us"                 options, not a set answer
+```
+
+### Step 3: put each part on the ladder
+
+```text
+A  export          -> workflow (fixed code, no model choice)
+B  cover sketch    -> one call, then a person looks
+C  12 pages        -> workflow: for each page, one image call,
+                      one check, the same steps 12 times
+D  back cover      -> maybe an agent: try ideas, look, drop
+                      weak ones. Set a limit first.
+```
+
+### Step 4: the hard case
+
+**The hard case is part C, the 12 pages.** It looks like agent work. There are many images, each one needs a check, and some will need a second try. It feels "open-ended".
+
+But read the steps again. For every page you can write them down before you start: take the page text, make one image in the approved style, check it, redo it once if the check fails. The path is the same for page 1 and page 12. That is a workflow with a small repeat inside it. Your code holds the steps. The model only draws.
+
+Why this matters: a workflow is easy to predict. You know there are 12 pages and at most 2 image calls per page. So you can say "no more than 24 image calls" before the job starts. An agent gives you no such number.
+
+Only part D has no path you can write down. Nobody knows how many ideas the agent will try. That is the one place where an agent may earn its cost.
+
+### Step 5: the better plan
+
+```text
+A  export:      a script with fixed print settings
+B  cover:       one image call with the approved prompt;
+                the illustrator looks at it
+C  pages 1-12:  a workflow; each page gets 1 image call,
+                1 check, and at most 1 redo
+D  back cover:  an agent, with a cap on tries and a
+                person who picks the final idea
+```
+
+### Step 6: why it is better
+
+- **Each part uses the lowest step that works.** Only one part pays the agent price.
+- **Most of the cost is known.** Parts A, B and C have a fixed number of calls.
+- **The approved style stays approved.** No model gets to "decide" it again.
+- **The open part has a limit.** The plan says how the agent run will end before it starts.
+
+## Common mistakes
+
+1. **Using an agent because the job is big.** Size is not the test. Fix: ask if you can write the steps first. If you can, build a workflow.
+2. **Budgeting for a "normal" number of loops.** The model decides the count, and the spread is wide. Fix: set a hard cap on tries or money before the run.
+3. **Thinking only the image tool costs money.** Every trip round the loop is also a model call that uses tokens. Fix: count model calls and tool calls when you plan.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A small music label asks you to plan three jobs for a new single:
+
+```text
+1  For every new song, make a square cover, a 9:16 story
+   image and a 16:9 banner from the same approved artwork.
+2  The singer wants "a strange, dreamy visual idea" for a
+   tour poster. No idea is chosen yet.
+3  A test agent run for job 2 shows 9 model calls. A
+   teammate says: "So every run costs 9 calls. Budget 9."
+```
+
+For jobs 1 and 2, pick a step on the ladder. For line 3, say what is wrong with the teammate's idea.
+
+### Answer
+
+1. **Workflow.** The three sizes are the same for every song. The steps are known, so fixed code does it. A model choosing sizes adds nothing.
+2. **Maybe an agent, with limits.** Nobody can write the steps for "find a strange idea". The model must try, look and choose. Try one call first. If that is not enough, use an agent with a cap.
+3. **Nine is one run, not a rule.** Each run, the model chooses again how often to loop. The next run could take 3 calls or 30. Budget with a cap, not with one past count.
+
+## Recap
+
+- A workflow follows steps written in code. An agent lets the model pick the next step and the tools.
+- Start with the simplest thing: one call, then a workflow, then an agent. Many jobs never need an agent.
+- In an agent loop, the trip count is the model's choice. Each trip costs tokens, so the cost is unknown until you set a limit.

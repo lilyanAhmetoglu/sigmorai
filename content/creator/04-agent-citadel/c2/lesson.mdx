@@ -1,7 +1,7 @@
 ---
 id: creator/r4/c2/lesson
 title: Storyboards
-minutes: 6
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic · Building effective agents
@@ -17,69 +17,195 @@ sources:
     url: https://docs.dev.runwayml.com/recipes/multi-shot-video
 ---
 
-## Why it matters
+## Goal
 
-A video agent that goes straight from a brief to rendered clips is expensive when it is wrong. Every clip takes time and credits. A bad idea in shot 1 spoils the clips after it.
+After this lesson you can:
 
-A **storyboard** is a cheap plan in shots, written before any clip exists. If an agent drafts it, you get a page you can read in two minutes. You can fix it for free. This lesson shows what a storyboard row must hold, and how to check a draft before the agent spends anything.
+- Ask an agent for a storyboard first, with a length, inputs and settings on every row.
+- Check each row against the video model's real limits, and add up the lengths yourself.
+- Put a person's approval after the checks and before the first render.
 
-Prompt wording for one shot was covered in Prompt Forest. Clip limits were covered in the Bootstrap Village. Here, the storyboard is the plan that holds those pieces together.
+## The problem
 
-## A plan first, with a gate
+A bike shop wants a 24-second landscape (16:9) video for a new electric bike. The studio uses an agent with Veo 3.1. The agent gets the brief at 9:00. By 9:20 it has queued four clips.
 
-Anthropic describes a pattern called prompt chaining. Each model call handles the output of the one before. You can add programmatic checks, which it calls a "gate", on any step "to ensure that the process is still on track". One of its examples fits video well: "writing an outline of a document, checking that the outline meets certain criteria, then writing the document based on the outline."
+At 13:00 the results come back:
 
-Swap in your work. The outline is the storyboard. The document is the video. The check sits between them.
+- One clip failed. The request mixed settings that do not go together.
+- One clip is fine, but the bike is the wrong colour, because the agent did not use the product photo.
+- The four clips add up to 28 seconds, not 24. The agent's own note said 24.
 
-Example: a 30-second tea ad. The agent first writes a shot list. A check runs on the list. Only then does the agent start making clips.
+Nobody looked at a plan before the money was spent. Each fix now means a new render, and each render costs time and credits. A two-minute check on paper would have caught all three problems.
 
-## What goes in a storyboard row
+## The idea
 
-This table is our own template, not a vendor format. It is what a check needs.
+### A cheap plan before the expensive step
 
-| Column      | What it holds                                             | Why                                    |
-| ----------- | --------------------------------------------------------- | -------------------------------------- |
-| Shot number | The order                                                 | The edit follows it                    |
-| One idea    | One scene in one sentence                                 | A shot with three ideas is three shots |
-| Length      | Seconds, in a size the model allows                       | Only the listed lengths exist          |
-| Inputs      | Text only, first frame, reference images or a source clip | These change what settings are allowed |
-| Must match  | Product, colours, logo, anything fixed                    | The reviewer checks this later         |
-| Settings    | Ratio and resolution                                      | One setting can block another          |
+A **storyboard** is a plan in shots, written before any clip exists. Think of it like a builder's drawing. Changing a line on paper is free. Moving a wall after it is built is not.
 
-Runway's Multi-Shot Video recipe gives similar advice: "write one clear idea per shot", and reuse the same product or style language across shots. Its docs also say that in custom mode you order the shots the way you want them to play.
+The [Anthropic engineering post on agents](https://www.anthropic.com/engineering/building-effective-agents) describes a pattern called **prompt chaining**. Each model call works on the output of the call before it. Between calls you can add checks in code. The post calls such a check a "gate", and says you can put one on any middle step. Its job is to make sure the chain "is still on track" before the next call builds on it.
 
-## The model sets the limits of the plan
+One of its examples fits video work well: "Writing an outline of a document, checking that the outline meets certain criteria, then writing the document based on the outline."
 
-A storyboard that ignores model limits will fail at render time. Google's Veo 3.1 page lists these rules:
+For a video, swap the words:
 
-- Clip length is 4, 6 or 8 seconds.
-- The length must be 8 seconds when you use reference images, or when you ask for 1080p or 4k.
-- Up to three reference images can guide a video.
-- You can extend a Veo video by 7 seconds, up to 20 times. Extension works at 720p only, for Veo-generated videos only, and is not available on Veo 3.1 Lite.
+```text
+outline   ->  storyboard
+check     ->  gate: a script, then a person
+document  ->  the rendered clips
+```
 
-Google lists the Veo 3.1 model ids as preview versions at the time of writing, so check the page before you plan a job.
+### What a storyboard row holds
 
-Example: a draft says "shot 2, 6 seconds, with three reference images". Those two do not go together. Reference images need 8 seconds. A check that knows the rules catches this on paper, before a render.
+Our habit: every row has these columns. This is our template, not a vendor format.
 
-Example: a draft says "shot 3, 15 seconds, extend at 1080p". Extension works only at 720p. So either the shot is rendered at 720p, or it becomes two shots.
+| Column     | What it holds                                         | Why it matters                          |
+| ---------- | ----------------------------------------------------- | --------------------------------------- |
+| Shot       | The order number                                      | The edit follows it                     |
+| Idea       | One scene, in one sentence                            | Two ideas in one shot means two shots   |
+| Length     | Seconds, from the model's allowed list                | Other lengths do not exist on the model |
+| Inputs     | Text only, first frame, reference images, or a clip   | Some inputs change which settings work  |
+| Must match | The product, colours, logo, anything that cannot move | A reviewer checks this later            |
+| Settings   | Aspect ratio and resolution                           | One setting can block another           |
 
-## Who checks the storyboard
+The [Runway Multi-Shot Video docs](https://docs.dev.runwayml.com/recipes/multi-shot-video) give the same kind of advice in their tips:
 
-Two kinds of check fit here.
+- Write one clear idea per shot.
+- In custom mode, order the shots the way you want them to play.
+- Reuse the same product or style words across shots, for a consistent look.
 
-- **A mechanical check.** Add up the lengths. Compare each length with the allowed list. Compare each shot's inputs with its settings. A short script or a careful person does this the same way every time. Do not ask the agent to vouch for its own sums. Add the rows yourself.
-- **A person's check.** Does the story say what the client asked? Is the product shown at the right moment? This is judgment. It is cheap now, and expensive after rendering.
+### The model sets the limits of the plan
 
-Only when both pass does the agent start making clips.
+A row that breaks a model rule fails at render time. So the check must know the rules. The [Veo docs](https://ai.google.dev/gemini-api/docs/veo) list these for Veo 3.1:
 
-## One agent or many
+- **Lengths.** A clip is 4, 6 or 8 seconds. The parameter table lists `"4"`, `"6"`, `"8"`.
+- **When 8 is the only choice.** The table says the length must be 8 "when using extension, reference images or with 1080p and 4k resolutions".
+- **Reference images.** Veo 3.1 takes "up to 3 reference images" to guide a video.
+- **Extension.** You can extend a Veo video "by 7 seconds and up to 20 times". The page says extension is "limited to 720p videos", works only on videos that Veo made, and is not available on Veo 3.1 Lite.
 
-You may meet systems where a manager agent calls helper agents, such as a writer, a drawer and a video maker. OpenAI's orchestration guide describes "agents as tools": the manager keeps control and calls specialists as "bounded capabilities". It says to give each specialist "a narrow job", and to "start with one agent whenever you can". Chapter 6 comes back to this.
+The Veo 3.1 model ids end in `-preview`, and the page lists their status as Preview. Our advice: check the page again before you plan a job.
 
-## What this means for your work
+Runway's recipe has its own rules. In custom mode you give a list of 3 to 5 shots. The total length is 5, 10 or 15 seconds. And the docs say: "Per-shot durations must sum to `duration`." So in Runway, if you ask for 10 seconds, your shots together must fill exactly 10 seconds.
 
-- **Ask for the storyboard first.** No clips before a plan exists.
-- **Give every row a length, inputs and a must-match line.** Missing columns are where renders fail.
-- **Check the plan against the model's limits.** Lengths, inputs and settings must agree.
-- **Add the lengths yourself.** A total the agent wrote is a claim, not a sum.
-- **Approve the plan before the spend.** The cheapest fix is on paper.
+### Two kinds of check
+
+**A mechanical check.** Add the lengths. Compare each length with the allowed list. Compare each row's inputs with its settings. A short script does this the same way every time.
+
+Our advice: do not ask the agent to confirm its own total. The agent wrote the table and the note. A wrong note is still wrong when the agent repeats it. Add the numbers yourself, or let a script add them.
+
+**A person's check.** Does the story match the brief? Does the product appear at the right moment? This is judgment. On paper it takes minutes. After rendering, every change costs a new clip.
+
+Only when both checks pass does the render queue start.
+
+### One agent or many
+
+Some systems split this work: a manager agent calls a writer agent, a storyboard agent and a video agent. The [OpenAI orchestration docs](https://developers.openai.com/api/docs/guides/agents/orchestration) call one form of this "agents as tools". The manager keeps control and calls specialists "as bounded capabilities".
+
+The same docs give two rules:
+
+- Keep the job of each specialist small and clear. The docs call it a "narrow job".
+- "Start with one agent whenever you can." Add specialists only when the job truly needs different instructions, tools or rules.
+
+A later lesson comes back to this. For now: one agent that writes a good storyboard beats three agents that skip it.
+
+## Worked example
+
+### Step 1: the weak plan
+
+The agent drafts this for the 24-second bike video, 16:9, Veo 3.1:
+
+```text
+Shot  Idea                               Length  Inputs / settings
+1     Rider leaves a city street at dawn  8 s    text only, 720p
+2     Close-up of the bike's motor,       6 s    2 reference images
+      then the rider smiles and waves             (bike, logo)
+3     Bike climbs a hill                  4 s    4k
+4     Bike parked, logo on screen         10 s   1 first frame, 720p
+Agent note: "Total: 24 seconds."
+```
+
+### Step 2: the mechanical check, row by row
+
+```text
+Row 1  8 s, text only, 720p                 OK
+Row 2  6 s with reference images            FAIL: must be 8 s
+       two ideas (motor, then rider)        WARN: split into 2 shots
+Row 3  4 s at 4k                            FAIL: 4k must be 8 s
+Row 4  10 s                                 FAIL: not 4, 6 or 8
+Sum    8 + 6 + 4 + 10 = 28 s                FAIL: note says 24
+```
+
+Four rule problems and a wrong total. All found on paper, at no cost.
+
+### Step 3: fix the rows
+
+```text
+Shot  Idea                        Length  Inputs / settings
+1     Rider leaves a city street   8 s    text only, 720p
+2     Close-up of the motor        8 s    2 reference images (bike, logo), 720p
+3     Bike climbs a hill           4 s    text only, 720p
+4     Bike parked, logo on screen  4 s    first frame = approved photo, 720p
+Must match: bike frame is dark green; logo bottom right in shot 4
+Sum: 8 + 8 + 4 + 4 = 24 s   (added by the script, not the agent)
+```
+
+The rider's smile was cut. It was a second idea in shot 2, and the client asked for a product video. A person can put it back if they want it.
+
+### Step 4: the hard case
+
+**The hard case is a request for a longer shot.** The bike shop now asks: "Can the hill climb be one long 15-second take?"
+
+At first this looks impossible. 15 is not 4, 6 or 8. But extension changes the maths. Start with an 8-second clip and extend it once by 7 seconds: 8 + 7 = 15. So a 15-second shot is possible on Veo 3.1, but only if all of these are true:
+
+- The shot is made at 720p. Extension does not work at 1080p or 4k.
+- The model is Veo 3.1 or Veo 3.1 Fast, not Veo 3.1 Lite.
+- The first clip was made by Veo.
+
+So the row is not "15 s, 4k". It is "8 s at 720p, then one 7-second extension". The check must know this, or it will either reject a valid plan or pass a broken one. And with a 15-second shot, the total grows. The other shots must shrink, or the total changes, and the client must agree.
+
+### Step 5: the gate
+
+```text
+09:00  agent writes the storyboard
+09:05  script checks lengths, inputs, settings, sum
+09:10  producer reads it against the brief, approves
+09:15  render queue starts
+```
+
+### Step 6: why it is better
+
+- **The rules are checked before money is spent.** Bad rows never reach the render queue.
+- **The total is a sum, not a promise.** A script adds it.
+- **The product is pinned.** The must-match line tells the reviewer what to check later.
+- **A person approves a plan, not a pile of clips.** Changes cost minutes, not credits.
+
+## Common mistakes
+
+1. **Rendering first and reviewing later.** Every fix then costs a new clip. Fix: no render until the storyboard has passed its checks.
+2. **Trusting the total in the agent's note.** The model can write a wrong sum next to a right table. Fix: add the lengths with a script.
+3. **Mixing settings without the rule list.** Short clips with reference images, or extension at 1080p, fail at render time. Fix: check every row against the model's parameter table.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A florist wants a 10-second Runway Multi-Shot video in custom mode. The agent's draft:
+
+```text
+total duration: 10
+shot 1  roses in a bucket          3 s
+shot 2  hands tie a bow            3 s
+shot 3  bouquet on a doorstep      5 s
+```
+
+Is the draft ready to send? If not, what is wrong, and how do you fix it?
+
+### Answer
+
+**Not ready.** The shots add up to 3 + 3 + 5 = 11 seconds. In custom mode, the Runway docs want the shots together to equal the `duration` value, and that value is 10. One fix: make shot 3 four seconds long, so 3 + 3 + 4 = 10. The shot count is fine, because custom mode takes 3 to 5 shots. Then a person checks the story before the render starts.
+
+## Recap
+
+- Ask for a storyboard first. It is a cheap plan that a script and a person can check before the expensive renders.
+- Check every row against the model's real limits. A Veo 3.1 clip is 4, 6 or 8 seconds long, and 8 is required with reference images, 1080p or 4k. Each extension is 7 more seconds, and it needs 720p.
+- Add the lengths yourself, and put the person's approval after the checks and before the render queue.
