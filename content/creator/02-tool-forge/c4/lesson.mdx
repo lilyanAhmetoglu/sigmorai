@@ -47,12 +47,12 @@ After this lesson you can:
 
 A bakery wants a 9:16 story video for its new cake. The plan has four steps:
 
-1. Two cake photos go into a Runway video job. Both are square. One is 3.6 MB, one is 4.1 MB. The team sends them inline in the request, because "5 MB is the limit".
+1. Two cake photos go into a Runway video job. Both are square. One is 3.1 MB, one is 4.1 MB. The team sends them inline in the request, because "5 MB is the limit".
 2. A voice-over is made with OpenAI speech as `pcm`, then handed to a video editor.
 3. A Veo clip of the shop front is made on Wednesday. The editor plans to download it on Saturday.
 4. The finished Runway link goes into a message to the bakery owner.
 
-Every step looks fine. Three of them will break. None of these breaks is a model problem. They are file problems: the wrong size, the wrong shape, the wrong type, or a file that is gone.
+Every step looks fine. All four will cause trouble. None of these breaks is a model problem. They are file problems: the wrong size, the wrong shape, the wrong type, or a file that is gone.
 
 ## The idea
 
@@ -96,7 +96,7 @@ URLs have rules too. The Runway page says: "All URLs must be HTTPS." And: "Redir
 
 ### Shape: the tool crops for you
 
-The [Runway primer](https://docs.dev.runwayml.com/ai-context.md) warns that inputs "are auto-cropped to the target aspect ratio when they do not match, which can silently change your composition". It does not stretch the picture and it does not add bars. It cuts. A square photo in a tall video loses its sides. Make the right shape yourself first, so you choose what stays in the frame.
+The [Runway primer](https://docs.dev.runwayml.com/ai-context.md) warns that inputs "are auto-cropped to the target aspect ratio when they do not match, which can silently change your composition". Runway's own models crop from the center. Third-party models on Runway "may crop or resize inputs in other ways". Neither stretches the picture or adds bars. A square photo in a tall video loses its sides. Make the right shape yourself first, so you choose what stays in the frame.
 
 ### Type: pick the format the next step needs
 
@@ -133,7 +133,7 @@ The Claude Files API has a privacy point. Its docs warn that uploads are "access
 ### Step 1: the weak plan
 
 ```text
-1  cake-a.png 3.6 MB, cake-b.png 4.1 MB, both 1:1
+1  cake-a.png 3.1 MB, cake-b.png 4.1 MB, both 1:1
    -> sent inline (data URI) to a 9:16 Runway job
 2  voice-over: OpenAI speech, response_format pcm -> video editor
 3  Veo shop-front clip, made Wednesday, download Saturday
@@ -143,7 +143,7 @@ The Claude Files API has a privacy point. Its docs warn that uploads are "access
 ### Step 2: run the five checks on each step
 
 ```text
-Step 1  SIZE   cake-a: 3.6 x 1.33 = about 4.8 MB encoded. Fits.
+Step 1  SIZE   cake-a: 3.1 x 1.33 = about 4.1 MB encoded. Fits (under 3.3MB).
                cake-b: 4.1 x 1.33 = about 5.5 MB encoded. Over 5MB.
         SHAPE  1:1 into 9:16. The tool will crop the sides.
 Step 2  TYPE   pcm has no header. The editor may not open it.
@@ -153,7 +153,7 @@ Step 4  TIME   the link expires in 24-48 hours. PLACE: our storage.
 
 ### Step 3: the hard case
 
-**The hard case is the two photos.** Both are under 5 MB on disk, so both "look" fine. But the limit counts the base64 text, not the file on disk. Cake-a just fits. Cake-b does not. A rule like "under 5 MB is OK" passes one and fails the other, and nobody knows why.
+**The hard case is the two photos.** Both are under 5 MB on disk, so both "look" fine. But the limit counts the base64 text, not the file on disk. Cake-a fits. Cake-b does not. A rule like "under 5 MB is OK" passes one and fails the other, and nobody knows why.
 
 The safe fix is one rule for both: send big images by HTTPS URL (16MB limit) or as an upload. Then the 33% does not matter. If you must send inline, check the file is 3.3MB or less.
 
