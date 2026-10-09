@@ -1,7 +1,7 @@
 ---
 id: strategist/r3/c6/lesson
 title: Citations
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Citations
@@ -23,67 +23,144 @@ sources:
     url: https://developers.openai.com/api/docs/guides/tools-web-search
 ---
 
-## Why it matters
+## Goal
 
-An answer with a source can be checked. An answer without one has to be trusted. A citation turns "the assistant said so" into "page 14 of the 2026 travel policy says so". For a business, that is the difference between an answer staff can act on and an answer they must research again. Citations also make errors easier to trace: when a cited passage doesn't match the claim, you know where to look.
+After this lesson you can:
 
-## What a citation gives you
+- Explain what a citation proves and what it does not prove.
+- Design an answer screen where each claim shows its source, and plan a record of what search returned.
+- Run a simple weekly citation audit and set a realistic target.
 
-Anthropic's citations page says Claude can give detailed citations when it answers questions about documents. Each citation points to a specific place in a source: a page range for a PDF, or a character range for plain text. The page says all active Claude models support citations.
+## The problem
 
-The page lists three advantages over asking the model to cite in the prompt:
+A manufacturing company has a procurement team of 25 buyers. An internal assistant helps them with questions about 2,000 supplier contracts: payment terms, price-change rules, notice periods. The answers look good, but buyers can't see where a fact came from. So they open the contract and check by hand, every time.
 
-- **Cost:** the quoted text (`cited_text`) doesn't count toward output tokens. The page also says citations add a slight increase in input tokens.
-- **Reliability:** citations are guaranteed to contain valid pointers to the documents you provided.
-- **Quality:** in Anthropic's evaluations, the feature was significantly more likely to cite the most relevant quotes.
+Then a buyer acts on a wrong notice period, and the company misses the date to leave a contract. The head of procurement asks: "Can we make the answers checkable? And can we prove later what the assistant looked at?" This lesson shows how citations help, and where they stop. The guidance below is from each vendor's docs (October 2026).
 
-Our reading: the guarantee covers where the citation points, not whether the passage supports the claim. Note what "valid pointer" means. It promises that the cited text is really in your documents. Whether that text supports the claim is a separate question, and a person should still check samples.
+## The idea
 
-## Citations from your own knowledge base
+An answer with a source can be checked. An answer without one has to be trusted. A **citation** turns "the assistant said so" into "clause 7.2 of contract S-0418 says so".
 
-In a RAG system, the model cites the chunks your search returns.
+**What a citation gives you.** The [Claude citations page](https://platform.claude.com/docs/en/build-with-claude/citations) says Claude "can provide detailed citations when answering questions about documents". Each citation points to a place in the source: for PDFs, "the page number range"; for plain text, "the character index range". "All active models support citations." The page lists three advantages over asking for quotes in the prompt:
 
-Anthropic's search results page describes **search result blocks**. They let Claude cite your own content the same way it cites web search results. Each citation carries the `source` and `title` you provide. The source can be a URL or an internal ID like `kb://article-1234`. Citations are off by default, so you have to turn them on.
+- **Cost.** The quoted text, `cited_text`, "does not count toward your output tokens". (**Tokens** are the small pieces of text a model reads and writes.) Turning citations on causes "a slight increase in input tokens".
+- **Reliability.** Citations come with a guarantee of "valid pointers to the provided documents".
+- **Quality.** "In Anthropic's evaluations", the feature was "significantly more likely to cite the most relevant quotes".
 
-OpenAI's file search guide says the response includes a message with **file citations**: annotations that reference your files. The search results themselves are not returned by default; you can ask for them with the `include` parameter.
+**A valid pointer is not proof.** Our reading: the guarantee is about **where** the citation points. It promises that the quoted words truly exist in your files. It does not promise that the text supports the claim. A real clause can be about a different supplier, an older term, or a different topic. People still need to check samples.
 
-Example: an accounting firm runs an internal tax helpdesk assistant. Each answer cites the memo ID and the passage it used, so an advisor can open the memo in one click.
+**Citations from your own knowledge base.** In a RAG system (search that adds the right pages to the prompt), the model should cite the chunks your search returns.
 
-## Show citations to users
+- The [Claude search results page](https://platform.claude.com/docs/en/build-with-claude/search-results) describes **search result blocks**. They "let Claude cite your own content the same way it cites web search results". Each citation carries the `source` and `title` you provide. The source can be a URL or "an internal identifier such as `kb://article-1234`". "By default, citations are disabled for search results", so you must turn them on.
+- The [OpenAI file search guide](https://developers.openai.com/api/docs/guides/tools-file-search) says the answer text carries "annotations (references to files)", with the type `file_citation`. But "the file search call will not return search results by default". To keep the found passages, "you can use the `include` parameter" (a setting in the request).
 
-Citations only help if people see them. For web search, both vendors make this a rule:
+**Keep a real record.** A file name in a citation shows which file was cited. It does not show every passage that search returned. If you need a record for an audit, turn on the search results in the response and store them. Our advice: don't ask the model to list what it read. That list is the model's claim, not a log.
 
-- OpenAI's web search guide says that when you display web results to end users, inline citations must be clearly visible and clickable in your interface.
-- Anthropic's web search page says that when you display API outputs directly to end users, citations to the original source must be included.
+**Show citations to users.** Citations only help if people see them. For web search, both vendors make it a rule:
 
-A good pattern: show the source title and a link right next to the claim it supports, not in a list at the bottom.
+- The [OpenAI web search guide](https://developers.openai.com/api/docs/guides/tools-web-search) says inline citations "must be made clearly visible" in your interface, and "clickable".
+- The [Claude web search page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool): "When displaying API outputs directly to end users, citations must be included to the original source."
 
-Example: in the tax helpdesk, the claim "Training costs for staff are deductible" is followed by "[Memo TX-114, para 3]". The advisor clicks it and reads the paragraph before advising a client.
+Our advice: put the source title and a link right next to the claim it supports, not in one list at the bottom. A list at the bottom does not show which source backs which sentence.
 
-## Make the model check itself
+**Make the model check itself.** The [Claude guide on reducing hallucinations](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) suggests two steps:
 
-Anthropic's guide to reducing hallucinations suggests two steps:
+1. Make the response "auditable by having it cite quotes and sources for each of its claims".
+2. After it answers, have it find "a supporting quote" for each claim. "If it can't find a quote, it must retract the claim."
 
-1. Ask the model to cite quotes and sources for each of its claims, so the response can be audited.
-2. After it answers, have it find a supporting quote for each claim. If it can't find one, it must remove the claim.
+The guide's example drafts a press release from product briefs. It removes every claim without a supporting quote and marks the gap "with empty [] brackets". The same page says these steps reduce hallucinations but "don't eliminate them entirely".
 
-The guide's example drafts a press release only from product briefs, then removes every claim without a supporting quote and marks the gap with empty `[]` brackets. For the tax helpdesk, the prompt could end: "For each claim, quote the memo passage that supports it. Remove any claim you can't support." The guide also says these techniques reduce hallucinations but don't remove them. Check critical information, especially for high-stakes decisions.
+**Audit a sample.** Our advice: every week, pick a random sample of answers. Open each cited passage. Mark it **supports the claim**, **doesn't support it** or **no citation**. Track the rates over time, and send high-stakes topics, such as money or legal deadlines, to a person.
 
-## Audit a sample
+Our example: a citation is like a receipt. A receipt proves you went to the shop. It doesn't prove you bought the right thing. You still look inside the bag now and then.
 
-This citation audit is a tool for this course. Each week:
+## Worked example
 
-1. Pick 50 answers at random.
-2. Open each cited passage.
-3. Mark it: **supports the claim**, **doesn't support it**, or **no citation**.
-4. Track the rates over time, and send high-stakes topics, such as money or legal questions, to a person.
+### Step 1: the weak design
 
-Example: the tax helpdesk finds that 6 of 50 cited passages don't support their claims. That is a measured problem the team can work on, not a feeling. Look at the failed answers together to find shared causes, such as an old memo or a chunk without context (see Data readiness).
+```text
+Design A
+- Answers show text only. Sources stay hidden, to keep the screen clean.
+- At the bottom: "Sources searched: 12 contracts".
+- For audits, the prompt asks the model to list the passages it read.
+- Goal: "No wrong answers after launch."
+```
 
-## Key points
+What goes wrong:
 
-- A citation lets people check an answer; show it next to the claim.
-- A valid pointer proves the text exists, not that it supports the claim.
-- Claude search result blocks and OpenAI file citations bring citations to RAG.
-- Both vendors' web search docs require visible citations for end users.
-- Have the model drop unsupported claims, and audit a sample every week.
+- Buyers can't check one claim without opening every contract.
+- "12 contracts" doesn't say which one backs the notice period.
+- The model's list of passages is not a log of what search really returned.
+- "No wrong answers" is not reachable. The vendor docs say the steps reduce errors, not remove them.
+
+### Step 2: the good design
+
+```text
+Design B
+Answer screen:
+  "The notice period is 90 days before the renewal date.
+   [Contract S-0418, clause 7.2]"   <- link opens the clause
+Prompt:
+  For each claim, quote the contract clause that supports it.
+  Remove any claim you can't support, and mark the gap with [].
+Records:
+  Store the search results with each answer (Claude: search result
+  blocks with citations on; OpenAI file search: the include parameter).
+Checks:
+  Weekly audit of 40 random answers. Every answer about a deadline
+  or a payment goes to a senior buyer before anyone acts on it.
+```
+
+### Step 3: the hard case
+
+In the first audit, one answer says "Price increases are capped at 3% a year", with a valid citation. The buyer opens it. **This is the hard case.** The cited clause is real, but it belongs to an older contract with the same supplier. The new contract caps increases at 2%. The pointer is valid; the support is not. The team marks it **doesn't support the claim**. The cause is an old contract still in the knowledge base, so the fix goes to the data team, not the model.
+
+### Step 4: the audit result
+
+```text
+Week 1 audit, 40 answers
+  Supports the claim           34
+  Doesn't support the claim     4
+  No citation                   2
+```
+
+The team now has a number to improve, not a feeling. It sets a target with the business and tracks it each week.
+
+### Step 5: why it is better
+
+- **Every claim is checkable in one click.**
+- **The record is real.** Stored search results show what the assistant saw, not what it says it saw.
+- **The model drops what it can't support.**
+- **People stay on high-stakes answers,** and the weekly audit catches what slips through.
+
+## Common mistakes
+
+1. **Treating "has a citation" as "is correct".** A valid pointer only proves the text exists. Fix: check in an audit if the passage really backs the claim.
+2. **Hiding citations or listing them all at the bottom.** Users can't check a single claim. Fix: show each source next to its claim, with a link.
+3. **Using the model's own account as the audit record.** Fix: store the actual search results from the response.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A hospital's admin team uses an assistant on its internal policy library. Answer three questions.
+
+```text
+1. An audit finds: 30 answers, 27 with citations, 22 where the
+   cited text backs up the claim. What share is really backed?
+2. The team adds web search on public health-authority sites.
+   What must the answer screen do?
+3. Leadership asks: "With citations on, can we promise zero errors?"
+```
+
+### Answer
+
+1. **22 of 30.** A citation (27) does not mean the claim is backed. Look at the 5 cited-but-unsupported answers for a shared cause, such as old policies.
+2. **Put each web source as a clickable citation beside its claim, in plain view.** The OpenAI and Claude web search pages both require citations whenever users see web results.
+3. **No.** The guarantee covers valid pointers, not support, and the vendor docs say these steps reduce errors without removing them. Agree a measured goal, run the weekly audit, and route high-stakes answers to a person.
+
+## Recap
+
+- A citation lets people check an answer. A valid pointer proves the text exists, not that it supports the claim.
+- Put each citation beside the claim it backs. For audits, store the real search results, not the model's own list.
+- Have the model drop claims it can't support, audit a sample every week, and route high-stakes answers to a person.
