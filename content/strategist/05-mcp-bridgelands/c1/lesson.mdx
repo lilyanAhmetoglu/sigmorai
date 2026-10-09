@@ -1,7 +1,7 @@
 ---
 id: strategist/r5/c1/lesson
 title: Integration basics
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Tool use with Claude
@@ -26,70 +26,160 @@ sources:
     url: https://www.anthropic.com/engineering/code-execution-with-mcp
 ---
 
-## Why it matters
+## Goal
 
-A model on its own can only work with the text you send it. It can't open your calendar, look up an order or update a customer record. An **integration** connects the model to your tools and data, so it can fetch facts and take actions. This realm is about choosing those connections well: what to connect, how, at what cost and with what risk.
+After this lesson you can:
 
-## The model asks, your system acts
+- Explain who really runs an action when an AI assistant "uses a tool": the model asks, a system acts.
+- Sort each planned connection into "reads data" or "changes things", and set approval to match the risk.
+- Describe any integration on a five-line card before you say yes to it.
 
-Both big vendors use the same basic idea. Anthropic's tool use page says tool use (also called function calling) lets Claude call functions that you define. Claude decides when to call a tool, based on the user's request and the tool's description. It returns a structured call, and your application runs it.
+## The problem
 
-OpenAI's function calling guide says the same thing in five steps:
+A chain of 14 fitness studios has an AI assistant for its front-desk staff. Today it only answers from general knowledge. The operations lead wants more. The assistant should check class bookings, look up a member's plan, give refunds, and send reminder texts to members.
+
+An agency offers to build it. Its pitch says: "The AI logs in to your booking system and does the work, just like a person." The plan gives the assistant every action at once, with no checks. It also builds a separate link from each of the chain's two AI apps (the front-desk assistant and a member chat bot) to each of three systems.
+
+The lead is not technical and must decide in a week. This lesson gives the lead the words and the questions to ask. The guidance below is from each vendor's docs and the MCP spec (October 2026).
+
+## The idea
+
+An **integration** connects a model to your systems, so it can fetch facts and take actions. A model alone works only with the text you send it. It can't open your booking system.
+
+**The model asks, a system acts.** The vendors call this **tool use** or **function calling**. A **tool** is one action you make available, such as "find a booking". The [Claude tool use page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) says the model decides when to call a tool, based on the user's request and the tool's description. It then returns a structured call, and an application carries it out. The [OpenAI function calling guide](https://developers.openai.com/api/docs/guides/function-calling) lists the same round trip in five steps:
 
 1. Your app sends a request with the tools the model could call.
 2. The model replies with a tool call.
 3. Your app runs code with the input from that call.
 4. Your app sends the tool's output back to the model.
-5. The model gives a final answer, or asks for more tool calls.
+5. The model writes a final answer, or asks for more tool calls.
 
-The key point for a manager: the model doesn't press any buttons itself. It writes a request, and a system runs it. That system is where you put limits, checks and logs.
+So the model never "logs in". It writes a request. Software runs it. That software is where you put limits, checks and logs.
 
-Example: a staff member asks "Is order 5521 shipped?" The model asks for `get_order_status` with the order number. Your order system looks it up and returns "shipped on Monday". The model then writes the answer.
+```text
+user -> model -> "please call find_booking(id 881)"
+                      |
+              your system runs it -> result -> model -> answer
+```
 
-## Who runs the tool
+**Who runs the tool.** The Claude page says: "Tools differ primarily by where the code executes."
 
-Anthropic's page says tools differ mainly by where the code runs:
+- **Client tools** run inside your own application. This includes tools you define yourself. The model never runs them; your code does.
+- **Server tools** (web search is one) run on Anthropic's own infrastructure.
 
-- **Client tools** run in your application. Your team builds and runs them.
-- **Server tools**, such as web search, run on Anthropic's infrastructure.
+The [OpenAI tools guide](https://developers.openai.com/api/docs/guides/tools) lists a similar mix: built-in tools (such as web search and file search), function calling for your own code, and remote MCP servers for third-party services. So "connect the AI to X" can mean three different projects: switch on a vendor tool, build your own tool, or connect a service someone else runs. Each one has a different owner, cost and risk.
 
-OpenAI's tools guide lists a similar mix: built-in tools (web search, file search and others), function calling for your own functions, and remote MCP servers to reach third-party services.
+**Reading is not the same as acting.** The **MCP spec** is the open standard that the next lesson explains. (MCP is short for Model Context Protocol, a shared set of rules for connecting AI apps to tools.) Its [server features page](https://modelcontextprotocol.io/specification/2026-07-28/server) separates two kinds of offer:
 
-So "connect the AI to X" can mean three different projects: turn on a vendor's built-in tool, build your own tool, or connect a service that someone else runs. Each one has a different owner, cost and risk.
+- **Resources** are data for context. The spec's examples: file contents, git history.
+- **Tools** are functions the model can call to take actions. The spec's examples: API POST requests (messages that change data in another system) and writing files.
 
-## Reading is not the same as acting
+Our reading: this split matters more to a business than any technical detail. A wrong read shows a wrong fact on screen. A wrong write changes a real record or reaches a real customer. That is much harder to undo.
 
-The MCP specification (the open standard covered in the next chapter) separates what a connection can offer. Its examples help:
+**Approval is a setting, not a wish.** The [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) says tool calls "can either be allowed automatically, or restricted with explicit approval required by you as the developer." The [MCP tools page](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) goes further. It says there "SHOULD always be a human in the loop with the ability to deny tool invocations", for trust and safety. It also asks apps to show clearly which tools the model can use, to mark when a tool is called, and to show confirmation prompts. Our advice: a sentence in the prompt such as "be careful with refunds" is a request to the model. It is not a control. Put the check in the system.
 
-- **Resources** are data for context, such as file contents.
-- **Tools** are functions the model can call to take actions, such as sending an API request or writing a file.
+**One link per pair does not scale.** Anthropic's engineering article [Code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp) names the old problem. Linking agents to tools and data "traditionally requires a custom integration for each pairing". So the same work is done many times, and it is hard to grow. MCP is the answer it gives: developers implement it once in their agent, and that "unlocks an entire ecosystem of integrations."
 
-For a business, this split matters more than any technical detail. A tool that reads the price list can show a wrong price. A tool that writes to the CRM can change a record for real. OpenAI's MCP guide lets the developer decide whether tool calls run automatically or need explicit approval. The MCP spec says there should always be a human in the loop who can deny tool calls.
+Our example: think of travel plugs. Without a standard, every device needs its own adapter for every country. With one standard socket, each device needs one plug.
 
-Example: a sales assistant may search the CRM freely. Updating a deal value or emailing a client should wait for a person to click "approve".
+## Worked example
 
-## One connection per pair does not scale
+### Step 1: the weak plan
 
-Anthropic's post on code execution with MCP describes the old problem. Connecting agents to tools and data used to need a custom integration for each pairing. That causes duplicated effort. MCP is its answer: a universal protocol. The post says developers implement MCP once in their agent, and it unlocks a whole ecosystem of integrations.
+```text
+Agency plan
+Goal: the assistant can do everything the front desk does.
 
-Example (this course's arithmetic): a company uses two AI assistants and wants both to reach its ticket system and its wiki. With custom work for each pair, that is four integrations to build and maintain. With a shared standard, each system needs one MCP server, and each assistant connects to both.
+  System        Action                       Approval
+  Bookings      find bookings, see class list  none
+  Bookings      cancel a booking               none
+  Payments      refund a member                none
+  Messaging     text members                   none
+  Plans         read a member's plan           none
 
-## Describe each integration on one card
+Build: one custom link from each of 2 AI apps to each
+of 3 systems.
+```
 
-This card is a tool for this course. Before you approve any integration, fill in five lines:
+What goes wrong:
 
-1. **System:** what it connects to (for example, the CRM).
+- The pitch says the AI "logs in". It doesn't. Software runs each call, so the real question is what that software allows.
+- Reads and writes get the same treatment. A refund or a text to 900 members runs with no person in the loop.
+- Two apps times three systems is six custom links. Each change to a system means fixing several of them.
+
+### Step 2: describe each connection on a card
+
+This card is our own tool for this course. Fill in five lines for each connection:
+
+1. **System:** what it connects to.
 2. **Read or write:** does it only fetch data, or can it change things?
 3. **Runs where:** in our app, on the AI vendor's side, or on a third party's server?
 4. **Data that leaves:** what data goes out, and to whom?
 5. **Approval:** which actions need a person to confirm?
 
-The rest of the realm fills in these lines in more detail: what MCP is, who offers integrations, how to review security, what it costs and how to avoid being locked in.
+### Step 3: the good plan
 
-## Key points
+```text
+Card: Bookings (read)
+  Read or write: read only
+  Runs where: our app
+  Data that leaves: a member number
+  Approval: none needed
 
-- An integration lets a model fetch data and take actions in your systems.
-- The model writes a structured request; your system (or the vendor's) runs it.
-- Tools can run in your app, on the vendor's side, or on a third party's server.
-- Reading data and changing data carry very different risk; keep approval on for actions.
-- A shared standard such as MCP avoids building one integration for every pair.
+Card: Bookings (cancel) and Payments (refund)
+  Read or write: write
+  Runs where: our app
+  Data that leaves: member number, amount
+  Approval: front-desk staff confirm each call on screen
+
+Card: Messaging (text members)
+  Read or write: write, reaches customers
+  Approval: staff confirm each text; no bulk sends in phase 1
+
+Build: each system gets one shared connection (MCP),
+used by both AI apps.
+```
+
+### Step 4: the hard case
+
+**The hard case is "read a member's plan".** It only reads, so it looks safe. But the card's line 4 shows that the whole plan record leaves: home address, date of birth, health notes from the sign-up form. Read-only does not mean low risk when the data is sensitive.
+
+The fix: the connection returns only what the front desk needs, such as plan name and end date. The rest stays in the system. Reads still need a look at line 4.
+
+### Step 5: why it is better
+
+- **Clear roles.** The model requests; the studio's software runs each call and can refuse it.
+- **Risk matched to approval.** Reads with little data run freely. Writes wait for a person.
+- **Less repeated work.** One connection per system serves both apps.
+- **A record.** Each card shows the owner, the data and the checks in five lines.
+
+## Common mistakes
+
+1. **"The AI logs in and clicks."** It returns a structured request that software runs. Fix: ask what that software allows, checks and logs.
+2. **One approval rule for everything.** All-on blocks useful reads; all-off lets risky writes run. Fix: decide approval per action, by its effect.
+3. **Trusting a prompt line as a safety check.** The model can still call the tool. Fix: set approval in the system, so a person can deny the call.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A car-rental firm plans these three connections for its AI assistant. For each one, say read or write, and whether a person should approve it.
+
+```text
+1. Look up whether a car is free on a given date.
+2. Change the price on a customer's booking.
+3. Read the full customer file to answer a question
+   about the customer's booking dates.
+```
+
+### Answer
+
+1. **Read, low data.** Only a date and a car type go out. It can run without approval.
+2. **Write.** It changes money on a real booking. A person should approve each call before it runs.
+3. **Read, but too much data.** The question needs dates, not the full file. Return only the booking dates. Approval is not the main fix here; less data is.
+
+## Recap
+
+- The model writes a structured request for a tool. An application, yours or the vendor's, runs it and returns what it found.
+- Changing data is riskier than reading it. Keep a human able to deny calls, and require approval for actions with real effects.
+- A shared standard such as MCP means you build one connection per system, not one per app and system pair.

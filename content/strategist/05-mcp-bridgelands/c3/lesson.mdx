@@ -1,7 +1,7 @@
 ---
 id: strategist/r5/c3/lesson
 title: Vendor landscape
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: OpenAI docs · MCP servers
@@ -26,71 +26,151 @@ sources:
     url: https://github.com/modelcontextprotocol/servers
 ---
 
-## Why it matters
+## Goal
 
-Once you decide to connect your AI to a system, the next question is: **whose** connection do you use? The same CRM may have an official server from the CRM company, a server from a third party and a free example on GitHub. They look alike in a demo. They are very different in who you trust with your data.
+After this lesson you can:
 
-## Five places an integration can come from
+- Name the five places an MCP server can come from, and who you trust with your data in each case.
+- Explain why a directory listing or a working demo is not a security check.
+- Plan for a private system and for a vendor feature that may change or end.
 
-This map is a tool for this course. Each type is backed by the docs below.
+## The problem
 
-1. **An official server from the service itself.** The company that runs the system also runs the MCP server.
-2. **A third-party server or "aggregator".** Another company runs a server that passes your requests on to the service.
-3. **A reference or example server.** Sample code that shows how MCP works.
-4. **A server you build and run yourself.**
-5. **A built-in connector from the AI vendor.**
+An accounting firm with 200 staff plans to connect its AI assistant to two systems. The first is its cloud bookkeeping software, to read client invoices. The second is an archive of signed engagement letters (the contracts with each client). The archive sits on the firm's own servers and is not on the internet.
 
-## Prefer the official server
+The IT team finds many ways in. The bookkeeping company has its own MCP server. A start-up sells a "one hub for 60 apps" server. A developer found free example code on GitHub and built a demo in a day. For the archive, someone suggests copying it to a public cloud drive.
 
-OpenAI's MCP guide gives clear advice: pick official servers hosted by the service providers themselves. Its example is to connect to the Stripe server hosted by Stripe, at `mcp.stripe.com`, not a Stripe server hosted by a third party. It also names GitHub's official MCP server.
+In a demo, all of these look the same: the assistant answers. They are not the same. Each one changes who sees the firm's data and who fixes things when they break. The guidance below is from each vendor's docs (October 2026).
 
-The guide admits that there aren't many official remote MCP servers yet. So you may be tempted to use an aggregator: a server run by a company that doesn't operate the service and passes requests on through your API access. If you must, the guide says to be extra careful with due diligence and to review how they use your data.
+## The idea
 
-Example: a marketing team wants its assistant to read campaign data from an ad platform. A start-up offers a server that covers twenty ad platforms. That start-up would sit in the middle and pass the team's requests on to each platform. The official server from the ad platform, if one exists, adds no extra company in the middle.
+An **MCP server** is the piece of software that connects an AI app to one system (chapter 2). The question here is **whose** server you use.
 
-## "Listed" is not the same as "checked"
+This map of five sources is our own tool for this course:
 
-Both vendors say clearly that they don't vouch for other people's servers.
+1. **An official server** run by the company that runs the system.
+2. **A third-party server**, also called an **aggregator**: another company's server that passes your requests on to the system.
+3. **A reference server**: example code that shows how MCP works.
+4. **Your own server**, built and run by your team.
+5. **A built-in connector** from the AI vendor.
 
-- OpenAI's guide says remote MCP servers have not been verified by OpenAI. All MCP servers are third-party services with their own terms and conditions.
-- Anthropic's remote MCP servers page lists example servers. It says they are third-party services, not owned, operated or endorsed by Anthropic. Users should connect only to servers they trust, after reviewing each server's security practices and terms.
-- Anthropic's Claude Code security page says Anthropic reviews connectors against its listing criteria before adding them to the Anthropic Directory, but does not security-audit or manage any MCP server.
+```text
+your AI app -> official server ------------------> system
+your AI app -> aggregator (extra company) -------> system
+```
 
-So a directory listing helps you find a server. It doesn't replace your own security review (next chapter).
+Our example: an official server is like paying a bill at your bank's own counter. An aggregator is a shop that takes your card and pays the bank for you. It may work fine, but one more company now handles your money.
 
-## Example code is not a product
+**Prefer the official server.** The [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) says: "Pick official servers hosted by the service providers themselves". For Stripe (a payments company), it points to Stripe's own server at `mcp.stripe.com`, not a copy that someone else hosts. It also names GitHub's official MCP server. The guide admits there "aren't too many official remote MCP servers today". So you may be tempted by an aggregator. If you must use one, the guide says to "be extra careful in doing your due diligence" (check the company first) and to review how they use your data.
 
-The `modelcontextprotocol/servers` repository on GitHub holds a small number of reference servers kept by the MCP steering group. Its README warns that they are meant as educational examples for developers, **not** production-ready solutions. Developers should check their own security needs and add safeguards.
+**A listing is not a check.** The vendors say plainly that they do not vouch for other people's servers:
 
-Example: a developer shows a demo that uses the reference "Filesystem" server. That proves the idea works. It is not a decision to run that code with company files.
+- On remote servers, the OpenAI guide warns they "have not been verified by OpenAI". It adds: "All MCP servers are third-party services that are subject to their own terms and conditions."
+- The [Claude remote MCP servers page](https://platform.claude.com/docs/en/agents-and-tools/remote-mcp-servers) lists example servers, and says they are "not owned, operated, or endorsed by Anthropic". Users should connect only to servers they trust, after a look at each server's security practices and terms.
+- The [Claude Code security page](https://code.claude.com/docs/en/security) says Anthropic reviews connectors against its listing criteria before it adds them to the Anthropic Directory, "but does not security-audit or manage any MCP server."
 
-## Building your own
+So a directory helps you find a server. Your own review (chapter 4) still has to happen.
 
-Anthropic's Claude Code security page encourages either writing your own MCP servers or using servers from providers you trust. Building gives you full control of the code and the data. It also makes your team the owner: it must host, update and secure the server.
+**Example code is not a product.** The [MCP servers repository](https://github.com/modelcontextprotocol/servers) on GitHub holds a small number of reference servers kept by the MCP steering group (the people who run the project). Its README says they are "educational examples for developers", "not as production-ready solutions". Teams that use them must decide what protection they need and build it.
 
-## Built-in connectors from the AI vendor
+**Building your own.** The Claude Code security page encourages "either writing your own MCP servers or using MCP servers from providers that you trust." Our reading: building gives you full control of the code and the data. It also makes your team the owner: it must host, update and secure the server.
 
-OpenAI's guide lists a small set of built-in connectors in its API, for services like Dropbox, Gmail, Google Drive, Microsoft Teams and SharePoint. The guide says it focused on services that don't have official remote MCP servers. These are now marked legacy: `connector_id` is deprecated for models released after September 1, 2026, and the guide points you to remote MCP servers instead. Existing models keep connector support.
+**Built-in connectors can change.** The OpenAI guide lists a small set of built-in **connectors** for services such as Dropbox, Gmail, Google Drive, Microsoft Teams and SharePoint. OpenAI says it chose services that don't have official remote MCP servers. These connectors are now legacy. The guide says: "`connector_id` is deprecated for models released after September 1, 2026." Its advice is to pass a `server_url` (the address of a remote MCP server) instead, or a `tunnel_id` for a private one. "Existing models retain connector support." In short:
 
-The lesson: a vendor's own shortcut can change. Check the status of any built-in connector before you build a process on it.
+- A model that was out before 1 September 2026 can still use a connector.
+- A model released after that date should use a remote MCP server instead.
 
-## Private systems: tunnels
+**Private systems: tunnels.** Some systems should never face the internet. A **tunnel** is a link that starts from inside your network and goes out, so nobody outside can open a door in.
 
-Some systems should never face the internet. Both vendors now offer a tunnel for this:
+- OpenAI's [Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) connects private MCP servers "without opening inbound firewall ports or exposing those servers to the public internet".
+- Anthropic's [MCP tunnels](https://platform.claude.com/docs/en/agents-and-tools/mcp-tunnels/overview) also use "an outbound-only connection". The page says they are in research preview, and "provided 'as-is' without any uptime, support, or continuity commitment". They depend on a third-party network provider (Cloudflare), and "Anthropic may modify or discontinue MCP tunnels at any time."
 
-- OpenAI's **Secure MCP Tunnel** connects a private MCP server without opening inbound firewall ports or exposing it to the public internet.
-- Anthropic's **MCP tunnels** do the same with an outbound-only connection. The page says they are in research preview, provided "as-is" without uptime or support commitments, and depend on a third-party network provider (Cloudflare).
+Our reading: "research preview" is fine for a pilot. It is weak ground for a process the business cannot pause.
 
-"Research preview" matters for planning. It is fine for a pilot, but weak ground for a critical process.
+**Who decides which servers staff may use** is an admin setting. The [managed MCP page](https://code.claude.com/docs/en/managed-mcp) covers it, and chapter 4 explains it.
 
-## Who decides which servers are allowed
+## Worked example
 
-Which servers staff may connect is an admin setting. The next chapter covers it.
+### Step 1: the weak plan
 
-## Key points
+```text
+Bookkeeping (read invoices):
+  Use the "hub for 60 apps" server. A public MCP
+  directory lists it, so it must be fine. One server for all.
+Archive (on our servers):
+  Copy all engagement letters to a public cloud drive
+  each night, then connect a server to that drive.
+Fallback:
+  The developer's GitHub demo works; keep it as plan B.
+```
 
-- Prefer an official server run by the service itself; treat aggregators with extra care.
-- Vendors don't verify or audit third-party servers; a directory listing is not a security check.
-- Reference servers are examples, not production software.
-- Built-in connectors can be deprecated; OpenAI's are now legacy for new models.
-- Tunnels connect private systems; check whether they are still in preview.
+What goes wrong:
+
+- The hub adds a second company between the firm and its client data. The directory listing did not check its security.
+- Copying signed contracts to a public drive puts private files on the internet every night.
+- The demo is example code. Nobody owns, updates or secures it.
+
+### Step 2: the good plan
+
+```text
+Bookkeeping (read invoices):
+  Use the bookkeeping company's official MCP server.
+  Review its terms and data use (chapter 4).
+Archive (on our servers):
+  Pilot with the AI vendor's tunnel. The archive stays
+  inside our network; the link goes outbound only.
+  If the vendor's tunnel is a research preview, keep the
+  pilot small and keep a manual process ready.
+Demo code:
+  Use it to learn and to test ideas. Don't run it on
+  client data.
+```
+
+### Step 3: the hard case
+
+**The hard case: the firm also needs its payroll software, and that company has no official server.** Only aggregators offer one. The OpenAI guide allows this, with care. So the firm's review asks:
+
+- Who runs the aggregator, and where does it store data?
+- Does it keep copies of requests, and for how long?
+- Can it act on the payroll account, or only read?
+
+Another option is to build the firm's own small server for the two payroll actions it needs. That costs time, but no extra company sees the data.
+
+### Step 4: why it is better
+
+- **Fewer companies in the middle.** The official server talks straight to the system.
+- **Private data stays private.** The tunnel avoids putting the archive on the internet.
+- **Honest about maturity.** Preview features and demo code are labelled as such.
+
+## Common mistakes
+
+1. **Choosing the server with the most apps.** More coverage means one more company holds your data. Fix: start with the official server for each system.
+2. **Treating "listed" as "approved".** Directories help you find servers; vendors say they don't audit them. Fix: run your own review before you connect.
+3. **Building on a feature without checking its status.** Connectors can become legacy; previews can change or end. Fix: check each vendor feature's status page before a process depends on it.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A dental group's IT team proposes these three choices. What is the risk in each?
+
+```text
+1. For the booking system, use an aggregator, even though
+   the booking company runs its own MCP server.
+2. For email, use OpenAI's built-in Gmail connector with a
+   model released in November 2026.
+3. For the patient-records server on the internal network,
+   rely on a research-preview tunnel with no backup plan.
+```
+
+### Answer
+
+1. **An extra company in the middle.** An official server exists, so use it. An aggregator only makes sense when there is no official one, and then with extra checks.
+2. **A legacy connector on a new model.** Connectors are legacy for any model released after 1 September 2026. Use a remote MCP server for Gmail instead.
+3. **No promise of uptime.** A research preview can change or stop. Keep the pilot small and keep a manual way to work.
+
+## Recap
+
+- Prefer the official server run by the service itself. Treat aggregators with extra checks.
+- No vendor checks other companies' servers for you. Reference servers are teaching code, not software to run on real data.
+- Built-in connectors and preview features can change. Tunnels link private systems without opening them to the internet.

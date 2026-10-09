@@ -1,7 +1,7 @@
 ---
 id: strategist/r5/c2/lesson
 title: MCP in plain words
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: MCP specification · Overview (version 2026-07-28)
@@ -26,76 +26,181 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/function-calling
 ---
 
-## Why it matters
+## Goal
 
-Vendors, consultants and your own IT team will say "MCP" a lot. You don't need to build it. You need to know what it is, what it can offer and what questions to ask. This chapter explains it without code.
+After this lesson you can:
 
-## What MCP is
+- Explain MCP to a non-technical colleague: what it is, and what the host, client and server do.
+- Sort a feature into a prompt, a resource or a tool by asking who decides when it is used.
+- Spot the safety jobs that belong to the AI app, and check what a vendor's MCP support really covers.
 
-The MCP specification describes the **Model Context Protocol** as an open protocol. It connects AI applications with outside data sources and tools in a standard way. A protocol is a shared set of rules for how two programs talk, like the rules that let any phone call any other phone.
+## The problem
 
-The spec says MCP took some inspiration from the Language Server Protocol, which standardised how programming-language support is added across many coding tools. MCP aims to do the same for adding context and tools to AI applications.
+A hotel group with 9 hotels wants its guest-services assistant to reach three systems: room bookings, the housekeeping schedule, and a spreadsheet of local partner offers that lives on a manager's laptop.
 
-The spec has dated versions. The latest one listed on 2026-10-06 is version 2026-07-28.
+The project lead writes a requirements list after a vendor meeting:
 
-## Three roles: host, client, server
+- "We buy MCP from our AI vendor."
+- "One connector inside our AI app talks to all three systems."
+- "Each system gets the full guest chat, so its answers are better."
+- "MCP makes sure the guest agrees before anything happens."
+- "The vendor's API connector supports MCP, so the laptop spreadsheet works too."
 
-The spec names three roles:
+Each line sounds fine in a meeting. Most are wrong. This lesson gives you the plain facts to fix them. The guidance below is from the MCP spec and each vendor's docs (October 2026).
 
-- **Host:** the AI application the user works in, such as a chat app or a coding tool. It starts the connections.
-- **Client:** a connector inside the host. Each client talks to exactly one server.
-- **Server:** a service that offers data and actions, for example for a ticket system or a database.
+## The idea
 
-The architecture page gives the host important jobs. It controls connection permissions, enforces security policies and consent, and handles the user's authorisation decisions. So when you buy an AI app, much of the safety depends on the host, not only on the servers.
+**What MCP is.** The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28) calls the Model Context Protocol "an open protocol". A **protocol** is a shared set of rules for how two programs talk. MCP is not a product you buy from one vendor. It connects AI apps to outside data and tools in a standard way. The spec says MCP took "some inspiration" from the Language Server Protocol, which did the same job for programming languages in code editors.
 
-Example: an operations team uses an AI desktop app (the host). It connects to a ticket-system server and a file-storage server. The app holds one client for each server.
+The spec has dated versions. The one this course cites is 2026-07-28.
 
-## What a server can offer
+Our example: MCP is like the standard shape of a power socket. Any plug that fits the standard works in any socket, whoever made the lamp.
 
-The spec lists three building blocks that servers offer. Each one has a different "who decides" rule:
+**Three roles.** The spec names three parts:
 
-- **Prompts** are controlled by the user. The spec's examples: slash commands, menu options.
-- **Resources** are controlled by the application. The spec's examples: file contents, git history.
-- **Tools** are controlled by the model. The spec's examples: API requests, writing files.
+- **Host:** the AI app the user works in, such as a chat app or a coding tool. The spec says hosts are the apps "that initiate connections".
+- **Client:** a connector inside the host. The host creates it.
+- **Server:** a service that gives the host data and actions, for example for a booking system.
 
-Tools are the powerful part: the model can decide to call them. That is why the spec warns that tools can run arbitrary code and must be treated with caution.
+```text
+host (the AI app)
+ |-- client 1 ---- server: bookings     (remote)
+ |-- client 2 ---- server: housekeeping (remote)
+ |-- client 3 ---- server: offers sheet (local)
+```
 
-## Servers don't see everything
+The [architecture page](https://modelcontextprotocol.io/specification/2026-07-28/architecture) says one host can run many clients. Each client "communicates with exactly one server", a 1:1 link. Every server is reached through its own client. This is true for local and remote servers alike. A **local** server runs on the user's own computer; a **remote** one runs on the internet. The architecture page allows both kinds.
 
-One design principle in the architecture page is useful for privacy talks. Servers should not be able to read the whole conversation or "see into" other servers. The full conversation history stays with the host, and each server gets only the information it needs.
+**The host has the big jobs.** On the architecture page, the host:
 
-Example: your AI app connects to a CRM server and a payroll server. The payroll server should not see what the user asked the CRM. This is a design goal of the protocol. Still check how your chosen app handles it.
+- creates and manages the clients;
+- decides which connections are allowed;
+- sets the security rules and the consent rules;
+- handles the user's authorization decisions (who may do what);
+- coordinates the AI model.
 
-## Local and remote servers
+So when you buy an AI app, much of your safety depends on the host, not only on the servers.
 
-The architecture page says servers can be local processes or remote services. A local server runs on the user's own computer; a remote one runs on the internet.
+**Servers see only what they need.** One design principle in the architecture page matters for privacy: servers "should not be able to read the whole conversation, nor 'see into' other servers". In plain words:
 
-The big AI platforms connect to remote servers:
+- Each server receives just the context its job needs.
+- The host keeps the whole chat.
+- If data must move from one server to another, the host controls it.
 
-- Anthropic's **MCP connector** connects to remote MCP servers from the Messages API. The server must be publicly reachable over HTTP; local servers can't be connected directly.
-- OpenAI's MCP guide says remote MCP servers can be any server on the public internet that implements MCP.
-- Google's Gemini function calling page says its Interactions API can connect to remote MCP servers, using the Streamable HTTP type only.
+The principle does not change for local or remote servers, or for servers on your own network.
 
-Coding tools often use both kinds. Anthropic's Claude Code page shows example tasks: implementing a feature from an issue tracker, querying a database or updating an email template from new designs.
+**What a server can offer.** The [server features page](https://modelcontextprotocol.io/specification/2026-07-28/server) lists three building blocks. Each has a different "who decides" rule:
 
-## Support is not identical
+| Building block | Who controls it | Spec's examples                 |
+| -------------- | --------------- | ------------------------------- |
+| Prompts        | The user        | Slash commands, menu options    |
+| Resources      | The application | File contents, git history      |
+| Tools          | The model       | API POST requests, file writing |
 
-A shared protocol doesn't mean every product supports all of it. Anthropic's MCP connector page says that, of the MCP feature set, only tool calls are currently supported. Resources and prompts need another route. Always ask a vendor which parts of MCP its product supports.
+All three can put text in front of the model. What differs is **who decides when**. A person picks a prompt. The app attaches a resource. The model chooses to call a tool.
 
-## Questions to ask about any MCP proposal
+Features can also go the other way. **Elicitation** is one such client feature in the spec: with it, a server can ask the user for more information.
 
-This list is a tool for this course:
+**Consent is the host's job.** The spec's security principles include these:
 
-1. **Which host?** Which AI app will use it, and what consent and approval screens does it show?
-2. **Which server, run by whom?** The service's own company, a third party, or our team?
-3. **Local or remote?** Does data leave the user's computer or our network?
-4. **Which building blocks?** Only tools, or also resources and prompts, and does our host support them?
-5. **Which tools can change things?** Those need approval.
+- "Hosts must obtain explicit user consent before exposing user data to servers".
+- "Tools represent arbitrary code execution and must be treated with appropriate caution." (Arbitrary code means any code at all.)
+- "Hosts must obtain explicit user consent before invoking any tool".
 
-## Key points
+Then the key line: "MCP itself cannot enforce these security principles at the protocol level". No rule in the protocol stops a tool call. The app's builders must add the consent screens. Our reading: a line in the system prompt asks the model; it does not make a consent screen.
 
-- MCP is an open protocol for connecting AI apps to data and tools.
-- Host = the AI app; client = its connector; server = the service that offers data and actions.
-- Servers offer prompts (user-controlled), resources (app-controlled) and tools (model-controlled).
-- By design, servers shouldn't see the whole conversation or each other.
-- Anthropic, OpenAI and Google document remote MCP support, but feature support differs, so ask.
+**Support is not the same everywhere.** Many products speak MCP, but each one supports a different part:
+
+- The [Claude MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) reaches remote servers from the API "without a separate MCP client". It has two limits. Of the MCP feature set, "only tool calls are currently supported", so resources and prompts need another route. And "The server must be publicly exposed through HTTP"; a local server can't be connected directly.
+- The [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) connects to a remote server with a `server_url` field. A private server needs a tunnel (chapter 3 covers tunnels).
+- The [Gemini function calling page](https://ai.google.dev/gemini-api/docs/function-calling) says its Interactions API can connect to remote MCP servers, but "Remote MCP only works with Streamable HTTP servers". Servers that use the older SSE type are not supported.
+- The [Claude Code docs](https://code.claude.com/docs/en/mcp) show coding tools using MCP for tasks such as building a feature from an issue tracker or querying a database.
+
+## Worked example
+
+### Step 1: the weak list
+
+The five lines from the hotel group's requirements list (see The problem).
+
+### Step 2: fix what MCP is and the roles
+
+```text
+- MCP is an open protocol. We don't buy it; we choose an
+  AI app (the host) and servers that speak it.
+- The host runs one client per system: three clients for
+  three servers.
+```
+
+### Step 3: fix the context
+
+```text
+- The host keeps the guest chat. The bookings server gets
+  only the booking request, for example "free rooms on
+  12 May at the harbour hotel".
+- If housekeeping needs a booking date, the host passes it on.
+  Servers never read each other directly.
+```
+
+### Step 4: sort the features
+
+The team plans three features:
+
+- **A:** staff pick "/late-checkout-reply" from a menu. A person decides when: a **prompt**.
+- **B:** the app adds the hotel's house rules to every chat. The app decides: a **resource**.
+- **C:** the assistant books a room when it thinks the guest wants one. The model decides: a **tool**.
+
+**The hard case is B.** The house rules change the model's answers, so they feel like a tool. But nobody asks the model to call them; the app attaches them. Ask "who decides when?", not "does the model see it?". The answer is the app, so B is a resource.
+
+### Step 5: fix consent and the vendor's support
+
+```text
+- The host shows staff a confirm screen before each room
+  booking (tool C). The protocol can't do this for us.
+- Our vendor is Anthropic's API connector: tool calls only,
+  public HTTP servers only.
+  -> A and B need our own MCP client, or another route.
+  -> The laptop spreadsheet is not public. Move the offers
+     to a server we run, or use a host that supports
+     local servers.
+```
+
+### Step 6: why it is better
+
+- **Right words.** MCP is an open standard we use, not something we buy; one client per server.
+- **Private by design.** Each server gets small pieces of context, and the host keeps the chat.
+- **Right building block.** Each feature is sorted by who decides when.
+- **Real consent.** A screen in the host, not a hope in the protocol.
+- **Fits the vendor.** The plan checks what the chosen connector supports.
+
+## Common mistakes
+
+1. **Calling MCP a vendor's product.** It is an open protocol, so one server can serve apps from several vendors. Fix: ask which host and which servers, not "which MCP".
+2. **Sorting by what the model sees.** Prompts, resources and tools can all reach the model. Fix: sort by who decides when it is used.
+3. **"Supports MCP" means "supports all of MCP".** Products support different parts and server types. Fix: ask which building blocks and which server types work, before you design.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A law firm sets up MCP for its staff assistant. Find three problems.
+
+```text
+- The document server and the billing server both
+  receive the full chat, so they "stay in sync".
+- The billing server reads case files straight from
+  the document server.
+- Feature: "/weekly-summary", which a lawyer starts
+  from a menu. The team built it as a tool.
+```
+
+### Answer
+
+1. **Full chat to servers.** The host keeps the chat. Each server gets only what one request needs.
+2. **One server reads another.** Servers should not see into other servers. If data must move, the host passes it on.
+3. **Wrong building block.** A lawyer picks "/weekly-summary" from a menu, so a person decides when. That is a prompt, not a tool.
+
+## Recap
+
+- MCP is an open protocol. The AI app is the host; it runs one client for each server, and each server offers data and actions.
+- A person picks prompts, the app attaches resources, the model calls tools. Servers see small pieces of context, never the whole chat.
+- Consent is the host's job, because the protocol cannot enforce it. Check which parts of MCP each vendor supports.
