@@ -80,7 +80,7 @@ The primer is clear on three points:
 
 - "Only `SUCCEEDED` carries an `output` array." No other state has a file.
 - `FAILED` has two fields: `failure` is text for people, `failureCode` is for software.
-- "`THROTTLED` is not an error." The task is queued behind your rate limit and "will proceed on its own".
+- A `THROTTLED` task is fine. It is queued behind your rate limit and "will proceed on its own".
 
 One more word: **terminal**. The OpenAI docs say that when a background job leaves the `queued` or `in_progress` state, it has reached a "final (terminal)" state. Terminal means finished. It does not mean successful. In Runway terms, `SUCCEEDED`, `FAILED` and `CANCELLED` are all finished, and only one of them gives you a file.
 
@@ -103,7 +103,7 @@ Polling is simple. The other way is a **webhook**: the vendor sends a message to
 
 - Your system should answer fast with a success code (`2xx`). Slow work happens later.
 - If it does not answer, OpenAI tries again "for up to 72 hours with exponential backoff".
-- OpenAI says it "may deliver duplicate" copies of one event. The `webhook-id` header lets you spot the copy and ignore it. Two messages with one `webhook-id` are one event, not two jobs.
+- The OpenAI docs say it "may deliver duplicate" copies of one event. The `webhook-id` header lets you spot the copy and ignore it. Two messages with one `webhook-id` are one event, not two jobs.
 
 ### Stopping a job
 
@@ -131,7 +131,7 @@ clip-5  Runway  CANCELLED   -> stopped by a teammate; no file
 
 ### Step 3: the hard case
 
-The hard case is clip-3. It looks stuck, and a teammate wants to delete it and submit it again. But `THROTTLED` is not an error. The task is in the queue and will start by itself. A new copy would wait behind the same rate limit, so resubmitting gains nothing and wastes the place it already has. The right move is to leave it and keep checking with backoff.
+The hard case is clip-3. It looks stuck, and a teammate wants to delete it and submit it again. But `THROTTLED` only means waiting. The task is in the queue and will start by itself. A new copy would wait behind the same rate limit, so resubmitting gains nothing and wastes the place it already has. The right move is to leave it and keep checking with backoff.
 
 Clip-4 is different. It ended. Waiting will not change it. Read the failure fields, then decide.
 

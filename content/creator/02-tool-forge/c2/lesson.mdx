@@ -7,6 +7,9 @@ sources:
     title: Claude docs · Tool use overview
     url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
   - kind: docs
+    title: Claude docs · Define tools
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools
+  - kind: docs
     title: OpenAI docs · Function calling
     url: https://developers.openai.com/api/docs/guides/function-calling
   - kind: docs
@@ -63,7 +66,7 @@ user  -->  model: "call make_card(style=..., shape=...)"
            result goes back --> model answers the user
 ```
 
-Some tools are run by the vendor. The Claude docs call them **server tools**, which Anthropic runs on its own side. OpenAI calls them **built-in tools**, and image generation is one. Either way, the model still only asks. Your app runs your own tools. The vendor runs its built-in or server tools.
+Some tools are run by the vendor. The Claude docs call them **server tools**, which Anthropic runs on its own side. The OpenAI docs call them **built-in tools**, and image generation is one. Either way, the model still only asks. Tools you define run in your app. Built-in and server tools run at the vendor.
 
 ### Names and descriptions steer the choice
 
@@ -72,7 +75,9 @@ The model reads each tool's name and description to choose. So the description i
 - The Gemini docs: "Be clear and specific." Use descriptive names without spaces.
 - The OpenAI docs: "Write clear and detailed function names, parameter descriptions, and instructions."
 
-Two tools with fuzzy descriptions, like "makes a card" and "does card stuff", leave the model to guess which one fits. It may call a tool at the wrong moment, or never call it at all.
+The model only sees what you send: the name, the description and the input schema. Two tools with fuzzy descriptions, like "makes a card" and "does card stuff", leave the model to guess which one fits. It may call a tool at the wrong moment, or never call it at all.
+
+More tools do not fix a fuzzy pair. The Gemini docs advise a small set: "Keep active set to 10-20 tools maximum."
 
 ### Missing values get guessed
 
@@ -80,7 +85,14 @@ What if a tool needs a value the user never gave? The Claude docs give an exampl
 
 ### Make or change
 
-The image tool in OpenAI's Responses API can make a new image or edit one already in the chat. Its `action` setting decides: `auto` lets the model choose, `generate` or `edit` forces one. The docs say: "If not specified, the default is `auto`." Other tools work the same way: with the default `tool_choice` of `auto`, the model decides on each turn whether to call a tool at all (Claude and OpenAI docs).
+The image tool in OpenAI's Responses API can make a new image or edit one already in the chat. Its `action` setting decides: `auto` lets the model choose, `generate` or `edit` forces one. The docs say: "If not specified, the default is `auto`."
+
+Other tools have a similar switch, called `tool_choice`. The default is `auto`: the model decides on each turn whether to call a tool. You can also force a call:
+
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling): "You can force specific behavior with the `tool_choice` parameter", for example `required`.
+- The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools): `any` means Claude "must use one of the provided tools", and `tool` forces one named tool. They also warn: "Not every model and setting supports forced tool use."
+
+So a clear description comes first. Forcing is a second lever.
 
 ### Check the call, then guard the risky ones
 
