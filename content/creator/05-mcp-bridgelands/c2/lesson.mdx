@@ -1,7 +1,7 @@
 ---
 id: creator/r5/c2/lesson
 title: MCP for design
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: Figma developer docs · Figma MCP server
@@ -26,63 +26,170 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/function-calling
 ---
 
-## Why it matters
+## Goal
 
-Chapter 1 connected a tool. This chapter is about what the AI may do once it is in. A design tool holds your real files: brand frames, components, colour variables. An AI that can read them works faster. An AI that can change them can also break them.
+After this lesson you can:
 
-You will not write the settings. You will decide which actions to switch on, and in what order.
+- Sort a design server's tools into read tools and write tools, using the vendor's own list, not the tool name.
+- Switch on only the tools a job needs, as a setting at each vendor (Claude, OpenAI, Gemini).
+- Plan a safe path from reading to writing, with a person who can say no.
 
-## A design server, as an example
+## The problem
 
-Figma has its own MCP server. Everything in this section is Figma's description of its own product.
+A studio makes covers for children's books. Its designers work in Figma. The team links Figma's MCP server to an AI helper. (**MCP** is the open standard that links AI apps to tools. A **server** is the program that offers the tools.)
 
-Figma says the server gives "important design information and context to AI agents generating code from Figma design files", and lets agents "write native Figma content back to the canvas". Its docs list jobs such as extracting design context (variables, components, layout), generating code from a selected frame, and writing to the canvas.
+The team has three jobs for the helper:
 
-Figma "strongly" recommends its remote server. You sign in "through Figma's OAuth authentication flow". Its install page gives steps for several clients, including Claude Code and Codex by OpenAI.
+1. Find the cover components (title block, spine, barcode box) in the shared library, and list them for a new designer.
+2. Export the final cover art as PDF files for the printer.
+3. Tidy the layer names in the master cover file, which every designer uses.
 
-Figma also says: "Only clients listed in the Figma MCP Catalog can connect to the Figma MCP Server." So before you plan, check that your AI app is on that list.
+Someone says: "Just switch on every tool. The model will pick the right ones." This lesson shows why that is a bad plan, and what to do instead.
 
-## Read tools and write tools
+## The idea
 
-Figma's tool list sorts its tools into **read tools** and **write tools**. This is the most useful split for you.
+### A design server can read and write
 
-- **Read tools** take information out of Figma. Examples from the list: `get_design_context` (Figma calls it "the default entry point"), `get_screenshot`, `get_variable_defs`, `search_design_system`, and `whoami`, which returns the "identity and plans of the authenticated user".
-- **Write tools** put things into Figma. Examples: `create_new_file` ("creates a blank Design, FigJam, or Slides file"), `upload_assets`, `generate_image`, and `use_figma`, a "general-purpose create, edit, and inspect" tool.
+The [Figma MCP server docs](https://developers.figma.com/docs/figma-mcp-server/) say the server gives "design information and context to AI agents generating code from Figma design files", and also enables "agents to write native Figma content back to the canvas". So it is not read-only. An agent with the wrong tools on can change real files.
 
-Example: "Which colour variables does the approved brand frame use?" needs only read tools. "Rename every layer in the client file" needs a write tool.
+Some set-up facts from Figma's pages:
 
-A worked example. The brief says: "Check that the new banner uses the brand greens." The agent needs a picture of the banner and the colour variables. Both come from read tools, `get_screenshot` and `get_variable_defs`. It reports back. No file changes. Nothing in this job needs a write tool, so none should be on.
+- Figma says: "We strongly recommend using the Remote MCP server". There is also "a desktop version of the MCP server that runs locally", for specific organization and enterprise needs.
+- You sign in "through Figma's OAuth authentication flow". (**OAuth** is a standard way to sign in to a service and give an app limited access.)
+- The [set-up page](https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/) has set-up steps for five clients: Claude Code, Cursor, VS Code, Xcode and Codex by OpenAI.
 
-## Switching tools off
+### Check the client first
 
-You can choose which tools of a server the model sees. All three vendors on this page offer it:
+Before you plan any tools, check that your AI app may connect at all. The [Figma docs](https://developers.figma.com/docs/figma-mcp-server/) say: "Only clients listed in the Figma MCP Catalog can connect to the Figma MCP Server." A developer with a new client "can join the waitlist". Figma sets this rule for the server it runs. Other design servers may have other rules.
 
-- **Claude.** You can enable all tools, or "allowlist, denylist, or configure individual tools". Anthropic says "denylisting write or destructive tools is recommended when building read-only assistants, or when you want a human confirmation step before state changes".
-- **OpenAI.** "Some MCP servers can have dozens of tools, and exposing many tools to the model can result in high cost and latency." The `allowed_tools` setting imports only the tools you name.
-- **Gemini.** The `allowed_tools` field will "restrict which tools from the server the agent may call".
+### Read tools and write tools
 
-There are two reasons to trim the list. One is safety: a tool that is off cannot be used. The other is cost: OpenAI says a long list costs time and money.
+Figma's [tools page](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) sorts its tools into two groups. A few from each:
 
-## Do not trust a label
+| Read tools (take information out) | What the list says                                     |
+| --------------------------------- | ------------------------------------------------------ |
+| `get_design_context`              | "Design context for a layer or selection"              |
+| `get_screenshot`                  | "Screenshot of a selection"                            |
+| `get_variable_defs`               | "Variables and styles used in a selection"             |
+| `search_design_system`            | "Searches libraries for components, variables, styles" |
+| `download_assets`                 | "Downloads exports and original source images"         |
+| `whoami`                          | "Identity and plans of the authenticated user"         |
 
-The MCP specification says tools are "model-controlled": the model can find and call them by itself. It also says "there SHOULD always be a human in the loop with the ability to deny tool invocations".
+| Write tools (put things in) | What the list says                               |
+| --------------------------- | ------------------------------------------------ |
+| `use_figma`                 | "General-purpose create, edit, and inspect"      |
+| `create_new_file`           | "Creates a blank Design, FigJam, or Slides file" |
+| `upload_assets`             | "Uploads images into a Figma file"               |
+| `generate_image`            | "Generates a downloadable raster image"          |
 
-A tool can carry a hint, called an annotation, that says what it does. The specification says clients "MUST consider tool annotations to be untrusted unless they come from trusted servers". So a hint that says "safe" is not proof of safety. Check the server, then check the tool.
+Note `use_figma`. Its line says it can also "inspect". But it sits in the write group, so a read job does not need it.
 
-## Three modes, our way
+### Make it a setting, not a sentence
 
-This ladder is ours. It is not a Figma feature.
+A line in the prompt like "do not edit anything" is a request. A tool that is switched on can still be called. A tool that is switched off cannot. All three vendors let you choose which tools of a server the model gets:
 
-1. **Look.** Read tools only. The AI can read and report. Nothing changes.
-2. **Draft.** Add write tools that make new things, such as a new file. Check whether the server can keep writes away from shared files. If a page does not say, do not promise it.
-3. **Edit.** Write tools on live files. Add this only after steps 1 and 2 went well, and keep a person's approval on each write.
+- **Claude.** The [MCP connector docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) let you "Enable all tools, allowlist specific tools, or denylist unwanted tools". For an allowlist: "Set `enabled: false` as the default, then explicitly enable specific tools". They add: "Denylisting write or destructive tools is recommended when building read-only assistants, or when you want a human confirmation step before state changes".
+- **OpenAI.** The [MCP docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say "exposing many tools to the model can result in high cost and latency." The `allowed_tools` parameter imports only the tools you name.
+- **Gemini.** In the [Remote MCP table](https://ai.google.dev/gemini-api/docs/function-calling), `allowed_tools` will "Restrict which tools from the server the agent may call." The same table has a separate `headers` field for things like tokens.
 
-Start in Look. Most design jobs, such as "read the tokens" or "list the components", need nothing more.
+Note the names. `allowed_tools` is an OpenAI and Gemini field. Claude's connector uses `enabled` inside an `mcp_toolset`.
 
-## What this means for your work
+So a short tool list helps twice: less risk, and fewer tokens.
 
-- **Name the job, then pick the tools.** Do not switch on the whole server for one question.
-- **Split read from write.** Give read tools first.
-- **Trim the list.** Fewer tools means less risk and a lower bill.
-- **Keep a person in the loop** for any write on a live file.
-- **Treat tool hints as claims,** not facts.
+### Keep a person who can say no
+
+The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) says tools are "model-controlled": the model can find and call them by itself. It also says: "there **SHOULD** always be a human in the loop with the ability to deny tool invocations."
+
+A tool can carry **annotations**: hints from the server, such as "this tool only reads". The spec says clients "**MUST** consider tool annotations to be untrusted unless they come from trusted servers". MCP allows these hints. But a hint is the server talking about itself. Trust the server first, then the hint.
+
+### Three steps, our way
+
+This ladder is our habit, not a Figma feature.
+
+```text
+LOOK   read tools only. The helper reads and reports.
+DRAFT  add tools that make new things in a safe place.
+EDIT   write tools on shared files, one change at a time,
+       with a person who approves or denies each one.
+```
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+Server: Figma remote server. Tools: all on.
+Prompt: "Be careful. Don't change the master file unless asked."
+```
+
+Problems: every write tool is on for jobs 1 and 2, which only read. The only guard for job 3 is a sentence.
+
+### Step 2: name each job, then pick tools from the list
+
+```text
+Job 1  find cover components    -> search_design_system      (read)
+Job 2  export cover art as PDF  -> download_assets           (read)
+Job 3  tidy layer names         -> use_figma                 (write)
+```
+
+### Step 3: the hard case
+
+**The hard case is the tool names.** `download_assets` sounds like it moves files around, but Figma lists it under read tools: it takes exports out of Figma. `generate_image` sounds harmless, but Figma lists it under write tools. If you sort by the name, you get both wrong. Sort by the vendor's own list.
+
+### Step 4: the good plan
+
+For jobs 1 and 2, only two read tools are on. On Claude's connector, the allowlist looks like this (our example; the server name `design` is ours):
+
+```json
+{
+  "type": "mcp_toolset",
+  "mcp_server_name": "design",
+  "default_config": { "enabled": false },
+  "configs": {
+    "search_design_system": { "enabled": true },
+    "download_assets": { "enabled": true }
+  }
+}
+```
+
+Simplified. See the docs for the exact request shape.
+
+For job 3, the team climbs the ladder. First LOOK: the helper lists the layer names it would change, and changes nothing. Then a test: one rename on a copy of the master file, approved by a designer. Only then EDIT on the master, with a person who can deny each write.
+
+### Step 5: why it is better
+
+- **The switch does the work.** Write tools are off for read jobs, so a confused model cannot use them.
+- **The list is short.** Fewer tools means fewer tokens and less delay, as the OpenAI docs warn.
+- **Writes are slow on purpose.** A person can stop each change to the file everyone uses.
+
+## Common mistakes
+
+1. **Guessing read or write from the tool name.** Fix: use the vendor's own grouping.
+2. **Using a prompt line as a lock.** Fix: switch tools off in the settings (allowlist or `allowed_tools`).
+3. **Trusting a "read-only" hint from an unknown server.** Fix: check who runs the server before you trust its hints.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Use Figma's tools page. Is each tool a read tool or a write tool?
+
+```text
+a) get_metadata
+b) generate_diagram
+c) get_libraries
+d) create_new_file
+```
+
+### Answer
+
+1. **a) Read.** Figma lists it as a read tool: a "Sparse XML outline of a selection".
+2. **b) Write.** It "Generates a FigJam diagram from Mermaid", so it puts something new into Figma.
+3. **c) Read.** It "Lists subscribed and available libraries".
+4. **d) Write.** It makes a new blank file. The tools page says it lands "in your drafts folder", but it still writes, so it is off for a LOOK job.
+
+## Recap
+
+- A design server can read and write. Figma's server also writes native content back to the canvas. Check that your app is in Figma's catalog before you plan.
+- Sort tools by the vendor's own read/write list, and switch on only what the job needs: Claude's allowlist or denylist, `allowed_tools` at OpenAI and Gemini.
+- The MCP spec wants a human who can deny tool calls, and treats tool hints as untrusted when the server is not trusted. Climb from LOOK to DRAFT to EDIT.
