@@ -1,7 +1,7 @@
 ---
 id: strategist/r3/c3/lesson
 title: Data readiness
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: OpenAI docs · Retrieval
@@ -23,58 +23,144 @@ sources:
     url: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
 ---
 
-## Why it matters
+## Goal
 
-Retrieval can only find what is in the knowledge base, in a form it can read. Old copies, unreadable files and chunks without meaning all lead to wrong answers. A **data readiness** check happens before you load anything, not after customers complain.
+After this lesson you can:
 
-## Start with an inventory
+- Build a short inventory of your documents and decide what to load, convert, archive or leave out.
+- Spot a chunk that has lost its meaning, and fix it with added context.
+- Set up a test set of real questions with known answers, and a realistic target.
 
-This inventory template is a tool for this course. For each source, write down:
+## The problem
 
-1. **What** it is and **who owns** it.
-2. **Format** (PDF, Word, spreadsheet, wiki page).
-3. **Versions**: how many copies exist, and which one is current.
-4. **Last updated**, and how often it changes.
-5. **Who may see it.**
+A mortgage lender has 60 branches. Branch advisers want an assistant that answers questions about loan products, fees and rules. IT plans to load "all our documents" into a vector store (a vendor's searchable file storage) at the end of the month.
 
-Example: a travel insurer wants an assistant for its call centre. Its inventory lists policy wordings (PDF), a claims FAQ (wiki), price tables (Excel) and call notes (CRM). Each one needs a different plan. The call notes also hold customer details, so they raise the access questions in the next chapter.
+A quick look shows trouble:
 
-## Check that the format can be read
+- The product sheets exist in four versions. Old rates sit next to new ones.
+- The interest-rate tables are `.csv` files.
+- An old intranet export from 2018 has no owner.
+- One product sheet says "Fixed rate: 4.1% for 5 years". The product name appears only in the page heading.
 
-OpenAI's retrieval guide lists the file types its vector stores accept. They include .pdf, .docx, .pptx, .md, .txt, .html and .json. Text files must use UTF-8, UTF-16 or ASCII encoding. A file can be up to 512 MB and should hold no more than 5,000,000 tokens. On 2026-10-06, the list did not include .xlsx or .csv. So the insurer's Excel price tables need a plan: convert them to a listed format and check the result, or answer price questions another way.
+Nobody has written down a single test question yet. This lesson shows the checks to run before you load anything. The guidance below is from each vendor's docs (October 2026).
 
-Anthropic's PDF support page says Claude can work with text, pictures, charts and tables in PDFs. It needs a standard PDF with no password or encryption. A request can hold up to 600 pages, or 100 when the request's context window is under 1M tokens.
+## The idea
 
-## Keep the meaning in each chunk
+Search can only find what is in the knowledge base, in a form it can read. **Data readiness** is the check you run before loading, not after advisers complain.
 
-Anthropic's Contextual Retrieval post shows a common problem. A chunk from a financial filing says: "The company's revenue grew by 3% over the previous quarter." On its own, it doesn't say which company or which quarter. That makes it hard to find and hard to use. The post's fix is to add a short, chunk-specific context to each chunk before indexing it.
+**1. Start with an inventory.** Our advice: for each source, write down what it is, who owns it, its format, how many copies exist, which copy is current, when it last changed and who may see it. A source with no owner and no recent update is a warning sign. Nobody can tell you if it is still true.
 
-The same thing happens in business files. The insurer's policy wording has the country only in the page heading. A chunk that says "Medical cover: 2,000,000 EUR, excess: 150 EUR" loses the country, so the assistant may quote the wrong plan.
+**2. Check that the format can be read.** The [OpenAI retrieval guide](https://developers.openai.com/api/docs/guides/retrieval) lists the file types its vector stores accept:
 
-Chunk settings matter too. OpenAI's retrieval guide splits files into 800-token chunks with a 400-token overlap by default, and you can change the size from 100 to 4,096 tokens. Anthropic's post says chunk size, boundary and overlap can all affect retrieval performance.
+- The list includes `.pdf`, `.docx`, `.pptx`, `.md`, `.txt`, `.html` and `.json`. It did not include `.xlsx` or `.csv`.
+- Text files must use "utf-8, utf-16, or ascii" encoding.
+- "The maximum file size is 512 MB". Each file should hold "no more than 5,000,000 tokens" (**tokens** are the small pieces of text a model reads).
+- On the Anthropic side, the [Claude PDF support page](https://platform.claude.com/docs/en/build-with-claude/pdf-support) says you can ask about "any text, pictures, charts, and tables in PDFs". It needs a "Standard PDF (no passwords/encryption)". A request can hold up to "600 (100 when the request's context window is under 1M tokens)" pages. The **context window** is the most text one request can hold.
 
-## Remove old copies and drafts
+A file type that is not on the list needs a plan: convert it to a listed format, then **check the result**. A table can lose its headings or mix up its rows when you convert it.
 
-OpenAI's accuracy guide warns that too much irrelevant context drowns out the real information and causes hallucinations. Three versions of the same policy are exactly that kind of noise. The search may return the 2023 version next to the current one, and the model may not know which one is current.
+**3. Keep one current version.** The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) warns that too much unrelated context "drowns out" the real facts and "causes hallucinations" (made-up answers stated as fact). Four versions of one product sheet are exactly that. Search may return the old rate, and the model can't tell which version is current. So load one current version and archive the others **outside** the knowledge base. A "draft" or "old" label alone does not stop search from finding a file. If you truly can't remove some files, the retrieval guide shows a filter that will "exclude drafts by filename".
 
-Before loading, keep one current version of each document. Archive the rest outside the knowledge base. OpenAI's retrieval guide also shows a filter example that excludes drafts by filename, which helps if you can't remove them.
+**4. Keep the meaning in each chunk.** Search works on **chunks** (small pieces of a document). The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) shows a chunk from a company filing. It says the revenue "grew by 3%" since the quarter before. On its own, the chunk does not name the company or the quarter. The post's fix is to add a short context, written for that chunk, before indexing it. Our reading: making chunks smaller does not help, because a smaller chunk loses even more.
 
-## Add labels
+Chunk settings still matter. By default the retrieval guide splits files "into 800-token chunks, with 400-token overlap", and the chunk size can be set "between 100 and 4096". The Anthropic post says "chunk size, chunk boundary, and chunk overlap can affect retrieval performance".
 
-Labels (metadata) tell the system what a file is. OpenAI's retrieval guide lets you attach **attributes** to each file, up to 16 keys, and filter on them, for example by region or date range. Anthropic's prompting guide suggests wrapping each document in `<document>` tags, with its content and a `<source>` tag plus other metadata. Anthropic's context engineering post adds that naming conventions and timestamps are signals that help agents understand how and when to use information.
+**5. Add labels.** **Metadata** means labels that say what a file is. The retrieval guide lets you add **attributes** to each file, with "at most 16 keys", and filter on them, for example by date range. The [Claude prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) suggests wrapping each document in `<document>` tags, with `<document_content>` and `<source>` tags and other metadata. The [Anthropic context engineering post](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) adds that "naming conventions, and timestamps" help agents "understand how and when to utilize information".
 
-Example labels for the insurer: `product`, `country`, `valid_from`, `owner`.
+**6. Test with real questions.** The accuracy guide says the best result of the first stage is "a good prompt with an evaluation set of questions and ground truth answers". **Ground truth** means the answer you know is correct. It mentions "a set of 20+ questions and answers". Set a measured target, not "no errors". The same guide says models "are unlikely to get to 99.999% accuracy using off-the-shelf methods".
 
-## Test with real questions
+Our example: loading a knowledge base is like moving house. If you pack everything, you carry old junk into the new place. You sort first, label the boxes, and throw away what you don't need.
 
-OpenAI's accuracy guide says the best output of the first stage is a good prompt plus an evaluation set: 20 or more questions with ground-truth answers. Collect real questions from the call centre. For each one, write the correct answer and the document it comes from. Then you can see whether a wrong answer comes from missing data, an old copy or a weak chunk.
+## Worked example
 
-Set a measured target, not "no errors". The same guide says models are unlikely to reach 99.999% accuracy with off-the-shelf methods.
+### Step 1: the weak plan
 
-## Key points
+```text
+Plan A
+- Load every file from the shared drive and the old intranet.
+- Upload the rate tables as they are.
+- Tell the model: "Always use the newest version."
+- Go live at the end of the month. Fix problems as advisers report them.
+```
 
-- Take an inventory: owner, format, versions, last update and who may see each source.
-- Check every format against the vendor's supported list before loading.
-- Keep the meaning in each chunk; add context that headings or titles carry.
-- Load one current version; old copies and drafts compete with the truth.
-- Label files and test with 20 or more real questions with known answers.
+What goes wrong:
+
+- Four versions of each product sheet compete. Search may bring back old rates.
+- `.csv` is not on the supported list.
+- The 2018 export has no owner, so nobody knows what in it is still true.
+- No test set, so nobody can measure the result before advisers see it.
+
+### Step 2: the inventory
+
+```text
+Source               Format  Copies  Current   Owner      Decision
+Product sheets       PDF     4       2026-09   Products   load current only, archive 3
+Adviser FAQ          wiki    1       2026-08   Branches   load
+Rate tables          .csv    1       weekly    Treasury   convert, then test
+Old intranet export  .html   ?       2018      nobody     leave out
+```
+
+### Step 3: fix the chunks
+
+Before:
+
+```text
+Fixed rate: 4.1% for 5 years. Early repayment fee: 2%.
+```
+
+After (context added before indexing):
+
+```text
+[Product: Home Saver 5-year fixed, sheet valid from 2026-09]
+Fixed rate: 4.1% for 5 years. Early repayment fee: 2%.
+```
+
+Labels for each file: `product`, `valid_from`, `owner`.
+
+### Step 4: the hard case
+
+**The rate tables are the hard case.** The team converts the `.csv` files to a supported format and asks a test question: "What is the 10-year fixed rate for a 70% loan?" The answer comes back wrong. The conversion had lost the column headings, so the assistant read the wrong column. The team fixes the conversion and adds the headings to each part. The same question now gives the right rate. Without that test, the error would have reached the branches.
+
+### Step 5: the test set
+
+The team collects 30 real adviser questions. For each one, they write the right answer and the document it comes from. They set a target with the business: for example, 27 of 30 right before go-live, and a person checks all fee answers in the first month.
+
+### Step 6: why it is better
+
+- **Less noise.** One current version per document.
+- **Readable formats.** Every file is on the supported list, and converted files were tested.
+- **Chunks that make sense alone.** Each one says which product it is about.
+- **A measured start.** The team knows how good the assistant is before advisers use it.
+
+## Common mistakes
+
+1. **Loading every version "just in case".** Old copies compete with the current one. Fix: load one current version and archive the rest outside the knowledge base.
+2. **Trusting a conversion without a check.** Tables can lose headings or rows. Fix: after converting, ask a real question that needs the table.
+3. **Going live without a test set.** You learn about errors from customers. Fix: collect 20 or more real questions with known answers first.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A logistics firm prepares documents for a warehouse assistant. Give one decision for each item.
+
+```text
+A. Safety manual: PDF, 2 versions (2024 and 2026), owner: Safety.
+B. Stock levels: .csv export, changes daily, owner: Operations.
+C. A chunk from the shift guide: "Breaks: 30 minutes after 6 hours."
+   The site name appears only in the page heading.
+D. A folder of meeting notes from 2017, no owner.
+```
+
+### Answer
+
+- **A.** Load the 2026 version only. Archive the 2024 version outside the knowledge base.
+- **B.** `.csv` was not on the list in the OpenAI docs when we checked. Convert it and test it with a real question, or answer stock questions another way, for example from the stock system itself. It also changes daily, so plan regular updates.
+- **C.** Add the site name to the chunk before indexing, for example "[Site: Leeds warehouse]".
+- **D.** Leave it out. Nobody owns it, and nobody can say if it is still true.
+
+## Recap
+
+- Take an inventory first: owner, format, copies, last change and who may see each source.
+- Check formats against the vendor's list, keep one current version, and add context to chunks that lost their meaning.
+- Label files, then test with 20 or more real questions with known answers before go-live.

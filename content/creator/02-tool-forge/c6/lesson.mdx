@@ -1,7 +1,7 @@
 ---
 id: creator/r2/c6/lesson
 title: Creative apps
-minutes: 6
+minutes: 12
 sources:
   - kind: docs
     title: Runway API docs · Agent context primer
@@ -44,84 +44,152 @@ sources:
     url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
 ---
 
-## Why it matters
+## Goal
 
-A real client job is never one call. It is a brief, some shots, some images, a voice, a check, an export. A **creative app** is a tool that hides several of those steps behind one screen or one request.
+After this lesson you can:
 
-You will be asked to choose between a ready-made chain and a chain you design yourself. This lesson gives you the three levels and the questions to ask. It also shows where a person must stay in the loop.
+- Choose the level for a job: a single call, a vendor workflow, or your own chain of steps.
+- Read a workflow's defaults (sound, length, version) before you promise a client anything.
+- Write a pipeline sheet with a person check at every step a client will see.
 
-## Three levels of "one button"
+## The problem
 
-This grouping is ours, not a vendor's.
+An online tea shop wants two things:
 
-1. **A single call.** One request, one asset. This is Chapters 1 to 5.
-2. **A vendor workflow.** The vendor has already built some of the steps.
-3. **Your own chain.** You pick the steps, the tools and the checks.
+1. **Every week:** a 10-second vertical video for each new tea, made from 4 product photos. The shop always adds its own music later, so the video must be silent.
+2. **Once:** a brand film. The team makes four mood stills. The owner picks one. Then a clip starts on that still and ends on the shop's logo card.
 
-## Level 2: prebuilt workflows
+A teammate picks one ready-made video workflow for both jobs. The teammate chooses the one with "more shots", leaves every setting on its default, and tracks the newest version. Week 1 looks great. Week 2 has a soundtrack nobody asked for, and the style has changed. The brand film has no place for the owner's choice at all.
 
-Some vendors run part of the chain for you. Here are two examples.
+The tools worked. The teammate picked the wrong level and did not read the defaults.
 
-**Runway Recipes.** Runway calls its chains **Recipes**. Its primer says Recipes "are prebuilt multi-step workflows that wrap several generations behind a single call, so you do not have to orchestrate the steps yourself".
+## The idea
 
-- **Product Ad.** You give one to ten product photos, up to four style images, product notes and a creative direction. The docs say the recipe "analyzes the product, builds a storyboard, and renders a short video". Length is 4 to 15 seconds (default 10). Audio is off by default.
-- **Multi-Shot Video.** In `auto` mode you give one story prompt and the recipe splits it into shots. In `custom` mode you give 3 to 5 shots, and the shot lengths must add up to the total length. The total is 5, 10 or 15 seconds. Audio is **on** by default.
+### Three levels
 
-Look at the two audio defaults. One recipe turns sound off, the other turns it on. **Check defaults for every recipe.** A silent ad or a surprise soundtrack can reach a client.
+A real job has many steps: brief, stills, clips, sound, review, delivery. You can run them at three levels. This grouping is ours, not a vendor's.
 
-A recipe is still a job. The primer says recipes return a task and follow the same contract as any other generation: submit, wait, pick up (Chapter 3). The same file and error rules apply (Chapters 4 and 5).
+```text
+1. single call       one request -> one asset
+2. vendor workflow   one request -> the vendor runs several steps inside
+3. your own chain    you run each step, with checks and people between them
+```
 
-Pin the version. Runway says to use "a dated version like `2026-06` to pin behavior, or `unsafe-latest` to track the newest stable version". For a client project, a pinned version helps keep the look steady from the first draft to the last.
+It is like cooking. A ready meal is fast, but you cannot change the recipe halfway. Cooking from scratch takes longer, but you can taste at each step.
 
-**OpenAI's built-in image generation tool.** In OpenAI's Responses API you add the `image_generation` tool to a request. The tool page says: "the model can decide when and how to generate images as part of the conversation, using your prompt and any provided image inputs." The result comes back as an `image_generation_call` with a base64-encoded image. You do not build the image step. You choose its settings (Chapter 1) and whether the model decides when to use it (Chapter 2).
+### Level 2: vendor workflows
 
-What the two have in common is our summary: you give up control of the inner steps in return for speed. So **read the defaults and the limits** before you promise a client anything.
+**Runway Recipes.** The [Runway primer](https://docs.dev.runwayml.com/ai-context.md) says Recipes "are prebuilt multi-step workflows that wrap several generations behind a single call, so you do not have to orchestrate the steps yourself". They "return a task and follow the same contract as any other generation": you submit, wait, then pick up the file.
 
-## Level 3: your own chain
+Two recipes, side by side:
 
-Vendors document the pieces you need to chain steps yourself.
+| Setting | [Product Ad](https://docs.dev.runwayml.com/recipes/product-ad) | [Multi-Shot Video](https://docs.dev.runwayml.com/recipes/multi-shot-video) |
+| ------- | -------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Inputs  | "One to ten" product images, "Up to four" style images         | `auto`: one story prompt; `custom`: "3–5 shots"                            |
+| Length  | "Output length in seconds (4–15). Defaults to 10."             | "`5`, `10`, or `15`"; in `custom`, shot lengths "must sum to `duration`"   |
+| Sound   | `audio` "Defaults to `false`."                                 | `audio` "Defaults to `true`."                                              |
 
-- **Image to video.** Google says Veo 3.1 accepts "up to 3 reference images" and can use first and last frames. A hero image from step 1 can steer a clip in step 2.
-- **Edit in turns.** OpenAI's image guide describes multi-turn editing, where you refine an image across conversation turns.
-- **Let a chat assistant run it.** In OpenAI's tool-calling flow, "your application can continue this flow for as many tool calls as the task requires". In Anthropic's flow, Claude returns a tool call, your code runs it, and the result goes back to Claude. A studio could use this to run a chain step by step (Chapter 2).
+Look at the sound row. The same setting has opposite defaults. Leave it empty and one video is silent, the other has sound.
 
-Each hand-off needs the checks from Chapter 4: type, size, shape, place and time.
+Style images in Product Ad are for the look: they define "lighting, palette, and mood". They are not a place to hide a bad product photo.
 
-## References are the biggest lever
+**Versions.** The Multi-Shot page says: "Use a dated version like `2026-06` to pin behavior, or `unsafe-latest` to track the newest stable version." A pinned version keeps the same behaviour from week to week. The newest version can change under you.
 
-For Runway recipes, references are the biggest lever on quality. Its page says: "Strong references are the single biggest lever on output quality." Its guidelines:
+**OpenAI's image tool.** This is a workflow inside a chat. The [OpenAI tool docs](https://developers.openai.com/api/docs/guides/tools-image-generation) say that when you include the `image_generation` tool, "the model can decide when and how to generate images as part of the conversation". The result is "a base64-encoded image". The vendor runs the image step for you. You still save the file.
 
-- Use the highest-quality source you have.
-- Keep the subject clear and free of clutter.
-- Use even, neutral light. Harsh shadows "can carry into the result".
-- One subject per reference.
-- Avoid watermarks or overlaid text on a product image.
+### Level 3: your own chain
 
-For people: "only use references of people you have permission to depict. You are responsible for the rights to any likeness you submit." Rights were covered in the Bootstrap Village. Here it becomes a step in your chain: confirm permission before the reference goes in.
+You build your own chain when a person must decide something in the middle, or when no workflow has the steps you need. The pieces exist:
 
-## Before the app goes live
+- **Still to clip.** The [Veo docs](https://ai.google.dev/gemini-api/docs/veo) say you can "Generate a video by specifying the first and last frames", and Veo 3.1 "accepts up to 3 reference images".
+- **Tools in a loop.** In the [OpenAI function calling docs](https://developers.openai.com/api/docs/guides/function-calling), "your application can continue this flow for as many tool calls as the task requires". In the [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview), for client tools, "Your code executes the operation and sends back a `tool_result`." Your app runs each step. The model only asks.
 
-Runway's launch checklist is a good model, and OpenAI's pages back its failure advice. Our summary:
+A chain costs more time to build. In return you control every step and every check.
 
-- **Limits.** Your tier decides how many generations per day and how many at the same time. Check that it fits the demand.
-- **Credits.** Set up autobilling so the project does not run out of credits unexpectedly.
-- **Failures.** Test that the app copes with `429` and `503` errors (Runway's checklist). OpenAI says to follow `Retry-After` when it is present, and says: "Limit both the number of attempts and the total time spent retrying." So cap the retries.
-- **Monitoring.** Watch the error rate, the request count and the count of throttled tasks.
-- **Keys.** Never hard-code a key. Use a separate key for each person and place.
+### References decide the quality
 
-## A pipeline sheet
+The [Runway reference guidelines](https://docs.dev.runwayml.com/recipes/reference-media) say: "Strong references are the single biggest lever on output quality." For product photos they say: "Avoid heavy reflections, watermarks, or overlaid text on the product." The [task failures page](https://docs.dev.runwayml.com/errors/task-failures) also names logos, watermarks and overlaid text in the inputs among the usual reasons a job fails. For people, "only use references of people you have permission to depict."
 
-Before you build, write one line per step. This is our template:
+### Keep a person at the client's door
 
-| Step | Input | Tool | Output | Person checks | Saved where |
-| ---- | ----- | ---- | ------ | ------------- | ----------- |
+A workflow hides its inner steps. So the checks must sit around it. Our rule: **every step that reaches the client has a named person who checks it.** And save files in your own place: the Runway primer says "Output URLs are temporary."
 
-If a row's "Person checks" cell is empty on a step that reaches the client, you have found a gap.
+Before you go live, the [Runway launch checklist](https://docs.dev.runwayml.com/guides/go-live) asks you to test for `429` and `503` errors and to set up autobilling, so the project "doesn't run out of credits unexpectedly". The [OpenAI rate limits docs](https://developers.openai.com/api/docs/guides/rate-limits) add: "Limit both the number of attempts and the total time spent retrying."
 
-## What this means for your work
+## Worked example
 
-- **Choose the level on purpose.** A recipe is fast. Your own chain gives control.
-- **Read recipe defaults.** Audio, length and shape can differ between recipes.
-- **Pin versions where the vendor allows it.** Runway recipes do. Do not let a tool change under a running project.
-- **Clean references first.** Runway calls them the biggest lever for its recipes.
-- **Keep a person at each client-facing step.**
+### Step 1: the weak plan
+
+```text
+Weekly tea video:  Multi-Shot Video, auto mode, all defaults,
+                   version unsafe-latest
+Brand film:        Multi-Shot Video, one story prompt
+Checks:            none written down
+Delivery:          send the Runway output link to the shop
+```
+
+### Step 2: pick the level per job
+
+```text
+Weekly tea video   -> Level 2, Product Ad
+  why: a plain product video from photos, the same every week
+Brand film         -> Level 3, our own chain
+  why: the owner picks a still in the middle; no recipe has that step
+```
+
+### Step 3: set the defaults on purpose
+
+```text
+Product Ad
+  version:        2026-07            (pinned, same look every week)
+  productImages:  4 clean photos     (no price stickers, no text)
+  ratio:          720:1280           (vertical)
+  duration:       10
+  audio:          false              (written down, even if it is the default)
+```
+
+### Step 4: the hard case
+
+**The hard case is the brand film.** It looks like "one video", so a recipe feels right. But the owner must choose a still halfway through. A recipe runs its own steps from start to end. So we chain the steps ourselves:
+
+```text
+Step  Input                Tool                Output         Person checks  Saved where
+1     brief                image model         4 mood stills  art director   /tea/film/stills/
+2     4 stills             -                   1 chosen still owner          /tea/film/chosen/
+3     chosen still + logo  Veo 3.1             clip           art director   /tea/film/clips/
+      (first + last frame)
+4     clip + music         video editor        final film     producer       /tea/film/final/
+5     final film           email (our copy)    delivery       producer       -
+```
+
+### Step 5: why it is better
+
+- **Each job has the right level.** The weekly video is fast. The brand film keeps the owner's choice.
+- **No surprise sound.** `audio: false` is set, not left to a default.
+- **The look stays the same.** The version is pinned.
+- **Every client-facing step has a person.** And every file lives in the shop's folders, not behind a link that expires.
+
+## Common mistakes
+
+1. **Leaving recipe settings on their defaults.** Two recipes can have opposite defaults. Fix: write every setting that matters on the job sheet, even when it equals the default.
+2. **Tracking the newest version on client work.** The look can change between drafts. Fix: pin a dated version.
+3. **Using a recipe for a flow with a human choice inside.** The recipe cannot stop for it. Fix: build your own chain and put the person step in it.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A florist asks for a 15-second video that cuts between 4 scenes: shop front, hands tying flowers, a van, a happy customer. They want sound. Your plan: Multi-Shot Video, `custom` mode, shot lengths 4 + 4 + 4 + 4. Is the plan right? What would you change?
+
+### Answer
+
+- **The recipe fits.** 4 shots is inside "3–5 shots", and 15 seconds is an allowed total.
+- **The lengths are wrong.** 4 + 4 + 4 + 4 = 16, but the shots together must equal the total length. Use, for example, 4 + 4 + 3 + 4 = 15.
+- **Sound is fine.** Multi-Shot Video has audio on by default. Still write `audio: true` on the sheet, so nobody has to guess.
+- **Pin the version**, for example `2026-06`.
+
+## Recap
+
+- Pick the level per job: a single call, a vendor workflow, or your own chain. A workflow is fast. A chain lets a person decide in the middle.
+- Read and set the defaults: Product Ad has sound off, Multi-Shot Video has sound on. Pin a dated version for client work.
+- Clean reference photos matter most for quality. Name a person to check each step the client will see, and save files in your own storage.
