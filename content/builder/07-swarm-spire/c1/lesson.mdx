@@ -1,7 +1,7 @@
 ---
 id: builder/r7/c1/lesson
 title: Agent graphs
-minutes: 9
+minutes: 14
 sources:
   - kind: blog
     title: Building effective agents (Engineering at Anthropic)
@@ -23,86 +23,187 @@ sources:
     url: https://developers.openai.com/api/docs/guides/node-reference
 ---
 
-Realm 4 built one agent: a model that uses tools in a loop. This realm puts several of them together. Before you add a second agent, draw the shape of the system: which steps run, in what order, and who decides the next step. In this realm, we call that shape a graph.
+## Goal
 
-## Workflows and agents
+After this lesson you can:
 
-Realm 4, chapter 1 covered Anthropic's split: workflows follow predefined code paths, and agents direct their own steps. A multi-agent system can mix both. Some steps are fixed by your code. Others are chosen by a model while it runs.
+- Draw a multi-agent system as a graph of steps before you build it.
+- Pick the right shape for each step from five common patterns.
+- Decide which steps your code controls and which steps a model controls.
 
-## Nodes and edges
+## The problem
 
-"Graph" is our word for the drawing, not a vendor term. A node is one step: a model call, an agent, a tool, a check or a human approval. An edge is a path from one step to the next.
+A travel company wants an AI assistant for its customers. Three kinds of message come in:
 
-OpenAI's Agent Builder made this literal. It is a visual canvas (now being deprecated) where you insert and connect nodes, and "Each connection between nodes becomes a typed edge." Its node reference lists, among others:
+1. **Booking changes.** "Move my Lisbon flight to Friday." This costs money and is hard to undo.
+2. **Visa questions.** "Do I need a visa for Japan with a Brazilian passport?" The answer must come from a short, approved list of official pages.
+3. **Trip plans.** "Plan four days in Seoul for two people who love food and hate museums." Every plan needs different research. One trip needs train times. Another needs restaurant hours and festival dates.
 
-- **Start** and **Agent** nodes. "All workflows have start and agent nodes."
-- **If/else** and **While** nodes for branches and loops, written as Common Expression Language (CEL) expressions.
-- **Human approval**, to let a person approve a step before the workflow continues.
-- **Set state**, which defines global variables for use across the workflow.
+A developer drew the first design. It has nine agents: a greeting agent, a language agent, a booking agent, a visa agent, four research agents and a final writer. One model at the top picks every path, even the path for a booking change.
 
-The docs' homework helper shows a small graph: one agent rewrites the question, another classifies it as Q&A or fact-finding, and a specialist agent answers each type.
+The team has three questions. Which boxes are needed? Which shape fits each part? And who should decide the next step: the code, or a model?
 
-Note: OpenAI is deprecating Agent Builder, and the docs say it is scheduled to shut down on November 30, 2026. The design idea stays useful. You can draw the same graph on paper and build it in code.
+## The idea
 
-## Five common shapes
+**A graph is a drawing of your system.** "Graph" is our word for it, not a vendor term. A **node** is one step: a model call, an agent, a tool, a check or a person who approves. An **edge** is the path from one step to the next. Think of it like a metro map. The stations are the steps. The lines show where you can go next.
 
-Anthropic's post names five workflow patterns. Most multi-agent graphs are built from them.
+OpenAI's Agent Builder made this drawing a real product: "Each connection between nodes becomes a typed edge" ([Agent Builder docs](https://developers.openai.com/api/docs/guides/agent-builder)). Its [node reference](https://developers.openai.com/api/docs/guides/node-reference) has nodes like Start, Agent, If/else, While, Human approval and Set state. But the docs say it "is scheduled to shut down on November 30, 2026." Use it as an idea, not a platform. You can draw the same graph on paper and build it in code.
 
-| Pattern              | What happens                                                                  | Fits when                                                    |
-| -------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Prompt chaining      | Each call works on the output of the one before                               | The task splits cleanly into fixed subtasks                  |
-| Routing              | Classify the input, then send it to a specialized follow-up                   | Inputs fall into distinct categories you can classify well   |
-| Parallelization      | Calls run at the same time; outputs are combined by code                      | Subtasks are independent, or you want several attempts       |
-| Orchestrator-workers | A central LLM breaks down the task, delegates to workers, combines the result | You cannot predict the subtasks in advance                   |
-| Evaluator-optimizer  | One call generates, another evaluates and gives feedback, in a loop           | You have clear evaluation criteria and refinement adds value |
+**Workflows and agents.** The [Anthropic post on building effective agents](https://www.anthropic.com/engineering/building-effective-agents) splits systems in two:
 
-Orchestrator-workers and parallelization look alike on paper. Anthropic names the difference: in orchestrator-workers, "subtasks aren't pre-defined, but determined by the orchestrator based on the specific input."
+- Workflows run "through predefined code paths".
+- Agents "dynamically direct their own processes and tool usage".
 
-Anthropic's own Research feature is an orchestrator-workers graph. A lead agent plans the research and creates subagents that search in parallel. It reads their findings and decides if more research is needed. When it has enough, a fixed last step passes everything to a CitationAgent, which identifies specific locations for citations so that claims are attributed to their sources.
+A real multi-agent graph usually mixes both.
 
-## Who decides the next edge?
+**Five shapes.** The same post describes five workflow patterns. Most graphs are built from them:
 
-The OpenAI Agents SDK docs describe two ways to orchestrate:
+| Pattern              | What happens                                                    | Good fit                                           |
+| -------------------- | --------------------------------------------------------------- | -------------------------------------------------- |
+| Prompt chaining      | Each call uses the output of the call before it                 | The task splits into known, fixed steps            |
+| Routing              | Sort the input, then send it to a special follow-up step        | Inputs fall into clear groups you can sort well    |
+| Parallelization      | Several calls run at the same time; code combines the outputs   | Parts are independent, or you want several tries   |
+| Orchestrator-workers | A central model splits the task, sends parts out, combines them | You cannot know the parts before you see the input |
+| Evaluator-optimizer  | One call writes, another judges and gives feedback, in a loop   | You have clear criteria, and another round helps   |
 
-1. **Orchestrating via LLM.** The model plans and decides which steps to take, using tools and handoffs. This suits open-ended tasks.
-2. **Orchestrating via code.** Your code decides the flow. The docs say this makes tasks "more deterministic and predictable, in terms of speed, cost and performance."
+Parallelization has two forms. **Sectioning** splits a task into independent parts. **Voting** runs "the same task multiple times to get diverse outputs".
 
-The code patterns they list map onto Anthropic's shapes:
+Orchestrator-workers and parallelization look the same on paper: one step fans out to many. The post names the difference: in orchestrator-workers, "subtasks aren't pre-defined". The orchestrator chooses them for each input. Our reading: in parallelization, you wrote the list of parts. In orchestrator-workers, a model writes the list each time.
 
-- Use structured outputs to classify a task, then pick the next agent by category (routing).
-- Chain agents so one agent's output is the next agent's input (prompt chaining).
-- In a `while` loop, run a task agent and an evaluator agent until the evaluator passes the output (evaluator-optimizer).
-- Run independent agents at the same time, for example with `asyncio.gather` (parallelization).
+Anthropic's own Research feature uses orchestrator-workers. In the [research-system post](https://www.anthropic.com/engineering/multi-agent-research-system), a lead agent plans and starts subagents that search in parallel. When it has enough, a last fixed step sends everything to a CitationAgent, so that "all claims are properly attributed to their sources."
 
-The docs say you can mix and match. A common mix: code decides the big edges, and a model decides the details inside one node.
+**Who decides the next edge?** The [OpenAI Agents SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md) name two ways:
 
-## Start with one node
+- **Orchestrating via LLM.** The model plans the task and picks steps with tools and handoffs. Good for open-ended work.
+- **Orchestrating via code.** Your code picks the flow. The docs say code control makes a task more "deterministic", so its speed, cost and performance are easier to predict.
 
-Both vendors warn against building a big graph too early. Anthropic recommends "finding the simplest solution possible, and only increasing complexity when needed" (see realm 4, chapter 1). OpenAI: "Start with one agent whenever you can." Add specialists only when they materially improve capability isolation, policy isolation, prompt clarity, or trace legibility. "Splitting too early creates more prompts, more traces, and more approval surfaces without necessarily making the workflow better."
+The docs list four code patterns:
 
-## Example: draw it before you build it
+- Ask an agent for a structured output with a category. Your code reads it and picks the next agent.
+- Chain agents: one agent's output becomes the next agent's input.
+- Use a `while` loop: a task agent writes, an evaluator agent checks, and the loop stops when the check passes.
+- Run independent agents at the same time, for example with `asyncio.gather`.
 
-A support inbox gets refund requests, technical questions and general questions. A first graph (our example):
+These match Anthropic's shapes: routing, chaining, evaluator-optimizer and parallelization. The docs also say: "You can mix and match these patterns." One mix we use in this lesson (our example): code picks the big path, and a model decides the details inside one step.
 
+**Start small.** The Anthropic post recommends "finding the simplest solution possible, and only increasing complexity when needed." The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says: "Start with one agent whenever you can." It gives four reasons to add a specialist. Add one only when it clearly improves:
+
+- **capability isolation**: only this agent gets certain tools.
+- **policy isolation**: only this agent may do certain actions.
+- **prompt clarity**: a narrow job gets its own short prompt.
+- **trace legibility**: the trace is easier to read.
+
+Without one of these, the guide warns, extra agents give you "more prompts, more traces, and more approval surfaces without necessarily making the workflow better."
+
+## Worked example
+
+### Step 1: the weak graph
+
+```text
+message
+  -> top agent (picks every path)
+       -> greeting agent -> language agent
+       -> booking agent | visa agent
+       -> research agent 1, 2, 3, 4 (always all four)
+       -> writer agent
+  -> reply
 ```
-start
-  -> classify (agent, structured output: refund | technical | general)
-  -> if/else on the category
-       refund    -> refund agent -> human approval -> pay refund (tool)
-       technical -> technical agent
-       general   -> FAQ agent
-  -> end
+
+This is the weak start. A model picks every path, and all four research agents always run. The next steps fix it.
+
+### Step 2: let code pick the big path
+
+Ask one small agent for a category as structured output. Then your code reads the field and picks the branch.
+
+```text
+message
+  -> classify (structured output: booking | visa | trip)
+  -> code switch on the category
+       booking -> booking agent
+       visa    -> visa agent
+       trip    -> trip planner
 ```
 
-The edges are decided by code. Each answer is written by a focused agent. The money step waits for a person. This is routing, from Anthropic's list, built from If/else and Human approval nodes like Agent Builder's.
+This is routing, built as orchestration via code. The same input type takes the same path each time, so speed and cost are easier to predict.
 
-Drawing it first shows what you are adding. Each node is a prompt to write, a trace to read and a place things can fail.
+### Step 3: give each branch its own shape
 
-## Key points
+- **Booking.** The booking agent drafts the change. Then a person approves it. Then a tool makes the change. That is a fixed chain with a human approval step, like Agent Builder's Human approval node.
+- **Visa.** The visa agent reads only the approved pages and answers. One node is enough.
+- **Trip.** This is the hard case. See step 4.
 
-- Workflows follow predefined code paths. Agents direct their own steps. Real systems mix both.
-- A graph is our name for the drawing: nodes are steps, edges are paths. Agent Builder made edges typed connections, but it is being shut down.
-- Anthropic's five shapes: prompt chaining, routing, parallelization, orchestrator-workers, evaluator-optimizer.
-- Orchestrator-workers differs from parallelization because the orchestrator decides the subtasks from the input.
-- Orchestration via code is more predictable in speed, cost and performance. Orchestration via LLM handles open-ended work.
-- Start with one agent. Split only when it clearly helps.
+### Step 4: the hard case, the trip planner
+
+The research for a trip changes every time. Seoul for food lovers needs market hours and restaurant bookings. Hokkaido in winter needs train times and road closures. You cannot write the list of research steps in advance.
+
+So a fixed list of four research agents is the wrong shape. A chain is wrong too, because chains are for known steps. The fit is orchestrator-workers: the trip planner reads the request, decides which research tasks it needs, starts a worker for each one and combines the results.
+
+Then the plan must meet the company's rules: real opening hours, travel time between stops, a daily budget. Those are clear criteria. So add an evaluator-optimizer loop after the planner:
+
+```text
+trip
+  -> trip planner (orchestrator: picks research tasks per request)
+       -> worker A, worker B, ... (only the ones this trip needs)
+  -> while loop in code:
+       planner drafts plan -> checker scores it against the rules
+       stop when the checker passes it, or after 3 rounds
+  -> reply
+```
+
+Code owns the outer path. A model owns the choice of research inside one node. The OpenAI docs say you can mix and match the two styles. This split is our example of such a mix.
+
+### Step 5: remove boxes that give no reason
+
+Check each agent against the four reasons:
+
+| Agent          | Reason to exist                          | Keep? |
+| -------------- | ---------------------------------------- | ----- |
+| booking agent  | only it gets the booking tool            | yes   |
+| visa agent     | only it reads the approved visa pages    | yes   |
+| trip workers   | own narrow prompts, run in parallel      | yes   |
+| checker        | a short, separate prompt with the rules  | yes   |
+| greeting agent | none: same tools, same rules as others   | no    |
+| language agent | none: the reply agent can match language | no    |
+
+### Step 6: why it is better
+
+- **Predictable where it matters.** Code sends every booking change down the same path, with a person before the money step.
+- **Flexible where it helps.** Only the trip planner decides its own subtasks.
+- **Fewer boxes.** Two agents went away. Each one left has a clear reason.
+- **Checked output.** The loop has a clear stop rule.
+
+Each node is still a prompt to write, a trace to read and a place where things can fail. Drawing the graph first shows that cost before you build it.
+
+## Common mistakes
+
+1. **A fixed list where the parts change.** If the research steps change per request, a hard-coded list wastes calls or misses steps. Fix: let an orchestrator pick the parts from the input.
+2. **A prompt where you need a rule.** "Always send refunds to a person" in a prompt is a wish, not a guarantee. Fix: classify with structured output and let code choose the path.
+3. **Agents with no reason.** A box with the same tools, rules and job as another box only adds cost. Fix: check each specialist against the four reasons, and cut the ones that match none.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Name the best pattern for each task. Choose from: prompt chaining, routing, sectioning, voting, orchestrator-workers, evaluator-optimizer.
+
+```text
+A) Write a product description, then translate it into German.
+B) Fix a bug. The number of files to change depends on the bug.
+C) Check a contract for risky clauses with three different prompts,
+   and flag it if any prompt finds a problem.
+D) Write a cover letter, then score it against a 5-point checklist
+   and rewrite until it passes.
+```
+
+### Answer
+
+- **A: prompt chaining.** Two known steps in a fixed order. The second step uses the output of the first.
+- **B: orchestrator-workers.** You cannot know the parts before you see the bug. A model must decide them.
+- **C: voting.** The same task runs several times for more confidence. It is a form of parallelization.
+- **D: evaluator-optimizer.** The checklist is a clear criterion, and each round can improve the letter.
+
+## Recap
+
+- Draw the graph first. Nodes are steps, and edges are paths. Each node adds a prompt, a trace and a way to fail.
+- Use the five shapes: prompt chaining, routing, parallelization (sectioning or voting), orchestrator-workers and evaluator-optimizer. Orchestrator-workers is the one where a model picks the parts from the input.
+- Let code decide the paths that must be predictable, and let a model decide only where the work is open-ended. Start with one agent, and add a specialist only for a clear reason.

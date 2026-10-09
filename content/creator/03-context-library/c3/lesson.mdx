@@ -1,7 +1,7 @@
 ---
 id: creator/r3/c3/lesson
 title: Asset search
-minutes: 6
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · Retrieval
@@ -23,63 +23,136 @@ sources:
     url: https://platform.claude.com/docs/en/build-with-claude/embeddings
 ---
 
-## Why it matters
+## Goal
 
-A library of 2,000 assets is too big to scroll and too big to put into a request. Someone, or something, must find the right three. Often that is a search tool that sits between the library and the model.
+After this lesson you can:
 
-This matters because the model reads only what the search returns. If search returns the wrong packshot, the model works from the wrong packshot. You will not write the search. You will decide what it can filter, what it can read and how you check it.
+- Design a search that filters on hard rules first, then ranks by meaning.
+- Pick a search tool that can read the file types in your library.
+- Test a search with real briefs, and know what a relevance score does not tell you.
 
-## Three ways to find an asset
+## The problem
 
-This grouping is ours.
+A furniture brand, Elm & Oak, has 3,000 photos of chairs, tables and rooms. A search tool picks photos from the library for the model. The model reads only what the search gives it.
 
-1. **Filter.** Exact facts: brand, kind of asset, approved or not, year.
-2. **Text search.** Find assets by what their captions mean.
-3. **Picture search.** Find assets by how they look.
+A designer asks for "a calm reading corner, only photos we may still use". The search returns:
 
-Good search often uses all three, in that order. Filter first, then rank what is left.
+1. A great photo that the client never approved.
+2. A photo whose licence ended last month.
+3. A loud red kitchen, because its caption says "corner shelf".
 
-## Filters: for hard rules
+Each one is a search problem, not a model problem. If search returns the wrong photo, the model works from the wrong photo.
 
-Both OpenAI and Google let you attach facts to a file and filter on them.
+## The idea
 
-- **OpenAI:** vector store files carry `attributes`. An `attribute_filter` narrows the results "by applying criteria, such as restricting searches to a specific date range". Filters can be combined with `and` and `or`.
-- **Google:** you can add custom metadata to a file in File Search, a set of key-value pairs, and search with a `metadata_filter`, such as `author="Robert Graves"`.
+**Three ways to find an asset** (this grouping is ours):
 
-Use filters for rules that must never be broken. "Only approved assets" is a filter. It is not something to hope the ranking gets right.
+```text
+filter          exact facts: brand, approved, licence date, file type
+text search     what the caption means
+picture search  what the image looks like
+```
 
-## Text search: meaning, not matching words
+Filter first. Then rank the rest. Think of a library: first go to the right shelf (the filter), then find the best book on it (the ranking).
 
-OpenAI's retrieval guide explains **semantic search**. It surfaces relevant results "even when they match few or no keywords". Its example: for the question "When did we go to the moon?", the best match, "The first lunar landing occurred in July of 1969", shares no words with the question.
+**Filters hold the rules.** Both OpenAI and Google let you attach facts to a file and filter on them.
 
-For a library, this means a search for "cosy" can find a caption that says "warm candlelit table". OpenAI describes its embeddings as measuring "the relatedness of text strings". Text search works on text. So **captions are context too**: someone must write them. A caption says the subject, look, colours, mood and use. A vision model can draft captions. Check the drafts, as you learned in Prompt Forest, chapter 3.
+- The [OpenAI retrieval docs](https://developers.openai.com/api/docs/guides/retrieval): files carry `attributes`, and an `attribute_filter` narrows results "by applying criteria, such as restricting searches to a specific date range". Filters can be combined with `and` and `or`.
+- The [Gemini File Search docs](https://ai.google.dev/gemini-api/docs/file-search): "You can add custom metadata to your files". Metadata "is a set of key-value pairs", and the docs search with a `metadata_filter` such as `author="Robert Graves"`.
 
-## Picture search: the vendors differ
+"Approved" and "licensed until" are exact facts. They belong in a filter, not in a caption and not in someone's memory.
 
-Can the search read the pictures themselves? Check the vendor.
+**Text search matches meaning.** The OpenAI retrieval docs say semantic search "surfaces semantically similar results—even when they match few or no keywords". Their example: for "When did we go to the moon?", the best match is "The first lunar landing occurred in July of 1969". The two lines share no keyword. The [OpenAI embeddings docs](https://developers.openai.com/api/docs/guides/embeddings) say text embeddings "measure the relatedness of text strings". Ranking comes from that closeness, not from which file is newest.
 
-- **OpenAI:** its embeddings page describes "text embeddings". Its File search page lists supported files, and the table shows text and document formats such as `.pdf`, `.md` and `.docx`. It lists no image types. For an image library on OpenAI, index a text file of captions, and keep the image id in each entry.
-- **Google:** `gemini-embedding-2` "maps text, images, video, audio, and documents into a unified embedding space", for cross-modal search. In File Search, the store uses a text-only embedding model by default. To search images you must create the store with `models/gemini-embedding-2`. Images must be PNG or JPEG, at most 4K x 4K. The page also says audio and video formats are not currently supported.
-- **Anthropic:** it "does not offer its own embedding model". Its page points to Voyage AI, whose multimodal model can vectorize "interleaved text, images, and videos".
+So **captions are context too**. A caption names the subject, look, colours, mood and use. A vision model can draft captions. A person checks them.
 
-Pick the tool after you know the formats in your library, not before.
+**Picture search depends on the vendor.**
 
-## Check what came back
+- **OpenAI.** The [File search docs](https://developers.openai.com/api/docs/guides/tools-file-search) have a "Supported files" table. It shows text and document types such as `.pdf`, `.md`, `.docx` and `.txt`. It lists no image types. For an image library, make one text file of captions. Each caption line carries its image id. Index the text file.
+- **Google.** The [Gemini embeddings docs](https://ai.google.dev/gemini-api/docs/embeddings) say `gemini-embedding-2` "maps text, images, video, audio, and documents into a unified embedding space". In File Search, a new store uses a text-only model by default. To search images, you must swap it for a multimodal model when you create the store: `models/gemini-embedding-2`. Images must be PNG or JPEG, each "at most 4K x 4K pixels". Audio and video are "not currently supported".
+- **Anthropic.** The [Claude embeddings docs](https://platform.claude.com/docs/en/build-with-claude/embeddings) say: "Anthropic does not offer its own embedding model." They point to Voyage AI, whose `voyage-multimodal-3.5` can "vectorize interleaved text, images, and videos".
 
-Search can look fine and still be wrong. Three habits help.
+Count the file types in your library before you pick a tool.
 
-- **Look at the results, not only the answer.** Google's File Search returns citations. When the model uses an image, the response carries a `media_id`, so you can download the exact image it used.
-- **Set a floor.** OpenAI lets you set a `score_threshold` between 0.0 and 1.0 in its ranking options. OpenAI says a higher value limits results to more relevant chunks, though it may exclude some useful ones. It measures relevance to the query. It does not know if you may use the asset. That is a filter's job.
-- **Test with real briefs.** Our habit: take ten past briefs. Run the search. Compare its top three with what the art director really chose. Fix the captions and filters until they agree.
+**Check what came back.**
 
-## When nothing matches
+- **Citations.** In Gemini File Search, when the model uses an image, the citation includes a `media_id`. You can use it "to download the exact image chunk the model referenced".
+- **A score floor.** In OpenAI file search you can set a `score_threshold` "between 0.0 and 1.0". The docs say a higher value "will limit the results to more relevant chunks, though it may exclude some potentially useful ones". A score measures closeness to the query. It knows nothing about approval or licences. That is the filter's job.
 
-Sometimes the right asset is not in the library. A search tool can still return its closest results, and a weak result is not a match. This rule is ours. Decide it before the job: below a set closeness, the answer is "nothing found", and a person decides what happens next. Do not let the model fill the gap with a look-alike.
+## Worked example
 
-## What this means for your work
+### Step 1: the search before
 
-- **Filter first, rank second.** Rules go in filters. Closeness goes in ranking.
-- **Captions are context.** Write and check them.
-- **Match the tool to the formats.** OpenAI file search reads text. Google can search PNG and JPEG with `gemini-embedding-2`. Anthropic points to Voyage AI.
-- **Look at what came back.** Citations and scores help.
-- **Test with real briefs.** Compare with the art director's picks.
+```text
+Query: "calm reading corner, only photos we may still use"
+Search: rank all 3,000 captions by closeness to the query
+```
+
+What goes wrong:
+
+- "Only photos we may still use" is a rule, but it is mixed into the ranking text.
+- The captions do not hold approval or licence dates, so the ranking cannot see them.
+
+### Step 2: put the facts in attributes
+
+```text
+id      caption                                      status    licence_end
+EO-118  Armchair by a window, soft daylight, books   ok        2028-03-31
+EO-204  Red kitchen, open corner shelf, bright       ok        2027-09-30
+EO-377  Armchair and lamp, warm evening light        draft     2028-03-31
+```
+
+### Step 3: filter, then rank
+
+```text
+Filter:  status = ok  AND  licence_end >= 2027-12-31
+Rank:    "calm reading corner" by meaning
+```
+
+EO-377 is gone (not approved). EO-204 is gone (licence too short). EO-118 ranks first, even though its caption never says "calm" or "reading".
+
+### Step 4: the hard case, the team wants to search by look
+
+Say the team works with the OpenAI file search tool. They want to upload 2,500 JPG photos. Its table of supported files has no image types. So:
+
+- On OpenAI: write a caption file with one entry per photo and its id, and index that.
+- On Gemini File Search: create the store with `models/gemini-embedding-2`. PNG and JPEG up to 4K x 4K can go in. A WebP or MP4 file cannot.
+
+### Step 5: test with real briefs
+
+Our habit: take ten past briefs. Run each one. Put the top three next to the photos the art director picked back then. Where they differ, fix the captions or the filters. One easy query such as "chair" proves little. Also read a few captions by hand. A caption that names the wrong product or colour will hide a good photo.
+
+### Step 6: decide what "no match" means
+
+Sometimes the right photo is not in the library. A search still returns its closest results. Our rule: below a closeness you choose, the answer is "nothing found", and a person decides the next step. The model should not fill the gap with a look-alike.
+
+### Why it is better
+
+- **Rules never depend on ranking luck.**
+- **Meaning finds photos that share no words** with the brief.
+- **The tool fits the file types.**
+- **Real briefs test the search**, not one easy query.
+
+## Common mistakes
+
+1. **Rules inside the query text.** "Approved only" in the query does not filter anything. Fix: store the fact as an attribute or metadata, and filter on it.
+2. **Trusting a high score.** A score says "close to the query", not "allowed to use". Fix: filters for permission, scores for relevance.
+3. **Uploading images where only text is read.** The search then has nothing useful to index. Fix: check the supported formats first, and use captions or a multimodal store.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A music label wants to search its library on Gemini File Search: 800 PNG album covers, 300 JPEG band photos, 50 WebP banners and 40 MP3 song previews. The store was made with default settings. Which files can be searched as images, and what must change first?
+
+### Answer
+
+- **First:** make a new store with `models/gemini-embedding-2`. A store with default settings uses a text-only model.
+- **Searchable as images:** the 800 PNG and 300 JPEG files, so 1,100 files, if each is at most 4K x 4K.
+- **Not in the store:** the 50 WebP banners (PNG and JPEG are the listed formats) and the 40 MP3 files (audio is not currently supported). Convert the banners, or describe them in captions.
+
+## Recap
+
+- Filter on exact facts first (approval, licence date), then rank by meaning. A relevance score is not permission.
+- Semantic search can match a query and a caption that share no words. Captions carry that meaning, so write and check them.
+- Match the tool to your file types. OpenAI file search reads text and documents. Gemini File Search reads PNG and JPEG with `gemini-embedding-2`. The Claude docs point to Voyage AI.
