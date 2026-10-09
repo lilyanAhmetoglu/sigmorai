@@ -1,7 +1,7 @@
 ---
 id: creator/r1/c6/lesson
 title: Review outputs
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Vision
@@ -17,78 +17,152 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/image-understanding
 ---
 
-## Why it matters
+## Goal
 
-You can make 40 images in an afternoon. Someone has to look at all 40 before the client does. A vision model can read each image and answer questions about it, so it can do a first pass. But it makes mistakes, and some of them are exactly the ones a client notices. This lesson shows how to review in layers: what to check, what a vision model can help with, and what you must check yourself.
+After this lesson you can:
 
-## What to check
+- Write a review prompt with clear pass/fail checks that a vision model can answer.
+- Know which answers from a vision model you must check yourself: counts, positions, small text.
+- Set up a review in layers: the model does a first pass, a person signs off.
 
-This checklist is ours, built from the earlier chapters. Check every output against it:
+## The problem
 
-1. **The brief.** Right shape, size, subject, number of items.
-2. **The brand.** Does it match the style block and the anchor image (chapter 3)?
-3. **Text and logos.** Is every letter right (chapters 1 and 2)? Is the logo exact?
-4. **What else changed.** After an edit, did faces, hands or backgrounds change (chapter 4)?
-5. **Motion and sound** for video. Does the shoe stay the same shoe in every shot (chapter 5)?
-6. **Rights and safety.** Realm 0, chapter 6: are there real people, other brands or music you may not use?
+Kai designs for a small music festival. He has made 15 social images, one per band. Each image must show the band name, the date "Sat 12 July", the festival logo in the bottom-left corner, and a dark purple background.
 
-Do items 1 to 3 on every output. They are quick, and they are where most client complaints start.
+Kai has one evening. He can't look at every letter of 15 images twice. So he asks a vision model: "Are these images OK?" It answers: "Yes, they all look great and on-brand."
 
-## A vision model as first reviewer
+The next morning, the drummer of one band writes: the band name has a missing letter. Another image says "Sat 21 July". The model said "OK" because Kai never told it what "OK" means.
 
-Claude, OpenAI's models and Gemini all take images as input and answer in text. Google's docs list image captioning, visual question answering and classification among the tasks. OpenAI's docs say you can "describe images, read visible text, and answer questions about objects, shapes, colors, or textures".
+## The idea
 
-How to ask well:
+A vision model is a fast first reviewer. It is like a helpful new assistant: quick, but it needs a clear checklist, and you check its work.
 
-- **Write clear criteria.** Anthropic's guide says Claude responds well to "clear, explicit instructions". Don't ask "is this good?". Ask: "Is the logo in the top-right corner? Does the carton say 'Oat. Simply.'? Is the background plain cream?"
-- **Label each image.** Anthropic says to introduce each of several images with a short label, "Image 1:", "Image 2:". Send the approved anchor as Image 1 and the new output as Image 2, then ask for differences.
-- **Mind the order.** Anthropic says Claude works best when images come before the text. Google says that with one image, you should put the text prompt before the image. Follow the vendor you use.
-- **Ask for a table.** One row per criterion, with a pass or fail and a short reason (our habit). It makes review fast.
+Vision models from Anthropic, OpenAI and Google take in images and reply in text. The [OpenAI docs](https://developers.openai.com/api/docs/guides/images-vision) say they can "describe images, read visible text, and answer questions about objects, shapes, colors, or textures". The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-understanding) list "visual question answering" among the tasks.
 
-## What a vision model gets wrong
+**Ask clear questions.** The [Claude prompting docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say: "Claude responds well to clear, explicit instructions." "Is it OK?" is not a check. "Does the date read exactly Sat 12 July?" is.
 
-Both vendors list limits. Read them before you trust a report.
+**Set up the images well.**
 
-| Limit                       | Anthropic (Claude)                                                                 | OpenAI                                                          |
-| --------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Counting                    | "approximate counts", not always precise                                           | "approximate counts"                                            |
-| Position and space          | coordinates and localisation are approximate                                       | struggles with precise spatial localisation                     |
-| Small or low-quality images | may "hallucinate or make mistakes" under 200 pixels or when low-quality or rotated | small text is a problem; rotated text and images may be misread |
-| General accuracy            | "always carefully review and verify"                                               | "may generate incorrect descriptions or captions"               |
+- Label each image. The [Claude vision docs](https://platform.claude.com/docs/en/build-with-claude/vision) suggest "a short text label (`Image 1:`, `Image 2:`, and so on)".
+- Order differs by vendor. The Claude docs say to "prefer an image-then-text structure". The Gemini docs say that with a single image, you "place the text prompt before the image".
 
-Anthropic adds a limit that matters to your work: "Claude cannot determine whether an image is AI-generated and might be incorrect if asked. Do not rely on it to detect fake or synthetic images." Anthropic says this about Claude. The other docs we cite make no claim that their models can do it, so our rule is: never use any vision model to prove an image is, or is not, AI-made.
+**Know the limits.** The vendors list the same weak spots:
 
-Example: a report says "12 cartons on the shelf" and the brief says 12. Count them yourself. If the shelf has 11, the model's "12" is the kind of error the docs describe.
+| Weak spot        | Claude docs                                           | OpenAI docs                                                   |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| Counting         | counts "might not always be precisely accurate"       | "may give approximate counts"                                 |
+| Position         | "coordinate and localization outputs are approximate" | "struggles with tasks requiring precise spatial localization" |
+| Small or rotated | errors with tiny images, "under 200 pixels"           | "may misinterpret rotated or upside-down text"                |
 
-## Zoom in before you ask
+**Help with small details.** Three tips from the docs:
 
-Small details are where models fail, and where clients look. Both vendors say to help with size:
+- The OpenAI docs say: "Enlarge text within the image to improve readability."
+- The Gemini docs say higher resolution helps the model "read fine text or identify small details".
+- The Claude prompting docs report "consistent uplift" when Claude has a crop tool to "zoom" in on parts of an image.
 
-- OpenAI: "Enlarge text within the image to improve readability."
-- Anthropic: "Testing has shown consistent uplift on image evaluations when Claude is able to 'zoom' in on relevant regions of an image", and it describes a crop tool for this. Its vision docs also say that a large image may be resized, which can make text hard to read, and that heavy compression can add artifacts.
+The Claude vision docs add: "Avoid cropping out key visual context solely to enlarge the text." So send the crop as well as the full image, not instead of it.
 
-So crop the label, the logo and the price tag. Send each crop as its own image with its own question. Send clean files, not heavily compressed copies.
+**Never ask it to spot AI images.** The Claude docs say Claude can't tell whether an image was made by AI, and "might be incorrect if asked". The other docs we cite make no such claim for their models either. Our rule: don't use any vision model as proof that an image is or isn't AI-made.
 
-## Video
+**A person signs off.** The Claude docs say: "Always carefully review and verify Claude's image interpretations, especially for high-stakes use cases."
 
-Anthropic's prompting guide notes that Claude Opus 4.5 and 4.6 can analyze a video if you break it into frames. Our method: take a frame from each shot (first, middle, last) and run the same checklist. Then watch the clip yourself for motion and sound. A set of still frames cannot tell you if the movement looks right.
+## Worked example
 
-## You sign off
+### Step 1: the weak review prompt
 
-Anthropic's vision docs say: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight." The same holds for any vision model. A good pattern, and ours:
+```text
+Are these images OK?
+```
 
-- The model does the first pass on every output, and catches the easy misses.
-- You check counts, small text, logos and anything the model marked "unsure" by eye.
-- You decide what goes to the client.
+What goes wrong:
 
-Keep a short **review log**: asset, prompt, model, which checks passed, who signed off. It shows what to fix in the next prompt, and it is proof of your process if a client asks.
+- No criteria, so "OK" means whatever the model guesses.
+- No labels, so the answer can't point to one image.
+- Nothing says which answers need a human check.
 
-## What this means for your work
+### Step 2: write the checks
 
-- **Check every output against the brief, the brand and the text.**
-- **Ask for specific yes or no checks**, not "is it good".
-- **Label and order the images** the way the vendor's docs say.
-- **Verify counts, positions and small print by eye.**
-- **Crop and enlarge** small details before you ask.
-- **Never use a vision model to detect AI-made images (our rule, from Anthropic's warning).**
-- **Sign off yourself**, and keep a log.
+```text
+Image 1: the approved design for the festival.
+Image 2: the new image for the band "Northern Owls".
+
+Check Image 2 against this list. For each line, answer PASS, FAIL or
+UNSURE, with a short reason. Copy any text exactly as you read it.
+
+1. Band name reads exactly: Northern Owls
+2. Date reads exactly: Sat 12 July
+3. Festival logo is in the bottom-left corner
+4. Background is dark purple, like Image 1
+5. Nothing else in Image 2 is different from Image 1 in layout
+```
+
+The images go first, then the checks, as the Claude docs suggest. Each line has one clear answer. "Copy any text exactly" shows you what the model read, not only its verdict.
+
+### Step 3: help it read small text
+
+The date is small. Crop the date area from the full-size export and send it as its own image with one question: "What text is in this image? Copy it exactly."
+
+### Step 4: the hard case, a PASS you can't trust
+
+The report says: "3. Logo in the bottom-left corner: PASS."
+
+Position is a known weak spot. Both the Claude and OpenAI docs say spatial answers are approximate. So a PASS on position is a hint, not proof. Kai opens the image and looks: the logo is in the bottom-left, but it overlaps the safe margin that social apps cover. The model was not asked about that, and could not reliably measure it anyway.
+
+**Why this is the hard case:** a FAIL makes you look. A PASS makes you relax. Counts, positions and small text need your own eyes even when the model says PASS.
+
+### Step 5: split the work
+
+```text
+model, every image:   lines 1-5, plus copied text
+Kai, every image:     band name and date letter by letter, logo position
+Kai, any UNSURE:      open the full-size file and decide
+Kai, before posting:  final sign-off
+```
+
+Kai also keeps a short **review log**: image, prompt version, checks passed, who signed off. It shows which prompt to fix next time.
+
+### Step 6: and for video?
+
+The Claude prompting docs say Claude Opus 4.5 and 4.6 can "analyze videos by breaking them up into frames". You can run the same checks on a few frames per shot. But frames can't show motion or sound. A person watches the clip.
+
+### Why it is better
+
+- **Clear checks**, so PASS and FAIL mean something.
+- **Labels and order** follow the vendor docs.
+- **Weak spots get a human check**, even after a PASS.
+- **A person signs off**, and the log shows how.
+
+## Common mistakes
+
+1. **A vague question.** "Is it good?" gets a vague yes. Fix: list each check as a yes/no line, and ask for PASS, FAIL or UNSURE with a reason.
+2. **Trusting counts and positions.** The docs call them approximate. Fix: count and look yourself.
+3. **Sending a tiny or squashed file.** Small, compressed text is easy to misread: the Claude vision docs say "heavy JPEG compression can make text difficult to read". Fix: send the full-size file, and add a crop of the detail as a second image.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A bookshop made a poster for a reading night. A vision model reviewed it and reported:
+
+```text
+Title "Poems After Dark": PASS
+Date "Thu 3 Oct, 7pm": PASS
+Five book covers in a row: PASS
+QR code in the top-right corner: PASS
+"This poster was made by a human designer."
+```
+
+Which lines do you check yourself, and what do you do with the last line?
+
+### Answer
+
+- **Title and date:** read them letter by letter yourself. Small text can be misread. Crop and enlarge if needed.
+- **Five covers:** count them. Counts are approximate.
+- **QR code position:** look yourself. Positions are approximate. Also scan it with your phone. A PASS on position says nothing about where the code leads.
+- **The last line:** ignore it and delete it. A vision model is not proof of who or what made an image.
+
+## Recap
+
+- A vision model is a first reviewer. Give it labelled images and clear PASS/FAIL checks.
+- Counts, positions and small text are known weak spots. Check them yourself, and crop small details from the full-size file.
+- Never rely on a vision model to say an image is or isn't AI-made. A person signs off, and keeps a log.

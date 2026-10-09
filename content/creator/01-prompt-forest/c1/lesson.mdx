@@ -1,7 +1,7 @@
 ---
 id: creator/r1/c1/lesson
 title: Shot prompts
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Gemini API docs · Image generation (Nano Banana)
@@ -14,70 +14,152 @@ sources:
     url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
 ---
 
-## Why it matters
+## Goal
 
-A short prompt like "a carton of oat milk" leaves every choice to the model. Which angle? Which light? Which room? The model picks, and its picks are not your client's picks. A **shot prompt** is a prompt that describes the picture the way a photographer would describe a shot. This lesson shows what to put in it.
+After this lesson you can:
 
-Realm 0 showed what image models can read and make. Now you write the input.
+- Write a **shot prompt** with five parts: subject, setting, lighting, camera and format.
+- Turn "don't want" words into a positive description of the scene.
+- Plan for words inside a picture, and use cheap drafts before a final render.
 
-## The parts of a shot prompt
+## The problem
 
-Google's Gemini docs give a template for photorealistic images: a **type of shot**, a **subject**, a **setting**, a **description of the light**, a **camera angle** and a **lens type**. Their product-photo template adds the lighting setup, the feature to show, the sharp-focus detail and the aspect ratio.
+A small plant shop sells a monstera in a terracotta pot. The owner needs a product photo for the online shop. The product page shows tall images, so the picture must be portrait 4:5.
 
-From these templates, Sigmorai uses a five-part checklist. It is our own checklist, not a vendor rule:
+The owner types "a monstera plant in a pot, beautiful, high quality". Three things go wrong:
 
-1. **Subject.** What is in the picture, with its details.
-2. **Setting.** Where it is: surface, room, background.
-3. **Light.** Soft window light, studio softbox, golden hour.
-4. **Camera.** Shot type, angle, lens: wide shot, macro, low angle.
-5. **Format.** Aspect ratio and what the picture is for.
+1. The plant sits in a dark corner of a living room. Nobody chose that room.
+2. The pot is half cut off at the bottom of the frame.
+3. The light is flat, so the leaves look like plastic.
 
-Example, for an oat-milk brand:
+The model did nothing wrong. The prompt left every choice open, so the model chose. This lesson shows how to make those choices yourself.
 
-> A high-resolution product photograph of a white oat-milk carton with a green label, on a pale oak kitchen table. Soft window light from the left. Slightly elevated 45-degree angle, sharp focus on the label. Landscape 3:2.
+## The idea
 
-Every part answers a question the model would otherwise guess.
+A **shot prompt** describes the picture the way a photographer describes a shot. Think of it as a note to a photographer who has never met you. "Take a nice photo" gets you their taste. "Plant on a white table, window light from the left, shot from eye level" gets you yours.
 
-## What Google's guide adds
+The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) give a template for photorealistic scenes. It names a type of shot, a subject, a setting, the light, a camera angle and a lens type. From that template, Sigmorai uses a five-part checklist. It is our own checklist, not a vendor rule:
 
-Google's "best practices" list for Nano Banana has tips that are worth trying with other image models too (our view). Each one below is quoted or closely paraphrased from the page.
+```text
+1 Subject   what is in the picture, with details
+2 Setting   surface, room, background
+3 Light     window light, softbox, golden hour
+4 Camera    shot type, angle, lens
+5 Format    aspect ratio, and what the image is for
+```
 
-- **Be hyper-specific.** Instead of "fantasy armor", describe it: "ornate elven plate armor, etched with silver leaf patterns". The more detail you give, the more control you have.
-- **Give context and intent.** Say what the image is for. "Create a logo for a high-end, minimalist skincare brand" gives better results than "Create a logo".
-- **Use semantic negative prompts.** Don't write "no cars". Describe what you want: "an empty, deserted street with no signs of traffic".
-- **Control the camera.** Terms like wide-angle shot, macro shot and low-angle perspective steer the composition.
-- **Break complex scenes into steps.** "First, a misty forest at dawn. Then, in the foreground, a stone altar. Finally, a glowing sword on the altar."
+The Gemini docs add a list of best practices. These help with other image models too (our view):
 
-Anthropic's prompting guide is written for text prompts, not images. But its main rule is the same: "Claude responds well to clear, explicit instructions", and its "golden rule" is to show your prompt to a colleague with little context. If they would be confused, the model will be too. Use that test on your image prompts.
+- **Be hyper-specific.** "The more detail you provide, the more control you have."
+- **Give context and intent.** Say what the image is for.
+- **Use "semantic negative prompts".** Instead of a ban like "no cars", describe the empty street you want in positive words.
+- **Control the camera** with words like wide-angle shot, macro shot and low-angle perspective.
+- **Iterate.** "Don't expect a perfect image on the first try." Ask for small changes in the next turn.
 
-## Leave room for the layout
+The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) are written for text prompts, but one test works for images too. Their "golden rule": show your prompt to a colleague with little context. "If they'd be confused, Claude will be too." The same goes for any image model.
 
-Designers often add text later in their own tools. Google's docs describe a "minimalist and negative space" prompt for backgrounds "where text will be overlaid". The example asks for a subject in the bottom-right and "a vast, empty off-white canvas".
+Two limits matter for creators:
 
-Example: a banner needs a headline on the left. Ask for the product on the right and an empty, plain area on the left. Don't ask the model to place the headline too.
+- **Words in the picture.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) say under "Text Rendering" that the model can still have trouble placing text precisely and keeping it clear. The Gemini docs say Gemini works best "if you first generate the text and then ask for an image with the text".
+- **Time and cost.** For OpenAI image models, the docs say: use `quality: "low"` "for quick drafts. For final assets, compare higher quality settings". They also warn that complex prompts "may take up to 2 minutes to process".
 
-## Text inside the picture
+## Worked example
 
-If the image must contain words, check them. OpenAI's docs say its GPT Image models "can still struggle with precise text placement and clarity". They also say the model "may have difficulty placing elements precisely in structured or layout-sensitive compositions". Google says Gemini works best if you "first generate the text and then ask for an image with the text".
+### Step 1: the weak prompt
 
-So read every letter of every price, name and slogan. If one is wrong, retry or set the text in your design tool.
+```text
+A monstera plant in a pot, beautiful, high quality.
+```
 
-## Iterate, don't restart
+What goes wrong:
 
-Google calls multi-turn conversation "the recommended way to iterate on images". Its tip: don't expect a perfect image on the first try. Follow up with small changes, such as "make the lighting a bit warmer".
+- "Beautiful" and "high quality" are praise, not information.
+- No setting, no light, no camera, no format. The model guesses all four.
 
-OpenAI's Responses API also supports multi-turn image work: you keep the image in the conversation and refine it with new instructions.
+### Step 2: add the five parts
 
-## Drafts first, finals later
+```text
+A high-resolution product photograph of a monstera plant with large,
+glossy split leaves, in a matte terracotta pot.
+The pot stands on a white oak side table against a plain sage-green wall.
+Soft morning window light from the left, gentle shadow to the right.
+Eye-level shot, the whole pot and plant in frame, sharp focus on the leaves.
+Portrait 4:5, for an online shop product page.
+```
 
-OpenAI's current image models (GPT Image 2.5) have a quality setting: `low`, `medium`, `high`, `xhigh`, `max` or `auto`. Earlier models stop at `high`. The docs say: use `quality: "low"` "for quick drafts. For final assets, compare higher quality settings to find the right balance of detail, latency, and cost." They also warn that complex prompts "may take up to 2 minutes".
+Each line answers one question the model would guess. The last line also gives the purpose, as the Gemini docs suggest.
 
-Example: you have 6 prompt ideas for a hero image. Run all 6 as quick drafts, pick the best 2, then render those at higher quality.
+### Step 3: turn bans into a scene
 
-## What this means for your work
+A first draft of Step 2 often ends with a ban: "No clutter, no sofa, no dark corner." The Gemini tip is to swap a ban for a positive picture of the scene. So we put that wish into the setting line:
 
-- **Write the five parts.** Subject, setting, light, camera, format. Skip one only when you don't care how it turns out.
-- **Say what you want, not what you don't.** Replace "no clutter" with "a clean, empty table".
-- **Plan for text.** Leave blank space for headlines, and proof-read any words the model draws.
-- **Draft cheap, finish careful.** Low quality for ideas, higher quality for the winner.
-- **Change one thing per turn.** Small edits show you which words did what.
+```text
+The pot stands alone on a white oak side table against a plain sage-green wall.
+```
+
+"Stands alone" and "plain wall" tell the model what to draw. A list of bans tells it what you fear.
+
+### Step 4: the hard case, a price in the picture
+
+The owner now asks for a sale version with "€24" on a small paper tag tied to the pot. Words inside the image are the risky part. The safe plan:
+
+```text
+... Tie a small blank kraft-paper tag to the rim of the pot,
+facing the camera, large enough for a short price.
+```
+
+Then add "€24" in your design tool. If the owner wants the model to draw it, put the exact text in the prompt, read every character of the result, and fix it in your design tool if one is wrong.
+
+**Why this is the hard case:** the prompt can be perfect and the text can still come out wrong. The OpenAI docs list text clarity as a limit. A wrong price on a shop page is a real problem.
+
+### Step 5: drafts first
+
+Try three ideas: sage wall, white wall and wooden shelf. Run all three at low quality. Pick one. Render only that one at a higher quality and compare the settings, as the OpenAI docs suggest.
+
+### Why it is better
+
+- **Every choice is yours.** Room, light, angle and shape are in the prompt.
+- **Positive words.** The model gets a scene to draw, not a list of bans.
+- **Text is under control.** The tag is blank, and the price goes in by hand.
+- **Cheap tests first.** You spend on the final render only once.
+
+## Common mistakes
+
+1. **Praise words instead of facts.** "Stunning, 8k, masterpiece" adds no subject, light or camera. Fix: replace each one with one of the five parts.
+2. **A list of bans.** "No people, no mess, no shadows" names the things you fear. Fix: describe the empty, clean scene you want.
+3. **Trusting the letters.** A model-drawn date or price can be one character off. Fix: read every character, or set the text yourself.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A podcaster needs a square cover image. She wrote this prompt:
+
+```text
+A microphone, cool, professional, no messy background, with the words
+"Late Shift Radio" in big letters at the top.
+```
+
+Find three problems and rewrite the prompt.
+
+### Answer
+
+1. **Missing parts.** No setting, light, camera or clear format. "Cool" and "professional" are praise.
+2. **A ban instead of a scene.** "No messy background" says what she fears. Describe the background she wants.
+3. **Text in the picture.** The show name is the riskiest part. Leave space for it and set it in a design tool, or check every letter.
+
+One good rewrite:
+
+```text
+A studio photograph of a black broadcast microphone on a short desk stand,
+on a dark walnut desk. Plain deep-blue wall behind it.
+Warm desk-lamp light from the right, soft shadow.
+Slightly low angle, microphone in the lower half of the frame,
+empty space in the upper third for a title. Square 1:1, podcast cover.
+```
+
+## Recap
+
+- A shot prompt names five parts: subject, setting, lighting, camera and format. Each part you skip is a guess the model makes.
+- Say what should be in the scene, in positive words. Don't list what you don't want.
+- Words in the picture need a plan: leave space, or check every character. Draft at low quality, then render the winner.

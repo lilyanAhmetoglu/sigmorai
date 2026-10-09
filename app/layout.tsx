@@ -1,4 +1,3 @@
-import { ClerkProvider } from '@clerk/nextjs';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
@@ -59,8 +58,9 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       className={`${pixelifySans.variable} ${silkscreen.variable} ${atkinson.variable} ${jetbrainsMono.variable} h-full`}
     >
       <body className="flex min-h-full flex-col">
-        {/* Never pass `dynamic`: it makes / dynamic and breaks the landing CTA swap (LandingCta). */}
-        <ClerkProvider>{children}</ClerkProvider>
+        {/* No ClerkProvider here: each group layout mounts it only where a page
+            needs it (ClerkGate), so a visitor downloads no Clerk. */}
+        {children}
         {/* Cookieless page views and Web Vitals (SIG-39); /privacy says what they collect. */}
         <Analytics />
         <SpeedInsights />

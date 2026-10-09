@@ -1,7 +1,7 @@
 ---
 id: creator/r1/c5/lesson
 title: Video prompts
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Gemini API docs · Generate videos with Veo 3.1
@@ -14,76 +14,153 @@ sources:
     url: https://docs.dev.runwayml.com/recipes/multi-shot-video
 ---
 
-## Why it matters
+## Goal
 
-A video prompt has everything an image prompt has, plus **time**: something moves, the camera moves, and there may be sound. A prompt that names only a subject leaves motion, camera and sound to the model's guess. This lesson shows how to write one shot, then how to plan a sequence.
+After this lesson you can:
 
-A note on sources. OpenAI's prompting guide was written for Sora 2, and realm 0 chapter 4 covers that API's shutdown. We use the guide only for prompting ideas that do not depend on that model. The Veo and Runway pages are current.
+- Write a video shot prompt that covers the seven elements in the Veo docs.
+- Add sound to the prompt: speech, sound effects and background noise.
+- Split a busy idea into a shot list, and check the length rules of your video model.
 
-## The parts of a video prompt
+## The problem
 
-Google's Veo guide lists the elements a prompt should have:
+Rosa runs a flower shop. For Mother's Day she wants a vertical video for social media: her hands wrapping a bouquet of pink peonies, a ribbon, the bouquet handed over, and Rosa saying the shop's line, "Flowers by noon."
 
-- **Subject.** The object, person, animal or scenery.
-- **Action.** What the subject is doing.
-- **Style.** Creative direction, such as film noir or cartoon.
-- **Camera positioning and motion** (optional). Aerial view, eye-level, dolly shot.
-- **Composition** (optional). Wide shot, close-up, two-shot.
-- **Focus and lens effects** (optional). Shallow focus, macro lens, wide-angle lens.
-- **Ambiance** (optional). How colour and light set the mood: blue tones, night, warm tones.
+Her first prompt: "Lovely flower shop video, Rosa wraps peonies, ties a ribbon, gives them to a customer and says our slogan, cinematic." The clip that comes back jumps between moments. The peonies turn into roses halfway. Rosa says something, but not the slogan. The sound is random.
 
-Google's example puts several of them in one line: "Close up shot (composition) of melting icicles (subject) on a frozen rock wall (context) with cool blue tones (ambiance), zoomed in (camera motion) maintaining close-up detail of water drips (action)."
+An image prompt describes one moment. A video prompt also describes **time**: what moves, how the camera moves and what we hear. Rosa's prompt crammed four moments into one request, with no camera, light or sound for any of them.
 
-Compare Google's two versions of one idea. The short one: "The camera dollies to show a close up of a desperate man in a green trench coat... It looks like a movie scene." The detailed one adds the weathered coat, the brick wall, the green neon glow, the dolly-in and the shallow depth of field. Google uses the pair to show how more specific details refine the output.
+## The idea
 
-## One shot, one action
+Write a video prompt like one line of a film crew's shot list: one shot, one action, one camera setup.
 
-OpenAI's Sora 2 prompting guide advises: when you describe several shots, "keep each shot block distinct: one camera setup, one subject action, and one lighting recipe at a time". Runway's Multi-Shot recipe says the same in its tips: "Write one clear idea per shot".
+The [Veo docs](https://ai.google.dev/gemini-api/docs/veo) list the elements a prompt should include:
 
-So a prompt like "the runner sprints, then we see her laces, then the logo appears, with a drone shot at the end" runs four shots together, with no camera or light for any of them. Give each shot its own distinct prompt, or its own block if your tool takes a shot list (Runway's Multi-Shot recipe has a mode for this). Veo 3.1 makes one 8-second clip per request, so there one prompt per shot is the simple choice.
+```text
+Subject      who or what is in the shot
+Action       what the subject is doing
+Style        creative direction: film noir, cartoon
+Camera       position and motion: eye-level, dolly shot   (optional)
+Composition  wide shot, close-up                         (optional)
+Focus/lens   shallow focus, macro lens                   (optional)
+Ambiance     how colour and light set the mood           (optional)
+```
 
-For Sora 2, OpenAI found the model "generally follows instructions more reliably in shorter clips", and suggested two 4-second clips over one 8-second clip. Check what your model allows: on Veo 3.1, 1080p and 4k clips are 8 seconds only.
+**Sound.** Veo 3.1 makes "natively generated audio". The Veo docs give three kinds of cues. **Dialogue:** write the spoken words inside quotation marks. **Sound effects:** "Explicitly describe sounds." **Ambient noise:** "Describe the environment's soundscape."
 
-## Detail or freedom
+**One idea per shot.** An [OpenAI Cookbook guide](https://developers.openai.com/cookbook/examples/sora/sora2_prompting_guide) for Sora 2 covers prompts with several shots. It says each shot block should stay distinct: "one lighting recipe at a time", one camera setup, one action. The guide is now archived ("may reference outdated models or APIs"), so we use only its general prompting ideas. The [Runway docs](https://docs.dev.runwayml.com/recipes/multi-shot-video) give the same tip: one clear idea for each shot. They also say to reuse the same product words in every shot "for visual consistency".
 
-For Sora 2, OpenAI's guide describes the trade-off. Shorter prompts "give the model more creative freedom", while longer, more detailed prompts "restrict the model's creativity". It also says: "Treat your prompt as a creative wish list, not a contract". The same prompt run twice gives different results.
+**Detail versus freedom.** The OpenAI guide says "detailed prompts give you control and consistency, while lighter prompts open space for creative outcomes". It also says the same prompt run again "will lead to different results". So write the details you need, and plan to run a shot more than once.
 
-For brand work you usually want control, so write the details that matter: the product, the colour, the camera move. Leave open what you don't mind, such as the extras in the background.
+**Start from a picture.** If you give Veo an image, the shot starts on it: the docs say to pick the image "closest to what you envision as the first scene". Veo 3.1 also takes up to three "asset images" of one person, character or product, so it looks the same in the shot. Or you give a first and a last frame. Runway's multi-shot recipe has an optional `firstFrame` image too.
 
-## Sound is part of the prompt
+**Length rules.** Read them for your model. On Veo 3.1, `durationSeconds` is `"4"`, `"6"` or `"8"`. The docs say it "Must be `"8"` when using extension, reference images or with 1080p and 4k resolutions". Runway's multi-shot recipe takes a total of 5, 10 or 15 seconds, and in custom mode a list of 3–5 shots.
 
-Veo makes audio with the video. Google's guide says you can give cues for three kinds of sound:
+## Worked example
 
-- **Dialogue.** Use quotes for specific speech: "This must be the key," he murmured.
-- **Sound effects.** Describe them: tires screeching loudly, engine roaring.
-- **Ambient noise.** Describe the soundscape: a faint, eerie hum in the background.
+### Step 1: the weak prompt
 
-Example, added to the end of a shot prompt: footsteps splash on wet pavement, city traffic hums far away, and the runner says, "Run your city."
+```text
+Lovely flower shop video, Rosa wraps peonies, ties a ribbon, gives them
+to a customer and says our slogan, cinematic.
+```
 
-## Start from a picture
+What goes wrong:
 
-You can give a video model an image to begin from. Google's docs say Veo uses the input image as the initial frame, and to pick an image "closest to what you envision as the first scene". Google's own example makes an image with Nano Banana and then animates it with Veo.
+- Four actions in one request, so the model cuts between them at random.
+- No camera, composition or light for any moment.
+- "Our slogan" is not the words. The model can't guess them.
+- No sound cues.
 
-Veo 3.1 can also take up to three reference images of a person, character, or product "to preserve the subject's appearance", or a first and a last frame to set how a shot starts and ends. Realm 0 listed the limits that go with these features.
+### Step 2: split it into a shot list
 
-Example: generate the perfect hero frame as an image (chapters 1 to 4), approve it, then animate it. You settle the look in a cheap image step and only then spend a video render.
+| Shot | Action                            | Camera                    | Sound                       |
+| ---- | --------------------------------- | ------------------------- | --------------------------- |
+| 1    | Hands wrap peonies in kraft paper | Top-down close-up, static | Paper rustles, quiet shop   |
+| 2    | Hands tie a pink silk ribbon      | Macro lens, slow push-in  | Ribbon slides, soft ticking |
+| 3    | Rosa holds the bouquet, speaks    | Eye-level medium shot     | Her line, doorbell far away |
 
-## Plan a sequence as a shot list
+Each row has one action and one camera setup. This table format is ours.
 
-Long ads are several short shots. Plan them like a film crew. This table is our own format:
+### Step 3: write shot 1 in full
 
-| Shot | Length | Subject and action                         | Camera                    | Sound                         |
-| ---- | ------ | ------------------------------------------ | ------------------------- | ----------------------------- |
-| 1    | 8 s    | Runner sprints along a wet street          | Low tracking shot, wide   | Footsteps, traffic hum        |
-| 2    | 8 s    | Same runner stops, close-up of the sneaker | Slow dolly-in, macro lens | Quiet breath, one spoken line |
+```text
+Top-down close-up of a florist's hands wrapping a bouquet of soft pink
+peonies in brown kraft paper on a pale wooden workbench. The hands fold
+the paper slowly around the stems. Natural, realistic style. Static
+camera, shallow focus on the petals. Warm morning light from a window
+on the left. Paper rustles; a quiet flower shop in the background.
+Vertical 9:16.
+```
 
-Runway's tips add: "Reuse the same product or style language across shots for visual consistency." Copy the same subject description and the same style block (chapter 3) into every shot prompt.
+Every element from the Veo list has a line, and so does the sound.
 
-## What this means for your work
+### Step 4: keep the bouquet the same in every shot
 
-- **Write the parts.** Subject, action, style, camera, composition, focus, ambiance.
-- **One camera setup, one action, one lighting recipe per shot.**
-- **Prompt the sound.** Quotes for speech, plain words for effects and ambience.
-- **Settle the look in an image first**, then animate it.
-- **Repeat the same subject and style words in every shot.**
-- **Expect variation.** Run a shot more than once and pick the best.
+Copy one fixed bouquet description into all three prompts: "a bouquet of soft pink peonies in brown kraft paper". This follows Runway's tip to reuse the same product words. On Veo 3.1 you can also give up to three photos of the real bouquet as reference images.
+
+### Step 5: the hard case, the speaking shot
+
+Shot 3 has Rosa's line, and Rosa wants it short: 4 seconds, in 1080p, with her bouquet photos as references.
+
+Check the length rule first. On Veo 3.1, 1080p and reference images both need "8". So you choose: an 8-second shot with references, or a shorter shot in 720p with no references. Rosa takes 8 seconds. Then write the line in quotes:
+
+```text
+Eye-level medium shot of a smiling florist in a green apron holding a
+bouquet of soft pink peonies in brown kraft paper, in a bright flower
+shop. She looks at the camera and says, "Flowers by noon." A doorbell
+chimes far away. Warm natural light. Vertical 9:16.
+```
+
+**Why this is the hard case:** the prompt can be perfect and the request can still fail, because the settings break a rule. Check the model's limits before you write.
+
+### Step 6: render, compare, pick
+
+Run each shot two or three times. Pick the take where the bouquet matches the other shots. Cut the three shots together in your editor.
+
+### Why it is better
+
+- **One action and one camera setup per shot**, so the model has one job.
+- **Every Veo element and the sound are in the prompt**, not left to chance.
+- **The bouquet has one fixed description**, plus references.
+- **The settings fit the model's rules** before you spend a render.
+
+## Common mistakes
+
+1. **Many moments in one prompt.** The model cuts between them, or merges them. Fix: one action and one camera setup per shot, then edit the shots together.
+2. **Sound left out, or the words left vague.** "She says something nice" gets random words. Fix: quote the line word for word, and describe effects and background noise.
+3. **A new product description in every shot.** "Peonies", then "pink flowers", then "a bouquet" give three bouquets. Fix: copy one fixed description into each shot, and add reference images if your model takes them.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A bike shop wants a short clip with this prompt:
+
+```text
+A mechanic fixes a bike wheel, then rides it down a hill, then the shop
+sign appears, with a cool sound. Make it 4 seconds and 4k.
+```
+
+1. How many shots are hidden in this prompt?
+2. Name one problem with "4 seconds and 4k" on Veo 3.1.
+3. Write a better prompt for the first shot.
+
+### Answer
+
+1. Three: fixing the wheel, riding down the hill, the sign.
+2. On Veo 3.1, 4k clips must be 8 seconds. Choose 8 seconds, or a lower resolution.
+3. For example:
+
+```text
+Close-up of a mechanic's hands tightening the spokes of a bicycle wheel
+on a repair stand, in a small workshop. Realistic style. Slow dolly-in,
+shallow focus on the spokes. Warm light from a work lamp. Metal clicks
+softly; a radio plays quietly in the background.
+```
+
+## Recap
+
+- One shot, one action, one camera setup. Cover the seven elements from the Veo docs.
+- Prompt the sound: exact speech in quotes, sound effects and background noise in plain words.
+- Plan a shot list, reuse one product description, and check your model's length and resolution rules before you render.
