@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { AUTH_ROUTES, AUTH_TEXT, LIVE_NAV_ITEMS, SHELL_TEXT, SITE_NAME } from '@/lib/constants';
+import {
+  AUTH_ROUTES,
+  AUTH_TEXT,
+  BLOG_HREF,
+  LIVE_NAV_ITEMS,
+  MAP_HREF,
+  SHELL_TEXT,
+  SITE_NAME,
+} from '@/lib/constants';
+import { clerkFapiOrigin } from '@/lib/security/headers';
 
 /**
  * One header on every page (maintainer, 2026-10-08): the same logo, the same
@@ -42,6 +51,32 @@ for (const route of ROUTES) {
       'href',
       AUTH_ROUTES.signUp,
     );
+  });
+}
+
+// Clerk only where needed (curriculum plan, amendments 2026-10-08): a visitor on
+// a public page or an (app) page loads no Clerk script and calls no Clerk API.
+const FAPI = clerkFapiOrigin(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+const CLERK_SCRIPT = /\/(clerk\.browser|ui\.browser)\.js/;
+
+for (const route of ['/', BLOG_HREF, MAP_HREF, '/no-such-page']) {
+  test(`no Clerk for a visitor: ${route}`, async ({ page }) => {
+    const clerkRequests: string[] = [];
+    page.on('request', (request) => {
+      // A page navigation is not Clerk JS. With a development key (pk_test, as in CI) the
+      // server middleware sends a visitor's first load through a `dev-browser-missing`
+      // handshake redirect; a production key does not. Count scripts and API calls only.
+      if (request.isNavigationRequest()) return;
+      const url = request.url();
+      if ((FAPI && url.startsWith(FAPI)) || CLERK_SCRIPT.test(url)) clerkRequests.push(url);
+    });
+    await page.goto(route, { waitUntil: 'networkidle' });
+    // The plain visitor links render; networkidle means hydration and any late chunk are done.
+    await expect(
+      page.getByRole('banner').getByRole('link', { name: AUTH_TEXT.startFree }),
+    ).toBeVisible();
+    await expect(page.locator('script[data-clerk-js-script]')).toHaveCount(0);
+    expect(clerkRequests).toEqual([]);
   });
 }
 
