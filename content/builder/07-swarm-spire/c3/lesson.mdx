@@ -1,7 +1,7 @@
 ---
 id: builder/r7/c3/lesson
 title: Shared state
-minutes: 9
+minutes: 14
 sources:
   - kind: blog
     title: How we built our multi-agent research system (Engineering at Anthropic)
@@ -26,77 +26,172 @@ sources:
     url: https://developers.openai.com/api/docs/guides/agents/orchestration
 ---
 
-Chapter 2 moved work from one agent to another. This chapter asks a different question: when several agents work on one job, where does the information live? If every agent keeps its own private notes, the system forgets. If every agent writes to the same place without rules, the system gets messy.
+## Goal
 
-## Three places state can live
+After this lesson you can:
 
-This grouping is ours, not a vendor term. In a multi-agent system, information sits in one of three places:
+- Choose where each fact in a multi-agent system should live: the model's context, local app state or durable storage.
+- Pass a fact to an agent that cannot see the parent conversation.
+- Keep a plan, big results and secrets safe across long runs, pauses and failures.
 
-| Place               | Who can see it                             | Example                               |
-| ------------------- | ------------------------------------------ | ------------------------------------- |
-| The model's context | One agent, for as long as its window lasts | The brief, the tool results so far    |
-| Local app state     | Your code, and sometimes tools             | A user id, a logger, an approval flag |
-| Durable storage     | Anything you give access to                | A file, a database row, a task list   |
+## The problem
 
-Most shared-state bugs come from putting a fact in the wrong place. The research plan sits in a context that gets cut. A user id is pasted into a prompt when code could carry it. A secret ends up in a saved file.
+An events company builds a conference planner with the OpenAI Agents SDK. A planner agent talks with the customer. It calls three helper agents as tools: a venue agent, a catering agent and a travel agent. A booking needs a human to approve it before payment.
 
-## Each agent has its own window
+Here is the first design for where things live:
 
-Agents do not share a context window by default.
+```text
+plan of the event       only in the planner's context
+customer's rules        only in the planner's chat ("all food must be halal")
+venue list              venue agent returns 40 venues as plain text
+hotel API token         inside the run context object
+approval pause          the paused run state is saved to the database
+budget_left field       in the run context; venue and catering agents both change it
+```
 
-**Claude subagents.** A subagent's context starts fresh, with no parent conversation. Its intermediate tool calls and results stay inside it, and only its final message returns to the parent. That keeps the parent's window small. It also means anything the parent knows is lost unless it goes into the prompt.
+The team sees trouble on long runs. The planner forgets which steps are done. The catering agent offers a menu with pork. A venue's capacity changes from 450 to 540 somewhere between the venue agent and the final proposal. And a security scan finds the hotel token in saved approval rows.
 
-**Claude agent teams** (experimental and off by default in Claude Code; turn on with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Teammates work independently, "each in its own context window." A teammate gets the lead's spawn prompt, and the docs say the lead's conversation history does not carry over.
+Every problem has the same root: a fact is stored in the wrong place.
 
-**OpenAI agents as tools.** A nested agent run starts with its own state. The SDK docs say: "the parent run's conversation state is not inherited automatically." To share client-managed history, you explicitly pass the same `session` to both.
+## The idea
 
-Example: a lead agent has talked with a user for 20 turns and learned that the report is for a European audience. It calls a writer agent with only "write the summary". The writer cannot know about Europe. The fact has to go into the writer's input.
+A fact in a multi-agent system can sit in three places. This grouping is ours, not a vendor term.
 
-## Local state that the model never sees
+| Place               | Who can read it                      | Good for                               |
+| ------------------- | ------------------------------------ | -------------------------------------- |
+| The model's context | One agent, while its window lasts    | The brief, tool results, the chat      |
+| Local app state     | Your code and tools, never the model | A user id, a database handle, a logger |
+| Durable storage     | Anything you give access to          | A saved plan, a file, a task list      |
 
-The OpenAI Agents SDK has a second kind of state. You create an object and pass it as `context` to the run. Tools and callbacks, such as `on_handoff`, receive it. The docs are clear: "The context object is **not** sent to the LLM." Use it for a user id, a data fetcher or a logger.
+Think of an office. The context is what a worker holds in their head today. Local app state is the worker's desk drawer. Durable storage is the shared filing cabinet.
 
-Three facts from the same page:
+**Each agent has its own window.** Agents do not share a context by default:
 
-- Every agent, tool and hook in one run must use the same type of context.
-- Nested `Agent.as_tool()` runs "do not get an isolated copy of your app state by default."
-- If you save a `RunState` for a later approval, runtime data is saved with it. "Avoid putting secrets" in the context if you persist or send serialized state.
+- **Claude subagents.** In the [Claude Agent SDK docs](https://code.claude.com/docs/en/agent-sdk/subagents), a subagent starts without the parent conversation. Its tool calls stay inside it, and "only its final message returns to the parent."
+- **Claude Code agent teams.** These are experimental and off by default. You turn them on with `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`. The [agent-teams docs](https://code.claude.com/docs/en/agent-teams) say each teammate works "in its own context window". It gets the lead's spawn prompt, and "The lead's conversation history does not carry over."
+- **OpenAI agents as tools.** The [tools docs](https://github.com/openai/openai-agents-python/blob/main/docs/tools.md) say a nested `as_tool` run does not get the parent's conversation automatically ("not inherited automatically"). To share client-managed history, you pass the same `session` to both runs on purpose.
 
-Because nested runs share the app state, a simple rule helps (ours): give every field one writer. If two agents can change `report_status`, you will one day see the wrong value.
+So if a helper agent needs a fact from the chat, put the fact in its input.
 
-## Durable state: plans, files, task lists
+**Local state the model never sees.** The [OpenAI context docs](https://github.com/openai/openai-agents-python/blob/main/docs/context.md) describe a run context. You make any Python object and pass it with `Runner.run(..., context=...)`. Tools, hooks and callbacks like `on_handoff` get it. The docs are clear: "The context object is **not** sent to the LLM." Three more facts from that page:
 
-Some state has to outlive one context window.
+- Every agent, tool and hook in one run must use the same _type_ of context.
+- Nested `Agent.as_tool()` runs "do not get an isolated copy of your app state by default." They share it.
+- If you save a `RunState` for a later approval, the runtime data goes into the saved copy too. The docs: "Avoid putting secrets" in the context "if you intend to persist or transmit serialized state."
 
-**A saved plan.** In Anthropic's Research system, the lead agent thinks through its approach and saves the plan to Memory. The reason: if the context window passes 200,000 tokens, it "will be truncated and it is important to retain the plan." For long conversations, the post also describes agents that summarize finished work and store essentials in external memory before the next phase.
+Because nested runs share app state, a rule helps. Our rule: **every field has one writer.** If two agents can change one field, one day you will read the wrong value.
 
-**Files instead of retelling.** Anthropic's appendix describes a "game of telephone" problem: if every result is passed through the lead, information is lost and tokens are copied again. Their fix: "Subagents call tools to store their work in external systems, then pass lightweight references back to the coordinator." This fits structured outputs such as code, reports or data visualizations.
+**Durable state.** Some facts must outlive one window:
 
-**A shared task list.** Claude Code agent teams use one. Tasks are pending, in progress or completed, and a task can depend on others. A pending task with unresolved dependencies "cannot be claimed until those dependencies are completed." When two teammates try to claim the same task at once, claiming "uses file locking to prevent race conditions." Agents without the Task tools coordinate by messages instead.
+- **A saved plan.** In the [Anthropic research-system post](https://www.anthropic.com/engineering/multi-agent-research-system), the lead agent saves its plan to Memory. The reason: "if the context window exceeds 200,000 tokens it will be truncated and it is important to retain the plan." For long work, agents also summarize finished phases and store key facts in external memory before they move on.
+- **Files, not retelling.** The same post warns about a "game of telephone": each time a result passes through the lead, details can get lost, and tokens get copied again. The fix: workers "store their work in external systems" and send back only a small reference, like a file path. It suits structured outputs like code, reports and data.
+- **A shared task list.** Claude Code agent teams use one. Tasks are pending, in progress or completed. A task can depend on others, and it can't be claimed until those are done. When two teammates grab the same task at once, a file lock lets only one of them win. The docs say it is there "to prevent race conditions." Agents without the Task tools talk through messages instead.
 
-## State must survive failure
+**State must survive failure.** The research post says agents are stateful and errors compound. When something breaks, starting the whole run again is a bad answer: the post calls restarts "expensive and frustrating". So the systems in the post pick up again at the point where the agent stopped. They mix the model's ability to adapt with fixed safety code, such as retries ("retry logic") and saved checkpoints at regular steps.
 
-Anthropic notes that agents are stateful and errors compound. When something fails, "we can't just restart from the beginning". They built systems that resume where the agent was, and they combine the model's adaptability with deterministic safeguards such as retry logic and regular checkpoints.
+The [OpenAI results guide](https://developers.openai.com/api/docs/guides/agents/results) shows the same idea for pauses. A run that waits for approval returns `interruptions` and a saved state (`to_state()` in Python, `state` in TypeScript). You pass that state back in to continue, instead of starting over.
 
-OpenAI's SDK has a related surface for paused runs. A run that pauses for approval returns `interruptions` and a saved `state`. You pass that state back to continue. After handoffs, `last_agent` can tell you which specialist should own the next turn.
+## Worked example
 
-## A checklist for each fact
+### Step 1: ask five questions per fact
 
-For each piece of information in your system, ask (our checklist):
+For each fact, ask (our checklist):
 
 1. Which agent needs it, and when?
-2. Does the model need to read it, or only your code?
-3. Must it survive a context cut, a crash or a restart?
+2. Must the model read it, or only code?
+3. Must it survive a context cut, a crash or a pause?
 4. Who is the one writer?
-5. Is it safe to store? No secrets in saved state.
+5. Is it a secret?
 
-Example: for the research system above, the plan is read by the model and must survive a cut, so it goes to external memory. The user id is needed only by tools, so it goes in local context. A 30-page worker result is large and read later, so it goes in a file, and the lead gets the file path.
+### Step 2: the plan
 
-## Key points
+The planner reads it, and it must survive a long run. So it goes to durable storage. The planner saves it at the start and reads it back when it needs it. After a context cut, the planner reads the saved plan and sees which steps are done.
 
-- Agents do not share a context window by default. Claude subagents and teammates start without the parent's history. OpenAI nested runs do not inherit the parent's conversation state.
-- OpenAI's run context is local app state. It is not sent to the model, and nested `as_tool` runs share it.
-- Save what must outlive a context window: the plan, big results, the task list.
-- Pass references to files, not whole results through the lead.
-- Agent teams use a shared task list with dependencies and file-locked claiming.
-- Keep secrets out of state that you save.
+### Step 3: the customer's rule
+
+"All food must be halal" was said in the planner's chat. The catering agent is a nested run and cannot see that chat. Two fixes work:
+
+```python
+catering_tool = catering_agent.as_tool(
+    tool_name="plan_catering",
+    tool_description="Plan meals for the event. Input says the food rules.",
+)
+# The planner's input to the tool now carries the rule:
+#   "120 guests, 2 days, all food must be halal"
+```
+
+Or pass the same `session` to the parent run and to the nested run, so they share client-managed history. The first fix is smaller: the agent gets exactly the fact it needs.
+
+Note: putting the rule in the run context would not work. The model never reads the context object.
+
+### Step 4: the venue list
+
+Forty venues as plain text pass through the planner, and a number changes on the way. Instead, the venue agent writes the table to a file and returns a short reference:
+
+```text
+venues saved: files/venues-2026-11.csv (40 rows)
+top 3 by fit: V07, V12, V31
+```
+
+The proposal step reads the numbers from the file, not from the planner's memory of them.
+
+### Step 5: the hard case, the pause and the token
+
+The run pauses for a human to approve the booking. The app saves the run state to the database. Runtime data goes with it, and the hotel token was in the context. So the token is now in a database row.
+
+Fix: keep the token out of the context object. Load it inside the tool that calls the hotel API, from your secret store. The context keeps only safe things: the event id and a logger.
+
+```python
+@dataclass
+class EventContext:
+    event_id: str
+    logger: Logger
+    # no tokens here: this object is saved with paused runs
+```
+
+Then `budget_left`. Both the venue and catering agents change it, and nested runs share the same app state. Give it one writer: the planner. The helpers return their costs, and the planner updates the field.
+
+### Step 6: the new layout
+
+```text
+plan              durable storage, read back after cuts
+customer's rules  passed in each helper's tool input
+venue list        file + short reference
+hotel token       loaded inside the tool, never in context
+approval pause    saved state, now without secrets
+budget_left       run context, one writer: the planner
+```
+
+Why it is better: each fact sits where the right reader can find it, survives what it must survive, and has one owner.
+
+## Common mistakes
+
+1. **Thinking helpers can see the chat.** A subagent, teammate or nested run starts without the parent's conversation. Fix: put the facts it needs into its input.
+2. **Putting model-visible facts in the run context.** The model never reads it. Fix: keep code-only data there, and give the model its facts through its input or through what a tool returns.
+3. **Secrets in saved state.** A paused run saves runtime data with it. Fix: load secrets inside the tool, not in the context object.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A code-review system has a lead agent and four reviewer subagents. Say where each fact should live, and why.
+
+```text
+A) The lead's review plan, for a review that runs 3 hours.
+B) The GitHub token used by the "post comment" tool.
+C) A reviewer's 25-page list of findings.
+D) "This team bans the any type", said by the user in turn 2.
+```
+
+### Answer
+
+- **A: durable storage.** It must survive context cuts, so save it and read it back.
+- **B: loaded inside the tool.** Keep it out of the prompt and out of any state you save.
+- **C: a file.** The reviewer returns the file path and a short summary, so the lead does not retell the details.
+- **D: in each reviewer's brief.** Subagents do not see the lead's chat, so the rule must be in their prompt.
+
+## Recap
+
+- Agents do not share a context by default. Claude subagents and teammates start without the parent's history, and OpenAI nested runs do not get the parent's chat either. Pass facts in the input.
+- The OpenAI run context is local app state. The model never reads it, nested `as_tool` runs share it, and secrets do not belong in it if you save state.
+- Save what must outlive a window: the plan, big results as files with references, and a task list. Build to resume from checkpoints, not to restart.
