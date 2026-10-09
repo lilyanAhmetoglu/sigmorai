@@ -1,7 +1,7 @@
 ---
 id: strategist/r3/c5/lesson
 title: Freshness
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: OpenAI docs · Optimizing LLM accuracy
@@ -26,59 +26,158 @@ sources:
     url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool
 ---
 
-## Why it matters
+## Goal
 
-A knowledge base that is right today can be wrong next month. Prices change, policies are replaced and products are retired. An assistant that quotes an old price with confidence can cost you a refund, a complaint or a customer. Freshness is a plan, not a one-time upload.
+After this lesson you can:
 
-## Two clocks
+- Tell which "clock" is behind when an assistant gives an old fact: the model's or your knowledge base's.
+- Write an update rule and name an owner for each source, matched to how often it changes.
+- Swap a document safely, and decide when web search is the right tool and what it costs.
 
-Every knowledge assistant runs on two clocks.
+## The problem
 
-- **The model clock** is the knowledge cutoff. Anthropic's models overview lists a reliable knowledge cutoff for each Claude model, for example Jun 2026 for Claude Opus 5.5. OpenAI's GPT-5.5 page lists Dec 01, 2025 (both checked 2026-10-06). It moves only when you change models.
+A hotel group has 30 hotels. Its guest chat assistant draws its answers from files in a vendor's vector store (searchable file storage). Guests start to complain:
+
+- The assistant quotes last season's spa prices.
+- After the group changed its free-cancellation window, some guests still got the old rule.
+- Guests ask about events and public holidays near each hotel. These facts are in no company file.
+
+The guest services director asks two things: "Why is it out of date?" and "Can it look things up on the web?" The guidance below is from each vendor's docs (October 2026).
+
+## The idea
+
+**Two clocks.** Every knowledge assistant runs on two clocks:
+
+- **The model clock** is the knowledge cutoff: the date up to which the model's public knowledge is good. The [Claude models overview](https://platform.claude.com/docs/en/models/overview) lists a "Reliable knowledge cutoff" of Jun 2026 for Claude Opus 5.5. The [OpenAI GPT-5.5 page](https://developers.openai.com/api/docs/models/gpt-5.5) lists "Dec 01, 2025 knowledge cutoff". This clock moves only when you change models.
 - **The library clock** is the last time your knowledge base was updated. You control this one.
 
-OpenAI's accuracy guide lists out-of-date knowledge as a reason to work on context, and it names RAG as a way to inject more recent content. That only works if the library clock is current. If it isn't, retrieval hands the model old facts, and the model may present them as current.
+Your own prices and rules were never in the model's training. They come from your knowledge base. The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) lists knowledge that "is out of date" as a reason to work on context. RAG (search that adds the right pages to the prompt) only helps if those pages are current. If the library clock is behind, search hands the model an old fact, and the model may present it as current.
 
-## Match the update speed to the change speed
+**Match the update speed to the change speed.** Our advice: make a freshness table. For each source, write down:
 
-This freshness table is a tool for this course. For each source, write down:
+1. **How often it changes** (daily, weekly, every season, about once a year).
+2. **The update rule** (sync after each change, nightly, weekly).
+3. **The owner**, a named team or person who makes sure the update happens.
+4. **The check**: one question with a known answer that proves the update worked.
 
-1. **How often it changes** (daily, weekly, yearly, at each product launch).
-2. **The update rule** (sync on change, nightly, weekly).
-3. **The owner** who makes sure the update happens.
-4. **The check** that proves it worked (one test question with a known answer).
+A source that changes every week but syncs once a month is wrong for most of the month. A warning like "prices may be out of date" does not fix that. Only a faster update does.
 
-Example: an electronics retailer runs a customer chat assistant. Prices change every Monday, so the price list syncs after each change, owned by the pricing team. The returns policy changes about once a year, so it updates on change, owned by Legal. A source that changes weekly but syncs monthly will be wrong for most of the month.
+**Replace, don't pile up.** When a document changes, remove the old file in the same step as you add the new one. If both stay, search may return either.
 
-## Replace, don't pile up
+The [OpenAI retrieval guide](https://developers.openai.com/api/docs/guides/retrieval) adds a timing detail: "Removing files from a vector store is eventually consistent". For a short time, search can still show text from the removed file. **Eventually consistent** means the change reaches every part of the system after a short delay, not at once. Our advice:
 
-When a document changes, remove the old version in the same step as you add the new one. If both stay, search may return either.
-
-Example: the retailer's returns window moves from 14 to 30 days. At 09:00 the team adds the new policy and removes the old one. Then it asks a test question, "How long do I have to return a laptop?", until every answer says 30 days. Only then does the service team tell customers.
-
-OpenAI's retrieval guide adds a timing detail. Removing files from a vector store is eventually consistent: search results may still include content from a removed file for a short period. So after each swap, run your test question again until only the new file appears. Then announce the change.
+- After a swap, ask your check question again until only the new file appears. Then announce the change.
+- Do not upload the file twice. That only makes a duplicate.
+- You don't need to rebuild the whole store for each change.
 
 The same guide offers two more tools:
 
-- **Date attributes.** Tag each file with dates such as `valid_from`, then filter results by date range.
-- **Expiration policies.** A vector store can have an `expires_after` setting. When the store expires, its files are deleted and you are no longer charged for them. This suits temporary content, such as a seasonal campaign.
+- **Date attributes.** Attributes are labels on each file. Add dates such as `valid_from`, and filter by date range.
+- **Expiration policies.** A store can have an `expires_after` setting. "Once a vector store expires, all associated `vector_store.file` objects will be deleted and you'll no longer be charged for them." This suits short-lived content, such as a summer offer.
 
-## When the facts live outside your files
+**When the facts are outside your files.** Some facts live on the public web: local events, a new law, a partner's public prices. Both vendors offer a web search tool.
 
-Some facts are not in your documents at all: a competitor's public prices, a new regulation, today's exchange rate. For these, both vendors offer web search.
+- The [Claude web search page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool) says the tool gives "up-to-date information beyond its knowledge cutoff". The page says the tool is used "when the request depends on information that is current, changing, or outside its training data", and when the user asks it to search. For "stable knowledge", such as "math, science fundamentals, or coding concepts", it answers directly.
+- The [OpenAI web search guide](https://developers.openai.com/api/docs/guides/tools-web-search) says the tool gives "up-to-date information from the internet" with "sourced citations".
 
-Anthropic's web search tool page says the tool gives Claude real-time web content beyond its knowledge cutoff. It says Claude searches when the request depends on information that is current, changing or outside its training data. It also searches when asked to. For stable knowledge, such as maths or coding concepts, it answers directly. OpenAI's web search guide says the tool gives models up-to-date information from the internet with sourced citations.
+**Limit where results come from.** The Claude tool takes `allowed_domains` or `blocked_domains` ("not both"). The OpenAI tool takes "up to 100 `allowed_domains` or up to 100 `blocked_domains`". This filter "is only available in the Responses API with the `web_search` tool" (the Responses API is OpenAI's main API for model requests). Our advice: set such limits, or answers may draw on forums or outdated blog posts.
 
-Both let you limit where results come from. Claude's tool takes `allowed_domains` or `blocked_domains`. OpenAI's tool takes up to 100 `allowed_domains` or up to 100 `blocked_domains` (Responses API `web_search` tool only). Example: the retailer limits competitor price checks to the competitors' own shop websites, so results don't come from forums or old blog posts.
+**What it costs.** Search fees come on top of tokens (the small pieces of text a model reads):
 
-Cost (both pages checked 2026-10-06): Anthropic charges $10 per 1,000 searches plus standard token costs for the search results. OpenAI's pricing page lists the web search tool (not the preview tool) at $10.00 per 1,000 calls, plus search content tokens billed at model rates. So 3,000 searches a month cost about $30 in search fees on either platform, before tokens.
+- **Claude:** "$10 per 1,000 searches, plus standard token costs for search-generated content."
+- **OpenAI** ([pricing page](https://developers.openai.com/api/docs/pricing)): the web search tool costs "$10.00 / 1k calls + Search content tokens billed at model rates". The older preview tool costs the same for reasoning models, but "$25.00 / 1k calls" for non-reasoning models.
 
-Web results are not your policy. Keep your own rules, prices and terms in your own knowledge base, and use web search for outside facts.
+So $10 per 1,000 is one cent per search. 1,000 searches cost $10 in search fees on either platform, before tokens.
 
-## Key points
+**Web results are not your policy.** Keep your own prices, rules and terms in your own knowledge base. Don't copy outside websites into it either: a copy goes stale as soon as the site changes. Use web search for live outside facts.
 
-- Two clocks: the model's knowledge cutoff and your knowledge base's last update.
-- Set an update rule and an owner for each source, matched to how often it changes.
-- Remove the old version when you add the new one, then re-test until only the new one appears.
-- Use date attributes and expiry settings to keep the store clean.
-- Use web search for outside facts; its fees come on top of token costs.
+Our example: the two clocks are like a printed guidebook and a hotel's notice board. The guidebook (the model) was printed on one date and won't change. The notice board (your knowledge base) is only as fresh as the last person who updated it.
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+Plan A
+- Move to whichever model has the latest cutoff date.
+- Keep the monthly upload of all files.
+- Add "information may be out of date" under every answer.
+- For local events, upload a copy of the city tourism site once a year.
+```
+
+What goes wrong:
+
+- The newest model has never seen the group's spa prices or cancellation rule.
+- Monthly uploads leave weekly changes wrong for weeks.
+- The warning doesn't make any answer right.
+- A yearly copy of an events site is out of date within days.
+
+### Step 2: the freshness table
+
+```text
+Source               Changes        Update rule          Owner          Check question
+Spa price list       each season    sync on change       Spa team       "Price of a 60-min massage?"
+Cancellation policy  about yearly   sync on change       Legal          "Free cancellation until when?"
+Room service menu    monthly        sync on change       Food & bev     "Is breakfast served in rooms?"
+Summer offer         June-August    expires_after set    Marketing      "Is the summer offer on?"
+```
+
+### Step 3: the hard case, a safe swap
+
+The free-cancellation window changes from 24 to 48 hours. **This is the hard case,** because the old and new rules look almost the same. The Legal owner:
+
+1. adds the new policy and removes the old file in one step,
+2. asks the check question, "Until when can I cancel for free?",
+3. sees one answer that still says 24 hours, so waits and asks again,
+4. gets 48 hours in every answer, and only then tells the front desks and the website team.
+
+### Step 4: add web search for outside facts
+
+```text
+Web search: on, for events and public holidays only.
+Allowed domains: each city's official tourism site and the national
+holiday calendar.
+Volume: about 4,000 searches a month.
+Search fees: 4,000 / 1,000 x $10 = $40 a month, plus tokens.
+```
+
+### Step 5: why it is better
+
+- **The right clock gets fixed.** The library clock is behind, so the team fixes updates, not the model.
+- **Every source has an owner and a check.**
+- **Swaps are tested before they are announced.**
+- **Outside facts come live from trusted sites,** and the budget includes search fees and tokens.
+
+## Common mistakes
+
+1. **Blaming the model clock for an old company fact.** Your facts come from your files. Fix: speed up the update for that source.
+2. **Announcing a change right after the swap.** Search can still show the removed file for a short time. Fix: ask the check question until only the new answer appears.
+3. **Turning on web search with no limits, or using it for your own rules.** Fix: limit the domains, and keep your own policies in your own knowledge base.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A gym chain's member assistant has these problems. For each one, name the clock or the tool, and give one fix.
+
+```text
+1. It quotes the old monthly fee. The fee list changes each January
+   and April, but files are uploaded once a year, by nobody in particular.
+2. Members ask about the air quality in their city today.
+3. Five minutes after the new class timetable went in, it still shows
+   an old class time.
+4. Plan: 2,500 web searches a month. Finance asks for the search fees.
+```
+
+### Answer
+
+1. **The library clock.** Sync the fee list after each change and name an owner who asks a check question.
+2. **Web search,** limited to the official air-quality sites. The answer changes every day and is not in any company file.
+3. **Expected delay.** A removed file can take a short time to leave search (eventually consistent). Ask the check question again until only the new timetable appears, then announce it.
+4. **About $25 a month** (2,500 / 1,000 x $10) on either vendor, plus tokens for the result text.
+
+## Recap
+
+- Two clocks: the model's knowledge cutoff and your knowledge base's last update. Old company facts mean your library clock is behind.
+- Give each source an update rule, an owner and a check question. Swap files in one step, then re-test before you announce.
+- Use web search for live outside facts, limit the domains, and budget about $10 per 1,000 searches plus tokens.
