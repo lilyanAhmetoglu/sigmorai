@@ -1,7 +1,7 @@
 ---
 id: creator/r3/c2/lesson
 title: Reference sets
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: Runway API docs · Reference media guidelines
@@ -17,93 +17,161 @@ sources:
     url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
 ---
 
-## Why it matters
+## Goal
 
-In Prompt Forest, chapter 2, you used reference images in one request. You learned the three jobs: object, character and style. A studio does not have three images. It has hundreds, from many shoots and many years.
+After this lesson you can:
 
-So a new question comes up. Which images go into a request? This lesson gives you two words, both ours:
+- Pick a small reference set from a large library: one job and one subject per image.
+- Build a style set that agrees on palette, light and mood, and an object set that varies what you do not want copied.
+- Retire old references and test a new set against the old one.
+
+## The problem
+
+A sneaker brand, Loop Runners, has 900 reference images from six years of shoots. A designer needs a spring ad: the new white shoe and a fresh, bright look.
+
+The designer drags in eight images: two product shots, a moody black-and-white photo, a neon street scene, a pastel drawing, and three photos of the shoe on the same grey stairs. The results are a mess. The colours fight. And every image shows grey stairs, though the brief never asked for stairs.
+
+The library is fine. The **set** is the problem. In this lesson we use two words of our own:
 
 - **Library:** every reference image you own for a brand.
 - **Set:** the few images you pick from the library for one job.
 
 You choose the set. The model never sees the rest.
 
-## Start with the job
+## The idea
 
-Before you pick images, name the job each one will do: object, character or style. One image should do one job. Runway's guide says the same in its own words: use "one subject per reference" and avoid references with multiple competing subjects.
+**One image, one job, one subject.** Each reference does one job: object, character or style. The [Runway docs](https://docs.dev.runwayml.com/recipes/reference-media) list "One subject per reference — avoid references with multiple competing subjects unless the Recipe specifically calls for it" as a general rule. A photo where two or more subjects fight for attention is a weak reference. A shoe on a busy shop shelf is a poor object reference. The other shoes compete with it.
 
-Example: a photo of a mug on a busy kitchen counter is a poor object reference. The counter, the plant and the cloth compete with the mug.
+The Runway guide is written for its own Recipes. Using its rules with any tool is our method. It gives these general rules:
 
-## Small and cohesive
+- "use the highest-quality source you have". Low-resolution or heavily compressed references "degrade the output".
+- The subject should be "clearly the focus, free of clutter and distractions".
+- "even, neutral lighting reproduces most faithfully". Harsh shadows and colour casts "can carry into the result".
 
-What size should a set be? Runway's guide gives two rules for style references in its own Recipes. No other vendor we cite says this, so using them with other tools is our method:
+For product images the Runway docs add three rules:
+
+- "Center the product and keep it unobstructed".
+- "Prefer a clean or plain background".
+- "Avoid heavy reflections, watermarks, or overlaid text on the product."
+
+So a sharp, large photo with a stock watermark still fails. Size is only one rule.
+
+**A style set agrees.** The Runway docs give three rules for style references:
 
 - "Choose references that share a consistent palette, lighting, and mood."
 - "Provide a few complementary images rather than one — a small, cohesive set defines the style more reliably."
+- "Don't mix conflicting aesthetics in a single request; generate separately and curate."
 
-And it warns: "Don't mix conflicting aesthetics in a single request; generate separately and curate."
+Think of a choir. Three singers on the same note sound strong. Three singers on three songs sound like noise.
 
-Google's table points the same way on size: Nano Banana Pro takes up to 3 style references.
+**The model limit is a ceiling, not a target.** The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) say Nano Banana models can mix "up to 14 reference images", and Nano Banana Pro takes "Up to 3 images to be used as style references". The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) say: "You can use one or more images as a reference to generate a new image." The docs give a maximum, not a target. Pick the fewest images that do the job.
 
-Example: three warm photos with the same terracotta palette make a good style set. A warm photo, a neon night shot and a watercolour painting do not. They pull in three directions.
+**An object set varies the rest.** The model copies what all your references share. The [Claude prompting docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) ask for text examples that are "Diverse": they should cover edge cases and vary, so the model does not learn a pattern you did not mean. That advice is for text. Using the idea for pictures is our reading:
 
-## The limit is a ceiling
+```text
+keep the SAME   what you want copied      the shoe, its logo, its sole colour
+make DIFFERENT  what you do not want      the floor, the background, the props
+```
 
-Models accept a number of references, but that number is not a target. Google's guide says its Nano Banana models take up to 14 reference images. Its limits note also says gemini-2.5-flash-image works best with up to 3 images as input. And it says Nano Banana 2 Lite is "not optimized for multiple reference inputs". Realm 1 covered the full table.
+**References age.** A logo changes. A product gets a new design. These habits are ours:
 
-OpenAI's image edits guide says you can use "one or more images as a reference". Its example uses four. It gives no ideal number, so test your own set.
+- Mark the old file **retired**, and note what replaced it.
+- Move it to an **archive**. Do not delete it: an old job may need it.
+- Keep it **out of every set**. No model picks "the newest logo" by itself.
+- Treat a new set as a new version. Test it before you switch.
 
-More references are more to read and more to pay for. Pick the fewest that do the job.
+## Worked example
 
-## Same where it matters, different elsewhere
+### Step 1: the set before
 
-Here is a trap. You pick three photos of the mug. All three sit on the same wooden shelf. The model may decide that the shelf is part of the mug. Every result then shows a wooden shelf.
+```text
+S1  shoe-white-front.jpg     shoe on grey stairs
+S2  shoe-white-side.jpg      shoe on grey stairs
+S3  shoe-white-top.jpg       shoe on grey stairs
+S4  bw-moody.jpg             black and white, hard shadows
+S5  neon-street.jpg          blue and pink neon at night
+S6  pastel-drawing.png       soft pastel illustration
+S7  logo-2020.png            old logo
+S8  logo-2025.png            current logo
+```
 
-Anthropic's prompting guide gives advice for examples in a text prompt: make them "diverse" so the model does not "pick up unintended patterns". That advice is for text, but the idea carries over. This rule is ours:
+What goes wrong:
 
-- Keep **the same** what you want carried over: the glaze colour, the shape, the logo.
-- Make **different** what you do not want carried over: the surface, the background, the props.
+- The three object photos share the stairs, so the model copies the stairs.
+- S4, S5 and S6 are three clashing looks.
+- Two logos in one set: the model may mix them.
 
-If a result keeps repeating something you did not ask for, look at what your references have in common.
+### Step 2: fix the object set
 
-## Make a card for each reference
+Keep the shoe the same. Change the surface:
 
-A file name tells you little. A **reference card** is a short note kept with the image. It is our method. Put it in the library.
+```text
+S1  shoe-white-front.jpg     plain white background, even light
+S2  shoe-white-side-sand.jpg on pale sand, even light
+S3  shoe-white-top-wood.jpg  on a light wood floor, even light
+```
 
-| Field   | Example                                                |
-| ------- | ------------------------------------------------------ |
-| File    | mug-front-clean-v2.jpg                                 |
-| Job     | Object                                                 |
-| Copy    | Glaze colour, handle shape, logo position              |
-| Ignore  | The white table                                        |
-| Status  | Approved, or retired (and what replaced it)            |
-| Quality | Largest side in pixels, clean background, no watermark |
+All three show the same shoe, logo and sole. Nothing else repeats.
 
-The "Ignore" line is useful. It also goes into the prompt, as you learned in Prompt Forest: say what each reference is for.
+### Step 3: build a style set that agrees
 
-## Pick a clean source
+The library has three photos from one spring shoot: soft morning light, mint and peach colours, different props. They share palette, light and mood. They become the style set. The neon and the pastel drawing stay out. If the client wants those looks too, make them as separate jobs, then choose the best results.
 
-Runway's reference guide is written for its own Recipes. Using its checklist with any tool is our choice:
+### Step 4: retire the old logo
 
-- "use the highest-quality source you have." Low-resolution or heavily compressed images "degrade the output".
-- The subject should be "clearly the focus, free of clutter and distractions".
-- "even, neutral lighting reproduces most faithfully." Harsh shadows and colour casts can "carry into the result".
-- For products: keep the product centred and unobstructed. Avoid "heavy reflections, watermarks, or overlaid text".
+```text
+logo-2020.png   status: retired, replaced by logo-2025.png, moved to archive
+logo-2025.png   status: approved
+```
 
-A stock photo with a watermark across the middle fails the last rule. This also links to rights, the topic of chapter 6.
+Only the 2025 logo goes into the set.
 
-## Keep the library current
+### Step 5: the hard case, a new style set next season
 
-References age. A packshot is replaced after a redesign. A logo changes. Handle each change like a version. These habits are ours:
+The art director proposes a new summer style set. Is it better? Do not roll it out to all the work and hope the client is happy. Do not split one campaign between two sets either: that gives one campaign two looks. Our habit: run the same three past briefs on the old set and on the new set. Put the results side by side and choose.
 
-- **Mark the old one retired.** Say what replaced it. Do not leave both in the same set.
-- **Change the set on purpose.** A new set is a new version. Run the same three test briefs on the old and the new set and compare the results side by side.
-- **Keep retired files in an archive.** You may need them for an old job.
+### Step 6: write a card for each reference
 
-## What this means for your work
+A file name says little. Keep a short card with each image in the library (our method):
 
-- **Library and set.** Keep the library large. Send a small set.
-- **One job per image.** Object, character or style. One subject each.
-- **Cohesive, not identical.** Same palette, light and mood for style. Different surface and props for objects.
-- **A card for every file.** Job, copy, ignore, status and quality.
-- **Retire, don't pile up.** Old versions leave the sets.
+```text
+File:    shoe-white-front.jpg
+Job:     object
+Copy:    shoe shape, logo position, sole colour
+Ignore:  the white background
+Status:  approved
+Quality: 4000 px long side, plain backdrop, no stock mark
+```
+
+The "Ignore" line can also go into the prompt.
+
+### Why it is better
+
+- **Each image has one job and one subject.**
+- **The style set agrees**, so the look is clear.
+- **The object set varies the surface**, so only the shoe is copied.
+- **Old files are retired and archived**, not mixed into sets.
+
+## Common mistakes
+
+1. **Mixing looks "for variety".** Clashing references pull the result in many directions. Fix: one cohesive style per request. Make other looks as separate jobs and pick the best.
+2. **Filling the model's limit.** Extra images keep the shared detail, and they cost more to read. Fix: the fewest images that do the job.
+3. **Writing around a bad set.** "No stairs" in the prompt does not fix stairs in every photo. Fix: change the photos so they do not share it.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A candle brand needs a cosy winter style set. The library has: W1 (warm candle glow, amber and brown), W2 (warm fireplace light, amber and brown), W3 (cold blue snow scene), W4 (amber lamp light, brown wool, different props), W5 (a sharp photo with a large stock watermark). Which images make the style set, and why do the others stay out?
+
+### Answer
+
+- **Set: W1, W2 and W4.** They share the warm palette, the soft light and the cosy mood, with different props. Three images is a small, cohesive set.
+- **W3 stays out.** The cold blue look clashes with the warm one. Make it as a separate job if the client wants it.
+- **W5 stays out.** The Runway docs say to avoid watermarks on the product, however sharp the photo is.
+
+## Recap
+
+- Send a small set, not the library. One job and one subject per image, clear and evenly lit, with no watermark.
+- A style set agrees on palette, light and mood. An object set keeps the object the same and varies everything else.
+- Retire and archive old references. Test a new set side by side with the old one, using the same briefs.

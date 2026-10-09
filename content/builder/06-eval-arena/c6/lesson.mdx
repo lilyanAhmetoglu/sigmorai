@@ -1,7 +1,7 @@
 ---
 id: builder/r6/c6/lesson
 title: Evals in CI
-minutes: 9
+minutes: 12
 sources:
   - kind: blog
     title: Demystifying evals for AI agents (Engineering at Anthropic)
@@ -20,59 +20,114 @@ sources:
     url: https://developers.openai.com/api/docs/deprecations
 ---
 
-A suite that nobody runs protects nothing. Chapters 1 to 5 gave you tasks, graders, a regression suite and an attack set. This chapter puts them in the path of every change, so a bad change is stopped before it ships.
+## Goal
 
-## Run on every change
+After this lesson you can:
 
-Both vendors say the same thing. Anthropic: automated evals "are especially useful pre-launch and in CI/CD, running on each agent change and model upgrade as the first line of defense against quality problems." OpenAI: "Set up continuous evaluation (CE) to run evals on every change, monitor your app to identify new cases of nondeterminism, and grow the eval set over time." The Claude docs add: "Automate when possible."
+- Split evals into a fast check on every pull request and a full run on a schedule.
+- Write a merge gate where the regression suite decides, with several trials and a saved baseline.
+- Keep the run safe, cheap and fair: secrets, timeouts, concurrency and clean trials.
 
-What counts as a change? A new prompt, a new tool definition, a retrieval setting, harness code, or a new model ID. Chapter 3 said a model upgrade is a change like any other.
+## The problem
 
-A plan that fits most teams. This split is ours, not a vendor rule:
+An open-source project builds a SQL assistant. Users describe a question in plain words, and it writes the SQL query. The project has good evals: 400 tasks, code graders that run each query on a test database, and a model judge for the explanation.
 
-| Trigger          | What runs                                      | Why                                |
-| ---------------- | ---------------------------------------------- | ---------------------------------- |
-| Pull request     | Regression suite, code graders first           | Fast and cheap enough to repeat    |
-| Schedule (daily) | Full suite, model graders, attack set          | Slower and costlier, so less often |
-| Model upgrade    | Everything, compared with the current baseline | The change you most need to know   |
+But the evals only run when one maintainer remembers to start them on a laptop. Last month a contributor's pull request changed the prompt. Nobody ran the evals. After the release, queries with dates broke for many users.
 
-GitHub's `schedule` trigger works for this. The Claude Code docs note two limits: GitHub runs scheduled workflows "only from the default branch", and in public repositories it "disables the schedule after 60 days without repository activity."
+The team wants the evals in GitHub Actions. They have three worries: the API key, the cost of 400 tasks on every pull request, and a gate that is fair and not random.
 
-## What the gate checks
+## The idea
 
-A gate is a pass bar that blocks a merge. Decide it before you look at results.
+A suite that nobody runs protects nothing. The [Anthropic evals post](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) says automated evals "are especially useful pre-launch and in CI/CD, running on each agent change and model upgrade as the first line of defense against quality problems." The [OpenAI docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) say to set up continuous evaluation "to run evals on every change". The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) add: "Automate when possible."
 
-- **Block on the regression suite.** Anthropic says regression evals "should have a nearly 100% pass rate", so a drop is a real signal. Report the capability suite, but don't block on it. It starts low by design. This pairing is our reading of Anthropic's definitions.
-- **Use several trials.** Outputs vary. Use pass^k when users need the agent to work every time (chapter 3).
-- **Compare with the last baseline,** not only with a fixed number. Anthropic names latency, token use, cost per task and error rates as baselines you get for free, so a cost jump can fail the build too.
-- **Include the attack set.** A successful attack from chapter 5 is a regression.
+A change is anything that can move results: a prompt, a tool definition, a retrieval setting, harness code, or a new model ID.
 
-Example: the refund agent's regression suite has 120 tasks. The gate says: at least 3 trials per task, no task that passed before may fail all trials, and cost per task may not rise more than 20%. The numbers are made up, but each rule is written down before the run.
+Think of a smoke alarm. A cheap one in every room catches most fires fast. A full inspection once a night catches the rest.
 
-## Make the run trustworthy
+**Quick checks per pull request, everything else nightly.** This split is ours, not a vendor rule:
 
-A flaky gate gets ignored. Anthropic's advice:
+| Trigger          | What runs                                      | Why                              |
+| ---------------- | ---------------------------------------------- | -------------------------------- |
+| Pull request     | Regression suite, code graders first           | Fast and cheap enough to repeat  |
+| Schedule (daily) | Full suite, model graders, attack set          | Slower and costly, so less often |
+| Model upgrade    | Everything, compared with the current baseline | The change you most need to see  |
 
-- **Isolate every trial.** Start each from a clean environment. Shared state, like leftover files, can cause failures that are not about the agent. Anthropic saw Claude gain "an unfair advantage on some tasks by examining the git history from previous trials."
-- **Test the real agent.** "It's essential that the agent in the eval functions roughly the same as the agent used in production."
-- **Read transcripts.** "Failures should seem fair: it's clear what the agent got wrong and why." Anthropic says it does not take scores at face value until someone has read some transcripts. So save them with each run.
+Two GitHub limits matter for the schedule. The [Claude Code docs](https://code.claude.com/docs/en/github-actions) say: "GitHub runs scheduled workflows only from the default branch and, in public repositories, disables the schedule after 60 days without repository activity." So a scheduled workflow must be merged into the default branch before it ever fires. And running evals only after a merge is too late: the bad change is already in.
 
-Our advice: pin everything that can move: the model under test, the judge model and the grader prompts. Re-check the judge against human labels now and then (chapter 2).
+**What the gate checks.** Decide it before you see results.
 
-## A sketch of the workflow
+- **Let the regression suite decide merges.** The Anthropic post says regression evals "should have a nearly 100% pass rate". An overall average blends new tasks with old ones, so a few broken old tasks can hide inside a good average. Report capability scores, but do not block on them; they start low by design. (This pairing is our reading of the post.)
+- **Several trials.** Outputs vary, and a task "that passed on one eval run might fail on the next" (Anthropic post). One trial per task gives a jumpy score. Re-running until the build turns green lets real failures through on a lucky run. Lowering the bar does not remove the noise either; it only hides real drops too.
+- **Compare against a saved baseline.** The post lists latency, token usage, cost per task and error rates as baselines you can track. A real change shows up as a move away from the baseline, not just a number near a fixed bar.
 
-This is our sketch. `bun run evals` stands in for your own runner. The timeout and concurrency lines follow the cost advice in the Claude Code docs.
+**Make the run fair.** The Anthropic post:
+
+- Each trial should be "isolated" by starting from a clean environment. Shared state like leftover files "can cause correlated failures", and it "can also artificially inflate performance". The post's example: Claude gained "an unfair advantage on some tasks by examining the git history from previous trials." Our own note: one folder per task is not enough if it is never cleared between runs.
+- "It's essential that the agent in the eval functions roughly the same as the agent used in production".
+- Read transcripts. "Failures should seem fair: it's clear what the agent got wrong and why." The post says the team does "not take eval scores at face value until someone digs into the details of the eval and reads some transcripts." Reading transcripts helps you trust the gate; it does not replace the automatic gate.
+
+**Keep secrets and cost under control.** The Claude Code docs:
+
+- "Never commit API keys or OAuth tokens directly to your repository. Always store them as GitHub Secrets and reference them in workflows". Our reading: this holds for private repositories too, and for any file in the repo, encrypted or not.
+- "Grant the workflow only the permissions it needs".
+- Each run uses GitHub Actions minutes and API tokens. To cap cost: set `--max-turns` (for the Claude Code action), "Set workflow-level timeouts to avoid runaway jobs", and "Use GitHub's concurrency controls to limit parallel runs".
+- "On public repositories, GitHub withholds secrets from runs triggered by fork pull requests". So an eval step that calls a model API cannot run there.
+
+**Keep the suite as your own files.** The [OpenAI deprecations page](https://developers.openai.com/api/docs/deprecations) says its Evals platform was announced as deprecated on June 3, 2026. Existing evals become read-only on October 31, 2026, and "The Evals dashboard and API are scheduled to shut down" on November 30, 2026. It points to Promptfoo as a migration path. Our advice: keep tasks, graders and baselines as files in your repo, so you can change the tool that runs them.
+
+**CI is one layer.** The Anthropic post says production monitoring "kicks in post-launch to detect distribution drift and unanticipated real-world failures", next to A/B tests, user feedback and transcript review. Also watch for saturation: "An eval at 100% tracks regressions but provides no signal for improvement."
+
+## Worked example
+
+The SQL team moves its evals into CI step by step.
+
+### Step 1: the weak setup
+
+```text
+who runs evals:  one maintainer, on a laptop, sometimes
+what runs:       all 400 tasks, 1 trial each
+gate:            none
+API key:         in the maintainer's shell
+```
+
+What goes wrong:
+
+- A change can merge with no eval at all.
+- One trial per task makes results jumpy.
+- Nothing can block a bad pull request.
+
+### Step 2: split the suites
+
+```text
+regression suite:  120 tasks that have passed for months (code graders only)
+full suite:        all 400 tasks + the explanation judge + 60 attack prompts
+```
+
+### Step 3: write the gate first
+
+```text
+on every pull request, regression suite, 3 trials per task:
+  FAIL if any task that passed on the baseline now fails all 3 trials
+  FAIL if cost per task is more than 20% above the stored baseline
+  REPORT capability score and latency (do not block)
+```
+
+The numbers are made up for this example. The point is that each rule is written down before the first run.
+
+### Step 4: the workflow
+
+This is our sketch. `bun run evals` stands in for your own runner.
 
 ```yaml
 name: Evals
 on:
   pull_request:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: '30 2 * * *'
 jobs:
-  regression:
+  evals:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     permissions:
       contents: read
     concurrency:
@@ -82,32 +137,69 @@ jobs:
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
       - run: bun install
-      - run: bun run evals --suite regression --trials 3
+      - run: bun run evals --suite ${{ github.event_name == 'schedule' && 'full' || 'regression' }} --trials 3 --fresh-sandbox
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
-The Claude Code docs give the rules that matter here:
+- The key comes from GitHub Secrets, never from a file.
+- `timeout-minutes` stops a runaway job. `concurrency` with `cancel-in-progress: true` stops the older run when new commits arrive.
+- `--fresh-sandbox` stands for "reset the test database and work folder before each trial". Without it, a query that created a table in one trial could make the next trial pass.
+- The file must be merged into the default branch, or the nightly schedule never runs.
 
-- Store keys as secrets: "Never commit API keys or OAuth tokens directly to your repository." Give the workflow only the permissions it needs.
-- Each run costs Actions minutes and API tokens. Lower the cost by capping turns (`--max-turns`), setting "workflow-level timeouts to avoid runaway jobs", and using "GitHub's concurrency controls to limit parallel runs".
-- On public repositories, GitHub withholds secrets from runs triggered by fork pull requests. An eval that needs an API key will not run for forks.
+### Step 5: the hard case, pull requests from forks
 
-The same docs describe running Claude Code itself in a workflow, with the `anthropics/claude-code-action` action. That is useful if your product is a coding agent, or to review changes. For your own application, your eval runner is the step. The CI rules above are the same.
+This is a public repo. Most changes come from contributors' forks. Those runs get no secrets, so the eval step has no API key and cannot run. The gate must not silently pass. The steps below are our own process, not a vendor rule.
 
-## Keep the suite in your repo
+```text
+fork pull request:  run the code-only checks that need no key;
+                    mark the eval check "pending: maintainer run"
+before merge:       a maintainer reads the change first, then pushes it
+                    to a branch in the main repo and opens a pull request
+                    from that branch, where the secret exists
+```
 
-In June 2026, OpenAI announced it is deprecating its Evals platform: existing evals become read-only on October 31, 2026, and the dashboard and API are scheduled to shut down on November 30, 2026. OpenAI points users to Promptfoo as a migration path. Our advice: keep your tasks, graders and baselines as files you own, so you can change runner.
+The rule is simple: no pull request merges until the regression gate has really run.
 
-## CI is not the whole picture
+### Why it is better
 
-Anthropic lists other signals: production monitoring "kicks in post-launch to detect distribution drift and unanticipated real-world failures", plus A/B tests, user feedback and transcript review. Watch for saturation too: "An eval at 100% tracks regressions but provides no signal for improvement." When tasks are all easy, add harder ones.
+- **Every change is tested**, including model upgrades, without anyone remembering.
+- **A fair gate.** Several trials, a baseline, and a block on old tasks, not on an average.
+- **Safe and cheap.** Secrets stay out of the repo; timeouts and concurrency cap the bill.
 
-## Key points
+## Common mistakes
 
-- Run evals on every change, including a model upgrade.
-- Fast checks on each pull request; the full suite on a schedule.
-- Decide the gate first: block on the regression suite, use several trials, compare with a baseline.
-- Isolate trials, test the real agent, save transcripts and read them.
-- Protect secrets, cap cost with timeouts and concurrency, and expect fork PRs to lack secrets.
-- Keep tasks and graders in your repo. Vendor eval dashboards can change or close.
+1. **Gating on one overall score.** Broken old tasks hide inside a good average. Fix: let the regression suite decide, and only report the rest.
+2. **Re-running until green.** One trial per task makes the gate random, so people retry. Fix: use several trials and compare with a baseline.
+3. **Sharing state between trials.** Leftover files or data change the next result, up or down. Fix: give each trial a fresh, empty environment.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team's eval workflow file has these lines. Find three problems.
+
+```yaml
+on:
+  schedule:
+    - cron: '0 4 * * *'
+env:
+  OPENAI_API_KEY: sk-live-1234abcd
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./run-all-evals.sh --trials 1
+```
+
+### Answer
+
+1. **A key is written in the file.** Anyone who can read the repo can see it. Move it to GitHub Secrets and reference it with `secrets.OPENAI_API_KEY`, then rotate the old key.
+2. **No timeout or concurrency limit.** A stuck run can burn minutes and tokens. Add `timeout-minutes` and a `concurrency` group.
+3. **One trial, and only a schedule.** One trial per task gives a jumpy score, and a nightly run cannot block a pull request. Add a fast regression run on `pull_request` with several trials.
+
+## Recap
+
+- Run evals on every change: a fast regression suite on each pull request, a nightly full run from the default branch, and everything on a model upgrade.
+- Write the gate first: the regression suite decides, with several trials and a saved baseline, and each trial gets a fresh environment.
+- Keep keys in secrets, cap cost with timeouts and concurrency, expect fork pull requests to lack secrets, and keep your tasks as files you own.
