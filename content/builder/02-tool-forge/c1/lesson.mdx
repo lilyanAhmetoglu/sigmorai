@@ -1,7 +1,7 @@
 ---
 id: builder/r2/c1/lesson
 title: Why tools
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Tool use with Claude (Claude docs)
@@ -17,76 +17,143 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/function-calling
 ---
 
-Realms 0 and 1 were about text in and text out. On its own, a model can only write text. It cannot look up the status of an order, and it cannot send the email it just drafted. Tools close that gap. This realm shows how to give a model tools and how to keep them safe.
+## Goal
 
-## What a tool is
+After this lesson you can:
 
-OpenAI defines a tool as "a piece of functionality that we tell the model it has access to". Its examples: get today's weather for a location, access account details for a given user ID, issue refunds for a lost order.
+- Explain who does what in a tool call: the model asks, your code runs the tool.
+- Sort a list of features into "needs a tool" and "text is enough".
+- Spot a decision hidden in free text that should be a tool call.
 
-The other vendors use the same idea under the same name. The Claude docs say tool use is "also called function calling". The Gemini docs say function calling lets "you connect models to external tools and APIs".
+## The problem
 
-You describe each tool to the model: a name, what it does, and the inputs it takes. The model reads the user's request and decides whether one of your tools would help.
+A city library builds a chat assistant for its website. In these six chapters the library team adds tools to it, one chapter at a time.
 
-## The model asks, your code acts
+Version 1 has no tools. The prompt holds the opening hours and the loan rules. The team sees three problems:
 
-This is the most important idea in the realm. The model does not run anything.
+1. A reader asks "Is _Piranesi_ on the shelf at the Riverside branch?" The assistant says yes. The book was on loan for three weeks.
+2. A reader asks to renew a loan. The assistant writes "Done, your loan is renewed!" Nothing changed in the loan system.
+3. To make renewals work, a developer asks the model to end its reply with `RENEW: 1` or `RENEW: 0`. A script searches the reply for that text. Some replies say `Renew: yes`, and the script misses them.
 
-The Claude docs put it plainly: "The model never executes anything on its own. It emits a structured request, your code (or Anthropic's servers) runs the operation, and the result flows back into the conversation." The Gemini docs say the same: the model doesn't execute the function itself; your application extracts the name and arguments and executes it.
+The model is not broken. It only has text. It cannot see the catalogue, and it cannot change a loan.
 
-Example: a user asks "Where is my order 4417?"
+## The idea
 
-1. The model replies with a tool call: name `get_order_status`, argument `order_id` = `"4417"`.
-2. Your server runs the lookup in your shipping system.
-3. Your server sends the result back: shipped 2 October, arriving 7 October.
-4. The model writes the answer for the user.
+A tool is a function that you describe to the model. The [OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling) define it as "a piece of functionality that we tell the model it has access to". The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) say tool use is "also called function calling". The [Gemini docs](https://ai.google.dev/gemini-api/docs/function-calling) say function calling lets "you connect models to external tools and APIs".
 
-The Claude docs add that the model "never sees your implementation; it only sees the schema you provided and the result you returned". Your code sits between the model's request and the real world. The Gemini best practices use that position: "Validate function calls before executing."
+**The model asks. Your code acts.** This is the most important idea in these six chapters. The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/how-tool-use-works) say: "The model never executes anything on its own. It emits a structured request, your code (or Anthropic's servers) runs the operation, and the result flows back into the conversation." The Gemini docs say the same: the model does not run the function; your application reads the name and the arguments and runs it.
 
-## Three jobs tools do
+Think of a restaurant. The waiter (the model) writes the order on a slip. The kitchen (your code) cooks. The waiter never touches the stove.
 
-The Gemini docs name three primary use cases:
+```text
+user --> model --(tool call: name + arguments)--> your code
+                                                     | runs it
+user <-- model <--------(tool result)----------------+
+```
 
-- **Take actions**: schedule appointments, create invoices, send emails.
-- **Augment knowledge**: read from databases, APIs and knowledge bases.
-- **Extend capabilities**: perform computations, such as using a calculator, or create charts.
+The model "never sees your implementation; it only sees the schema you provided and the result you returned" (Claude docs). So your code sits between the request and the real world. It can check the call before it runs it. The Gemini docs say: "Validate function calls before executing."
 
-The Claude docs give a similar list: actions with side effects, fresh or external data, structured outputs with a guaranteed shape, and calls into your existing systems.
+**What tools are for.** The Gemini docs name three uses:
 
-They also give a useful warning sign: "if you're writing a regex to extract a decision from model output, that decision should have been a tool call." Example: your code searches the reply for the words "REFUND: yes". That decision belongs in a tool call with a typed field, not in free text.
+- **Take actions**: book, create, send.
+- **Augment knowledge**: read databases, APIs and knowledge bases.
+- **Extend capabilities**: compute things, or make charts.
 
-## When not to use a tool
+The Claude docs give a similar list: actions with side effects, fresh or outside data, output with a guaranteed shape, and calls into your own systems. They add a warning sign: "if you're writing a regex to extract a decision from model output, that decision should have been a tool call."
 
-Tools are not free. The Claude docs list when tool use does not fit:
+**When not to use a tool.** The Claude docs list cases where a tool does not fit:
 
-- The model can answer from training alone: summarisation, translation, general-knowledge questions.
-- One-shot questions with no side effects: "If there's nothing to execute, there's nothing for a tool to do."
+- The model can answer from training alone, such as summaries, translation or general knowledge.
+- There is nothing to run: "If there's nothing to execute, there's nothing for a tool to do."
 - Very small tasks, because "Every tool call is at least one extra round trip".
 
-Example: translating your FAQ page into Spanish needs no tool. Checking whether item 88 is in stock today does, because the answer lives in your database, not in the model.
+**Who runs the tool.** The Claude docs sort tools by where the code runs. User-defined tools run in your application. Anthropic-schema tools, such as `bash` and `text_editor`, also run in your application, but Anthropic defines the schema. Server tools, such as web search and code execution, run on Anthropic's servers. OpenAI makes a similar split: function tools call your code, and built-in tools let the model search the web, run code or use an MCP server. These chapters are about tools you define and run yourself.
 
-## Who runs the tool
+**Tools cost tokens.** The definitions go to the model with every request. OpenAI: function definitions "count against the model's context limit and are billed as input tokens." The Claude docs count the names, the descriptions and the schemas of your tools as extra input tokens, plus a special system prompt that the API adds when you send tools.
 
-The Claude docs sort tools into three buckets by where the code runs:
+## Worked example
 
-- **User-defined tools** run in your application: you write the schema, get the call, run it and send back the result.
-- **Anthropic-schema tools**, such as `bash` and `text_editor`, also run in your application, but Anthropic publishes the schema.
-- **Server tools**, such as web search and code execution, run on Anthropic's infrastructure, and you read the results.
+### Step 1: list the features
 
-OpenAI makes a similar split. Function tools call your code. OpenAI also provides built-in tools that let the model search the web, run code or use an MCP server.
+The library team wants five features:
 
-This realm is about tools you define and run yourself. That is where most of your design work is.
+```text
+A. Is a book on the shelf at a branch right now?
+B. Renew one of my loans.
+C. Translate the loan rules into Ukrainian.
+D. Summarise the reader's own question before passing it to staff.
+E. How many days are left on my loan?
+```
 
-## Tools cost tokens
+### Step 2: ask two questions per feature
 
-Tool definitions are sent to the model, so you pay for them. OpenAI: function definitions "count against the model's context limit and are billed as input tokens." The Claude docs list the tool names, descriptions and schemas as extra input tokens, plus a special system prompt that the API adds when you send tools.
+For each feature: does the answer live outside the model (fresh or private data)? Does it change something (a side effect)?
 
-Example: 40 tools with long descriptions are sent on every request, even when the user only says "thanks". Chapter 2 covers how to keep the tool list small.
+```text
+A. shelf status       live catalogue data       -> tool: check_availability
+B. renew a loan       changes the loan system   -> tool: renew_loan
+C. translate rules    rules are in the prompt   -> no tool
+D. summarise question text in, text out         -> no tool
+E. days left on loan  private, changes daily    -> tool: get_loans
+```
 
-## Key points
+**The hard case is E.** It looks like a simple question, and the model will happily answer it. But the due date is private and changes when the reader renews. Without a tool, the model can only guess.
 
-- A tool is a function you describe to the model. All three vendors call this function calling or tool use.
-- The model only asks. Your code runs the tool, so your code can check the call first.
-- Use tools for actions, fresh or private data, guaranteed structure, and your own systems.
-- If you parse model text with a regex to find a decision, make that decision a tool call.
-- Skip tools for tasks the model can do from text alone. Each call is an extra round trip.
-- Tool definitions are billed as input tokens on every request.
+### Step 3: replace the hidden decision
+
+Before, the renew decision hid in text:
+
+```text
+...your loan is renewed!
+RENEW: 1
+```
+
+After, it is a tool call with a typed field:
+
+```text
+model:     renew_loan(loan_id = "L-30981")
+your code: checks the reader owns L-30981 and has no hold on it
+your code: renews it in the loan system
+your code: sends back "renewed, new due date 2026-11-02"
+model:     tells the reader the new due date
+```
+
+### Step 4: why it is better
+
+- **True answers.** Shelf status and due dates come from the library system, not from memory.
+- **Real actions.** A renewal happens only when your code does it, and the model reports what your code returned.
+- **No parsing.** The decision arrives as a name and arguments, not as words a script must find.
+- **A checkpoint.** Your code checks every call before it runs it.
+- **Fewer tools.** C and D stay plain text, so they cost no extra round trip.
+
+## Common mistakes
+
+1. **Believing the reply when there is no tool.** "Done!" from a model with no tools means nothing happened. Fix: any feature that changes something needs a tool, and the reply should report the tool result.
+2. **Adding a tool for every feature.** A translation tool adds a round trip and more input tokens for no gain. Fix: ask "is there anything to run?" If not, skip the tool.
+3. **Running the call without a check.** The model's arguments are a request, not an order. Fix: check ownership, limits and format in your code first.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A museum's ticket assistant has four planned features. Which ones need a tool, and why?
+
+```text
+1. Tell visitors how busy the museum is right now.
+2. Explain what Impressionism is.
+3. Move a visitor's ticket from Friday to Saturday.
+4. Rewrite the museum's welcome text in a friendlier tone.
+```
+
+### Answer
+
+- **1 needs a tool.** "Right now" means live data. The model cannot know it.
+- **2 does not.** General knowledge from training is enough.
+- **3 needs a tool.** It changes a booking, which is a side effect. Your code should check that Saturday has space before it moves the ticket.
+- **4 does not.** It is text in, text out.
+
+## Recap
+
+- A tool is a function you describe to the model. The model only asks for a call; your code runs it and sends back the result.
+- Use a tool for actions, fresh or private data, and your own systems. If code searches the model's text for a decision, make it a tool call.
+- Skip tools when there is nothing to run. Every call is an extra round trip, and every definition is billed as input tokens.
