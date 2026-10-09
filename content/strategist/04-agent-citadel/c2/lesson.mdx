@@ -45,16 +45,16 @@ This lesson shows a better way: choose how much freedom each action gets. The gu
 
 **Products already have levels.** Claude Code, a coding agent, is a good public example. The [Claude Code docs on permission modes](https://code.claude.com/docs/en/permission-modes) say each mode "makes a different tradeoff between convenience and oversight". Here is what runs without asking in each mode:
 
-- **Manual** (config value `default`): "Reads only". Best when you want to check each action yourself, and for sensitive work.
+- **Manual** (setting name `default`): "Reads only". Best when you want to check each action yourself, and for sensitive work.
 - **Accept edits** (`acceptEdits`): reads, file edits and common file commands. Best for iterating on code you are reviewing.
-- **Plan** (`plan`): the agent explores and writes a plan. It doesn't edit your files until you approve the plan.
+- **Plan** (`plan`): the agent explores and writes a plan, but "does not edit your source". The docs add one exception: "Except in interactive terminal sessions with bypass permissions available, edits stay blocked until you approve the plan."
 - **Auto** (`auto`): everything runs, and safety checks happen in the background. Best for long tasks and fewer prompts.
 - **Don't ask** (`dontAsk`): reads and pre-approved tools run, and "anything that would prompt is denied". Best for locked-down scripts.
-- **Bypass permissions** (`bypassPermissions`): "Everything". For "Isolated containers and VMs only". (A **VM**, or virtual machine, is a separate computer inside a computer.) The docs add that this mode "offers no protection against prompt injection or unintended actions".
+- **Bypass permissions** (`bypassPermissions`): "Everything". For "Isolated containers and VMs only". (A **container** is a small sealed space on a server. A **VM**, or virtual machine, is a separate computer inside a computer.) The docs add that this mode "offers no protection against prompt injection or unintended actions". (**Prompt injection** is when text the agent reads carries hidden orders.)
 
 The [OpenAI guide to guardrails and human review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) sets autonomy per tool instead. Guardrails and human review together "define when a run should continue, pause, or stop". You can mark one tool, such as "cancel order", as needing approval. The guide says: "The model can still decide that an action is needed, but the run pauses until you approve or reject it." The guide lists the side effects to pause before: "cancellations, edits, shell commands, or sensitive MCP actions".
 
-So there are two dials: a mode for the whole session (Claude Code), and an approval rule for each tool (OpenAI's Agents SDK).
+So there are two dials: a mode for the whole session (Claude Code), and an approval rule for each tool (OpenAI's Agents SDK, its toolkit for building agents).
 
 **A ladder for business actions.** This four-step ladder is a tool for this course, not a vendor standard:
 
@@ -86,7 +86,7 @@ Our advice: move one action up one step, only when its own record supports it, a
 - The classifier does not see the agent's own messages. The post says this is "so the agent can't talk the classifier into making a bad call."
 - It is not perfect. The post calls a "17% false-negative rate on real overeager actions" the honest number: it missed about one in six risky actions in that test. It says auto mode "is not a drop-in replacement for careful human review on high-stakes infrastructure."
 
-The top step also needs a small space. Bypass mode is for isolated containers and VMs only. The more an agent may do alone, the smaller and safer its working space should be.
+Our advice: the more an agent may do alone, the smaller and safer its working space should be. Bypass mode shows this: the docs allow it for "Isolated containers and VMs only".
 
 Our example: autonomy is like a new employee's signing limit. On day one, the new hire can draft, but a manager signs. After months of good work, they may sign small amounts alone. Large amounts still need a second signature.
 
