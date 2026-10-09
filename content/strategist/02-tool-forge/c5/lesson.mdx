@@ -1,7 +1,7 @@
 ---
 id: strategist/r2/c5/lesson
 title: The business case
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · Optimizing LLM accuracy
@@ -20,70 +20,148 @@ sources:
     url: https://platform.claude.com/docs/en/about-claude/use-case-guides/customer-support-chat
 ---
 
-## Why it matters
+## Goal
 
-A sponsor needs four answers before saying yes: what it saves, what it costs, what can go wrong, and how you will know if it works. "AI will make us faster" answers none of them.
+After this lesson you can:
 
-A business case puts numbers on each one, including the cost of mistakes.
+- Put a money value on success and on each kind of failure, and find the **break-even accuracy**: the share of right answers where the AI stops losing money.
+- Measure today's baseline and estimate the running cost, with a dated price.
+- Use the numbers to change the design, not only to say yes or no.
 
-## Price every outcome, not only success
+## The problem
 
-OpenAI's guide on optimizing accuracy describes a customer service case. The team first listed the main success and failure cases and put an estimated value on each:
+A car insurer gets about 12,000 chat questions a month about claim status. The customer team wants an AI assistant to answer them. The sponsor asks four things: what does it save, what does it cost, what can go wrong, and how will we know it works?
 
-- A case solved by AI instead of a person saves **$20**.
-- A case wrongly escalated to a person costs **$40**.
-- In the worst case, a frustrated customer leaves, costing **$1000**. The guide assumes this happens in 5% of cases; in its table, that is 5% of the AI failures.
+"AI will make us faster" answers none of them. A **business case** puts a number on each answer, including the cost of mistakes. The guidance below is from each vendor's docs (October 2026).
 
-Then they asked: at what accuracy does this break even? The guide's table, where the cases add up to 1,000, looks like this:
+## The idea
 
+**Price every outcome, not only success.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) show this with a customer service example. A case solved by AI "may save **$20**". A wrong escalation to a person "might cost **$40**". In the worst case a customer leaves, "costing us **$1000**". The guide assumes this "happens in 5% of cases". Their table adds it up over 1,000 cases:
+
+```text
+Event                    Value   Cases    Total
+AI success                +20    815     16,300
+AI failure (escalation)   -40    175.75   7,030
+AI failure (churn)      -1000      9.25   9,250
+Result                                      +20
+Break-even accuracy                       81.5%
 ```
-Event                     Value   Cases    Total
-AI success                 +20    815     +16,300
-AI failure (escalation)    -40    175.75   -7,030
-AI failure (customer lost) -1000  9.25     -9,250
-Result                                       +20
-Break-even accuracy                         81.5%
+
+Below 81.5% right answers, the design loses money. Above it, it saves money. That one number turns "Is the AI good enough?" into a question the business can answer. The OpenAI docs add that "an accuracy of even 85% could be ok, if those 15% were primarily early escalations", because an early hand-off costs far less than a lost customer.
+
+**Measure today first.** In the same example, the OpenAI docs measure human and AI side by side on "The CSAT score" (customer satisfaction), "The decision accuracy for retrospectively reviewed cases" and "The time to resolution". The [Claude docs](https://platform.claude.com/docs/en/about-claude/use-case-guides/ticket-routing) list similar measures, such as rerouting rate, average handling time and cost per ticket, and say they apply "regardless of whether an LLM is used". The [support guide](https://platform.claude.com/docs/en/about-claude/use-case-guides/customer-support-chat) adds **deflection rate**: "The percentage of customer inquiries successfully handled by the chatbot without human intervention".
+
+**Estimate the running cost.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/production-best-practices) say to "consider costs as a function of the number of tokens and the cost per token". To estimate tokens, consider "traffic levels, the frequency with which users will interact with your application, and the amount of data you will be processing". A **token** is a small piece of text; the same page says 1,000 tokens are "roughly equal to 750 words".
+
+**Prices change, so date them.** The [Claude pricing page](https://platform.claude.com/docs/en/about-claude/pricing) lists input and output tokens separately. For example, Claude Haiku 5.5 (prompts up to 100,000 tokens) is "$0.10 / MTok" for input and "$0.50 / MTok" for output (MTok = a million tokens). **Our advice:** next to every price, write down the page and the day you looked, so others can check it.
+
+**Both vendors list ways to cut cost.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/production-best-practices) name "switching to smaller models for some tasks", "using shorter prompts" and "caching common user queries". The [Claude docs](https://platform.claude.com/docs/en/about-claude/pricing) name choosing the right model, prompt caching, the Batch API "for non-time-sensitive tasks", and tracking token use. **Prompt caching** means reusing the same long prompt text instead of paying for it in full each time.
+
+Our example: a business case is like a household budget for a new car. The price tag is only one line. Fuel, insurance and repairs decide if you can afford it.
+
+## Worked example
+
+### Step 1: the weak case
+
+```text
+"The AI will answer claim-status chats. It's cheap and it will
+save a lot of agent time. Model cost: small."
 ```
 
-So below about 81.5% accuracy, this design loses money. Above it, it saves money. That one number turns "Is the AI good enough?" into a question the business can answer.
+What goes wrong: no value per outcome, no baseline, no token estimate, and nothing on mistakes.
 
-## Measure today's baseline
+### Step 2: price each outcome
 
-You can't show a gain without knowing where you start. OpenAI's guide says the team also measured the process itself, comparing human and AI on customer satisfaction scores, decision accuracy on reviewed cases and time to resolution.
+The team agrees these values (made up for this example):
 
-Anthropic's ticket routing guide lists success criteria that apply whether or not an LLM is used. Examples: routing accuracy, time-to-assignment, rerouting rate, average handling time, customer satisfaction and cost per ticket. Its customer support guide adds business measures such as deflection rate: the share of questions handled without a person.
+```text
+AI gives a right answer   saves 6 EUR in staff time
+AI gives a wrong answer   the customer phones in angry: costs 30 EUR
+AI passes it to an agent  costs 2 EUR (the agent reads the AI's note)
+```
 
-Example: before the pilot, a support team measures one month. Average handling time 9 minutes, rerouting rate 18%, cost per ticket 6 euros. Those are the numbers the business case promises to move.
+### Step 3: find the break-even accuracy
 
-## Estimate the running cost
+With no hand-off, every answer is right or wrong. Break-even is where savings equal losses:
 
-OpenAI's production guide suggests one useful way to think about cost: the number of tokens times the cost per token. To estimate the number of tokens, it says to consider traffic levels, how often users will interact with your application and the amount of data you will process.
+```text
+6 × right = 30 × wrong
+right share = 30 ÷ (6 + 30) = 83.3%
+```
 
-Anthropic's pricing page gives a worked example: 10,000 support tickets at about 3,700 tokens each, on Claude Haiku 4.5 at $1 per million input tokens and $5 per million output tokens, cost about $37 in total. The $37 equals all tokens at the $1 input price; output tokens cost 5× more, so work out input and output separately. Use this as a sense of scale only. Check the live pricing page yourself, and write down the page and the date you checked it, so others can verify your number.
+Below 83.3% right, the assistant loses money.
 
-Both guides also list ways to lower cost. OpenAI's names smaller models for some tasks, shorter prompts and caching common queries. Anthropic's names choosing the right model, prompt caching, the Batch API for work that isn't time-sensitive, and tracking usage.
+### Step 4: measure the baseline and the running cost
 
-Model tokens are only part of the bill. Add the people costs too: building, reviewing outputs and keeping the system up to date.
+```text
+Baseline (one month, today):
+  handling time 4 min, cost per chat 3.10 EUR,
+  agents give the right status 97% of the time
 
-## Let the numbers shape the design
+Tokens per month (estimate):
+  12,000 chats × 2,000 input tokens = 24 million  -> about 2.40 USD
+  12,000 chats × 300 output tokens  = 3.6 million -> about 1.80 USD
+  (Claude Haiku 5.5, Claude pricing page, checked October 2026)
 
-The business case is not only a yes or no. In OpenAI's example, the numbers changed the design. The team found that even 85% accuracy could be acceptable if most of the failures were early escalations to a person. Where a failure was very costly, such as a fraud case resolved wrongly, they had a human lead and the AI assist.
+People: 2 days a month to review samples and update the prompt
+```
 
-Example: if your break-even accuracy is 81.5% and the pilot shows 84%, the margin is thin. OpenAI's guide lists one option: tell the model to hand off to a person when the intent is unclear. That gives up some savings now, but an escalation costs $40 and a lost customer costs $1000.
+The model tokens are small here. The people costs are bigger, so they belong in the case.
 
-## A one-page structure
+### Step 5: the hard case
 
-1. **Problem**: the step from your map, with volume and time.
-2. **Baseline**: today's numbers.
-3. **Value model**: the value of success and of each failure, and the break-even accuracy.
-4. **Running cost**: token estimate, price page and the date you checked it, plus people costs.
-5. **Risks and controls**: where a person stays in charge.
-6. **The ask**: a pilot, with the numbers that will decide what happens next.
+The pilot shows **86% right**. That is above 83.3%, but only just.
 
-## Key points
+```text
+Per 1,000 chats, no hand-off rule:
+  860 right × 6  = +5,160
+  140 wrong × 30 = -4,200
+  Result         =   +960
+```
 
-- Put a value on success and on each kind of failure, then find the break-even accuracy.
-- Measure today's baseline before you promise a gain.
-- Running cost is roughly tokens × price per token; name the price page and the date you checked it.
-- Add people costs: building, review and maintenance.
-- Let the numbers shape the design, such as handing off to a person when unsure.
+**This is the hard case: the margin is thin.** A small drop in accuracy wipes it out. So the team changes the design. The model hands off to an agent when it is not sure, an option the OpenAI docs also list ("hand off to a human if the intent is unclear"). A new test shows:
+
+```text
+Per 1,000 chats, with hand-off rule:
+  840 right × 6   = +5,040
+  100 handed off × 2 = -200
+   60 wrong × 30  = -1,800
+  Result          = +3,040
+```
+
+Fewer chats are answered by AI, but the result is more than three times better.
+
+### Step 6: why it is better
+
+- **Every outcome priced**, so the real break-even point is visible.
+- **A baseline**, so the gain can be proved later.
+- **A dated cost estimate**, with people costs included.
+- **Design changed by numbers.** The hand-off rule turned costly mistakes into cheap hand-offs.
+
+## Common mistakes
+
+1. **Reporting accuracy alone.** 80% right sounds good, but it can lose money. Fix: price each kind of failure and compare with break-even.
+2. **No baseline.** You can't show a gain without the starting point. Fix: measure one month of today's process first.
+3. **Only the token bill.** Review and upkeep often cost more than tokens. Fix: add people costs to the running cost.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A shop's AI answers return questions. A right answer saves 3 EUR. A wrong answer costs 12 EUR. There is no hand-off.
+
+```text
+1. Where is the break-even point?
+2. The pilot shows 85% right. Does it make or lose money per 1,000 questions?
+```
+
+### Answer
+
+1. **80%.** 12 ÷ (3 + 12) = 0.8.
+2. **It makes money, but not much.** 850 × 3 = 2,550. 150 × 12 = 1,800. Result: +750 per 1,000 questions. The margin is thin, so a hand-off rule for unclear questions is worth testing.
+
+## Recap
+
+- Put a value on success and on every kind of failure, then work out the break-even accuracy.
+- Measure today's baseline. Estimate running cost from the token count and the price of each token, say where and when you found the price, and add the cost of people.
+- Let the numbers shape the design, for example a hand-off to a person when the model is unsure.
