@@ -64,15 +64,15 @@ Simplified. See the docs for the exact request shape.
 
 The docs' own comment on this setting says: "optional; default 3, max 20". So if you leave it out, you get 3. You cannot set more than 20.
 
-After each round, the grader returns a result:
+Each round ends with an outcome evaluation event. Its `result` field says what happens next:
 
-| Result                   | What happens next                                                           |
-| ------------------------ | --------------------------------------------------------------------------- |
-| `satisfied`              | The work meets the rubric. The session goes idle.                           |
-| `needs_revision`         | The agent starts a new round.                                               |
-| `max_iterations_reached` | One last short turn, then idle. The docs say: "No further evaluation runs." |
-| `failed`                 | The rubric does not fit the work, for example it contradicts the task.      |
-| `interrupted`            | You stopped it yourself with a `user.interrupt` event.                      |
+| Result                   | What happens next                                                                  |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `satisfied`              | The work meets the rubric. The session goes idle.                                  |
+| `needs_revision`         | The agent starts a new round.                                                      |
+| `max_iterations_reached` | One last short turn, then idle. The docs say: "No further evaluation runs."        |
+| `failed`                 | The rubric does not fit the work, for example it contradicts the task.             |
+| `interrupted`            | You sent a `user.interrupt` event while the outcome was active. Work on it pauses. |
 
 Read the third row twice. `max_iterations_reached` does **not** mean "passed". It means "out of tries". The work may still fail a line. A person must look before anything ships.
 
@@ -111,7 +111,7 @@ Claude max_iterations   counts rounds of grade + revise
 OpenAI max_turns        counts model calls
 ```
 
-One Claude round can hold many model calls: the agent may call tools many times before the grader looks. So "3" in one tool and "3" in the other are not the same limit. Read what a setting counts before you copy a number between vendors.
+Our reading: one Claude round can hold many model calls: the agent may call tools many times before the grader looks. So "3" in one tool and "3" in the other are not the same limit. Read what a setting counts before you copy a number between vendors.
 
 And neither of them counts money or hours.
 
@@ -132,7 +132,7 @@ Two points make these rules work:
 - **Check before you start a round, not after.** A budget rule that fires after the money is spent is a report, not a rule.
 - **Whichever rule fires first wins.** The rules do not wait for each other. If one says stop, the loop stops, even if the others still allow more.
 
-The "no progress" rule is the one teams forget. If the same line fails twice for the same reason, the maker is not using the feedback. A third try will most likely fail the same way. Stop, and ask a person.
+The "no progress" rule is the one teams forget. When one line fails a second time for the same reason, the maker is not using the feedback. A third try will most likely fail the same way. Stop, and ask a person.
 
 ### What happens at the stop
 
@@ -226,21 +226,22 @@ Not graded. Write your answer down before you read the answer.
 A studio runs a Claude outcome loop for a podcast trailer. The settings are:
 
 ```text
-max_iterations: not set
+max_iterations: 8
 budget cap: $25, each round about $6
+time: each round about 3 hours, deadline 10 hours away
 ```
 
-A teammate wants to "fix" a hard job by setting `max_iterations` to 40.
+A teammate says: "The setting is 8, so the loop will run 8 rounds."
 
-1. How many rounds will the loop allow now, from the vendor setting?
-2. How many rounds does the budget allow?
-3. What is wrong with the teammate's plan?
+1. How many rounds does the vendor setting allow?
+2. How many rounds does the budget allow? And the time rule?
+3. How many rounds will really run, and why?
 
 ### Answer
 
-1. **Three.** The setting is optional, and the default is 3.
-2. **Four.** Four rounds cost $24. A fifth would make $30, over the $25 cap.
-3. **Two problems.** The docs give 20 as the largest value, so 40 is not allowed. And more rounds do not fix a line that keeps failing; they only cost more. Add a no-progress rule and hand the job to a person instead.
+1. **Eight.** The setting is inside the allowed range (3 by default, 20 at most).
+2. **Budget: four.** Four rounds cost $24. A fifth would make $30, over the $25 cap. **Time: three.** Three rounds end at hour 9. A fourth would end at hour 12, after the deadline.
+3. **Three.** Whichever rule fires first wins, and here that is time. The vendor setting is only a ceiling. Hand the best version to a person.
 
 ## Recap
 

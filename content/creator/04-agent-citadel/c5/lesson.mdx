@@ -32,30 +32,30 @@ After this lesson you can:
 
 A wedding photo studio uses an agent chain. One agent picks and edits 300 photos and makes a 60-second highlight film. Then it hands the job to a delivery agent. The delivery agent has two tools: one emails the gallery link to the couple, and one posts the film on the studio's public page.
 
-Last month three things went wrong:
+Last month, three things went wrong:
 
-1. The approval message said only "Gallery ready. Send?" The owner tapped yes on a phone. The gallery still held 40 unedited test shots.
+1. The approval message said only "Gallery ready. Send?" The owner tapped yes on a phone. The gallery held 40 unedited test shots.
 2. The owner was at another wedding all weekend. The team got tired of waiting, so they set the agent to "approve by itself after 2 hours". A film went public before the couple had seen it.
 3. The only check was on the first agent's input. The delivery agent's posting tool had no check at all.
 
-The studio had a reviewer model, a rubric and a person. It still shipped mistakes. The sign-off was in the wrong place and showed the wrong things.
+The studio had a reviewer model, a rubric and a person, and still shipped mistakes. The sign-off was in the wrong place and showed the wrong things.
 
 ## The idea
 
 ### A check is not a signature
 
-A reviewer model can pass every rubric line. That is evidence. It is not permission. When work goes to a client or to the public, a named person who can answer for it must say yes. Our rule: **reviewers check, people sign.**
+A reviewer model can pass every rubric line. That is evidence, not permission. When work goes to a client or the public, a named person who can answer for it must say yes. Our rule: **reviewers check, people sign.**
 
 Two sources point the same way:
 
 - The [Anthropic engineering post on agents](https://www.anthropic.com/engineering/building-effective-agents) says agents can "pause for human feedback at checkpoints or when encountering blockers".
 - The [Gemini agents docs](https://ai.google.dev/gemini-api/docs/agents) say to "Always verify outputs" before you deploy them, "especially for tasks that modify data or interact with external systems".
 
-The Gemini docs also list managed agents as a **Public Preview**, and ask you to review the agent's actions and outputs before you rely on them in sensitive work.
+The Gemini docs list managed agents as a **Public Preview**, so details may change.
 
 ### Where sign-off sits
 
-The [OpenAI guardrails docs](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) say human approval fits when you must pause "before side effects like cancellations, edits, shell commands, or sensitive MCP actions". A side effect is a change in the outside world: an email that is sent, a post that is live.
+The [OpenAI guardrails docs](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) say human approval fits when you must pause "before side effects like cancellations, edits, shell commands, or sensitive MCP actions". A side effect is a change in the outside world, such as a sent email or a live post.
 
 Our habit: three sign-off points in a creative chain.
 
@@ -79,11 +79,11 @@ A strong card shows the evidence:
 - money spent against the budget, and rounds used
 - any stop rule that fired
 
-If the card cannot show the file, the person is not signing the file.
+If the card cannot show the file, the person is not signing it.
 
 ### How the pause works
 
-Both vendors treat an approval as a pause that can last a long time.
+Both vendors treat an approval as a pause that can last.
 
 **OpenAI Agents SDK.** The [guardrails docs](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) list the steps:
 
@@ -94,16 +94,16 @@ Both vendors treat an approval as a pause that can last a long time.
 
 For a slow reviewer the docs say: "If the review might take time, serialize `state`, store it, and resume later. That's still the same run."
 
-The [SDK human-in-the-loop docs](https://github.com/openai/openai-agents-python/blob/main/docs/human_in_the_loop.md) add one more useful fact. This works even when the tool belongs to an agent reached through a handoff. The approval still shows up on the outer run.
+The [SDK human-in-the-loop docs](https://github.com/openai/openai-agents-python/blob/main/docs/human_in_the_loop.md) add one more useful fact. This works even when the tool belongs to an agent reached through a handoff. The docs say interruptions include approvals raised after a handoff, so the pause shows in the run's interruptions.
 
 **Claude Managed Agents (beta).** The [Claude permission policies docs](https://platform.claude.com/docs/en/managed-agents/permission-policies) describe a similar pause:
 
-- A tool set to `always_ask` makes the session pause "and wait for your approval before executing".
+- For a tool set to `always_ask`, the docs say: "The session pauses and waits for your approval before executing."
 - While it is paused, "The session waits indefinitely for a response."
 
 Your app then sends a `user.tool_confirmation` event with `"allow"` or `"deny"` for each blocked call.
 
-So a person who is away does not break anything. The job waits. Our advice: a missing answer is never a yes. Do not add a timer that approves by itself. If a wait is too long, send a reminder or pass the card to a second person.
+So a person who is away does not break anything. The job waits. Our advice: a missing answer is never a yes, so add no timer that approves by itself. If a wait is long, send a reminder or pass the card to a second person.
 
 ### Say why when you say no
 
@@ -122,16 +122,16 @@ The OpenAI guardrails docs warn that agent-level checks "don't run everywhere":
 - An output guardrail checks only the agent that gives the final answer.
 - A tool guardrail checks only the function tools it is attached to.
 
-Their advice for checks around every custom tool call: "Put validation next to the tool that creates the side effect."
+Their advice: "Put validation next to the tool that creates the side effect."
 
-Our reading: a line in the prompt like "always ask before posting" only asks the model nicely. It is not a lock. Put the approval on the tool itself.
+Our reading: a prompt line like "always ask before posting" only asks the model nicely. It is not a lock. Put the approval on the tool.
 
 ### What Claude's policies cover
 
 The Claude docs list three policies: `always_allow`, `always_ask`, and `auto`, where the server judges each call. Defaults differ by toolset:
 
 - The built-in agent toolset defaults to `always_allow`.
-- MCP toolsets default to `always_ask`. The docs say this "ensures that new tools added to an MCP server do not execute in your application without approval".
+- For MCP toolsets the default is `always_ask`. The docs say this "ensures that new tools added to an MCP server do not execute in your application without approval".
 
 One kind of tool is outside all of this. The docs say: "Custom tools are executed by your application and controlled by you, so they are not governed by permission policies." If your own app runs the tool, your own app must ask the person.
 
@@ -139,14 +139,7 @@ One kind of tool is outside all of this. The docs say: "Custom tools are execute
 
 ### Step 1: the weak set-up
 
-```text
-Chain:     editor agent -> hands off to delivery agent
-Tools:     send_gallery_email (custom; the studio app runs it)
-           post_film (from a social MCP server)
-Checks:    one input guardrail on the editor agent
-Card:      "Gallery ready. Send?"  [Yes] [No]
-Waiting:   auto-approve after 2 hours
-```
+The set-up is the one from the problem. The tools are `send_gallery_email` (custom, run by the studio app) and `post_film` (from a social MCP server).
 
 ### Step 2: find what each check really covers
 
@@ -162,11 +155,11 @@ Auto-approve after 2 hours  -> a missing answer becomes a yes. GAP.
 
 ### Step 3: the hard case
 
-**The hard case is the email tool.** The team saw `always_ask` on the MCP posting tool and thought: "Good, the platform asks before every action." For `post_film` that is true, because MCP toolsets default to `always_ask`.
+**The hard case is the email tool.** The team saw `always_ask` on the MCP posting tool and thought: "The platform asks before every action." For `post_film` that is true.
 
-But `send_gallery_email` is a custom tool. The studio's own app runs it. As the quote above says, permission policies do not apply to such tools. So no platform setting will ever pause it. The studio's app must stop before it sends, show the card, and wait for a person.
+But `send_gallery_email` is custom: the studio's own code sends it. Permission policies do not apply to it, so no platform setting will ever pause it. The studio's app must stop before it sends, show the card, and wait for a person.
 
-The same is true on OpenAI, in a different way. The input check sits on the first agent, and the email is sent by the second agent after a handoff. Set approval on the tool itself (a `needs_approval` tool), and the pause appears on the outer run, wherever the tool sits in the chain.
+On OpenAI the gap is different. The input check sits on the first agent, and the second agent sends the email after a handoff. Set approval on the tool itself (a `needs_approval` tool), and the pause shows in the run's interruptions, wherever the tool sits.
 
 ### Step 4: the better set-up
 
@@ -193,39 +186,40 @@ On "no":   deny_message with one clear instruction
 
 - **The person signs what ships.** The 40 test shots are visible on the card.
 - **No silent yes.** A long wait sends reminders, not posts.
-- **Every side effect is covered.** Each tool that sends or posts has its own approval, wherever it sits in the chain.
+- **Every side effect is covered.** Each sending or posting tool has its own approval.
 - **A "no" helps.** The agent gets an instruction it can act on.
 
 ## Common mistakes
 
 1. **A card with no file on it.** The person signs the agent's summary. Fix: show the file, the rubric results and the destination.
-2. **Trusting a platform default for a custom tool.** Tools your own app runs are outside Claude's permission policies. Fix: build the approval into your app for those tools.
-3. **Checking the first agent only.** Input guardrails never see later agents. Fix: put the approval next to the tool with the side effect.
+2. **Trusting a platform default for a custom tool.** Fix: build the approval into your app for tools it runs.
+3. **Checking the first agent only.** Fix: put the approval next to the tool with the side effect.
 
 ## Try it
 
 Not graded. Write your answer down before you read the answer.
 
-A design studio has an OpenAI Agents SDK chain. A triage agent hands work to a print agent. The print agent has a tool `order_prints` that spends money at a print shop. The team says:
+A design studio runs a Claude Managed Agent. It has the built-in agent toolset and a custom tool `order_prints` that spends money at a print shop. The team says:
 
 ```text
-a  "Our input guardrail on the triage agent covers it."
-b  "If the boss rejects, the agent just sees 'rejected'.
-    That is fine."
-c  "The boss takes two days to answer. We must restart
-    the run each time."
+a  "Built-in tools default to always_ask, so every file
+    write will pause for a person."
+b  "order_prints is covered by always_ask too, so the
+    platform will ask before it spends."
+c  "If the boss denies a call, the agent just sees
+    'rejected'. That is fine."
 ```
 
 What is right or wrong in each line?
 
 ### Answer
 
-- **a: wrong.** An input guardrail checks the triage agent only. Mark `order_prints` with `needs_approval=True`. The pause then shows on the outer run, even after the handoff.
-- **b: weak.** By default the run gets standard rejection text. Pass a `rejection_message` that says what to change, such as "Order 20, not 200."
-- **c: wrong.** Save the state, store it, and resume later. The docs say it is still the same run.
+- **a: wrong.** The built-in agent toolset defaults to `always_allow`. Set `always_ask` on any tool you want paused.
+- **b: wrong.** Custom tools are run by your own app, so permission policies do not govern them. Your app must pause and ask a person before it spends.
+- **c: weak.** Add a `deny_message` that says what to change, such as "Order 20, not 200."
 
 ## Recap
 
 - A reviewer gives evidence. A named person signs: before the spend, at a stop, and before the send. The card shows the real file, the rubric results, where it goes and the cost.
-- Approvals can wait. OpenAI resumes the same run from saved state; Claude's `always_ask` session waits with no time limit. A missing answer is never a yes, and a "no" should carry a reason.
+- Approvals can wait. OpenAI resumes the same run from saved state; Claude's session waits indefinitely. A missing answer is never a yes, and a "no" carries a reason.
 - Put the approval on the tool with the side effect. Agent-level checks miss later agents, and a custom tool run by your own app gets no Claude policy at all.
