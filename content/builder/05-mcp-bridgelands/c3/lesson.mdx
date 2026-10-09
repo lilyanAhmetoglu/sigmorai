@@ -1,7 +1,7 @@
 ---
 id: builder/r5/c3/lesson
 title: Resources
-minutes: 9
+minutes: 12
 sources:
   - kind: docs
     title: Resources (Model Context Protocol)
@@ -23,88 +23,205 @@ sources:
     url: https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md
 ---
 
-Tools let the model do things. Resources let a server share data: a file, a database schema, a project README. In realm 3 you pulled context into the prompt with retrieval. MCP resources are a standard way for a server to offer that context, so the host can decide what to include.
+## Goal
 
-## What a resource is
+After this lesson you can:
 
-The spec says resources "allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information." Each resource has a URI, for example `file:///project/src/main.rs`.
+- Design MCP resources with good URIs, and use templates for very large sets.
+- Return the right error for a missing resource, and block unsafe paths.
+- Use annotations to help a host choose what goes to the model, and check which hosts support resources.
 
-A resource definition holds:
+## The problem
 
-- `uri`: the unique identifier.
-- `name`, plus an optional `title` for display.
-- optional `description`, `mimeType` and `size` in bytes.
+A city office builds an MCP server for its building-permit archive. There are 120,000 permits and a folder of scanned plans. Staff use an assistant to answer questions about permits.
 
-The content is either text (a `text` field) or binary data (a base64 `blob` field).
+The first version has trouble:
 
-## Who decides: the application
+- Start-up is slow. The server lists every permit each time.
+- When a permit number is wrong, the assistant says the permit "is empty".
+- Internal staff notes show up in the model's answers, but they were meant only for people.
 
-The control model from chapter 1 matters most here. Resources are **application-driven**: "host applications determining how to incorporate context based on their needs". The spec gives three examples:
+The team wants the data to reach the model in a clean, safe and cheap way.
+
+## The idea
+
+Tools let the model do things. **Resources** let a server share data. The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28/server/resources) says resources "allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information".
+
+### What a resource is
+
+Every resource has a URI, for example `file:///project/src/main.rs`. A definition holds:
+
+- `uri`: the unique id.
+- `name`, and an optional `title` for display.
+- optional `description`, `mimeType` and `size` (in bytes).
+
+The content is text (a `text` field) or binary data (a base64 `blob` field).
+
+### Who decides: the app
+
+The [server features page](https://modelcontextprotocol.io/specification/2026-07-28/server) calls resources application-controlled. The resources page says they are "application-driven", with the host app deciding how to use them. Its examples:
 
 - a tree or list view where the user picks resources;
-- search and filter over the available resources;
+- search and filter over the resources;
 - automatic inclusion, "based on heuristics or the AI model's selection".
 
-Compare this with tools. The model calls a tool when it decides to. A resource reaches the model when the app or the user puts it there. The spec says the protocol does not mandate any one interface.
+So a server offers resources, but it does not push them into the chat. The host, or the user through the host, chooses. Compare a tool: the model calls it when it decides to.
 
-## The four messages
+### The messages
 
-- `resources/list`: what resources exist. It supports pagination.
-- `resources/read`: get the content of one URI. A server may return several contents for one read, for example the files in a directory.
-- `resources/templates/list`: parameterized resources, using URI templates (RFC 6570). Example from the spec: `file:///{path}`.
-- `subscriptions/listen` with `resourceSubscriptions`: watch specific URIs. The server sends `notifications/resources/updated` when one changes.
+- `resources/list`: which resources exist. It supports pagination.
+- `resources/read`: the content of one URI. A server may return several contents for one read, for example the files in a directory.
+- `resources/templates/list`: **templates**, resources with a parameter, written as URI templates (RFC 6570). The spec's example is `file:///{path}`.
+- `subscriptions/listen` with `resourceSubscriptions`: watch some URIs. The server sends `notifications/resources/updated` when one changes.
 
-Templates are useful when the list would be huge. A CRM can't list a million customer records, but it can publish one template such as `crm://customers/{id}` and let the client fill in the id. That example is ours; the spec's template example is the file one above.
+Templates solve the "too many items" problem. Think of a phone book: you do not read every name to find one. You know the pattern and look up one entry.
 
-## URI schemes
+### URI schemes
 
-The spec names some standard schemes and allows custom ones:
+The spec names some standard schemes and allows your own:
 
-- `https://`: only when the client can fetch the resource directly from the web, without the MCP server. For anything else, the spec says servers should prefer another scheme or a custom one.
-- `file://`: anything that behaves like a filesystem. It does not need to map to a real filesystem.
+- `https://`: the spec says servers should use it "only when the client is able to fetch and load the resource directly from the web on its own". In other cases, use another scheme or a custom one, even when the server itself downloads the data over the internet.
+- `file://`: anything that behaves like a filesystem. It does not need to be a real disk.
 - `git://`: Git version control.
 - Custom schemes, which must follow RFC 3986.
 
-## Annotations help the host choose
+A plain number like `48213` is not a URI. Give it a scheme.
 
-Resources can carry annotations:
+### Annotations help the host choose
 
-- `audience`: `"user"`, `"assistant"` or both.
-- `priority`: from 0.0 to 1.0. 1 means "effectively required", 0 means "entirely optional".
-- `lastModified`: an ISO 8601 timestamp.
+A resource can carry annotations:
 
-The spec says clients can use them to filter by audience, decide which resources to include in context, and sort by recency. Example: a README with `audience: ["user"]` is shown in the UI, but the host may leave it out of the model's context.
+- `audience`: who it is for. The valid values are `"user"` and `"assistant"`, or both.
+- `priority`: from 0.0 to 1.0. The spec says 1 means "most important" (effectively required) and 0 means "least important" (entirely optional).
+- `lastModified`: an ISO 8601 time, such as `"2025-01-12T15:00:58Z"`.
 
-## Tools can point to resources
+Per the spec, a client may filter on them by audience, pick what to put in context, and sort by date. They are hints for the host. They are not access control. A resource with a low priority can still be read.
 
-A tool result can include a `resource_link` (a URI the client can fetch) or an embedded `resource` with its content. The spec notes that links returned by tools are not guaranteed to appear in `resources/list`. So a search tool can return links to five matching documents, and the client reads only the ones it needs.
+### Tools can point to resources
 
-## Errors and safety
+A tool result can hold a `resource_link` (a URI the client can read later) or an embedded `resource` with its content. The [tools page](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) says links from tools "are not guaranteed to appear in the results" of `resources/list`.
 
-If a resource doesn't exist, the server must return a JSON-RPC error with code `-32602` (Invalid Params). It must not return an empty `contents` array, because that is ambiguous: empty file, or missing file? Clients should also accept `-32002`, the code earlier protocol versions used.
+### Errors and safety
 
-The security list is short:
+For a resource that does not exist, the spec says servers "**MUST** return a JSON-RPC error". The code is `-32602`, the Invalid Params code. They "**MUST NOT** return an empty `contents` array", because an empty array could mean an empty file or a missing one. Clients should also accept `-32002`, the code older protocol versions used.
 
-- Servers must validate all resource URIs.
-- Access controls should be in place for sensitive resources.
-- Servers must sanitize file paths to prevent directory traversal attacks when serving `file://` resources.
+The security list:
 
-Example: a request for `file:///project/../../etc/passwd` must not escape the project folder.
+- Servers **MUST** validate all resource URIs.
+- Access controls **SHOULD** protect sensitive resources.
+- Servers **MUST** sanitize file paths to stop directory traversal attacks on `file://` resources.
 
-## How hosts use resources
+Directory traversal means a path with `../` that climbs out of the allowed folder.
 
-Support differs by product, so check before you design around resources:
+### Which hosts support resources
 
-- **Claude Code:** type `@` to see resources from connected servers next to files. Reference one as `@server:protocol://resource/path`, for example `@github:issue://123`. Claude Code fetches it and includes it as an attachment. It also gives Claude tools to list and read resources when servers support them.
-- **Claude API MCP connector:** it supports only tool calls. If you run your own MCP client, the Anthropic SDK has helpers that turn an MCP resource into a content block or a file for upload.
-- **OpenAI Agents SDK:** local MCP server classes expose `list_resources()` and `list_resource_templates()`. They are explicitly paginated: you pass `nextCursor` back as `cursor` to get the next page.
+Support differs. Check before you design around resources:
 
-## Key points
+- **Claude Code**: type `@` to see resources from connected servers next to your files. Write the server name, a colon, then the resource URI, for example `@github:issue://123`. The [Claude Code docs](https://code.claude.com/docs/en/mcp) say resources are "automatically fetched and included as attachments when referenced". Claude Code also gives Claude tools to list and read resources when the server supports them.
+- **Claude API MCP connector**: of the MCP features, the [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) say "only tool calls are currently supported". It also cannot reach local stdio servers directly. To use resources with Claude, manage an MCP client yourself. The Anthropic SDK then gives you helper functions: one converts a resource to a Claude content block, one to a file object for upload.
+- **OpenAI Agents SDK**: the local server classes have `list_resources()` and `list_resource_templates()`. The [SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md) say resources stay "explicitly paginated": pass `nextCursor` back as the `cursor` argument to get the next page.
 
-- A resource is data identified by a URI: text or a base64 blob.
-- Resources are application-controlled. The host or user decides what enters the context.
-- `resources/list`, `resources/read`, `resources/templates/list`, plus subscriptions for updates.
-- Use templates for large, parameterized sets. Use `https://` only when the client can fetch the URL itself.
-- Missing resource: error `-32602`, never an empty `contents` array.
-- Validate URIs and block directory traversal on `file://` resources.
-- Support differs: Claude Code uses @ mentions; the Claude API connector needs your own client for resources; the OpenAI Agents SDK lists them page by page.
+## Worked example
+
+### Step 1: the weak server
+
+```text
+resources/list
+  -> 120,000 entries, one per permit, on every call
+  uri: https://archive.city.local/permit/48213
+       (only the server can open this address)
+
+resources/read { uri: "https://archive.city.local/permit/00000" }
+  -> { "contents": [] }        # no such permit
+
+resources/read { uri: "file:///plans/../config/db-password.txt" }
+  -> returns the file
+
+staff-notes/48213   annotations: none
+```
+
+What goes wrong:
+
+- The full list is huge and slow.
+- `https://` is used for addresses the client cannot open.
+- A missing permit looks like an empty permit.
+- `../` climbs out of the plans folder.
+- Nothing tells the host that staff notes are for people only.
+
+### Step 2: a template instead of a giant list
+
+```text
+resources/templates/list
+  uriTemplate: permit://{number}
+  name: Building permit
+```
+
+The client fills in the number, for example `permit://48213`. The server lists only a few useful resources, such as this week's new permits. `permit://` is a custom scheme. The client has no way to open the archive's web address on its own, so `https://` is the wrong choice.
+
+### Step 3: errors and paths
+
+```text
+resources/read  uri: permit://00000
+  -> JSON-RPC error -32602, "Resource not found"
+
+resources/read  uri: file:///plans/../config/db-password.txt
+  -> the server resolves the path, sees it leaves /plans,
+     and refuses it
+```
+
+### Step 4: annotations (the hard case)
+
+Staff notes must show in the app for people, but the team does not want them in the model's context. The hard part is to pick the field that means "for whom". `priority` is about importance only. `lastModified` is a date. `audience` says who the resource is for:
+
+```json
+{
+  "uri": "permit-notes://48213",
+  "name": "Staff notes for permit 48213",
+  "annotations": { "audience": ["user"], "lastModified": "2026-09-14T08:30:00Z" }
+}
+```
+
+The host can now show the notes in the app and leave them out of the model's context. It is still a hint. If the notes are secret, access control on the server must protect them too.
+
+### Step 5: pick the host
+
+The office wants a web app on the Claude API connector. That connector runs only tool calls. So the team either runs its own MCP client and uses the SDK helpers for resources, or adds a `get_permit` tool for the connector. In Claude Code, staff can type `@permits:permit://48213`.
+
+### Why it is better
+
+- **Fast**: a template replaces a 120,000-item list.
+- **Clear**: a missing permit is an error, not empty content.
+- **Safe**: URIs are validated and `../` cannot escape.
+- **Right audience**: the host knows the notes are for people.
+- **Fits the host**: the team checked which hosts read resources.
+
+## Common mistakes
+
+1. **`https://` for internal data.** The client cannot open it. Fix: use a custom scheme unless the client can fetch it from the web itself.
+2. **Using annotations as a lock.** `priority` or `audience` do not stop a read. Fix: put access control and path checks on the server.
+3. **Expecting every host to read resources.** The Claude API connector runs tools only. Fix: run your own client, or check the host first.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A recipe app's server shares recipes as resources. Find three problems.
+
+```text
+uri:       48213              (just the recipe number)
+missing:   resources/read -> { "contents": [] }
+secret:    supplier-prices.csv  annotations: { priority: 0 }
+           "so the model will not see it"
+```
+
+### Answer
+
+1. **The id is not a URI.** Give it a scheme, for example `recipe://48213`.
+2. **Empty contents for a missing recipe.** Return the JSON-RPC error `-32602` instead.
+3. **Priority is not a lock.** `priority: 0` means optional, not hidden. Protect secret data with access control. To show a resource only to people, use `audience: ["user"]`.
+
+## Recap
+
+- A resource is data with a URI. The app or the user decides when it reaches the model. Use templates for big sets.
+- A missing resource is error `-32602`. Validate URIs, block `../`, and use `https://` only for pages the client can fetch itself.
+- Annotations (`audience`, `priority`, `lastModified`) are hints, not locks. Host support differs: Claude Code uses `@`, the Claude API connector needs your own client.
