@@ -1,7 +1,7 @@
 ---
 id: strategist/r2/c3/lesson
 title: Score a use case
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Ticket routing
@@ -17,84 +17,124 @@ sources:
     url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
 ---
 
-## Why it matters
+## Goal
 
-After mapping and counting, you usually have several candidates. Without a shared way to compare them, the loudest idea wins. A simple score card makes the choice visible, so others can check it and argue with it.
+After this lesson you can:
 
-The score card below is a tool for this course. Each question comes from the vendor guides.
+- Score each AI candidate on five questions: value, fit, success, risk and readiness.
+- Back every score with one line of evidence.
+- Read a score card for warning signs, not only the total.
 
-## Question 1: Is there real value?
+## The problem
 
-OpenAI's guide on optimizing accuracy says to start with a rough picture of how much a failure by the model costs you, and how much a success saves or earns you. This question covers the success side; Question 4 covers failures.
+A logistics company has three AI ideas for next quarter. The operations director asks the team to rank them. In the meeting, the person who talks the most wins, and nobody writes down why.
 
-Use your numbers from the last chapter: how often it happens and how long it takes. Value is roughly volume × time saved, plus any gain in speed or quality the business cares about.
+A simple **score card** fixes this. Everyone answers the same questions, with evidence, so others can check the result and argue with it. **Our advice:** use the five questions below. The guidance below is from each vendor's docs (October 2026).
 
-Example: 2,500 listings × 12 minutes is about 500 hours a month. A yearly board deck is a few weeks once a year.
+## The idea
 
-## Question 2: Does the task suit a language model?
+**1. Value: is it worth it?** The [OpenAI docs](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) say to start with "a rough picture of how much a failure by the LLM costs you, and how much a success saves or earns you". Value is roughly volume × time saved, plus any gain the business cares about.
 
-Anthropic's ticket routing guide lists signs that an LLM is a better fit than traditional machine learning for a classification task. Among them:
+**2. Fit: does the task suit a language model?** The [Claude docs](https://platform.claude.com/docs/en/about-claude/use-case-guides/ticket-routing) list signs that a model beats older machine learning for sorting tasks. Among them:
 
-- You have **limited labeled data**. The guide says Claude can classify tickets with just a few dozen labeled examples.
-- Your **categories are likely to change** over time.
-- The inputs are **complex, unstructured text**.
-- The rules depend on **meaning**, not keywords.
-- You need **explanations** for each decision.
-- You need **many languages** without separate models.
+- "You have limited labeled training data available" (labeled = examples already marked with the right answer). The model can work "with just a few dozen labeled examples".
+- Categories that are "likely to change or evolve over time". The docs say Claude can adapt to new classes "without extensive relabeling of training data".
+- "You need to handle complex, unstructured text inputs" (free text, not form fields).
+- "You need multilingual support without maintaining separate models".
 
-Example: routing customer emails written in free text, in four languages, with categories that change each season, scores high. Sorting forms where a field already says "Billing" scores low: a simple rule can do it.
+**3. Success: can you say what good looks like?** The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say good criteria are "Specific", "Measurable", "Achievable" and "Relevant". Their contrast: "Safe outputs" is bad. "Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter" is good. Be realistic too: the OpenAI docs say models are "unlikely to get to 99.999% accuracy using off-the-shelf methods". The [Anthropic post on agents](https://www.anthropic.com/engineering/building-effective-agents) adds that agents add the most value for tasks that "have clear success criteria".
 
-## Question 3: Can you say what success looks like?
+**4. Risk: what does a mistake cost?** The OpenAI docs compare "a bad copy that a human needs to fix" with "refunding a customer $1000 rather than $100". In their customer service example, when a fraud case could be resolved wrongly, "the human would drive and the AI would function as an assistant". So high risk can mean a different design, not only "no".
 
-Anthropic's guide on success criteria says good criteria are **specific, measurable, achievable and relevant**. It gives a contrast. Bad: "safe outputs". Good: "less than 0.1% of outputs out of 10,000 trials flagged for toxicity". It also lists criteria beyond accuracy, including tone, privacy, latency and price.
+**5. Ready: can you test it?** The ticket routing guide lists "A sample set of historical support tickets for testing" as something you need before you start. No past examples with known answers means no way to check the model.
 
-Achievable matters too. OpenAI's accuracy guide says LLMs are unlikely to reach 99.999% accuracy using off-the-shelf methods. So "never make a mistake" is not a target you can meet.
+Score each question from 1 (weak) to 3 (strong). In the risk column, a 3 means a mistake costs little and is quick to put right.
 
-Anthropic's "Building effective agents" post makes a related point. It says agents add the most value for tasks that have **clear success criteria**, enable **feedback loops** and include **meaningful human oversight**.
+Our example: a score card is like a school report with teacher comments. One low mark in a key subject matters more than a good average.
 
-Example: "Route 90% of tickets to the right team on the first try" scores high. "Make support better" scores low.
+## Worked example
 
-## Question 4: What does a mistake cost?
+### Step 1: the weak ranking
 
-OpenAI's guide on optimizing accuracy says to enter any discussion of accuracy with a rough idea of what a failure costs and what a success saves. Its example: a bad piece of copy that a human must fix is very different from refunding a customer $1000 instead of $100.
-
-The same guide describes a customer service case. Where a mistake was very costly, such as a fraud case resolved wrongly, the team decided a human would lead and the AI would only assist.
-
-So a high cost of error doesn't always mean "no". It can mean "AI drafts, a person decides".
-
-Example: a mistake in a product listing is fixed in minutes and scores low risk. A mistake in a refund over 1,000 euros scores high risk, so that use case scores lower unless a person approves each refund.
-
-## Question 5: Are you ready to test it?
-
-Anthropic's ticket routing guide lists a sample set of historical tickets for testing as a prerequisite. Without real examples, you can't check the model against the work.
-
-Ask: do we have past examples with known right answers? Is there an owner who can judge results?
-
-Example: a support team with two years of labeled tickets is ready. A new process that started last week isn't.
-
-## Put it together
-
-Score each question from 1 (weak) to 3 (strong), and write one line of evidence next to each score. The evidence matters more than the total.
-
-```
-                     Value  Fit  Success  Risk*  Ready  Total
-Email routing          3     3      3       3      3     15
-Refund decisions       2     2      1       1      2      8
-Board deck             1     2      1       2      1      7
-
-* Risk: 3 = mistakes are cheap and easy to fix
+```text
+1. Automatic spare-part prices   "biggest money"
+2. Sort supplier emails          "boring but fine"
+3. Driver incident summaries     "nice to have"
 ```
 
-Read the card with care:
+What goes wrong: no evidence, no shared questions, and nobody asked what a mistake costs.
 
-- A **1 on success or risk** is a warning, even if the total is high. Fix that first, or change the design so a person decides.
-- **Close totals** need a discussion, not a winner by one point.
-- **Re-score** after a pilot, with real numbers instead of guesses.
+### Step 2: collect the evidence
 
-## Key points
+```text
+Supplier emails:   6,000 a month, free text in 3 languages,
+                   new topics each season, 2 years of sorted emails
+Spare-part prices: AI sets the price alone; a wrong price is live
+                   in the web shop at once; success = "better prices"
+Incident reports:  new form started last month, 40 reports so far,
+                   no agreed good summary yet
+```
 
-- Score every candidate on the same questions, with evidence for each score.
-- Value: volume × time saved. Fit: free text, changing categories, meaning-based rules.
-- Success must be specific and measurable, not "make it better".
-- Price the cost of a mistake. High risk can mean "AI assists, a person decides".
-- No past examples to test with means the use case isn't ready yet.
+### Step 3: score with one line of evidence each
+
+```text
+                    value fit success risk* ready total
+Supplier emails       3    3     3     3     3    15
+Spare-part prices     3    2     1     1     2     9
+Incident summaries    1    2     2     2     1     8
+
+* Risk 3 = a mistake costs little
+```
+
+- **Supplier emails, fit 3:** free text, three languages, topics that change.
+- **Supplier emails, success 3:** "95% of emails sorted to the right team, on 500 past emails".
+- **Spare-part prices, success 1:** "better prices" can't be measured.
+- **Incident summaries, ready 1:** no past reports with agreed good summaries to test against.
+
+### Step 4: the hard case
+
+**Spare-part prices has high value but a 1 on risk and on success.** The total (9) hides two warning signs. Do not just drop it. Change the design and score it again:
+
+```text
+New design: AI suggests a price and a reason; a buyer approves it.
+New success line: "On 300 past price changes, the suggestion is within
+5% of the buyer's price 80% of the time."
+Risk: 3 (nothing goes live without a person). Success: 3.
+```
+
+### Step 5: why it is better
+
+- **Evidence on every score.** Others can check and argue with each number.
+- **Warning signs are visible.** A 1 on success or risk is read before the total.
+- **Design over drop.** High risk led to "AI suggests, a person decides".
+- **Easy to update.** After a pilot, replace guesses with real numbers.
+
+## Common mistakes
+
+1. **Reading only the total.** Close totals or a hidden 1 can mislead. Fix: read every 1 first, and discuss totals that are close.
+2. **Scores with no evidence.** A number with no reason can't be checked. Fix: one line of evidence per score.
+3. **Vague success.** "Make it better" can't be tested. Fix: write a number, a test set and a target.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Rewrite these two success lines so they are specific and measurable. Then say which risk score (1 to 3) fits each task.
+
+```text
+P. Summarize customer calls for the account manager.
+   Success: "useful summaries"
+Q. Decide alone whether to cancel a supplier contract.
+   Success: "the right call every time"
+```
+
+### Answer
+
+- **P:** "On 100 past calls, the account manager rates 90% of summaries as usable with no edits." Risk 3: a weak summary is cheap to fix.
+- **Q:** "On 50 past decisions, the AI's recommendation matches the legal team's decision 90% of the time." "Every time" is not achievable. Risk 1: a wrong cancellation is expensive, so a person should decide and the AI should assist.
+
+## Recap
+
+- Score every candidate on value, fit, success, risk and readiness, with evidence for each score.
+- Read every 1 before the total. A low score on success or risk needs a fix or a new design, whatever the sum says.
+- Write success as a number you can test, and keep past examples with known answers to test it on.
