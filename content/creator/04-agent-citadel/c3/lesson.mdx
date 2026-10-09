@@ -1,7 +1,7 @@
 ---
 id: creator/r4/c3/lesson
 title: Review loops
-minutes: 6
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic · Building effective agents
@@ -17,67 +17,182 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/image-generation
 ---
 
-## Why it matters
+## Goal
 
-When a person makes ten ad drafts, they look at each one and say what to change. An agent can do the same with a second model as the reviewer. Draft, review, fix, review again. That is a **review loop**.
+After this lesson you can:
 
-A loop like this can save hours. It can also repeat the same mistake ten times, or say "looks great" about a broken ad. What it does depends on how you write the review. This lesson shows how.
+- Turn a vague review ("looks premium") into yes-or-no rubric lines that two reviewers would score the same way.
+- Set up a reviewer that is separate from the maker, and that sends back the failed line and one fix.
+- Put the last check on the exact file that ships, and say when a review loop is not worth building.
 
-Prompt Forest, chapter 6, covered what a vision model gets wrong when it looks at an image. Here the question is the loop around it.
+## The problem
 
-## The pattern has a name
+An online furniture shop needs 40 catalogue images of its new chairs. The studio builds a loop. One model makes each image. A second model reviews it. If the review fails, the maker tries again.
 
-Anthropic calls this the evaluator-optimizer workflow: "one LLM call generates a response while another provides evaluation and feedback in a loop." It says the pattern fits when you have "clear evaluation criteria" and when "iterative refinement provides measurable value". It names two signs of a good fit. First, the output can be "demonstrably improved" when a human gives feedback. Second, the model can give that kind of feedback.
+After a week, the shop is unhappy:
 
-Both signs matter for you. "Make the logo bigger" is feedback a model can act on. "Make it more magical" is not feedback anyone can test.
+- The reviewer's instructions said "Check that the image looks premium and matches our style." It passed almost everything, including a chair with three legs.
+- When it did fail an image, its note said "Not quite right, try again." The maker changed the whole picture, and the next try was worse.
+- After the last pass, a script added a price label to each image. Three labels covered the chair's seat. Nobody checked the labelled files, and those were the files that went live.
 
-## Write a rubric, not a mood
+The loop ran many times. It still let bad images through. The problem was not the models. The problem was how the review was written and where it sat.
 
-Claude's Managed Agents docs describe a feature called outcomes. It is in beta, so details may change. You give the agent a target and a **rubric**. A separate grader checks the work against the rubric, and its notes go back to the agent for the next round. Three details are worth copying, even if you use another vendor's tools:
+## The idea
 
-- **Explicit, gradeable criteria.** The docs give an example: "The CSV contains a price column with numeric values" rather than "The data looks good." They say the grader scores each criterion independently, "so vague criteria produce noisy evaluations".
-- **A separate context window.** The grader runs in its own context "to avoid being influenced by the main agent's implementation choices". In other words, the reviewer should not read the maker's excuses.
-- **An explanation with the verdict.** The grader returns a summary of "which criteria passed or failed". That summary goes back to the agent.
+### The pattern has a name
 
-For an ad, a vague rubric reads "premium, on brand, high quality". A gradeable one reads:
+The [Anthropic engineering post on agents](https://www.anthropic.com/engineering/building-effective-agents) calls this pattern the **evaluator-optimizer** workflow. In its words: "one LLM call generates a response while another provides evaluation and feedback in a loop."
 
-1. The logo is readable in the last 2 seconds.
-2. The only words on screen are the approved tagline.
-3. The tea box has the same green lid in every shot where it appears.
-4. No face is visible.
+The post says the pattern works well when two things are true. There are "clear evaluation criteria", and trying again gives a gain you can measure. It gives two signs of a good fit:
 
-Each line has a yes or no answer. Two people would agree on it.
+- A human's feedback clearly makes the output better.
+- A model can give that same kind of feedback.
 
-## Send back what failed, in the maker's language
+Our reading: "make the chair legs all visible" is feedback a model can act on. "Make it more elegant" is not. If you cannot write the test, the loop has nothing to aim at.
 
-A verdict of "fail, try again" teaches nothing. The reviewer should say which line failed and what to change: "Line 3 failed. The lid is brown in shot 4. Keep everything else, and change the lid to green."
+Note that this is different from running several model calls on one task at the same time and combining their outputs. The post calls that a different pattern, parallelization. A review loop goes round and round on the same piece of work.
 
-That shape matches how Google describes working with its image model. The Gemini image guide calls multi-turn conversation "the recommended way to iterate on images". It suggests follow-ups like "Keep everything the same, but change the character's expression to be more serious." A good review message is a follow-up of that kind.
+### Write a rubric, not a mood
 
-## Three kinds of check
+The [Claude docs on outcomes](https://platform.claude.com/docs/en/managed-agents/define-outcomes) describe one way to build this loop. Outcomes are part of Claude Managed Agents, and the page marks the feature as **beta**, so details may change. You give the agent a goal and a **rubric**: a markdown document that says how to score each criterion. The page says the rubric is required. A **grader** then checks the work against it.
+
+Three ideas from that page are worth copying, whatever tools you use:
+
+1. **Gradeable lines.** The docs ask for "explicit, gradeable criteria". Their example is a line about a CSV file with a price column of numbers, instead of a line that only says the data looks good. The reason they give: the grader "scores each criterion independently, so vague criteria produce noisy evaluations".
+2. **A separate reviewer.** The grader runs in its own context window "to avoid being influenced by the main agent's implementation choices". In plain words: the reviewer should not read the maker's notes, plans and excuses.
+3. **A useful verdict.** The grader returns an explanation of which lines passed or failed. The agent reads that explanation and uses it in its next try.
+
+A simple test for a rubric line: **would two different reviewers give the same answer?** "Looks premium" fails this test. "All four chair legs are visible" passes it.
+
+### Send back the failed line and one change
+
+A bare "fail" teaches the maker nothing. So does a score out of 10 with no reason. The maker needs to know what to keep and what to change.
+
+The [Gemini image generation docs](https://ai.google.dev/gemini-api/docs/image-generation) say multi-turn conversation is "the recommended way to iterate on images". Their tips suggest small follow-ups that keep the rest of the image the same and change one thing, such as a character's expression. A good review note has that shape:
+
+```text
+Line 2 failed: the back left leg is hidden by the table.
+Keep everything else. Turn the chair a little to the right
+so all four legs show.
+```
+
+Our advice: one failed line, one change, and "keep everything else". Ten suggestions in one note bury the important one. They can also break lines that passed before.
+
+### Three kinds of check
 
 This split is ours, not a vendor's.
 
-- **Mechanical checks.** Is the file there? Is it 9:16? Do the lengths add up? A script does these the same way every time. Anthropic describes such programmatic checks as gates on a step.
-- **Model checks.** Is the logo readable? Is the lid green? A second model can look and answer, with a rubric line to guide it.
-- **Person checks.** Is it good? Does it say what the client meant? A person decides.
+| Kind       | Example questions                               | Who does it      |
+| ---------- | ----------------------------------------------- | ---------------- |
+| Mechanical | Is the file there? Is it 4:5? Is it under 2 MB? | A script         |
+| Model      | Are all four legs visible? Is there any text?   | A second model   |
+| Person     | Is this the photo the shop wants to sell with?  | A named producer |
 
-Put cheap, sure checks first. A model should not spend time on what a script can do.
+Put the cheap, certain checks first. A model should not spend tokens on a question a script answers in a millisecond. The Anthropic post calls such checks in code "programmatic checks", and they are the "gate" between steps from the storyboard lesson.
 
-## Check the file that ships
+### Check the file that ships
 
-OpenAI's guide lists output guardrails for when you need to "validate or redact the final output before it leaves the system". It also says output guardrails run only for the agent that produces the final output. The lesson for a studio: the review that counts is the review of the final file. If the agent changes shot 3 after the reviewer passed shot 3, the pass no longer describes the file.
+The [OpenAI guardrails docs](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) list **output guardrails** for when you need to "Validate or redact the final output before it leaves the system". They also say an output guardrail runs only on the agent whose answer is the final output.
 
-So run the check on the exact file that will be delivered, last.
+Our reading for a studio: a pass describes the exact file that was checked. If anything changes the file after the pass (a crop, a label, a new colour), the old pass is about a different file. So the last check runs on the final file, after the last edit, right before delivery.
 
-## When a loop is not worth it
+### When not to build a loop
 
-If nobody can write the criteria, a loop has nothing to aim at. "Which of these two ads is more beautiful?" is for a person. Anthropic's two signs are a good test: can you write the criteria, and can a model give feedback you could act on?
+If no one is able to write criteria, a loop cannot help. "Which of these two chairs looks nicer?" has no rubric. A person picks. The two signs from the Anthropic post are the test: can you write clear criteria, and can a model give feedback that you could act on?
 
-## What this means for your work
+## Worked example
 
-- **Write the rubric before the first run.** Four to six yes-or-no lines.
-- **Use a separate reviewer.** Claude's grader runs in its own context window, and for a good reason.
-- **Make the reviewer name the failed line and the fix.**
-- **Do the mechanical checks with a script, then use a model for what a script cannot see.**
-- **Review the final file, after the last change.**
+### Step 1: the weak loop
+
+```text
+MAKER:     image model, makes chair photo
+REVIEWER:  same chat as the maker
+REVIEW:    "Check the image looks premium and matches our style."
+ON FAIL:   "Not quite right, try again."
+AFTER:     script adds price label -> upload to shop
+```
+
+### Step 2: rewrite the rubric
+
+Turn each wish into a line with a yes or no answer:
+
+```text
+1  All four chair legs are fully visible.
+2  The background is plain white, with no props.
+3  The chair is shown from the front left, at seat height.
+4  There is no text or watermark in the image.
+5  The seat fabric matches swatch photo S-12 (shown to the reviewer).
+```
+
+### Step 3: the hard case
+
+**The hard case is the style line.** The shop's real wish was "matches our style". It is the line the shop cares about most, and it is the vaguest.
+
+You cannot just delete it. So ask the shop what "our style" means in things you can see. In this case it meant two things: a plain white background, and one fixed camera angle. Those became lines 2 and 3. Both are now yes-or-no.
+
+One part of "style" was left: "feels warm and calm". No line can test that. So it does not go into the model's rubric. It goes to the person check at the end. Our rule: what you cannot grade, a person decides.
+
+### Step 4: set up the reviewer and the feedback
+
+```text
+REVIEWER:  separate model call, its own context.
+           Sees: the image, the rubric, swatch S-12.
+           Does not see: the maker's prompt or notes.
+RETURNS:   pass/fail for each line, and for a fail:
+           the line number, what is wrong, one change,
+           "keep everything else".
+```
+
+### Step 5: move the last check to the end
+
+```text
+1  maker makes image
+2  script: file exists, 4:5, under 2 MB
+3  reviewer: lines 1-5
+4  on fail: send failed line + one change, go to 1
+5  script adds price label
+6  final check on the LABELLED file: script + reviewer
+   (new line 6: the label does not cover the chair)
+7  person approves the batch -> upload
+```
+
+### Step 6: why it is better
+
+- **Every line is gradeable.** Two reviewers would agree, so the scores are steady.
+- **The reviewer is independent.** It judges the image, not the maker's story about it.
+- **Feedback is small and exact.** The maker fixes one thing and keeps the rest.
+- **The checked file is the shipped file.** The label problem is caught at step 6.
+
+## Common mistakes
+
+1. **Letting the maker review its own work.** It carries the maker's context and choices. Fix: use a separate reviewer that sees only the work and the rubric.
+2. **A score with no named line.** "6 out of 10" gives the maker no clue what to fix. Fix: return pass or fail per line, plus one change for each fail.
+3. **Reviewing before the last edit.** A later crop or label makes the old pass untrue. Fix: run the final check on the delivered file.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A podcast studio uses a review loop for episode cover images. Here is their rubric:
+
+```text
+a  The cover is eye-catching.
+b  The episode number appears in the top right corner.
+c  The image is 3000 x 3000 pixels.
+d  The host's photo is flattering.
+```
+
+For each line, say: keep it for the model reviewer, give it to a script, or give it to a person. Rewrite one line if you can.
+
+### Answer
+
+- **a: a person, or rewrite it.** "Eye-catching" is not gradeable. If the studio means something you can see, rewrite it, for example "the title text fills at least a third of the width".
+- **b: the model reviewer.** It has a clear yes or no answer, and a model can look and check.
+- **c: a script.** The size is a number in the file. A script checks it the same way every time.
+- **d: a person.** "Flattering" is taste. Two reviewers could answer differently, so a person decides.
+
+## Recap
+
+- A review loop is a maker plus a separate reviewer, going round. It works only when you can write clear criteria.
+- Write yes-or-no rubric lines, and have the reviewer return the failed line and one change, with "keep everything else".
+- Run scripts for mechanical checks, a model for what it can see, and a person for taste. The last check runs on the file that ships.
