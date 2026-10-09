@@ -1,7 +1,7 @@
 ---
 id: strategist/r4/c2/lesson
 title: Autonomy levels
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude Code docs · Choose a permission mode
@@ -23,64 +23,155 @@ sources:
     url: https://www.anthropic.com/engineering/building-effective-agents
 ---
 
-## Why it matters
+## Goal
 
-An agent is not simply "on" or "off". The real question is how far it may go before a person checks. Set it too low and staff click "approve" all day. Set it too high and one bad step reaches a customer, a bank account or a shared file.
+After this lesson you can:
 
-**Autonomy** is how much an agent may do without asking. You choose it, action by action.
+- Read the autonomy settings real products offer: a mode for the whole session, or a rule for each tool.
+- Give each agent action its own step on a four-step ladder, using three questions.
+- Plan when to move an action up a step, and what must replace a human check when you do.
 
-## Products already have levels
+## The problem
 
-Anthropic's Claude Code, a coding agent, is a good public example. Its docs list permission modes, each a different tradeoff between convenience and oversight:
+An events company rents out three venues for weddings and conferences. It plans a booking agent. The agent answers enquiries, holds dates in the calendar, sends price quotes, takes deposits and cancels bookings when a client asks.
 
-- **Manual** (`default`): only reads run without asking. Best for reviewing every action yourself and sensitive work.
-- **Accept edits** (`acceptEdits`): reads, file edits and common file commands run without asking. Best for iterating on code you are reviewing.
-- **Plan** (`plan`): the agent explores and plans; edits wait until you approve a plan.
-- **Auto** (`auto`): everything runs, with background safety checks. Best for long tasks and fewer prompts.
-- **Don't ask** (`dontAsk`): reads and pre-approved tools run; anything that would prompt is denied. Best for locked-down scripts.
-- **Bypass permissions** (`bypassPermissions`): everything runs. For isolated containers and VMs only.
+The sales lead wants speed: "Let it do everything on its own. Staff are tired of clicking approve." The finance lead wants the opposite: "Every single action needs a person." Both talk about the agent as if it has one switch: on or off.
 
-OpenAI's Agents SDK sets autonomy per tool instead. Its guide says guardrails and human review together decide when a run should continue, pause or stop. You can mark one tool, such as "cancel order", as needing approval. The model can still decide the action is needed, but the run pauses until someone approves or rejects it.
+This lesson shows a better way: choose how much freedom each action gets. The guidance below is from each vendor's docs (October 2026).
 
-So these two products show two dials: a mode for the whole session, and a rule for each tool.
+## The idea
 
-## A ladder for business tasks
+**Autonomy** is how much an agent may do without asking a person first. It is not one switch. You can set it for each action.
 
-This four-step ladder is a tool for this course, not a vendor standard:
+**Products already have levels.** Claude Code, a coding agent, is a good public example. The [Claude Code docs on permission modes](https://code.claude.com/docs/en/permission-modes) say each mode "makes a different tradeoff between convenience and oversight". Here is what runs without asking in each mode:
 
-1. **Suggest.** The agent drafts; a person does the action. Example: it drafts a refund email, a support team member sends it.
-2. **Ask first.** The agent prepares each action and waits for approval. Example: it fills in the refund form; a team lead clicks approve.
-3. **Act within limits.** Pre-approved actions run alone; everything else asks. Example: refunds under €50 run alone, larger ones wait.
-4. **Act and report.** The agent works alone in a separated space; people review results afterwards. Example: it sorts a copy of last month's tickets overnight.
+- **Manual** (config value `default`): "Reads only". Best when you want to check each action yourself, and for sensitive work.
+- **Accept edits** (`acceptEdits`): reads, file edits and common file commands. Best for iterating on code you are reviewing.
+- **Plan** (`plan`): the agent explores and writes a plan. It doesn't edit your files until you approve the plan.
+- **Auto** (`auto`): everything runs, and safety checks happen in the background. Best for long tasks and fewer prompts.
+- **Don't ask** (`dontAsk`): reads and pre-approved tools run, and "anything that would prompt is denied". Best for locked-down scripts.
+- **Bypass permissions** (`bypassPermissions`): "Everything". For "Isolated containers and VMs only". (A **VM**, or virtual machine, is a separate computer inside a computer.) The docs add that this mode "offers no protection against prompt injection or unintended actions".
 
-## Choose the step for each action
+The [OpenAI guide to guardrails and human review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) sets autonomy per tool instead. Guardrails and human review together "define when a run should continue, pause, or stop". You can mark one tool, such as "cancel order", as needing approval. The guide says: "The model can still decide that an action is needed, but the run pauses until you approve or reject it." The guide lists the side effects to pause before: "cancellations, edits, shell commands, or sensitive MCP actions".
 
-Give each action its own step, not the whole agent one step. Ask three questions:
+So there are two dials: a mode for the whole session (Claude Code), and an approval rule for each tool (OpenAI's Agents SDK).
 
-- **What does a mistake cost?** Sending a wrong refund costs money. Drafting a wrong summary costs a re-read.
-- **Can you undo it?** OpenAI's guide lists cancellations, edits, shell commands and sensitive connector actions as side effects to pause before.
+**A ladder for business actions.** This four-step ladder is a tool for this course, not a vendor standard:
+
+```text
+1 Suggest           agent drafts, a person does the action
+2 Ask first         agent prepares, waits for a yes
+3 Act within limits pre-approved actions run alone, others ask
+4 Act and report    agent works alone in a separated space,
+                    people review results afterwards
+```
+
+**Three questions pick the step.** Our advice: give each action its own step, not the whole agent one step. Ask:
+
+- **What does a mistake cost?** A wrong deposit refund costs money. A wrong draft costs a re-read.
+- **Can you undo it?** A calendar hold can be removed. A payment usually can't.
 - **How much evidence do you have?** A new agent has no track record yet.
 
-Anthropic's "Building effective agents" post notes that an agent may run for many turns, so you must have some level of trust in its decisions. It says agents' autonomy suits scaling tasks in trusted environments.
+The post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) explains why evidence matters. An agent may "operate for many turns, and you must have some level of trust in its decision-making." It says agents' autonomy suits "scaling tasks in trusted environments".
 
-## Start low and move up
+**Start low and move up.** Both vendors let autonomy grow as trust grows:
 
-Anthropic's and OpenAI's docs both describe autonomy that grows with trust. Anthropic's Agent SDK docs suggest you can start restrictive and loosen permissions as trust builds, for example after reviewing the agent's first approach. OpenAI's MCP guide says you can require approval for every call, and skip approvals once you trust a server, to reduce delay.
+- The [Claude Agent SDK permissions page](https://code.claude.com/docs/en/agent-sdk/permissions) says you can "start restrictive and loosen permissions as trust builds", for example after you review the agent's first approach.
+- The [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) says approval is on by default for each call. "Once you gain confidence in your trust of this MCP server, you can skip these approvals to reduce execution latency." (**MCP** is a standard way to connect a model to outside tools.)
 
-Move up one step when the evidence supports it, and write down the reason. Example: after 200 approved refunds under €50 with no errors, the team moves that action from step 2 to step 3. Larger refunds stay at step 2.
+Our advice: move one action up one step, only when its own record supports it, and write down why. A good record for one action says nothing about another action.
 
-## Higher steps need other safeguards
+**Fewer prompts must not mean less safety.** The post [How we built Claude Code auto mode](https://www.anthropic.com/engineering/claude-code-auto-mode) reports: "Claude Code users approve 93% of permission prompts." Many prompts lead to **approval fatigue**, "where people stop paying close attention to what they're approving." Auto mode replaces some prompts with a **classifier** (a second model that checks each risky action). Two facts matter for business:
 
-Fewer prompts does not have to mean less safety. Anthropic's post on Claude Code auto mode says users approved 93% of permission prompts, and that many prompts lead to approval fatigue: people stop paying close attention. Auto mode replaces some prompts with a classifier (a second model) that checks risky actions. The classifier does not see the agent's own messages, so the agent can't talk it into a bad call.
+- The classifier does not see the agent's own messages. The post says this is "so the agent can't talk the classifier into making a bad call."
+- It is not perfect. The post calls a "17% false-negative rate on real overeager actions" the honest number: it missed about one in six risky actions in that test. It says auto mode "is not a drop-in replacement for careful human review on high-stakes infrastructure."
 
-The same post is honest about limits. The classifier missed 17% of the real overeager actions in Anthropic's test set. The post says it is not a drop-in replacement for careful human review on high-stakes infrastructure.
+The top step also needs a small space. Bypass mode is for isolated containers and VMs only. The more an agent may do alone, the smaller and safer its working space should be.
 
-Claude Code's docs also limit the top step: `bypassPermissions` is for isolated containers and VMs only. The more an agent may do alone, the smaller the space it should work in.
+Our example: autonomy is like a new employee's signing limit. On day one, the new hire can draft, but a manager signs. After months of good work, they may sign small amounts alone. Large amounts still need a second signature.
 
-## Key points
+## Worked example
 
-- Autonomy is how much an agent may do without asking; set it per action.
-- Claude Code sets a mode per session; OpenAI's Agents SDK sets approval per tool.
-- Use the cost of a mistake, whether it can be undone and your evidence to pick a step.
-- Start low; move one action up when the record supports it.
-- Higher steps need other safeguards, such as a separated space and checks.
+### Step 1: the weak sheet
+
+```text
+Booking agent: autonomy v1
+Whole agent: step 4 (act and report) in the live system.
+Reason: "Staff click yes on nearly all prompts anyway."
+Safety: one line in the prompt, "be careful with money".
+```
+
+What goes wrong:
+
+- Taking and refunding deposits gets the same freedom as answering a question.
+- Step 4 is meant for a separated space. Here the agent works on real clients and real money.
+- A written instruction limits nothing. Nothing stops a wrong refund.
+
+### Step 2: ask the three questions per action
+
+```text
+Action                 Cost of mistake   Undo?    Record   Step
+Answer an enquiry      low               yes      none     2
+Hold a date            low               yes      none     2
+Send a price quote     medium            partly   none     2
+Refund a deposit       high              no       none     2
+Cancel a booking       high              no       none     2
+```
+
+With no record, every action starts at step 2. The draft answers to enquiries are useful too: a person can see if the tone is right.
+
+### Step 3: the plan to move up
+
+```text
+Rule: move one action up one step after a clear record.
+Example: "Hold a date" after 300 holds with 0 changes by staff
+-> step 3: holds up to 48 hours run alone; longer holds ask.
+Refunds and cancellations: stay at step 2 until their own
+record is reviewed by finance.
+```
+
+### Step 4: the hard case
+
+**This is the hard case.** A client asks the agent to cancel a booking. The request is clear, so it feels safe to let the agent act alone. But a cancel frees the date, and another client may book it within minutes. Then you can't undo it. So "cancel" stays at step 2 even with a clear request. The OpenAI guide lists cancellations among the side effects to pause before.
+
+### Step 5: why it is better
+
+- **Risk decides the step, not habit.** Low-cost, undoable actions can move up first.
+- **Evidence is per action.** A good record on holds does not move refunds.
+- **Fewer prompts, better prompts.** Staff stop approving harmless holds and can focus on money.
+- **No bypass in the live system.** The top step only runs in a separated space.
+
+## Common mistakes
+
+1. **One setting for the whole agent.** The riskiest action then gets the same freedom as the safest one. Fix: set a step for each action.
+2. **Moving everything up after one good month.** The record of one action proves nothing about another. Fix: move one action, one step, with its own evidence.
+3. **Removing every human check because the clicks look automatic.** A checker model can miss risky actions too. Fix: let a checker handle low-risk prompts, and leave money actions and anything you can't undo with a person.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A marketing team plans a social media agent. It has no track record yet. Choose a step (1–4) for each action, then answer the last question.
+
+```text
+a. Draft posts for next week
+b. Publish a post on the company account
+c. Hide a spam comment (can be shown again)
+d. Spend ad money to promote a post
+Later: after 4 months, "hide spam comment" has 900 hides
+and 0 reversals by staff. What changes?
+```
+
+### Answer
+
+- **a. Step 1 (Suggest).** A draft can't do harm. A person decides what goes out.
+- **b. Step 2 (Ask first).** A public post can be deleted, but people may already have seen it.
+- **c. Step 2 at first.** It is easy to undo, so it is a good first action to move up later.
+- **d. Step 2 (Ask first).** It spends money and can't be undone.
+- **Later:** move only "hide spam comment" to step 3, for example with a daily limit, and write down the 900-and-0 record as the reason. The other actions keep their steps.
+
+## Recap
+
+- Autonomy is how much an agent may do without asking. Claude Code sets a mode per session; OpenAI's Agents SDK sets approval per tool.
+- Pick a step for each action: ask what a mistake costs, whether you can undo it, and what evidence you have.
+- Begin at a low step. Raise one action when its own record supports it. Higher steps need other safeguards, because checkers miss things too.

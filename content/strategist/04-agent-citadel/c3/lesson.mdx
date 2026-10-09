@@ -1,7 +1,7 @@
 ---
 id: strategist/r4/c3/lesson
 title: Human in the loop
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: OpenAI docs · Guardrails and human review
@@ -23,62 +23,151 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/aistudio-agents
 ---
 
-## Why it matters
+## Goal
 
-"A human stays in the loop" appears in almost every agent plan. It only helps if the person checks the right things, at the right moment, and has time to think. A person who clicks "approve" 300 times a day is not a control. They are a delay.
+After this lesson you can:
 
-**Human in the loop** means a person approves, reviews or can stop the agent's work at chosen points.
+- Decide where a person checks an agent: before an action (approval) or after the work (review).
+- Name the kinds of actions that need a yes first, and explain how a paused run waits and continues.
+- Spot approval fatigue, and design approvals that people actually read.
 
-## Before the action or after it
+## The problem
 
-There are two places to put a person:
+A software company with 600 staff runs an IT helpdesk agent. It resets passwords, gives people access to apps, orders laptops from a supplier and removes accounts when someone leaves.
 
-- **Before an action: approval.** The agent stops and waits for a yes or no. Use this when the action can't easily be undone.
-- **After the work: review.** The agent finishes; a person checks the result before anyone relies on it.
+The plan says "a human stays in the loop". In practice, two IT staff get a pop-up before every step the agent takes, even before it reads a ticket. Each pop-up says only "Approve next step?". They get thousands a week and click yes in a second or two.
 
-Anthropic's "Building effective agents" post describes both. Agents can pause for human feedback at checkpoints or when they hit a blocker. Even for coding agents, where automated tests check the work, the post says human review remains crucial. Google's AI Studio agents page asks for oversight, especially for tasks that change data or touch outside systems. It says to always verify critical outputs before you deploy them.
+Last month the agent removed the account of a person who was only on holiday. Both IT staff had approved it. Nobody remembers seeing it. The IT manager asks: "We had a human in the loop. Why didn't it help?"
 
-## What needs a yes first
+This lesson shows how to put a person in the right place, at the right moment. The guidance below is from each vendor's docs (October 2026).
 
-OpenAI's and Anthropic's computer use docs name similar actions that need a person first. OpenAI's computer use guide says to keep users in control of purchases, data transmission, destructive changes and other actions that are hard to reverse. It adds that typing sensitive information into a form counts as transmission.
+## The idea
 
-Anthropic's computer use docs list a similar set. They suggest asking a human to confirm decisions with meaningful real-world consequences, and tasks that need consent, such as completing financial transactions or agreeing to terms of service.
+**Human in the loop** means a person approves, reviews or can stop the agent's work at chosen points. It only helps if the person checks the right thing and has time to think.
 
-Example: a travel agent that compares flights can search freely. Booking the ticket, which spends money, waits for a yes.
+**Two places for a person.**
 
-## How a pause works
+- **Before an action: approval.** The agent stops and waits for a yes or a no. Use it when an action is hard to undo.
+- **After the work: review.** The agent finishes, and a person checks the result before anyone relies on it.
 
-OpenAI's guide to guardrails and human review describes the approval steps in its Agents SDK:
+The post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) describes both. Agents "can then pause for human feedback at checkpoints or when encountering blockers." Even for coding agents, where automated tests check the work, the post says "human review remains crucial". The [Google AI Studio agents page](https://ai.google.dev/gemini-api/docs/aistudio-agents) asks for oversight "especially for tasks that modify data or interact with external systems", and says: "Always verify critical outputs" before you deploy them.
 
-1. The run records an approval request instead of running the tool.
-2. It returns the pending items and a saved state.
-3. Your application approves or rejects each item.
-4. The same run continues from the saved state.
+**What needs a yes first.** Two vendors list similar actions:
 
-If the review takes time, the state can be stored and the run picked up later. For a business, this means the approver doesn't have to sit and watch. The request can wait in a queue until the right person sees it, and the agent doesn't start the task again.
+- The [OpenAI computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use) says: "Keep users in control of purchases, data transmission, destructive changes, and other actions that are hard to reverse." It adds that filling a form with sensitive data, such as a bank card number, "counts as transmission".
+- The [Claude computer use docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool) suggest asking a human to confirm "decisions that might result in meaningful real-world consequences", and tasks that need consent, "such as accepting cookies, completing financial transactions, or agreeing to terms of service".
 
-## Approval fatigue
+Our reading: actions that only look, such as reading a page, scrolling or taking a screenshot, change nothing. They don't need a yes.
 
-Too many prompts break the control. Anthropic's sandboxing post says constant "approve" clicks can lead to **approval fatigue**, where users stop paying close attention to what they approve.
+**How a pause works.** The [OpenAI guide to guardrails and human review](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) describes the approval steps in its Agents SDK:
 
-Its answer is to set clear limits inside which the agent can work freely, instead of asking about each action. In Anthropic's internal use, sandboxing reduced permission prompts by 84%. Fewer prompts means each remaining one gets real attention.
+```text
+1. the run records an approval request instead of running the tool
+2. it returns the pending items and a saved state
+3. your app approves or rejects each item
+4. the same run continues from the saved state
+```
 
-Example: an expenses agent asks before it reads each receipt. Staff stop reading the prompts. Better: let it read the receipts folder freely and ask only before it submits a claim.
+If the review takes time, the guide says to save the state, store it, "and resume later. That's still the same run." For a business, this means the approver doesn't have to sit and watch. It can stay in a queue until the right person sees it. The agent does not start the task again, and the tool does not run until someone says yes.
 
-## Make each approval count
+**Approval fatigue.** Too many prompts break the control. The Anthropic post on [Claude Code sandboxing](https://www.anthropic.com/engineering/claude-code-sandboxing) says constantly clicking "approve" "can lead to 'approval fatigue', where users might not pay close attention to what they're approving". Note the direction: tired people approve too easily. They don't start rejecting everything.
 
-This checklist is a tool for this course, built from the guides above:
+The post's answer is to set clear limits inside which the agent can work freely, instead of asking about each action. It reports that "sandboxing safely reduces permission prompts by 84%" in internal use. (A **sandbox** is a closed space where the agent can't reach anything outside the limits you set.) Fewer prompts means each one left gets real attention.
 
-- **Show the exact action.** Amount, recipient and what changes, not "Agent wants to continue".
-- **Name the approver.** One role, with the authority to say no.
-- **Decide what happens on silence.** In its section on authorized cybersecurity workflows, OpenAI's guide says to fail closed (stop, not run) if review times out. This course applies the same rule to payments (our own rule, not OpenAI's).
-- **Keep a stop button.** OpenAI's computer use guide says to support cancellation. Google's AI Studio has a Stop button for an agent that runs too long or goes the wrong way.
-- **Check the result, not the claim.** OpenAI's computer use guide says to check the actual outcome, not only the model's final answer.
+**Make each approval count.** This checklist is a tool for this course, built from the guides above:
 
-## Key points
+- **Show the exact action.** Who, what, how much, and what changes. Not "Approve next step?".
+- **Name the approver.** One role with the authority to say no.
+- **Decide what silence means.** In its section on authorized cybersecurity workflows, the OpenAI guide says to "fail closed if review times out or becomes unavailable". **Fail closed** means the action stops, it doesn't run. Our advice: use the same rule for any action that moves money, data or accounts.
+- **Keep a stop button.** The OpenAI computer use guide says to "support cancellation". Google AI Studio has a Stop button for an agent that runs too long or goes the wrong way.
+- **Check the result, not the claim.** The OpenAI computer use guide says to "check the actual outcome instead of relying only on the model's final answer."
 
-- Put a person before actions that are hard to undo, and after work people rely on.
-- Purchases, sending data and deleting things need a yes first.
-- An approval pauses the run; it can wait in a queue and then continue.
-- Too many prompts cause approval fatigue; set limits so fewer prompts are needed.
-- Show the exact action, name the approver, stop on silence, keep a stop button.
+Our example: approvals work like a smoke alarm. If it beeps every time you make toast, people take the battery out. A good alarm beeps rarely, and then everybody listens.
+
+## Worked example
+
+### Step 1: the weak design
+
+```text
+Helpdesk agent: approvals v1
+- Every step asks first, including reading tickets.
+- Prompt text: "Approve next step?"
+- Approver: whoever is on shift.
+- No answer in 15 minutes: the step runs anyway.
+- Nobody checks the agent's results afterwards.
+```
+
+What goes wrong:
+
+- Thousands of harmless prompts train staff to click yes without reading.
+- The prompt hides the person, the account and the action.
+- Silence counts as yes, so risky steps can run with no human at all.
+
+### Step 2: sort the actions
+
+```text
+Action                         Before (approval)?  After (review)?
+Read a ticket                  no                  no
+Reset a password (user asked)  no                  sample weekly
+Give access to an app          yes, app owner      no
+Order a laptop (a purchase)    yes, IT lead        no
+Remove an account              yes, HR + IT        no
+```
+
+Reads and simple resets inside clear limits run freely. Purchases, access changes and removals wait for a yes, because they spend money, open data or are hard to undo.
+
+### Step 3: write a prompt people can judge
+
+```text
+APPROVAL NEEDED: remove account
+Person:  J. Moreno, Sales, laptop ID L-2231
+Reason:  ticket #4418 "leaver on 30 Sept" from HR
+Effect:  email, files and app access deleted after 30 days
+Approve / Reject. No answer in 4 hours: request stays on hold.
+```
+
+### Step 4: the hard case
+
+**This is the hard case.** Each Friday the agent writes a list of unused app licences. Finance cancels the licences on the list on Monday. There is no single risky "action" by the agent, so no approval pops up. But people rely on the list at once. So a person reviews the list once the agent is done, and before finance acts. The reviewer checks real login data for a sample of rows, not only the agent's note that "all rows were checked".
+
+### Step 5: why it is better
+
+- **Fewer prompts, real attention.** Staff see a handful of clear prompts a day, not thousands.
+- **The prompt shows the exact effect.** A holiday is easy to spot when the reason and the person are on screen.
+- **Silence means stop.** Nothing risky runs without a yes.
+- **Review covers work, not only actions.** The licence list gets a check before money moves.
+
+## Common mistakes
+
+1. **Asking before every step.** People stop reading and click yes. Fix: approve only risky actions, and let safe ones run inside clear limits.
+2. **Vague prompt text.** "Continue?" hides what will happen. Fix: show the exact action, the target and the effect.
+3. **Letting silence count as yes.** A timeout that runs the action removes the human. Fix: fail closed and keep the request in a queue.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A travel team uses an agent to book trips for staff. Decide for each action: approval before, review after, or neither. Then answer the last question.
+
+```text
+a. Search flight prices on airline sites
+b. Type a traveller's passport number into a booking form
+c. Pay for a hotel with the company card
+d. Write a weekly report of trips, used by finance for budgets
+Question: an approval waits from Friday evening to Monday.
+What happens to the agent's work in OpenAI's Agents SDK?
+```
+
+### Answer
+
+- **a. Neither.** Searching changes nothing.
+- **b. Approval before.** Typing sensitive data into a form counts as sending data out.
+- **c. Approval before.** A purchase is hard to undo.
+- **d. Review after.** Finance relies on the report, so a person checks it before finance uses it.
+- **Question:** the run's state is saved. On Monday someone approves or rejects, and the same run continues. The agent does not redo its earlier work, and the payment does not run until someone says yes.
+
+## Recap
+
+- Put a person before actions that are hard to undo, and after work that others rely on.
+- Purchases, sending data and destructive changes need a yes first. A paused run waits with its saved state and then continues.
+- Too many prompts cause approval fatigue. Ask less often, show the exact action, stop on silence, and check the real result.
