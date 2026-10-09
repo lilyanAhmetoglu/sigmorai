@@ -1,7 +1,7 @@
 ---
 id: strategist/r0/c3/lesson
 title: Hallucinations
-minutes: 7
+minutes: 9
 sources:
   - kind: docs
     title: Claude docs · Reduce hallucinations
@@ -14,59 +14,145 @@ sources:
     url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
 ---
 
-## Why it matters
+## Goal
 
-A model can write something false in a calm, confident tone. This is called a **hallucination**. It is one of the most important risks to understand before you use AI at work.
+After this lesson you can:
 
-## What a hallucination is
+- Spot a hallucination, even when it sounds sure.
+- Rewrite a prompt with four simple techniques that lower the risk.
+- Decide how much human checking a task needs, based on what a mistake costs.
 
-Anthropic's docs define it as text that is "factually incorrect or inconsistent with the given context". They add that even the most advanced models can do this.
+## The problem
+
+A procurement lead must compare two software vendors by Friday. Vendor A sent a 60-page proposal. She asks an AI assistant: "Summarize this proposal and its main terms."
+
+The summary is clear and well written. One line says: "Includes free data export when the contract ends." She almost copies it into her recommendation. Then she searches the proposal. It says nothing about data export.
+
+The sentence sounds normal, and that is why it is dangerous. This lesson shows how to make this rarer, and how to catch it when it happens. The techniques below come from the vendors' docs (October 2026).
+
+## The idea
+
+A **hallucination** is text that sounds right but is not. The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) describe it as text that is "factually incorrect or inconsistent with the given context". They add that "even the most advanced language models" can do this.
 
 Two kinds matter at work:
 
-- **Wrong facts.** The model states a date, a number or a rule that is not true.
-- **Not in your document.** You give the model a contract and it "quotes" a clause that the contract does not contain.
+- **Wrong facts.** A date, a number or a rule that is not true.
+- **Not in your document.** The model "quotes" or summarizes something your file does not say.
 
-Example: you ask an assistant to summarize a supplier contract. The summary says "30-day free cancellation". The contract says nothing about cancellation. The sentence sounds normal, which is why it is dangerous.
+**Confident is not the same as correct.** The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) say models "can sometimes generate text that is factually incorrect or inconsistent with the given context". Fluent text sounds sure, but the tone tells you nothing about the facts.
 
-## Why confident is not the same as correct
+Our example: a hallucination is like a colleague who fills a gap in a meeting with a guess, in the same calm voice they use for facts.
 
-Anthropic's glossary says LLMs can generate human-like text. Fluent, human-like text sounds sure. But the tone tells you nothing about whether a fact is true. Treat every specific claim (a number, a name, a date, a quote) as something to check.
+**Four techniques you can use in any chat.** All come from the Claude guide:
 
-## Ways to reduce hallucinations
+1. **Allow "I don't know."** Give the model permission to say it is unsure. The guide says this "can drastically reduce false information".
+2. **Quotes first.** For long documents (the guide says over 20k tokens), ask for "word-for-word quotes first", then do the task from those quotes.
+3. **Cite and check.** Ask for a supporting quote for each claim. "If it can't find a quote, it must retract the claim."
+4. **Only your documents.** Tell the model to use only the documents you gave it, "not its general knowledge".
 
-Anthropic's guide lists simple techniques. You can use all of them in a normal chat, with no code.
+The guide also lists **best-of-N**: run the same prompt several times and compare. "Inconsistencies across outputs could indicate hallucinations."
 
-**1. Allow "I don't know."** Tell the model it may say it is unsure or lacks the information. The guide calls this a simple technique that can "drastically reduce false information".
+Two warnings:
 
-Example prompt: "If the report doesn't contain the answer, say: I don't have enough information."
+- **Send the right documents, not all of them.** The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) says too much irrelevant context "drowns out the real information and causes hallucinations".
+- **The risk gets lower, not zero.** The Claude guide says the techniques "don't eliminate them entirely" and adds: "Always validate critical information, especially for high-stakes decisions."
 
-**2. Quotes first.** For long documents, ask the model to pull out word-for-word quotes first, then do the task using only those quotes.
+So match the checking to the cost of a mistake. In one example in the OpenAI guide, "where the cost of failure was very high", the team decided "the human would drive and the AI would function as an assistant."
 
-Example: "First copy the exact sentences about payment terms. Then summarize the payment terms from those sentences only."
+## Worked example
 
-**3. Cite and check.** Ask the model to back each claim with a quote from your documents. If it can't find a quote, it must remove the claim.
+### Step 1: the first prompt
 
-**4. Only your documents.** Tell the model to use only the documents you give it, not its general knowledge.
+```text
+Summarize this proposal and its main terms.
 
-**5. Ask more than once.** Run the same prompt several times and compare. Anthropic's guide says inconsistent answers can be a sign of hallucination.
+[vendor-a-proposal.pdf, 60 pages]
+```
 
-OpenAI's accuracy guide adds a warning that fits here: too much irrelevant context can drown out the real information and cause hallucinations. Give the model the documents that matter, not everything you have.
+What goes wrong:
 
-## These techniques reduce the risk. They don't remove it.
+- Nothing allows the answer "the proposal doesn't say".
+- Nothing ties each line to the text, so a made-up term looks the same as a real one.
+- Nothing stops the model from filling gaps with what proposals "usually" include.
 
-Anthropic's guide is clear: the techniques "don't eliminate them entirely". Always validate critical information, especially for high-stakes decisions.
+### Step 2: the better prompt
 
-So decide how much checking a task needs by asking what a mistake costs. OpenAI's guide gives a clear contrast: a bad draft a person fixes is a small problem; refunding a customer $1000 instead of $100 is a big one. In one example in that guide, where the cost of failure was very high, the team let the human drive and used the AI as an assistant.
+```text
+I am comparing software vendors. Use ONLY the attached proposal.
+Do not use general knowledge about typical contracts.
 
-Example plan for a legal team:
+Step 1: Copy, word for word, every sentence about price, contract
+length, support hours, data export and ending the contract.
+Number each quote.
 
-- Internal meeting notes → AI drafts, the writer skims.
-- Customer-facing contract summary → AI drafts with quotes, a lawyer checks every quote against the contract.
-- A final legal decision → a person decides. The AI only helps prepare.
+Step 2: Using only those quotes, fill in this table:
+Term | What the proposal says | Quote number
 
-## Key points
+Step 3: Check each row. If no quote supports it, delete the row
+and write "removed: no quote".
+
+If the proposal says nothing about a term, write
+"Not in the proposal". Do not guess.
+
+[vendor-a-proposal.pdf, 60 pages]
+```
+
+### Step 3: the hard case
+
+Data export is the hard case. The proposal is silent on it, so the first prompt invented a friendly answer. With the new prompt, the row reads "Not in the proposal". **That gap is useful.** It becomes a question for the vendor before she signs.
+
+### Step 4: why it is better
+
+- **"I don't know" is allowed**, so a gap shows up as a gap.
+- **Quotes first** keeps the summary tied to the real text of a long document.
+- **Cite and check** makes every row easy to verify: she opens quote 7 and reads it.
+- **Only your documents** stops "typical contract" guesses.
+
+### Step 5: set the checking level
+
+Our advice: decide the review step by what a mistake would cost.
+
+```text
+Internal notes from the vendor call   -> AI drafts, she skims
+Comparison table for the decision     -> she checks every quote in the PDF
+Final choice and contract signature   -> people decide; AI only prepares
+```
+
+## Common mistakes
+
+1. **Trusting the tone.** A calm, detailed answer is not proof. Fix: treat every number, name, date and quote as something to check.
+2. **Asking for "more detail" to fix it.** Longer answers give more room for unsupported claims. Fix: ask for quotes and allow "not in the document".
+3. **Skipping review because the prompt is better.** The techniques lower the risk but don't remove it. Fix: keep a human check wherever a mistake is costly.
+
+## Try it
+
+Not graded. A marketing manager uses this prompt for a customer newsletter. The draft says the new version is "40% faster". The product notes give no speed figure. Name the problem and rewrite the prompt.
+
+```text
+Write an exciting newsletter about our new product version.
+Make it sound impressive.
+
+[product-notes.docx]
+```
+
+### Answer
+
+The problem is a **hallucination**: a claim that is not in the given notes. "Make it sound impressive" also pushes the model to add claims. A better prompt:
+
+```text
+Write a newsletter about our new product version.
+Use only facts from the attached product notes.
+After the draft, check each claim. If no sentence in the notes
+supports it, remove it and mark the place with [ ].
+If the notes don't cover something, leave it out.
+
+[product-notes.docx]
+```
+
+A person still checks every number before it goes to customers, because public claims are costly to get wrong.
+
+## Recap
 
 - A hallucination is false or unsupported text, often said with confidence.
-- Prompts can lower the risk: allow "I don't know", quotes first, cite and check, only your documents.
-- No technique makes it zero. Match the amount of human checking to the cost of a mistake.
+- Four prompt techniques lower the risk: allow "I don't know", quotes first, cite and check, only your documents. Running a prompt more than once can expose a guess.
+- No technique makes the risk zero. Match the human checking to the cost of a mistake.

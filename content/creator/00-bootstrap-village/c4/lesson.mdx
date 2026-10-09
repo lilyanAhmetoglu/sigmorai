@@ -1,7 +1,7 @@
 ---
 id: creator/r0/c4/lesson
 title: Models & limits
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Model deprecations
@@ -29,78 +29,150 @@ sources:
     url: https://docs.dev.runwayml.com/guides/models
 ---
 
-## Why it matters
+## Goal
 
-Every media model has hard limits: sizes, shapes, lengths, speed. A brief that ignores them breaks on the first try. Example: "a 15-second vertical ad in 4K" may be one request on one model and impossible on another. This lesson shows how to read the limits before you promise a client anything.
+After this lesson you can:
 
-All limits below are copied from the vendors' docs, checked on 2026-10-06.
+- Check a brief against a model's limits (size, shape, length, speed) before you agree to it.
+- Plan a longer video as several short shots.
+- Read "preview", "deprecation" and "shut down", and plan for a model that goes away.
 
-## A four-question check
+## The problem
 
-This is Sigmorai's checklist, not a vendor rule. Ask it for every model:
+A travel agency asks for two things by next week:
 
-1. **What does it make?** Image, video, audio (chapter 1).
-2. **What sizes and lengths?** Resolution, aspect ratio, seconds.
-3. **How fast?** Seconds or minutes per result.
-4. **How stable?** Preview or stable? Is a shutdown announced?
+1. A 24-second landscape video of a hotel, in 4k, for the website.
+2. 500 small square thumbnails for its hotel list.
 
-## Image models: one family, several jobs
+The designer says "yes" in the meeting. Then she opens the video model's docs. The model makes clips of 8 seconds at most, and 4k works only at 8 seconds. She also finds that the model is marked **Preview**, and that another vendor recently shut down its video API.
 
-Vendors offer several models in one family. Each one is tuned for a different job.
+She promised before she read the limits. Now she must re-plan under time pressure.
 
-**OpenAI**'s image guide recommends two GPT Image 2.5 models. Its docs say: "Choose Sunburst for workflows where editing precision matters most, and Flare for fast, high-quality everyday image generation."
+## The idea
+
+Every media model has hard limits. Read them before you promise anything. Think of a camera lens: a great lens still has a fixed zoom range. You plan the shot around it.
+
+This four-question check is Sigmorai's, not a vendor rule:
+
+```text
+1. What does it make?     image, video, audio
+2. What sizes and length? resolution, shape, seconds
+3. How fast?              seconds or minutes per result
+4. How stable?            preview or stable? shutdown announced?
+```
+
+**Image models: one family, several jobs.** The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) offer two GPT Image 2.5 models: "Choose Sunburst for workflows where editing precision matters most, and Flare for fast, high-quality everyday image generation."
 
 - Recommended sizes: 1024x1024, 1536x1024 (landscape), 1024x1536 (portrait).
-- Custom sizes are allowed: sides must be multiples of 16, the shape between 1:3 and 3:1, no edge over 3840 pixels. Sizes above 2560x1440 are experimental.
-- Speed: complex prompts "may take up to 2 minutes".
-- Known weak spots: exact text placement, keeping a recurring character or brand element the same across many images, and exact layout.
+- Custom sizes: "Width and height must be multiples of 16, the aspect ratio must be between 1:3 and 3:1, and neither edge may exceed 3840 pixels." Also: "Resolutions above 2560x1440 are experimental."
+- Speed: "Complex prompts may take up to 2 minutes to process."
+- Weak spots: precise text placement; the model "may occasionally struggle to maintain visual consistency for recurring characters or brand elements across multiple generations"; and precise placement in layout-heavy designs.
 
-**Google** lists several Nano Banana models:
+The [Gemini API docs](https://ai.google.dev/gemini-api/docs/image-generation) list several Nano Banana models:
 
-- Nano Banana 2.1 is the main "workhorse" for generation and editing, at 1K, 2K and 4K.
-- Nano Banana Pro is for "professional asset production" and complex tasks.
-- Nano Banana 2 Lite is "the fastest and cheapest", but supports only 1K and is "not optimized for multiple reference inputs".
-- Its limits note says the model "won't always follow the exact number of image outputs" you ask for.
+- **Nano Banana 2.1**: the "primary high-efficiency workhorse model for image generation and conversational editing", at 1K, 2K and 4K.
+- **Nano Banana Pro** (Gemini 3 Pro Image): "optimized for professional asset production".
+- **Nano Banana 2 Lite**: "The fastest and cheapest Gemini image model". It "only supports 1K resolution" and is "Not optimized for multiple reference inputs".
+- One more limit: "The model won't always follow the exact number of image outputs that the user explicitly asks for."
 
-Example: a brand needs one 4K hero image with exact product details. A Lite model is the wrong pick: it stops at 1K. For 300 quick 1K thumbnails, Lite may be the right pick.
+**Video models: short clips, strict rules.** The [Gemini API docs](https://ai.google.dev/gemini-api/docs/veo) give these limits for Veo 3.1:
 
-## Video models: short clips, strict rules
+| Setting     | Veo 3.1                                                         |
+| ----------- | --------------------------------------------------------------- |
+| Length      | 4, 6 or 8 seconds                                               |
+| Resolution  | 720p, 1080p, 4k (1080p and 4k: 8 seconds only)                  |
+| Shape       | 16:9 (default) or 9:16                                          |
+| Frame rate  | 24fps                                                           |
+| Per request | 1 video                                                         |
+| Wait time   | "Min: 11 seconds; Max: 6 minutes (during peak hours)"           |
+| Storage     | "stored on the server for 2 days, after which they are removed" |
+| Status      | Preview                                                         |
 
-Google's Veo 3.1 docs give clear limits:
+Two more rules: you can extend a Veo video "by 7 seconds and up to 20 times", but "Video extension is also limited to 720p videos". And Veo 3.1 Lite has no 4k.
 
-| Setting     | Veo 3.1                                        |
-| ----------- | ---------------------------------------------- |
-| Length      | 4, 6 or 8 seconds                              |
-| Resolution  | 720p, 1080p, 4k (1080p and 4k: 8 seconds only) |
-| Shape       | 16:9 (default) or 9:16                         |
-| Frame rate  | 24fps                                          |
-| Per request | 1 video                                        |
-| Wait time   | 11 seconds to 6 minutes (at peak hours)        |
-| Storage     | kept on the server for 2 days, then removed    |
-| Status      | Preview                                        |
+[Runway](https://docs.dev.runwayml.com/guides/models) offers its own video models, such as Gen-4.5 ("text to video and image to video"). Its model list also includes models from other companies, such as Veo 3.1. So one platform can give you several video models.
 
-Two more rules matter for planning:
+**Models get retired.**
 
-- **Extension.** You can extend a Veo video by 7 seconds, up to 20 times. But extension works only at 720p.
-- **Lite.** Veo 3.1 Lite has no 4k.
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/video-generation) say: "The Sora 2 models and Videos API were shut down on September 24, 2026". Developers were told on March 24, 2026 ([OpenAI deprecations](https://developers.openai.com/api/docs/deprecations)). "No one-to-one replacement API is available."
+- The Gemini API docs list Imagen as "Google's legacy text-to-image models (shut down)".
+- The [Claude docs](https://platform.claude.com/docs/en/about-claude/model-deprecations) say "Anthropic regularly retires older ones", and "Requests to retired models will fail."
 
-Example: the brief says "15-second vertical teaser, 1080p". One Veo 3.1 request can't do it: 1080p clips are 8 seconds, and extension drops to 720p. A practical plan is two 8-second 1080p shots, cut together in your editor.
+The [Gemini deprecations page](https://ai.google.dev/gemini-api/docs/deprecations) explains the words. A **deprecation** is "the announcement that we no longer provide support for a model, and that it will be 'shut down' in the near future". After shutdown, "it is completely turned off". Models are either **preview** or **stable**.
 
-**Runway** offers its own video models, such as Gen-4.5 (text or image in, video out). Its model list also includes models from other companies, such as Google's Veo 3.1. So one platform can give you a choice of video models.
+## Worked example
 
-## Models get retired
+### Step 1: the brief against the limits (before)
 
-Models do not last forever. Three real examples:
+```text
+Brief:   24 s, 16:9, 4k, one video
+Limits:  4k only at 8 s; extension only at 720p
+Result:  one request can't do it. Extension can't keep 4k.
+```
 
-- **OpenAI's video API.** OpenAI's docs say the Sora 2 models and Videos API "were shut down on September 24, 2026". Developers were told on March 24, 2026. The docs add: "No one-to-one replacement API is available."
-- **Google's Imagen.** Google's image docs list Imagen as "Google's legacy text-to-image models (shut down)".
-- **Anthropic.** Anthropic's docs say it "regularly retires older ones", and requests to a retired model "will fail".
+### Step 2: plan in shots (after)
 
-Google's deprecation page explains the words. A **deprecation** is the notice that a model will be "shut down" soon. After shutdown, it is "completely turned off". Google also marks models as **preview** or **stable**; Veo 3.1 is listed as Preview.
+A long video is usually several shots edited together. Plan three 8-second 4k shots:
 
-## What this means for your work
+```text
+Shot 1 (8 s, 16:9, 4k): exterior at golden hour, slow push-in
+Shot 2 (8 s, 16:9, 4k): lobby, camera glides past the desk
+Shot 3 (8 s, 16:9, 4k): pool terrace, slow pan to the sea
+Edit:   cut the three shots together = 24 s
+```
 
-- **Read the limits before the brief.** Check length, size and shape before you agree to a deliverable.
-- **Plan in shots.** Short clip limits mean a longer ad is several shots edited together.
-- **Download at once.** Veo keeps videos for only 2 days.
-- **Keep your prompts portable.** If your workflow is a set of written shot descriptions, you can move it to another model when one is retired.
+**The hard case is the 4k length.** Extension looks like the easy path to 24 seconds. But the extend feature is 720p only, so it breaks the 4k need. Separate 8-second shots keep 4k.
+
+### Step 3: plan the time and the files
+
+```text
+Each try:  11 s to 6 min wait
+Storage:   2 days, then removed
+Plan:      download every clip you keep on the same day
+```
+
+### Step 4: pick the image model for the thumbnails
+
+500 small square thumbnails need speed and low cost, not 4K. Nano Banana 2 Lite fits: fast, cheap, 1K only. For a 4K hero image, Lite is the wrong pick.
+
+### Step 5: plan for change
+
+The video model is in Preview, and another vendor just shut down its video API. Keep the shot list above in your own files. If the model is retired, you can try the same shot descriptions on another video model.
+
+### Step 6: why it is better
+
+- **The promise matches the limits.** You know the plan works before the client hears it.
+- **Quality is kept.** Three 4k shots, not one stretched 720p clip.
+- **Nothing is lost.** Clips are saved before the 2-day limit.
+- **The work can move.** Written shot lists don't depend on one model.
+
+## Common mistakes
+
+1. **Saying yes before reading the limits.** Fix: run the four-question check on the docs before the meeting ends.
+2. **Using extension for a high-resolution video.** Extension is 720p only. Fix: plan separate 8-second shots at 1080p or 4k, and cut them together.
+3. **One model, no backup.** Models get deprecated and shut down. Fix: store prompts and shot lists where you control them, and read the vendor's deprecation page.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A teammate plans three requests. For each one, say if it fits the limits above. If not, say what to change.
+
+```text
+1. GPT Image 2.5 Flare: a 4000x1000 web banner.
+2. Veo 3.1 Lite: an 8-second clip in 4k.
+3. Nano Banana 2 Lite: 50 product shots, each one
+   mixing 6 reference photos.
+```
+
+### Answer
+
+1. **Does not fit.** The edge is over 3840 pixels, and 4:1 is wider than the 3:1 limit. Ask for a 3:1 size with sides that are multiples of 16, such as 3072x1024. Sizes above 2560x1440 are experimental, so test first. Or crop the 4:1 shape in your design tool.
+2. **Does not fit.** Veo 3.1 Lite has no 4k. Use Veo 3.1 (or Veo 3.1 Fast) at 4k, 8 seconds.
+3. **Risky.** Nano Banana 2 Lite is "Not optimized for multiple reference inputs". Use Nano Banana 2.1 for shots that mix many references.
+
+## Recap
+
+- Read the limits (size, shape, length, speed, status) before you agree to a brief.
+- Short clip limits mean a longer video is several shots edited together. Extension works only at 720p.
+- Models are deprecated and shut down. Keep your shot lists portable, and download results quickly.

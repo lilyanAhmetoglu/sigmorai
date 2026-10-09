@@ -1,7 +1,7 @@
 ---
 id: builder/r3/c4/lesson
 title: Prompt caching
-minutes: 10
+minutes: 11
 sources:
   - kind: docs
     title: Prompt caching (Claude docs)
@@ -14,77 +14,157 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/caching
 ---
 
-A RAG app often sends the same big block of text again and again: a long system prompt, tool definitions, a policy manual. Without caching, the model processes that block from scratch on every request, and you pay full price each time. Prompt caching lets the provider reuse that work.
+## Goal
 
-## What gets reused
+After this lesson you can:
 
-OpenAI explains the mechanism. While a model reads input, it computes intermediate states called key-value (KV) states. "Prompt caching preserves that state for a reusable prefix: the unchanged tokens at the beginning of a prompt." A later request with the same prefix can reuse the saved state instead of processing those tokens again.
+- Order a prompt so that a long, stable part can be reused from the cache.
+- Turn caching on and place the cache point on Claude, OpenAI and Gemini.
+- Read the usage fields to prove a cache hit, and estimate what caching saves.
 
-The key word is **prefix**. Caching works from the start of the prompt up to a point.
+## The problem
 
-- **Claude:** the cache covers `tools`, then `system`, then `messages`, in that order, up to the block you mark. Cache hits "require 100% identical prompt segments".
-- **OpenAI:** "Cache reuse requires the entire rendered prefix to match."
-- **Gemini:** to raise the chance of a hit, put "large and common contents at the beginning of your prompt".
+A team runs a code-review bot. Each request sends three things: the team's coding standards (about 9,000 tokens), a short line about the pull request, and the diff to review. The bot reviews about 40 pull requests an hour.
 
-## Stable first, changing last
+The prompt starts like this: `PR #4812 by Dana, opened 10:02`. The coding standards come next, then the diff. The standards never change, but the team pays full input price for all 9,000 tokens on every request. They want to pay less for the part that repeats.
 
-This leads to one design rule: put what never changes at the top, and what changes at the bottom.
+## The idea
 
-Example: a support bot sends a 6,000-token policy manual on every request. Two layouts:
+When a model reads input, it computes internal states for every token. The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-caching) explain that prompt caching "preserves that state for a reusable **prefix**: the unchanged tokens at the beginning of a prompt." A later request with the same start can reuse that work.
 
-- **Bad:** `Current time: 09:14:07`, then the manual, then the question. The first line changes every second, so the prefix never matches and the manual is never reused.
-- **Good:** the manual, then the time, then the question. The manual is the same each time, so it is read from the cache.
+Think of a bookmark in a long book. You can skip to the bookmark only if every page before it is exactly the same.
 
-OpenAI gives the same advice: if your instructions contain "timestamps, user-specific content, or other dynamic content", place those at the end.
+```text
+request 1:  [standards ......... ] [PR line] [diff A]
+request 2:  [standards ......... ] [PR line] [diff B]
+             ^ same prefix: reused  ^ new: processed
+```
 
-## Turning it on
+The key word is **prefix**. Any change near the start breaks the match for all the text that follows.
 
-The three vendors start from different defaults.
+- **The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-caching):** the cache covers `tools`, `system` and `messages`, "in that order", up to the block you mark. Hits "require 100% identical prompt segments".
+- **The OpenAI docs:** "Cache reuse requires the entire rendered prefix to match." If your instructions contain "timestamps, user-specific content, or other dynamic content", the docs say to place them at the end.
+- **The [Gemini docs](https://ai.google.dev/gemini-api/docs/caching):** "Try putting large and common contents at the beginning of your prompt".
 
-- **Claude:** you opt in. Automatic caching is one `cache_control` field at the top of the request; the system moves the cache point forward as a conversation grows. For finer control, put `cache_control` on up to 4 individual blocks (explicit breakpoints).
-- **OpenAI:** "Prompt caching is enabled by default for supported OpenAI models." On GPT-5.6 and later you can also mark explicit breakpoints with `prompt_cache_breakpoint`.
-- **Gemini:** "Implicit caching is enabled by default for all Gemini 2.5 and newer models." Savings are passed on automatically on a cache hit.
+The defaults differ:
 
-## The breakpoint trap
+- **Claude:** you opt in with `cache_control`. Automatic caching is one `cache_control` field at the top of the request. Or you mark up to 4 blocks yourself (explicit breakpoints).
+- **OpenAI:** supported models cache on their own ("enabled by default"). On GPT-5.6 and later, you can also mark a block yourself (`prompt_cache_breakpoint`).
+- **Gemini:** the Gemini docs say implicit caching is on "for all Gemini 2.5 and newer models". The docs add: "There is nothing you need to do".
 
-The Claude docs describe a common mistake. A request has a large static context (blocks 1 to 5) and then a block with a timestamp and the user message (block 6). If you mark block 6, "You pay for a fresh cache write on every request and never get a read." The fix: mark block 5, "the last block that stays the same across requests."
+Caching changes the price, not the answer. The Claude docs: the response "is identical to what you would get if prompt caching were not used."
 
-OpenAI lists the same trap under "A shared prefix is not always a cached prefix": put a breakpoint after the static content, not after the changing part.
+## Worked example
 
-## What it costs and saves
+The review bot uses Claude Sonnet 5.5. Let's make the standards cacheable step by step.
 
-Writing to the cache costs a little more; reading costs much less.
+### Step 1: the weak layout
 
-- **Claude:** a 5-minute cache write is 1.25 times the base input price, a 1-hour write is 2 times, and a cache read is 0.1 times. Some models read for less: 0.05 times on Claude Opus 5.5 and 0.025 times on Claude Fable 5.1 and Claude Mythos 5.1.
-- **OpenAI, GPT-5.6 and later:** writes cost 1.25 times the uncached input rate; reads cost 0.1 times the uncached rate, except 0.05 times on GPT-6.1 Sol.
+```text
+system[0]  PR #4812 by Dana, opened 10:02      (changes every request)
+system[1]  coding standards                    (~9,000 tokens, never changes)
+messages   the diff                            (changes every request)
+no cache_control
+```
 
-OpenAI works through the math at the 0.1 read rate: across ten requests, "one write and nine full reads cost 2.15× at that rate, compared with 10× without caching." Claude's 5-minute rates on a model with the 0.1 read rate give the same result: 1.25 + 9 × 0.1 = 2.15.
+What goes wrong:
 
-Caching changes the price, not the answer. Claude: the response "is identical to what you would get if prompt caching were not used." OpenAI: caching "does not change how the model generates output tokens".
+- Claude does not cache without `cache_control`, so every request pays full price.
+- Even with caching on, the first block changes every time. Nothing after it can match.
 
-## Minimums and lifetimes
+### Step 2: stable first, changing last
 
-Short prompts are not cached.
+```text
+system[0]  coding standards                    (stable)
+system[1]  PR #4812 by Dana, opened 10:02      (changes)
+messages   the diff                            (changes)
+```
 
-- **Claude:** for example 512 tokens on Claude Opus 5.5 and Claude Sonnet 5.5, and 4,096 tokens on Claude Haiku 4.5. Below the minimum, the request runs without caching "and no error is returned".
-- **OpenAI:** 1,024 tokens for GPT-5.6 and later.
-- **Gemini:** 4,096 tokens on Gemini 3.5 Flash, and 2,048 on Gemini 2.5 Flash and Gemini 2.5 Pro.
+The PR line moves below the standards. Now every request starts with the same 9,000 tokens.
 
-Entries also expire. Claude's default lifetime is 5 minutes, refreshed for free each time the cache is used, with a 1-hour option at a higher write price. On OpenAI GPT-5.6 and later, a prefix stays reusable for at least 30 minutes after its last write or reuse. Earlier OpenAI models use `prompt_cache_retention`, and its `24h` value means extended retention "typically keeps entries available for around 30 minutes and can retain them for up to 24 hours." OpenAI lists these models for extended retention: `gpt-5.5`, `gpt-5.5-pro`, `gpt-5.4`, `gpt-5.2`, `gpt-5.1-codex-max`, `gpt-5.1`, `gpt-5.1-codex`, `gpt-5.1-codex-mini`, `gpt-5.1-chat-latest`, `gpt-5`, `gpt-5-codex` and `gpt-4.1`.
+### Step 3: mark the last stable block
 
-## Check that it works
+```json
+{
+  "system": [
+    {
+      "type": "text",
+      "text": "[coding standards, ~9,000 tokens]",
+      "cache_control": { "type": "ephemeral" }
+    },
+    { "type": "text", "text": "PR #4812 by Dana, opened 10:02" }
+  ],
+  "messages": [{ "role": "user", "content": "[the diff]" }]
+}
+```
 
-Don't assume a hit. Read the usage numbers.
+Why on the standards and not on the last block? The Claude docs: "Place the breakpoint on the last block that stays identical across requests." A mark on a changing block writes a new entry each time. Automatic caching falls into the same trap here: it places the cache point on the last cacheable block, which changes every request. So use an explicit mark.
 
-- **Claude:** `cache_creation_input_tokens` (written) and `cache_read_input_tokens` (read). If both are 0, the prompt was not cached.
-- **OpenAI:** `usage.input_tokens_details.cached_tokens` and `cache_write_tokens`.
-- **Gemini:** the cache hits show in the response's `usage.total_cached_tokens` field.
+### Step 4: prove it in the usage fields
 
-## Key points
+Request 1 writes the cache. Requests 2, 3 and 4 should read it:
 
-- Caching reuses the work for an identical prefix. Any change before the cache point breaks the match.
-- Put stable content first (tools, instructions, documents) and changing content last (timestamps, the user's question).
-- Claude needs `cache_control`; OpenAI and Gemini 2.5+ cache by default on supported models.
-- Mark the last block that stays the same, never a block that changes every request.
-- Writes cost a little more, reads much less. At a 0.1 read rate, one write and nine reads cost 2.15 times one full pass, against 10 times without caching.
-- Check minimum lengths and lifetimes per model, and confirm hits in the usage fields.
+```text
+request 1:  cache_creation_input_tokens=9,012  cache_read_input_tokens=0
+request 2:  cache_creation_input_tokens=0      cache_read_input_tokens=9,012
+request 3:  cache_creation_input_tokens=0      cache_read_input_tokens=9,012
+```
+
+On OpenAI, read `usage.input_tokens_details.cached_tokens` and `cache_write_tokens`. On Gemini, read `usage.total_cached_tokens`.
+
+### Step 5: what it costs
+
+On Claude, a 5-minute cache write is 1.25 times the base input price (the docs: "1.25 times the base input tokens price"). A read is normally 0.1 times, but the docs list exceptions: "Cache hits and refreshes on Claude Opus 5.5 and Claude Sonnet 5.5 are priced at 0.05x the base input price."
+
+Ten reviews inside the cache lifetime, measured in "one full pass of the standards":
+
+```text
+no cache:                 10 x 1.00               = 10.00
+Sonnet 5.5 (0.05 reads):  1.25 + 9 x 0.05         =  1.70
+a 0.1x-read model:        1.25 + 9 x 0.10         =  2.15
+```
+
+The OpenAI docs do the same sum for GPT-5.6 and later at the 0.1 read rate: "one write and nine full reads cost 2.15×".
+
+The default Claude lifetime is 5 minutes. The Claude docs: "The cache is refreshed for no additional cost each time the cached content is used." For longer gaps, Claude also has a 1-hour cache "at 2x the base input token price" for writes. On OpenAI models before GPT-5.6, `prompt_cache_retention` set to `24h` can keep entries "for up to 24 hours". At 40 reviews an hour, a request comes about every 90 seconds, so the 5-minute cache stays warm.
+
+### Step 6: the hard case, a cheaper model
+
+To save more, the team moves small diffs to Claude Haiku 4.5 and trims the standards to a 3,000-token summary. Now both usage fields show 0 on every request. There is no error.
+
+The reason: each model has a minimum cacheable length. It is "4,096 tokens for Claude Haiku 4.5" and 512 tokens for Claude Sonnet 5.5. Shorter prompts "will be processed without caching, and no error is returned". Fix: check the minimum for the model before you trust caching. Here, either keep the full standards on Haiku 4.5 (over 4,096) or accept no caching for the short version.
+
+### Why it is better
+
+- **One stable prefix.** The 9,000 tokens are the same on every request, so they are read from the cache.
+- **The mark sits on the last stable block.** Each request writes nothing new and reads the standards.
+- **Proven, not assumed.** The usage fields show a write, then reads.
+
+## Common mistakes
+
+1. **Dynamic data at the top.** A date, a name or a request id in the first block breaks every match. Fix: move all changing parts below the stable content.
+2. **Marking the newest block.** It changes every time, so you pay for writes and never read. Fix: put the mark on the final stable block.
+3. **Trusting caching without checking.** A prompt under the model's minimum is simply not cached, with no error. Fix: read the cache fields in the response usage.
+
+## Try it
+
+Not graded. This Claude request runs 200 times a day for a translation tool. Find two problems.
+
+```text
+tools      12 tool definitions                  (~2,500 tokens, stable)
+system[0]  Glossary for customer: ACME-DE       (changes per customer)
+system[1]  translation rules                    (~6,000 tokens, stable)
+messages   the text to translate                (changes)
+cache_control on: messages (the text)
+```
+
+### Answer
+
+1. **A changing block sits between stable ones.** The customer glossary is above the 6,000-token rules, so the rules can only be cached together with one customer's glossary. Fix: put the rules before the glossary.
+2. **The mark is on the changing text.** Fix: mark the rules block, the last stable one. The tools come first in Claude's order (`tools`, then `system`), so they are part of that cached prefix.
+
+## Recap
+
+- Caching reuses the work for an identical prefix. Put stable content first and changing content last.
+- Claude needs `cache_control` on the last stable block (or a top-level field). OpenAI (supported models) and Gemini 2.5+ cache on their own.
+- Writes cost a little more and reads much less, but only above the model's minimum length. Check the usage fields to see the hit.

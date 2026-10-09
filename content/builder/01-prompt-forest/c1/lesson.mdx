@@ -1,7 +1,7 @@
 ---
 id: builder/r1/c1/lesson
 title: Be specific
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Prompting best practices (Claude docs)
@@ -17,84 +17,158 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-Realm 0 showed where your instructions go. This realm is about what to write in them. The first rule is simple: a vague prompt makes the model guess. Each guess is a place where the output can drift from what your system needs.
+## Goal
 
-## The new-employee test
+After this lesson you can:
 
-The Claude docs give a useful picture: think of the model "as a brilliant but new employee who lacks context on your norms and workflows". It is smart, but it does not know your product, your users or your rules unless you tell it.
+- Use the colleague test to find every place where a prompt makes the model guess.
+- Replace vague words with rules you can check: reader, format, length and content.
+- Turn "don't" rules into "do" rules with a reason, and keep a small test set for every prompt change.
 
-The same page gives a "golden rule": "Show your prompt to a colleague with minimal context on the task and ask them to follow it. If they'd be confused, Claude will be too."
+## The problem
 
-Example: "Summarise this support ticket." A new colleague would ask: for whom? How long? Bullets or prose? Should I include the customer's details? Every open question is a guess the model makes for you.
+A support team at a software company gets about 300 tickets a day. They want the model to write a first draft of each reply. An agent reads the draft, edits it and sends it.
 
-## Say what a good output looks like
-
-The Claude docs say to "be specific about the desired output format and constraints". The Gemini docs say the same in other words: you can specify constraints and the response format, and they advise you to "explicitly explain any ambiguous terms or parameters".
-
-Words like "short", "simple" or "professional" are ambiguous. Replace them with something you can check.
-
-Less specific:
+Their first prompt is one line:
 
 ```text
-Summarise this ticket. Keep it short.
+Write a reply to this ticket. Be professional and helpful. Don't make promises.
 ```
 
-More specific:
+After a week, the agents rewrite most drafts:
+
+1. Some drafts are three lines. Others are 400 words with headings.
+2. Some drafts ask the customer for details that are already in the ticket.
+3. One draft told a customer "We will refund this month in full". Only billing staff can approve a refund.
+
+The model is not broken. The prompt leaves almost every choice open, so the model guesses. This lesson shows how to close those gaps.
+
+## The idea
+
+The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say to think of the model "as a brilliant but new employee who lacks context on your norms and workflows". It is smart, but it does not know your product, your customers or your rules.
+
+They give a **golden rule**: "Show your prompt to a colleague with minimal context on the task and ask them to follow it. If they'd be confused, Claude will be too."
+
+Every question a new colleague would ask is a guess the model makes for you:
 
 ```text
-Summarise this ticket for a support agent who will read it in 10 seconds.
-Write exactly 3 bullet points: the problem, what the customer already tried,
-and what the customer wants now. Each bullet is at most 15 words.
+vague word      -> colleague asks         -> checkable rule
+"short"         -> how short?             -> 60 to 120 words
+"professional"  -> which tone? headings?  -> plain text, short sentences
+"don't promise" -> so what do I say?      -> "a team member will confirm it"
 ```
 
-The second prompt defines the reader, the format, the length and the content. You can now test every output against it.
+Four habits close the gaps:
 
-## Ask for what you want, not what you don't want
+- **Name the output.** The Claude docs say to "be specific about the desired output format and constraints". The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) add: "explicitly explain any ambiguous terms or parameters". Words like "short" or "professional" mean different things to different readers.
+- **Say what to do, not only what not to do.** The Claude docs: "Tell Claude what to do instead of what not to do". Their example swaps a ban on markdown for a request for flowing prose paragraphs. A "don't" removes one choice. A "do" names the target.
+- **Give the reason.** The Claude docs say that explaining "why such behavior is important" helps the model "better understand your goals".
+- **Use steps when order matters.** The Claude docs advise "numbered lists or bullet points when the order or completeness of steps matters".
 
-The Claude docs list this as a way to steer format: "Tell Claude what to do instead of what not to do". Their example:
+How much method you write depends on the model. The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-engineering) say GPT models "benefit from more explicit instructions around how to accomplish tasks", like "a junior coworker". Reasoning models are like "a senior co-worker. You can give them a goal to achieve and trust them to work out the details." But the [OpenAI reasoning guide](https://developers.openai.com/api/docs/guides/reasoning-best-practices) still says to "provide specific guidelines" and "be very specific about your end goal". So a reasoning model needs less method, not a vaguer goal.
 
-- Instead of: "Do not use markdown in your response"
-- Try: "Your response should be composed of smoothly flowing prose paragraphs."
+Last, a specific prompt is a testable prompt. The OpenAI docs recommend "pinning your production applications to specific model snapshots" and "building tests and evaluation suites that measure prompt behavior". The Gemini docs say: "Prompt engineering is iterative."
 
-A "don't" removes one option but leaves the model to guess among all the others. A "do" names the target.
+## Worked example
 
-Example: instead of "Don't include personal data", write "Refer to the person as 'the customer'. Leave out email addresses and phone numbers, because summaries are shown on a shared screen." This also gives the reason, which realm 0 showed helps the model understand your goal.
+### Step 1: run the colleague test
 
-## Use steps when order matters
+Read the one-line prompt as a new agent would. Write down every question:
 
-The Claude docs advise giving "instructions as sequential steps using numbered lists or bullet points when the order or completeness of steps matters".
+- Who reads the draft: the agent or the customer? Both, in the end.
+- How long? Bullets or prose? Headings?
+- What if the ticket has no clear fix?
+- What should I say instead of a promise?
+- Why can't I promise? Who can?
 
-Example: a triage prompt that must first detect the language, then classify the issue, then pick a team. Write it as steps 1, 2 and 3. A paragraph that mentions all three in passing makes it easy for one step to be skipped.
+Each question is a gap. Close them one by one.
 
-## How much detail depends on the model type
+### Step 2: rewrite the prompt
 
-OpenAI describes two model families and how specific to be with each:
+```text
+Draft a first reply to the customer support ticket below.
+A support agent will read and edit your draft before it is sent.
 
-- GPT models "benefit from more explicit instructions around how to accomplish tasks". OpenAI compares them to "a junior coworker".
-- Reasoning models are like "a senior co-worker. You can give them a goal to achieve and trust them to work out the details."
+Write the reply in this order:
+1. Thank the customer in one sentence and name their problem in your own words.
+2. Give one next step: a fix from the ticket notes, or one question
+   about information that is not already in the ticket.
+3. End with the line: [agent name]
 
-Specific does not mean long, though. OpenAI's reasoning guide still says to "provide specific guidelines" (their example: "propose a solution with a budget under $500") and to "be very specific about your end goal". Chapter 4 covers reasoning models in depth.
+Rules:
+- Plain text, 60 to 120 words. No headings and no bullet points.
+- Use short sentences and everyday words. Explain any technical term.
+- If the customer asks for a refund, a discount or a fix date, say that
+  a team member will confirm it. Only billing staff can approve refunds,
+  and only the product team sets dates.
 
-So for any model, be precise about the goal, the constraints and the output. With a reasoning model, you can leave out the step-by-step method.
+Ticket: [the ticket text and the agent's notes]
+```
 
-## Specific prompts are testable prompts
+### Step 3: test the hard case
 
-A specific prompt gives you a clear pass or fail for each output. That is what makes it possible to improve.
+**The hard case is a refund request.** Use a real one:
 
-OpenAI recommends two habits for production prompts:
+```text
+Ticket: The app was down all Monday and my team lost a day of work.
+I want a refund for this month.
+```
 
-- "Pinning your production applications to specific model snapshots" to keep behaviour consistent.
-- "Building tests and evaluation suites that measure prompt behavior", so you can see the effect of a prompt change or a model upgrade.
+The old prompt only said "Don't make promises". The model had to invent what to say instead. The new prompt names the target sentence and gives the reason. A good draft now says that a team member from billing will confirm the refund question.
 
-The Gemini docs add: "Prompt engineering is iterative."
+### Step 4: why it is better
 
-Example: you keep 30 real tickets with the summary you expect for each. Every prompt change runs against those 30 before it ships. Realm 6 builds full evals on this idea.
+- **Reader and use are clear.** The model knows an agent edits the draft and a customer reads it.
+- **Format and length are checkable.** You can count words and look for headings.
+- **The order is fixed.** Numbered steps keep every part in every draft.
+- **The "don't" became a "do" with a reason.** The model knows what to write and why.
 
-## Key points
+### Step 5: make it testable
 
-- The model is a smart new employee with no context. Apply the colleague test.
-- Replace vague words ("short", "simple") with checkable rules: reader, format, length, content.
-- Say what to do, not only what not to do. Give the reason.
-- Use numbered steps when order or completeness matters.
-- GPT-style models need more explicit method; reasoning models need a precise goal and constraints.
-- Specific prompts can be tested. Pin the model snapshot and keep a test set.
+Keep 20 real tickets, including two refund requests and one ticket with no clear fix. For each, write what a pass looks like: 60 to 120 words, no headings, no promise. Run every prompt change against these 20 tickets. Pin the model snapshot, so the results stay comparable.
+
+If the team later moves to a reasoning model, keep the goal, the rules and the format. You may need less step-by-step method. Run the 20 tickets on the new model before you switch.
+
+## Common mistakes
+
+1. **Adjectives as rules.** "Clear", "brief" and "friendly" mean different things to different readers. Fix: replace each one with something you can count or see.
+2. **A list of "don'ts" with no target.** The model still has to guess what is allowed. Fix: say what to do instead, and add the reason in one line.
+3. **Changing the prompt or the model without a test set.** You cannot tell if the change helped. Fix: keep a small set of real inputs with pass rules, and rerun it on every change.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team uses this prompt to write release notes for their app store page:
+
+```text
+Write release notes for these changes. Keep them short and not too
+technical. Don't mention internal stuff.
+```
+
+Run the colleague test. List at least three guesses the model must make, then rewrite the prompt.
+
+### Answer
+
+Guesses the model must make:
+
+1. **How short?** One line per change, or one paragraph in total?
+2. **Who reads it?** "Not too technical" for whom?
+3. **What is "internal stuff"?** Ticket numbers? Code names? Team names?
+4. **What format?** Bullets, prose, a title?
+
+One possible rewrite:
+
+```text
+Write release notes for our app store page. Readers are everyday users,
+not developers.
+- One bullet per change, at most 15 words each, with the most useful change first.
+- Say what the user can now do, in everyday words.
+- Leave out ticket numbers, code names and team names: the page is public.
+```
+
+## Recap
+
+- The model is a smart new employee with no context. If a colleague would ask a question, the model will guess.
+- Replace vague words with checkable rules: reader, format, length, content. Say what to do, and why.
+- A specific prompt can be tested. Keep a small test set, pin the model snapshot, and rerun the tests on every change.

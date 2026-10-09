@@ -1,7 +1,7 @@
 ---
 id: builder/r3/c2/lesson
 title: Chunking
-minutes: 9
+minutes: 11
 sources:
   - kind: blog
     title: Introducing Contextual Retrieval (Engineering at Anthropic)
@@ -17,72 +17,162 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/file-search
 ---
 
-Chapter 1 turned text into vectors. But you don't embed a 300-page manual as one vector. You cut it into pieces first. Those pieces are called chunks, and how you cut them decides what search can find later.
+## Goal
 
-## Where chunking fits
+After this lesson you can:
 
-Anthropic's Contextual Retrieval post describes the basic RAG preparation in three steps:
+- Choose a chunk size, a chunk boundary and an overlap, and stay inside each vendor's limits.
+- Spot a chunk that lost its context, and fix it with a short context line written by a model.
+- Keep a code sample or table whole when you cut a document.
 
-1. Break the knowledge base into "smaller chunks of text, usually no more than a few hundred tokens".
-2. Use an embedding model to turn each chunk into a vector.
-3. Store the vectors in a vector database that can search by meaning.
+## The problem
 
-At question time, the system finds the chunks closest to the question and adds them to the prompt. So the chunk is the unit you retrieve. If the answer is split badly, no search setting can put it back together.
+A developer-tools company has 4 years of release notes: one long page per version, 60 versions in all. A support assistant answers questions from them with RAG.
 
-## Three choices: size, boundary, overlap
+A user asks: "In which version was the `--legacy-auth` flag removed?" The assistant finds this chunk:
 
-The same post names the three choices: "The choice of chunk size, chunk boundary, and chunk overlap can affect retrieval performance."
+```text
+The --legacy-auth flag is removed. Use --token instead.
+```
 
-- **Size:** how many tokens go in each chunk.
-- **Boundary:** where a cut is allowed to fall.
-- **Overlap:** how many tokens two neighbouring chunks share. Overlap can keep text near a cut whole in one chunk, if the text is no longer than the overlap.
+The chunk is right, but it never says which version it belongs to. The assistant guesses a version, and the guess is wrong.
 
-Example: a refund rule starts at the end of one chunk and finishes at the start of the next. With no overlap, neither chunk holds the whole rule. With overlap at least as long as the rule, one chunk can hold all of it.
+A second user asks for the migration code from that release. The chunk with the code stops halfway through the example. The other half sits in the next chunk, which search does not return.
 
-## What the managed tools do
+Both bugs come from one step: how the notes were cut into chunks.
 
-You don't always write a chunker yourself. OpenAI and Gemini both chunk files for you when you add them to their managed stores.
+## The idea
 
-**OpenAI vector stores.** When you add a file, it is "automatically chunked, embedded, and indexed". By default, files are split into 800-token chunks, with 400-token overlap between consecutive chunks. So if chunk 1 covers tokens 1 to 800, chunk 2 starts at token 401. You can change this with `chunking_strategy`:
+You do not embed a 40-page document as one vector. You cut it into **chunks** first. The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) describes chunks as "usually no more than a few hundred tokens". Each chunk gets its own vector, and search returns chunks, not whole documents. So the chunk is the unit the model will see.
 
-- `max_chunk_size_tokens` must be between 100 and 4096 inclusive.
-- `chunk_overlap_tokens` must be non-negative and "should not exceed `max_chunk_size_tokens / 2`".
+Think of cutting a cookbook into index cards. If one card holds half a recipe, the cook gets half a recipe.
 
-**Gemini File Search.** Imported files are "automatically broken down into chunks, embedded, indexed". For more control, a `chunking_config` sets a maximum number of tokens per chunk and a maximum number of overlapping tokens. The docs' example uses `white_space_config` with `max_tokens_per_chunk: 200` and `max_overlap_tokens: 20`.
+The same post names three choices: "The choice of chunk size, chunk boundary, and chunk overlap can affect retrieval performance."
 
-Treat the defaults as a starting point. For its own settings, such as how many chunks to retrieve, Anthropic's post advises experimenting on your use case.
+```text
+size:     how many tokens per chunk
+boundary: where a cut may fall (any token? only at a heading?)
+overlap:  how many tokens two neighbour chunks share
 
-## The lost-context problem
+|------ chunk 1 ------|
+               |------ chunk 2 ------|
+               ^^^^^^^ overlap
+```
 
-A chunk is cut out of its document, so it can lose its surroundings. Anthropic's example, from a set of company filings: a chunk says "The company's revenue grew by 3% over the previous quarter."
+Managed vector stores cut files for you, with their own settings:
 
-The question is: "What was the revenue growth for ACME Corp in Q2 2023?" The chunk holds the answer, but it never names the company or the quarter. In Anthropic's words, it "doesn't specify which company it's referring to or the relevant time period". Search may miss it, and the model may not know it is the right one.
+- **OpenAI vector stores** ([OpenAI docs](https://developers.openai.com/api/docs/guides/retrieval)): "By default, `max_chunk_size_tokens` is set to `800` and `chunk_overlap_tokens` is set to `400`." You can change it with `chunking_strategy`. The size must be "between 100 and 4096" tokens, inclusive. The overlap "should not exceed" half of it (`max_chunk_size_tokens / 2`).
+- **Gemini File Search** ([Gemini docs](https://ai.google.dev/gemini-api/docs/file-search)): files are "automatically broken down into chunks". A `chunking_config` sets the most tokens per chunk and the most overlapping tokens.
 
-## Fix 1: add context to each chunk
+A cut can also remove context. Anthropic's post describes the fix, **Contextual Retrieval**:
 
-Anthropic's answer is Contextual Retrieval: "prepending chunk-specific explanatory context to each chunk before embedding". The chunk above becomes:
+- **The lost context.** A chunk says revenue grew by 3%, but it "doesn't specify which company it's referring to or the relevant time period".
+- **The fix.** A model reads the chunk together with its full document, then writes a short context. The context, "usually 50-100 tokens", is added in front of the chunk "before embedding it and before creating the BM25 index" (BM25 is keyword search; chapter 3 covers it).
+- **Why a model.** Writing these by hand would be "far too much work" for thousands of chunks.
 
-"This chunk is from an SEC filing on ACME corp's performance in Q2 2023; the previous quarter's revenue was $314 million. The company's revenue grew by 3% over the previous quarter."
+There is also a second way. The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/embeddings) list Voyage AI contextualized chunk models, such as `voyage-context-4`. They "produce chunk-level vectors that capture full document context without manual metadata augmentation". You call them with `contextualized_embed()`.
 
-Anthropic does not write these by hand; it says that would be far too much work. A model reads the whole document plus one chunk and writes a short context, "usually 50-100 tokens". The same text is added before embedding and before building the keyword index.
+## Worked example
 
-The cost stays low because the document is the same for every chunk. With prompt caching (chapter 4), Anthropic loads the document into the cache once. With its stated assumptions (800-token chunks, 8k-token documents, 50 tokens of instructions and 100 tokens of context per chunk), it estimates a one-time cost of $1.02 per million document tokens.
+The team's first script cut the notes itself. Let's fix the chunking step by step, and move it to an OpenAI vector store.
 
-In Anthropic's tests, contextual embeddings cut the top-20 retrieval failure rate by 35% (5.7% to 3.7%). The post also notes what did not help much: adding generic document summaries to chunks gave "very limited gains".
+### Step 1: the weak version
 
-## Fix 2: an embedding model that sees the document
+```python
+chunks = [text[i:i + 1200] for i in range(0, len(text), 1200)]   # 1,200 characters, no overlap
+```
 
-Some embedding models handle context themselves. The Claude docs list Voyage AI's contextualized chunk models, such as `voyage-context-4`. They "produce chunk-level vectors that capture full document context without manual metadata augmentation." You call them with `contextualized_embed()` instead of `embed()`.
+What goes wrong:
 
-## Labels for filtering
+- The cut can fall anywhere: inside a word, inside a code sample, inside a table.
+- No overlap, so text near a cut is split between two chunks.
+- Most chunks never name their version.
 
-Chunks can also carry labels that are not part of the text. OpenAI lets each file in a vector store have `attributes`, at most 16 keys, which search can filter on. Gemini File Search lets you add `custom_metadata` key-value pairs to files. Example: label each handbook with its country, so a question from Spain only searches Spanish policies.
+### Step 2: choose size, boundary and overlap
 
-## Key points
+Release notes have clear headings (`## v4.2.0`, `### Breaking changes`). Split at headings first, and upload each section as its own file. Then let the vector store cut long sections, with settings inside its limits:
 
-- Chunks are the unit you retrieve. Anthropic: usually no more than a few hundred tokens.
-- Size, boundary and overlap all affect retrieval. Overlap can keep text near a cut whole in one chunk, if the text is no longer than the overlap.
-- OpenAI's default is 800-token chunks with 400-token overlap; size 100 to 4096, overlap at most half. Gemini File Search takes a `chunking_config`.
-- A chunk can lose the facts that make it findable, such as the company name or the date.
-- Contextual Retrieval adds 50 to 100 tokens of model-written context to each chunk. Prompt caching keeps that cheap.
-- Contextualized embedding models such as `voyage-context-4` capture document context without that extra step.
+```text
+chunking_strategy (type: static)
+  max_chunk_size_tokens: 600
+  chunk_overlap_tokens:  150
+```
+
+600 is inside 100–4096. 150 is less than half of 600 (300), so the overlap rule holds too. On Gemini File Search, the same idea goes in `chunking_config` (the docs' example sets 200 tokens per chunk and 20 overlapping tokens).
+
+### Step 3: the hard case, a code sample on a cut
+
+The migration example for `--legacy-auth` is 220 tokens long. It starts 100 tokens before a cut. With 150 tokens of overlap, it still does not fit in one chunk: the overlap is shorter than the example.
+
+Overlap only saves text that is no longer than the overlap. Two fixes, best first:
+
+1. **Never cut inside a code block or a table.** Keep each one whole, even if that chunk is a bit longer. A 220-token example fits easily in a 600-token chunk.
+2. If you cannot control the cut, make the overlap at least as long as your longest example, and stay under the half-size rule.
+
+### Step 4: add context to each chunk
+
+The removed-flag chunk still has no version. Use a model to write a context line for every chunk. Anthropic's post shares its prompt:
+
+```text
+<document>
+[the whole release note for one version]
+</document>
+Here is the chunk we want to situate within the whole document
+<chunk>
+[one chunk]
+</chunk>
+Please give a short succinct context to situate this chunk within the overall document for the purposes of improving search retrieval of the chunk. Answer only with the succinct context and nothing else.
+```
+
+Before and after:
+
+```text
+before: The --legacy-auth flag is removed. Use --token instead.
+
+after:  From the v4.2.0 release notes (March 2026), section Breaking changes.
+        The --legacy-auth flag is removed. Use --token instead.
+```
+
+Now the word "v4.2.0" is in the chunk, so both meaning search and keyword search can match it, and the model can name the version.
+
+### Step 5: keep it cheap
+
+Every call sends the whole release note again, once per chunk. Anthropic's post uses prompt caching (chapter 4): load the document into the cache once, then send only the new chunk each time. With its stated assumptions (800-token chunks, 8k-token documents), the one-time cost was "$1.02 per million document tokens".
+
+### Why it is better
+
+- **Clean cuts.** Headings, code samples and tables stay whole.
+- **Inside the limits.** Size and overlap follow the vendor's rules, so the upload is accepted.
+- **Findable chunks.** Each chunk names its version. In Anthropic's tests, contextual embeddings cut the top-20 retrieval failure rate by 35% (5.7% to 3.7%).
+
+You can also add labels that are not in the text. OpenAI files can have `attributes` (the dictionary "can have at most 16 keys") to filter on. Gemini File Search takes custom metadata, "a set of key-value pairs". Example: `product: cli` or `product: sdk`.
+
+## Common mistakes
+
+1. **Cutting by characters with no regard for structure.** Code and tables break in half. Fix: cut at headings and keep code blocks and tables whole.
+2. **Trusting overlap to save anything.** Overlap only protects text shorter than the overlap. Fix: check your longest code sample or table against the overlap, or avoid cuts inside them.
+3. **Adding one summary to every chunk.** Anthropic tried this kind of shared document summary and the gain was small. Fix: write a context that is specific to each chunk.
+
+## Try it
+
+Not graded. A team chunks a product manual. Find two problems before you read the answer.
+
+```text
+OpenAI vector store, chunking_strategy:
+  max_chunk_size_tokens: 300
+  chunk_overlap_tokens:  200
+
+Sample chunk after upload:
+  "Press and hold for five seconds until the light turns blue."
+```
+
+### Answer
+
+1. **The overlap breaks the rule.** 200 is more than half of 300 (150). Fix: lower the overlap to 150 or less, or raise the chunk size.
+2. **The chunk has no product name.** It does not say which product or which button. Fix: add a model-written context line per chunk, for example "From the Model T2 manual, section Pairing the remote." Or use a contextualized embedding model.
+
+## Recap
+
+- Chunks are the unit you retrieve. Size, boundary and overlap all change what search can find. Stay inside the vendor's limits (OpenAI: 100–4096 tokens, overlap at most half).
+- Cut at structure. Keep code samples and tables whole; overlap only saves text shorter than the overlap.
+- A chunk can lose the facts that make it findable. Add a short model-written context to each chunk (Contextual Retrieval), and use prompt caching to keep it cheap.
