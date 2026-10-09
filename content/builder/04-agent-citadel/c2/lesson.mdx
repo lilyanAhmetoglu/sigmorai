@@ -51,7 +51,10 @@ Every production agent needs two kinds of stop:
 - **A safety stop.** The run ends before it costs too much, even if the work is not done.
 - **A done check.** The run does not end until the work is really done.
 
-**Safety stops.** In the [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/agent-loop), `max_turns` caps tool-use round trips and `max_budget_usd` caps cost. Both default to "No limit". Without limits, a run "can run long on open-ended prompts", so the docs advise a budget for production agents. Subagent spend counts toward the budget too.
+**Safety stops.** In the [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/agent-loop), `max_turns` caps tool-use round trips and `max_budget_usd` caps cost. Both default to "No limit".
+
+- Why it matters: without limits, a run "can run long on open-ended prompts".
+- What to do: the docs advise a budget for production agents. Subagent spend counts toward the budget too.
 
 The [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) has `max_turns`. Past it, the runner raises a `MaxTurnsExceeded` exception. If you want a planned fallback answer instead of the error, the runner takes an `error_handlers` dict, and its `"max_turns"` entry returns that answer.
 
@@ -61,6 +64,7 @@ The [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main
 
 - `tool_use_behavior` on an agent can make a tool's output the final answer, for example with `"stop_on_first_tool"` ([agents docs](https://github.com/openai/openai-agents-python/blob/main/docs/agents.md)).
 - A [guardrail](https://github.com/openai/openai-agents-python/blob/main/docs/guardrails.md) tripwire raises an exception. By default an input guardrail runs at the same time as the agent. With `run_in_parallel=False` it runs first, and if it trips, "the agent never executes".
+- In parallel mode, "the agent may have already consumed tokens and executed tools before being cancelled."
 - An approval is not a stop at all. The [OpenAI guide](https://developers.openai.com/api/docs/guides/agents/running-agents) calls it an expected pause: the run is "intentionally interrupted" and later goes on from the same state. (Chapter 6.)
 
 **Stopping too early.** In [Anthropic's long-running agent tests](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents), a later agent would sometimes "declare the job done" too soon. A done check that runs in code fixes this. Claude Code and the Claude Agent SDK have a `Stop` hook. The [hooks reference](https://code.claude.com/docs/en/hooks) says `decision: "block"` "prevents Claude from stopping", and the `reason` tells Claude why it should go on.
@@ -77,6 +81,8 @@ options = ClaudeAgentOptions(
 )
 # app: on the ResultMessage -> page the engineer with msg.result
 ```
+
+(Short tool names here. Custom tools get MCP-style names in a real config, like `mcp__ops__rollback`.)
 
 No cap on turns or money. And the app reads `result` without looking at how the run ended.
 

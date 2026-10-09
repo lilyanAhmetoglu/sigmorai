@@ -44,13 +44,17 @@ The model decides which tool to call. The harness must decide if that call may r
 
 ## The idea
 
-**Why the model can't be the only check.** The [Anthropic post on agents](https://www.anthropic.com/engineering/building-effective-agents) warns of "the potential for compounding errors" and advises "the appropriate guardrails". The [MCP specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) says there "**SHOULD** always be a human in the loop with the ability to deny tool invocations." The [agent loop docs](https://code.claude.com/docs/en/agent-sdk/agent-loop) put it plainly: Claude picks the tools, "but you control whether those calls are allowed to execute."
+**Why the model can't be the only check.** Three sources agree:
+
+- The [Anthropic post on agents](https://www.anthropic.com/engineering/building-effective-agents) warns of "the potential for compounding errors" and advises "the appropriate guardrails".
+- The [MCP specification](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) says there "**SHOULD** always be a human in the loop with the ability to deny tool invocations."
+- The [agent loop docs](https://code.claude.com/docs/en/agent-sdk/agent-loop) put it plainly: Claude picks the tools, "but you control whether those calls are allowed to execute."
 
 **Three answers.** Every tool call gets one: **allow** (run it), **ask** (pause for a person or your code), or **deny** (block it). A denied call is not a crash. Claude gets a rejection as the tool result and "typically attempts a different approach or reports that it couldn't proceed."
 
 **Claude: rules, then mode.** The [Claude Code permissions docs](https://code.claude.com/docs/en/permissions) fix the order: "Rules are evaluated in order: deny, then ask, then allow." They add: "The first match in that order determines the outcome". A more specific rule does not jump the line. A bare deny such as `Bash` removes the tool; a scoped one such as `Bash(rm *)` keeps the tool and blocks matching calls ([SDK permissions](https://code.claude.com/docs/en/agent-sdk/permissions)).
 
-A permission mode handles calls that no rule settles. In short:
+A permission mode acts after the deny and ask rules. In the SDK it runs before the allow rules: with `bypassPermissions`, calls that no allow rule lists get approved, and `plan` sends file edits to your callback even when an allow rule matches. In short:
 
 | Mode                | What it does with the rest                                 |
 | ------------------- | ---------------------------------------------------------- |
@@ -61,7 +65,7 @@ A permission mode handles calls that no rule settles. In short:
 | `auto`              | A model classifier allows or blocks each action it reviews |
 | `bypassPermissions` | Approves almost everything; for isolated environments only |
 
-Hooks run before all of this. A `PreToolUse` hook can deny a call, and "a hook deny applies even in `bypassPermissions` mode."
+Hooks run before all of this. A `PreToolUse` hook can deny a call. The SDK permissions docs say "a hook deny applies even in `bypassPermissions` mode."
 
 **OpenAI: approval on the tool.** In the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/human_in_the_loop.md), set `needs_approval=True` on a tool, or pass a function that decides per call. Local MCP servers use `require_approval`. The [OpenAI guide](https://developers.openai.com/api/docs/guides/agents/guardrails-approvals) says the run "records an approval interruption" and does not run the tool yet. The result returns `interruptions` plus a resumable `state`.
 
@@ -102,18 +106,18 @@ options = ClaudeAgentOptions(
 
 (Short tool names here. Custom tools get MCP-style names in a real config, like `mcp__ops__rollback`.)
 
-`delete_log_data` is a bare name, so the agent never even sees that tool. `kubectl delete` stays blocked for every `kubectl delete` call. A rollback or a restart now pages the engineer first.
+`delete_log_data` is a bare name, so the agent never even sees that tool. Calls that match `kubectl delete *` as written are blocked in every mode. A rollback or a restart now pages the engineer first.
 
 ### Step 4: a rule that does not work
 
-A teammate wants restarts to stop asking for one safe service. He adds an allow rule:
+A teammate wants restarts to stop asking for one safe service. They add an allow rule:
 
 ```text
 ask:   Bash(kubectl rollout restart *)
 allow: Bash(kubectl rollout restart deploy/search)
 ```
 
-It still asks. Ask comes before allow in the order, so the ask rule decides. A narrow allow can't cut a hole in a broader ask or deny. To change it, he must change the ask rule itself.
+It still asks. Ask comes before allow in the order, so the ask rule decides. A narrow allow can't cut a hole in a broader ask or deny. To change it, they must change the ask rule itself.
 
 ### Step 5: the hard case — approval at 3 a.m.
 
@@ -131,7 +135,7 @@ One more edge from the same guide: input guardrails run "only for the first agen
 
 ## Common mistakes
 
-1. **`bypassPermissions` with a short tool list.** The list only pre-approves those tools; the mode approves the rest. Fix: for a headless agent, list its tools in `allowedTools` and set the mode to `dontAsk`, so anything else is denied.
+1. **`bypassPermissions` with a short tool list.** The list only pre-approves those tools; the mode approves the rest. Fix: for a headless agent, list its tools in `allowedTools` and set the mode to `dontAsk`, so any other call that would ask is denied.
 2. **A narrow allow under a broad deny.** It never wins, because deny is checked first. Fix: make the deny rule narrower instead.
 3. **Approval as a new turn.** Starting over loses the run's state. Fix: resolve the interruption and resume from the saved `state`.
 

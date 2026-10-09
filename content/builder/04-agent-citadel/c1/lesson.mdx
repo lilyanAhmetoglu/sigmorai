@@ -40,7 +40,7 @@ Their first try is one script for both. It pastes some log lines into one model 
 - The hourly job costs more than it should, and sometimes it skips a server.
 - For alerts, the model guesses. It sees only the lines the script pasted, so it can't look further.
 
-This lesson splits the two jobs and builds the loop for the second one. The rest of this realm builds on Nora's on-call agent.
+This lesson splits the two jobs and builds the loop for the second one. The next chapters build on Nora's on-call agent.
 
 ## The idea
 
@@ -66,6 +66,8 @@ Both big SDKs run this loop for you:
 
 - The [Claude Agent SDK docs](https://code.claude.com/docs/en/agent-sdk/agent-loop) count one model call plus its tool work as one turn: "Each full cycle is one turn." The loop goes on until a reply asks for no more tools.
 - The [OpenAI Agents SDK guide](https://developers.openai.com/api/docs/guides/agents/running-agents) has the same steps, plus one more: if the model hands off to another specialist, the runner switches agents and goes on. It ends when the model gives a final answer and asks for no more tools. The [SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) say the output is final when it "produces text output with the desired type, and there are no tool calls."
+
+**A cap on the loop.** The Claude Agent SDK can cap the loop with `max_turns`, which "counts tool-use turns only". The docs walk through a fix-the-tests run: a cap of 2 "would have stopped before the edit step". A run that hits the cap ends with the subtype `error_max_turns`, not `success`. Chapter 2 covers stops in depth.
 
 **Ground truth.** The Anthropic post says an agent should get "ground truth" from its environment at each step, for example from tool results or from running code, "to assess its progress". The [Claude Code docs](https://code.claude.com/docs/en/how-claude-code-works) name three phases: gather context, take action and verify results. "These phases blend together."
 
