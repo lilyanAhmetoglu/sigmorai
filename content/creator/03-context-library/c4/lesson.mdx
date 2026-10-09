@@ -43,7 +43,13 @@ A model cannot simply "watch everything". Long media has three problems: **size*
 - The [OpenAI docs](https://developers.openai.com/api/docs/guides/speech-to-text) say: "Request the `diarized_json` response format to receive segments with `speaker`, `start`, and `end` metadata." For audio longer than 30 seconds, also set `chunking_strategy`. This uses a special speaker-label model, and the docs note that it "doesn't support prompts".
 - The [Gemini audio docs](https://ai.google.dev/gemini-api/docs/audio) show a prompt that asks for timestamps for each segment "(Format: MM:SS)". The max length is "9.5 hours of audio per prompt".
 
-**Size: cut at pauses.** The OpenAI docs say: "The Transcriptions API accepts files up to 25 MB. For larger recordings, use a compressed audio format or split the file into chunks of 25 MB or less." They add: "Avoid splitting in the middle of a sentence, which can remove context and reduce accuracy." So a file is not split for you, and an exact cut every 25 MB can land mid-sentence. Changing it to a bigger, uncompressed format goes the wrong way.
+**Size: cut at pauses.** The OpenAI docs set a file limit and a way to split:
+
+- "The Transcriptions API accepts files up to 25 MB."
+- "For larger recordings, use a compressed audio format or split the file into chunks of 25 MB or less."
+- "Avoid splitting in the middle of a sentence, which can remove context and reduce accuracy."
+
+So the file is not split for you. An exact cut every 25 MB can land mid-sentence. A bigger, uncompressed format goes the wrong way.
 
 **Video: one frame per second by default.** The [Gemini video docs](https://ai.google.dev/gemini-api/docs/video-understanding) say the model samples video "at a rate of **1 frame per second** (FPS)". This "works well for most content", but "it may miss details in videos with rapid motion or quick scene changes". It is like a security camera that takes one photo each second: a fast thing can happen between two photos.
 
@@ -63,7 +69,7 @@ high media resolution  up to 1 hour    more detail
 
 **Static or agentic.** Static mode "Extracts frames at a fixed rate (1 FPS)". In agentic mode, "The model dynamically navigates the video timeline, loading only the content it needs". The docs say: "start with **agentic** mode". Static fits "short clips (under 5 minutes)" or frame-level precision. Only some Gemini models support agentic mode, so check the table.
 
-**Large files go through the Files API.** The Gemini video docs list it for "Large files (100MB+), long videos (10min+)".
+**Large files go through the Files API.** The Gemini video docs say: "Always use the Files API when the total request size (including the file, text prompt, system instructions, etc.) is larger than 20 MB, the video duration is significant, or if you intend to use the same video in multiple prompts."
 
 **Ask for time.** The Gemini video docs say you can ask about points in a video "using timestamps of the form `MM:SS`". A timestamp is a pointer, not a proof. Our habit: open the file at that time, look or listen, then use it.
 
@@ -106,6 +112,8 @@ start_offset:  2830   (47:10)
 end_offset:    2860   (47:40)
 fps:           5
 ```
+
+Simplified. See the docs for the exact request shape.
 
 Now the model reads about 150 frames for those 30 seconds, not 30.
 
@@ -159,7 +167,7 @@ A museum has a 100-minute tour video. Visitors must be able to read the small la
 - **Two parts of 50 minutes, each at high media resolution.** Small labels need fine detail.
 - **Not one request at high resolution:** 100 minutes is over the 1-hour limit at high media resolution.
 - **Not one request at low resolution:** it fits the 3-hour limit, but the labels may not be readable.
-- Upload both parts with the Files API: they are long videos (10 minutes or more).
+- Upload both parts with the Files API. The Gemini video docs say to use it when the request is over 20 MB or the video is long.
 
 ## Recap
 
