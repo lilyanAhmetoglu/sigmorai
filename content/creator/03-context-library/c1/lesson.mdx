@@ -1,7 +1,7 @@
 ---
 id: creator/r3/c1/lesson
 title: Brand kits
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Agent Skills
@@ -26,79 +26,145 @@ sources:
     url: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices
 ---
 
-## Why it matters
+## Goal
 
-In Prompt Forest you wrote a style block and kept an approved image as an anchor. For one campaign, that is enough. A studio has many brands, many people and many jobs. If each person types "the brand look" from memory, the look drifts.
+After this lesson you can:
 
-A **brand kit** is everything the model should read for every asset of one brand. This lesson covers what goes in, how to keep it short, where it sits in the request and how to change it without breaking a campaign. You decide these things. You do not write the request.
+- Split a brand kit into a short card for every request and a long guide the model reads only for jobs that need it.
+- Put the parts of a request in an order that lets the vendor reuse the same beginning.
+- Keep one kit version per batch, and fix a clash between two rules at the source.
 
-Even Nano Banana Pro, which Google describes as offering "accurate brand consistency", can only follow the brand rules you give it.
+## The problem
 
-## What goes in a kit
+A small studio makes social posts for Kestrel Cycles, a bike shop. Three designers work on the account. Each one types "the Kestrel look" from memory:
 
-This table is our own method, built from earlier chapters.
+- One writes "navy and orange, bold type".
+- One pastes the full 60-page brand book into every request.
+- One starts every request with the date and the ticket number, then the brand rules.
 
-| Part    | What it holds                                                | Example                                         |
-| ------- | ------------------------------------------------------------ | ----------------------------------------------- |
-| Look    | The style block (Prompt Forest, chapter 3)                   | Flat vector, bold outlines, forest green, cream |
-| Rules   | Do and don't, in positive words (Prompt Forest, ch 1)        | "Plain cream background"                        |
-| Voice   | How words sound, for captions and text in images             | Short and warm. No exclamation marks.           |
-| Files   | Logo, anchor, packshots, each labelled (Prompt Forest, ch 2) | logo-primary.png, anchor-v2.png                 |
-| Details | Long guidelines that are rarely needed                       | A 40-page PDF with logo spacing rules (made up) |
+After a month, the posts look like three brands. The long requests are slow, and the bill is higher than planned. A model reads only what you send. If the brand rules are not the same in every request, the look drifts.
 
-A kit is not one file. It has a short part the model always reads and a long part it reads only when needed.
+A **brand kit** fixes this. It is everything the model should read for every asset of one brand. Even a model that the [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) describe as offering "accurate brand consistency" (Nano Banana Pro) can only follow the rules you give it.
 
-## Short card, long book
+## The idea
 
-Both Anthropic and OpenAI document a feature for this, called Skills. A skill is a folder. It holds a main instruction file and supporting files. Anthropic says Skills "load on demand, so you don't have to repeat the same guidance across conversations". OpenAI says skills can "codify processes and conventions, from company style guides to multi-step workflows".
+**A kit has two parts: a card and a book.** Think of a restaurant. The cook keeps a short card on the wall with the house rules. The thick recipe book stays on the shelf, and the cook opens it only for a rare dish.
 
-What does the model see before it opens a skill?
+```text
+card  short, in every request   look, rules, voice, file names
+book  long, opened when needed   logo spacing, legal lines, layouts
+```
 
-- **Anthropic:** until a Skill is triggered, only its name and description occupy context.
-- **OpenAI:** during discovery the model sees the skill's name and description, and it decides from that whether to use the skill.
+**Skills work this way.** The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) and the [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-skills) both describe Skills: a folder with a main instruction file and supporting files.
 
-So the description is the door. OpenAI's advice is to say both what the skill does and when to use it. Its example: "Review and redline vendor agreements using the fallback clauses" is more useful than "Helps with legal work."
+- **Claude docs:** Skills "load on demand, so you don't have to repeat the same guidance across conversations". And "until a Skill is triggered, only its name and description occupy context."
+- **OpenAI docs:** skills can "codify processes and conventions, from company style guides to multi-step workflows". And "During skill discovery, the model sees the skill's name and description."
 
-Example for a bottle brand: "Tidewell brand kit: colours, logo rules, photo style. Use for every image, caption or banner made for Tidewell."
+So the description is the door. The model uses it to decide if it should open the book. The OpenAI docs advise a description that "explains both what the skill does and when to use it". Their example: "Review and redline vendor agreements using the fallback clauses" is more useful than "Helps with legal work."
 
-Your tool may not support skills. It may only let you paste text. The idea still works: a short card goes into every request, and the long book is added only for jobs that need it.
+Your tool may not support skills. The idea still works: paste the card into every request, and add the book only when a job needs it.
 
-## Put the kit first, the job last
+**Order matters, because of prompt caching.** Vendors can reuse the work on a beginning (a prefix) that repeats. This is cheaper and faster. The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-caching) list "Cheaper input tokens" and "Faster" as benefits. The rule is the same at three vendors:
 
-The kit is the same in every request. The job brief changes. Order matters, because vendors reuse work on a repeated beginning. This is called **prompt caching**.
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-caching): "Put stable developer instructions and shared reference material first." Dates, times and other parts that change go "at the end rather than the beginning".
+- The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-caching): "Place static content (tool definitions, system instructions, context, examples) at the beginning of your prompt."
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/caching): "Try putting large and common contents at the beginning of your prompt".
 
-- **OpenAI:** "Put stable developer instructions and shared reference material first." Dynamic content such as timestamps goes at the end.
-- **Anthropic:** "Place static content (tool definitions, system instructions, context, examples) at the beginning of your prompt."
-- **Google:** "Try putting large and common contents at the beginning of your prompt."
+The beginning must match exactly. The OpenAI docs say: "Cache reuse requires the entire rendered prefix to match." The Claude docs say a hit needs identical segments, "including all text and images". So a date at the top, or a new order of kit parts, breaks the match.
 
-The beginning must match exactly. OpenAI says reuse "requires the entire rendered prefix to match". Anthropic says hits need identical segments, "including all text and images". So do not shuffle the order of kit parts. Do not put a date or job number above the kit.
+**Very short prompts are not cached.** Each vendor sets a minimum length. The Claude docs say: "Shorter prompts cannot be cached, even if marked with `cache_control`." They add that such requests run "without caching, and no error is returned". The OpenAI and Gemini docs also list a minimum per model. Check the page for your model.
 
-Why care? OpenAI says reused tokens are billed at a cheaper cached rate and are faster to process. Each vendor also sets a minimum prompt length for caching, so a very short kit may not qualify. Check the page of the model you use.
+**Label the parts.** The [Claude prompting docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) say that wrapping each type of content in its own tag "reduces misinterpretation". In a design tool, plain labels such as `LOOK:` and `JOB:` do the same job.
 
-Example order for every request: 1. Kit card. 2. Anchor image. 3. Job brief.
+**Pin a version.** The OpenAI docs say "Uploaded skills use versioned bundles", and `skill_reference.version` "accepts an integer or `"latest"`". Two more lines from the same page:
 
-## Label the parts
+- "`latest_version` tracks the newest upload."
+- "`default_version` is used when a version isn't provided."
 
-Anthropic's guide says that wrapping each type of content in its own tag "reduces misinterpretation" when a prompt mixes instructions, context and examples. You do not need tags in a design tool. Plain labels do the same job for people and models: "LOOK:", "RULES:", "FILES:", "JOB:".
+The default version can be moved to another one. So only a version number stays still while a batch runs.
 
-## Version the kit
+## Worked example
 
-OpenAI says uploaded skills use versioned bundles, and a request can name a version number or "latest". Whatever your tool does, the habit is the same, and it is ours:
+### Step 1: the request before
 
-- **One kit version for one batch.** Name it ("tidewell-kit v4") and note it with every file you deliver.
-- **Pin a number, not "latest".** A client job should not change look on a Tuesday because someone uploaded a new version. Realm 2, chapter 6 made the same point about recipes.
-- **No quick hand edits.** If one request says "mint" and the rest say "sea-glass green", one campaign now has two greens. Make a new version and rerun the batch.
+```text
+Date: 14 May. Ticket 2231.
+Make a summer sale post for Kestrel Cycles.
+[the full 60-page brand book]
+Brand: navy and orange, bold type.
+```
 
-A change to the kit also changes the beginning of every request. The saved work is lost once, then it builds up again. That is a good reason to change the kit rarely and on purpose.
+What goes wrong:
 
-## One rule, one place
+- The date and ticket come first, so every request begins differently.
+- The 60-page book is read every time, even for a simple post.
+- The brand line is typed from memory, so it differs per designer.
 
-If the card says "no stock photos" and page 31 of the long guide says "stock photos from the approved library are fine", the model has to guess. So does a new designer. Decide the real rule with the client, write it once on the card, and make the long guide match. This rule is ours.
+### Step 2: write the card
 
-## What this means for your work
+```text
+KESTREL KIT v3 (card)
+LOOK:  Flat photo style, navy #1F2A44 and signal orange, lots of white space.
+RULES: Bikes shown whole, never cropped at the wheels. Plain white background.
+VOICE: Short and friendly. No exclamation marks.
+FILES: logo-main.png, anchor-post-v2.png
+```
 
-- **Split the kit.** A short card that every request carries. Long details that are opened only when needed.
-- **Write the door well.** A description says what the kit holds and when to use it.
-- **Kit first, brief last.** Keep the order fixed so repeated beginnings can be reused.
-- **Version it.** One version per batch. Pin a number.
-- **One rule, one place.** Fix conflicts at the source.
+### Step 3: turn the book into a skill with a good door
+
+```text
+name: kestrel-brand-book
+description: Kestrel Cycles brand book: logo spacing, legal lines, print
+layouts. Use when a Kestrel job needs print files or exact logo spacing.
+```
+
+The description says what is inside and when to use it. A social post does not open it. A printed shop poster does.
+
+### Step 4: fix the order
+
+```text
+1. KESTREL KIT v3 (card)       same in every request
+2. anchor-post-v2.png          same in every request
+3. JOB: summer sale post, 4:5  changes
+4. Date and ticket             changes, so it goes last
+```
+
+### Step 5: the hard case, two rules that clash
+
+The card says "Plain white background". Page 41 of the book says "Shop-floor photos are fine as backgrounds". Now the model must guess, and so must a new designer.
+
+The fix is not a line like "if they clash, follow the book". Find out from the client which rule is real. Write it once on the card. Change the book so both agree. Then make kit v4, because the card changed. One rule, one place: that is our rule.
+
+### Step 6: change the kit on purpose
+
+A designer wants "teal" for one post. A hand edit in one request would give one batch two colours. Hand-editing the rest of the batch to match is no fix either: the card still says the old colour. Instead, make a new kit version, pin its number, and rerun the whole batch. Any change to the card also gives every request a new beginning. The saved cache work is lost once, then builds up again. That is one more reason to change the kit rarely.
+
+### Why it is better
+
+- **Every request starts the same**, so the vendor can reuse the beginning.
+- **The long book is read only when needed.**
+- **The door is clear**, so the model knows when to open the book.
+- **One version per batch**, so the look does not move halfway through.
+
+## Common mistakes
+
+1. **Changing parts at the top.** A date, a job number or a new order breaks the match. Fix: stable parts first, changing parts last.
+2. **`latest` on a live job.** It follows the newest upload. Fix: pin a version number for each batch.
+3. **A vague door.** "Brand stuff" says nothing about when to use it. Fix: say what is inside and when the model should open it.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A florist's kit card is about 150 words. The team expects the card to be cached, but the usage fields show no cached tokens and no error. Their request order is: card, job brief, logo image. Give two reasons the cache may not help, and one fix for each.
+
+### Answer
+
+1. **Too short.** The card is below the minimum length for caching on that model. So nothing is cached, and no error tells you. Fix: check the minimum for your model. If the kit is used very often, it may be worth adding the stable logo image and examples to the beginning, so the stable part is long enough.
+2. **The order.** The logo image is the same every time, but it sits after the brief, which changes. The beginning stops matching at the brief. Fix: card, then logo, then the brief.
+
+## Recap
+
+- A kit is a short card in every request, plus a long book that opens only when needed. The name and description are the door.
+- Put stable parts first and changing parts last. The beginning must match exactly to be reused, and very short prompts are not cached.
+- Pin one kit version per batch. Fix a clash between two rules at the source, once.
