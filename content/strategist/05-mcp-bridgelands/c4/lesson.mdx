@@ -58,7 +58,11 @@ Our example: connecting a server is like giving a contractor a key to the office
 
 ### Control 1: approvals for actions
 
-The MCP spec says there "SHOULD always be a human in the loop with the ability to deny tool invocations". The OpenAI guide's default: "OpenAI will request your approval before any data is shared with a connector or remote MCP server." Its advice: sensitive actions always go through an approval step. Once you trust a server, you can skip approvals to save time. The agent safety guide is stricter: keep tool approvals on, so users can confirm "every operation, including reads and writes."
+Three sources agree on a person in the loop:
+
+- **MCP spec:** there "SHOULD always be a human in the loop with the ability to deny tool invocations".
+- **OpenAI MCP guide:** the default is "OpenAI will request your approval before any data is shared with a connector or remote MCP server." Its advice: sensitive actions always go through an approval step. Once you trust a server, you can skip approvals to save time.
+- **OpenAI agent safety guide:** stricter. Keep tool approvals on, so users can confirm "every operation, including reads and writes."
 
 Our reading: start with approvals on, and switch them off only for calls you have watched and trust.
 
@@ -77,7 +81,7 @@ The Claude connector has a beta option to **pin** the tool list (keep a fixed co
 
 ### Control 4: narrow the access
 
-Most remote servers ask you to sign in with **OAuth**, a standard way to give an app limited access to an account without sharing a password. What the app may do is set by **scopes**, such as "read events" or "write files". The Claude Code docs say you can pin the scopes it asks for. This is "the supported way to restrict an MCP server to a security-team-approved subset", even if the server requests a wider set.
+Many remote servers ask you to sign in. The [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) says "The most common scheme is an OAuth access token." **OAuth** is a standard way to give an app limited access to an account without sharing a password. What the app may do is set by **scopes**, such as "read events" or "write files". The Claude Code docs say you can pin the scopes it asks for. This is "the supported way to restrict an MCP server to a security-team-approved subset", even if the server requests a wider set.
 
 ### Control 5: know where the data goes
 
@@ -107,20 +111,21 @@ When a server is on both lists, the denylist wins. The page says: "Nothing overr
 Server: third-party e-signature server
 Tools on: all 14 (find, fill, send, void all packs,
           export all documents, change account owner ...)
-Approvals: off ("advisers are busy")
-Sign-in: the admin account, all permissions
+Approvals: on in week one, then switched off
+Sign-in: the IT lead's shared login, full rights
 Data: client names, incomes, ID numbers in every pack
-Privacy: "we have ZDR with our AI vendor"
-Logs: none
+Privacy: "our AI vendor keeps nothing, so we are covered"
+Logs: kept by the server company only
 Second server: reads public web pages for rate news
 ```
 
 What goes wrong:
 
 - Fourteen tools, including ones that void every pack or export every document.
-- No approvals, so a sent pack can't be stopped.
-- The admin sign-in gives the server every permission on the account.
-- ZDR with the AI vendor says nothing about the e-signature server's own storage.
+- Approvals ended after week one, so a sent pack can't be stopped.
+- The shared full-rights login gives the server every permission on the account.
+- The AI vendor's privacy deal says nothing about the e-signature server's own storage.
+- Only the server company can see the logs, so the firm can't check what was sent.
 
 ### Step 2: the good setup
 
@@ -148,7 +153,7 @@ The fix uses the controls above. Approval on `send_pack` puts a person between t
 
 - **Fewer ways in.** Three tools, not fourteen, and a fixed list.
 - **A person on every send.** Hidden orders can't send a pack alone.
-- **Narrow keys.** The token can't change account owners.
+- **Narrow keys.** The sign-in can't change account owners.
 - **Data terms on paper.** The firm knows who keeps what.
 
 ## Common mistakes

@@ -61,13 +61,13 @@ The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28) calls M
 
 So a connection built as your own MCP server is not tied to one AI vendor. If you change vendors, you change the AI side, not the link to your systems.
 
-The standard still moves. The spec has dated versions; this course cites 2026-07-28. It also defines optional **extensions**, which "require explicit support from both client and server". The Claude Code docs say "The SSE (Server-Sent Events) transport is deprecated", and recommend HTTP servers. Open does not mean frozen. Plan for upkeep.
+The standard still moves. The spec has dated versions; this course cites 2026-07-28. It also defines optional **extensions**, which "require explicit support from both client and server". The Claude Code docs say "The SSE (Server-Sent Events) transport is deprecated", and recommend HTTP servers. (A transport is the way the two sides send messages. Deprecated means still working, but on the way out.) Open does not mean frozen. Plan for upkeep.
 
 ### Layer 3: vendor features are not equal
 
 Even with an open protocol, each vendor offers its own extras:
 
-- The [Claude MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) is in **beta**. Its table lists the Claude API as beta, and Google Cloud and Amazon Bedrock as "not available". An earlier version of the feature is deprecated.
+- The [Claude MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) is in **beta** (still in testing, so it can change). Its table lists the Claude API as beta, and Google Cloud and Amazon Bedrock as "not available". An earlier version of the feature is deprecated.
 - The OpenAI guide describes built-in **connectors** for services such as Dropbox and Gmail. That is OpenAI's own feature, and it is now legacy: "`connector_id` is deprecated for models released after September 1, 2026."
 
 So where you buy the model matters too. A feature on the vendor's own API may be missing on a cloud provider. Our advice: use vendor-only features where they save real time or money, and write each one down. That list is your exit cost.
@@ -76,7 +76,7 @@ So where you buy the model matters too. A feature on the vendor's own API may be
 
 Both vendors retire models on a schedule.
 
-- The [Claude deprecations page](https://platform.claude.com/docs/en/about-claude/model-deprecations) says "Anthropic regularly retires older ones", and applications "may need occasional updates to keep working". It gives "at least 60 days' notice before model retirement for publicly released models". After that: "Requests to retired models will fail." The vendor does not move you to a new model for you.
+- The [Claude deprecations page](https://platform.claude.com/docs/en/about-claude/model-deprecations) says "Anthropic regularly retires older ones", and applications "may need occasional updates to keep working". It gives "at least 60 days' notice before model retirement for publicly released models". After that: "Requests to retired models will fail." The page says to "migrate all usage to a suitable replacement before the retirement date": the move is your job.
 - The [OpenAI deprecations page](https://developers.openai.com/api/docs/deprecations) says each deprecated model gets a shut-down date, after which it "will no longer be accessible". Its notice periods:
   - generally available models: "At least 6 months";
   - specialized variants (such as Codex or chat versions): "At least 3 months";
@@ -84,7 +84,7 @@ Both vendors retire models on a schedule.
 
 The OpenAI page adds: "We don't recommend using preview models for business-critical production workloads unless you can migrate on short notice."
 
-Examples from the pages: Anthropic lists `claude-sonnet-4-5-20250929` as deprecated on September 30, 2026, retiring on November 30, 2026, with `claude-sonnet-5-5` as the replacement. OpenAI lists `gpt-5.3-codex` for shut-down on April 1, 2027.
+Examples from the pages: the Claude deprecations page lists `claude-sonnet-4-5-20250929` as deprecated on September 30, 2026, retiring on November 30, 2026, with `claude-sonnet-5-5` as the replacement. The OpenAI deprecations page lists `gpt-5.3-codex` for shut-down on April 1, 2027.
 
 The Claude page also says its dates apply to Anthropic-operated platforms. Partner platforms (Google Cloud and Amazon Bedrock) "set their own retirement schedules". If you buy through a cloud provider, read that provider's dates.
 
@@ -140,7 +140,7 @@ This small layer is our suggestion:
 
 ### Step 3: the hard case
 
-**The hard case is the preview model.** The pilot answers were great, and the team wants to keep it. But a preview can disappear with about two weeks' notice, and OpenAI does not recommend it for business-critical work unless you can move fast.
+**The hard case is the preview model.** The pilot answers were great, and the team wants to keep it. But a preview gets "much shorter notice, such as 2 weeks" before it goes, and the OpenAI deprecations page does not recommend it for business-critical work unless you can move fast.
 
 The plan: before launch, switch to a model that is generally available, with at least 6 months' notice. Run the test set on both and compare. Keep the test set, so the next forced change takes days, not months.
 
@@ -160,20 +160,23 @@ The plan: before launch, switch to a model that is generally available, with at 
 
 Not graded. Write your answer down before you read the answer.
 
-A travel insurer's assistant has these three parts. Rate each as "portable" or "locked in", and give one fix.
+A hotel chain's assistant has these three parts. Rate each as "portable" or "locked in", and give one fix.
 
 ```text
-1. Policy lookup built as the insurer's own MCP server.
-2. A built-in OpenAI Gmail connector, planned for a
-   model released in December 2026.
-3. Prompts copied into 5 apps, and no test set.
+1. The assistant runs on a Claude model bought through
+   Amazon Bedrock. The team reads only Anthropic's
+   deprecation dates.
+2. Every tool description and schema exists only in the
+   vendor's online settings screen.
+3. The team's own MCP server was built for spec version
+   2026-07-28 and has had no updates since.
 ```
 
 ### Answer
 
-1. **Portable.** An MCP server the insurer owns works with any MCP host. Keep it up to date with the spec.
-2. **Locked in, and already legacy.** Connectors are legacy for any model released after 1 September 2026. Use a remote MCP server for Gmail instead.
-3. **Locked in by effort.** A model change means five edits and no way to check them. Keep prompts in one place and build a test set.
+1. **Locked in by platform.** The Claude deprecations page says partner platforms "set their own retirement schedules". Read Amazon Bedrock's dates too.
+2. **Locked in by data.** Keep your own copy of tool definitions and prompts.
+3. **Portable, but upkeep is due.** The spec has dated versions, and the SSE transport is already deprecated. Plan time to update the server.
 
 ## Recap
 

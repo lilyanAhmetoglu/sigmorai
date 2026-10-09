@@ -107,13 +107,13 @@ Features can also go the other way. **Elicitation** is one such client feature i
 - "Tools represent arbitrary code execution and must be treated with appropriate caution." (Arbitrary code means any code at all.)
 - "Hosts must obtain explicit user consent before invoking any tool".
 
-Then the key line: "MCP itself cannot enforce these security principles at the protocol level". No rule in the protocol stops a tool call. The app's builders must add the consent screens. Our reading: a line in the system prompt asks the model; it does not make a consent screen.
+Then the key line: "MCP itself cannot enforce these security principles at the protocol level". So the protocol itself can't block a tool call. The app's builders must add the consent screens. Our reading: a line in the system prompt asks the model; it does not make a consent screen.
 
 **Support is not the same everywhere.** Many products speak MCP, but each one supports a different part:
 
 - The [Claude MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) reaches remote servers from the API "without a separate MCP client". It has two limits. Of the MCP feature set, "only tool calls are currently supported", so resources and prompts need another route. And "The server must be publicly exposed through HTTP"; a local server can't be connected directly.
 - The [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) connects to a remote server with a `server_url` field. A private server needs a tunnel (chapter 3 covers tunnels).
-- The [Gemini function calling page](https://ai.google.dev/gemini-api/docs/function-calling) says its Interactions API can connect to remote MCP servers, but "Remote MCP only works with Streamable HTTP servers". Servers that use the older SSE type are not supported.
+- The [Gemini function calling page](https://ai.google.dev/gemini-api/docs/function-calling) says its Interactions API can connect to remote MCP servers, but "Remote MCP only works with Streamable HTTP servers". Streamable HTTP and SSE are two ways a server can talk over the web. Servers that use the older SSE way are not supported.
 - The [Claude Code docs](https://code.claude.com/docs/en/mcp) show coding tools using MCP for tasks such as building a feature from an issue tracker or querying a database.
 
 ## Worked example
@@ -189,15 +189,15 @@ A law firm sets up MCP for its staff assistant. Find three problems.
   receive the full chat, so they "stay in sync".
 - The billing server reads case files straight from
   the document server.
-- Feature: "/weekly-summary", which a lawyer starts
-  from a menu. The team built it as a tool.
+- The document server runs on a partner's office PC. The
+  team plans to reach it with Anthropic's API connector.
 ```
 
 ### Answer
 
 1. **Full chat to servers.** The host keeps the chat. Each server gets only what one request needs.
 2. **One server reads another.** Servers should not see into other servers. If data must move, the host passes it on.
-3. **Wrong building block.** A lawyer picks "/weekly-summary" from a menu, so a person decides when. That is a prompt, not a tool.
+3. **Support is not the same everywhere.** The Claude connector needs a server "publicly exposed through HTTP". A server on an office PC is not public. Move it to a server the firm runs, or use a host that supports local servers.
 
 ## Recap
 

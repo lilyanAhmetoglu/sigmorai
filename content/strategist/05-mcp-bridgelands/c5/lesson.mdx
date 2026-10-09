@@ -57,9 +57,9 @@ Our example: a token bill is like a phone bill that charges for every word, incl
 
 **The hidden tokens.** An integration adds text you never see on screen:
 
-- **Tool definitions.** Each tool has a name, a description and a **schema** (the list of inputs it takes). The Claude page says tool requests are priced on all input tokens, "including in the `tools` parameter". The [OpenAI function calling guide](https://developers.openai.com/api/docs/guides/function-calling) says function definitions "count against the model's context limit and are billed as input tokens."
-- **Tool calls and results.** The Claude page counts the `tool_use` and `tool_result` blocks too. A tool that returns a whole document costs as much as a long question.
-- **A tool system prompt.** When you send tools, the Claude API adds its own instructions. The [Claude tool use page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) lists the size per model, for example "496 tokens" for Claude Haiku 4.5.
+- **Tool definitions.** Each tool has a name, a description and a **schema** (the list of inputs it takes). The Claude pricing page says tool requests are priced on all input tokens, "including in the `tools` parameter". The [OpenAI function calling guide](https://developers.openai.com/api/docs/guides/function-calling) says function definitions "count against the model's context limit and are billed as input tokens."
+- **Tool calls and results.** The Claude pricing page counts the `tool_use` and `tool_result` blocks too. A tool that returns a whole document costs as much as a long question.
+- **A tool system prompt.** When you send tools, the Claude API adds its own instructions. The [Claude tool use page](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) lists the size per model, for example "496 tokens" for Claude Haiku 4.5 (with `tool_choice` auto or none).
 - **Tool fees.** Some server tools charge per use. The Claude pricing page lists web search at "$10 per 1,000 searches", plus tokens. For MCP, the [OpenAI MCP guide](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) says you "only pay for tokens" when importing tool definitions or making tool calls: "No additional fees apply per tool call."
 
 **Fewer tools, smaller bill.** The OpenAI function calling guide suggests you "Aim for fewer than 20 functions available at the start of a turn", and calls this "just a soft suggestion". The OpenAI MCP guide adds that many tools "can result in high cost and latency" (latency means waiting time). Its `allowed_tools` setting, and the allowlist in the [Claude MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector), switch off tools you don't need. It is the same control as in the security chapter; here it also saves money.
@@ -68,7 +68,7 @@ Our example: a token bill is like a phone bill that charges for every word, incl
 
 **Discount 1: caching.** **Prompt caching** reuses an unchanged start of the prompt at a lower price. Tool definitions can be part of that cached start; the Claude caching page lists them first in the order it caches.
 
-- On the Claude pricing page, a cache read costs "0.1x base input price" on most models (a few models are lower). A 5-minute cache write costs "1.25x base input price".
+- On the Claude pricing page, a cache read costs "0.1x base input price" on most models (a few models are lower). A 5-minute cache write (storing the start so it can be reused) costs "1.25x base input price".
 - The [OpenAI caching guide](https://developers.openai.com/api/docs/guides/prompt-caching) says that for GPT-5.6 and later, writes cost "1.25×" the input rate and reads "0.1×" on most of these models. Earlier models use a cached-input price set per model, with "No additional cache-write charge".
 
 The catch: the cached start must stay the same. The [Claude caching page](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) says "Modifying tool definitions (names, descriptions, parameters) invalidates the entire cache". The OpenAI guide lists changes to tool "names, descriptions, schemas, ordering" as changes that affect the cached prefix. One small edit to one tool, and every request pays full price again until the cache is rebuilt.
@@ -110,7 +110,7 @@ What goes wrong: the 25 tool definitions are missing. They take 4,000 tokens and
 tool definitions  4,000 tokens -> 600M tokens x $1 = $600
 question            300 tokens ->  45M tokens x $1 =  $45
 answer              400 tokens ->  60M tokens x $5 = $300
-Total: $945 a month (before tool results)
+Total: $945 a month (before tool results and the tool system prompt)
 ```
 
 The definitions are the biggest line, and the user typed none of it.
@@ -128,11 +128,11 @@ The definitions are the biggest line, and the user typed none of it.
 
 ### Step 5: move the night job
 
-The helpdesk also writes summaries of 40,000 closed calls each night for the morning team. Nobody reads them before 9 am. Through a Batch API, that job costs half.
+The helpdesk also writes summaries of 40,000 closed calls every Sunday night for the Monday team meeting. Nobody reads them before 10 am. Through a Batch API, that job costs half.
 
 ### Step 6: why it is better
 
-- **Priced per task**, with every hidden line included.
+- **Priced per task**, with the biggest hidden line included and the rest named.
 - **Discounts used where they fit**, and their conditions named.
 - **Model changes tested**, not assumed to cost the same.
 
