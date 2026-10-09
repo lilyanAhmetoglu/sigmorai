@@ -82,7 +82,7 @@ The [Streamable HTTP page](https://modelcontextprotocol.io/specification/2026-07
 
 The spec warns: "Without these protections, attackers could use DNS rebinding to interact with local MCP servers from remote websites." A firewall alone does not cover this.
 
-The older HTTP+SSE transport is deprecated. The spec says new implementations "**SHOULD NOT** adopt it". The Claude Code docs and the OpenAI Agents SDK docs also call SSE deprecated. The SDK says to keep SSE "only for legacy servers".
+The older HTTP+SSE transport is deprecated. The spec says new implementations "**SHOULD NOT** adopt it". The Claude Code docs and the OpenAI Agents SDK docs also call SSE deprecated. The SDK docs say to keep SSE "only for legacy servers".
 
 ### No sessions: keep state in a handle
 
@@ -117,11 +117,11 @@ The details, with quotes:
 
 A remote server adds a network call before the model can see its tools. Each vendor lets you reuse the list:
 
-- **OpenAI Responses API**: while the `mcp_list_tools` item stays in context, the API "will not fetch a list of tools from the MCP server again at each turn". OpenAI recommends keeping it in context to cut latency.
+- **OpenAI Responses API**: while the `mcp_list_tools` item stays in context, the API "will not fetch a list of tools from the MCP server again at each turn". The OpenAI docs recommend keeping it in context to cut latency.
 - **OpenAI Agents SDK**: every agent run calls `list_tools()`. Set `cache_tools_list` to `True` "only if you are confident that the tool definitions do not change frequently". For a fresh list later, the SDK has a method, `invalidate_tools_cache()`.
-- **Claude API**: a beta lets you pin a server's tool list, so a server that changes its tools does not change what Claude sees partway through a conversation.
+- **Claude API**: the `mcp-client-2026-09-15` beta lets you pin a server's tool list. Then a server that changes its tools does not change what Claude sees mid-conversation.
 
-Tool definitions also cost tokens. OpenAI says "you only pay for tokens used when importing tool definitions or making tool calls". With tool search, both Claude (`defer_loading` per tool) and OpenAI (`defer_loading` on the MCP server) can load tool definitions only when they are needed.
+Tool definitions also cost tokens. The OpenAI docs say "you only pay for tokens used when importing tool definitions or making tool calls". With tool search, both Claude (`defer_loading` per tool) and OpenAI (`defer_loading` on the MCP server) can load tool definitions only when they are needed.
 
 ## Worked example
 
@@ -204,7 +204,6 @@ Agents SDK:   MCPServerStreamableHttp(..., cache_tools_list=True)
 1. **Debug prints on a stdio server.** They break the message stream. Fix: log to `stderr`.
 2. **"The firewall is enough."** DNS rebinding can reach local servers from a web page. Fix: check `Origin`, bind to 127.0.0.1, and require authentication.
 3. **State tied to the connection.** There is no protocol session to hold it. Fix: return a handle and check rights on each call.
-4. **A private server for a public-only host.** The Claude API connector cannot reach it. Fix: publish it over `https://`, or use a host that supports private servers, such as OpenAI's Secure MCP Tunnel.
 
 ## Try it
 

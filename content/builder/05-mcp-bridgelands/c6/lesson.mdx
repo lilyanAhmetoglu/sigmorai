@@ -61,7 +61,7 @@ Think of a concert. The ticket office (authorization server) sells tickets. The 
 
 ### The flow, step by step
 
-1. The client calls the server with no token. The server answers HTTP 401 with a `WWW-Authenticate` header. The header points to the server's Protected Resource Metadata (RFC 9728). The spec says servers **MUST** implement it.
+1. The client calls the server with no token. The server answers HTTP 401 with a `WWW-Authenticate` header. The header points to the server's Protected Resource Metadata (RFC 9728). Per the spec, every server **MUST** implement this metadata.
 2. The client reads the metadata and finds the authorization server.
 3. The client sends the user there. The flow uses PKCE, and the user approves.
 4. The client gets an access token. It sends it on every request in the header: `Authorization: Bearer <token>`. Access tokens, per the spec, "**MUST NOT** be included in the URI query string". URLs end up in logs, so a token there leaks.
@@ -91,7 +91,7 @@ The authorization spec puts it in one line: servers "**MUST NOT** accept or tran
 
 ### Confused deputy
 
-A confused deputy is a program with real power that is tricked into using it for someone else. The spec describes a case with an **MCP proxy server** in front of a third-party API. The proxy uses one static client ID, lets clients register themselves, and the third party has already set a consent cookie. An attacker's client can then get an authorization code without the user's consent.
+A confused deputy is a program with real power that is tricked into using it for someone else. The spec describes a case with an **MCP proxy server** in front of a third-party API. The proxy uses one static client ID and lets clients register themselves. The third party has already set a consent cookie. An attacker's client can then get an authorization code without the user's consent.
 
 The fix: proxy servers "**MUST** implement per-client consent". The proxy keeps a list of approved clients per user and checks it before it sends the user to the third party. It must also match the `redirect_uri` exactly.
 
@@ -125,9 +125,9 @@ No single layer is perfect, so use several:
 
 - **Human in the loop.** The [tools page](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) says there "**SHOULD** always be a human in the loop with the ability to deny tool invocations". Clients should also display a call's inputs to the user before it runs, to stop data leaks.
 - **Approvals.** OpenAI asks for approval by default before data goes to a remote server. Its docs say to use `require_approval` and `allowed_tools` so "any sensitive actions require an approval flow".
-- **Allowlists.** The [Claude connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) can turn on only named tools. It recommends denylisting write tools for read-only assistants.
+- **Allowlists.** The [Claude connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) can turn on only named tools. The Claude docs recommend denylisting write tools for read-only assistants.
 - **Server checks.** Servers must validate inputs, control access, rate limit calls and sanitize outputs.
-- **Who handles the token.** With the Claude connector, you pass it in `authorization_token`. The docs say API users must "handle the OAuth flow and obtain the access token prior to making the API call, and to refresh the token as needed". OpenAI does not store the `authorization` value, so you send it in every request.
+- **Who handles the token.** With the Claude connector, you pass it in `authorization_token`. The docs say API users must "handle the OAuth flow and obtain the access token prior to making the API call, and to refresh the token as needed". The OpenAI docs say "the Responses API does not store the value you provide in the `authorization` field", so you send it in every request.
 
 ## Worked example
 
@@ -160,7 +160,7 @@ server:   calls the storage API with its own credentials, not the client's token
 app:      Authorization: Bearer eyJ0eXAi...  (header, not URL)
 ```
 
-On the Claude API connector, the app runs OAuth itself, puts the token in `authorization_token` and refreshes it when it expires.
+With the Claude API connector, your app gets the token through OAuth before the call, sends it in the `authorization_token` field, and gets a new one when the old one expires.
 
 ### Step 3: step up, do not grab everything
 
@@ -219,6 +219,6 @@ Answer three questions about a calendar MCP server.
 
 ## Recap
 
-- The MCP server is an OAuth resource server. Clients send `resource` in both OAuth requests and the token in the `Authorization` header, never in the URL. A server rejects, with 401, any token whose audience is not itself.
+- The MCP server is an OAuth resource server. Clients send `resource` in both OAuth requests and put the token in the `Authorization` header. A token must not go in the URL. A server rejects, with 401, any token whose audience is not itself.
 - No token passthrough. Proxy servers need per-client consent. Start with small scopes; ask for more only when needed (a 403 with `insufficient_scope`).
 - Tool descriptions and results are data, not orders. Keep a human who can deny calls, show the inputs, and allowlist tools.

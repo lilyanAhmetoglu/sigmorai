@@ -81,7 +81,7 @@ Content can be text, an image, audio, a `resource_link` or an embedded `resource
 
 ### Errors
 
-For common failures the spec says servers **SHOULD** return standard JSON-RPC errors:
+For common failures, servers **SHOULD** return standard JSON-RPC errors, per the spec:
 
 - Invalid prompt name: `-32602` (Invalid params).
 - Missing required arguments: `-32602` (Invalid params).
@@ -100,7 +100,7 @@ Our reading, in practice:
 
 ### How hosts use prompts
 
-- **Claude Code**: MCP prompts become commands. The [Claude Code docs](https://code.claude.com/docs/en/mcp) say: type `/` to see them, and each one is listed in the form `/servername:promptname`, marked `(MCP)`. Typing `/mcp__servername__promptname` also runs it. Arguments come after the command, with spaces between them, for example `/mcp__github__pr_review 456`. The docs say prompt results "are injected directly into the conversation". (The `@` menu is for resources, not prompts. Config files such as `.mcp.json` only say which servers to connect.)
+- **Claude Code**: MCP prompts become commands. The [Claude Code docs](https://code.claude.com/docs/en/mcp) say: type `/` to see them, and each one is listed in the form `/servername:promptname`, marked `(MCP)`. Typing `/mcp__servername__promptname` also runs it. Arguments come after the command, with spaces between them, for example `/mcp__github__pr_review 456`. The docs say Claude Code "splits the arguments on whitespace, so each argument is a single token". A value with spaces, such as a full crash log, does not fit. The docs say prompt results "are injected directly into the conversation". (The `@` menu is for resources, not prompts. Config files such as `.mcp.json` only say which servers to connect.)
 - **Claude API**: the [MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) supports "only tool calls". With your own MCP client, the Anthropic SDK has a helper that "Converts MCP prompt messages to Claude API message format".
 - **OpenAI Agents SDK**: the [SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md) say servers can provide prompts that "dynamically generate agent instructions". Use `list_prompts()` to see them. Use `get_prompt`, with a prompt name and its arguments, to fetch one.
 
@@ -165,10 +165,12 @@ The fix is on the server: check the `log` argument before it goes into the templ
 ### Step 5: use it from two hosts
 
 ```text
-Claude Code:        /mcp__bugtracker__bug_report "<log text>" high
+Claude Code:        /mcp__bugtracker__bug_report crash-4471 high
 OpenAI Agents SDK:  await server.get_prompt("bug_report",
-                        {"log": log_text, "severity": "high"})
+                        {"log": "crash-4471", "severity": "high"})
 ```
+
+Each Claude Code argument is one word, so here `log` takes a log id and the server reads the log itself. The server must still check that log text before it goes into the template (Step 4).
 
 ### Why it is better
 
