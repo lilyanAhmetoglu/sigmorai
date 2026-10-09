@@ -1,7 +1,7 @@
 ---
 id: builder/r5/c5/lesson
 title: Remote servers
-minutes: 9
+minutes: 12
 sources:
   - kind: docs
     title: Transports overview (Model Context Protocol)
@@ -29,73 +29,200 @@ sources:
     url: https://github.com/openai/openai-agents-python/blob/main/docs/mcp.md
 ---
 
-An MCP server can run on the user's laptop or in the cloud. That choice is the transport, and it decides which hosts can reach the server, how it scales, and what you must secure. The messages stay the same: the spec says "Protocol semantics are identical on every transport."
+## Goal
 
-## The two standard transports
+After this lesson you can:
 
-The spec defines two:
+- Pick a transport, stdio or Streamable HTTP, and follow its rules.
+- Secure a Streamable HTTP server and keep tool state in handles, not in the connection.
+- Say which hosts can reach a local, private or public server, and cut the cost of tool lists.
 
-1. **stdio:** the client launches the server as a subprocess and talks over its standard streams.
-2. **Streamable HTTP:** the server is an independent process that "can handle multiple client connections". Each message is an HTTP POST to one MCP endpoint.
+## The problem
 
-Custom transports are allowed, but they must keep the JSON-RPC format and the message patterns.
+A translation team wrote an MCP server. It serves the team's glossary and runs translation jobs. It started on one developer's laptop and worked well in Claude Code.
 
-## stdio: a local process
+Now the company wants it in the cloud for a web app on the Claude API and for an agent built with the OpenAI Agents SDK. In the cloud, the server runs on two machines behind a load balancer. A long translation job takes several tool calls.
 
-With stdio, the server reads messages from `stdin` and writes them to `stdout`, one JSON-RPC message per line. The rules are strict:
+The team does not know what must change. Is it only a new address? Or do security, state and cost change too?
 
-- The server must not write anything to `stdout` that is not a valid MCP message.
-- The server may write logs to `stderr`. The client should not assume `stderr` output means an error.
-- To shut down, the client closes the server's input and waits. If the server process dies, the client should restart it.
+## The idea
 
-A common bug follows from rule one. A developer adds a `print("debug")` to a stdio server, the line lands on `stdout`, and the client can't parse it. Log to `stderr` instead.
+The way messages travel between client and server is the **transport**. The [transports page](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports) says "Protocol semantics are identical on every transport." The messages mean the same thing. Only the delivery changes.
 
-stdio fits tools that need the local machine. Claude Code says stdio servers "run as local processes on your machine" and are "ideal for tools that need direct system access or custom scripts."
+Think of a letter. You can hand it over at the desk (stdio) or post it to an address (HTTP). The letter is the same.
 
-## Streamable HTTP: a remote service
+### The two standard transports
 
-With Streamable HTTP, the server has one endpoint, for example `https://example.com/mcp`. The client POSTs every request there. For each request, the server answers with either one JSON object or a Server-Sent Events (SSE) stream for that request. The stream can carry progress notifications before the final response.
+1. **stdio**: the client starts the server as a child process (a subprocess). They talk over its standard streams, one message per line.
+2. **Streamable HTTP**: the server runs on its own, as a process "that can handle multiple client connections". Each message is an HTTP POST to one MCP endpoint.
 
-The spec gives three security rules for this transport:
+You may build a custom transport. The spec says it **MUST** keep the JSON-RPC message format and the message patterns.
 
-- Servers must validate the `Origin` header on all incoming connections, to prevent DNS rebinding attacks. An invalid `Origin` gets HTTP 403.
-- When running locally, servers should bind only to localhost (127.0.0.1), not all interfaces (0.0.0.0).
-- Servers should implement proper authentication for all connections (chapter 6).
+### stdio rules
 
-The older HTTP+SSE transport is deprecated. The spec says new implementations should not adopt it. The Claude Code docs and the OpenAI Agents SDK docs both mark SSE as deprecated too.
+The [stdio page](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/stdio) is strict:
 
-## No sessions: state goes in handles
+- The server **MUST NOT** write anything to its `stdout` that is not a valid MCP message.
+- The server **MAY** write logs to `stderr`. The client **SHOULD NOT** assume that `stderr` output means an error.
+- If the server process exits unexpectedly, the client **SHOULD** restart it. It does not restart the server before each message.
 
-In the 2026-07-28 revision, MCP has no protocol-level session. Every request carries its own version and capabilities, and Streamable HTTP no longer uses session ids. Our reading: this makes scaling simpler, because no request depends on hidden state from an earlier one on the same connection.
+A common bug: a developer adds a debug print. The text lands on `stdout`, and the client cannot parse it. Send logs to `stderr` instead.
 
-What if a tool needs state, like a shopping cart? The tools page suggests a handle: a creation tool returns an id such as `bsk_a1b2c3`, and later calls pass it as an argument. On an authenticated server, check the caller's authorization against the handle on every call. Say the handle's lifetime in the tool description, for example "baskets expire after 24 hours of inactivity".
+The [Claude Code docs](https://code.claude.com/docs/en/mcp) say stdio servers "run as local processes on your machine" and are "ideal for tools that need direct system access or custom scripts".
 
-## Which hosts can reach which servers
+### Streamable HTTP rules
 
-This is where the vendors differ most:
+The server has one endpoint, for example `https://example.com/mcp`. The client POSTs every request there. The server answers each request with one JSON object or with an SSE (Server-Sent Events) stream for that request. The stream can carry progress notifications before the final answer.
 
-- **Claude API MCP connector:** the server "must be publicly exposed through HTTP". It supports Streamable HTTP and SSE. The `url` must start with `https://`. "Local STDIO servers cannot be connected directly."
-- **OpenAI Responses API:** remote servers must support Streamable HTTP or HTTP/SSE. For a private, on-premises or firewalled server, OpenAI offers Secure MCP Tunnel, which connects it "without exposing it to the public internet".
-- **Claude Code:** local stdio, remote HTTP (the recommended option for remote servers), deprecated SSE, and WebSocket servers.
-- **OpenAI Agents SDK:** `HostedMCPTool` lets the Responses API call a public server for you. `MCPServerStreamableHttp`, `MCPServerSse` and `MCPServerStdio` let your own process connect.
+The [Streamable HTTP page](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http) gives three security rules:
 
-So a stdio server on a laptop works with Claude Code or the Agents SDK. To use it from the Claude API, it has to become a public HTTPS server.
+1. Servers **MUST** validate the `Origin` header on all incoming connections, "to prevent DNS rebinding attacks". If `Origin` is present and invalid, the server **MUST** answer HTTP 403 Forbidden.
+2. When running locally, servers **SHOULD** bind only to localhost (127.0.0.1), not to all network interfaces (0.0.0.0).
+3. Servers **SHOULD** implement proper authentication for all connections.
 
-## Latency and cost of tool lists
+The spec warns: "Without these protections, attackers could use DNS rebinding to interact with local MCP servers from remote websites." A firewall alone does not cover this.
 
-A remote server adds a network call before the model can even see its tools. The vendors offer ways to reuse the list:
+The older HTTP+SSE transport is deprecated. The spec says new implementations "**SHOULD NOT** adopt it". The Claude Code docs and the OpenAI Agents SDK docs also call SSE deprecated. The SDK docs say to keep SSE "only for legacy servers".
 
-- **OpenAI Responses API:** while the `mcp_list_tools` item stays in context, the API does not fetch the list again each turn. OpenAI recommends keeping it there.
-- **OpenAI Agents SDK:** `cache_tools_list` caches `list_tools()`. Use it only if tool definitions rarely change.
-- **Claude API:** a beta lets you pin a server's tool list, so a server that changes its tools does not change what Claude sees mid-conversation.
+### No sessions: keep state in a handle
 
-Big tool lists also cost tokens. OpenAI says you "only pay for tokens used when importing tool definitions or making tool calls". Both Claude and OpenAI let you defer loading MCP tools with tool search, so only the tools a task needs are loaded.
+Revision 2026-07-28 removed protocol-level sessions from Streamable HTTP. The [tools page](https://modelcontextprotocol.io/specification/2026-07-28/server/tools) says: "MCP has no protocol-level session, so a server cannot rely on implicit per-connection state to relate one tool call to the next."
 
-## Key points
+So how does a multi-step job keep its state? The spec's answer is a **handle**:
 
-- stdio: local subprocess, messages on `stdout` only, logs on `stderr`.
-- Streamable HTTP: one POST endpoint, JSON or a per-request SSE stream. Validate `Origin`, bind locally to 127.0.0.1, authenticate.
-- HTTP+SSE is deprecated.
-- No protocol sessions in 2026-07-28. Keep state in explicit handles and check authorization on each call.
-- The Claude API connector needs a public `https://` server. OpenAI can reach private servers through Secure MCP Tunnel.
-- Reuse tool lists: keep `mcp_list_tools` in context, cache in the Agents SDK, pin on Claude.
+- A creation tool returns an id, for example `basket_id: "bsk_a1b2c3"`.
+- Later calls pass that id as an argument.
+- The server stores the state under that id and looks it up on each call.
+- On an authenticated server, the server should check, on every call, that this caller may use this handle. The spec says a handle "is a name, not a capability".
+- Say the lifetime in the tool description, for example "baskets expire after 24 hours of inactivity".
+
+Our reading: if the server runs on several machines, keep the state in a store that all of them share. Then any machine can answer any call.
+
+### Which hosts reach which servers
+
+| Host                     | What it can reach                                                                 |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| Claude API MCP connector | Public HTTP servers only (Streamable HTTP or SSE). The `url` must use `https://`. |
+| OpenAI Responses API     | Public remote servers (Streamable HTTP or HTTP/SSE), or private ones via a tunnel |
+| Claude Code              | Local stdio, remote HTTP (recommended), deprecated SSE, and WebSocket servers     |
+| OpenAI Agents SDK        | Hosted public servers, or its own stdio, SSE and Streamable HTTP connections      |
+
+The details, with quotes:
+
+- **Claude API**: the [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) say "The server must be publicly exposed through HTTP" and "Local STDIO servers cannot be connected directly." The `url` field "Must start with https://". Every server `name` needs one matching `mcp_toolset`, and only one. The docs give no port rule.
+- **OpenAI Responses API**: the [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say remote servers are servers "on the public Internet". For a server that is "private, on-premises, or behind a firewall", use **Secure MCP Tunnel**. It connects the server "without exposing the server to the public internet". You point the `mcp` tool at it with `tunnel_id` instead of `server_url`.
+- **OpenAI Agents SDK**: `HostedMCPTool` lets the Responses API call a public server for you. `MCPServerStreamableHttp`, `MCPServerSse` and `MCPServerStdio` let your own process connect.
+
+### The cost of tool lists
+
+A remote server adds a network call before the model can see its tools. Each vendor lets you reuse the list:
+
+- **OpenAI Responses API**: while the `mcp_list_tools` item stays in context, the API "will not fetch a list of tools from the MCP server again at each turn". The OpenAI docs recommend keeping it in context to cut latency.
+- **OpenAI Agents SDK**: every agent run calls `list_tools()`. Set `cache_tools_list` to `True` "only if you are confident that the tool definitions do not change frequently". For a fresh list later, the SDK has a method, `invalidate_tools_cache()`.
+- **Claude API**: the `mcp-client-2026-09-15` beta lets you pin a server's tool list. Then a server that changes its tools does not change what Claude sees mid-conversation.
+
+Tool definitions also cost tokens. The OpenAI docs say "you only pay for tokens used when importing tool definitions or making tool calls". With tool search, both Claude (`defer_loading` per tool) and OpenAI (`defer_loading` on the MCP server) can load tool definitions only when they are needed.
+
+## Worked example
+
+### Step 1: the weak move to the cloud
+
+```text
+laptop version (stdio)
+  print("glossary loaded: 4,200 terms")   on start-up
+
+cloud version (first draft)
+  listen:   0.0.0.0:8080
+  Origin:   not checked
+  auth:     none
+  jobs:     start_job() keeps the job in this machine's memory
+            add_text(text)  finds the job by the connection
+            finish_job()
+
+Claude API:   url: http://10.2.0.7:8080/mcp
+Agents SDK:   list_tools() on every run, tools change twice a year
+```
+
+What goes wrong:
+
+- The `print` writes to `stdout`, so the laptop client breaks.
+- The server listens on every interface, with no `Origin` check and no login.
+- Jobs depend on the connection. On two machines, `add_text` can land on the wrong one.
+- The Claude API needs a public `https://` URL. This one is private and plain `http://`.
+- The agent fetches an almost fixed list on every run.
+
+### Step 2: fix stdio
+
+```python
+import sys
+print("glossary loaded: 4,200 terms", file=sys.stderr)
+```
+
+`stdout` now carries only MCP messages.
+
+### Step 3: secure the HTTP server
+
+```text
+listen:   127.0.0.1:8080 when local; behind HTTPS in the cloud
+Origin:   allow-list checked; invalid Origin -> HTTP 403
+auth:     every request needs a valid token (next lesson)
+public:   https://glossary.example.com/mcp
+```
+
+### Step 4: the hard case, state across two machines
+
+It is tempting to make the load balancer send each connection to the same machine. But the spec says the server cannot rely on per-connection state. Use a handle:
+
+```text
+start_job()            -> { job_id: "job_7f3a9c" }
+                          description: "jobs expire after 12 hours idle"
+add_text(job_id, text) -> server checks the caller may use job_7f3a9c,
+                          then appends to the job in the shared store
+finish_job(job_id)
+```
+
+Now either machine can answer any call, because the job lives in a shared store, keyed by `job_id`.
+
+### Step 5: connect the hosts and cache the list
+
+```text
+Claude API:   url: https://glossary.example.com/mcp
+Agents SDK:   MCPServerStreamableHttp(..., cache_tools_list=True)
+              call invalidate_tools_cache() after a tool release
+```
+
+### Why it is better
+
+- **Clean streams**: logs go to `stderr`.
+- **Safer HTTP**: `Origin` check, localhost bind, authentication.
+- **Scales**: state lives under a handle, not in a connection.
+- **Reachable**: a public `https://` URL for the Claude API.
+- **Faster**: the agent reuses its tool list.
+
+## Common mistakes
+
+1. **Debug prints on a stdio server.** They break the message stream. Fix: log to `stderr`.
+2. **"The firewall is enough."** DNS rebinding can reach local servers from a web page. Fix: check `Origin`, bind to 127.0.0.1, and require authentication.
+3. **State tied to the connection.** There is no protocol session to hold it. Fix: return a handle and check rights on each call.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Answer three questions about a weather-alerts MCP server.
+
+1. It runs on a laptop, and the client sees the text "Starting..." before any message. What is wrong?
+2. It moves to HTTP. One request carries an `Origin` value that is not allowed. Which HTTP answer is required?
+3. The company's own network blocks all public endpoints. Which host option on this page can still reach it from the OpenAI Responses API?
+
+### Answer
+
+1. The server wrote non-MCP text to `stdout`. Move that line to `stderr`.
+2. HTTP 403 Forbidden.
+3. Secure MCP Tunnel. You reference the tunnel with `tunnel_id`, and the server is never exposed to the public internet.
+
+## Recap
+
+- stdio: a local subprocess, only MCP messages on `stdout`, logs on `stderr`. Streamable HTTP: one POST endpoint; check `Origin` (403 if bad), bind locally to 127.0.0.1, authenticate. HTTP+SSE is deprecated.
+- There are no protocol sessions. Keep multi-call state under a handle, in a shared store. Check on every call that the caller may use it.
+- The Claude API connector needs a public `https://` server; OpenAI can reach private servers through Secure MCP Tunnel. Reuse tool lists to cut latency and tokens.

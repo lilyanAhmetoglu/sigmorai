@@ -1,7 +1,7 @@
 ---
 id: creator/r2/c3/lesson
 title: Async jobs
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: Gemini API docs · Generate videos with Veo 3.1
@@ -23,76 +23,156 @@ sources:
     url: https://docs.dev.runwayml.com/ai-context.md
 ---
 
-## Why it matters
+## Goal
 
-A photo from an image model can come back in seconds. A video can take minutes. Your studio tool cannot hold one phone line open for that long, so slow work is handled as a **job**. You hand in the order, get a ticket, and come back later.
+After this lesson you can:
 
-If you don't know this, you will misread a screen. A job that says "running" is not broken. A job that says "done" is not always a success. This lesson explains the ticket system, so you can plan delivery times and tell the client the truth.
+- Read a job's status and say which jobs have a file ready, which are still working, and which ended badly.
+- Plan delivery times from the vendors' own time ranges.
+- Choose between checking jobs again and again (polling) and being told when they finish (a webhook).
 
-## The job ticket
+## The problem
 
-Slow jobs at the vendors follow the same four steps:
+A florist wants five short video clips for Mother's Day. Your studio submits them on Thursday evening. On Friday morning, the producer opens the job list, sees no red errors, and writes to the client: "All five clips are done, you'll have them at 10:00."
 
-1. **Submit** the request.
-2. **Get a ticket** (an id) back at once. No video yet.
-3. **Check** the ticket until the job is finished.
-4. **Pick up** the result.
+At 09:30 the editor finds only two video files. One job is still waiting in a queue. One ended with a failure. One was cancelled by a teammate. The producer read "finished" as "successful", and "no error" as "done".
 
-Here is how each vendor says it:
+Video takes minutes, not seconds. So the vendors treat it as a **job**, not an instant answer. This lesson shows how to read a job.
 
-- **Google (Veo).** "When you send a request to the API, it starts a long-running job and immediately returns an `operation` object. You must then poll until the video is ready, which is indicated by the `done` status being true."
-- **Runway.** With few exceptions, "you do not get output back from the request that starts the work." You get a task id, then you "poll `GET /v1/tasks/{id}` until `status` is terminal".
-- **OpenAI.** Its background mode is for long-running text and reasoning tasks, not video, but it follows the same pattern. It "kicks off these tasks asynchronously" and you "poll response objects to check status over time". You keep polling "while the request is in the queued or in_progress state".
+## The idea
 
-**Polling** means asking "is it done yet?" again and again. The vendors' sample code does this in a loop. Runway's guide says to poll "with backoff rather than a tight loop". That means asking less often as time passes, not every split second.
+### A job is a ticket
 
-## Reading the status
+Think of a dry cleaner. You hand in the coat, you get a ticket, and you come back later. Slow generation works the same way:
 
-Runway's task has six states: `PENDING`, `THROTTLED`, `RUNNING`, `SUCCEEDED`, `FAILED` and `CANCELLED`. Three facts matter:
+```text
+1. submit   -->  2. get an id (no file yet)
+                        |
+                        v
+                 3. check the id until it is finished
+                        |
+                        v
+                 4. if it succeeded, pick up the result
+```
 
-- Only `SUCCEEDED` carries the output. A `RUNNING` job has nothing to download yet.
-- `FAILED` carries two fields: `failure` (text for humans) and `failureCode` (for machines).
-- `THROTTLED` "is not an error". The job is queued behind your rate limit and "will proceed on its own".
+The vendors say it like this:
 
-OpenAI says a background request that leaves `queued` or `in_progress` "has reached a final (terminal) state". Terminal means finished, good or bad. Check which final state it is.
+- **Google (Veo).** The [Veo docs](https://ai.google.dev/gemini-api/docs/veo) say a request "starts a long-running job and immediately returns an `operation` object". You check it until its `done` field is true.
+- **Runway.** The [Runway primer](https://docs.dev.runwayml.com/ai-context.md) says that, with few exceptions, the request that starts the work does not give you the output. You get a task id. Then you check `GET /v1/tasks/{id}`.
+- **OpenAI.** [Background mode](https://developers.openai.com/api/docs/guides/background) is for long text and reasoning tasks, not video. It uses the same idea: it starts the task "asynchronously", and you check the response object over time.
 
-Example: a producer sees ten jobs and says "all done". Six say `SUCCEEDED`. Two say `FAILED`. Two say `CANCELLED`. All ten are finished. Only six have a video.
+Checking again and again is called **polling**. The Runway primer says to poll "with backoff rather than a tight loop". Backoff means you wait longer between checks as time goes on. A tight loop asks many times a second, which only floods the service with requests.
 
-## Poll or be told
+### Reading the status
 
-Polling is the simple way. The other way is a **webhook**: the vendor calls your system when the job finishes. OpenAI supports this. Its webhooks page lists events such as "when a batch completes, a background response is generated, or a fine-tuning job finishes".
+A Runway task has six states:
 
-OpenAI also says what a good receiver does:
+| Status      | What it means                                           | File ready? |
+| ----------- | ------------------------------------------------------- | ----------- |
+| `PENDING`   | waiting to start                                        | no          |
+| `THROTTLED` | waiting behind your rate limit; it will start by itself | no          |
+| `RUNNING`   | being made now                                          | no          |
+| `SUCCEEDED` | finished well                                           | **yes**     |
+| `FAILED`    | finished badly; has `failure` and `failureCode` fields  | no          |
+| `CANCELLED` | stopped before the end                                  | no          |
 
-- Answer fast with a success code. Do slow work later.
-- If you don't answer, OpenAI retries "for up to 72 hours with exponential backoff".
-- It "may deliver duplicate copies of the same webhook event". The `webhook-id` header can be used to remove duplicates.
+The primer is clear on three points:
 
-You will not write that receiver. But you may choose between a tool that polls and one that sends you a message. If you run 200 jobs overnight, being told is calmer than watching a screen.
+- "Only `SUCCEEDED` carries an `output` array." No other state has a file.
+- `FAILED` has two fields: `failure` is text for people, `failureCode` is for software.
+- A `THROTTLED` task is fine. It is queued behind your rate limit and "will proceed on its own".
 
-## How long is "a while"?
+One more word: **terminal**. The OpenAI docs say that when a background job leaves the `queued` or `in_progress` state, it has reached a "final (terminal)" state. Terminal means finished. It does not mean successful. In Runway terms, `SUCCEEDED`, `FAILED` and `CANCELLED` are all finished, and only one of them gives you a file.
 
-Use the vendors' own numbers when you promise a date. Do not guess.
+### How long is "a while"?
 
-| Job type                     | What the docs say                                         |
-| ---------------------------- | --------------------------------------------------------- |
-| Veo video                    | Latency from 11 seconds up to 6 minutes at peak hours     |
-| OpenAI image, complex prompt | "may take up to 2 minutes"                                |
-| Runway generation            | "anywhere from seconds to minutes", by model and duration |
-| Gemini image batch job       | "a turnaround of up to 24 hours", with higher rate limits |
+Use the vendors' numbers, not a guess:
 
-Google also says "the higher the resolution, the higher the latency will be."
+| Job                          | What the docs say                                                      |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| Veo video                    | latency "Min: 11 seconds; Max: 6 minutes (during peak hours)"          |
+| OpenAI image, complex prompt | "may take up to 2 minutes"                                             |
+| Runway generation            | "anywhere from seconds to minutes depending on the model and duration" |
+| Gemini image batch           | higher rate limits, but a "turnaround of up to 24 hours"               |
 
-Example: a shot list has 30 Veo clips. Run one after another, at up to 6 minutes each, they can take up to 3 hours. A Gemini image batch can take up to a day, so it fits overnight work, not a same-afternoon deadline. Neither number is a delivery date until you add review time.
+The Veo docs also say: "the higher the resolution, the higher the latency will be." So a job that is still running after a few minutes is often normal. And a batch is for work that can wait a day, not for a meeting tomorrow morning.
 
-## Stopping a job
+### Poll, or be told
 
-You can stop a job you no longer need. Runway: `DELETE /v1/tasks/{id}` "cancels an in-progress task". OpenAI lets you cancel an in-flight background response. The docs we read do not say whether a cancelled job is refunded. Ask the vendor before you cancel at scale.
+Polling is simple. The other way is a **webhook**: the vendor sends a message to your system when the job ends. The [OpenAI webhooks docs](https://developers.openai.com/api/docs/guides/webhooks) list events such as "a batch completes" or "a background response is generated". Three details:
 
-## What this means for your work
+- Your system should answer fast with a success code (`2xx`). Slow work happens later.
+- If it does not answer, OpenAI tries again "for up to 72 hours with exponential backoff".
+- The OpenAI docs say it "may deliver duplicate" copies of one event. The `webhook-id` header lets you spot the copy and ignore it. Two messages with one `webhook-id` are one event, not two jobs.
 
-- **Treat "submitted" as not done.** A ticket is a promise to work, not a file.
-- **Read the final state.** Finished can mean succeeded, failed or cancelled.
-- **Quote ranges, not guesses.** Use the vendor's numbers, then add your own review time.
-- **Pick up results on time.** Results are not kept for ever. Chapter 4 covers how long.
-- **Choose between polling and webhooks.** For big overnight runs, being told beats watching.
+### Stopping a job
+
+The Runway primer says `DELETE /v1/tasks/{id}` "cancels an in-progress task". The OpenAI background-mode docs show how to cancel a response that is still running. Cancel only what you really do not need.
+
+## Worked example
+
+### Step 1: the weak report
+
+The producer's Friday note:
+
+```text
+Florist clips: all 5 done, no errors. Delivery 10:00.
+```
+
+### Step 2: read each job
+
+```text
+clip-1  Runway  SUCCEEDED   -> file ready, download it now
+clip-2  Runway  SUCCEEDED   -> file ready, download it now
+clip-3  Runway  THROTTLED   -> not an error; waiting for the rate limit
+clip-4  Runway  FAILED      -> read "failure" and "failureCode"
+clip-5  Runway  CANCELLED   -> stopped by a teammate; no file
+```
+
+### Step 3: the hard case
+
+The hard case is clip-3. It looks stuck, and a teammate wants to delete it and submit it again. But `THROTTLED` only means waiting. The task is in the queue and will start by itself. A new copy would wait behind the same rate limit, so resubmitting gains nothing and wastes the place it already has. The right move is to leave it and keep checking with backoff.
+
+Clip-4 is different. It ended. Waiting will not change it. Read the failure fields, then decide.
+
+### Step 4: the good report
+
+```text
+Florist clips, Friday 08:15
+  Ready now:   clip-1, clip-2 (downloaded to /florist/final/)
+  In queue:    clip-3 (THROTTLED, will run on its own)
+  Failed:      clip-4 (reason in failureCode; fix and resubmit)
+  Cancelled:   clip-5 (resubmit if still wanted)
+  New promise: 2 clips at 10:00, the rest by 14:00
+```
+
+### Step 5: why it is better
+
+- **"Finished" and "successful" are kept apart.** Only `SUCCEEDED` jobs count as files.
+- **The queue is respected.** The throttled clip is left alone.
+- **The promise uses real numbers.** The new time leaves room for queues, a rerun and a review.
+
+## Common mistakes
+
+1. **Counting finished jobs as delivered files.** Fix: count only the jobs whose status says success, and check that the file is saved.
+2. **Cancelling a throttled job.** Fix: leave it in the queue. It runs by itself when your limit allows.
+3. **Treating two webhook messages as two jobs.** Fix: compare the `webhook-id`. If it is the same, it is one event delivered twice.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A teammate builds a small checker for 300 overnight Veo clips. It asks "is it done?" for every clip, every half second, all night. In the morning, a client meeting at 09:00 needs ten of those clips.
+
+Name two problems with this plan.
+
+### Answer
+
+1. **A tight loop.** Asking every half second floods the service. Fix: wait longer between checks (backoff), or use a webhook, so the system is told when each job ends.
+2. **Must-have clips are mixed into the big overnight run.** Each Veo clip can take up to 6 minutes at peak hours. Fix: run the ten meeting clips first, as their own jobs, and leave time to review them.
+
+## Recap
+
+- Slow generation is a job: submit, get an id, check it, then pick up the result. "Submitted" is not "done".
+- Finished (terminal) can mean success, failure or cancelled. Only a successful job has a file. `THROTTLED` is a queue, not an error.
+- Plan with the vendors' time ranges. Check with backoff, or let a webhook tell you, and treat a repeated `webhook-id` as one event.

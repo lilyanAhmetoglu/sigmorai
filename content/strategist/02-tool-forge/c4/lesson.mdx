@@ -1,7 +1,7 @@
 ---
 id: strategist/r2/c4/lesson
 title: Build vs buy
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Guides to common use cases (Choosing a build path)
@@ -17,63 +17,124 @@ sources:
     url: https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep
 ---
 
-## Why it matters
+## Goal
 
-You have a scored use case. The next question is how much to build yourself. Building too much wastes months. Building too little can leave you stuck with a tool that can't reach your data or follow your process.
+After this lesson you can:
 
-"Build or buy" sounds like two choices. In practice it is a scale: how much of the work you do, and how much you hand to a vendor.
+- Place an option on the scale from "we build it" to "the vendor runs it".
+- Pick the lightest option that covers your mapped steps, your data rules and your team's skills.
+- Ask the questions that find hidden data-access and upkeep risks.
 
-## The scale, in the vendors' own words
+## The problem
 
-Anthropic's use case guides describe three paths that differ in how much control you keep and how much you hand over:
+The marketing team of a retail chain wants a weekly brief on competitor promotions. It should read public websites and the chain's own sales notes, then write a two-page summary every Monday. Later, the team wants the AI to suggest promotions and add them to the chain's own promotions system.
 
-- **Messages API**: the most control. You write the agent loop and run your own tools and infrastructure.
-- **Claude Agent SDK**: in between. It provides the agent loop and tool execution, in a process you operate.
-- **Claude Managed Agents**: you hand over the most. Anthropic hosts the agent loop, tool execution and runtime.
+One manager says, "Just buy a tool." An engineer says, "We should build it ourselves." Both are partly right. This lesson shows the options in between and how to choose. The guidance below is from each vendor's docs (October 2026).
 
-OpenAI's agents guide offers a similar set and rates the integration effort for each:
+## The idea
 
-- **Agents API**: OpenAI manages the agent and saves its progress. Effort: low.
-- **Agents SDK**: runs inside your application, with your own tools and workflows. Effort: medium.
-- **Responses API**: you call models directly or build an agent from scratch. Effort: high.
+**Build vs buy is a scale.** The [Claude docs](https://platform.claude.com/docs/en/about-claude/use-case-guides/overview) describe three paths that "differ in how much control you keep and how much of the implementation you offload to Anthropic":
 
-The same page points to **ChatKit** if you want to add an embedded chat experience.
+- **Messages API:** the most control. You write the loop yourself and run your own tools and servers. The **agent loop** is the code that lets the model use a tool, read the result and decide the next step.
+- **Claude Agent SDK** (SDK = a software kit for developers): in the middle. It gives you the loop and runs the tools, but you operate the process.
+- **Claude Managed Agents:** you hand over the most. Anthropic hosts "the agent loop", "tool execution", and "runtime" for you.
 
-At the far "buy" end sit ready-made products. OpenAI's cookbook shows ChatGPT **workspace agents**, built through a conversational builder inside ChatGPT. It says they are in research preview for ChatGPT Business, Enterprise and Edu customers, and that you can start from pre-built templates such as a Chief of Staff, Data Analysis or Customer Support agent.
+The [OpenAI docs](https://developers.openai.com/api/docs/guides/agents) offer a similar set and rate the "Agent integration effort" for each:
 
-## What you trade
+```text
+Option          Where the agent runs                    Effort
+Agents API      "OpenAI runs a managed Codex harness"   Low
+Agents SDK      inside your own application             Medium
+Responses API   your application                        High
+```
 
-Moving toward "buy" means less integration effort, as OpenAI's ratings show. Moving toward "build" means more control over steps, data and connections to your systems, as Anthropic's paths show.
+A **harness** here is the vendor's own setup that runs the agent for you. The OpenAI docs say the Agents API is for "Long-running tasks", and that OpenAI "manages the agent" and "saves its progress".
 
-OpenAI's comparison table shows where that control lives. For the managed option, OpenAI runs the agent harness. For the SDK, the agent runs inside your application, and state between tasks is kept in your storage and SDK sessions. The difference matters when your auditors ask where the data is and who runs the code.
+The Responses API is for "Calling models directly or building an agent from scratch". The same page points to ChatKit to "Add an embedded chat experience".
 
-Example: a sales team wants a brief before each customer meeting. The cookbook builds exactly this as a workspace agent: it reads calendars, searches documents and the web, and writes a brief each day. If that covers your mapped steps, buying is the fast choice. If the brief must also pull scores from your own pricing system and write them back, you may need more control.
+**Ready-made products sit at the "buy" end.** An [OpenAI cookbook](https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep) builds a ChatGPT **workspace agent** through a "conversational builder": you describe the agent in plain words. It says these agents are "Currently available in research preview for ChatGPT Business, Enterprise, and Edu customers". You can start "from pre-built agent templates".
 
-## Four questions to ask
+**Ready-made still needs owners.** Before you build, the cookbook asks the workspace admin to confirm settings, such as "Agents are enabled for your workspace" and "The apps you need are enabled". It also shows a data risk. A connected app can use each user's own login, or one **agent-owned account** shared by the agent. With the shared account, "anyone we share the agent with will be able to access the SharePoint resources". Admins can limit an agent to "read actions, but not write actions".
 
-1. **Does the product cover your mapped steps?** Check each step from chapter 1 against what the product really does, not the demo.
-2. **Who can see which data?** The cookbook shows that a connected app can use each user's own account or one shared account. With the shared account, anyone the agent is shared with can access those files. Admins can also limit what an agent may do with a connected app, for example read actions but no write actions.
-3. **What must be switched on?** The cookbook lists admin steps first: agents enabled for the workspace, permission to build and share, and the needed apps enabled. A "ready-made" product still needs owners.
-4. **Who maintains it?** Someone must update instructions, check results and handle changes, on any path.
+**Build only as much as you need.** The [Anthropic post on agents](https://www.anthropic.com/engineering/building-effective-agents) recommends "finding the simplest solution possible". It warns that frameworks add layers that "obscure" the prompts and replies underneath, which makes problems "harder to debug". They can also make it "tempting to add complexity when a simpler setup would suffice". Wrong ideas about what a framework does inside are, it says, "a common source of customer error".
 
-## Build only as much as you need
+**Expect change.** The same post now carries a note: "Much of the tooling landscape described in this post has changed since December 2024." So keep your own map, success criteria and test examples. They stay useful when you switch tools.
 
-Anthropic's "Building effective agents" post recommends finding the simplest solution possible, and adding complexity only when needed.
+Our example: dinner for guests. You can cook from raw ingredients (most control), use a meal kit (the recipe and steps come in the box, you cook at home), or book a restaurant (least work, least control over what goes in).
 
-It also warns about frameworks. They make it easy to start, but they can add layers that hide the underlying prompts and responses, which makes problems harder to debug. They can also tempt teams to add complexity when a simpler setup would do. The post suggests developers start with the model APIs directly, and says incorrect assumptions about what a framework does are a common source of errors.
+## Worked example
 
-For a strategist, the lesson is simple: ask the team to explain what the tool does under the hood. If nobody can, that is a risk.
+### Step 1: the weak choice
 
-## Expect the options to change
+```text
+Plan: build our own agent from zero on a raw model API.
+Reason: "We want full control."
+```
 
-These products move fast. OpenAI's workspace agents are a research preview. Anthropic's "Building effective agents" post now carries a note that much of the tooling it describes has changed since December 2024.
+What goes wrong: the chain has one part-time developer. Phase 1 needs no custom system. They would spend months on an agent loop that a product already offers.
 
-So keep the parts that don't depend on a vendor in your own hands: your workflow map, your success criteria and your test examples. With those, you can compare a new option, or switch, without starting again.
+### Step 2: check the steps against the options
 
-## Key points
+```text
+Phase 1 steps                        Needs custom code?
+Read public competitor web pages     no (web search)
+Read sales notes in shared docs      no (connected app)
+Write a 2-page brief each Monday     no (schedule + template)
+```
 
-- Build vs buy is a scale: how much you control versus how much the vendor runs.
-- Both Anthropic and OpenAI offer a direct API, an SDK and a vendor-hosted option.
-- Ready-made products start fast but need admin setup and data-access checks.
-- Build only as much as you need; frameworks can hide what really happens.
-- Keep your map, criteria and test examples, so you can switch when options change.
+All phase 1 steps fit a ready-made workspace agent the chain already pays for.
+
+### Step 3: set up access (the hard case)
+
+The first draft connects the shared-docs app with one agent-owned account. This account is also able to open the finance folder with supplier margins. The plan is to share the agent with all 120 store managers.
+
+**This is the hard case.** Every store manager could reach supplier margins through the agent. The fix:
+
+```text
+- Connect the docs app with each user's own login, or
+- give the agent account access to the sales-notes folder only.
+- Allow read actions only. The brief is saved by a person.
+- Share with the marketing team of 8 first, not all 120.
+```
+
+### Step 4: plan phase 2
+
+Phase 2 must write suggested promotions into the chain's own promotions system. IT wants that data to stay in the chain's own setup and does not want to write an agent loop. That points to the middle of the scale: an **agent SDK**, such as the Claude Agent SDK or the OpenAI Agents SDK. The SDK handles the loop and calls the tools, and the chain runs it itself. Before agreeing to any framework, ask: "Show me the prompts and calls it really makes."
+
+### Step 5: why it is better
+
+- **Fast start.** Phase 1 runs on a product the chain already has.
+- **Safe data.** Access is checked before sharing, not after.
+- **Right amount of build.** Code only where the product can't reach (phase 2).
+- **Easy to switch.** The map, criteria and test briefs belong to the chain.
+
+## Common mistakes
+
+1. **Building from scratch by default.** It costs months when a product covers the steps. Fix: check each mapped step against the lightest option first.
+2. **Trusting the demo.** Demos skip data access and admin setup. Fix: ask who can see which data through the agent, and who keeps it up to date.
+3. **Adding a framework nobody can explain.** Hidden prompts make problems hard to debug. Fix: ask to see the real prompts and calls before you agree.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+For each team, choose a point on the scale: ready-made workspace agent, agent SDK, vendor-hosted agent, or direct model API. Give one reason.
+
+```text
+1. A small legal team wants a weekly digest of new court rulings.
+   No developers. The firm already pays for an AI workspace.
+2. A bank's engineers need an agent that writes into their own
+   loan system. Data must stay in the bank's own setup. They
+   would rather not code the loop themselves.
+```
+
+### Answer
+
+1. **Ready-made workspace agent.** No developers, and the workspace covers reading, summarizing and scheduling. Check what data each connected app can reach before sharing.
+2. **Agent SDK.** The SDK handles the loop and the tool calls, while the bank runs it itself. A vendor-hosted agent breaks the data rule, and a direct API means writing the loop.
+
+## Recap
+
+- Build vs buy is a scale. Anthropic and OpenAI both offer a direct API, an SDK and a vendor-hosted option. Ready-made products, such as ChatGPT workspace agents, sit at the "buy" end.
+- Pick the lightest option that covers your mapped steps, data rules and skills. Check data access and owners before you share.
+- Build only as much as you need, ask to see what a framework really does, and keep your own map, criteria and tests so you can switch.
