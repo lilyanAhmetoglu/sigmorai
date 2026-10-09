@@ -1,7 +1,7 @@
 ---
 id: creator/r4/c6/lesson
 title: Agent limits
-minutes: 6
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic · Building effective agents
@@ -17,64 +17,211 @@ sources:
     url: https://platform.claude.com/docs/en/managed-agents/define-outcomes
 ---
 
-## Why it matters
+## Goal
 
-The first five chapters showed what an agent can do and how to keep it in check. This chapter is about what it cannot do, and where it can hurt you. A studio that knows these limits can say "yes, with conditions" instead of "yes" or "no".
+After this lesson you can:
 
-## Errors add up
+- Work out how small errors add up along a chain of steps, by multiplying.
+- Judge an agent plan on four limits: how many agents, what access they get, where they are tested, and how long their work is kept.
+- Say "yes, with conditions" to an agent plan, and list those conditions.
 
-Anthropic warns about "the potential for compounding errors" in agents. Here is what that means with made-up numbers. This example is ours, not a vendor figure.
+## The problem
 
-Say a chain has 5 steps: brief, storyboard, clips, review, post. Say each step is right 90 times out of 100. The chance that all five are right is 0.9 × 0.9 × 0.9 × 0.9 × 0.9, which is about 0.59. That is 59 times out of 100. Each step looks good. The chain as a whole fails four times in ten.
+A small music label wants an agent to make lyric videos for its artists and upload them to the label's video channel. An eager developer brings this plan:
 
-This is why the earlier chapters add checks between steps, and a person at the end. A check does not remove the error. It catches it before the next step builds on it.
+```text
+- A chain of 6 steps: lyrics -> style -> frames -> video
+  -> captions -> upload. Each step is right 97% of the time.
+- Four agents: writer, designer, video maker, uploader.
+- The agents get the label's main account password, "so
+  they can fix any problem they find".
+- First test: a real release, on the real channel.
+- Hosted as a Google managed agent. After each video it waits
+  for the artist's OK. Some artists answer in two weeks.
+```
 
-## Give the agent a way to see the real result
+The plan sounds strong: 97% is a high number, four agents sound organised, and full access sounds convenient. But each line hides a limit of today's agents. This lesson walks through them.
 
-Anthropic says it is "crucial for the agents to gain 'ground truth' from the environment at each step (such as tool call results or code execution) to assess its progress". An agent that cannot see what happened is guessing. For a creative chain, "ground truth" means things like: the file exists, the length is right, the check script says pass. It does not mean the agent says it is fine.
+## The idea
 
-## More agents is not better
+### Errors add up along a chain
 
-A slide that shows six specialist agents (concept, storyboard, image, video, voice, review) looks impressive. OpenAI's orchestration guide says the opposite. "Start with one agent whenever you can." Add specialists only when they "materially improve capability isolation, policy isolation, prompt clarity, or trace legibility". And: "Splitting too early creates more prompts, more traces, and more approval surfaces without necessarily making the workflow better."
+The [Anthropic engineering post on agents](https://www.anthropic.com/engineering/building-effective-agents) warns that agents bring "higher costs, and the potential for compounding errors".
 
-A good reason for a second agent: the posting tool needs its own strict rules, so it lives apart from the drawing tools (policy isolation). A weak reason: every step "should" have its own agent.
+"Compounding" means the chances multiply. If step 1 is right 90% of the time and step 2 is right 90% of the time, both are right only 0.9 × 0.9 = 0.81 of the time. You do not take away a fixed amount per step. You multiply.
 
-## What the agent can reach
+A comparison: think of a row of doors that each open 9 times in 10. To walk through two doors, both must open. The more doors in the row, the more often you get stuck somewhere.
 
-An agent acts with the access you give it. Google's agents page says about managed agents: "The agent may use any credential it has access to, so only provide credentials whose full scope you are willing to grant." It advises least-privilege accounts and short-lived tokens. It also says the sandbox has unrestricted outbound network access by default, and that you can restrict it with an allowlist.
+This is why checks go between steps, and a person signs at the end. A check does not make a step perfect. It catches the error before the next step builds on top of it.
 
-Example: if the agent gets the brand's admin login, a mistake could change the whole account. If it gets a key that can only upload drafts, the worst mistake is a bad draft.
+### Let the agent see the real result
 
-Anthropic recommends "extensive testing in sandboxed environments, along with the appropriate guardrails". For a studio: run the first jobs on a dummy brand, with a test account and the posting tool turned off.
+The same post calls it "crucial" that agents get ground truth "from the environment at each step (such as tool call results or code execution) to assess its progress". Ground truth means real facts from the world, not the agent's own opinion.
 
-## Preview and beta features change
+For a creative chain, ground truth is a fact the agent can read: the file exists, the video is 9:16, the caption file has the same number of lines as the lyrics. An agent that says "the video looks done" without checking any of these is guessing.
 
-Several tools in this realm are labelled as unfinished:
+### More agents is not better
 
-- Google lists managed agents as a **Public Preview**.
-- Claude's outcomes and permission policies are **beta**.
-- Anthropic's own agents post says that much of the tooling it describes "has changed since December 2024".
+The [OpenAI orchestration docs](https://developers.openai.com/api/docs/guides/agents/orchestration) are direct: "Start with one agent whenever you can." A new specialist should earn its place. The docs say it must clearly improve one of four things (the glosses are ours):
 
-So treat names, settings and limits as things to re-check before every client job. Do not promise a client a behaviour that the vendor has not made stable.
+- capability isolation: some tools should live apart
+- policy isolation: some actions need stricter rules
+- prompt clarity: one prompt is doing too many jobs
+- trace legibility: the run is too hard to read
 
-## Places where work can disappear
+And they warn: "Splitting too early creates more prompts, more traces, and more approval surfaces without necessarily making the workflow better."
 
-Google's page lists limits for managed agents: "Environments are permanently deleted after 7 days of inactivity." If an agent waits ten days for a client reply, its workspace may be gone.
+Our reading: a good reason for a second agent is an uploader with strict rules, kept apart from the creative tools. A weak reason is "every step should have its own agent".
 
-So keep your own copy of the things that matter: the brief, the storyboard, the rubric, the approved files and the review results. They belong in the studio's own folder, not only inside the agent's environment.
+### An agent can use whatever you give it
 
-Claude's outcomes page has a smaller limit worth knowing: "Only one outcome is supported at a time", though outcomes can be chained in sequence. A plan that needs two goals at once must be changed.
+The [Gemini agents docs](https://ai.google.dev/gemini-api/docs/agents) say: "The agent may use any credential it has access to, so only provide credentials whose full scope you are willing to grant." They also advise:
 
-## What an agent does not know
+- least-privilege service accounts or API keys
+- short-lived tokens instead of long-lived keys
+- rotating credentials on a regular schedule
+- storing secrets as managed credentials and pointing to them by ID, so they are never exposed inside the sandbox
 
-An agent does not know your client's taste. It does not know that the founder hates a certain shade of green, or that a competitor ran a similar ad last week. This list is ours. It is why a person signs (Chapter 5).
+The same docs say the sandbox "has unrestricted outbound network access by default". You can limit it with an allowlist of domains.
 
-## What this means for your work
+Our reading: "the agent will only use the password if it needs it" is not a limit. If the agent can reach a credential, it can use it. The limit is the scope of the key itself.
 
-- **Add checks between steps.** Errors multiply along a chain.
-- **Give the agent real results to look at.** A file check beats a promise.
-- **Start with one agent.** Split only for a clear reason, such as a strict posting rule.
-- **Give the smallest access that works.** A draft-only key, not an admin login.
-- **Test on a dummy brand first.**
-- **Re-check preview and beta features before each job.**
-- **Keep your own copy of the brief, plan, rubric and files.**
+### Test where mistakes are cheap
+
+The Anthropic post says: "We recommend extensive testing in sandboxed environments, along with the appropriate guardrails." For a studio, a sandbox can be a test channel, a made-up artist, and the upload tool turned off.
+
+### Unfinished features change
+
+Several tools in this area are labelled as not final:
+
+- The Gemini docs list managed agents as a **Public Preview**.
+- The Claude docs mark outcomes as **beta**.
+- The Anthropic post itself says that much of the tooling it describes "has changed since December 2024".
+
+Our advice: re-check names, settings and limits before each client job. Do not promise a client a behaviour that the vendor has not made stable.
+
+### Work can disappear
+
+The Gemini docs list this limit for managed agents: "Environments are permanently deleted after 7 days of inactivity."
+
+So a long wait can cost you the whole workspace. Keep your own copy of anything that matters (the brief, the plan, the rubric, approved files, review results) in your own storage, not only inside the agent's environment.
+
+The Claude outcomes docs have a smaller limit worth knowing: "Only one outcome is supported at a time". You can chain outcomes one after another, but you cannot run two goals side by side in one session.
+
+### What an agent does not know
+
+An agent does not know that an artist hates a certain font, or that a rival label used the same visual idea last week. This is our point, not a vendor's. It is why a person still signs.
+
+## Worked example
+
+### Step 1: the weak plan
+
+The plan from the problem section, in short:
+
+```text
+6 steps at 97%  |  4 agents  |  main password
+first test on the real channel  |  waits up to 2 weeks
+```
+
+### Step 2: the hard case, the chain maths
+
+**The hard case is the 97%.** It feels safe. Most people read it as "the chain works 97% of the time". Multiply instead:
+
+```text
+0.97 x 0.97 = 0.941
+x 0.97      = 0.913
+x 0.97      = 0.885
+x 0.97      = 0.859
+x 0.97      = 0.833
+```
+
+Six steps at 97% each gives about 83%. Roughly 1 video in 6 has an error somewhere. For a label that releases 30 videos a year, that is about 5 videos with a problem. These numbers are ours, made up for the example.
+
+The fix is not "more steps". A check between steps catches an error before the next step uses it. A file check after "captions" (do the caption lines match the lyric lines?) stops a bad caption before the upload.
+
+### Step 3: the number of agents
+
+Four agents means four prompts, four traces and more approval points. Ask the four questions for each split:
+
+```text
+writer + designer + video  -> same tools, same rules: ONE agent
+uploader                   -> needs strict rules: may be SEPARATE
+                              (policy isolation)
+```
+
+Begin with a single agent. Split off the uploader only if its rules make the main prompt hard to manage.
+
+### Step 4: the access
+
+```text
+Before:  main account password (can delete the channel)
+After:   a key that can only upload videos as private drafts,
+         short-lived, stored as a managed credential
+         network allowlist: the video site and the label's storage
+```
+
+With the main password, the worst mistake is a lost channel. With a draft-only key, the worst mistake is a bad private draft.
+
+### Step 5: the test and the waiting
+
+```text
+Test:     a made-up artist, a test channel, upload tool off,
+          for the first jobs
+Waiting:  the 7-day limit can delete the workspace while an
+          artist is away. Save brief, frames, video and review
+          results to the label's own storage after every step.
+```
+
+### Step 6: the plan with conditions
+
+```text
+YES, with conditions:
+- one agent first; a separate uploader only for its rules
+- checks between steps, using real file facts
+- draft-only, short-lived key; network allowlist
+- sandbox runs first; no real channel until they pass
+- own copies of every file; re-check preview features per job
+- a person signs before any video goes public
+```
+
+### Step 7: why it is better
+
+- **The chain risk is measured, not guessed.** The team knows 97% per step is about 83% for the chain, and puts checks in.
+- **Fewer moving parts.** One agent has one prompt and one trace to read.
+- **Small keys mean small mistakes.**
+- **Waiting is safe.** The files survive even if the agent's workspace does not.
+
+## Common mistakes
+
+1. **Reading a per-step success rate as the chain's rate.** Fix: multiply the rates of all steps.
+2. **Hiding a strong credential instead of not giving it.** If the agent can reach it, it can use it. Fix: give a key with the smallest scope that does the job.
+3. **Keeping work only inside the agent's environment.** Inactive environments can be deleted. Fix: save every important file to your own storage.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A friend runs a one-person design shop. The plan for a new agent:
+
+```text
+1  A chain of 3 steps, each right 95% of the time.
+2  The agent runs in a Google managed agent. The team
+   says: "It is a sandbox, so it can only reach what
+   we give it."
+3  The shop also sets two Claude outcome goals, a logo
+   and a poster, to run side by side in one session.
+```
+
+What does each line mean for the friend, and what would you change?
+
+### Answer
+
+1. **About 86%.** 0.95 × 0.95 × 0.95 = 0.857, so about 1 job in 7 has an error somewhere. Add checks between steps, using real file facts.
+2. **Wrong.** The Gemini docs say the sandbox "has unrestricted outbound network access by default". Set an allowlist of domains, and give only the keys the job needs.
+3. **Not possible.** The Claude docs say "Only one outcome is supported at a time". Chain them one after another.
+
+## Recap
+
+- Errors compound: multiply the success rate of each step to get the chain's rate. Put checks between steps that read real results.
+- Start with one agent, and split only for a clear reason. Give the smallest, shortest-lived access that works, and test in a sandbox first.
+- Preview and beta features change, and a managed-agent environment with 7 idle days is deleted. Re-check the docs before each job, keep your own copies, and let a person sign.
