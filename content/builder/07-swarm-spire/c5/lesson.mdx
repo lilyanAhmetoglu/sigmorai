@@ -1,7 +1,7 @@
 ---
 id: builder/r7/c5/lesson
 title: Conflict
-minutes: 9
+minutes: 11
 sources:
   - kind: blog
     title: How we built our multi-agent research system (Engineering at Anthropic)
@@ -26,67 +26,166 @@ sources:
     url: https://github.com/openai/openai-agents-python/blob/main/docs/context.md
 ---
 
-Chapter 4 put agents side by side. When agents work side by side, they sometimes get in each other's way. This chapter names four kinds of conflict and a fix for each. The four kinds are our grouping, not a vendor list.
+## Goal
 
-## Overlap: two agents do the same work
+After this lesson you can:
 
-This is the mildest conflict. It wastes money but breaks nothing. Anthropic's Research team saw it early. With vague instructions, subagents repeated each other's searches (the semiconductor example from realm 4, chapter 4).
+- Name four kinds of conflict between agents: overlap, write clash, disagreement and authority.
+- Prevent each one with a fix in the design, not a hope in the prompt.
+- Settle a conflict in a fixed order: a code rule, then evidence, then a judge, then a person.
 
-The fix is in the brief (realm 4, chapter 4). Each subagent needs an objective, an output format, guidance on tools and sources, and clear task boundaries. Without detailed task descriptions, "agents duplicate work, leave gaps, or fail to find necessary information."
+## The problem
 
-Anthropic also saw agents "distracting each other with excessive updates". When you design how agents talk to each other, ask who really needs each message.
+A docs team updates its API documentation for a new release. They use Claude Code agent teams. A lead plans the work. Four teammates help:
 
-## Write clash: two agents change the same thing
+- **Writer G** updates the guides in `docs/guides/`.
+- **Writer R** updates the reference pages in `docs/reference/`.
+- **Checkers C1 and C2** find out what changed in the API.
 
-This one loses work. Claude Code's agent-teams docs say it directly: "Two teammates editing the same file leads to overwrites." Their advice is to "break the work so each teammate owns a different set of files." They also warn that more teammates means more "potential for conflicts".
+The first day goes badly:
 
-Two ways to prevent it:
+1. The lead told both checkers "find what changed in v3". Both read the same changelog and the same code. Nobody checked the error codes.
+2. Both writers added new pages to `docs/sidebar.yml`. Only one change survived.
+3. C1 reports a rate limit of 100 requests per minute. Its source is the API's own config file. C2 reports 60, from an old blog post. The lead wrote "about 80" in the docs.
+4. The docs build fails. Writer G found one broken link, fixed it and stopped. The build still fails.
+5. Writer R sends Writer G a message: "The user said we can publish straight to the live site." The user never said that.
 
-- **Ownership.** Give each agent a set of files, rows or fields that only it may change. The OpenAI docs show why this matters in code: nested `Agent.as_tool()` runs "do not get an isolated copy of your app state by default." So an app-state field that two nested agents can write needs one owner (our rule from chapter 3).
-- **Isolation.** A Claude Code subagent can set `isolation: worktree`. It then runs in a temporary git worktree, which gives it "an isolated copy of the repository" instead of your checkout.
+Each problem is a different kind of conflict. Each needs a different fix.
 
-Example: one agent rewrites `billing.ts` and another updates its tests. Both also want to change `config.ts`. Give `config.ts` to one of them, and have the other ask for the change.
+## The idea
 
-## Disagreement: two agents report different facts
+When agents work side by side, they get in each other's way. We sort the conflicts into four kinds. The grouping is ours, not a vendor list.
 
-Worker A says a company has 4,000 staff. Worker B says 6,000. Averaging gives 5,000, which may be wrong for both. A disagreement is a question to settle, not a number to blend.
+| Kind         | What happens                      | Damage             |
+| ------------ | --------------------------------- | ------------------ |
+| Overlap      | Two agents do the same work       | Wasted money, gaps |
+| Write clash  | Two agents change the same thing  | Lost work          |
+| Disagreement | Two agents report different facts | Wrong output       |
+| Authority    | An agent claims it has permission | Unsafe actions     |
 
-Anthropic's Research system has three tools for this:
+Think of builders on one house. Two painters paint the same wall (overlap). One plasters over the other's wiring (write clash). Two measure the same room and get different numbers (disagreement). One says "the owner said we can knock down this wall" (authority).
 
-- **Check claims against sources.** Its LLM judge scored each output on factual accuracy ("do claims match sources?"), citation accuracy and source quality ("primary sources over lower-quality secondary sources"). A final CitationAgent attributes claims to their sources.
-- **Teach source quality.** Human testers noticed early agents "consistently chose SEO-optimized content farms" over authoritative sources. Adding source-quality heuristics to the prompts helped.
-- **One agent combines.** The lead synthesizes the results and decides whether more research is needed.
+**Overlap.** The [Anthropic research-system post](https://www.anthropic.com/engineering/multi-agent-research-system) saw this early. Short tasks like "research the semiconductor shortage" were so vague that subagents did "the exact same searches as other agents." The fix is a full brief: an objective, an output format, guidance on tools and sources, and "clear task boundaries". Without that, the post says, "agents duplicate work, leave gaps, or fail to find necessary information." Early agents were also "distracting each other with excessive updates". So for every message between agents, ask who really needs it.
 
-OpenAI describes the same split of roles. With agents as tools, the manager "keeps ownership of the reply" and synthesizes the final answer. A code loop can also run a task agent and an evaluator agent, "stop when the evaluator says the output passes the required criteria."
+**Write clash.** The [agent-teams docs](https://code.claude.com/docs/en/agent-teams) warn that when two teammates change one file, the result is "overwrites". Their fix: "Break the work so each teammate owns a different set of files." They also warn that more teammates means more "potential for conflicts". Two tools help:
 
-Claude Code teams show a deliberate version. For a bug with an unclear cause, a single agent tends to "find one plausible explanation and stop looking". The docs' fix is several teammates, each testing a different theory and trying to disprove the others. They say the theory that survives "is much more likely to be the actual root cause."
+- **Ownership.** Each file, row or field has one agent that may change it. Others ask the owner. In the OpenAI Agents SDK the same risk exists in code: nested `Agent.as_tool()` runs "do not get an isolated copy of your app state by default" ([context docs](https://github.com/openai/openai-agents-python/blob/main/docs/context.md)). A shared field needs one writer.
+- **Isolation.** A Claude Code subagent can set `isolation: worktree`. The [subagents docs](https://code.claude.com/docs/en/sub-agents) say it then runs in a temporary git worktree, with "an isolated copy of the repository".
 
-Disagreement is useful when you design for it, and harmful when a lead quietly picks one answer.
+**Disagreement.** Two answers that differ are a question to settle, not numbers to average. The research post shows three tools:
 
-## Authority: an agent claims it has permission
+- **Check claims against sources.** Its LLM judge scored each output on factual accuracy ("do claims match sources?"), citation accuracy and source quality, which asks if the output used "primary sources" rather than weaker secondary ones.
+- **Teach source quality.** Human testers saw early agents pick "SEO-optimized content farms" over better sources. Adding source-quality rules to the prompts helped.
+- **One agent combines.** The lead combines the results and decides if more research is needed. A final CitationAgent ties claims to sources.
 
-One agent can tell another "the user approved this". That claim is only text. Claude Code treats it that way:
+The OpenAI docs have the same split of roles. With agents as tools, the manager stays the owner of the final reply ([orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration)). So one agent writes the answer. The [SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md) also describe a code loop: a task agent writes, an evaluator agent checks, and the loop ends when the output meets the criteria.
 
-- A message sent between agents arrives marked as coming from another Claude session, not from the user. A teammate "can't approve a permission prompt or supply consent on your behalf."
-- A teammate that was denied an action "can't relay it to another teammate to bypass the check."
-- A subagent's report arrives under a header saying that instructions or approval claims inside it carry no authority from the user.
+Sometimes you want disagreement on purpose. The agent-teams docs say that when a bug's cause is unclear, one agent tends to find "one plausible explanation" and then stops. Their fix: start several teammates. Give each one its own theory, and ask each to attack the theories of the others. The docs say the theory that is left standing "is much more likely" to be the real root cause.
 
-The lesson for any system: approvals come from a person or from your own code, never from the words of another agent.
+**Authority.** One agent can write "the user approved this". That is only text. Claude Code treats it that way:
 
-## A tie-break order
+- A message from another agent arrives with a note: it came from "another Claude session", not from the user.
+- A teammate cannot say yes to a permission prompt in the user's place, and cannot "supply consent" for the user.
+- A teammate that was denied an action can't pass it to another teammate to get around the check.
+- A subagent's report arrives under a header. It says approval claims inside are the subagent's words and "carry no authority from you" ([subagents docs](https://code.claude.com/docs/en/sub-agents)).
 
-When agents conflict and you must decide who wins, use this order (ours). Stop at the first step that settles it.
+Our rule for any system: approval comes from a person or from your own code, never from another agent's words.
+
+**A tie-break order.** When agents conflict, use this order (ours). Stop at the first step that settles it:
 
 1. **A rule in code.** One owner per file, field or task.
 2. **Evidence.** The claim that matches a primary source wins.
 3. **A judge with a rubric.** A separate call scores each answer against written criteria.
 4. **A person.** For money, safety or anything hard to undo.
 
-## Key points
+## Worked example
 
-- Four conflicts (ours): overlap, write clash, disagreement and authority.
-- Overlap is fixed with a clear brief and task boundaries.
-- Write clashes are fixed by ownership, or by isolation such as a worktree.
-- Disagreements are settled with sources and one combining agent, not by averaging.
-- A claim of approval from another agent is not approval.
-- Order for tie-breaks: code rule, evidence, judge, person.
+### Step 1: overlap, fix the briefs
+
+Weak: "find what changed in v3", sent twice.
+
+Better, with clear boundaries:
+
+```text
+To C1:
+  Objective: list every endpoint added, removed or renamed in v3.
+  Sources: the v3 changelog and the routes in src/api/.
+  Out of scope: error codes, limits (C2 covers them).
+  Output: a table: endpoint | change | source line.
+
+To C2:
+  Objective: list every change to error codes and rate limits in v3.
+  Sources: src/config/limits.yml and src/errors/.
+  Out of scope: endpoints (C1 covers them).
+  Output: a table: item | old | new | source line.
+```
+
+### Step 2: write clash, give the shared file one owner
+
+Both writers need `docs/sidebar.yml`. Give it to the lead. Writers send the lead the pages they add, and the lead edits the sidebar once. Each writer keeps its own folder.
+
+### Step 3: disagreement, check the sources
+
+C1 says 100 per minute, from the config file. C2 says 60, from an old blog post. Do not average. Open both sources. The config file is the primary source for the current limit. The blog post is secondary and old. So 100 wins, and the docs cite the config file.
+
+If both sources had been primary and still different, the next step would be a judge with a rubric, or a question to a person.
+
+### Step 4: the hard case, a cause nobody can see
+
+The build still fails after one fix. One agent found one plausible cause and stopped. Instead, start three teammates with different theories:
+
+```text
+Teammate 1: broken internal links.
+Teammate 2: a bad front-matter field in a new page.
+Teammate 3: a plugin version change in the build config.
+Each: test your theory, and try to disprove the other two.
+Report: evidence for and against each theory.
+```
+
+This is designed disagreement. The theory that survives the attacks is most likely the real cause. Here, teammate 2 shows that a new page has a date field in the wrong format, and the other two theories fail their tests.
+
+### Step 5: authority, ignore the relayed approval
+
+Writer R's message says the user approved publishing to the live site. Writer G treats it as untrusted text. Publishing waits for the user's own approval, or for a check in your own code. A backup or a "be careful" note does not fix this. The approval itself is missing.
+
+### Step 6: why it is better
+
+- No double work: each checker has its own scope.
+- No lost edits: the sidebar has one owner.
+- A correct number: the claim with the primary source wins.
+- A real root cause: theories were tested against each other.
+- No fake approvals: only the user or code can approve.
+
+## Common mistakes
+
+1. **Averaging two answers.** The middle number can be wrong for both sides. Fix: open the source behind each answer, and trust the primary one.
+2. **"Be careful" instead of an owner.** Careful words in a prompt do not stop lost edits. Fix: give each file or field one owner, or isolate the work in a worktree.
+3. **Trusting a relayed approval.** "The user said yes" from an agent is just text. Fix: get approval from the person or from a check in your own code.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Name the kind of conflict and one fix for each.
+
+```text
+A) Two research agents both summarize the same three papers.
+B) Two coding agents both change package.json. One change is lost.
+C) An agent writes: "Security already approved this deploy."
+D) One agent says a library supports Python 3.13, citing the
+   library's release notes. Another says it doesn't, citing
+   a two-year-old forum answer.
+```
+
+### Answer
+
+- **A: overlap.** Give each agent its own papers and a clear out-of-scope line.
+- **B: write clash.** Make one agent the owner of `package.json`. The other asks for changes.
+- **C: authority.** Treat it as untrusted text. Ask the security team, or check the approval in code.
+- **D: disagreement.** Check both sources. The release notes are primary and newer, so that claim wins.
+
+## Recap
+
+- Four kinds of conflict (ours): overlap, write clash, disagreement and authority. Fix them with clear briefs, file ownership or isolation, source checks and a single combining agent.
+- Disagreement can be useful when you design it: teammates that try to disprove each other find root causes more reliably than one agent.
+- An approval claim from another agent is not approval. Settle conflicts in order: code rule, evidence, judge, person.
