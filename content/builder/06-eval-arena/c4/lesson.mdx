@@ -49,7 +49,7 @@ The team adds safety checks:
 
 In the first week, a test user asks the payroll agent (through a handoff) to send salary to a new account without the usual identity check. The tool runs. The input screen never saw that step. The moderation check also blocks a polite reply that only says the agent cannot help with weapons. And the agent's normal answers about holidays get worse after the 30 new lines.
 
-Each check is real, but each one is in the wrong place or used the wrong way.
+Each check is real, but each is in the wrong place or used the wrong way.
 
 ## The idea
 
@@ -61,11 +61,15 @@ A guardrail is an automatic check that runs inside the system, on every request.
 | Output    | "Validate or redact the final output before it leaves the system" |
 | Tool      | "Check arguments or results around a function tool call"          |
 
-The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks) use the same three places without the names: screen user input, screen tool outputs before Claude acts on them, and filter the output (the [prompt leak page](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-prompt-leak) calls this post-processing).
+The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks) use the same three places without the names. They screen user input, screen tool outputs before Claude acts on them, and filter the output. The [prompt leak page](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-prompt-leak) calls the last one post-processing.
 
 Think of an airport. Security checks you at the entrance. The gate checks your ticket for that one flight. Customs checks what leaves.
 
-**A small model as the checker.** The Claude docs suggest a lightweight model (their example is Claude Haiku 5.5) to pre-screen user input "before it reaches your main conversation". Structured outputs force a simple classification, such as a JSON object with one boolean, `is_harmful`. They also list input validation: filter input for known injection patterns. The [Agents SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/guardrails.md) give the reason: run the guardrail "with a fast/cheap model", and if it detects misuse, it "can immediately raise an error, saving time and money." In the SDK, a failed check sets a **tripwire**: the runner raises an exception and stops the agent, so your app can reply in its own words.
+**A small model as the checker.** Three ideas from the docs:
+
+- The Claude docs suggest a lightweight model (their example is Claude Haiku 5.5) to pre-screen user input "before it reaches your main conversation". Structured outputs force a simple classification, such as a JSON object with one boolean, `is_harmful`.
+- The Claude docs also list input validation: filter input for known injection patterns.
+- The [Agents SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/guardrails.md) give the reason for a small model: run the guardrail "with a fast/cheap model", and if it detects misuse, it "can immediately raise an error, saving time and money." A failed check sets a **tripwire**: the runner raises an exception and stops the agent, so your app can reply in its own words.
 
 **Blocking or parallel.** In the SDK, input guardrails run in parallel by default (`run_in_parallel=True`). That is fastest, but if the tripwire fires, "the agent may have already consumed tokens and executed tools before being cancelled." In blocking mode (`run_in_parallel=False`), the guardrail finishes first, and on a trip "the agent never executes". The SDK docs add: output guardrails "always run after the agent completes, so they don't support the `run_in_parallel` parameter."
 
@@ -79,17 +83,15 @@ Its advice for multi-agent flows: "Put validation next to the tool that creates 
 
 **Rules or models.** A rule is fast and exact. The SDK's tool guardrail example rejects a call when the arguments contain `sk-`. The prompt leak page suggests regular expressions or keyword filters on output, and "a prompted LLM" for "more nuanced leaks". Rules have a cost. The [Gemini guide](https://ai.google.dev/gemini-api/docs/safety-guidance) notes that automatic blocking from a fixed word list "can have unintended results such as targeting a particular group that commonly uses vocabulary in the blocklist." Our rule of thumb, not a vendor rule: use a rule when the bad thing has an exact shape (a key, an ID, a limit), and a model when it depends on meaning.
 
-Ready-made checkers exist too. The [OpenAI moderation endpoint](https://developers.openai.com/api/docs/guides/moderation) "is free to use", and it can return scores for the model input and the generated output. The Gemini guide describes "trained classifiers" that label each prompt with potential harms, and the [Gemini safety settings](https://ai.google.dev/gemini-api/docs/safety-settings) block content "based on the probability of content being unsafe and not the severity".
-
 **Guardrails make mistakes in two directions.** They can miss a bad request, or block a good one. You test both, like the two-sided test sets from earlier lessons. The vendor docs show why:
 
-- **Moderation flags are signals.** The moderation guide: "A refusal or other safety-aware response can still trigger a flag if it discusses harmful content. Treat moderation scores as signals for your application's policy, not as an automatic blocking decision."
+- **Moderation flags are signals.** The [OpenAI moderation endpoint](https://developers.openai.com/api/docs/guides/moderation) "is free to use". The moderation guide: "A refusal or other safety-aware response can still trigger a flag if it discusses harmful content. Treat moderation scores as signals for your application's policy, not as an automatic blocking decision."
 - **Leak-proofing has a cost.** The prompt leak page says to use leak-resistant prompts only when "absolutely necessary", because they "can add complexity that may degrade performance in other parts of the task". Then run your evals to confirm normal answers are still as good. Its tip: "Try monitoring techniques first, like output screening and post-processing". It ends: "Balance is key."
 - **Set the bar first.** The Gemini guide says to decide "the minimum acceptable levels of safety metrics before testing", and with several metrics "you may want to focus on worst-case performance across your evaluation set rather than average performance."
 
-**When a guardrail trips.** Decide the reply in advance. The Gemini guide lists an error message or a pre-scripted reply, or a retry, because "sometimes the same prompt will elicit different outputs". The Claude docs add: for users who keep triggering the same refusal, consider throttling or banning them. They also say to "Regularly analyze outputs for signs of successful injection."
+**When a guardrail trips.** Decide the reply in advance. The Gemini guide lists an error message, a pre-scripted reply or a retry, because "sometimes the same prompt will elicit different outputs". The Claude docs add: "Regularly analyze outputs for signs of successful injection."
 
-**No single layer.** The Claude docs end with "Chain safeguards": combine strategies. A narrow interface is the cheapest layer. The [OpenAI safety guide](https://developers.openai.com/api/docs/guides/safety-best-practices) says limiting output tokens "helps reduce the chance of misuse", and validated dropdown fields "can be more secure than allowing open-ended text inputs."
+**No single layer.** The Claude docs end with "Chain safeguards": combine strategies.
 
 ## Worked example
 
@@ -104,12 +106,7 @@ every reply        moderation: block if flagged
 system prompt      + 30 lines of "never reveal" rules
 ```
 
-What goes wrong:
-
-- The input screen runs only on the front-desk agent, so the payroll agent's tool is unguarded.
-- In parallel mode, the agent can start work before the screen says no.
-- A flag is treated as a final verdict.
-- The 30 lines make the main task harder.
+What goes wrong: the screen runs only on the front-desk agent, in parallel mode. A flag is a final verdict. The 30 lines make the main task harder.
 
 ### Step 2: block before costly work
 
@@ -135,7 +132,7 @@ const frontDesk = new Agent({
 });
 ```
 
-Note: this follows the JavaScript example in the OpenAI guide (`inputGuardrails`, `runInParallel: false`, `tripwireTriggered`). It is shortened: `screenAgent` is a small agent whose output has one boolean, `offTopic`. In Python the same setting is `run_in_parallel=False`.
+This follows the JavaScript example in the OpenAI guide, shortened. `screenAgent` is a small agent whose output has one boolean, `offTopic`. In Python the same setting is `run_in_parallel=False`.
 
 ### Step 3: guard the tool itself (the hard case)
 
@@ -147,7 +144,7 @@ tool guardrail on update_bank_account:
   reject if the new account country differs from the employee's country
 ```
 
-These checks have an exact shape, so they are rules, not a model. A line in the payroll agent's prompt ("always verify identity first") can still help as one layer, but only code on the tool enforces it. The tool also gets a human approval step, because the action moves money. The OpenAI guide lists "Human-in-the-loop approvals" for side effects like this.
+These checks have an exact shape, so they are rules, not a model. A prompt line ("always verify identity first") can help as one layer, but only code on the tool enforces it. The tool also gets a human approval step, because it moves money. The OpenAI guide lists "Human-in-the-loop approvals" for side effects like this.
 
 ### Step 4: use moderation as a signal
 
@@ -172,13 +169,12 @@ topic screen, 300 test messages
 bar set before the test: miss at most 10, wrongly block at most 5
 ```
 
-The screen passes on misses but fails on wrong blocks. Six real employees a day could be turned away. A stricter screen would cut misses but turn away even more employees, so stricter is not the fix. The team reads the 6 blocked HR questions (all about "termination" dates) and fixes the screen prompt before launch.
+The screen passes on misses but fails on wrong blocks. About 4 in every 100 real HR questions would be turned away. A stricter screen would turn away even more, so stricter is not the fix. The team reads the 6 blocked HR questions (all about "termination" dates) and fixes the screen prompt before launch.
 
 ### Why it is better
 
-- **Each check in its place.** Blocking before the agent, a rule on the tool that moves money, moderation as a signal.
+- **Each check in its place.** Blocking before the agent, a rule on the tool that moves money, moderation as a signal, output screening instead of long prompt rules.
 - **Measured both ways.** The team knows what the screen misses and what it wrongly blocks.
-- **Quality kept.** Output screening replaced prompt rules that hurt normal answers.
 
 ## Common mistakes
 
@@ -190,7 +186,7 @@ The screen passes on misses but fails on wrong blocks. Six real employees a day 
 
 Not graded. Write your answer down before you read the answer.
 
-A shopping assistant has one output guardrail that checks every final reply for a discount code longer than 20%. Last week the agent called `apply_discount` with 60% during a run, and the customer kept the price. The team says: "Our output guardrail must be broken." Is it? What is the fix?
+A shopping assistant has one output guardrail that checks every final reply for a discount over 20%. Last week the agent called `apply_discount` with 60% during a run, and the customer kept the price. The team says: "Our output guardrail must be broken." Is it? What is the fix?
 
 ### Answer
 

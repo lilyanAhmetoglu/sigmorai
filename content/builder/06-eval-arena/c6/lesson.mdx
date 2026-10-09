@@ -143,19 +143,20 @@ jobs:
 ```
 
 - The key comes from GitHub Secrets, never from a file.
-- `timeout-minutes` stops a runaway job. `concurrency` cancels an old run when new commits arrive.
+- `timeout-minutes` stops a runaway job. `concurrency` with `cancel-in-progress: true` stops the older run when new commits arrive.
 - `--fresh-sandbox` stands for "reset the test database and work folder before each trial". Without it, a query that created a table in one trial could make the next trial pass.
 - The file must be merged into the default branch, or the nightly schedule never runs.
 
 ### Step 5: the hard case, pull requests from forks
 
-This is a public repo. Most changes come from contributors' forks. Those runs get no secrets, so the eval step has no API key and cannot run. The gate must not silently pass.
+This is a public repo. Most changes come from contributors' forks. Those runs get no secrets, so the eval step has no API key and cannot run. The gate must not silently pass. The steps below are our own process, not a vendor rule.
 
 ```text
 fork pull request:  run the code-only checks that need no key;
                     mark the eval check "pending: maintainer run"
-before merge:       a maintainer pushes the branch into the main repo
-                    (or reruns it there), where the secret exists
+before merge:       a maintainer reads the change first, then pushes it
+                    to a branch in the main repo and opens a pull request
+                    from that branch, where the secret exists
 ```
 
 The rule is simple: no pull request merges until the regression gate has really run.

@@ -56,43 +56,39 @@ The Anthropic evals post gives a small vocabulary:
 | Outcome    | What is true in the environment when the trial ends                     |
 | Suite      | A group of tasks with a shared goal, such as bookings and cancellations |
 
-The outcome is not the agent's last message. The post's example is a flight agent. It can say the flight is booked, but the outcome is whether the SQL database really holds a reservation. That last message belongs to the transcript. Counts like the number of tool calls are also transcript data. They do not tell you if the task was done.
+The outcome is not the agent's last message. The post's example is a flight agent. It can say the flight is booked, but the outcome is whether the SQL database really holds a reservation. The last message belongs to the transcript. Counts like the number of tool calls are transcript data too. They do not tell you if the task was done.
 
 **Success criteria come first.** The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say good criteria are specific, measurable, achievable and relevant. Their safety example:
 
-- Bad: a two-word goal about safety, with no number and no test.
+- Bad: "Safe outputs". It has no number and no test.
 - Good: "Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter."
 
-The OpenAI docs list the same first step. Their process is: define the eval objective, collect a dataset, define eval metrics, run and compare evals, and evaluate continuously.
-
-**Where tasks come from.** Many teams delay, the Anthropic post explains, because they believe a test set must be huge. The post says: "20-50 simple tasks drawn from real failures is a great start." Early on, each change has a big effect, so a small set shows it. Good first sources:
+**Where tasks come from.** Many teams delay, the Anthropic post explains, because they believe a test set must be huge. The post says: "20-50 simple tasks drawn from real failures is a great start." Good first sources:
 
 - the checks you already do by hand before each release
 - common tasks that users try
 - your bug tracker and support queue, once you are live
 
-The OpenAI docs add "Log everything", so you can mine your logs for test cases. They also warn about "Biased design": a dataset that does not "faithfully reproduce production traffic patterns". Tidy, cleaned-up messages are not real traffic.
+The OpenAI docs add "Log everything", so you can mine your logs for test cases. They warn about "Biased design": a dataset that does not "faithfully reproduce production traffic patterns".
 
-**Your own tasks, not a public benchmark.** The OpenAI docs describe industry benchmarks as tools for "comparing models in isolation". The Claude docs say: "Design evals that mirror your real-world task distribution."
+**Your own tasks, and many of them.** The OpenAI docs call industry benchmarks tools for "comparing models in isolation". The Claude docs say: "Design evals that mirror your real-world task distribution." They also say: "Prioritize volume over quality", because many automated checks beat a few graded by hand.
 
 **Rules for a good task** (Anthropic evals post):
 
 - "A good task is one where two domain experts would independently reach the same pass/fail verdict." Vague tasks turn into noise. The same is true for model graders: "vague rubrics produce inconsistent judgments".
-- Everything the grader checks must be clear from the task. The post's example: a task asks for a script but names no file path, and the tests expect one path. The agent fails "through no fault of its own".
-- A task that feels "soft" can still be tested. The post's support example grades one refund with a state check, a list of required tool calls and an LLM rubric.
+- Everything the grader checks must be clear from the task. The post's example: the tests expect one file path that the task never names. The agent fails "through no fault of its own".
+- A task that feels soft can still be tested. The post's support example grades one refund three ways: a state check, a list of needed tool calls and an LLM rubric.
 - Write a **reference solution**: a known output that passes all graders. It proves the task can be solved and the graders work.
 - With frontier models, "a 0% pass rate across many trials (i.e. 0% pass@100) is most often a signal of a broken task, not an incapable agent".
 
-**Test both sides.** "One-sided evals create one-sided optimization." Anthropic learned this with web search. If you only test cases where the model should search, you can get a model that searches for almost everything. So test where a behaviour should happen and where it should not.
+**Test both sides.** "One-sided evals create one-sided optimization." The Anthropic post says the team learned this when building web search evals for Claude.ai. If you only test cases where the model should search, you can get a model that searches for almost everything. So test where a behaviour should happen and where it should not.
 
 **Add the edge cases users send.**
 
 - The Claude docs: irrelevant or missing input, overly long input, harmful user input, and cases so ambiguous that even humans disagree.
 - The OpenAI docs: non-English input, other formats, typos and misspellings, several questions or intents in one message, very short requests (a user who just says "returns"), long conversations, jailbreak attempts, and user prompts that conflict with the system prompt. Test data should include "typical cases, edge cases, and adversarial cases".
 
-**Volume.** The Claude docs: "Prioritize volume over quality". Many questions with automated grading beat a few graded by hand.
-
-**More cases with a model.** The [OpenAI Cookbook](https://developers.openai.com/cookbook/examples/evaluation/building_resilient_prompts_using_an_evaluation_flywheel) says a plain request to "generate N examples" "often produces a homogenous set of test cases". A bigger N does not fix that. Its fix: list dimensions, combine them into tuples, and generate cases for each tuple. Its leasing example has three dimensions (channel, intent, persona) and tuples such as `(Text, Tour Scheduling, Prospective Resident)`. Then add perturbations: irrelevant information, mistakes, or different slang.
+**More cases with a model.** The [OpenAI Cookbook](https://developers.openai.com/cookbook/examples/evaluation/building_resilient_prompts_using_an_evaluation_flywheel) says a plain request to "generate N examples" "often produces a homogenous set of test cases", and a bigger N does not fix that. Its fix: list dimensions, combine them into tuples, and generate cases for each tuple. Its leasing example has three dimensions: channel, intent and persona. It also adds perturbations such as irrelevant information, mistakes or different slang.
 
 ## Worked example
 
@@ -106,10 +102,7 @@ tasks:      none written down; two developers chat for an hour
 grading:    the developers' feeling
 ```
 
-What goes wrong:
-
-- Two people could judge the same chat differently. Nothing is measured.
-- Nothing is written down, so nothing can be re-run after a prompt change.
+What goes wrong: two people could judge the same chat differently, and nothing can be re-run after a prompt change.
 
 ### Step 2: criteria a test can check
 
@@ -144,11 +137,11 @@ The 30 tasks are mostly "please book" requests. The team adds tasks where the ag
 - a class that does not exist
 - a message that is only "cancel" (which booking?)
 
-Then edge cases from the lists above: a typo-heavy message, two requests in one message, a message in Portuguese, a long message with an unrelated story at the start.
+Then edge cases from the lists above: a typo-heavy message, two requests in one message, a message in Portuguese.
 
 ### Step 5: more cases from dimensions
 
-To reach 50 tasks, the team does not ask a model to "write 20 booking chats". It lists dimensions:
+To reach 50 tasks, the team lists dimensions instead of asking a model for "20 booking chats":
 
 ```text
 request:  book, move, cancel
@@ -160,21 +153,19 @@ Each combination, such as `(move, SMS, new member)`, becomes one prompt for a mo
 
 ### Step 6: the hard case, a task nobody passes
 
-Task `cancel-confirm-12` fails all 50 trials. The first idea is "the agent cannot cancel". The team checks the task first:
+Task `cancel-confirm-12` fails all 50 trials. The team checks the task before blaming the agent:
 
 ```text
 input:   "Cancel my Thursday class and confirm it."
 grader:  passes only if an email was sent to the member
 ```
 
-The task asks for a confirmation but never says it must be an email. The agent confirmed in the chat every time. The task is broken, not the agent. Fix: say "confirm by email" in the task, and save a known passing transcript with it. Lowering the pass bar would only hide the problem.
+The task asks for a confirmation but never says it must be an email. The agent confirmed in the chat every time. The task is broken, not the agent. Fix: say "confirm by email" in the task, and save a known passing transcript with it.
 
 ### Why it is better
 
-- **Checkable criteria.** Each one has a single pass/fail answer.
-- **Real failures first.** The tasks come from the support queue, so they look like real traffic.
-- **Both sides.** Tasks where the agent must not book stop it from learning to always book.
-- **Outcome graders.** The test checks the bookings table, not the agent's words.
+- **Checkable and real.** Each criterion has one pass/fail answer, and the tasks come from the support queue.
+- **Both sides, graded on outcome.** Tasks where the agent must not book stop it from always booking, and the test checks the bookings table.
 
 ## Common mistakes
 
