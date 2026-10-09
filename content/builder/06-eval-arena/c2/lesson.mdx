@@ -1,7 +1,7 @@
 ---
 id: builder/r6/c2/lesson
 title: Model graders
-minutes: 9
+minutes: 12
 sources:
   - kind: docs
     title: Define success criteria and build evaluations (Claude docs)
@@ -17,92 +17,183 @@ sources:
     url: https://developers.openai.com/cookbook/examples/evaluation/building_resilient_prompts_using_an_evaluation_flywheel
 ---
 
-Chapter 1 built the tasks. Now something has to decide, for each trial, pass or fail. That something is the grader. This chapter is about the most flexible kind, a model that grades another model, and about how to trust it.
+## Goal
 
-## Three kinds of grader
+After this lesson you can:
 
-Anthropic's evals post says agent evals "typically combine three types of graders: code-based, model-based, and human."
+- Choose code, a model or a human for each check, starting with the cheapest one that works.
+- Write a judge prompt with a clear rubric, one dimension, a fixed output and a way to say "Unknown".
+- Measure a judge against expert labels, using TPR and TNR on labels you kept out of tuning.
 
-| Grader | Examples                                               | Strong at                      | Weak at                                          |
-| ------ | ------------------------------------------------------ | ------------------------------ | ------------------------------------------------ |
-| Code   | String match, tests, tool-call checks, outcome checks  | Fast, cheap, objective         | Brittle to valid answers in an unexpected shape  |
-| Model  | Rubric scoring, pairwise comparison, reference answers | Flexible, handles open answers | Non-deterministic, costs more, needs calibration |
-| Human  | Expert review, spot-check sampling, A/B testing        | Gold-standard quality          | Expensive and slow                               |
+## The problem
 
-OpenAI's best-practices guide has the same three groups: metric-based evals, human evals, and "LLM-as-a-judge and model graders". It also calls human evals the highest quality but slow and expensive.
+A city council runs a help bot for questions about bin collection, parking permits and building permits. The team has 300 test questions. Nobody wants to read 300 answers after every prompt change, so they add a model judge:
 
-## Pick the cheapest grader that works
+```text
+Read the question and the answer. Give the answer a score
+from 1 to 10.
+```
 
-The Claude docs say: choose "the fastest, most reliable, most scalable method". In their order:
+The judge gives almost every answer 8 or 9. Then a resident complains: the bot gave the wrong permit fee. The judge had scored that answer 9. The team cannot tell what the judge checks, or whether it ever finds a bad answer.
 
-1. **Code-based grading.** For example, exact match (`output == golden_answer`) or string match (`key_phrase in output`). Fastest and most reliable, but it "lacks nuance".
-2. **Human grading.** Most flexible and high quality, but slow and expensive. "Avoid if possible."
-3. **LLM-based grading.** Fast, flexible and scalable. "Test to ensure reliability first then scale."
+## The idea
 
-Anthropic's post gives the same rule: deterministic graders where possible, LLM graders where necessary, human graders "judiciously".
+A grader decides pass or fail for each trial. The [Anthropic evals post](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) says agent evals "typically combine three types of graders: code-based, model-based, and human."
 
-Example: a support agent processes a refund. Code checks the parts that have one right answer: does the refund row exist, and is the amount at most 100? A model grader checks the part code can't: did the agent explain the result clearly?
+| Grader | Examples                                               | Strong at                   | Weak at                                    |
+| ------ | ------------------------------------------------------ | --------------------------- | ------------------------------------------ |
+| Code   | String match, tests, tool-call checks, outcome checks  | Fast, cheap, objective      | Brittle when a valid answer has a new form |
+| Model  | Rubric scoring, pairwise comparison, reference answers | Flexible, handles open text | Non-deterministic, costs more              |
+| Human  | Expert review, spot checks, A/B tests                  | The best quality            | Slow and expensive                         |
 
-## How a model grader judges
+The [OpenAI docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) use the same three groups: metric-based evals, human evals, and model graders. They also say human evals give "the highest quality but are slow and expensive".
 
-OpenAI lists three ways to set up a judge:
+Think of a school exam. A machine marks the multiple-choice part. A teacher marks the essay. And a head teacher checks a few essays to make sure the teacher marks fairly.
 
-- **Pairwise comparison:** show two responses and ask which is better on given criteria.
-- **Single answer grading:** score one response alone against quality criteria.
-- **Reference-guided grading:** give the judge a "gold standard" answer to compare against.
+**Start with the cheapest grader that works.** The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say to choose "the fastest, most reliable, most scalable method". Their order:
 
-OpenAI also notes that models are "better at discriminating between options". So it says evals should focus on pairwise comparisons, classification, or scoring against specific criteria, instead of open-ended generation.
+1. **Code-based grading**: exact match (`output == golden_answer`) or string match (`key_phrase in output`). "Fastest and most reliable", but it "lacks nuance for more complex judgments".
+2. **Human grading**: flexible and high quality, but slow and expensive. "Avoid if possible."
+3. **LLM-based grading**: fast and flexible. "Test to ensure reliability first then scale."
 
-## Known biases
+The Anthropic post agrees: deterministic graders where possible, LLM graders where needed, and humans "judiciously". It lists tool-call verification (which tools, which parameters) as a code-based method. In its support example, things like showing empathy, explaining the result clearly, and grounding the answer in the policy tool's result go to an LLM rubric. They have no single exact answer.
 
-OpenAI names two challenges for model judges:
+**How a judge can compare.** The OpenAI docs list three setups:
 
-- **Position bias:** the judge's choice depends on response order.
-- **Verbosity bias:** the judge prefers longer responses.
+- **Pairwise comparison**: show two responses and ask which is better on given criteria.
+- **Single answer grading**: score one response alone.
+- **Reference-guided grading**: give the judge a "gold standard" answer to compare against.
 
-Its recommendations include: use pairwise comparison or pass/fail for more reliability, control for response length, and let the judge reason before it scores.
+The same docs say "LLMs are better at discriminating between options", so evals should use pairwise comparison, classification or scoring against specific criteria.
 
-## Write the rubric like a test
+**Two known biases.** The OpenAI docs name them: **position bias** (the order of the responses changes the choice) and **verbosity bias** (the judge prefers longer responses). Their advice: use pairwise comparison or pass/fail for more reliability, control for response length, and let the judge reason before it scores.
 
-Both vendors stress clear rubrics. The Claude docs give three tips:
+**Write the rubric like a test.**
 
-- **Detailed, clear rubrics.** Their example: "The answer should always mention 'Acme Inc.' in the first sentence. If it does not, the answer is automatically graded as 'incorrect.'"
-- **Empirical or specific output.** Ask for only "correct" or "incorrect", or a score from 1 to 5. Purely qualitative grades are hard to use at scale.
-- **Encourage reasoning.** A grader that reasons before it scores does better, especially on complex judgments.
+- **Detailed and clear.** The Claude docs' example: "The answer should always mention 'Acme Inc.' in the first sentence. If it does not, the answer is automatically graded as 'incorrect.'"
+- **A fixed output.** Ask for only "correct" or "incorrect", or a 1–5 scale. The Claude docs say purely qualitative grades "are hard to assess quickly and at scale".
+- **Reasoning first.** The Claude docs say a grader that reasons before it scores does better on complex judgments.
+- **A way out.** The Anthropic post: to avoid hallucinated grades, tell the judge to return "Unknown" when it lacks the information.
+- **One dimension per judge.** Grade each dimension "with an isolated LLM-as-judge rather than using one to grade all dimensions" (Anthropic post). The post also warns: "vague rubrics produce inconsistent judgments".
+- **The result, not the path.** Checking an exact order of tool calls is "too rigid". Agents often reach the goal by routes nobody planned.
+- **Partial credit.** For tasks with several parts, a half-done task beats one that fails at once.
 
-Anthropic's post adds more:
+**Calibrate the judge against people.** The Anthropic post says LLM judges "should be closely calibrated with human experts". The OpenAI docs say to scale up once the judge is "faster, cheaper, and consistently agrees with human annotations." So experts do not read every answer. They label a sample, and you check the judge against it.
 
-- **Give the judge a way out.** To avoid hallucinated grades, tell it to return "Unknown" when it lacks the information.
-- **One judge per dimension.** Grade each part of a task "with an isolated LLM-as-judge rather than using one to grade all dimensions."
-- **Grade the result, not the path.** Checking an exact order of tool calls is "too rigid". Agents often find valid approaches the designers didn't expect.
-- **Give partial credit.** An agent that verifies the customer but fails the refund is "meaningfully better" than one that fails at once.
+The [OpenAI Cookbook](https://developers.openai.com/cookbook/examples/evaluation/building_resilient_prompts_using_an_evaluation_flywheel) shows how. Most test sets have far more passes than fails, so plain accuracy can lie. Its example: "A judge that always guesses 'pass' might be 95% accurate but will never find a single failure." It uses two numbers instead:
 
-## Calibrate against humans
+- **True Positive Rate (TPR)**: the share of real **failures** that the judge catches.
+- **True Negative Rate (TNR)**: the share of real **passes** that the judge marks as pass.
 
-A model judge is only useful if it agrees with the people who know the domain. Anthropic: LLM-as-judge graders "should be closely calibrated with human experts". OpenAI: scale up once the judge is "faster, cheaper, and consistently agrees with human annotations."
+The goal is "high scores on both". The Cookbook sets no fixed target number. It splits the expert labels in three:
 
-The OpenAI Cookbook shows how to measure this. Experts label a set of outputs as pass or fail. Then you compare the judge's labels with theirs.
+```text
+train       ~20%   a few clear pass/fail examples to put in the judge prompt
+validation  ~40%   tune the judge prompt here, case by case
+test        ~40%   held out; run the judge on it once, at the end
+```
 
-Plain accuracy can lie. Most test sets have far more passes than failures. The Cookbook: "A judge that always guesses 'pass' might be 95% accurate but will never find a single failure." So it uses two numbers:
+The test run confirms "you haven't overfit". If you tune on all your labels, a high score can just mean the prompt learned those exact answers.
 
-- **True Positive Rate (TPR):** how well the judge finds the failures.
-- **True Negative Rate (TNR):** how well it identifies the passes.
+After launch, the Anthropic post says that once the system is robust, "it's sufficient to use human review only occasionally". Occasionally is not never.
 
-The goal is high scores on both. The Cookbook splits the expert-labelled data in three:
+## Worked example
 
-| Split      | Share | Job                                                        |
-| ---------- | ----- | ---------------------------------------------------------- |
-| Train      | ~20%  | Supplies a few clear pass and fail examples for the prompt |
-| Validation | ~40%  | You tune the judge prompt here, case by case               |
-| Test       | ~40%  | Held out. Run once at the end to check you haven't overfit |
+The council team rebuilds its grading step by step.
 
-Calibration doesn't end at launch. Anthropic: once the system is robust, "it's sufficient to use human review only occasionally." Occasional is not never.
+### Step 1: the weak judge
 
-## Key points
+```text
+Read the question and the answer. Give the answer a score
+from 1 to 10.
+```
 
-- Graders come in three kinds: code, model and human. Most suites combine them.
-- Use code where an answer is exact. Use a model judge where it isn't. Use humans to calibrate.
-- Ask the judge for pass/fail or a fixed scale, with a clear rubric and reasoning first.
-- Watch for position and verbosity bias. Pairwise and pass/fail setups are more reliable.
-- Give the judge an "Unknown" option, one dimension per judge, and partial credit where it fits.
-- Check the judge against expert labels with TPR and TNR, not plain accuracy.
+What goes wrong:
+
+- No rubric. Nobody knows what a 7 means.
+- Many dimensions are mixed in one number: the fee, the tone, the next step.
+- A wrong fee can still get a 9, because the answer sounds good.
+
+### Step 2: move exact checks to code
+
+Some parts have one right answer. Each test question stores the correct fee, the form ID and the right office:
+
+```text
+fee_ok:     the answer contains the stored fee, e.g. "EUR 45"
+form_ok:    the answer contains the stored form ID, e.g. "PK-2"
+tool_ok:    the bot called lookup_fee with the right permit type
+```
+
+These are string matches and a tool-call check. They are fast, cheap and give the same result every time. The wrong-fee answer now fails `fee_ok`.
+
+### Step 3: one judge per open dimension
+
+Only the parts code cannot check go to a model. One judge checks clarity:
+
+```text
+You grade one thing: is the next step clear?
+
+Pass if the answer tells the resident exactly one next action
+(a form, a link or an office) and when to do it.
+Fail if there is no next action, or more than one with no order.
+If the answer is cut off or you cannot tell, return Unknown.
+
+Think step by step first. Then output only one word on the
+last line: PASS, FAIL or UNKNOWN.
+```
+
+A second judge, with its own rubric, checks that the answer only uses facts from the policy text the bot looked up.
+
+### Step 4: calibrate on held-out labels (the hard case)
+
+Two council staff label 250 answers: 225 pass, 25 fail. The team splits them: 50 for train, 100 for validation, 100 for test. They tune the clarity judge on the validation set until it agrees well there. Then they run it once on the test set:
+
+```text
+test set: 90 pass, 10 fail (expert labels)
+judge:    finds 88 of 90 passes   -> TNR about 98%
+          finds 3 of 10 failures  -> TPR 30%
+accuracy: 91 of 100 = 91%
+```
+
+**This is the hard case.** 91% accuracy looks good. But the judge misses 7 of 10 bad answers, so it is not ready as a gate. The team goes back to the validation set, reads the missed failures, and finds the rubric never mentions answers that give two steps in the wrong order. They add that rule, then check on a fresh test set. Re-using the same test set again would turn it into a tuning set.
+
+### Why it is better
+
+- **Cheapest first.** Facts with one right answer are checked by code, so the wrong fee can never pass again.
+- **Clear rubrics.** Each judge checks one thing, with a fixed output and an "Unknown" exit.
+- **Measured trust.** TPR and TNR on held-out labels show what the judge misses.
+
+## Common mistakes
+
+1. **One judge for everything.** A single 1–10 score mixes facts, tone and format. Fix: code for exact facts, then one judge per open dimension.
+2. **Trusting accuracy.** With few failures in the set, a judge that passes everything still scores high. Fix: report TPR and TNR.
+3. **Tuning on the test set.** You edit the prompt until it matches every label you have. Fix: keep about 40% of labels out of tuning and run them once at the end.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team compares two versions of a recipe summary with a pairwise judge. The results:
+
+```text
+judge picks version shown first:   78% of pairs
+judge picks the longer summary:    81% of pairs
+```
+
+The team says: "The judge likes version B, so B is better." What do these numbers really show, and what would you change?
+
+### Answer
+
+The numbers show the two judge biases from the OpenAI docs: the order of the responses and their length change the pick. The judge may be choosing by order and length, not quality. Changes:
+
+1. Run each pair twice, once in each order, and only count a win when both runs agree.
+2. Control for length, for example tell the judge length is not a quality signal, or compare summaries of similar length.
+3. Ask for reasoning before the pick, and use a clear rubric for what "better" means.
+
+More pairs will not help. Each bias tilts all pairs in one direction, so more of them will not cancel it.
+
+## Recap
+
+- Use code for checks with one right answer, a model judge for open answers, and humans to calibrate the judge.
+- A good judge prompt has a clear rubric, one dimension, a fixed output, reasoning first, and an "Unknown" option. Watch for position and verbosity bias.
+- Trust a judge only after both TPR and TNR are high on labels it was never tuned on.
