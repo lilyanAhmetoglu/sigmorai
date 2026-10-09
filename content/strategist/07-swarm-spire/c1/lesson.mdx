@@ -1,7 +1,7 @@
 ---
 id: strategist/r7/c1/lesson
 title: Team structures
-minutes: 7
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic Engineering · Building effective agents
@@ -20,65 +20,141 @@ sources:
     url: https://developers.openai.com/api/docs/guides/agents-api/multi-agent
 ---
 
-## Why it matters
+## Goal
 
-Every company knows how to draw an org chart for people. Now some team members can be AI agents. A **multi-agent system** is several agents working together: one plans, others do parts of the job.
+After this lesson you can:
 
-A team of agents can finish big jobs faster. It can also cost much more and create confusion. So the first question is not "how many agents?" It is "do we need more than one?"
+- Decide if a job needs one agent or a team of agents, using one test: are the parts independent?
+- Choose who owns the final answer: a manager that calls helpers, or a handoff to a specialist.
+- Size a first team and write a brief for each member with four parts.
 
-## Start with one agent
+## The problem
 
-Anthropic's Building effective agents post recommends the simplest solution possible, and more complexity only when needed. Sometimes that means no agent at all. The post says agentic systems often trade latency and cost for better task performance.
+A market research firm sends its CEO a weekly briefing on 10 competitors. Today two analysts do it by hand. They check each competitor's prices, news and job adverts. Then they write one two-page memo that compares all 10.
 
-OpenAI's orchestration guide says the same thing in its own words: start with one agent whenever you can. Add specialists only when they clearly improve one of these: keeping capabilities apart, keeping policies apart, prompt clarity, or traces that are easy to read. The guide warns that splitting too early creates more prompts, more traces and more approval points, without always making the work better.
+A consultant proposes a **multi-agent system**: several AI agents that work together on one job. (An **agent** is a model that uses tools in a loop until a task is done.) The plan has 12 agents. One agent reads prices for all 10 firms, one reads news, one reads job adverts. Then five agents write the memo in a chain: draft, tone, facts, charts, summary. Each writer needs the output of the writer before it. Every agent gets the same one-line instruction: "Research the competitors."
 
-Example: an insurance team wants an agent that reads a claim form and drafts a summary. That is one job with one set of rules. One agent is enough.
+The head of strategy must say yes or no. The question is not "how many agents?" It is "where does a team help, and where does it only add cost?" The advice below comes from the Anthropic engineering posts, the Claude Code docs and the OpenAI docs (October 2026).
 
-## Three common shapes
+## The idea
 
-**1. A manager with specialists.** One agent stays in charge. It breaks the job into parts, sends parts to helper agents and combines their results. Anthropic calls this **orchestrator-workers**. It fits jobs where you can't predict the subtasks in advance. OpenAI calls the same idea **agents as tools**: the manager calls specialists for bounded tasks, like summarising or classifying, and keeps ownership of the final answer.
+**Start with one.** The Anthropic post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) recommends "finding the simplest solution possible, and only increasing complexity when needed". Sometimes that means no agent at all. The post also warns that agentic systems "often trade latency and cost for better task performance". The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says the same: "Start with one agent whenever you can." More specialists are worth it only if they clearly help with one of four things:
 
-**2. A handoff.** One agent passes the conversation to a specialist, and the specialist takes over. OpenAI's example is a triage agent that hands off to a billing agent or a refund agent. The guide says the first design choice is who owns the final answer at each branch of the work.
+- capability isolation (each agent has only the tools it needs),
+- policy isolation (each agent follows only its own rules),
+- prompt clarity,
+- trace legibility (the run's record is easy to read).
 
-**3. A team that talks to itself.** Claude Code has an experimental feature called agent teams. One session is the lead. Teammates work in their own context, share a task list and message each other directly. The docs compare this with subagents, which report results back to the main agent and use fewer tokens.
+The guide warns that an early split brings more prompts, more traces and more approval points, and the workflow is not always better.
 
-## When a team pays off
+**The test is independence.** A team helps when the parts can run side by side without waiting for each other.
 
-The vendors agree on the main test: are the parts independent?
+- The Anthropic [research system post](https://www.anthropic.com/engineering/multi-agent-research-system) found its multi-agent system did best on breadth-first questions: many independent directions explored at the same time.
+- The [OpenAI multi-agent guide](https://developers.openai.com/api/docs/guides/agents-api/multi-agent) says to use **subagents** (helper agents with their own context) for independent tasks, such as reviewing separate documents. Short tasks and dependent steps stay with the main agent.
+- The [Claude Code agent teams page](https://code.claude.com/docs/en/agent-teams) says that for sequential tasks, edits to the same file, or work with many dependencies, one session or subagents work better than a team.
 
-- Anthropic's research post says its multi-agent system did best on breadth-first questions, where many independent directions can be explored at the same time.
-- OpenAI's Agents API guide says to use subagents for independent tasks, such as reviewing separate documents. It says to keep short tasks and dependent steps in the main agent.
-- The Claude Code docs say that for sequential tasks, edits to the same file, or work with many dependencies, a single session or subagents work better than a team.
+The research post also names a poor fit: domains where all agents must share the same context, or where agents have many dependencies on each other.
 
-Anthropic's post also names a poor fit: work where all agents need the same context, or with many dependencies between agents.
+Our comparison: ten cooks can chop ten bags of vegetables at once. Ten cooks cannot stir one sauce faster.
 
-Example: checking 12 suppliers against the same checklist is a good fit. Each supplier is a separate piece of work. Writing one contract, where each clause depends on the last one, is a poor fit.
+**Three shapes.** Each shape answers one question: who owns the final answer? The OpenAI guide calls this "the first design choice".
 
-## A bigger team costs more
+1. **A manager with helpers.** The Anthropic post calls it **orchestrator-workers**: a central model breaks the job down, sends parts to workers, and combines their results. It suits jobs where nobody knows the subtasks before the work starts. The OpenAI name is **agents as tools**: the manager calls specialists for bounded tasks, like summarising or classifying, and the manager still writes the final reply itself.
+2. **A handoff.** One agent passes the conversation to a specialist, and control moves to that specialist. The OpenAI example is a triage agent that hands off to a billing agent or a refund agent. Use it when the specialist, not the first agent, should write the next reply.
+3. **A team that talks.** Claude Code **agent teams** are experimental and off by default. One session is the lead. Teammates each have their own context window, share a task list and message each other directly. The page compares this with subagents, which report results back to the main agent and cost fewer tokens.
 
-Anthropic's research post (June 2025) reports that in its data, agents used about 4 times more tokens than chat, and multi-agent systems about 15 times more. The post says the task must be valuable enough to pay for that.
+```text
+manager:  user -> manager -> helper A, helper B -> manager -> answer
+handoff:  user -> triage -> specialist -> answer
+```
 
-The Claude Code docs give team-size advice. Token use scales with the number of active teammates. Start with 3 to 5 teammates for most workflows. "Three focused teammates often outperform five scattered ones."
+**A team costs more.** A **token** is a small piece of text that a model reads or writes; you pay per token. The research post (June 2025) reports that in its data, agents used "about 4× more tokens than chat interactions", and multi-agent systems "about 15× more tokens than chats". So the task must be valuable enough to pay for that. The Claude Code page says each active teammate adds its own token use. Its advice is to start with "3-5 teammates" for most work. It adds: "Three focused teammates often outperform five scattered ones." The OpenAI Agents API has a setting that caps how many subagents run at once. The default is 6, not counting the coordinator.
 
-OpenAI's Agents API has a setting that limits how many subagents can run at once. The default is 6, not counting the coordinator. A limit like this is one way to keep a team from growing out of control.
+**Brief every member.** The research post says each subagent needs an objective, a format for its output, guidance on the tools and sources to use, and clear task boundaries. Without them, agents duplicate work or leave gaps. Its own early brief, "research the semiconductor shortage", was so vague that subagents ran the same searches.
 
-## Brief each member well
+## Worked example
 
-A team is only as good as its briefs. Anthropic's post says each subagent needs:
+### Step 1: the weak plan
 
-1. an objective,
-2. an output format,
-3. guidance on which tools and sources to use, and
-4. clear task boundaries.
+```text
+Consultant plan: weekly competitor briefing
+  Agents 1-3   Read prices / news / job adverts for all 10 firms
+  Agents 4-8   Write the memo in a chain:
+               draft -> tone -> facts -> charts -> summary
+  Brief for all 12: "Research the competitors."
+  Size: 12 agents from week one
+```
 
-Without this, agents repeat each other's work or leave gaps. In Anthropic's example, a short brief like "research the semiconductor shortage" led several subagents to run the same searches.
+What goes wrong:
 
-Example: "Check supplier 7. Use only the 2026 audit file and the public register. Return a table: risk, evidence, page. Don't contact the supplier." That brief has all four parts.
+- **The split is by topic, not by independent piece.** Each reader covers all 10 firms, so three agents visit the same websites.
+- **The writing chain is dependent work.** Each writer needs the full draft and waits for the one before. That is one task cut into five pieces.
+- **One vague brief for all.** It names no objective, format, sources or limits.
+- **Too big, too soon.** Twelve agents cost more tokens, with no test that a team is better.
 
-## Key points
+### Step 2: sort the work by independence
 
-- Start with one agent; add specialists only when they clearly help.
-- A manager keeps the final answer (orchestrator-workers, agents as tools); a handoff gives it to a specialist.
-- Teams fit independent parallel work, not dependent step-by-step work.
-- More agents means more tokens; start small and grow only when the work needs it.
-- Brief every agent with an objective, an output format, sources and boundaries.
+```text
+Part                               Depends on        Fit
+Check one competitor (x10)         nothing           parallel
+Compare all 10 in one table        all 10 checks     one agent
+Write the memo                     the table         one agent
+```
+
+### Step 3: the good plan
+
+```text
+Shape: a manager agent with helpers (agents as tools)
+  Manager: splits the work, gets the results, writes the memo
+  Helpers: 3 checkers, each with its own list of competitors
+           (4, 3 and 3 firms)
+
+Brief for checker 1:
+  Objective: check competitors A, B, C and D for this week.
+  Sources:   their public price pages, press pages and job board;
+             our news feed. Nothing else.
+  Output:    a table per firm: change, evidence link, date.
+  Boundaries: report facts only; no scoring; do not contact anyone.
+```
+
+### Step 4: the hard case
+
+**The hard case is the comparison table.** It looks like a fourth parallel task. It is not. It needs all 10 results, on one scale, in one place. If a helper builds it, that helper needs the same context as the manager. That is the poor fit the research post names. So the manager builds the table and writes the memo. One owner combines everything.
+
+### Step 5: why it is better
+
+- **Parallel only where the parts are independent.** Ten firm checks run side by side. The writing stays in one place.
+- **A clear owner.** The manager writes the final memo, so the CEO gets one voice.
+- **A small team.** Three checkers is inside the 3–5 range. Add more only if a test shows they help.
+- **Briefs that divide the work.** Each checker has its own firms, so nobody repeats a search.
+
+## Common mistakes
+
+1. **"More agents means faster."** Each agent adds tokens, and dependent steps can't run side by side. Fix: start small and grow only when a test shows it helps.
+2. **Splitting by skill, not by independence.** A "tone agent" that needs the whole draft is not independent. Fix: split only work that needs no other part's result.
+3. **Handoff when one owner must combine.** In a handoff, control moves away. Fix: use a manager that calls helpers when one answer must bring all the parts together.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team uses Claude Code agent teams. It has 18 separate contracts to check against one checklist. Answer three questions:
+
+```text
+1. How many teammates should the team start with?
+2. About how many tasks should each teammate get?
+3. A colleague says: "Agent teams work out of the box."
+   Is that right?
+```
+
+### Answer
+
+1. **Three.** The Claude Code page says to start with 3–5 teammates. Its own example: for 15 independent tasks, 3 teammates is a good starting point. Eighteen is close to that.
+2. **About six each.** The page says 5–6 tasks per teammate keeps everyone busy, and the lead can move work if someone gets stuck. Our maths: 18 ÷ 3 = 6.
+3. **No.** The page says agent teams are experimental and disabled by default. Someone must turn them on first.
+
+## Recap
+
+- Start with one agent. Add a team only when the parts are truly independent and the task is worth the extra tokens.
+- A manager that calls helpers keeps the final answer. A handoff gives it to the specialist.
+- Keep teams small, and give every member an objective, a format, sources and boundaries.
