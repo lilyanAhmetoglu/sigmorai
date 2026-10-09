@@ -63,6 +63,10 @@ for (const route of ['/', BLOG_HREF, MAP_HREF, '/no-such-page']) {
   test(`no Clerk for a visitor: ${route}`, async ({ page }) => {
     const clerkRequests: string[] = [];
     page.on('request', (request) => {
+      // A page navigation is not Clerk JS. With a development key (pk_test, as in CI) the
+      // server middleware sends a visitor's first load through a `dev-browser-missing`
+      // handshake redirect; a production key does not. Count scripts and API calls only.
+      if (request.isNavigationRequest()) return;
       const url = request.url();
       if ((FAPI && url.startsWith(FAPI)) || CLERK_SCRIPT.test(url)) clerkRequests.push(url);
     });
