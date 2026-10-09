@@ -3,6 +3,7 @@
 import { useClerk } from '@clerk/nextjs';
 import Link from 'next/link';
 import { useActionState, useEffect } from 'react';
+import { useClerkMounted } from '@/components/clerk-gate';
 import { Choice } from '@/components/choice';
 import { Panel } from '@/components/panel';
 import { PixelButton } from '@/components/pixel-button';
@@ -37,17 +38,16 @@ const subHeading = 'font-hud text-hud tracking-hud m-0';
  */
 export function DataPanel() {
   const [state, formAction, pending] = useActionState(deleteAccount, null);
-  const { signOut } = useClerk();
+  const clerk = useClerkMounted();
   const done = state?.done === true;
   const busy = pending || done;
   const formError = state?.error ? FORM_ERROR[state.error] : undefined;
 
   useEffect(() => {
-    if (!done) return;
-    // The Clerk user is already deleted, so ending its session can fail.
-    // Either way the browser leaves the app.
-    signOut({ redirectUrl: HOME_HREF }).catch(() => window.location.assign(HOME_HREF));
-  }, [done, signOut]);
+    // Rare: the (app) layout's server render saw no session and Clerk is still
+    // loading (ClerkGate). The Clerk user is gone, so just leave the app.
+    if (done && !clerk) window.location.assign(HOME_HREF);
+  }, [done, clerk]);
 
   return (
     <Panel
@@ -104,6 +104,21 @@ export function DataPanel() {
           </PixelButton>
         </div>
       </form>
+      {done && clerk && <SignOutHome />}
     </Panel>
   );
+}
+
+/**
+ * Signs out and goes home after a delete. Its own component so useClerk only
+ * runs below a mounted ClerkProvider (useClerkMounted): it throws without one.
+ */
+function SignOutHome() {
+  const { signOut } = useClerk();
+  useEffect(() => {
+    // The Clerk user is already deleted, so ending its session can fail.
+    // Either way the browser leaves the app.
+    signOut({ redirectUrl: HOME_HREF }).catch(() => window.location.assign(HOME_HREF));
+  }, [signOut]);
+  return null;
 }

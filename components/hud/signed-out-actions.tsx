@@ -1,12 +1,16 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useAuth } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
+import { useClerkMounted } from '@/components/clerk-gate';
 import { PixelButton } from '@/components/pixel-button';
-import { useHideSignedOut } from '@/components/use-hide-signed-out';
+import { useHideForLikelyPlayer } from '@/components/use-session-hint';
 import { AUTH_ROUTES, AUTH_TEXT } from '@/lib/constants';
 import { isUnderPath } from '@/lib/utils';
+
+// Lazy, so a visitor's page never downloads @clerk/* (ClerkGate).
+const ClerkMenuSignIn = dynamic(() => import('./clerk-hud').then((mod) => mod.ClerkMenuSignIn));
 
 /**
  * Sign in + Start free: the header's right side for a visitor. Plain links,
@@ -40,14 +44,21 @@ export function SignedOutActions() {
 
 /**
  * Sign in inside the mobile Menu panel, below sm only (the bar has no room for
- * it there). Shown unless Clerk says signed in, hidden on /sign-in, and kept
- * hidden while a likely player's Clerk loads (useHideSignedOut).
+ * it there). Hidden on /sign-in. Without Clerk mounted it shows, except
+ * while a likely player's Clerk chunk downloads (useHideForLikelyPlayer, the
+ * same rule ClerkMenuSignIn uses); with Clerk, ClerkMenuSignIn hides it for a
+ * player.
  */
 export function MenuSignIn() {
   const pathname = usePathname();
-  const { isLoaded, isSignedIn } = useAuth();
-  const hide = useHideSignedOut();
-  if ((isLoaded && isSignedIn) || hide || isUnderPath(pathname, AUTH_ROUTES.signIn)) return null;
+  const clerk = useClerkMounted();
+  const hide = useHideForLikelyPlayer(!clerk);
+  if (clerk) return <ClerkMenuSignIn />;
+  return hide || isUnderPath(pathname, AUTH_ROUTES.signIn) ? null : <MenuSignInLink />;
+}
+
+/** The Menu's Sign in link itself, for MenuSignIn and ClerkMenuSignIn. */
+export function MenuSignInLink() {
   return (
     <ul className="nav-list mobile-menu-auth">
       <li>

@@ -11,7 +11,7 @@ export default async function SignInPage({ searchParams }: PageProps<'/sign-in/[
   const track = pathFromRedirect(query[CLERK_REDIRECT_PARAM]);
 
   return (
-    // The way back home is the header logo (marketing layout).
+    // The way back home is the header logo ((auth) layout).
     <main
       id={MAIN_CONTENT_ID}
       tabIndex={-1}
