@@ -42,7 +42,7 @@ The [OpenAI evaluation guide](https://developers.openai.com/api/docs/guides/eval
 
 **Three kinds of grader.** A **grader** is whoever or whatever decides pass or fail. The [Claude docs on evals](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say to pick "the fastest, most reliable, most scalable method":
 
-- **Code check.** A simple rule, like "is the word count under 100?" or "does the note contain the account number?". The docs call code-based grading "Fastest and most reliable, extremely scalable", but it "lacks nuance" for complex judgments.
+- **Code check.** A simple rule, like "does the note include the call date?" or "is the offer one of our 6 offers?". The docs call code-based grading "Fastest and most reliable, extremely scalable", but it "lacks nuance" for complex judgments.
 - **Person.** "Most flexible and high quality, but slow and expensive. Avoid if possible."
 - **Model judge** (also "LLM-as-a-judge": a model grades another model's work). "Fast and flexible, scalable and suitable for complex judgment. Test to ensure reliability first then scale."
 
@@ -61,7 +61,12 @@ Its advice for judges:
 
 The Claude docs add: tell the judge to output only "'correct' or 'incorrect'", or a score on a 1–5 scale.
 
-**Check the judge against people before you scale.** The OpenAI guide says to scale up a model judge only once it is "faster, cheaper", and agrees with your human graders again and again. The Anthropic post says model judges "should be closely calibrated with human experts". It also suggests giving the judge a way out: tell it to return "Unknown" when it lacks information.
+**Check the judge against people before you scale.** The two vendors say:
+
+- The OpenAI guide: scale up a model judge only once it is "faster, cheaper", and agrees with your human graders again and again.
+- The Anthropic post: model judges "should be closely calibrated with human experts".
+
+The post also suggests giving the judge a way out: tell it to return "Unknown" when it lacks information.
 
 Our advice: when a judge compares two answers, run each pair in both orders. Count a win only if it holds both times.
 
@@ -73,12 +78,20 @@ Our advice: when a judge compares two answers, run each pair in both orders. Cou
 
 **Run it more than once.** Because output varies, one run can mislead. The post explains **pass^k**: "the probability that all k trials succeed." To work it out, multiply the success rate by itself k times. Our example: if one try succeeds 90% of the time, two tries in a row is 0.9 × 0.9 = 81%, and three is about 73%. The post says this "especially matters for customer-facing agents where users expect reliable behavior every time."
 
-**Read the answers, not only the score.** A score can be wrong because the test is wrong. The post tells how one model "initially scored 42%" on a public benchmark. A researcher found grading bugs, for example a rule that marked "96.12" wrong because it expected "96.124991…". After the fixes, the score "jumped to 95%". The post's rule: "Failures should seem fair".
+**Read the answers, not only the score.** A score can be wrong because the test is wrong. The post tells how one model "initially scored 42%" on a public benchmark. A researcher found problems in the test:
+
+- a rule that marked "96.12" wrong because it expected "96.124991…"
+- unclear task descriptions
+- tasks that could not be repeated the same way twice
+
+After the bugs were fixed and the model was given a looser setup, the score "jumped to 95%". The post's rule: "Failures should seem fair".
 
 **Two kinds of test suite.** The post separates them:
 
 - **Capability (quality) evals** ask "What can this agent do well?" They "should start at a low pass rate", so there is room to improve.
-- **Regression evals** ask if it still handles everything it used to. They "should have a nearly 100% pass rate". A drop "signals that something is broken". Old capability tasks with high pass rates can move into a regression suite "that is run continuously to catch any drift".
+- **Regression evals** ask if it still handles everything it used to. They "should have a nearly 100% pass rate".
+  - A drop "signals that something is broken".
+  - Old capability tasks with high pass rates can move into a regression suite "that is run continuously to catch any drift".
 
 ## Worked example
 
@@ -102,8 +115,8 @@ What goes wrong:
 
 ```text
 Check                                      Grader
-Note has the account number                code check
-Note is 80 words or fewer                  code check
+Note includes the call date                code check
+Note has a leave-reason field              code check
 Offer field names one of our 6 offers      code check
 Leave reason matches what the customer     model judge, rubric below,
 said                                       output "correct" / "incorrect" / "Unknown"
