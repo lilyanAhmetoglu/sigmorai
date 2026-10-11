@@ -7,6 +7,7 @@ import {
   HP_PER_CHALLENGE,
   HUD_TEXT,
   LEADERBOARD_TEXT,
+  MAIN_CONTENT_ID,
   NAV_ITEMS,
   ONBOARDING_TEXT,
   QUEST_TEXT,
@@ -159,7 +160,13 @@ test('a case cleared on the builder path credits its strategist twin', async ({ 
 
   // The strategist realm page shows its twin as cleared, and says where.
   await page.goto(realmHref(REALMS[0].slug, 'strategist'));
-  await expect(page.getByText(REALMS_TEXT.creditedFrom(TRACK_TEXT.builder.label))).toBeVisible();
+  // Scoped to the main region: while the page streams, React can hold a hidden second copy of the
+  // chapter list at the end of <body>, and an unscoped getByText then matches twice.
+  await expect(
+    page
+      .locator(`#${MAIN_CONTENT_ID}`)
+      .getByText(REALMS_TEXT.creditedFrom(TRACK_TEXT.builder.label)),
+  ).toBeVisible();
   // The lock follows the credit: chapter 5 opens (chapters 1–3 are not done).
   const c5 = page
     .getByRole('listitem')
