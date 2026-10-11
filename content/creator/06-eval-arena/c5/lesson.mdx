@@ -56,6 +56,8 @@ The same page names two kinds of testing:
 
 It also notes: "LLMs are known to sometimes produce different outputs for the same input prompt. Multiple rounds of testing may be needed to catch more of the problematic outputs."
 
+Read the results set by set. The guidance says that with more than one metric, "you may want to focus on worst-case performance across your evaluation set rather than average performance." Our habit: report each set on its own line. A big easy set can lift the overall rate and hide a weak hard set.
+
 ### Layer 1: the vendor's filters
 
 The [OpenAI image docs](https://developers.openai.com/api/docs/guides/image-generation) say: "All prompts and generated images are filtered in accordance with our content policy." The `moderation` parameter has two values:
@@ -68,7 +70,7 @@ The [Gemini API safety settings](https://ai.google.dev/gemini-api/docs/safety-se
 Two details matter:
 
 - **Probability, not severity.** The page says the API "blocks content based on the probability of content being unsafe and not the severity". A very harmful frame can have a low probability score. So test with your own examples.
-- **Off unless you turn them on.** "If the threshold is not set, the default block threshold is **Off** for Gemini 2.5 and 3 models." When you set one, `BLOCK_ONLY_HIGH` (shown as Block few in Google AI Studio) blocks only high probability. `BLOCK_MEDIUM_AND_ABOVE` (Block some) blocks medium and high.
+- **Off unless you turn them on.** A **threshold** is the line where the filter starts to block. The page says: "If the threshold is not set, the default block threshold is **Off** for Gemini 2.5 and 3 models." When you set one, `BLOCK_ONLY_HIGH` (shown as Block few in Google AI Studio) blocks only high probability. `BLOCK_MEDIUM_AND_ABOVE` (Block some) blocks medium and high. `BLOCK_LOW_AND_ABOVE` (Block most) blocks low, medium and high.
 
 Our advice for any A/B test: use the same safety settings on both sides. With `low` on one side and `auto` on the other, a gap in blocked prompts could be caused by the setting rather than the model.
 
@@ -136,17 +138,16 @@ Simplified. See the docs for the exact request shape.
 
 ### Step 5: the hard case
 
-**The hard case is reading the results.** After review:
+**The hard case is the second run.** Step 4 runs every set twice. Here is the edge set. The numbers are our example.
 
-| Set         | Frames | Safe | Rate  |
-| ----------- | ------ | ---- | ----- |
-| Everyday    | 400    | 400  | 100%  |
-| Edge        | 120    | 114  | 95.0% |
-| Adversarial | 60     | 51   | 85.0% |
+```text
+Edge set, 120 briefs
+Run 1:  117 safe
+Run 2:  116 safe
+Briefs unsafe in at least one run: 7
+```
 
-All together: 565 of 580, which is 97.4%. That is above the 97% target.
-
-The weak reading: "We pass." The better reading: the target was for every set. Edge is at 95.0% and adversarial at 85.0%. Both fail. The Gemini guidance says that with several metrics, "you may want to focus on worst-case performance across your evaluation set rather than average performance." The big easy set hides the weak spots. The scorecard says fail.
+The weak reading: "Run 1 is 97.5%, so edge passes." The better reading: a brief that made one unsafe frame can make one again. Count a brief as safe only if it was safe in every run: 120 - 7 = 113 of 120, which is 94.2%. That is below the 97% target. The Gemini guidance says "Multiple rounds of testing may be needed to catch more of the problematic outputs." A person reviews the 7 briefs, and the team writes 10 more like them for the next round.
 
 ### Step 6: why it is better
 
@@ -168,13 +169,13 @@ A team uses the Gemini API for story frames on a Gemini 3 model. Nobody has set 
 
 1. What is the block threshold for that category right now?
 2. The team wants to block content with a medium or high probability of being dangerous. Which API value does that?
-3. After that change, can they say "all severe dangerous content is now blocked"?
+3. They now want to block dangerous content even at a low probability. Which API value does that, and what is it called in Google AI Studio?
 
 ### Answer
 
 1. **Off.** The safety settings page says the default is Off for Gemini 2.5 and 3 models when no threshold is set.
 2. **`BLOCK_MEDIUM_AND_ABOVE`**, shown as Block some in Google AI Studio.
-3. **No.** Gemini filters work on probability, not severity. A severe frame can still have a low probability score. Test with your own edge and adversarial briefs, and keep a person in the loop.
+3. **`BLOCK_LOW_AND_ABOVE`**, shown as Block most. It blocks low, medium and high probability. It still works on probability, not severity, so keep testing with your own edge and adversarial briefs.
 
 ## Recap
 

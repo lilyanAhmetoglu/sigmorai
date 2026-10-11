@@ -36,7 +36,7 @@ Here is the test they run:
 
 - v2 runs this week, on this week's six articles.
 - v1's results come from last month's articles.
-- v2 runs with quality set to `high`. v1 ran with `auto`.
+- v2 runs at size `1536x1024`. v1 ran at `1024x1024`.
 - The editor picks a favourite in each pair, and knows which image is v2.
 
 v2 wins 7 of 10 pairs. The team switches.
@@ -104,15 +104,21 @@ Our rule for a studio: if one side wins 35 of 40 pairs, that is clear. If it win
 
 ### Offline first, live later
 
-You could also send half of your real work to each version. The Anthropic post says A/B testing with real traffic "Measures actual user outcomes", but it is "Slow; days or weeks to reach significance and requires sufficient traffic". It also "Only tests changes you deploy". Our advice: run the blind offline test first. Use a live test later, if you have enough volume.
+You could also send half of your real work to each version. The Anthropic post lists what that gives and costs:
+
+- It "Measures actual user outcomes".
+- It is "Slow; days or weeks to reach significance and requires sufficient traffic".
+- It "Only tests changes you deploy".
+
+Our advice: run the blind offline test first. Use a live test later, if you have enough volume.
 
 ## Worked example
 
 ### Step 1: the weak test
 
 ```text
-v2: this week's 6 articles, quality high
-v1: last month's articles, quality auto
+v2: this week's 6 articles, size 1536x1024
+v1: last month's articles, size 1024x1024
 Judge: the editor, who knows which is which
 Result: v2 wins 7 of 10
 ```
@@ -140,28 +146,28 @@ Answer:   left / right / no difference
 ### Step 4: write the decision rule first
 
 ```text
-Clear win:  one kit preferred in 30 or more of 40 pairs
-Otherwise:  a tie. Then the cheaper kit wins, if it
-            passes every must-have gate.
+Clear win:  one kit preferred in 30 or more of 40 pairs,
+            AND it passes every must-have gate.
+Otherwise:  keep the current kit and test again later.
 ```
 
 The numbers are our example.
 
 ### Step 5: the hard case
 
-**The hard case is a small gap.** The blind result: v2 preferred 22 times, v1 16 times, no difference 2 times.
+**The hard case is a clear win that breaks a gate.** The blind result: v2 preferred 33 times, v1 5 times, no difference 2 times (33 + 5 + 2 = 40).
 
-The weak reading: "v2 wins." The better reading: 22 is below the 30 the team wrote down. By its own rule, this is a tie. The desk checks the rest: both kits pass every gate. v2's longer style block adds a little text input, so v1 is the cheaper kit. By the rule, v1 stays. The desk can test v2 again later on 40 new briefs.
+The weak reading: "v2 wins, switch today." The better reading: 33 is above the 30 the team wrote down, so the preference part is met. Then the desk checks the gates. On 4 of the 40 briefs, v2 drops the city name from the map label. v1 never does. A gate is a must-have, so by the rule v1 stays. The desk fixes the label line in v2's style block and runs the same 40 briefs again.
 
 ### Step 6: why it is better
 
 - **One thing changes**: the kit. Same briefs, model, settings, tries and reviewers.
 - **Nobody knows which is which**, and the sides are random.
-- **The rule came before the result**, so a small gap cannot become a story.
+- **The rule came before the result**, so a strong preference cannot hide a broken gate.
 
 ## Common mistakes
 
-1. **Leaving a setting on `auto` on one side only.** The test compares settings, not versions. Fix: set size and quality explicitly on both sides.
+1. **Different settings on each side.** The test compares settings, not versions. Fix: write size and quality into the plan, the same on both sides, and never leave one side on `auto`.
 2. **Reviewers who can see the names.** Hope sneaks into the scores. Fix: rename to Left and Right and flip a coin per pair.
 3. **Comparing the token rate instead of the bill.** The same rate can give different costs. Fix: read `usage` from your own runs and work out cost per image.
 
@@ -169,17 +175,17 @@ The weak reading: "v2 wins." The better reading: 22 is below the 30 the team wro
 
 Not graded. Write your answer down before you read the answer.
 
-An editing job on a GPT Image 2.5 model sends two reference images. The response `usage` shows, on average, 2,500 image input tokens and 4,500 image output tokens. Leave text input out. Use the rates from the OpenAI image docs above.
+An editing job on a GPT Image 2.5 model sends reference images. The response `usage` shows 1,500 image input tokens per job, on average. The studio's budget is $0.15 per job. Leave text input out. Use the rates from the OpenAI image docs above.
 
 1. What does the image input cost per job?
-2. What does the image output cost per job?
-3. What is the total, and what would you miss if you only counted output?
+2. How much of the budget is left for image output?
+3. About how many image output tokens can each job use and stay in budget?
 
 ### Answer
 
-1. **$0.02.** 2,500 / 1,000,000 x $8 = $0.02.
-2. **$0.135.** 4,500 / 1,000,000 x $30 = $0.135.
-3. **$0.155 per job.** If you count only output, you miss $0.02 per job, about 13% of the bill. Jobs with many reference images make the input part bigger. This is our example; read your own `usage`.
+1. **$0.012.** 1,500 / 1,000,000 x $8 = $0.012.
+2. **$0.138.** $0.15 - $0.012 = $0.138.
+3. **About 4,600.** $0.138 / $30 x 1,000,000 = 4,600. This is our maths; read your own `usage`. If you counted only output, you would think 5,000 tokens fit, and every job would go over budget.
 
 ## Recap
 

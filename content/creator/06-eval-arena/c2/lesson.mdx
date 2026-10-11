@@ -54,7 +54,11 @@ For a studio, the known-good artifact is approved work. Our advice: treat the mo
 
 ### Yes or no, or a short scale
 
-The [Claude docs on evaluations](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say a grader's output should be "Empirical or specific". Their example is to tell the grader "to output only 'correct' or 'incorrect', or to judge from a scale of 1–5". They add: "Purely qualitative evaluations are hard to assess quickly and at scale."
+The [Claude docs on evaluations](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say how a grader should answer:
+
+- The output should be "Empirical or specific".
+- Their example is to tell the grader "to output only 'correct' or 'incorrect', or to judge from a scale of 1–5".
+- They add: "Purely qualitative evaluations are hard to assess quickly and at scale."
 
 Our split:
 
@@ -94,6 +98,8 @@ The Claude docs say: "A given use case, or even a specific success criteria for 
 
 The OpenAI docs recommend: "Conduct multiple rounds of detailed human review to refine the scorecard." To combine reviewers, they say "A simple way to aggregate multiple reviewers is to take consensus votes." A **consensus vote** means you go with what most reviewers chose.
 
+Our habit: three reviewers score the same set alone. Where two differ by 2 points or more on a line, talk about those images, fix the wording or add an anchor, then score a fresh set.
+
 ## Worked example
 
 ### Step 1: the weak sheet
@@ -104,11 +110,7 @@ Rate the cover from 1 to 10. 7 or above ships.
 
 Two reviewers, no anchors, no must-haves. The cut-off name scored 9 because everything else looked great.
 
-### Step 2: draft from approved work
-
-The team picks four covers the hosts loved. They show them to a model and ask what makes them work. The answer lists bold show names, one main object, strong contrast and a calm corner for the episode number. The team deletes two vague lines ("feels premium") and keeps the rest as a draft.
-
-### Step 3: write the rubric
+### Step 2: write the rubric
 
 ```text
 EPISODE COVER RUBRIC (square, 3000x3000)
@@ -127,36 +129,28 @@ Pass: all gates yes AND W1 + W2 is 7 or more
 
 The pass line and the sizes are our example.
 
-### Step 4: the hard case
+### Step 3: the hard case
 
-**The hard case is the cover that went live.** Score it again with the new sheet:
+**The hard case is two failed covers.** Both fail, but not in the same way. The scores are our example.
 
 ```text
-G1  no   (name cut at the right edge)
-G2  yes
-G3  yes
-W1  5
-W2  5    -> W1 + W2 = 10, above 7
-Result: FAIL, because G1 is a gate
+        Cover A                             Cover B
+G1      yes                                 no  (show name misspelled)
+G2      yes                                 no  (episode 41, not 14)
+G3      no  (name unreadable at 200x200)    no
+W1      5                                   2
+W2      4                                   2
+Result  FAIL                                FAIL
 ```
 
-On the old sheet it got a 9. On the new sheet the weights are perfect, and it still fails. The line-by-line result also tells the designer exactly what to fix.
+The weak reading: "Both failed, so redo both from zero." The better reading: keep the line-by-line result. Cover A misses one gate, and its weights add up to 9. Making the show name bigger is one fix. Cover B fails every gate and its weights add up to 4, so the prompt itself needs work. Neither ships, but they go to different queues. This is partial credit: the result shows how far each image is from a pass.
 
-### Step 5: test the sheet on people
-
-1. Three reviewers score the same 20 covers alone.
-2. Find the covers where two of them differ by 2 points or more on a weight.
-3. Talk about those covers. Fix the wording, or add an anchor cover.
-4. Score a fresh set of 20 and compare again.
-
-In round one, they disagree on W1 for six covers. The cause: "mood" was not defined. They add the line "matches the show's colour card and its anchor covers", and in round two only one cover differs.
-
-### Step 6: why it is better
+### Step 4: why it is better
 
 - **Must-haves are gates**, so a beautiful cover with a broken name fails.
 - **Anchors** make a 3 mean the same thing to every reviewer.
 - **A pass line** sits next to every score.
-- **The sheet was tested on people** before anyone trusted it.
+- **Line-by-line results** show a near miss apart from a far miss.
 
 ## Common mistakes
 
