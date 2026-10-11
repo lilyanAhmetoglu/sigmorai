@@ -1,5 +1,5 @@
 <!-- Written by the docs-watch workflow. Edits here are overwritten on the next run. -->
-Official pages changed since they were last handled: **140**.
+Official pages changed since they were last handled: **146**.
 
 The knowledge-sync routine reads this list, checks each citing lesson against the live page, and opens `new-level` PRs into `canary`. **Close this issue once every row is handled**; the next run then starts a fresh list.
 
@@ -12,11 +12,8 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://developers.openai.com/api/docs/models/gpt-5.5 | `openai-docs` | 2026-10-07 | `strategist/r3/c1/lesson`, `strategist/r3/c5/lesson` |
 | https://code.claude.com/docs/en/admin-setup | `claude-code-docs` | 2026-10-08 | `strategist/r7/c3/lesson`, `strategist/r7/c4/lesson`, `strategist/r7/c6/lesson`, `strategist/r8/c5/lesson` |
 | https://code.claude.com/docs/en/agent-teams | `claude-code-docs` | 2026-10-08 | `builder/r7/c3/lesson`, `builder/r7/c4/lesson`, `builder/r7/c5/lesson`, `strategist/r7/c1/lesson` |
-| https://code.claude.com/docs/en/costs | `claude-code-docs` | 2026-10-08 | `builder/r7/c6/lesson` |
 | https://code.claude.com/docs/en/github-actions | `claude-code-docs` | 2026-10-08 | `builder/r14/c5/lesson`, `builder/r6/c6/lesson` |
 | https://code.claude.com/docs/en/managed-mcp | `claude-code-docs` | 2026-10-08 | `strategist/r5/c3/lesson`, `strategist/r5/c4/lesson` |
-| https://code.claude.com/docs/en/permission-modes | `claude-code-docs` | 2026-10-08 | `strategist/r4/c2/lesson` |
-| https://code.claude.com/docs/en/permissions | `claude-code-docs` | 2026-10-08 | `builder/r4/c6/lesson`, `creator/r13/c6/lesson`, `strategist/r4/c5/lesson` |
 | https://developers.openai.com/api/docs/deprecations | `openai-docs` | 2026-10-08 | `builder/r6/c6/lesson`, `builder/r8/c6/lesson`, `creator/r0/c4/lesson`, `creator/r6/c3/lesson`, `creator/r6/c6/lesson`, `creator/r8/c5/lesson`, `strategist/r5/c6/lesson`, `strategist/r8/c6/lesson` |
 | https://developers.openai.com/api/docs/guides/background | `openai-docs` | 2026-10-08 | `creator/r2/c3/lesson` |
 | https://github.com/openai/openai-agents-python/blob/main/docs/tools.md | `openai-agents-python` | 2026-10-08 | `builder/r7/c3/lesson`, `builder/r7/c6/lesson`, `creator/r7/c3/lesson` |
@@ -43,12 +40,8 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://ai.google.dev/gemini-api/docs/image-generation | `gemini-docs` | 2026-10-09 | `creator/r0/c1/lesson`, `creator/r0/c2/lesson`, `creator/r0/c4/lesson`, `creator/r0/c6/lesson`, `creator/r1/c1/lesson`, `creator/r1/c2/lesson`, `creator/r1/c3/lesson`, `creator/r1/c4/lesson`, `creator/r1/c7/lesson`, `creator/r1/c8/lesson`, `creator/r1/c9/lesson`, `creator/r11/c1/lesson`, `creator/r11/c3/lesson`, `creator/r11/c4/lesson`, `creator/r11/c6/lesson`, `creator/r2/c1/lesson`, `creator/r2/c2/lesson`, `creator/r2/c3/lesson`, `creator/r3/c1/lesson`, `creator/r3/c2/lesson`, `creator/r3/c5/lesson`, `creator/r3/c6/lesson`, `creator/r4/c3/lesson`, `creator/r6/c4/lesson`, `creator/r6/c6/lesson`, `creator/r8/c2/lesson`, `creator/r9/c4/lesson` |
 | https://ai.google.dev/gemini-api/docs/veo | `gemini-docs` | 2026-10-09 | `creator/r0/c1/lesson`, `creator/r0/c4/lesson`, `creator/r0/c5/lesson`, `creator/r0/c6/lesson`, `creator/r1/c5/lesson`, `creator/r10/c1/lesson`, `creator/r10/c2/lesson`, `creator/r10/c3/lesson`, `creator/r10/c5/lesson`, `creator/r10/c6/lesson`, `creator/r12/c4/lesson`, `creator/r2/c1/lesson`, `creator/r2/c3/lesson`, `creator/r2/c4/lesson`, `creator/r2/c5/lesson`, `creator/r2/c6/lesson`, `creator/r3/c5/lesson`, `creator/r4/c2/lesson`, `creator/r8/c2/lesson`, `creator/r8/c6/lesson` |
 | https://anthropic.com/legal/aup | `anthropic-aup` | 2026-10-09 | `creator/r0/c6/lesson`, `creator/r8/c3/lesson` |
-| https://code.claude.com/docs/en/agent-sdk/agent-loop | `claude-code-docs` | 2026-10-09 | `builder/r4/c1/lesson`, `builder/r4/c2/lesson`, `builder/r4/c6/lesson`, `strategist/r4/c1/lesson`, `strategist/r4/c6/lesson` |
-| https://code.claude.com/docs/en/agent-sdk/permissions | `claude-code-docs` | 2026-10-09 | `builder/r4/c6/lesson`, `strategist/r4/c2/lesson` |
 | https://code.claude.com/docs/en/agent-sdk/subagents | `claude-code-docs` | 2026-10-09 | `builder/r4/c4/lesson`, `builder/r7/c2/lesson`, `builder/r7/c3/lesson`, `builder/r7/c4/lesson`, `builder/r7/c6/lesson` |
 | https://code.claude.com/docs/en/memory | `claude-code-docs` | 2026-10-09 | `builder/r4/c5/lesson`, `creator/r13/c3/lesson` |
-| https://code.claude.com/docs/en/worktrees | `claude-code-docs` | 2026-10-09 | `builder/r14/c6/lesson` |
-| https://code.claude.com/docs/llms.txt | `claude-code-docs` | 2026-10-09 | — |
 | https://developers.openai.com/api/docs/changelog | `openai-changelog` | 2026-10-09 | — |
 | https://developers.openai.com/api/docs/guides/priority-processing | `openai-docs` | 2026-10-09 | `builder/r8/c5/lesson` |
 | https://developers.openai.com/api/docs/guides/your-data | `openai-docs` | 2026-10-09 | `builder/r8/c4/lesson`, `creator/r3/c6/lesson`, `strategist/r0/c6/lesson`, `strategist/r3/c4/lesson`, `strategist/r5/c4/lesson`, `strategist/r5/c6/lesson`, `strategist/r8/c1/lesson`, `strategist/r8/c3/lesson` |
@@ -89,26 +82,12 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://ai.google.dev/gemini-api/docs/thinking | `gemini-docs` | 2026-10-10 | `builder/r1/c4/lesson` |
 | https://ai.google.dev/gemini-api/docs/video-understanding | `gemini-docs` | 2026-10-10 | `creator/r3/c4/lesson` |
 | https://code.claude.com/docs/en/claude-code-on-the-web | `claude-code-docs` | 2026-10-10 | `builder/r14/c6/lesson` |
-| https://code.claude.com/docs/en/headless | `claude-code-docs` | 2026-10-10 | `builder/r14/c4/lesson` |
-| https://code.claude.com/docs/en/hooks | `claude-code-docs` | 2026-10-10 | `builder/r14/c2/lesson`, `builder/r4/c2/lesson` |
-| https://code.claude.com/docs/en/hooks-guide | `claude-code-docs` | 2026-10-10 | `builder/r14/c2/lesson` |
-| https://code.claude.com/docs/en/mcp | `claude-code-docs` | 2026-10-10 | `builder/r5/c1/lesson`, `builder/r5/c3/lesson`, `builder/r5/c4/lesson`, `builder/r5/c5/lesson`, `builder/r5/c6/lesson`, `creator/r13/c4/lesson`, `creator/r5/c4/lesson`, `strategist/r5/c2/lesson`, `strategist/r5/c4/lesson`, `strategist/r5/c6/lesson` |
-| https://code.claude.com/docs/en/monitoring-usage | `claude-code-docs` | 2026-10-10 | `builder/r8/c3/lesson` |
-| https://code.claude.com/docs/en/skills | `claude-code-docs` | 2026-10-10 | `builder/r14/c1/lesson` |
-| https://code.claude.com/docs/en/sub-agents | `claude-code-docs` | 2026-10-10 | `builder/r4/c4/lesson`, `builder/r7/c2/lesson`, `builder/r7/c5/lesson`, `builder/r7/c6/lesson` |
 | https://developers.openai.com/api/docs/guides/admin-apis | `openai-docs` | 2026-10-10 | `strategist/r8/c3/lesson`, `strategist/r8/c4/lesson` |
 | https://developers.openai.com/api/docs/guides/agents-api/multi-agent | `openai-docs` | 2026-10-10 | `strategist/r7/c1/lesson` |
 | https://developers.openai.com/api/docs/guides/tools-skills | `openai-docs` | 2026-10-10 | `creator/r3/c1/lesson` |
 | https://developers.openai.com/api/docs/llms.txt | `openai-docs` | 2026-10-10 | — |
 | https://developers.openai.com/api/docs/pricing | `openai-docs` | 2026-10-10 | `builder/r0/c1/lesson`, `builder/r0/c6/lesson`, `creator/r0/c2/lesson`, `creator/r0/c5/lesson`, `creator/r7/c6/lesson`, `strategist/r0/c4/lesson`, `strategist/r3/c2/lesson`, `strategist/r3/c5/lesson`, `strategist/r5/c5/lesson` |
 | https://developers.openai.com/cookbook/llms.txt | `openai-cookbook` | 2026-10-10 | — |
-| https://docs.ideogram.ai | `ideogram-docs` | 2026-10-10 | — |
-| https://docs.ideogram.ai/create/custom-models | `ideogram-docs` | 2026-10-10 | `creator/r11/c5/lesson` |
-| https://docs.ideogram.ai/create/image-settings | `ideogram-docs` | 2026-10-10 | `creator/r11/c1/lesson`, `creator/r11/c2/lesson`, `creator/r11/c4/lesson`, `creator/r11/c5/lesson` |
-| https://docs.ideogram.ai/create/models | `ideogram-docs` | 2026-10-10 | `creator/r11/c2/lesson` |
-| https://docs.ideogram.ai/prompting/json-prompting | `ideogram-docs` | 2026-10-10 | `creator/r11/c2/lesson`, `creator/r11/c3/lesson` |
-| https://docs.ideogram.ai/prompting/prompting | `ideogram-docs` | 2026-10-10 | `creator/r11/c1/lesson` |
-| https://docs.ideogram.ai/prompting/text-in-images | `ideogram-docs` | 2026-10-10 | `creator/r11/c3/lesson` |
 | https://elevenlabs.io/docs/llms.txt | `elevenlabs-docs` | 2026-10-10 | — |
 | https://elevenlabs.io/use-policy | `elevenlabs-use-policy` | 2026-10-10 | `creator/r12/c3/lesson` |
 | https://learn.chatgpt.com/docs | `chatgpt-docs` | 2026-10-10 | — |
@@ -139,9 +118,36 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://platform.claude.com/docs/en/release-notes/overview | `claude-release-notes` | 2026-10-10 | — |
 | https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-latency | `claude-docs` | 2026-10-10 | `builder/r8/c3/lesson`, `builder/r8/c5/lesson` |
 | https://platform.claude.com/docs/llms.txt | `claude-docs` | 2026-10-10 | — |
-| https://research.google/pubs | `google-research-pubs` | 2026-10-10 | — |
-| https://support.claude.com/en/articles/12005970-manage-usage-credits-for-team-and-seat-based-enterprise-plans | `claude-support` | 2026-10-10 | `strategist/r15/c6/lesson` |
-| https://support.claude.com/en/articles/12883420-view-usage-analytics-for-team-and-enterprise-plans | `claude-support` | 2026-10-10 | `strategist/r15/c6/lesson` |
-| https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork | `claude-support` | 2026-10-10 | `strategist/r15/c4/lesson` |
-| https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects | `claude-support` | 2026-10-10 | `strategist/r15/c2/lesson` |
 | https://support.google.com/gemini | `gemini-apps-help` | 2026-10-10 | — |
+| https://ai.google.dev/api/generate-content | `gemini-api-reference` | 2026-10-11 | `creator/r11/c4/lesson` |
+| https://code.claude.com/docs/en/agent-sdk/agent-loop | `claude-code-docs` | 2026-10-11 | `builder/r4/c1/lesson`, `builder/r4/c2/lesson`, `builder/r4/c6/lesson`, `strategist/r4/c1/lesson`, `strategist/r4/c6/lesson` |
+| https://code.claude.com/docs/en/agent-sdk/permissions | `claude-code-docs` | 2026-10-11 | `builder/r4/c6/lesson`, `strategist/r4/c2/lesson` |
+| https://code.claude.com/docs/en/analytics | `claude-code-docs` | 2026-10-11 | `strategist/r6/c3/lesson`, `strategist/r6/c6/lesson`, `strategist/r7/c3/lesson`, `strategist/r7/c5/lesson`, `strategist/r7/c6/lesson` |
+| https://code.claude.com/docs/en/checkpointing | `claude-code-docs` | 2026-10-11 | `builder/r14/c6/lesson` |
+| https://code.claude.com/docs/en/code-review | `claude-code-docs` | 2026-10-11 | `builder/r14/c5/lesson` |
+| https://code.claude.com/docs/en/costs | `claude-code-docs` | 2026-10-11 | `builder/r7/c6/lesson` |
+| https://code.claude.com/docs/en/headless | `claude-code-docs` | 2026-10-11 | `builder/r14/c4/lesson` |
+| https://code.claude.com/docs/en/hooks | `claude-code-docs` | 2026-10-11 | `builder/r14/c2/lesson`, `builder/r4/c2/lesson` |
+| https://code.claude.com/docs/en/hooks-guide | `claude-code-docs` | 2026-10-11 | `builder/r14/c2/lesson` |
+| https://code.claude.com/docs/en/mcp | `claude-code-docs` | 2026-10-11 | `builder/r5/c1/lesson`, `builder/r5/c3/lesson`, `builder/r5/c4/lesson`, `builder/r5/c5/lesson`, `builder/r5/c6/lesson`, `creator/r13/c4/lesson`, `creator/r5/c4/lesson`, `strategist/r5/c2/lesson`, `strategist/r5/c4/lesson`, `strategist/r5/c6/lesson` |
+| https://code.claude.com/docs/en/monitoring-usage | `claude-code-docs` | 2026-10-11 | `builder/r8/c3/lesson` |
+| https://code.claude.com/docs/en/permission-modes | `claude-code-docs` | 2026-10-11 | `strategist/r4/c2/lesson` |
+| https://code.claude.com/docs/en/permissions | `claude-code-docs` | 2026-10-11 | `builder/r4/c6/lesson`, `creator/r13/c6/lesson`, `strategist/r4/c5/lesson` |
+| https://code.claude.com/docs/en/skills | `claude-code-docs` | 2026-10-11 | `builder/r14/c1/lesson` |
+| https://code.claude.com/docs/en/sub-agents | `claude-code-docs` | 2026-10-11 | `builder/r4/c4/lesson`, `builder/r7/c2/lesson`, `builder/r7/c5/lesson`, `builder/r7/c6/lesson` |
+| https://code.claude.com/docs/en/worktrees | `claude-code-docs` | 2026-10-11 | `builder/r14/c6/lesson` |
+| https://code.claude.com/docs/llms.txt | `claude-code-docs` | 2026-10-11 | — |
+| https://docs.ideogram.ai | `ideogram-docs` | 2026-10-11 | — |
+| https://docs.ideogram.ai/create/custom-models | `ideogram-docs` | 2026-10-11 | `creator/r11/c5/lesson` |
+| https://docs.ideogram.ai/create/image-settings | `ideogram-docs` | 2026-10-11 | `creator/r11/c1/lesson`, `creator/r11/c2/lesson`, `creator/r11/c4/lesson`, `creator/r11/c5/lesson` |
+| https://docs.ideogram.ai/create/models | `ideogram-docs` | 2026-10-11 | `creator/r11/c2/lesson` |
+| https://docs.ideogram.ai/prompting/json-prompting | `ideogram-docs` | 2026-10-11 | `creator/r11/c2/lesson`, `creator/r11/c3/lesson` |
+| https://docs.ideogram.ai/prompting/prompting | `ideogram-docs` | 2026-10-11 | `creator/r11/c1/lesson` |
+| https://docs.ideogram.ai/prompting/text-in-images | `ideogram-docs` | 2026-10-11 | `creator/r11/c3/lesson` |
+| https://github.com/modelcontextprotocol/servers/releases.atom | `mcp-servers` | 2026-10-11 | — |
+| https://research.google/pubs | `google-research-pubs` | 2026-10-11 | — |
+| https://support.claude.com/en/articles/12005970-manage-usage-credits-for-team-and-seat-based-enterprise-plans | `claude-support` | 2026-10-11 | `strategist/r15/c6/lesson` |
+| https://support.claude.com/en/articles/12883420-view-usage-analytics-for-team-and-enterprise-plans | `claude-support` | 2026-10-11 | `strategist/r15/c6/lesson` |
+| https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork | `claude-support` | 2026-10-11 | `strategist/r15/c4/lesson` |
+| https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects | `claude-support` | 2026-10-11 | `strategist/r15/c2/lesson` |
+| https://support.google.com/gemini/answer/15236321 | `gemini-apps-help` | 2026-10-11 | `strategist/r15/c2/lesson` |
