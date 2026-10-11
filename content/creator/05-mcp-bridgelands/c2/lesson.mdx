@@ -55,7 +55,7 @@ The [Figma MCP server docs](https://developers.figma.com/docs/figma-mcp-server/)
 Some set-up facts from Figma's pages:
 
 - The Figma docs say: "We strongly recommend using the Remote MCP server". There is also "a desktop version of the MCP server that runs locally", for specific organization and enterprise needs.
-- You sign in "through Figma's OAuth authentication flow". (**OAuth** is a standard way to sign in to a service and give an app limited access.)
+- You sign in "through Figma's OAuth authentication flow" ([set-up page](https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/)). (**OAuth** is a standard way to sign in to a service and give an app limited access.)
 - The [set-up page](https://developers.figma.com/docs/figma-mcp-server/remote-server-installation/) has set-up steps for five clients: Claude Code, Cursor, VS Code, Xcode and Codex by OpenAI.
 
 ### Check the client first
@@ -88,7 +88,7 @@ Note `use_figma`. Its line says it can also "inspect". But it sits in the write 
 
 A line in the prompt like "do not edit anything" is a request. A tool that is switched on can still be called. A tool that is switched off cannot. All three vendors let you choose which tools of a server the model gets:
 
-- **Claude.** The [MCP connector docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) let you "Enable all tools, allowlist specific tools, or denylist unwanted tools". For an allowlist: "Set `enabled: false` as the default, then explicitly enable specific tools". They add: "Denylisting write or destructive tools is recommended when building read-only assistants, or when you want a human confirmation step before state changes".
+- **Claude.** The [MCP connector docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) let you "Enable all tools, allowlist specific tools, or denylist unwanted tools". (An **allowlist** names the tools that are on. A **denylist** names the tools that are off.) For an allowlist: "Set `enabled: false` as the default, then explicitly enable specific tools". They add: "Denylisting write or destructive tools is recommended when building read-only assistants, or when you want a human confirmation step before state changes".
 - **OpenAI.** The [MCP docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say "exposing many tools to the model can result in high cost and latency." The `allowed_tools` parameter imports only the tools you name.
 - **Gemini.** In the [Remote MCP table](https://ai.google.dev/gemini-api/docs/function-calling), `allowed_tools` will "Restrict which tools from the server the agent may call." The same table has a separate `headers` field for things like tokens.
 
@@ -154,7 +154,7 @@ For jobs 1 and 2, only two read tools are on. On Claude's connector, the allowli
 
 Simplified. See the docs for the exact request shape.
 
-For job 3, the team climbs the ladder. First LOOK: the helper lists the layer names it would change, and changes nothing. Then a test: one rename on a copy of the master file, approved by a designer. Only then EDIT on the master, with a person who can deny each write.
+For job 3, the team climbs the ladder. First LOOK: the helper lists the layer names it would change, and changes nothing. Then DRAFT: the helper writes its proposed names into a new file with `create_new_file`, not into the master. Only then EDIT on the master, one rename per call, with a person who can deny each write.
 
 ### Step 5: why it is better
 

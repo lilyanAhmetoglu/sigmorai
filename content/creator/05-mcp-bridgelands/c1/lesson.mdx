@@ -36,13 +36,9 @@ After this lesson you can:
 
 ## The problem
 
-A wedding-film studio is building its own small AI app. The app calls three model APIs: Claude, OpenAI (the Responses API) and Gemini. The team wants the app to use three tools:
+A game-trailer studio pays for a sound-effects search service. The service runs an MCP server on the public internet. Its set-up page gives two addresses: `https://mcp.sfx-service.example/sse` (SSE) and `https://mcp.sfx-service.example/mcp` (Streamable HTTP). The studio's app talks to three model APIs: Claude, OpenAI (the Responses API) and Gemini.
 
-1. **Music search.** A music-licence company hosts a search server for its customers. It has a public HTTPS address. The team copied the address from an old blog post. It ends in `/sse`.
-2. **Colour presets.** The lead editor wrote a small server that reads the studio's colour presets. It runs on the editing PC in the back room.
-3. **Contracts.** A server that reads signed client contracts. It sits on the office network. The owner says: "This one never goes on the internet."
-
-The plan says: "MCP is one standard, so all three tools work with all three APIs." That sentence is not true. This lesson shows how to check each line.
+A teammate filled in the connection sheet with the first address and the server name `sfx-search`. A test call through Claude worked, so the sheet says "done for all three APIs". That is not true. This lesson shows how to check each line.
 
 ## The idea
 
@@ -58,9 +54,9 @@ The [MCP architecture page](https://modelcontextprotocol.io/docs/learn/architect
 
 ```text
 HOST (the AI app)
-  client 1  ----  server A  (music search)
-  client 2  ----  server B  (colour presets)
-  client 3  ----  server C  (contracts)
+  client 1  ----  server A
+  client 2  ----  server B
+  client 3  ----  server C
 ```
 
 ### Where a server runs
@@ -76,9 +72,9 @@ The page also says a server is a server "regardless of where it runs". Local or 
 
 When your own app calls a model API, the vendor's API talks to the server for you. So each vendor sets its own rules. Here are the live rules from each page.
 
-**Claude, MCP connector (beta).** The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) list these limits:
+**Claude, MCP connector (beta).** (**Beta** means the feature is still in test and may change.) The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) list these limits:
 
-- "The server must be publicly exposed through HTTP (supports both Streamable HTTP and SSE transports)."
+- "The server must be publicly exposed through HTTP (supports both Streamable HTTP and SSE transports)." (**SSE**, Server-Sent Events, is a second HTTP transport. Some servers offer only SSE.)
 - "Local STDIO servers cannot be connected directly."
 - From the MCP feature set, "only tool calls are currently supported".
 - The server `url` "Must start with https://".
@@ -106,7 +102,10 @@ Our summary table, built from those pages:
 Some servers must never be reachable from the public internet. Both Claude and OpenAI offer a tunnel. A tunnel here is a link that starts **inside** your network and goes **out** to the vendor. You do not open a door from the outside.
 
 - The [OpenAI tunnel docs](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) say: "An MCP tunnel is an outbound-only connection from a host inside your network to an OpenAI-hosted MCP endpoint." The page lists "a developer machine" as one place the server can run, and the tunnel program can reach a server "over stdio or HTTP".
-- The [Claude tunnel docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-tunnels/overview) say traffic "flows over an outbound-only connection, so you don't need to open inbound firewall ports". The page also says: "MCP tunnels are in research preview." They are "as-is", and "Anthropic may modify or discontinue MCP tunnels at any time." To set one up, you need "a Kubernetes cluster, or a VM with Docker and Docker Compose".
+- The [Claude tunnel docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-tunnels/overview) say traffic "flows over an outbound-only connection, so you don't need to open inbound firewall ports". Note the status:
+  - "MCP tunnels are in research preview."
+  - They are "as-is", and "Anthropic may modify or discontinue MCP tunnels at any time."
+  - Set-up needs "a Kubernetes cluster, or a VM with Docker and Docker Compose".
 
 ### What it costs
 
@@ -114,58 +113,46 @@ The OpenAI docs say: "you only pay for tokens used when importing tool definitio
 
 ## Worked example
 
-### Step 1: the weak plan
+### Step 1: the weak sheet
 
 ```text
-Music search    public HTTPS, address ends in /sse  -> Claude, OpenAI, Gemini
-Colour presets  editing PC, STDIO                   -> Claude, OpenAI, Gemini
-Contracts       office network, private             -> Claude, OpenAI, Gemini
+name:     sfx-search
+url:      https://mcp.sfx-service.example/sse   (SSE)
+used by:  Claude connector, OpenAI MCP tool, Gemini Remote MCP
 ```
 
-### Step 2: check each line against the pages
+### Step 2: check each API against its page
 
 ```text
-Music search    Claude  OK  (public HTTPS; SSE is accepted)
-                OpenAI  OK  (HTTP/SSE is accepted)
-                Gemini  NO  (SSE servers are not supported)
-Colour presets  Claude  NO  (local STDIO cannot be connected directly)
-                OpenAI  only through Secure MCP Tunnel
-                Gemini  not described on the cited page
-Contracts       Claude  only through an MCP tunnel (research preview)
-                OpenAI  only through Secure MCP Tunnel
-                Gemini  not described on the cited page
+Claude  OK   public, HTTPS, SSE is accepted
+OpenAI  OK   HTTP/SSE is accepted
+Gemini  NO   SSE is not accepted
+        NO   the name has a "-"
 ```
 
 ### Step 3: the hard case
 
-**The hard case is the music server.** It looks like the easy one: public, HTTPS, run by the company itself. It passes two of three checks. It fails on Gemini only because of the old `/sse` address.
+**The hard case is that the sheet passes a test.** It works on two APIs out of three, so a test on Claude or OpenAI looks fine. Gemini fails for two separate reasons: the transport and the name. If you fix only one of them, the call still fails.
 
-The fix is not to change vendors. Ask the music company if it offers a Streamable HTTP address. If it does, use that address for all three APIs. Then one line in your sheet works everywhere.
-
-### Step 4: the good plan
+### Step 4: the good sheet
 
 ```text
-Music search    Streamable HTTP address from the vendor -> all three APIs
-                (Gemini name: music_search, no dash)
-Colour presets  not needed by the API. The editor uses it in a desktop
-                host on the editing PC. If the app needs it later,
-                use OpenAI's tunnel, or move it to a server first.
-Contracts       private. OpenAI: Secure MCP Tunnel.
-                Claude: MCP tunnel, marked "research preview" in our sheet.
-                Gemini: no link until a page describes a private route.
+name:     sfx_search
+url:      https://mcp.sfx-service.example/mcp   (Streamable HTTP)
+used by:  Claude connector (beta), OpenAI MCP tool, Gemini Remote MCP
+note:     Claude connector: tool calls only.
 ```
 
 ### Step 5: why it is better
 
-- **Each line names a route the page supports.** Nothing depends on "MCP is one standard".
-- **The private server stays private.** Both tunnels go outbound, so no firewall door is opened.
-- **Preview parts are written down.** If Anthropic changes the tunnel, the team knows which line to fix.
-- **One transport for the public server.** Streamable HTTP is the one all three pages accept.
+- **One address works everywhere.** Streamable HTTP is the transport all three pages accept.
+- **One name works everywhere.** `snake_case` passes the Gemini rule and is fine for the others.
+- **The beta is written down.** If the connector changes, the team knows which line to check.
 
 ## Common mistakes
 
 1. **"It speaks MCP, so every API can reach it."** The standard is shared, but every API sets its own rules. Fix: check transport, place and features for each vendor.
-2. **Hiding a private server behind a long, odd address.** A hidden address is still a public address. Fix: use an outbound-only tunnel.
+2. **Testing on one API and trusting the rest.** A sheet can pass on Claude and fail on Gemini. Fix: test the sheet on every API you will call.
 3. **Building on a preview as if it were stable.** A research preview can change or end. Fix: mark every beta and preview in your connection sheet.
 
 ## Try it
@@ -191,5 +178,7 @@ c) For the Claude connector we use http://scripts.example.org/mcp,
 ## Recap
 
 - MCP links a host (the AI app) to servers. The host runs one client per server. Local servers use STDIO; remote servers use Streamable HTTP.
-- Each vendor API reaches a different set of servers. Claude's connector takes public HTTP servers (Streamable HTTP or SSE) and only tool calls. OpenAI takes Streamable HTTP or HTTP/SSE. Gemini takes Streamable HTTP only.
+- Each vendor API reaches a different set of servers:
+  - Claude's connector takes public HTTP servers (Streamable HTTP or SSE) and only tool calls.
+  - OpenAI takes Streamable HTTP or HTTP/SSE. Gemini takes Streamable HTTP only.
 - Private servers use an outbound-only tunnel (OpenAI's Secure MCP Tunnel, or Claude's MCP tunnels in research preview). OpenAI charges no fee per call, only the tokens that tool lists and calls use.

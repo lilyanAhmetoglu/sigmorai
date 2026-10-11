@@ -27,17 +27,16 @@ After this lesson you can:
 
 ## The problem
 
-A photo agency has a large image archive. A server sits in front of the archive. The archive company runs it on public HTTPS. The agency wants its own AI app to find photos for clients. The app calls Claude (through the MCP connector) and OpenAI (through the Responses API).
+A photo agency has a large image archive. The archive company runs an MCP server in front of it, on public HTTPS. The server offers two tools, `search_photos` and `get_photo` (our example names). The agency's own app calls the OpenAI Responses API.
 
-The archive has three parts:
+The archive holds two kinds of file:
 
-- **Stock**: photos anyone can license.
-- **Commissions**: photos shot for one client, shared only with that client.
-- **Releases**: signed model-release forms, with names and addresses.
+- **Photos** that clients can license.
+- **Release forms**: signed forms with the names and home addresses of the people in the photos.
 
 Today, a teammate copies photos by hand into a vendor's file storage every month. The archive changes every day. Last week the AI suggested a photo that was removed from the archive two weeks ago.
 
-The new plan: "Link the whole archive to both vendors. OpenAI supports zero data retention, so nothing is kept." This lesson checks that plan.
+The new plan: "Link the archive, forms included. OpenAI's MCP tool is ZDR-compatible, so nobody keeps a copy." This lesson checks that plan.
 
 ## The idea
 
@@ -77,7 +76,10 @@ OpenAI's Responses API also has built-in connectors for services such as Dropbox
 
 The server's owner can change it at any time. Both vendors warn about this:
 
-- The Claude docs: "An MCP server can change its tools at any time." A newer beta header, `mcp-client-2026-09-15`, lets you pin the list, "so a server that changes its tools doesn't change what Claude sees partway through a conversation". The page says: "It's available on the Claude API."
+- The Claude docs:
+  - "An MCP server can change its tools at any time."
+  - A newer beta header, `mcp-client-2026-09-15`, lets you pin the list, "so a server that changes its tools doesn't change what Claude sees partway through a conversation".
+  - "It's available on the Claude API."
 - The OpenAI docs: "MCP servers may update tool behavior unexpectedly, potentially leading to unintended or malicious behavior."
 
 Our habit: write down the tool list you approved. Switch on only those tools by name. After a vendor update, compare the new list with yours, and test before use. A renamed tool is a new name your settings do not know. A new tool is a new power nobody approved.
@@ -94,7 +96,10 @@ A big library can have many tools. Both vendors let you hold back the details un
 **ZDR** means zero data retention: the vendor does not keep your data after the request. Check it at every stop on the way.
 
 - The Claude docs: "The MCP connector is not covered by ZDR arrangements." Data exchanged with MCP servers "is retained according to Anthropic's standard data retention policy".
-- The OpenAI docs: "The MCP tool is compatible with Zero Data Retention and Data Residency", but "data sent to an MCP server is subject to their data retention and data residency policies." They add: "It is your responsibility to ensure that the MCP server also adheres to any Zero Data Retention or Data Residency requirements you may have."
+- The OpenAI docs:
+  - "The MCP tool is compatible with Zero Data Retention and Data Residency".
+  - But "data sent to an MCP server is subject to their data retention and data residency policies."
+  - "It is your responsibility to ensure that the MCP server also adheres to any Zero Data Retention or Data Residency requirements you may have."
 
 So "the AI vendor has ZDR" is never the whole answer. The server is a third stop with its own rules.
 
@@ -103,20 +108,19 @@ So "the AI vendor has ZDR" is never the whole answer. The server is a third stop
 ### Step 1: the weak plan
 
 ```text
-Link:   Stock, Commissions, Releases -> archive server -> Claude + OpenAI
-Server: offers resources only
-Tools:  "whatever the server has"
-Reason: "OpenAI supports ZDR, so nothing is kept"
+Link:    photos + release forms -> archive server -> OpenAI
+Tools:   "whatever the server has"
+Reason:  "the MCP tool is ZDR-compatible, so nothing is kept"
 ```
 
-### Step 2: check each part
+### Step 2: check each stop
 
 ```text
-Claude connector  resources only -> nothing usable (tool calls only)
-OpenAI            ZDR covers OpenAI, not the archive server's own storage
-Claude            no ZDR cover for the MCP connector
-Releases          names and addresses -> who keeps a copy?  unknown
-Tool list         not written down -> an update can add a tool unseen
+Freshness  link answers from today's archive       -> fixes stale photos
+OpenAI     ZDR covers OpenAI's side only
+Server     keeps data by the archive company's own policy -> unknown
+Forms      names and addresses pass through the server -> who keeps them?
+Tool list  not written down -> an update can add a tool unseen
 ```
 
 ### Step 3: the hard case
@@ -126,20 +130,19 @@ Tool list         not written down -> an update can add a tool unseen
 ### Step 4: the good plan
 
 ```text
-Ask the archive company for tools: search_photos, get_photo.  (our names)
-Link:     Stock and Commissions.
-Keep out: Releases. Claude's connector has no ZDR cover, and the
-          archive server's retention is still unknown.
-Approved: search_photos, get_photo. Saved in our sheet, dated.
-Claude:   pin the list (beta header) if the flow needs it steady.
-After any vendor update: compare, test, then switch on.
+Link:      photos, through search_photos and get_photo.
+Forms:     wait. Ask the archive company for its retention and
+           residency policy in writing, then decide.
+Approved:  search_photos, get_photo. Saved in our sheet, dated.
+           Only these two in allowed_tools.
+After any server update: compare, test, then switch on.
 ```
 
 ### Step 5: why it is better
 
 - **The AI sees the archive as it is today.** No more removed photos.
-- **The feature fits the API.** Tools work through the Claude API connector. Resources alone would not.
-- **The private folder waits** until every stop on its path is checked.
+- **Every stop is checked:** OpenAI first, then the server.
+- **The forms wait** until the server's policy is known.
 - **A change to the server is seen, not discovered later.**
 
 ## Common mistakes

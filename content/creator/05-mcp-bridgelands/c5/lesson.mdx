@@ -65,6 +65,8 @@ TOOL TOKEN   lets the call reach a tool server   (drive, print shop)
 RIGHTS       what that account may see and do inside the tool
 ```
 
+This split is our way of naming it.
+
 Keep them apart in your head and in your notes. A leak of each one has a different cost.
 
 ### Who holds the tool token
@@ -72,7 +74,10 @@ Keep them apart in your head and in your notes. A leak of each one has a differe
 When your own app calls a model API, your app carries the tool token in the request.
 
 - **Claude.** The MCP connector takes an `authorization_token`. The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) say: "API consumers are expected to handle the OAuth flow and obtain the access token prior to making the API call, and to refresh the token as needed."
-- **OpenAI.** The [MCP docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say: "The most common scheme is an OAuth access token." It goes in the `authorization` field. The API "does not store the value you provide in the `authorization` field", so "you must send the `authorization` value in every Responses API creation request you make."
+- **OpenAI.** The [MCP docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say:
+  - "The most common scheme is an OAuth access token." It goes in the `authorization` field.
+  - The API "does not store the value you provide in the `authorization` field".
+  - So "you must send the `authorization` value in every Responses API creation request you make."
 - **Gemini.** The [Remote MCP table](https://ai.google.dev/gemini-api/docs/function-calling) has `headers`: "Key-value pairs sent as HTTP headers with every request to the server (for example, authentication tokens)."
 
 ### Keep model keys on a server
@@ -84,14 +89,20 @@ The [Gemini key docs](https://ai.google.dev/gemini-api/docs/api-key) say: "Treat
 
 The [OpenAI production docs](https://developers.openai.com/api/docs/guides/production-best-practices) say: "Avoid exposing the API keys in your code or in public repositories". They suggest "environment variables or secret management service". A key pasted in a chat or a shared note is no longer private. Our habit: replace it.
 
-Gemini has one more rule. The page says: "The Gemini API rejects requests from **unrestricted standard keys**. Standard API keys that have explicit restrictions applied continue to work." And since May 28, 2026, "all new API keys created in Google AI Studio are automatically created as auth keys". An **auth key** is tied to a Google Cloud service account (an account for software, not a person), so each call runs as that account. Also, "Every Gemini API key is associated with a Google Cloud project."
+Gemini has one more rule. The same page says:
+
+- "The Gemini API rejects requests from **unrestricted standard keys**. Standard API keys that have explicit restrictions applied continue to work."
+- Since May 28, 2026, "all new API keys created in Google AI Studio are automatically created as auth keys". An **auth key** is tied to a Google Cloud service account (an account for software, not a person), so each call runs as that account.
+- "Every Gemini API key is associated with a Google Cloud project."
 
 ### One identity, or one per person
 
 A tool can know which person is calling, or only which organization.
 
 - **OAuth per person.** The [Claude connectors MCP page](https://claude.com/docs/connectors/building/mcp) says each person's "permissions mirror their access on the external service".
-- **A static credential.** The [Claude connectors auth page](https://claude.com/docs/connectors/building/authentication) describes a fixed key that "an organization Owner enters" once. It is "in beta and available to a limited set of organizations". The page warns: "every member's requests carry the same key, so don't use it to identify which user is calling. If your tools need to act as the individual user, use OAuth instead".
+- **A static credential.** The [Claude connectors auth page](https://claude.com/docs/connectors/building/authentication) describes a fixed key that "an organization Owner enters" once. It is "in beta and available to a limited set of organizations". The page warns:
+  - "every member's requests carry the same key, so don't use it to identify which user is calling."
+  - "If your tools need to act as the individual user, use OAuth instead".
 - **ChatGPT.** The [plugin controls guide](https://learn.chatgpt.com/docs/enterprise/apps-and-connectors) says: "For a shared credential, the member also needs permission to use that credential; the external account can differ from their personal account."
 
 The same guide warns: "Making an MCP server or plugin available in ChatGPT doesn't grant access to files, records, or actions in the connected service." Access is a chain: role, action settings, and the rights of the connected account. For each service it says to "record the business owner, permitted data, approved read or write actions, authentication method, and a support or removal contact".

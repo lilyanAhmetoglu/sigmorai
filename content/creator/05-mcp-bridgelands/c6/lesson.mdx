@@ -68,7 +68,7 @@ Each vendor wraps the server in its own request fields. Our table, built from th
 
 The field names are small work. The feature gaps are bigger:
 
-- The [Claude connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) supports "only tool calls" from the MCP feature set. The server "must be publicly exposed through HTTP", and "Local STDIO servers cannot be connected directly." (A STDIO server runs as a small program on your own computer.) An MCP tunnel is the way around this, but it is a research preview.
+- The [Claude connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) supports "only tool calls" from the MCP feature set. The server "must be publicly exposed through HTTP", and "Local STDIO servers cannot be connected directly." (A STDIO server runs as a small program on your own computer.) For a server inside a private network, the Claude docs describe MCP tunnels, which are a research preview. The tunnel page does not mention STDIO servers.
 - [Gemini's Remote MCP](https://ai.google.dev/gemini-api/docs/function-calling) "only works with Streamable HTTP servers", and server names "should not include the `-` character". Streamable HTTP and SSE are two **transports**: ways for messages to travel between app and server. The same page says: "SSE (Server-Sent Events) servers are not supported."
 - The Claude docs describe a beta that pins a server's tool list. The OpenAI and Gemini pages we cite describe `allowed_tools`, but no pin. Our reading: that does not prove they have none. It means you should not count on one.
 - The [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) describe `require_approval`. The Claude connector page describes allowlists and denylists, and suggests a denylist "when you want a human confirmation step before state changes". Our reading: on Claude, the ask-a-person step lives in your app.
@@ -79,7 +79,7 @@ A vendor's built-in connector works only with that vendor. The OpenAI docs also 
 
 ### Extensions need both sides
 
-MCP has extra features called **extensions**, such as MCP Apps (interactive panels inside a chat) and Tasks (long jobs). The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28) says: "Extensions are always opt-in and require explicit support from both client and server, negotiated during initialization." (The **client** is the part of an AI app that talks to a server.) A demo that works in one AI app may not work in another. Ask where it was tested.
+MCP has extra features called **extensions**, such as MCP Apps (interactive panels inside a chat) and Tasks (long jobs). The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28) says: "Extensions are always opt-in and require explicit support from both client and server, negotiated during initialization." (The **client** is the part of an AI app that talks to a server.) A demo that works in one AI app may not work in another.
 
 ### Betas and previews change
 
@@ -146,7 +146,7 @@ Test        each quarter, run three small jobs on Claude and Gemini.
 
 1. **"It is a standard, so everything moves."** Fix: the server moves; budget time for each vendor's wrapper and gaps.
 2. **Building on a built-in connector.** Fix: prefer a standard remote server you can point any vendor at.
-3. **Promising a client an extension that worked in one demo.** Fix: the client and the server must both support it; test in the client's own AI app.
+3. **Promising a client an extension that worked in one demo.** Fix: support is agreed between each client and server, so confirm it for the client's app before you promise it.
 
 ## Try it
 
@@ -164,7 +164,7 @@ c) We move a server from Claude to OpenAI. We copy the token from
 
 ### Answer
 
-1. **a) No.** The Claude docs say the server "must be publicly exposed through HTTP", and "Local STDIO servers cannot be connected directly." An MCP tunnel can help, but it is a research preview.
+1. **a) No.** The Claude docs say the server "must be publicly exposed through HTTP", and "Local STDIO servers cannot be connected directly." Run it as a Streamable HTTP server first.
 2. **b) No.** The Gemini docs say server names should not include `-`. Use `stock_music`.
 3. **c) No.** `server_label` is the server's name on OpenAI. The token goes in `authorization`. On Gemini it would go in `headers`.
 
