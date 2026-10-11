@@ -38,7 +38,7 @@ After this lesson you can:
 
 A podcast studio makes six shows. Its AI app runs on the OpenAI Responses API. It has three links:
 
-1. **Audio host.** The podcast hosting company runs a standard remote MCP server. The studio calls it with the label `audio-host`.
+1. **Audio host.** The podcast hosting company runs a remote MCP server that follows the standard. The studio calls it with the label `audio-host`.
 2. **Show notes.** The notes live in Google Drive. The app reaches them through OpenAI's built-in Drive connector (`connector_id`).
 3. **Approvals.** Before an episode goes live, the app asks a producer. This uses OpenAI's `require_approval` setting.
 
@@ -68,22 +68,22 @@ Each vendor wraps the server in its own request fields. Our table, built from th
 
 The field names are small work. The feature gaps are bigger:
 
-- The [Claude connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) supports "only tool calls" from the MCP feature set. The server "must be publicly exposed through HTTP", unless you use an MCP tunnel, which is a research preview.
-- [Gemini's Remote MCP](https://ai.google.dev/gemini-api/docs/function-calling) "only works with Streamable HTTP servers", and server names "should not include the `-` character".
-- The Claude docs describe a beta that pins a server's tool list. The OpenAI and Gemini pages we cite describe `allowed_tools`, but no pin. That does not prove they have none. It means you should not count on one.
-- The [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) describe `require_approval`. The Claude connector page describes allowlists and denylists, and suggests a denylist "when you want a human confirmation step before state changes". So on Claude, the ask-a-person step lives in your app.
+- The [Claude connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) supports "only tool calls" from the MCP feature set. The server "must be publicly exposed through HTTP", and "Local STDIO servers cannot be connected directly." (A STDIO server runs as a small program on your own computer.) An MCP tunnel is the way around this, but it is a research preview.
+- [Gemini's Remote MCP](https://ai.google.dev/gemini-api/docs/function-calling) "only works with Streamable HTTP servers", and server names "should not include the `-` character". Streamable HTTP and SSE are two **transports**: ways for messages to travel between app and server. The same page says: "SSE (Server-Sent Events) servers are not supported."
+- The Claude docs describe a beta that pins a server's tool list. The OpenAI and Gemini pages we cite describe `allowed_tools`, but no pin. Our reading: that does not prove they have none. It means you should not count on one.
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) describe `require_approval`. The Claude connector page describes allowlists and denylists, and suggests a denylist "when you want a human confirmation step before state changes". Our reading: on Claude, the ask-a-person step lives in your app.
 
-### Built-in connectors are the stuck part
+### The stuck part: built-in connectors
 
-A vendor's built-in connector works only with that vendor. The OpenAI docs also say: "`connector_id` is deprecated for models released after September 1, 2026." They point to `server_url` (a remote server) or `tunnel_id` instead. So a built-in connector is stuck to one vendor, and on new OpenAI models it is on the way out.
+A vendor's built-in connector works only with that vendor. The OpenAI docs also say: "`connector_id` is deprecated for models released after September 1, 2026." They point to `server_url` (a remote server) or `tunnel_id` instead. They add: "Existing models retain connector support." So a built-in connector is stuck to one vendor, and on new OpenAI models it is on the way out.
 
 ### Extensions need both sides
 
-MCP has extra features called **extensions**, such as MCP Apps (interactive panels inside a chat) and Tasks (long jobs). The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28) says: "Extensions are always opt-in and require explicit support from both client and server, negotiated during initialization." A demo that works in one AI app may not work in another. Ask where it was tested.
+MCP has extra features called **extensions**, such as MCP Apps (interactive panels inside a chat) and Tasks (long jobs). The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28) says: "Extensions are always opt-in and require explicit support from both client and server, negotiated during initialization." (The **client** is the part of an AI app that talks to a server.) A demo that works in one AI app may not work in another. Ask where it was tested.
 
 ### Betas and previews change
 
-- The Claude docs say: "The previous version of this feature (`mcp-client-2025-04-04`) is deprecated." The current connector is itself a beta.
+- The Claude docs say: "The previous version of this feature (`mcp-client-2025-04-04`) is deprecated." And the version you use today is a beta too.
 - The [Claude tunnel docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-tunnels/overview) say: "Anthropic may modify or discontinue MCP tunnels at any time."
 
 None of this means "avoid betas". It means: write down which parts of your set-up stand on one.
@@ -94,7 +94,7 @@ This list is our habit. It costs little if you keep it current.
 
 1. **A connection sheet** outside any one vendor: each server's address, who runs it, which vendors use it, the token owner, the approved tool list.
 2. **Standard servers first**, before built-in connectors.
-3. **Masters in your own storage.** A vendor's file store is a copy, never the only copy.
+3. **Masters in your own storage.** Anything stored at a vendor is a spare, never the only one.
 4. **A beta list:** every beta, preview and deprecated item, and who owns the fix.
 5. **A small test on a second vendor** each quarter, while nothing is urgent.
 
@@ -118,7 +118,7 @@ Approvals   OpenAI require_approval    -> does not move as a field.
 
 ### Step 3: the hard case
 
-**The hard case is the audio host.** It is a standard server, so it looks like the easy line. But two small things break it on Gemini. First, the label `audio-host` has a dash, and Gemini says names should not include one. Rename it to `audio_host`. Second, check the transport. If the server's address is SSE only, Gemini will not accept it; ask the hosting company for a Streamable HTTP address.
+**The hard case is the audio host.** It is a standard server, so it looks like the easy line. But two small things break it on Gemini. First, the label `audio-host` has a dash, and the Gemini docs say names should not include one. Rename it to `audio_host`. Second, check the transport. If the server's address is SSE only, Gemini will not accept it; ask the hosting company for a Streamable HTTP address.
 
 "Standard" means the server can move. It does not mean every wrapper accepts it unchanged.
 
@@ -127,7 +127,7 @@ Approvals   OpenAI require_approval    -> does not move as a field.
 ```text
 Audio host  name: audio_host. Streamable HTTP address confirmed.
             Same server for OpenAI, Claude and Gemini.
-Show notes  ask for a standard remote MCP server for the drive, or
+Show notes  ask for a remote MCP server for the drive, or
             run one the studio controls. Masters stay in studio storage.
 Approvals   app-side step: the app shows the producer each publish call
             and waits for yes or no, on every vendor.
@@ -146,7 +146,7 @@ Test        each quarter, run three small jobs on Claude and Gemini.
 
 1. **"It is a standard, so everything moves."** Fix: the server moves; budget time for each vendor's wrapper and gaps.
 2. **Building on a built-in connector.** Fix: prefer a standard remote server you can point any vendor at.
-3. **Promising a client an extension that worked in one demo.** Fix: extensions need support on both sides; test in the client's own AI app.
+3. **Promising a client an extension that worked in one demo.** Fix: the client and the server must both support it; test in the client's own AI app.
 
 ## Try it
 
@@ -155,21 +155,21 @@ Not graded. Write your answer down before you read the answer.
 Yes or no, with one reason each.
 
 ```text
-a) A server supports the Tasks extension. Can a client that does not
-   support Tasks still use the server's normal tools?
-b) Our old code sends the header mcp-client-2025-04-04. Is that the
-   current Claude connector?
-c) Our Gemini set-up names the server stock-music. Is that fine?
+a) We want the Claude API connector to reach a local STDIO server
+   on one editor's laptop. Can it connect as it is?
+b) Our Gemini set-up names the server stock-music. Is that fine?
+c) We move a server from Claude to OpenAI. We copy the token from
+   authorization_token into server_label. Is that right?
 ```
 
 ### Answer
 
-1. **a) Yes, for the normal tools.** Extensions are opt-in and need both sides. Without client support, Tasks is simply not used. The core tools are still there.
-2. **b) No.** The Claude docs mark `mcp-client-2025-04-04` as deprecated. The current header is `mcp-client-2025-11-20`, and the connector is still a beta.
-3. **c) No.** Gemini says server names should not include `-`. Use `stock_music`.
+1. **a) No.** The Claude docs say the server "must be publicly exposed through HTTP", and "Local STDIO servers cannot be connected directly." An MCP tunnel can help, but it is a research preview.
+2. **b) No.** The Gemini docs say server names should not include `-`. Use `stock_music`.
+3. **c) No.** `server_label` is the server's name on OpenAI. The token goes in `authorization`. On Gemini it would go in `headers`.
 
 ## Recap
 
-- A standard remote MCP server moves between vendors: the MCP docs say build once and integrate everywhere, and Figma uses one address for Claude Code and Codex.
-- The wrapper does not move: field names differ, and so do features (Claude tool calls only, Gemini Streamable HTTP only, a pin only in Claude's beta, approvals as a field only at OpenAI). Built-in connectors are the most stuck.
-- Extensions need support from client and server. Keep a connection sheet, masters in your own storage, a beta list, and a small test on a second vendor.
+- A remote server that follows the MCP standard moves between vendors. Figma gives Claude Code and Codex the same address.
+- The wrapper does not move: field names differ, and so do features (Claude tool calls only, Gemini Streamable HTTP only, a tool-list pin only on Claude's beta page, approvals as a field only on the OpenAI page). A built-in connector stays with its vendor.
+- An extension works only when client and server both opt in. Keep a connection sheet, masters in your own storage, a beta list, and a small test on a second vendor.
