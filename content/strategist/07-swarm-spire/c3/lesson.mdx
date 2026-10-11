@@ -1,7 +1,7 @@
 ---
 id: strategist/r7/c3/lesson
 title: Roles & skills
-minutes: 12
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Skills for enterprise
@@ -26,15 +26,13 @@ After this lesson you can:
 
 - Give each person the right kind of access: a seat, a built-in role or a custom role.
 - Explain why access in an AI tool does not open the other systems it connects to.
-- Run shared skills like company assets: a named owner, a separate reviewer, a registry and a review date.
+- Run shared skills like company assets: a named owner, a separate reviewer, a registry, a review date and a tested merge.
 
 ## The problem
 
-An engineering consultancy with 350 staff ran a one-year AI pilot. It went well. Now the bid team, the marketing team and two project teams use the assistant every day. They also built 22 shared **skills**. A skill is a packaged set of instructions, and sometimes scripts, that the AI tool loads when a task needs it. Think of it as a written procedure for a new colleague.
+A retail chain is about to open its AI tools to 500 head-office staff. Staff will work in ChatGPT Enterprise, and 40 developers will use Claude Code. During the pilot, teams built shared **skills**. A skill is a packaged set of instructions, and sometimes scripts, that the AI tool loads when a task needs it. Think of it as a written procedure for a new colleague.
 
-Nobody planned roles. Ten people hold the Admin role "so they can try things". The finance controller wants monthly usage reports, so the controller got Admin too. One skill sends draft bids to an outside translation website. Nobody knows who built it. A bid manager asks: "My AI seat is new. Can the assistant now read every project folder on the file server?"
-
-The chief operating officer wants this in order before the tool opens to all staff. The guidance below comes from the OpenAI ChatGPT Enterprise docs and the Claude docs (October 2026).
+The rollout plan says "IT owns it". The merchandising team built three small skills that work well. Next week it wants to merge them into one big skill. The chief operating officer asks two questions: who owns each part of the rollout, and when is a merge safe? The guidance below comes from the OpenAI ChatGPT Enterprise docs and the Claude docs (October 2026).
 
 ## The idea
 
@@ -81,7 +79,7 @@ The [Claude Code admin guide](https://code.claude.com/docs/en/admin-setup) frame
 2. **Keep a registry.** For each skill, record what it is for (purpose), who owns it, its version, what it depends on, and its evaluation status.
 3. **Start narrow.** Begin with skills for one specific workflow. Merge them into a broader skill only when its tests "confirm equivalent performance to the individual Skills it replaces".
 
-The page also has a risk table to use before approval. It rates these as **high** concern: scripts that run code, network access such as web addresses or API calls, references to MCP tools (tools in connected systems), hidden instructions that change behaviour, and passwords or keys written into the files. It rates file access outside the skill's folder, and instructions to use other tools, as **medium**. Its review checklist covers skills from outside vendors and from your own staff alike.
+The page also has a risk table to use before approval. It rates five things as **high** concern: scripts that run code; network access such as web addresses or API calls; references to MCP tools (tools in connected systems); hidden instructions that change behaviour; and passwords or keys written into the files. It rates file access outside the skill's folder, and instructions to use other tools, as **medium**. Its review checklist covers skills from outside vendors and from your own staff alike.
 
 The OpenAI rollout guide asks for similar facts before it adds a plugin or skill to the rollout:
 
@@ -92,52 +90,61 @@ The OpenAI rollout guide asks for similar facts before it adds a plugin or skill
 
 ## Worked example
 
-### Step 1: the weak state
+### Step 1: the weak plan
 
 ```text
-Admin role:   11 people (2 IT + 8 pilot users + finance controller)
-Skills:       22 shared, 13 with an owner, 5 with a review date
-Skill "bid-translate":
-  sends bid text to an outside translation website
-  author: unknown   reviewer: none   review date: none
-Seat question: "Can the AI now read every project folder?"
+Rollout plan (draft)
+  Owner:      "IT", for everything
+  Analytics:  "someone in IT will switch it on"
+  Skills:     each team publishes its own; no shared list
+  Merge:      price-labels + shelf-plan + promo-copy
+              -> one "merch-assistant", next week, no tests
 ```
 
 What goes wrong:
 
-- **Admin is used as a feature pass.** Eight pilot users need features, not power over the workspace.
-- **Skills have no owners.** 22 − 13 = 9 skills have nobody to fix them.
-- **A high-risk skill runs unchecked.** It sends client text to an outside site.
+- **"IT" is not a person.** When a connected system blocks a request, nobody knows who decides.
+- **Analytics needs three roles, not one.** See step 2.
+- **No registry.** Nobody can say what each skill does or who fixes it.
+- **The merge is untested.** A broad skill can be worse than the narrow ones it replaces.
 
-### Step 2: fix the roles
-
-```text
-2 IT staff            Admin (they administer the workspace)
-8 pilot users         Member + custom role (test features)
-Finance controller    Analytics Viewer (reports, no settings)
-Everyone else         Member + the default features
-```
-
-### Step 3: fix the skills
+### Step 2: name an owner for each part
 
 ```text
-Registry row (one per skill):
-  Purpose | Owner | Version | Dependencies | Evaluation status | Review date
+Part (OpenAI rollout guide)   Owner at the retail chain
+Workspace access              IT identity lead
+Local runtime policy          Endpoint security lead
+Codex cloud                   Head of engineering tools
+Connected systems             Each system's owner (e.g. product data lead)
+Reporting and compliance      Data protection officer
 
-Rule: the author is never the only reviewer.
-Rule: high-risk skills are paused until an independent review.
+Claude Code analytics
+  Turn it on:   a Claude Owner
+  GitHub app:   a GitHub admin installs it
+  View it:      Admins and Owners
 ```
 
-### Step 4: the hard case
+### Step 3: the hard case
 
-**The hard case is "bid-translate".** It has no script, so a quick look says "safe". But it sends bid text to an outside web address. The Claude page rates network access as high concern, because it is a possible path for data to leave. It also has no owner. So the skill is paused. A reviewer who did not write it checks the address and the data that leaves. Then a named owner and a review date go into the registry, or the skill is retired.
+**The hard case is the merge.** One big skill looks tidier. But the Claude page says to merge narrow skills "only when the consolidated Skill's evaluations confirm equivalent performance to the individual Skills it replaces."
 
-### Step 5: why it is better
+```text
+Before the merge
+  1  Each narrow skill has its test set. The page asks for
+     3-5 representative queries per skill: should trigger,
+     should not trigger, and edge cases.
+  2  Run the same queries against "merch-assistant".
+  3  Merge only if it does as well on every set.
+  4  Keep the old versions as a fallback.
+  5  Update the registry entry for the new skill.
+```
 
-- **Power matches the job.** Only people who administer hold Admin. The controller can read reports but can't change settings.
-- **Every skill has a person.** The registry shows who to call when a skill breaks.
-- **Risk is reviewed by someone else.** The builder's view is not the only check.
-- **The seat question has a clear answer.** No. The file server decides what each account can read. Check its rules as a separate rollout item.
+### Step 4: why it is better
+
+- **Every part has a person.** When the product data system blocks a request, its owner decides.
+- **Analytics gets the right three people.** Nobody waits for a role that can't switch it on.
+- **The merge is tested, not guessed.**
+- **There is a way back.** The old skills stay as a fallback.
 
 ## Common mistakes
 
@@ -158,18 +165,14 @@ Use the risk table from the Claude skills page. Rate each skill as high or mediu
    to change the deal stage." (crm-server is an MCP server.)
 ```
 
-Then answer: two narrow skills work well. When should you merge them into one?
-
 ### Answer
 
-1. **High.** Keys or passwords written into skill files are high concern. The checklist says credentials should use environment variables or secure credential stores, and "never appear in Skill content".
+1. **High.** Keys or passwords written into skill files are high concern. The checklist says credentials should use environment variables or secure credential stores (settings and vaults that keep secrets outside the files), and "never appear in Skill content".
 2. **Medium.** The page says paths outside the skill's folder "may access unintended data".
 3. **High.** It names a tool on an MCP server in the form `ServerName:tool_name`. The page says this "extends access beyond the Skill itself".
 
-Merge only when tests show the merged skill performs as well as the two narrow skills it replaces.
-
 ## Recap
 
-- A seat, a built-in role and a custom role are three different things. Keep admin roles for the people who administer.
+- Name a person for each part of the rollout, not a department. Keep admin roles for the people who administer.
 - Access in an AI tool does not open other systems. Each connected system keeps its own permissions.
-- Every shared skill needs a named owner, a reviewer who is not the author, a registry entry and a review date.
+- Every shared skill needs a named owner, a reviewer who is not the author, a registry entry and a review date. Merge skills only when tests show no loss.

@@ -27,11 +27,11 @@ After this lesson you can:
 
 ## The problem
 
-A logistics company with 2,000 staff pays back travel costs. Staff send a photo of each receipt and a short note. A finance team of six checks each claim against the travel policy and pays it with the next salary run. About 3,000 claims arrive each month.
+An asset manager sends a monthly letter to 4,000 clients. It covers fund returns and a market comment, in English, German and French. Today three writers and one compliance officer need eight working days for it.
 
-The finance director bought an AI tool. The vendor set it up in one afternoon: a chain of three agents reads each claim, checks the policy, writes notes for the monthly audit, sends the payment and replies. The vendor added one check, on the last agent: "flag any claim over EUR 1,000". After one month, staff say the replies are slow. The auditor asks who approved a payment of EUR 1,400 for a hotel.
+The marketing director wants to "put an agent on it". Her draft gives one agent the whole job: build the numbers, write the letter, check it, translate it and email every client. Nobody has said which steps need judgment, which never change, and where a person signs off.
 
-The director asks you to redesign the process before the next month starts. This lesson gives you the method. The advice below is from the Anthropic engineering post on agents and from the OpenAI docs and cookbooks (October 2026).
+This lesson gives you the method. The advice below is from the Anthropic engineering post on agents and from the OpenAI docs and cookbooks (October 2026).
 
 ## The idea
 
@@ -42,12 +42,12 @@ A **workflow** here means the steps that turn a request into a result: a payment
 - **Workflows** are systems where models and tools follow "predefined code paths".
 - **Agents** are systems where the model directs its own process and its own tool use.
 
-The post says workflows suit well-defined tasks, because they are predictable and consistent. Agents are the better option when flexibility and model-driven decisions are needed. It also says that for many applications, one well-prepared model call is usually enough. Our reading: if a step does the same thing in the same order every time, write it as code. Save the model for the parts that need judgment.
+The post says workflows suit well-defined tasks, because they are predictable and consistent. Agents are the better option when flexibility and model-driven decisions are needed. It also says that for many applications, one well-prepared model call is usually enough. Our reading: if a step never changes from one run to the next, write it as code. Save the model for the parts that need judgment.
 
 **Five patterns to reuse.** The same post names building blocks you can combine:
 
 - **Prompt chaining:** a task split into fixed steps, with checks ("gates") between them. Example from the post: write an outline, check it meets set criteria, then write the document.
-- **Routing:** sort the input, then send it to a specialised path. The post's example is customer service, where each type of query (general, refund, technical) goes to its own process. Easy questions can go to smaller, cheaper models.
+- **Routing:** decide what kind of input it is, then give each kind its own process. The post's example is customer service, where each type of query (general, refund, technical) goes to its own process. Easy questions can go to smaller, cheaper models.
 - **Parallelization:** independent parts run at the same time ("sectioning"), or the same task runs several times and the results are compared ("voting").
 - **Orchestrator-workers:** a central model splits the job and combines the results. The post says it suits jobs whose subtasks are not known in advance.
 - **Evaluator-optimizer:** one model call writes, another checks it and gives feedback, in a loop. The post says this works best with clear evaluation criteria, when each round of improvement adds measurable value.
@@ -65,9 +65,9 @@ The guide puts the pause in front of side effects, for example cancellations, ed
 - An output guardrail checks only the agent that writes the final output.
 - A tool guardrail checks the tool it is attached to.
 
-So if a later agent makes the payment, a check on the first agent never sees it. The guide's answer: place the validation beside the tool whose action causes the side effect. The Anthropic post adds that an agent can stop and ask a person for feedback at set checkpoints, or when it hits a blocker. It also mentions stopping conditions, such as a maximum number of steps, to keep control.
+So a check on the first agent never sees what a later agent does with a tool. The guide's answer: place the validation beside the tool whose action causes the side effect. The Anthropic post adds that an agent can stop and ask a person for feedback at set checkpoints, or when it hits a blocker. It also mentions stopping conditions, such as a "maximum number of iterations", to keep control.
 
-**Keep the main path short.** The [OpenAI cookbook on support agents](https://developers.openai.com/cookbook/examples/agent_optimization/optimizing_agents_for_cost_and_quality) starts from a slow, costly baseline. That baseline did internal QA, analytics tagging and routing audits before it replied. The fix keeps four things in the live path: classification, the lookups that are needed, the decision to resolve or escalate, and the reply. QA, tags, internal summaries, audits and reports move to follow-up work when they don't change the immediate outcome. Follow-up work can run later on cheaper, slower processing, such as the Batch API for offline jobs. The cookbook also right-sizes the model for each step: a very small model for triage and tags, a mid-size model for routine cases, and a full model only for high-risk cases.
+**Keep the main path short.** The [OpenAI cookbook on support agents](https://developers.openai.com/cookbook/examples/agent_optimization/optimizing_agents_for_cost_and_quality) starts from a slow, costly **baseline** (the first version, before any changes). That baseline did internal QA, analytics tagging and routing audits before it replied. The fix keeps four things in the live path: classification, the lookups that are needed, the decision to resolve or escalate, and the reply. QA, tags, internal summaries, audits and reports move to follow-up work when they don't change the immediate outcome. Follow-up work can run later on cheaper, slower processing, such as the Batch API for offline jobs. The cookbook also right-sizes the model for each step: a very small model for triage and tags, a mid-size model for routine cases, and a full model only for high-risk cases.
 
 A redesign can also add new value. The [OpenAI workspace agents cookbook](https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep) starts from a real pain: sales teams pull account notes, customer feedback, usage numbers and company news by hand before each meeting. Its agent runs each day, checks tomorrow's customer meetings, gathers the context, writes a brief, saves it as a document and sends a summary.
 
@@ -76,62 +76,58 @@ A redesign can also add new value. The [OpenAI workspace agents cookbook](https:
 ### Step 1: the weak setup
 
 ```text
-Vendor setup: travel claims
-  1  Read receipt and note            agent A (triage)
-  2  Hand off to agent B
-  3  Check claim against policy       agent B
-  4  Write audit notes + report tags  agent B
-  5  Send the payment                 agent B   <- money moves
-  6  Reply to the employee            agent C (writes the final reply)
-  Check: output guardrail on agent C, "flag claims over EUR 1,000"
-  People: none
+Draft: monthly client letter
+  One agent, one prompt: "Write this month's letter from the fund
+  data, check it, translate it and send it to all clients."
+  Checks:  "check it" (no criteria)
+  People:  none before sending
 ```
 
 What goes wrong:
 
-- **Agents do fixed work.** The policy check uses the same rules every time, but an agent decides how to do it.
-- **The audit work sits before the reply.** Staff wait while notes and tags are written.
-- **No person sees a payment.** Money leaves with no approval.
+- **Fixed work is left to the model.** The number table has the same layout every month.
+- **The check has no criteria.** "Check it" can mean anything.
+- **Nobody signs off before 4,000 emails go out.** Sending can't be undone.
 
 ### Step 2: map each step
 
-This four-question map is our own tool for this course:
+This short map is our own tool for this course:
 
 ```text
-Step            Input     Output     Judgment?        Damage if wrong
-Read receipt    photo     amount,    some (blurry     wrong amount
-                          category   photos)
-Policy check    amount,   pass/flag  no: fixed rules  wrong payment
-                category
-Audit notes     claim     notes      no               late report only
-Payment         claim     money out  no               money lost
-Reply           result    message    some (wording)   confused employee
+Step            Judgment?              Damage if wrong
+Number table    no: fixed layout       wrong figure sent to clients
+Market comment  yes                    weak or wrong view
+Rules check     no: fixed phrase list  breach of marketing rules
+Translation     some (tone)            confusing letter
+Send            no                     4,000 wrong emails
 ```
 
 ### Step 3: the good design
 
 ```text
-Main path (before the reply):
-  1  Model reads the receipt -> amount, date, category
-  2  Code checks the policy rules (same rules, same order)
-  3  Routing: "pass" -> payment path, "flag" -> finance team
-  4  Payment tool: tool guardrail checks the amount and policy,
-     then the run pauses for a finance approver
-  5  Model drafts the reply; code sends it
-Follow-up (later, cheaper processing):
-  audit notes, report tags, monthly spend summary
+1  Code builds the number table from the fund data
+2  Model writes the market comment
+3  Gate: code checks it against the banned-phrase list
+   (fail -> back to step 2)                    <- prompt chaining
+4  A second model call checks the comment against the house
+   style guide and sends notes back, at most 3 rounds
+                                               <- evaluator-optimizer
+5  German and French translations run at the same time
+                                               <- sectioning
+6  The run pauses: the compliance officer approves the letters
+7  Code sends the emails
 ```
 
 ### Step 4: the hard case
 
-**The hard case is the EUR 1,000 check.** It looked safe, but it was an output guardrail on agent C. An output guardrail checks only the agent that writes the final output. Agent B sent the money, so the check never saw the EUR 1,400 hotel payment. In the new design the check sits on the payment tool itself, and a person approves before money moves. The guide's rule: put the check where the side effect happens.
+**The hard case is the style loop.** A write-and-check loop can go on and on, or polish text that was already fine. The Anthropic post says evaluator-optimizer works best with clear evaluation criteria, when each round adds measurable value. The style guide gives the criteria. The cap of 3 rounds is a stopping condition, like the post's "maximum number of iterations". After round 3, the draft goes to the compliance officer as it is.
 
 ### Step 5: why it is better
 
-- **Code where the steps are fixed.** The policy check is predictable and easy to audit.
-- **A model where judgment helps.** Reading messy receipts and writing replies.
-- **A person before money moves.** The run waits, the approver decides, and then it goes on.
-- **Faster replies.** Audit notes and tags no longer delay the employee.
+- **Code for the parts that never change.** The number table is built the same way each month.
+- **A model where judgment helps.** The market comment and the translations.
+- **Checks with clear criteria.** A phrase list and a style guide, not "check it".
+- **A person before the send.** 4,000 emails wait for one approval.
 
 ## Common mistakes
 
@@ -143,26 +139,23 @@ Follow-up (later, cheaper processing):
 
 Not graded. Write your answer down before you read the answer.
 
-Name the pattern from the Anthropic post that fits each job.
+The OpenAI support-agent cookbook matches the model size to the step. Pick a very small, mid-size or full model for each step.
 
 ```text
-1. A model translates a product page. A second model call
-   checks it against a style guide and sends notes back,
-   until the notes stop.
-2. Write an outline of a policy, check it covers five set
-   topics, then write the full policy.
-3. Three different prompts each check the same contract for
-   risky terms. If any of them flags a problem, a lawyer looks.
+1. Tag each incoming email with one of 12 topic labels.
+2. Answer a routine question about delivery times.
+3. A caller who can't prove who they are asks to change
+   the account's email address.
 ```
 
 ### Answer
 
-1. **Evaluator-optimizer.** One call writes, another gives feedback in a loop. It fits because the style guide gives clear criteria.
-2. **Prompt chaining.** Fixed steps with a gate (the topic check) between them.
-3. **Parallelization, the "voting" kind.** The same task runs several times, and the results are compared. The post gives code review for weak spots as a voting example.
+1. **Very small.** The cookbook uses a nano model for triage and tags.
+2. **Mid-size.** Routine cases go to a mini model.
+3. **Full model.** The cookbook keeps the full model for high-risk cases. Its example sends an unverified account-access request to escalation.
 
 ## Recap
 
 - Map each step first. Use fixed code for well-defined steps, and an agent only where flexibility is needed.
-- Put approvals before side effects, and attach checks to the tool that acts, not only to the first or last agent.
-- Keep only outcome-changing work in the main path. Move audits, tags and reports to follow-up work.
+- Give every check clear criteria. Put a person before actions that can't be undone, and attach checks to the tool that acts.
+- Keep only outcome-changing work in the main path, and match the model size to the risk of each step.
