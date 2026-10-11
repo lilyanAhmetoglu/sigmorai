@@ -1,7 +1,7 @@
 ---
 id: builder/r8/c5/lesson
 title: Latency & scaling
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: Reducing latency (Claude docs)
@@ -29,68 +29,159 @@ sources:
     url: https://developers.openai.com/api/docs/guides/rate-limits
 ---
 
-Users feel latency before they notice anything else. This chapter shows where the time goes in a model call, which changes help most, what you can buy, and how to keep an app responsive when many users arrive at once. Streaming was covered in realm 0, chapter 5, so here it is one tool among several.
+## Goal
 
-## Measure first
+After this lesson you can:
 
-The Claude docs separate two numbers. **Baseline latency** is the time to process the prompt and produce the whole response. **Time to first token (TTFT)** is the time until the first token appears, which matters most when you stream. Record both (chapter 3), and use percentiles.
+- Find where the time goes in a model call, and pick the change that saves the most.
+- Cut waiting with parallel steps, fewer requests and streaming.
+- Decide when a paid fast mode fits, and set deadlines for long calls.
 
-The Claude docs also say to get a prompt working first and optimize afterward, because tuning too early "might prevent you from discovering what top performance looks like".
+## The problem
 
-## Where the time goes
+An online shop has a "compare two products" button. It takes 8.3 seconds, and many users leave before the answer shows. The team's first idea is to shorten the prompt. The second idea is to buy a faster tier for everything, including the nightly jobs.
 
-OpenAI splits a request into four steps: the trip to the API, processing prompt tokens, generating tokens, and the trip back. Its guide says generating tokens is almost always the slowest step, and gives a rule of thumb: cutting 50% of output tokens "may cut ~50% of your latency". Cutting 50% of the prompt "may only result in a 1–5% latency improvement", unless the context is huge. The Claude docs also list model choice, shorter prompts and shorter outputs as the main levers.
+Neither idea is the best place to start. You first need to know where the 8.3 seconds go.
 
-Our order of work, from these levers:
+## The idea
 
-1. **Use a smaller or faster model** when your eval passes with it. The Claude docs name Claude Haiku 4.5 for speed-critical apps. OpenAI says smaller models "usually run faster (and cheaper)".
-2. **Cut output tokens.** Ask for brevity. The Claude docs say limits in sentences or paragraphs work better than an exact word count. `max_tokens` is a blunt tool, because a cut-off reply can end mid-sentence. For structured output, OpenAI suggests shorter field and function names.
-3. **Trim input** only if it is very large, or for cost.
+### Two numbers to measure
 
-## Do less, in parallel
+The [Claude latency guide](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-latency) separates two numbers:
 
-OpenAI's guide lists more ways to cut waiting:
+- **Baseline latency:** the time to process the prompt and generate the response.
+- **Time to first token (TTFT):** the time "to generate the first token of the response, from when the prompt was sent". You need it most when you stream.
 
-- **Make fewer requests.** If steps run in a row, put them in one prompt and ask for named fields in a JSON object.
-- **Parallelize.** Steps that do not depend on each other can run at the same time.
-- **Use speculative execution.** Start the input check and the answer together. If the check fails, cancel the answer. When the check passes, as it usually does, you added no delay (compare realm 6, chapter 4).
-- **Do not default to an LLM.** A fixed confirmation message can be hard-coded.
+Measure both, and use percentiles (chapter 3). The Claude guide also says to get the prompt working first, because reducing latency too early "might prevent you from discovering what top performance looks like".
 
-Example (made-up numbers): a check takes 0.8 s, retrieval 0.5 s and the answer 6.0 s. In a row that is 7.3 s. Run the check beside the retrieval and the answer, and the user waits about 6.5 s.
+### Output is the slow part
 
-## Make waiting feel shorter
+The [OpenAI latency guide](https://developers.openai.com/api/docs/guides/latency-optimization) splits a request into steps: the trip to the API, reading the prompt, generating tokens, and the trip back. It says generating tokens "is almost always the highest latency step". Its two rules of thumb:
 
-OpenAI calls streaming "the single most effective approach", because the user waits a second or less to see the first words. It also lists chunking output, showing your steps, and loading states. Streaming and chunking really shorten the time to read; steps and spinners mostly work on how waiting feels. The Claude docs agree that streaming improves "perceived responsiveness".
+- "cutting 50% of your output tokens may cut ~50% of your latency"
+- "cutting 50% of your prompt may only result in a 1–5% latency improvement"
 
-## Pay for speed
+Think of a phone call: listening to a long question is quick, but the reply is spoken one word at a time. So the order of work is:
 
-Both vendors sell a faster mode for the same model:
+1. **A smaller or faster model,** if your evals still pass. The OpenAI guide: "smaller models usually run faster (and cheaper)". For speed-critical apps, the Claude guide names Claude Haiku 5.5.
+2. **Shorter output.** The Claude guide says that asking for an exact word count "is not as effective" as limits in sentences or paragraphs. It calls `max_tokens` "a blunt technique", because a reply can stop mid-sentence. For structured output, the OpenAI guide suggests shorter function names and less syntax.
+3. **Shorter input,** only when the context is very large, or to save money.
 
-- **Claude fast mode** is a research preview. Access is by request or waitlist. Set `speed: "fast"` with a beta header on Claude Opus 5.5, Claude Opus 5 or Claude Opus 4.8 for up to 2.5x higher output tokens per second, at premium pricing. The gain is in output speed, not TTFT. It has its own rate limit, it is not available with the Batch API, and switching between fast and standard speed misses the prompt cache.
-- **OpenAI Fast mode** gives up to 2.5x faster speeds, with a per-token premium. Set `service_tier` to `fast` (or `priority`). OpenAI advises against running large ETL or batch jobs in Fast mode. If traffic ramps too fast, requests may be downgraded to standard speed and rates, and the response then shows `service_tier: "default"`.
+### Do less, and do it in parallel
 
-Use a fast mode for user-facing calls where latency matters. Use batch or Flex for background work (chapter 2). Claude's Priority Tier is a different product, for organizations with an existing capacity commitment. New commitments are not available.
+The OpenAI guide lists more ways to cut waiting:
 
-## Long calls and time limits
+- **Make fewer requests.** Steps that run one after another can often go in one prompt.
+- **Parallelize.** Steps that do not depend on each other can run at the same time. "Two shirts take just as long to dry as one."
+- **Speculative execution.** If step 2 needs step 1 to pass, start both at once anyway. If step 1 fails, cancel step 2. When it passes, you "essentially got to run it with zero added latency".
+- **Don't default to an LLM.** Fixed messages, such as an action confirmation, can be hard-coded.
 
-A long reply on a quiet connection can fail. Claude advises against setting a large `max_tokens` without streaming or the Batch API: "Some networks may drop idle connections". The Claude SDKs check that a non-streaming request is not expected to run past a 10-minute timeout.
+### Make waiting feel shorter
 
-Set a deadline for the whole operation, not just each attempt. OpenAI notes that "a timeout for each attempt isn't necessarily a deadline for the entire operation". With retries (chapter 1), three attempts of 60 seconds can keep a user waiting for three minutes.
+The OpenAI guide lists these ways to make users wait less:
 
-## Scale the app around the model
+- **Streaming:** "The single most effective approach". The first words show in "a second or less".
+- **Chunking:** process the output in parts, and show each part when it is ready.
+- **Showing your steps and loading states:** these have "a mostly psychological effect".
 
-OpenAI's production guide lists four tools: horizontal scaling, vertical scaling, caching and load balancing. For a model app, that means:
+The OpenAI guide adds that streaming and chunking "genuinely do reduce overall latency once you consider the app + user system: the user will finish reading a response sooner". The model's work does not shrink. The [Claude guide](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-latency) says streaming lets the model "start sending back its response before the full output is complete". So the last word arrives at the same time; the reader just starts earlier.
 
-- **Keep servers stateless.** Store conversation state in a database (realm 0, chapter 2), so any server can handle any request.
-- **Cache repeated answers.** OpenAI notes that storing frequently accessed data improves response times without repeated calls. Cache only answers that are safe to share between users.
-- **Size your workers from your limits.** Our method: divide the limit by tokens per request. Example (made-up): 2,000,000 ITPM and 8,000 uncached input tokens per request allow about 250 requests a minute, near 4 a second. Queue the rest, and show a "busy" message when the queue is too long.
+### Paying for speed
 
-Claude's 529 `overloaded_error` can happen "when the API experiences high traffic across all users", whatever your own limits are. Chapter 6 covers a fallback for that.
+Both vendors sell a faster mode for the same model, at a higher price:
 
-## Key points
+- **Claude fast mode** ([docs](https://platform.claude.com/docs/en/build-with-claude/fast-mode)) is a research preview, by request or waitlist.
+  - Set `speed: "fast"` with the `fast-mode-2026-02-01` beta header on Claude Opus 5.5, Claude Opus 5 or Claude Opus 4.8.
+  - You get "up to 2.5x higher output tokens per second" at premium pricing.
+  - Only the output speed goes up, "not time to first token (TTFT)".
+  - It has its own rate limit, and `speed` is not supported in a batch (chapter 2).
+- **OpenAI Fast mode** ([docs](https://developers.openai.com/api/docs/guides/priority-processing)) gives "up to 2.5× faster speeds".
+  - Set `service_tier` to `fast` (or `priority`). It "charges a per-token premium".
+  - The docs say to "Avoid running large extract, transform, and load (ETL) or batch jobs in Fast mode".
+  - If traffic ramps too fast, some requests drop to standard speed and price, and the response shows `service_tier: "default"`.
 
-- Measure total time and TTFT. Output tokens dominate latency; input tokens matter much less.
-- Best levers: a faster model, shorter outputs, fewer or parallel requests, streaming.
-- Fast modes exist at both vendors, at a premium. They suit user-facing calls, not batch jobs.
-- Stream or batch long calls, and set one deadline for the whole operation.
-- Keep servers stateless, and size queues and workers from your limits.
+Our rule: use a fast mode for user-facing calls where speed matters. Use batch or Flex for work nobody waits for (chapter 2). Claude's Priority Tier is a different product: the [service tiers page](https://platform.claude.com/docs/en/api/service-tiers) says commitments "are no longer available for purchase".
+
+### Long calls and deadlines
+
+The [Claude errors page](https://platform.claude.com/docs/en/api/errors) warns against a large `max_tokens` without streaming or the Batch API: "Some networks may drop idle connections after a variable period of time". The SDKs check that a non-streaming request is not expected to run past "a 10-minute timeout".
+
+Retries add up too. The [OpenAI rate limits guide](https://developers.openai.com/api/docs/guides/rate-limits) says: "A timeout for each attempt isn't necessarily a deadline for the entire operation." So set one deadline for the whole operation, not just a timeout per try.
+
+### Scale the app around the model
+
+The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) lists horizontal scaling (more servers), vertical scaling (bigger servers), caching and load balancing. Caching frequently used data can "improve response times without needing to make repeated calls to our API". Our additions:
+
+- **Keep servers stateless.** Store conversation state in a database, so any server can take any request.
+- **Size workers from your limits.** Divide the limit by the tokens per request. Our example: a limit of 2 million input tokens a minute and 10,000 uncached input tokens per request allow about 200 requests a minute. Queue the rest, and show a "busy" message when the queue grows too long.
+
+Even within your own limits, the Claude errors page says a 529 `overloaded_error` can happen when "the API experiences high traffic across all users". Chapter 6 covers a fallback.
+
+## Worked example
+
+Our example: the shop's "compare two products" button.
+
+### Step 1: measure the steps
+
+```text
+A  load both products from the database    0.3 s   (no model)
+B  model: summarize product 1               2.5 s   (needs A)
+C  model: summarize product 2               2.5 s   (needs A)
+D  model: write the comparison, 600 tokens  3.0 s   (needs B and C)
+in a row: 0.3 + 2.5 + 2.5 + 3.0 = 8.3 s
+```
+
+Cutting the prompt in half would save 1 to 5% of each model call, so at most about 0.4 s in total (5% of 8.0 s of model time). That is the weak idea.
+
+### Step 2: run B and C in parallel
+
+B and C do not depend on each other. Run them at the same time.
+
+```text
+0.3 + max(2.5, 2.5) + 3.0 = 5.8 s
+```
+
+### Step 3: cut the output of D
+
+The comparison was 600 tokens of long paragraphs. Ask for "three short sentences per product, then one sentence with the better pick". It comes out at about 300 tokens. By the OpenAI guide's rule of thumb, half the output may cut about half the time of D.
+
+```text
+0.3 + 2.5 + about 1.5 = about 4.3 s
+```
+
+### Step 4: stream D
+
+Users now see the first words of the comparison a short time after D starts. The total stays about 4.3 s, but the wait feels much shorter.
+
+### Step 5: the hard case, retries and a deadline
+
+The team's client has a 30 s timeout per attempt and 3 attempts. On a bad day one click can take at least 3 × 30 = 90 s, plus the waits between tries, before the user sees an error. Our fix: one deadline of 15 s for the whole button. When it passes, stop retrying and show a clear message with a retry button.
+
+### Step 6: why it is better
+
+- 8.3 s became about 4.3 s, with the first words much sooner.
+- No fast mode was needed, so the price per call did not go up.
+- The worst case is now 15 s, not 90 s or more.
+
+## Common mistakes
+
+1. **Trimming the prompt first.** Input cuts rarely save much time. Fix: cut output, or use a smaller model that still passes your evals.
+2. **Fast mode for background jobs.** It costs a premium for speed nobody needs. Fix: use batch or Flex for jobs that can wait.
+3. **A huge `max_tokens` with no streaming.** Idle connections can drop. Fix: turn on streaming for any reply that can run for minutes. If no person waits for it, send it as a batch job.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team uses Claude fast mode for a code review helper. At busy times some calls get a 429 error. Their standard Opus limit still shows plenty of room, so they say: "The 429 must be a bug." Their plan: on a 429, send the same call again at standard speed, and keep the prompt cache savings. Find the two problems.
+
+### Answer
+
+1. **The 429 is not a bug.** The Claude docs say: "Fast mode has a dedicated rate limit that is separate from standard Opus rate limits." Check the `anthropic-fast-*` rate limit headers, not the standard ones.
+2. **The fallback is fine, but the cache will miss.** The Claude docs say: "Requests at different speeds do not share cached prefixes." So the first standard call gets no cache discount. Count that cost before you choose the fallback.
+
+## Recap
+
+- Measure total time and time to first token. Output length drives latency; input length matters much less.
+- The best levers: a faster model, shorter output, parallel or fewer requests, and streaming.
+- Fast modes cost a premium and suit user-facing calls. Stream long calls, and set one deadline for the whole operation.

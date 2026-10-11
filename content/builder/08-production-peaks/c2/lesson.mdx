@@ -1,7 +1,7 @@
 ---
 id: builder/r8/c2/lesson
 title: Batching
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: Batch processing (Claude docs)
@@ -23,83 +23,187 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/rate-limits
 ---
 
-Realm 0, chapter 6 named batching as a cost lever: a 50% discount for work that can wait. This chapter is about building a batch job that holds up in production. You will check what fits, size the batch, match results to inputs, and handle the requests that fail.
+## Goal
 
-## When a batch fits
+After this lesson you can:
 
-All three vendors run batches asynchronously at half the standard price. Claude: "50% of the standard API prices". OpenAI: "50% cost discount compared to synchronous APIs". Gemini: "50% of the standard cost".
+- Size a batch job so it fits the vendor's per-batch limits.
+- Match results to inputs safely and resend only the requests that failed.
+- Choose between a batch, OpenAI Flex and a normal call for work that can wait.
 
-Good fits have nobody waiting: evaluations, classifying a large dataset, bulk content generation. OpenAI also lists embedding a content repository, and Claude lists content moderation.
+## The problem
 
-The time is a promise to finish within a window, not a speed. Claude says most batches finish in under 1 hour, and a batch expires if it is not done within 24 hours. OpenAI's window is 24 hours. Gemini's target is 24 hours, and a job expires after 48 hours.
+A news archive wants a one-line summary for each of its 180,000 old articles. Nobody is waiting for the answers. Next week is fine.
 
-Batches also use their own capacity. OpenAI: using the Batch API "will not consume tokens from your standard per-model rate limits". Claude's Batches API has its own limits too, including how many batch requests can wait in the queue. Gemini says batch requests are subject to "their own rate limits". So a backfill in a batch no longer competes with live chat (chapter 1).
+A developer writes a loop that calls the normal API for each article. Three problems show up:
 
-## Size the batch
+1. The loop competes with the live site for the same rate limit (chapter 1).
+2. It pays the full price for work that has no deadline.
+3. When it crashes at article 41,000, nobody knows which summaries are done.
 
-| Limit      | Claude                                 | OpenAI                                   | Gemini                                             |
-| ---------- | -------------------------------------- | ---------------------------------------- | -------------------------------------------------- |
-| Per batch  | 100,000 requests or 256 MB             | 50,000 requests; input file up to 200 MB | Inline requests under 20 MB; input file up to 2 GB |
-| Turnaround | Most under 1 hour; expires at 24 hours | 24-hour window                           | Target 24 hours; expires after 48 hours            |
+A batch API fixes all three, if you use it the right way.
 
-Claude applies whichever limit comes first, requests or size. An OpenAI input file can include requests to only one model. OpenAI also limits queued prompt tokens per model and allows up to 2,000 new batches per hour. If a job is bigger than the limit, split it into several batches.
+## The idea
 
-Some request options do not work in a Claude batch: `stream: true`, the fast-mode `speed` setting, and `max_tokens: 0`. Claude also checks each request's `params` asynchronously, so validation errors only appear when the whole batch has ended. Its advice: send one request of the same shape to the normal Messages API first.
+A batch is a job you hand in and collect later. You send many requests at once. The vendor runs them when it has room, and you fetch the results when the job ends. Think of a dry cleaner: you drop off a bag today, it is cheaper than express service, and you pick it up tomorrow.
 
-## Match results by id
+### Half price, a window, its own limits
 
-Every request needs a unique `custom_id`. On Claude it must be 1 to 64 characters: letters, digits, hyphens and underscores. OpenAI also requires a unique `custom_id` on each line of the input file.
+All three vendors charge half:
 
-Both vendors warn about the same trap. Claude: results "can be returned in any order". OpenAI: the output line order "may not match" the input order. Never match results to inputs by position.
+- [Claude docs](https://platform.claude.com/docs/en/build-with-claude/batch-processing): "All usage is charged at 50% of the standard API prices."
+- [OpenAI docs](https://developers.openai.com/api/docs/guides/batch): "50% cost discount compared to synchronous APIs".
+- [Gemini docs](https://ai.google.dev/gemini-api/docs/batch-api): "50% of the standard cost".
 
-Example: use ids from your own database, such as `ticket-48213`. When a result comes back, the id tells you which ticket it belongs to.
+You get a time window, not a speed:
 
-## Expect partial failure
+- **Claude docs:** "most batches completing within 1 hour". Batches expire if processing does not complete within 24 hours.
+- **OpenAI docs:** "Each batch completes within 24 hours (and often more quickly)".
+- **Gemini docs:** "The target turnaround time is 24 hours". A job expires after more than 48 hours.
 
-One bad request should not ruin the batch. Claude: "the failure of one request in a batch does not affect the processing of other requests." Each result has a type:
+Batches also use separate capacity:
+
+- **OpenAI docs:** "using the Batch API will not consume tokens from your standard per-model rate limits".
+- **Claude docs:** batch usage "does not affect rate limits in the Messages API". The Batches API has its own limits, including how many batch requests can wait in the queue.
+- **Gemini docs:** batch requests are "subject to their own rate limits".
+
+### Per-batch limits
+
+| Limit     | Claude                                            | OpenAI                                   | Gemini                                    |
+| --------- | ------------------------------------------------- | ---------------------------------------- | ----------------------------------------- |
+| Per batch | 100,000 requests or 256 MB, whichever comes first | 50,000 requests; input file up to 200 MB | Inline under 20 MB; input file up to 2 GB |
+| Expiry    | 24 hours                                          | 24-hour window                           | After 48 hours                            |
+
+The OpenAI docs say "each input file can only include requests to a single model", and you can create up to 2,000 batches per hour.
+
+Some options do not work in a Claude batch. `stream: true` is not supported, because "Batch results come back as a single file, not a stream". Fast mode's `speed` setting and `max_tokens: 0` are not supported either.
+
+### Errors arrive late
+
+Claude validates every request's `params` in the background, and "validation errors are returned when processing of the entire batch has ended". The docs' advice: "Dry run a single request shape with the Messages API to avoid validation errors."
+
+### Match by id, never by position
+
+Every request needs a unique `custom_id`. On Claude it is 1 to 64 characters: letters, digits, hyphens and underscores. The Claude docs say results "can be returned in any order". The OpenAI docs say the output line order "may not match" the input order. So read the `custom_id` on each result. Sorting your input first does not fix the output order.
+
+### Plan for partial failure
+
+The Claude docs say "the failure of one request in a batch does not affect the processing of other requests". Each Claude result has a type:
 
 - `succeeded`: the message is in the result.
-- `errored`: invalid request or server error. Not billed.
-- `canceled`: you canceled before it was sent. Not billed.
+- `errored`: "Possible errors include invalid requests and internal server errors." Not billed.
+- `canceled`: you canceled before the request was sent. Not billed.
 - `expired`: the 24 hours ended first. Not billed.
 
-OpenAI works the same way in outline. Successful lines go in the output file and failed ones in the file named by `error_file_id`. If the batch expires, finished requests are still in the output file, and you are charged for tokens from completed requests. Unfinished ones are written to the error file with the code `batch_expired`.
+Nothing retries for you. The Claude docs tell you to "implement appropriate retry logic for failed requests". An invalid request needs a fix first. A server error or an expired request can go again as it is.
 
-Gemini differs. An expired job "will not have any results to retrieve", and the docs suggest resubmitting or splitting the work into smaller batches. With Gemini, smaller batches limit the loss.
+The other vendors differ when time runs out:
 
-A simple loop (our pattern, not a vendor rule):
+- **OpenAI:** unfinished requests are cancelled, but "any responses to completed requests are made available via the batch's output file". Those tokens are billed. The rest go to the error file with the code `batch_expired`.
+- **Gemini:** an expired job "will not have any results to retrieve". The docs suggest submitting again or "splitting up the requests into smaller batches". `JOB_STATE_CANCELLED` is another state: the user stopped the job.
 
-1. Submit the batch and poll its status.
-2. Read results by `custom_id`.
-3. Collect the ids that errored or expired.
-4. Fix the cause. A validation error needs a fixed request; an expiry or server error can be retried as it is.
-5. Resubmit only those ids in a new batch.
+### Batches and caching
 
-You can also cancel. Claude moves to `canceling` first. OpenAI's `cancelling` state "may take up to 10 minutes".
+Caching and batch discounts can stack, but hits are not certain. The Claude docs say:
 
-## Batches and caching
+- "cache hits are provided on a best-effort basis".
+- Users typically see "cache hit rates ranging from 30% to 98%".
+- Put the same `cache_control` blocks in every request, and "consider using the 1-hour cache duration", since a batch may run for more than 5 minutes.
 
-Discounts can stack, but cache hits are not guaranteed. Claude says requests in a batch run concurrently and in any order, so cache hits are "best-effort". Users typically see hit rates from 30% to 98%. Claude's tips: put identical `cache_control` blocks in every request, and consider the 1-hour cache, because a batch can take longer than 5 minutes. Gemini says its context caching is supported for batch requests too (realm 3, chapter 4).
+Gemini supports context caching in batch requests too.
 
-## Flex: batch prices without the files
+### OpenAI Flex: batch prices on a normal call
 
-OpenAI's Flex processing gives lower costs for Responses or Chat Completions requests in exchange for "slower response times and occasional resource unavailability". Tokens are priced at Batch API rates. It is in beta, with limited model availability. You set `service_tier` to `flex` on a normal request, so there is no file to build.
+[Flex processing](https://developers.openai.com/api/docs/guides/flex-processing) trades speed for price on Responses or Chat Completions requests. Tokens are priced "at Batch API rates". It is in beta with limited models. You set `service_tier` to `flex` on a normal request, so there is no file to build. The default SDK timeout is 10 minutes, and the docs' examples raise it to 15.
 
-Two things to plan for:
+Flex can run out of room and return `429 Resource Unavailable`. The docs say: "You will not be charged when this occurs." It is not a spend limit. You have two choices: retry with exponential backoff, or send it again on standard processing by setting `service_tier` to `auto` or removing it, at a higher cost.
 
-- **Timeouts.** The SDK default is 10 minutes. OpenAI's examples raise it to 15.
-- **`429 Resource Unavailable`.** You are not charged for it. Either retry with exponential backoff, or retry with standard processing by setting `service_tier` to `auto` or removing it, if the higher cost is worth finishing.
+### What the vendor keeps
 
-Flex fits evaluations and data enrichment, where a slow answer is fine.
+The Claude docs say batch data is stored "for up to 29 days after batch creation". You can delete a batch after processing. Chapter 4 covers what this means for data rules.
 
-## What a batch stores
+## Worked example
 
-A batch keeps your inputs and outputs on the vendor side until you collect them. Claude stores request and response data for up to 29 days after creation, and you can delete a batch after it has processed. Chapter 4 covers what this means for data retention. Claude also warns that, because of high throughput, a batch "may go slightly over" your workspace spend limit.
+Our example: the news archive's 180,000 summaries on Claude's Message Batches API.
 
-## Key points
+### Step 1: the weak plan
 
-- Batch work that nobody waits for. All three vendors charge 50% of standard prices and promise a window, not a speed.
-- Respect per-batch limits and split big jobs. Test one request on the normal API first.
-- Match results by `custom_id`, never by position.
-- Plan for partial failure. Retry only the failed ids. Gemini expiry returns no results, so keep its batches smaller.
-- Cache hits in a batch are best-effort. OpenAI Flex is a beta option with batch prices on a normal call.
+```text
+submit:  two batches of 90,000 requests
+check:   none before the run
+retry:   if anything failed, run the whole batch again
+```
+
+What goes wrong:
+
+- 90,000 is under the request limit, but each batch is too big in MB (Step 3).
+- A wrong field fails every request, and you only learn it at the end.
+- A full rerun pays again for thousands of good results.
+
+### Step 2: test one request first
+
+Send one article to the normal Messages API with exactly the same `params`. If it works, the shape is right.
+
+### Step 3: size the batches (the hard case)
+
+Count is not the only limit. Each request carries the article text, about 5 KB on average.
+
+```text
+180,000 requests x 5 KB = about 900 MB in total
+two batches of 90,000:   90,000 x 5 KB = 450 MB each  -> over 256 MB
+four batches of 45,000:  45,000 x 5 KB = 225 MB each  -> fits
+```
+
+Two batches pass the count limit but fail the size limit. Four batches pass both. Leave room for long articles, or group them by size.
+
+### Step 4: read by `custom_id`
+
+Give each request an id from your own data, such as `article-20190412-0031`. When a result arrives, look up the article by that id. Ignore the line number.
+
+### Step 5: retry only the failures
+
+Batch 1 ends. Sort the results that did not succeed by type:
+
+```text
+errored, invalid request  -> fix the params, then resend
+errored, server error     -> resend as it is
+expired                   -> resend as it is
+succeeded                 -> keep; never resend
+```
+
+Put the resend ids into one new, small batch. The good summaries stay as they are.
+
+### Step 6: why it is better
+
+- Every batch fits both the count and the size limit.
+- A bad request shape fails in one second, not after a night.
+- Results join the right article, whatever the order.
+- Retries cost only the requests that failed, and failed ones were not billed.
+
+## Common mistakes
+
+1. **Treating the batch as one unit.** A few failed requests do not spoil the rest. Fix: collect the failed ids and resend only those.
+2. **Expecting live results.** Streaming is off and errors come at the end. Fix: test one request on the normal API before the batch.
+3. **Big Gemini jobs.** An expired Gemini job returns nothing. Fix: use smaller batches, so one expiry loses less work.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team on the OpenAI API has three jobs. Pick a normal call, Flex or the Batch API for each, and say why.
+
+1. A reply in the live help chat.
+2. A test run of 2,000 prompts. The team wants results in the afternoon, and slow replies are fine.
+3. New embeddings for 3,000,000 documents. They are needed next week.
+
+### Answer
+
+1. **A normal call.** A user is waiting, so slow replies or a 24-hour window do not fit.
+2. **Flex.** It costs the same as batch per token, needs no input file, and a slow reply is fine. Raise the client timeout, and plan for `429 Resource Unavailable`.
+3. **The Batch API.** Nobody waits, and it does not use the live rate limits. Embedding batches hold at most 50,000 inputs, so plan at least 60 batches (3,000,000 ÷ 50,000). That is well under 2,000 new batches per hour.
+
+## Recap
+
+- Batch work that nobody waits for. All three vendors charge 50%, give a time window, and use capacity apart from live traffic.
+- Respect both the count and the size limit. Test one request on the normal API first, because batch validation errors come at the end.
+- Match results by `custom_id`, and resend only failed ids. Expiry differs by vendor: OpenAI keeps finished work, Gemini returns nothing.
