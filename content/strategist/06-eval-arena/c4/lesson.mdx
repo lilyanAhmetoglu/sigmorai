@@ -1,7 +1,7 @@
 ---
 id: strategist/r6/c4/lesson
 title: ROI models
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · Optimizing LLM accuracy (How much accuracy is good enough)
@@ -17,104 +17,198 @@ sources:
     url: https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence
 ---
 
-## Why it matters
+## Goal
 
-Your chief financial officer will ask one thing: "What do we get for the money?" ROI (return on investment) is the usual answer. A good ROI model for AI is not a vendor's slide with one big number. It counts every gain, every cost and every kind of mistake.
+After this lesson you can:
 
-The ROI formula itself is plain arithmetic, and it is ours, not a vendor's:
+- Build an honest ROI model: give each success and each mistake a value, and count every cost.
+- Work out break-even accuracy, net benefit per month and payback time.
+- Find the input that moves the result most, and compare cheaper options on cost per finished task.
 
-**ROI = (benefit − total cost) ÷ total cost**
+## The problem
 
-Example: a tool saves $50,000 a year and has a total cost of $20,000. Net benefit is $30,000. ROI is 30,000 ÷ 20,000 = 150%.
+A car rental company gets 8,000 car returns a month. At each return, a staff member walks around the car, looks for damage and writes a report. A vendor sells an AI tool that checks photos of the car and drafts the damage report.
 
-The hard part is not the formula. It is getting honest numbers for "benefit" and "total cost".
+The vendor's slide says: "Saves 5 minutes per return. That is $30,000 a month." The licence and usage cost $6,500 a month. The sales rep says the tool pays for itself in a week.
 
-## Start with what a result is worth
+The finance director has doubts. In the pilot, staff still checked each AI report. Sometimes the tool marked a scratch that wasn't there, and a customer got a wrong bill. At small branches, staff often wait between returns anyway. "Five minutes saved there doesn't save us a cent," says one manager.
 
-OpenAI's accuracy guide gives a method for the business side. First, list the main success and failure cases and give each an estimated cost. The guide says this gives a clear picture of what the solution is likely to save or cost, based on pilot performance.
+This lesson shows how to build an ROI model that survives these questions. The guidance below is from each vendor's docs (October 2026).
 
-Its customer service example uses these values:
+## The idea
 
-- AI solves a case that a human solved before: saves **$20**.
-- AI escalates a case to a human when it should not: costs **$40**.
-- In the worst case, a customer is so frustrated that they leave: costs **$1,000**. The guide assumes this happens in 5% of cases; its table works out to 5% of the failures.
+**ROI** (return on investment) answers "What do we get for the money?". The formula is plain arithmetic, and it is ours, not a vendor's:
 
-For 1,000 cases, the guide's table shows 815 successes (+$16,300), 175.75 escalations (−$7,030) and 9.25 lost customers (−$9,250). The result is +$20 on 1,000 cases, which is about zero. So 815 successes in 1,000 is the break-even point: **81.5%**.
+```text
+ROI = (benefit − total cost) ÷ total cost
+Payback in months = one-off cost ÷ net benefit per month
+```
 
-Break-even accuracy is the accuracy where the pilot neither gains nor loses money. Below it, the AI costs more than it saves.
+The hard part is not the formula. It is honest numbers for "benefit" and "total cost".
 
-You can check the guide's number. A failure costs on average 0.95 × $40 + 0.05 × $1,000 = $88. Break-even is where 20 × accuracy = 88 × (1 − accuracy). That gives 81.5%.
+**Give each result a value.** The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) gives a method: "First we identify the primary success and failure cases, and assign an estimated cost to them." Its customer service example uses these values:
 
-The guide draws two conclusions from its pilots:
+- An AI success on a case a person used to solve "may save **$20**".
+- A customer sent to a person when they shouldn't be "might cost **$40**".
+- In the worst case, a customer leaves, "costing us **$1000**". The guide says "We assume this happens in 5% of cases"; in its table, that is 5% of the failures.
 
-1. Even if the AI escalated to humans more often than wanted, it still saved a lot. So an accuracy of 85% could be fine, if most of the failures were early escalations.
-2. Where a failure is very costly, such as a fraud case resolved wrongly, a human should drive and the AI should assist.
+Its table for 1,000 cases:
 
-The lesson: it is not only how often the AI is wrong. It is what each kind of wrong costs.
+```text
+Event                    Value    Cases     Total
+AI success               +20      815       $16,300
+AI failure (escalation)  -40      175.75    $7,030
+AI failure (churn)       -1000    9.25      $9,250
+Result                                      +20
+Break-even accuracy                         81.5%
+```
 
-## Count the benefit carefully
+**Break-even accuracy** is the accuracy where the tool neither gains nor loses money. Below it, the AI costs more than it saves. You can check the number yourself (our arithmetic): an average failure costs 0.95 × $40 + 0.05 × $1,000 = $88. Break-even is where 20 × accuracy = 88 × (1 − accuracy). That gives roughly 81.5%.
 
-These points are ours, not from a vendor page:
+So what matters is what each kind of wrong costs. The guide's pilots led to two decisions:
 
-- **Time saved is not cash saved.** If 10 people each save 30 minutes a day, no money leaves the budget. Count it as a benefit only if the time is used for paid work, or the team avoids a hire.
-- **Use the loaded hourly cost.** That is salary plus the other costs of employing someone.
-- **Count only what is used.** If 40% of staff use the tool, the benefit is not 100% of the staff's time.
-- **Use measured numbers.** Take time saved from your pilot (chapter 5), not from a brochure.
+1. The AI sent people to staff more than wanted, but still saved a lot. So "an accuracy of even 85% could be ok, if those 15% were primarily early escalations."
+2. "Where the cost of failure was very high, such as a fraud case being incorrectly resolved", a person would drive and the AI would assist.
 
-## Count every cost
+**Count the benefit carefully.** These rules are ours, not from a vendor page:
 
-Usage fees are only one line. Add these, and label each as measured or estimated:
+- **Time saved is not cash saved.** If staff save 30 minutes a day but nothing else changes, no money leaves the budget. Count saved time as money only when it goes to paid work (for example, work that now needs overtime or an outside firm) or avoids a hire.
+- **Use the loaded hourly cost.** That is salary plus the other costs of employing someone. Divide by 60 for a cost per minute.
+- **Count only the volume that really costs you.** If only part of the work would ever have reached paid staff, count only that part.
+- **Label every input.** Write "measured" (from your pilot), "estimated" or "vendor claim" next to each number. Replace vendor claims with pilot numbers when you can.
 
-- Licences and usage fees.
-- Set-up and integration work.
-- **Review time.** People who check or fix the AI's work. This is the line that vendor slides leave out.
-- The cost of mistakes that slip through.
-- Training and ongoing upkeep of your tests (chapter 2).
+**Count every cost.** Besides usage fees: set-up, review time (people who check or fix the AI's work), mistakes that slip through, training, and test upkeep.
 
-## Compare cost per finished task
+**Compare models on cost per finished task.** The [Claude docs on cost](https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence) make three points:
 
-Anthropic's cost guide says price lists are written per token, but you pay for completed tasks. So compare models on **cost per completed task**, not cost per token. Its example: a model with a higher price per token can finish a task with fewer turns and less backtracking. The guide also says the ranking flips by workload, and no price list tells you which way. Price every candidate on your own traffic.
+- "Price lists are written per token".
+- "You pay for completed tasks, though, so compare models on cost per completed task."
+- "The ranking flips by workload, and no price list tells you which way."
 
-OpenAI's model selection page gives the same advice in other words: experiment with the same inputs and keep the lightest setting that meets your quality bar. It lists questions to ask. How often does the workflow run? How quickly do you need the result? How important is quality?
+A model with a higher price per token can finish with fewer turns and less backtracking.
 
-So the question for a cheaper model is not "is it cheaper?" It is "does it still meet the quality bar, and what is the cost per correct result?"
+The [OpenAI model selection page](https://developers.openai.com/api/docs/guides/model-selection) makes a related point: experiment "using the same inputs" and keep "the lightest setting" that still meets your quality bar. It lists questions to ask first:
 
-## Cheap ways to cut cost
+- "How often does your workflow run?"
+- "How important is the quality of the result?"
 
-Both vendors list ways to lower the bill:
+A cheaper option is fine if it still meets your bar. If its accuracy falls below break-even, it loses money, whatever its price.
 
-- OpenAI's cost guide lists three strategies: reduce the number of requests, minimise tokens, and select a smaller model that keeps accuracy. It also names its Batch API and flex processing as ways to lower cost.
-- Anthropic's cost guide says batch processing takes 50% off in exchange for results arriving within 24 hours. Use it for work nobody is waiting on.
+**Cheap ways to cut the bill.** The [OpenAI cost guide](https://developers.openai.com/api/docs/guides/cost-optimization) lists three strategies:
 
-Anthropic also says its results are directional and not guarantees, and tells you to measure on your own workload.
+- "Reduce requests"
+- "Minimize tokens"
+- "Select a smaller model"
 
-## Show a range, not one number
+It also offers a Batch API and flex processing (slower, cheaper requests). The Claude docs say their Batch API "takes 50% off every token of a request" in exchange for "results arriving any time within 24 hours". Use it for jobs no one waits for, like overnight reports.
 
-Build three versions: a cautious case, a base case and a good case. Change one input at a time and see which one moves the result most. This is our method.
+**Show a range, not one number.** Our advice: build a cautious, a base and a good case. Then change one input at a time and see which one moves the result most. That input is where to look first.
 
-Example: a pilot saves $4,000 a month and costs $3,000. If review time doubles, the net benefit can turn negative. That tells the team where to look first: the review step, not the licence fee.
+## Worked example
 
-## An ROI sheet
+### Step 1: the vendor's model
 
-This sheet is a tool for this course:
+```text
+8,000 returns × 5 minutes × $0.75 per minute = $30,000 a month
+Minus licence and usage $6,500             = $23,500 a month net
+```
 
-| Line              | Value | Measured or estimated |
-| ----------------- | ----- | --------------------- |
-| Time saved (paid) |       |                       |
-| Fewer errors      |       |                       |
-| Licence and usage |       |                       |
-| Review time       |       |                       |
-| Cost of misses    |       |                       |
-| One-off set-up    |       |                       |
-| Net per month     |       |                       |
-| Payback in months |       |                       |
+What goes wrong:
 
-Payback in months = one-off cost ÷ net benefit per month.
+- The 5 minutes is a vendor claim, not a pilot number.
+- It counts every saved minute as cash, even where staff were waiting anyway.
+- It has no line for mistakes or set-up.
 
-## Key points
+### Step 2: the honest inputs
 
-- ROI = (benefit − total cost) ÷ total cost. Count every cost, including review time.
-- Give each success and failure a cost, then find the break-even accuracy.
-- Compare models on cost per completed task, not cost per token.
-- Keep the lightest setting that meets your quality bar.
-- Show a range, and find which input moves the answer most.
+```text
+Staff cost (loaded): $45 per hour = $0.75 per minute
+
+Time saved per return, after staff check the AI report:
+  3 minutes (measured in the pilot)
+Large branches, 4,000 returns: saved time goes to cleaning cars,
+  which now costs an outside firm. This counts.
+Small branches, 4,000 returns: staff wait between returns. No cash.
+
+Extra damage found that staff used to miss: 40 a month × $150
+  (measured, small sample)
+False damage bills that reach customers: 50 a month × $100 refund
+  and goodwill (measured)
+Licence and usage: $6,500 a month
+One-off set-up: $33,000 (estimated)
+```
+
+### Step 3: the base case
+
+```text
+Time saved, large branches   4,000 × 3 × $0.75     +$9,000
+Extra damage charged         40 × $150             +$6,000
+False damage bills           50 × $100             -$5,000
+Licence and usage                                  -$6,500
+Net benefit per month                              +$3,500
+
+ROI per month   (15,000 − 11,500) ÷ 11,500 ≈ 30%
+                (running costs only; set-up is in the payback line)
+Payback         33,000 ÷ 3,500 ≈ 9.4 months
+```
+
+### Step 4: the hard case
+
+**This is the hard case.** A branch manager objects: "Small branches save 3 minutes per return too. Why is that zero?" The time is real, but no money leaves the budget, and no paid work absorbs it. So it stays out of the money lines. The report lists it as a non-cash benefit. If a small branch later avoids a hire because of it, count it then.
+
+Next, change one input at a time:
+
+```text
+Change                              Net per month
+Base case                           $3,500
+Minutes saved 3 -> 2                $500
+Extra damage found halves (20)      $500
+False bills up 50% (75)             $1,000
+Licence 10% cheaper                 $4,150
+```
+
+Time saved and damage found move the result most. Time saved is from the pilot and damage found is a small sample, so the team re-measures both first. A cheaper licence would change little.
+
+The range: cautious −$5,000 a month (2 minutes, 20 damages, 75 false bills), base +$3,500, good +$8,500 (3.5 minutes, 50 damages, 30 false bills).
+
+### Step 5: why it is better
+
+- **Every line is labelled**, and mistakes have a price.
+- **Only real cash counts** as benefit; the rest is listed, not hidden.
+- **A range and a ranked list of inputs** show the risk and what to check first.
+
+## Common mistakes
+
+1. **Using the vendor's time-saved number as cash.** Fix: use pilot numbers, and count saved time only where it goes to paid work or avoids a hire.
+2. **Leaving out mistakes and review.** Fix: give each kind of mistake a cost, add review time, and find the break-even accuracy.
+3. **Picking the cheapest plan by price alone.** Fix: compare cost per finished task on the same inputs, and check accuracy stays above break-even.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A city council uses AI to send incoming letters to the right department. 10,000 letters a month.
+
+```text
+Right department: saves a clerk $3 per letter
+Wrong department: costs $9 on average (letter returns, delay)
+Pilot accuracy: 85% (measured)
+Running cost: $4,000 a month. One-off set-up: $24,000.
+A "plus" plan costs $1,000 more a month and reached 90% in the same test.
+```
+
+1. Find the break-even accuracy.
+2. Find the monthly net benefit and the payback time.
+3. Is the plus plan worth it?
+
+### Answer
+
+1. **75%.** 3 × accuracy = 9 × (1 − accuracy), so 12 × accuracy = 9.
+2. **$8,000 a month; payback 3 months.** Per letter: 0.85 × $3 − 0.15 × $9 = $2.55 − $1.35 = $1.20. Times 10,000 is $12,000. Minus $4,000 is $8,000. Then $24,000 ÷ $8,000 = 3 months.
+3. **Yes.** Per letter: 0.90 × $3 − 0.10 × $9 = $1.80, so $18,000. Minus $5,000 is $13,000, which beats $8,000. Each mistake costs three times what a success saves, so accuracy is worth paying for.
+
+## Recap
+
+- ROI = (benefit − total cost) ÷ total cost. Count every cost, including mistakes and review time, and label each input.
+- Give each success and failure a value, then find break-even accuracy. Saved time is cash only when it goes to paid work.
+- Compare plans on cost per finished task. Show a range, and fix the input that moves the result most.

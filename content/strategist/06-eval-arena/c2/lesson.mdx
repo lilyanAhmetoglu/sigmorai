@@ -1,7 +1,7 @@
 ---
 id: strategist/r6/c2/lesson
 title: Quality evals
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -14,60 +14,172 @@ sources:
     url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
 ---
 
-## Why it matters
+## Goal
 
-OpenAI's evaluation guide starts with a warning: generative AI is variable. A model can give different output for the same input. So normal software testing is not enough. You need **evals** that judge the output itself.
+After this lesson you can:
 
-You now have success criteria (chapter 1). This chapter is about the test: which questions to ask, and who or what grades the answers.
+- Pick the right grader for each check: a code check, a model judge or a person.
+- Build a small, fair test set from real failures, with clear pass or fail rules.
+- Read a score with care: run it more than once, and read the answers behind it.
 
-## A quick recap
+## The problem
 
-You met the three kinds of grader in realm 1 (Prompt Forest): code checks, human graders and model graders (LLM-as-a-judge). Here we use them on business work. Use code checks where you can, a model judge where you must, and people to check both. Give a model judge a clear rubric and a fixed result, such as "correct" or "incorrect".
+A mobile phone company calls customers who want to leave. After each call, an AI tool writes a short note: why the customer wants to leave, what offer they got, and the next step.
 
-## Model judges have biases
+The vendor has a new model version. The team lead wants to switch. The test so far:
 
-OpenAI's guide names two known problems with model judges:
+- The lead picked 10 calls and read the new notes. "They look great."
+- A model was asked to score each note "from 1 to 10 for quality". The new version averaged 8.6, the old one 8.1.
+- The test ran once.
 
-- **Position bias:** the judge is affected by the order of the answers it compares.
-- **Verbosity bias:** the judge prefers longer answers.
+After the switch, sales managers complain. Some notes say "customer will stay" when the customer clearly said they were leaving. The judge had liked those notes: they were long and polite.
 
-Its advice: use pairwise comparison or pass/fail for more reliability, control for response length, and use clear, detailed rubrics.
+This lesson shows how to build a quality test you can trust. The guidance below is from each vendor's docs (October 2026).
 
-Most important, check the judge against people. OpenAI's guide says to scale up only when the judge is faster, cheaper and consistently agrees with human annotations. Anthropic's post says model graders should be closely calibrated with human experts. It also suggests letting the judge answer "Unknown" when it lacks information.
+## The idea
 
-## Build the test set from real work
+The [OpenAI evaluation guide](https://developers.openai.com/api/docs/guides/evaluation-best-practices) starts with a warning: "Generative AI is variable. Models sometimes produce different output from the same input". So normal software tests are not enough. You need **evals** that judge the output itself.
 
-You don't need a huge test set to start. Anthropic's post says 20 to 50 simple tasks drawn from real failures is a great start. Good places to look are the checks you already do by hand before a release, your bug tracker and your support queue.
+**Three kinds of grader.** A **grader** is whoever or whatever decides pass or fail. The [Claude docs on evals](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say to pick "the fastest, most reliable, most scalable method":
 
-Three rules from the same post:
+- **Code check.** A simple rule, like "does the note include the call date?" or "is the offer one of our 6 offers?". The docs call code-based grading "Fastest and most reliable, extremely scalable", but it "lacks nuance" for complex judgments.
+- **Person.** "Most flexible and high quality, but slow and expensive. Avoid if possible."
+- **Model judge** (also "LLM-as-a-judge": a model grades another model's work). "Fast and flexible, scalable and suitable for complex judgment. Test to ensure reliability first then scale."
 
-1. **Write clear tasks.** A good task is one where two domain experts would reach the same pass or fail verdict on their own.
-2. **Balance the set.** Test cases where a behaviour should happen and cases where it shouldn't. Its example: if you only test whether an assistant searches the web when it should, it may start to search for almost everything.
-3. **Keep a reference answer.** A known good output shows that the task can be solved and that the grader works.
+The Anthropic post [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) gives the same order: code checks where possible, model judges where needed, and people "judiciously for additional validation". In plain words: code checks the clear rules, a model judges the nuance, and people check the judge.
 
-Anthropic's guide adds one more point: more questions with slightly weaker automated grading beat fewer questions graded by hand.
+**Model judges have known biases.** The OpenAI guide names two:
 
-## Run it more than once
+- **Position bias.** The order in which the judge reads two answers changes its choice.
+- **Verbosity bias.** The judge prefers longer answers.
 
-Because output varies, one run can mislead. Anthropic's post explains a measure called **pass^k**: the chance that all k tries succeed. If one try succeeds 75% of the time, the chance that 3 tries in a row all succeed is about 42%. The post says this matters most for customer-facing agents, where users expect the same good result every time.
+Its advice for judges:
 
-## Read the answers, not only the score
+- "Use pairwise comparison or pass/fail for more reliability".
+- "Control for response lengths".
+- "Ensure eval rubrics are clear and detailed". A **rubric** is the written list of what counts as good.
 
-A score can be wrong because the test is wrong. Anthropic's post gives an example: one model first scored 42% on a public benchmark. A researcher then found grading bugs. One example was a rule that marked "96.12" wrong because it expected many more decimal places. After fixes, the score was 95%.
+The Claude docs add: tell the judge to output only "'correct' or 'incorrect'", or a score on a 1–5 scale.
 
-The post's rule: don't take eval scores at face value until someone reads the details and some transcripts. Failures should seem fair.
+**Check the judge against people before you scale.** The two vendors say:
 
-## Two kinds of test suite
+- The OpenAI guide: scale up a model judge only once it is "faster, cheaper", and agrees with your human graders again and again.
+- The Anthropic post: model judges "should be closely calibrated with human experts".
 
-The post separates two uses:
+The post also suggests giving the judge a way out: tell it to return "Unknown" when it lacks information.
 
-- **Capability (quality) evals** ask "What can it do well?" They should start with a low pass rate, so there is room to improve.
-- **Regression evals** ask "Does it still handle everything it used to?" They should pass nearly 100% of the time. A drop means something broke.
+Our advice: when a judge compares two answers, run each pair in both orders. Count a win only if it holds both times.
 
-## Key points
+**Build the test set from real failures.** You don't need hundreds of tasks to start. The Anthropic post says "20-50 simple tasks" from real failures are enough to begin. Good places to look: the checks you already do by hand, your bug list and your support queue. Three rules from the post:
 
-- Use code checks where you can, model judges where you must, and people to check both.
-- Give model judges clear rubrics and fixed outputs; watch for position and length bias.
-- Trust a model judge only after it agrees with human graders.
-- Start with 20 to 50 real tasks, balanced, with clear pass or fail rules.
-- Run tests more than once, and read transcripts before you trust a score.
+1. **Clear tasks.** "A good task is one where two domain experts would independently reach the same pass/fail verdict."
+2. **Balanced sets.** "Test both the cases where a behavior should occur and where it shouldn't. One-sided evals create one-sided optimization." The post's example: if you only test that an assistant searches the web when it should, you may end up with one that searches for almost everything.
+3. **A reference answer.** A known good output "proves that the task is solvable and verifies graders are correctly configured."
+
+**Run it more than once.** Because output varies, one run can mislead. The post explains **pass^k**: "the probability that all k trials succeed." To work it out, multiply the success rate by itself k times. Our example: if one try succeeds 90% of the time, two tries in a row is 0.9 × 0.9 = 81%, and three is about 73%. The post says this "especially matters for customer-facing agents where users expect reliable behavior every time."
+
+**Read the answers, not only the score.** A score can be wrong because the test is wrong. The post tells how one model "initially scored 42%" on a public benchmark. A researcher found problems in the test:
+
+- a rule that marked "96.12" wrong because it expected "96.124991…"
+- unclear task descriptions
+- tasks that could not be repeated the same way twice
+
+After the bugs were fixed and the model was given a looser setup, the score "jumped to 95%". The post's rule: "Failures should seem fair".
+
+**Two kinds of test suite.** The post separates them:
+
+- **Capability (quality) evals** ask "What can this agent do well?" They "should start at a low pass rate", so there is room to improve.
+- **Regression evals** ask if it still handles everything it used to. They "should have a nearly 100% pass rate".
+  - A drop "signals that something is broken".
+  - Old capability tasks with high pass rates can move into a regression suite "that is run continuously to catch any drift".
+
+## Worked example
+
+### Step 1: the weak test
+
+```text
+Call notes: new model vs old
+Test set:   10 calls the team lead picked
+Grader:     a model, "Score this note from 1 to 10 for quality."
+Runs:       1
+Result:     new 8.6, old 8.1, so switch
+```
+
+What goes wrong:
+
+- Ten hand-picked calls miss the hard ones.
+- "Quality" has no rubric, so the judge rewards long, polite notes.
+- Nobody checked the judge against a person, and one run can be luck.
+
+### Step 2: split the checks by grader
+
+```text
+Check                                      Grader
+Note includes the call date                code check
+Note has a leave-reason field              code check
+Offer field names one of our 6 offers      code check
+Leave reason matches what the customer     model judge, rubric below,
+said                                       output "correct" / "incorrect" / "Unknown"
+Tone is neutral, no guessing               model judge, 1–5 scale
+Judge agrees with people?                  2 team leads grade 40 notes; scale
+                                           the judge only if it agrees on most
+```
+
+Rubric for the leave reason: "Read the call text. If the customer gave a reason for leaving, the note must state that reason. If the customer did not give one, the note must say 'no reason given'. Otherwise: incorrect."
+
+### Step 3: build a balanced set
+
+```text
+40 tasks from real complaints and past calls:
+  15 customers who left        (note must NOT say "will stay")
+  15 customers who stayed      (note must NOT say "leaving")
+  10 unclear calls, where two team leads agreed on the verdict in advance
+Each task has a reference note written by a team lead.
+Each version runs 3 times. Report both the average and pass^3.
+```
+
+### Step 4: the hard case
+
+**This is the hard case.** After the first run, the new version fails 12 tasks. The team lead wants to report "70% pass". First, someone reads the 12 failed notes. In 4 of them, the note says "Offer: 20% off, 12 months". The code check expected "12-month 20% discount". The notes were right; the check was too strict.
+
+The team fixes the check and re-runs. Now each failure is a real mistake about why the customer left. Only then does the score go into the report.
+
+### Step 5: why it is better
+
+- **Each check has the right grader.** Code for clear rules, a judge for meaning, people as the reference.
+- **Balanced.** The set tests both "left" and "stayed", so the tool can't pass by always saying one thing.
+- **Repeated and read.** Three runs show consistency. Reading the failures caught a grading bug.
+
+## Common mistakes
+
+1. **A vague judge prompt.** "Rate quality" rewards long answers and depends on order. Fix: a detailed rubric, a fixed output, a length limit, and a check against people before you scale.
+2. **Only easy or only one-sided tasks.** A test full of best cases, or only cases where one behaviour should happen, hides real failures. Fix: 20–50 tasks from real failures, balanced in both directions.
+3. **Trusting a single run or a raw score.** Fix: run several times, and read the failed answers before you report the number.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+An online pharmacy uses an assistant to answer medicine questions. When two medicines should not be taken together, the assistant must add "Ask your pharmacist before taking these together." Here is the eval plan:
+
+```text
+Test set: 30 questions, all about medicine pairs that do clash
+Grader:   a model, "Which answer is more helpful?" (old vs new, old shown first)
+Result:   one run, new version passes 90% of tasks
+```
+
+Find three problems. Then answer: if the new version passes a task 90% of the time, what is the chance it passes 2 runs in a row?
+
+### Answer
+
+1. **One-sided set.** Every question needs the warning. A version that adds the warning to every answer passes. Fix: add pairs that are safe together, where the warning must not appear.
+2. **Weak judge setup.** "More helpful" has no rubric, and the old answer is always shown first. Fix: a code check for the warning sentence, and a pass/fail rubric for the rest, checked against pharmacists.
+3. **One run.** Fix: run several times and read the failed answers.
+
+**Chance of 2 passes in a row:** 0.9 × 0.9 = 0.81, so 81%.
+
+## Recap
+
+- Use code checks for clear rules, model judges for nuance, and people to check the judge. Give judges a detailed rubric and a fixed output.
+- Start with 20–50 real, clear, balanced tasks, each with a reference answer.
+- Run tests more than once and read failures before you trust a score. Capability evals start low; regression evals stay near 100%.
