@@ -1,7 +1,7 @@
 ---
 id: strategist/r8/c1/lesson
 title: AI policy
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · API and data retention
@@ -23,15 +23,27 @@ sources:
     url: https://developers.openai.com/api/docs/guides/safety-best-practices
 ---
 
-## Why it matters
+## Goal
 
-In realm 0 you learned habits for one person: use the approved tool, share the minimum, never paste secrets. A company of 2,000 people can't run on habits alone. It needs an **AI policy**: written rules that say who may use which AI tools, with which data, and who checks the results.
+After this lesson you can:
 
-A policy only works if the tools back it up. This chapter shows how vendor settings turn a rule on paper into a rule that the system enforces.
+- Write an **AI policy** that answers five questions: tools, data, review, access and reporting.
+- Tie each data rule to a real vendor setting, and name the products and models that setting does not cover.
+- Turn a vague rule ("use AI responsibly") into a rule that someone can check.
 
-## Five parts of a policy
+## The problem
 
-This list is a tool for this course, not a legal template. A useful AI policy answers five questions:
+A hotel group has 1,800 staff in 22 hotels. AI use grew fast and without a plan. The guest-relations team writes replies to online reviews with an OpenAI API project. The finance team reads supplier invoices with Claude. A revenue manager opened a new API project last week and pasted in a list of guest bookings to "see what the AI says".
+
+The CFO asks the head of operations for a company AI policy. It must fit on two pages. Today the only rule is one line in the staff handbook: "AI tools are allowed. Be careful with guest data."
+
+That line sounds safe, but nobody can check it. It does not say which tools, which data, who reviews, or who holds the keys. The vendor facts in this lesson come from each vendor's docs (October 2026).
+
+## The idea
+
+An **AI policy** is a set of written rules. It says who may use which AI tools, with which data, and who checks the results. Habits are enough for one person. A company of 1,800 people needs rules, and the rules need settings behind them.
+
+Our advice: a useful policy answers five questions. This list is a tool for this course, not a legal template.
 
 1. **Tools and accounts.** Which AI tools and accounts are approved?
 2. **Data.** Which kinds of data may go into which tool?
@@ -39,49 +51,119 @@ This list is a tool for this course, not a legal template. A useful AI policy an
 4. **Access.** Who may create keys, change settings and see usage?
 5. **Reporting.** How do staff and customers report a problem, and who answers?
 
-Example: a furniture retailer writes "staff may use AI for marketing drafts". That covers part 1 only. It says nothing about customer data, review, access or reporting.
+Think of a policy like the rules for a company car. "Drive carefully" is a wish. "Only staff with a licence check, one fuel card per driver, report damage to the fleet manager" is a policy.
 
-## Part 1 and 2: tie data rules to settings
+**Data rules must name the setting.** **Data retention** means how long a vendor keeps your prompts and outputs. **Zero data retention (ZDR)** is an arrangement where the vendor does not keep them after the reply. ZDR is not one switch for a whole company:
 
-The data terms depend on the account and its settings, so a policy should name them.
+- The [OpenAI data controls page](https://developers.openai.com/api/docs/guides/your-data) lets approved customers pick Zero Data Retention or Modified Abuse Monitoring for the whole organization. Each project can then select `default` "to inherit the organization-level setting", pick its own control, or select None "to disable these controls for that project".
+- The [Claude retention page](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention) says: "ZDR is enabled per organization". Each new organization needs it enabled separately, and enablement "does not automatically extend to other organizations under the same account."
+- The same Claude page lists what ZDR does not cover. One item is the Claude Console: "Any usage in the Claude Console, including playground."
+- It also names some models. Claude Fable 5.1, Claude Mythos 5.1, Claude Fable 5 and Claude Mythos 5 "require 30-day data retention and are not available under ZDR unless expressly authorized by Anthropic."
 
-- **Retention settings can differ inside one company.** OpenAI's data controls page says approved customers can set Zero Data Retention or Modified Abuse Monitoring for the whole organization. Each project can inherit that setting, pick its own, or select "None" to turn the controls off for that project.
-- **Anthropic sets zero data retention (ZDR) per organization.** Its docs say each new organization needs ZDR enabled separately, and it doesn't automatically extend to other organizations under the same account.
-- **Not every product or model is covered.** Anthropic's docs list the Console and its playground as not covered by ZDR. They also list some models, called Covered Models, that require 30-day data retention.
+So "we have ZDR" is not a full rule. The rule must say which organization, which projects, which products and which models.
 
-So "we have zero data retention" is not a complete rule. Example: the retailer's data team opens a new project for a pilot. If nobody checks its retention setting, it may not match the company rule. A better rule: "Customer data goes only into projects where the approved retention setting is on. IT checks this before a project goes live."
+**Review rules say who checks what.** The [OpenAI safety guide](https://developers.openai.com/api/docs/guides/safety-best-practices) says: "Wherever possible, we recommend having a human review outputs before they are used in practice." It adds: "This is especially critical in high-stakes domains, and for code generation." Reviewers should know the limits of the system. They also need easy access to the facts behind the output, such as the original notes behind a summary.
 
-## Part 3: say when a person reviews
+**Access rules say who holds the keys.** An **API key** is like a door key to your AI account.
 
-OpenAI's safety guide recommends that, wherever possible, a human reviews outputs before they are used. It says this is especially critical in high-stakes domains. It adds that reviewers should know the system's limits and have the information they need to check the output, such as the original notes behind a summary.
+- The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) says: "We strongly recommend setting an expiration date when you create a project API key and establishing a regular key rotation process." Administrators can also enforce a maximum key lifetime and restrict which types of keys can be created.
+- The [Claude Admin API page](https://platform.claude.com/docs/en/manage-claude/admin-api) says: "There are five organization-level roles." A developer "Can use playground and manage API keys". An admin can do all of that, "plus manage users". Its best practices include "Regularly audit member roles and permissions" and rotating keys periodically.
+- The [Claude workspaces page](https://platform.claude.com/docs/en/manage-claude/workspaces) says workspaces can "separate different projects, environments, or teams", each with its own members, API keys and limits.
 
-A policy turns this into a rule per use. Example: "Marketing drafts: the author reviews. Replies about refunds: a support lead approves before sending." The next chapter, Risk tiers, shows how to sort uses into levels.
+**Reporting rules say who answers.** The OpenAI safety guide says users should have "an easily-available method for reporting improper functionality". Its examples are a listed email address or a ticket form. It adds: "This method should be monitored by a human and responded to as appropriate." It also tells you to understand and communicate the system's limits, so users' expectations match what it can do.
 
-## Part 4: control access and keys
+## Worked example
 
-An API key is like a door key to your AI account. Policy should say who holds keys and how long they live.
+### Step 1: the weak policy
 
-- OpenAI's production guide strongly recommends an expiration date on project API keys and a regular rotation process. It says administrators can enforce a maximum key lifetime, and restrict which types of keys can be created.
-- Anthropic's Admin API page lists five organization roles. A developer can manage API keys; the admin role can also manage users. Its best practices include auditing member roles regularly and rotating keys periodically.
-- Anthropic's workspaces page says workspaces can separate teams or projects, each with its own members, API keys and limits.
+```text
+AI policy (handbook, page 14)
+AI tools are allowed. Be careful with guest data.
+```
 
-Example: at the retailer, every developer is an admin "to save time". A policy rule fixes this: give each person the smallest role they need, and review roles every quarter.
+What goes wrong:
 
-## Part 5: let people report problems
+- **Tools:** no list, so the revenue manager's new project counts as "allowed".
+- **Data:** "be careful" names no setting. Nobody checked the new project's retention control.
+- **Review, access, reporting:** missing. Nobody knows who checks a review reply, who holds keys, or where a guest complains.
 
-OpenAI's safety guide says users should have an easy way to report problems, such as an email address or a ticket form. A human should monitor it and respond. The same guide tells you to understand and communicate the system's limits, so users' expectations match what it can do.
+### Step 2: one rule per question
 
-Example: the retailer's chat assistant gets a "Report a problem" link. The reports go to a named team, not to a shared inbox that nobody reads.
+Our example rewrite for the hotel group:
 
-## Write rules people can follow
+```text
+1 Tools     Approved: the guest-relations OpenAI project and the
+            finance Claude workspace. Other projects need IT sign-off.
+2 Data      Guest personal data goes only into projects where IT
+            has checked the retention setting. IT records the
+            setting and the date checked. No guest data in the
+            vendor's web console or playground.
+3 Review    Review replies: the author reads each one before posting.
+            Replies that offer money back: the hotel manager approves.
+4 Access    Each person gets the smallest role they need.
+            Project keys expire after 90 days. IT reviews roles
+            every quarter.
+5 Reports   "Report an AI problem" form. The digital team owns it
+            and answers within two working days.
+```
 
-A long policy that nobody reads doesn't protect anyone. Keep each rule short and testable: "IT checks the retention setting before go-live" can be checked. "Use AI responsibly" can't.
+The 90 days and the two working days are our own choices, not vendor numbers. Your company sets its own.
 
-## Key points
+### Step 3: check each rule against the docs
 
-- An AI policy covers tools, data, review, access and reporting (a tool for this course).
-- Data rules should name the settings behind them: retention controls can differ per project or organization.
-- Vendor docs list products and models that a retention option doesn't cover; check before you promise.
-- Human review is recommended wherever possible, especially for high-stakes uses.
-- Give the smallest role needed, set key expiry and rotation, and audit roles regularly.
-- Give users a monitored way to report problems.
+- **Rule 2** names the check, because an OpenAI project can select None and turn the control off. It bans the playground, because the Claude page lists the Console as not covered by ZDR.
+- **Rule 3** puts the heavier check on money, because the OpenAI guide calls review "especially critical in high-stakes domains".
+- **Rule 4** uses key expiry and role audits, which both vendors recommend.
+- **Rule 5** names an owner, because the OpenAI guide wants a human to watch the report channel and reply.
+
+### Step 4: the hard case
+
+**The hard case is a new model.** Finance wants Claude Fable 5.1 for invoice checks. The group has ZDR with Anthropic. The Claude page lists it among the models that need 30-day retention. Under ZDR, it is off limits unless Anthropic gives express authorization.
+
+The same page gives one path. An organization with ZDR "can make these models available in a specific workspace by enabling 30-day retention for that workspace only." Other workspaces keep zero data retention.
+
+So the policy needs one more line. Our example:
+
+```text
+2b Models   Models that need 30-day retention are used only in
+            workspaces listed here, after legal approves the
+            retention for that use. Today: none.
+```
+
+Our advice: the policy does not ban the model, and it does not pretend ZDR covers it. Legal decides if keeping invoice data for 30 days is fine. The rule names the model, the workspace and the approval.
+
+### Step 5: why it is better
+
+- **Checkable.** Each rule names an action and an owner. An auditor can see if it happened.
+- **Tied to settings.** Rules 2 and 2b name the retention control, the products and the models.
+- **Matched to risk.** Light review for review replies, a manager for money.
+
+## Common mistakes
+
+1. **"We have ZDR, so all data is fine."** Projects, products and models can sit outside it. Fix: name the projects, products and models the rule covers, and check each one.
+2. **A review rule for everything, or for nothing.** One heavy rule for all uses gets ignored; no rule lets risky outputs through. Fix: set review per use, heavier where money or legal risk is high.
+3. **A report inbox with no owner.** Messages pile up unread. Fix: name a team that monitors it and replies.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A hotel group uses OpenAI. Its admin set a maximum key lifetime of 90 days for the organization. IT also limited new keys to service-account keys only. Answer two questions:
+
+```text
+1. A project admin wants 180-day keys for one project.
+   Can the project allow that?
+2. 30 user-owned keys were made before the new rule.
+   Does the rule stop them?
+```
+
+### Answer
+
+1. **No.** The OpenAI production guide says: "Project limits cannot exceed the organization limit." A project can be stricter, not looser.
+2. **No.** The guide says these key-type controls apply only to new key creation, and "existing API keys are unaffected". Our advice: list the old keys and replace or revoke them. A new rule does not clean up the past.
+
+## Recap
+
+- An AI policy answers five questions: tools, data, review, access and reporting (our list). Each rule needs an owner and an action someone can check.
+- Retention settings differ by project, organization, product and model. Name what the rule covers; some models need 30-day retention and sit outside ZDR.
+- Review is recommended wherever possible, most of all for high-stakes uses. Give the smallest role, expire and rotate keys, and give reports a human owner.
