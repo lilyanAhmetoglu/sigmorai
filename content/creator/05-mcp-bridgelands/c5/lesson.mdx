@@ -1,7 +1,7 @@
 ---
 id: creator/r5/c5/lesson
 title: Access & keys
-minutes: 6
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · MCP connector (beta) · Authentication
@@ -32,72 +32,163 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/function-calling
 ---
 
-## Why it matters
+## Goal
 
-When you link tools, "the key" can mean three different things. Mixing them up is how studios leak access.
+After this lesson you can:
 
-1. **The model key.** It lets your app call a model, such as the Claude API or the Gemini API.
-2. **The tool token.** It lets the model's call reach a tool, such as a design file or a scheduler.
-3. **The person's rights in the tool.** What that account may see and do.
+- Name the three kinds of "key" in a linked set-up, and say who holds each one.
+- Keep model keys on a server, split them by client and by stage, and swap them without breaking anything.
+- Choose between one shared tool token and a sign-in for each person.
 
-This chapter takes them one at a time. You will decide who holds each, and how wide each one is.
+## The problem
 
-## Who holds the tool token
+An illustration studio has three clients. It built an AI helper that does two things for each client: it reads the client's cloud drive through an MCP server, and it sends finished art to a print shop's order server. (**MCP** is the open standard that links AI apps to tools.)
 
-When your own app calls the API, your app carries the tool token.
+The set-up today:
 
-- **Claude.** The connector takes an `authorization_token`. Anthropic says "API consumers are expected to handle the OAuth flow and obtain the access token prior to making the API call, and to refresh the token as needed."
-- **OpenAI.** "most other MCP servers require authentication. The most common scheme is an OAuth access token." You pass it in the `authorization` field.
-- **Gemini.** The Remote MCP settings have `headers`: "Key-value pairs sent as HTTP headers with every request to the server (for example, authentication tokens)".
+1. One Claude API key is used for all three clients, for tests and for live work.
+2. The drive link uses the studio owner's **OAuth** token for everyone. (OAuth is a standard way to sign in to a service and give an app limited access. The app gets an **access token**: a pass that shows what it may do.)
+3. The helper worked on Monday. On Tuesday every drive call failed. The team thought Anthropic renews the token by itself.
+4. The print shop's server takes one fixed key. The key sits in a shared note, so every teammate can copy it.
 
-So the studio's app is trusted with every token it passes. It must keep them safe.
+Nothing was leaked yet. But each line is a door left open.
 
-## Keep keys on the server
+## The idea
 
-Google puts it plainly: "Treat your Gemini API key like a password." Its rules include "Never check API keys into source control" and "Never expose keys client-side in production". Keys in a web or mobile app "can be extracted by users". Google's fix is "a backend proxy server".
+### Three kinds of "key"
 
-OpenAI says the same: avoid "exposing the API keys in your code or in public repositories". It suggests environment variables or a secret service.
+When you link tools, "the key" can mean three things:
 
-Example: a moodboard web page has the model key typed into its script. Anyone can read it. The key belongs on the studio's own server, and the page asks that server.
+```text
+MODEL KEY    lets your app call a model API      (Claude, OpenAI, Gemini)
+TOOL TOKEN   lets the call reach a tool server   (drive, print shop)
+RIGHTS       what that account may see and do inside the tool
+```
 
-Google adds a rule for its own keys: "The Gemini API rejects requests from unrestricted standard keys." Keys with explicit restrictions continue to work. Check the page when you set one up, because this is changing.
+This split is our way of naming it.
 
-## One identity or many
+Keep them apart in your head and in your notes. A leak of each one has a different cost.
 
-A tool can know who is calling, or only which organization.
+### Who holds the tool token
 
-- With OAuth, each person signs in. Anthropic says a person's "permissions mirror their access on the external service".
-- A static credential is shared. Anthropic offers it as a beta for a limited set of organizations. Its builder guide says "every member's requests carry the same key", so it cannot tell users apart. "If your tools need to act as the individual user, use OAuth instead."
-- OpenAI's admin guide has a similar rule: "For a shared credential, the member also needs permission to use that credential; the external account can differ from their personal account."
+When your own app calls a model API, your app carries the tool token in the request.
 
-Example: a scheduler token is typed once by the studio owner and used by everyone. Every post then looks like it came from the owner. When something goes wrong, you cannot tell who did it.
+- **Claude.** The MCP connector takes an `authorization_token`. The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) say: "API consumers are expected to handle the OAuth flow and obtain the access token prior to making the API call, and to refresh the token as needed."
+- **OpenAI.** The [MCP docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say:
+  - "The most common scheme is an OAuth access token." It goes in the `authorization` field.
+  - The API "does not store the value you provide in the `authorization` field".
+  - So "you must send the `authorization` value in every Responses API creation request you make."
+- **Gemini.** The [Remote MCP table](https://ai.google.dev/gemini-api/docs/function-calling) has `headers`: "Key-value pairs sent as HTTP headers with every request to the server (for example, authentication tokens)."
 
-## Available is not allowed
+### Keep model keys on a server
 
-OpenAI's guide warns: "Making an MCP server or plugin available in ChatGPT doesn't grant access to files, records, or actions in the connected service." Access is a chain. The role, the action settings and the connected account each add a limit.
+The [Gemini key docs](https://ai.google.dev/gemini-api/docs/api-key) say: "Treat your Gemini API key like a password." Their rules:
 
-For each connection, that guide says to record "the business owner, permitted data, approved read or write actions, authentication method, and a support or removal contact". This is a good sheet to copy.
+- "Never check API keys into source control systems like Git."
+- "Keys compiled in client-side code can be extracted by users. To secure client-side apps, run a backend proxy server to make the actual API calls."
 
-## One workspace per client
+The [OpenAI production docs](https://developers.openai.com/api/docs/guides/production-best-practices) say: "Avoid exposing the API keys in your code or in public repositories". They suggest "environment variables or secret management service". A key pasted in a chat or a shared note is no longer private. Our habit: replace it.
 
-Keep keys apart for each client and each stage.
+Gemini has one more rule. The same page says:
 
-- **Claude.** "API keys can be scoped to a single workspace. In this case, they can only access resources within that workspace." Anthropic suggests separate workspaces for development, staging and production.
-- **OpenAI.** You can create separate projects for staging and production, limit who can open production, and "set custom rate and spend limits per project".
-- **Gemini.** "Every Gemini API key is associated with a Google Cloud project."
+- "The Gemini API rejects requests from **unrestricted standard keys**. Standard API keys that have explicit restrictions applied continue to work."
+- Since May 28, 2026, "all new API keys created in Google AI Studio are automatically created as auth keys". An **auth key** is tied to a Google Cloud service account (an account for software, not a person), so each call runs as that account.
+- "Every Gemini API key is associated with a Google Cloud project."
 
-Example: Client A and Client B share one workspace and one key. A leak of that key reaches both. With one workspace each, it reaches one.
+### One identity, or one per person
 
-## Rotate before it expires
+A tool can know which person is calling, or only which organization.
 
-OpenAI says: "We strongly recommend setting an expiration date when you create a project API key and establishing a regular key rotation process." The steps: "Before a key expires, create a replacement, update your applications to use it, and revoke the old key once you've verified that the replacement works."
+- **OAuth per person.** The [Claude connectors MCP page](https://claude.com/docs/connectors/building/mcp) says each person's "permissions mirror their access on the external service".
+- **A static credential.** The [Claude connectors auth page](https://claude.com/docs/connectors/building/authentication) describes a fixed key that "an organization Owner enters" once. It is "in beta and available to a limited set of organizations". The page warns:
+  - "every member's requests carry the same key, so don't use it to identify which user is calling."
+  - "If your tools need to act as the individual user, use OAuth instead".
+- **ChatGPT.** The [plugin controls guide](https://learn.chatgpt.com/docs/enterprise/apps-and-connectors) says: "For a shared credential, the member also needs permission to use that credential; the external account can differ from their personal account."
 
-Google's leak checklist is the same shape: make a new key, update the app, disable the old key once the new one works, then check usage.
+The same guide warns: "Making an MCP server or plugin available in ChatGPT doesn't grant access to files, records, or actions in the connected service." Access is a chain: role, action settings, and the rights of the connected account. For each service it says to "record the business owner, permitted data, approved read or write actions, authentication method, and a support or removal contact".
 
-## What this means for your work
+### Split keys by client and by stage
 
-- **Name the three keys** in every connection: model key, tool token, person's rights.
-- **Keep keys on a server.** Never in a page, a chat or a repository.
-- **Prefer personal sign-in** where the tool must know who acted.
-- **One workspace or project per client.**
-- **Set an expiry** and practise the swap.
+- **Claude.** The [workspaces docs](https://platform.claude.com/docs/en/manage-claude/workspaces): "API keys can be scoped to a single workspace. In this case, they can only access resources within that workspace." They suggest separate workspaces "for development, staging, and production".
+- **OpenAI.** The production docs suggest one project for staging and another for production. You can also "limit user access to your production project, and set custom rate and spend limits per project."
+
+### Swap a key before it expires
+
+The OpenAI production docs: "We strongly recommend setting an expiration date when you create a project API key and establishing a regular key rotation process. Before a key expires, create a replacement, update your applications to use it, and revoke the old key once you've verified that the replacement works."
+
+The Gemini leak checklist has the same shape: make a new key, update the app, then disable the leaked key "once the new key is verified".
+
+## Worked example
+
+### Step 1: map the three keys for each link
+
+```text
+LINK          MODEL KEY          TOOL TOKEN               RIGHTS
+drive (x3)    one Claude key     owner's OAuth token      owner sees all 3 drives
+print shop    one Claude key     fixed key in a note      full order rights
+```
+
+### Step 2: find the open doors
+
+```text
+- one model key for 3 clients + tests -> a leak reaches everything
+- owner's token for everyone          -> every action looks like the owner
+- token not refreshed                 -> calls fail after it expires
+- fixed key in a shared note          -> anyone with the note can order
+```
+
+### Step 3: the hard case
+
+**The hard case is Tuesday's failure.** The team read that Claude refreshes tokens. That is true, but on a different page about a different product. The [Claude connectors auth page](https://claude.com/docs/connectors/building/authentication) is for connectors people add in Claude apps: "Claude refreshes tokens reactively on a `401` response, and proactively up to five minutes before the stored expiry." The studio's helper calls the API through the MCP connector. There, the docs put the OAuth flow and the refresh on the API consumer: the studio's own app.
+
+Same vendor, two products, two answers. Always read the page for the product you use.
+
+### Step 4: the good set-up
+
+```text
+Model keys   one Claude workspace per client, plus a staging workspace.
+             Keys live in the studio server's secret store, with an
+             expiry date and a swap date in the calendar.
+Drive        each designer signs in with OAuth; rights mirror their
+             own drive access. The app refreshes tokens before expiry.
+Print shop   fixed key moved from the note to the secret store; the
+             old key replaced. Order log names the designer.
+Sheet        owner, data, actions, auth method, removal contact.
+```
+
+### Step 5: why it is better
+
+- **A leak stays small.** One client's key reaches one workspace.
+- **You know who did what.** Personal sign-in shows which designer acted.
+- **No surprise failures.** The app owns the refresh, as the API docs expect.
+- **Swaps are calm.** New key, update, check, then revoke.
+
+## Common mistakes
+
+1. **A model key in a web page or a repo.** Fix: call the model from your server; keep the key in a secret store.
+2. **One shared token when you need to know who acted.** Fix: use OAuth so each person signs in.
+3. **Revoking the old key first.** Fix: create, update, verify, and only then revoke.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+True or false?
+
+```text
+a) OpenAI stores our authorization value, so we only send it once.
+b) A standard Gemini key restricted to the Gemini API still works.
+c) A Claude static credential is entered by each member for themselves.
+```
+
+### Answer
+
+1. **a) False.** The OpenAI docs say the API does not store the `authorization` value. Send it in every request.
+2. **b) True.** The Gemini page says standard keys with explicit restrictions continue to work. The rejection is for standard keys with no restriction at all.
+3. **c) False.** An organization Owner enters it once, and every member's calls carry the same key.
+
+## Recap
+
+- "Key" means three things: the model key, the tool token and the account's rights. On the Claude API connector, your app gets and refreshes the OAuth token.
+- Keep model keys on a server, never in a page, chat or repo. Gemini rejects unrestricted standard keys. Split keys per client and per stage, and set custom limits per OpenAI project.
+- A shared credential hides who acted; use OAuth when the tool must know the person. Rotate keys in order: create, update, verify, revoke.
