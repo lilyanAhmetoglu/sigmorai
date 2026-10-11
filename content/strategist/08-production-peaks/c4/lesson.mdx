@@ -1,7 +1,7 @@
 ---
 id: strategist/r8/c4/lesson
 title: Incident response
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · Safety best practices
@@ -29,81 +29,142 @@ sources:
     url: https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed
 ---
 
-## Why it matters
+## Goal
 
-Controls reduce risk. They do not remove it. Sooner or later an AI tool will say something wrong to a customer, leak a key, or run up a bill overnight. An **incident** is any event like this that harms people, data or money.
+After this lesson you can:
 
-In realm 4 you saw agent failures and what checks catch them. This chapter is about the company side: who notices, who acts, and how you learn.
+- Run an AI incident in five steps: spot, contain, investigate, tell, learn.
+- Choose the smallest action that ends the harm, and know which steps can't be undone.
+- Write the first message to the people affected, with only the facts you have checked.
 
-## Five steps (a tool for this course)
+## The problem
 
-No vendor publishes an incident plan for your company. This five-step list is our own:
+An online grocery company has 1,100 staff. Its app has an AI helper for order questions, and its warehouse team uses an AI tool to plan delivery routes. Both call a vendor's API.
 
-1. **Spot.** Someone or something notices the problem.
-2. **Contain.** Stop the damage first. Fix later.
-3. **Investigate.** Find out what happened, and who changed what.
-4. **Tell.** Inform the people who must know, in the right order.
-5. **Learn.** Change the tests, controls and policy so it is harder to repeat.
+On a Sunday, a developer copies an API key into a public code page by mistake. By Monday morning, the AI bill for the weekend is many times a normal weekend. An email alert went out on Sunday, but it went to a team address that nobody reads on weekends.
 
-Name one **incident owner** per AI use in the risk register from chapter 2. A plan with no named person is a plan that waits.
+On Monday nobody knows who leads. One person wants to delete the developer's account. Another wants to shut down every AI tool in the company. A third wants to email all customers that "no data was affected", before anyone has checked.
 
-## Step 1: Spot the problem
+Every one of these ideas is fast. None of them is a plan. The vendor facts in this lesson come from each vendor's docs (October 2026).
 
-Both vendors point to simple signals.
+## The idea
 
-- **A report channel that a human reads.** OpenAI's safety guide says users should generally have an easily available way to report improper functionality or other concerns, and that a human should monitor it and respond as appropriate.
-- **Spend alerts.** OpenAI's production guide says to set spend alerts that send a notification when usage passes a dollar amount. Anthropic's workspaces page lets you cap monthly spend per workspace and configure alerts at thresholds.
-- **Regular output checks.** Anthropic's jailbreak guide has a short section on continuous monitoring: regularly analyze outputs for signs of a successful injection, and use what you learn to refine prompts, validation and filtering.
-- **Per-user identifiers.** OpenAI's safety guide recommends a safety identifier for products where individual users interact with a model. It says this helps OpenAI monitor and detect abuse, gives your team more actionable feedback if OpenAI detects a policy violation, and can help your team respond to abuse faster. Anthropic's Messages API has a similar field, `metadata.user_id`: "an external identifier for the user" that should be an opaque value, not a name or email. The page says Anthropic may use this id to help detect abuse.
+Controls lower risk; they do not remove it. An **incident** is any event that harms people, data or money: a wrong answer to a customer, a leaked key, or a bill that runs out of control overnight.
 
-Example: a travel site's spend alert fires at 08:05. The email goes to a developer who left in June. Nobody reads it for six hours. The alert worked; the owner did not exist.
+No vendor publishes an incident plan for your company. Our advice is a five-step plan:
 
-## Step 2: Contain
+```text
+1 Spot  ->  2 Contain  ->  3 Investigate  ->  4 Tell  ->  5 Learn
+```
 
-Pick the smallest action that stops the harm. Know your options before the incident.
+Name one **incident owner** for each AI use before anything goes wrong. A plan with no named person is a plan that waits. Think of a fire drill: the exits, the meeting point and the person who counts heads are set before the fire.
 
-- **Turn off a key.** Anthropic's Admin API can read, rename and change the status of existing keys. Its example sets a key to "inactive". Check the exact steps in your own console first.
-- **Cap the limits.** Anthropic workspaces can have lower spend and rate limits than the organization.
-- **Deal with the user.** Anthropic's jailbreak guide says to consider throttling or banning users who repeatedly try to get around your guardrails.
-- **Know what removing a person does.** Anthropic's Admin API page says personal keys stop working when their user is removed, but workspace API keys continue to work. A team that "removes the developer" may stop nothing.
-- **Know what is hard to undo.** Anthropic's workspaces page says archiving a workspace archives every API key created for it, and it cannot be undone.
+**Step 1: Spot.** Simple signals catch most problems, but only if a person reads them.
 
-Example: the assistant is giving out invented discounts. You turn off its key and show a fixed FAQ page. Customers get slower help, but no new false promises.
+- **A report channel.** The [OpenAI safety guide](https://developers.openai.com/api/docs/guides/safety-best-practices) says users should have an easy way to report problems, and that "This method should be monitored by a human and responded to as appropriate."
+- **Spend alerts.** The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) says to set spend alerts "to send notifications when usage exceeds a certain dollar amount." The [Claude workspaces page](https://platform.claude.com/docs/en/manage-claude/workspaces) lets you cap monthly spend per workspace and "configure alerts when spending reaches certain thresholds."
+- **Output checks.** The [Claude jailbreak guide](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/mitigate-jailbreaks) says: "Regularly analyze outputs for signs of successful injection." It adds that what you learn should improve your prompts, filters and input checks.
+- **Per-user identifiers.** These tie each request to one end user, so you can find one bad actor fast. The OpenAI safety guide recommends a `safety_identifier` for products where individual users talk to a model. It says this can help your team "respond to abuse faster". The [Claude Messages API reference](https://platform.claude.com/docs/en/api/messages/create) has a similar field, `metadata.user_id`. It says: "Anthropic may use this id to help detect abuse."
 
-## Step 3: Investigate
+**Step 2: Contain.** Stop the damage first; fix the cause later. Our advice: choose the smallest action that ends the harm, and one you can reverse.
 
-Logs answer "who changed what, and when".
+- **Turn off one key.** The [Claude Admin API page](https://platform.claude.com/docs/en/manage-claude/admin-api) says the API "can only read, rename, and change the status of existing keys". Its example sets a key's status to `inactive`. The OpenAI safety guide says that if a key may be exposed, "revoke it promptly and replace it with a new key."
+- **Lower the limits.** Claude workspace spend and rate limits can be set lower than the organization's.
+- **Deal with one user.** The Claude jailbreak guide suggests "throttling or banning users who repeatedly attempt to circumvent your application's guardrails."
 
-- OpenAI's Admin APIs include an Audit Logs endpoint that lists recent user actions and configuration changes for the organization.
-- Anthropic's Activity Feed records authentication, administrative and platform activity, among others. Its page says recording is not retroactive: it begins when the Compliance API is first enabled.
+Two steps look strong but can fail or go too far:
 
-Both are only useful if they were on before the incident (chapter 3).
+- **Removing a person.** On the Claude Admin API page, a personal key ends when its user leaves the organization, but "Workspace API keys continue to work."
+- **Archiving a workspace.** The Claude workspaces page says this archives every API key created for that workspace, and it "Cannot be undone".
 
-## Step 4: Tell
+**Step 3: Investigate.** Logs answer "who changed what, and when".
 
-This step is ours, not a vendor rule. Decide before any incident:
+- The [OpenAI Admin APIs page](https://developers.openai.com/api/docs/guides/admin-apis) has an Audit Logs endpoint for "recent user actions and configuration changes for the organization."
+- The [Claude Activity Feed page](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed) says recording "begins when the Compliance API is first enabled for your organization". Logs help only if they were on before the incident.
 
-- who tells legal and the data protection lead, and how fast,
-- who writes to affected customers, using only facts you have checked,
-- who talks to the vendor.
+**Step 4: Tell.** This step is our own advice, not a vendor rule. Before any incident, decide who tells legal and the data protection lead, who writes to the people affected, and who talks to the vendor. In a first message, write only what you have checked. "We found a problem, we are checking it, and we will write again by Thursday" is true. "No data was affected" may not be. Your legal team sets the deadlines that apply to you.
 
-Do not guess in a customer letter. "We are investigating and will update you" is true. "No data was affected" may not be. Your legal team sets the deadlines that apply to you.
+**Step 5: Learn.** Our advice: add the real case to your tests, fix the control that failed, and fix the policy rule behind it. The OpenAI safety guide recommends "red-teaming": testing with normal inputs and with inputs from someone trying to break the app. The Claude jailbreak guide says to red-team your agent "Before deploying". Write the review about the system, never about one person. When people fear blame, they hide the next problem.
 
-## Step 5: Learn
+## Worked example
 
-After the incident, do three things:
+### Step 1: the weak plan
 
-1. **Add the case to your tests.** OpenAI's guide recommends red-teaming: test with a representative set of inputs and also with inputs from someone trying to break the application. Anthropic's guide says to red-team before deploying. A real attack is the best new test.
-2. **Re-check the tier and the controls** in the risk register.
-3. **Fix the policy.** If a key had no expiry or an alert had no owner, change the rule from chapter 1.
+```text
+AI incident plan v1
+If something goes wrong with AI, call IT.
+```
 
-Keep the write-up about the system, not about a person. Blame makes people hide the next problem.
+What goes wrong:
 
-## Key points
+- **Spot:** the alert went to an address with no reader.
+- **Contain:** "call IT" gives no first step, so people grab the biggest switch.
+- **Tell:** nobody owns the message, so a guess almost went to every customer.
 
-- Five steps: spot, contain, investigate, tell, learn (our own list). Name an owner before the incident.
-- Spot with a human-read report channel, spend alerts and output checks.
-- Contain with the smallest step: key status, limits, throttling a user. Removing a person may not stop a workspace key.
-- Archiving a workspace cannot be undone.
-- Logs must be on before the incident; Anthropic's Activity Feed is not retroactive.
-- After an incident, add the attack to your tests and fix the policy.
+### Step 2: one owner and one first step per step
+
+Our example plan for the grocery company:
+
+```text
+Owner        Head of platform (deputy: lead developer)
+1 Spot       Spend alerts go to the on-call phone, read 24/7.
+             App report form goes to support, answered same day.
+2 Contain    Leaked or abused key: set it to inactive, make a
+             new key, lower the workspace spend limit.
+             Never archive a shared workspace as a first step.
+3 Investigate  Audit logs on since launch. Owner pulls them.
+4 Tell       Legal and data protection lead within 1 hour.
+             Customer message only after legal checks the facts.
+5 Learn      Write-up in 5 days. Add the case to tests.
+             Fix the rule that failed.
+```
+
+The 1 hour and the 5 days are our own choices, not vendor numbers.
+
+### Step 3: run Monday with the plan
+
+- **Contain:** the owner sets the leaked key to inactive and makes a new one for the order helper. The route tool keeps working.
+- **Investigate:** the owner checks the audit log to see if any settings changed over the weekend. Until that check is done, it is a question, not a fact to announce.
+- **Tell:** legal decides whether anyone outside must be told. Any message says what is known and when the next update comes.
+
+### Step 4: the hard case
+
+**The hard case is the developer's account.** The team removes the developer from the organization and marks the key "dealt with". But the key was a workspace key. Per the Claude Admin API page, a workspace key does not stop when the person who made it leaves. So the leak is still open.
+
+The fix: contain by the key, not by the person. Check the key type, then set that key to inactive.
+
+### Step 5: why it is better
+
+- **Fast and small.** One key off, one new key on. Nothing else stops.
+- **Reversible.** A key can be made active again; an archived workspace can't come back.
+- **Honest.** No message goes out with a guess in it.
+
+## Common mistakes
+
+1. **An alert with no reader.** The signal works, but nobody sees it. Fix: send alerts to a named person or an on-call phone.
+2. **The biggest switch first.** Archiving or shutting down everything stops other work, and some steps can't be undone. Fix: start with the smallest step that can be undone.
+3. **Guessing in the first message.** A claim like "no data was affected" can turn out false. Fix: say what you know, and when you will update.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team will add a per-user identifier to every request. Which of these values follow both vendors' docs?
+
+```text
+1. The customer's email address
+2. A hash of the customer's account number
+3. A session ID for a guest who is not signed in
+```
+
+### Answer
+
+1. **No.** The Claude reference says: "Do not include any identifying information such as name, email address, or phone number." The OpenAI guide says to hash the username or email.
+2. **Yes.** The Claude reference asks for "a uuid, hash value, or other opaque identifier". A hash hides who the person is.
+3. **Yes, for OpenAI.** The OpenAI guide says: "If you offer a preview of your product to non-logged in users, you can send a session ID instead." Our reading: the Claude reference names no session rule, but an opaque session ID fits its wording.
+
+## Recap
+
+- Use five steps: spot, contain, investigate, tell, learn (our list). Name an owner and make sure a person reads every alert and report.
+- Contain with the smallest step that can be undone, such as setting one key to inactive. Removing a person may not stop a workspace key; archiving a workspace can't be undone.
+- Logs help only if they were on before. Tell only checked facts, and learn by adding the case to your tests and fixing the rule that failed.
