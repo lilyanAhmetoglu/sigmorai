@@ -1,37 +1,39 @@
-# Lesson template rollout: resume notes (paused 2026-10-09)
+# Lesson template rollout: resume notes (paused again 2026-10-11)
 
-Paused by the maintainer for about 48 hours. Delete this folder when the rollout is done.
+Paused by the maintainer until they say "go". Delete this folder when the rollout is done.
 
 ## Merged into canary
 
-- builder r0–r7, strategist r0–r5, creator r0–r4 (PRs up to #194).
-- #195: e2e fix, the credited-chapter check is scoped to the main region.
+- Lessons: builder r0–r8, strategist r0–r6, creator r0–r5.
+- Realm art for r9–r11 (#198). e2e streaming fixes (#195, and in #199).
 
-## In progress (each branch ends in a `chore(content): save unfinished …` commit)
+## Open PR
 
-| Branch                           | State                                                              | Next step                                                             |
-| -------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `content/template-builder-r8`    | Written. Fact check + voice check done. Fixes partly applied.      | Finish `review-builder-r8.md` + `voice-builder-r8.md`, then PR.       |
-| `content/template-strategist-r6` | Written. Fact check + voice check done. Fixes done in c2, c3 only. | Finish `review-strategist-r6.md` + `voice-strategist-r6.md`, then PR. |
-| `content/template-creator-r5`    | c1–c3 written; c4–c6 drafted, not checked.                         | Finish c4–c6, run the checks, then fact check + voice check.          |
-| `content/template-strategist-r7` | c1–c3 drafted, not checked; c4–c6 not started.                     | Finish all six, run the checks, then fact check + voice check.        |
+- #200 strategist r7 — reviewed and fixed. Merge when CI is green.
 
-For r6 c4, use the fact check's wording "makes a related point", not "says the same in its own words".
+## Ready, PR not opened yet (one PR at a time)
+
+- `feat/realm-art-r12-r15` — art for r12–r15, cto review: ship. Open after #200.
+
+## In progress (branches end in a `chore(content): save unfinished …` commit if the agent was stopped mid-work)
+
+| Branch                            | State                                                     | Next step                                                                            |
+| --------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `content/template-creator-r6`     | Written. Both reviews done. Fixer was applying them.      | Finish `review-creator-r6.md` + `voice-creator-r6.md` (check the WIP note), then PR. |
+| `content/template-strategist-r8`  | Written. Both reviews done. Fixer was applying them.      | Finish `review-strategist-r8.md` + `voice-strategist-r8.md`, then PR.                |
+| `content/template-creator-r7`     | Written (d8ae969). Reviews were stopped before reporting. | Run fact check + voice check again, then fixer, then PR.                             |
+| `content/template-creator-r8`     | Writer was working.                                       | Finish the lessons (see the WIP commit), then reviews.                               |
+| `content/template-strategist-r15` | Writer was working.                                       | Finish the lessons, then reviews.                                                    |
+| `content/template-builder-r14`    | Writer was working.                                       | Finish the lessons, then reviews.                                                    |
 
 ## Not started
 
-strategist r8, r15 · creator r6–r13 · builder r14 · math f1–f8.
+creator r9–r13 · math f1–f8.
 
-## Later pass
+## After the rollout
 
-Change older case and quick-check explanations that say "OpenAI says", "Google says" or "Runway says" to "the <vendor> docs".
-
-## Open questions for the maintainer
-
-- Skip Vercel previews for content branches? (Free plan: 100 deploys a day.)
-- Add strategist and creator lines to `content/CLAUDE.md`?
-- Say "release" when ready.
+Notion ticket "Revise everything: content + code audit" — it lists the case and quick-check fixes found during the rollout.
 
 ## How each group goes
 
-Writer → content-reviewer + voice-guardian → one fixer applies both → PR → CI green → merge into canary. Open one PR at a time: a second e2e run cancels the first.
+Writer → content-reviewer + voice-guardian → one fixer applies both → PR → CI green → merge into canary. Open one PR at a time: a second e2e run cancels the first. Writers keep copying the case setup into the worked example; tell them to list the graded questions first and make sure the example answers none of them.
