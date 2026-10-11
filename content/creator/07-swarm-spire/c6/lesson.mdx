@@ -1,7 +1,7 @@
 ---
 id: creator/r7/c6/lesson
 title: Cost control
-minutes: 7
+minutes: 12
 sources:
   - kind: blog
     title: Anthropic · How we built our multi-agent research system
@@ -26,72 +26,178 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/pricing
 ---
 
-## Why it matters
+## Goal
 
-The client says: "Fifty versions. Budget is fixed." A team of helpers can spend money fast, and the bill comes after the work. Cost control means you know the number before the first request, and you have a brake for when the real number drifts.
+After this lesson you can:
 
-Cost per asset and the batch discount were covered in Bootstrap Village. Stop rules for one loop were covered in Agent Citadel. This lesson joins them into a plan for a whole run.
+- Write a budget table for a multi-agent job, with dated prices and a reserve, and add it up correctly.
+- Set caps at three levels: each item, each batch and the whole run.
+- Find the money limit in your agent tool, and write an effort rule into the brief.
 
-## Helpers use more tokens
+## The problem
 
-Anthropic shares numbers from its own research system. "In our data, agents typically use about 4× more tokens than chat interactions, and multi-agent systems use about 15× more tokens than chats." It concludes that for economic viability, multi-agent systems need "tasks where the value of the task is high enough to pay for the increased performance."
+An audio studio is launching a 10-episode audio drama. For every episode, it needs a short written blurb and a square cover image. A lead agent runs the job and starts helper agents. (An **agent** is a model that plans and uses tools on its own.)
 
-Those are Anthropic's figures for its research work, not a rule for ad studios. The point is the direction. Each extra helper adds its own prompts and its own model calls. A fixed pipeline with a few well-briefed roles costs less than a crowd of helpers.
+The producer says: "We have $15 for the whole season." The first test run looks like this:
 
-## The budget table
+- The lead agent started 9 helpers for one blurb.
+- Each cover was tried 6 or 7 times, because nothing said when to stop.
+- The bill for one episode was more than the season budget.
 
-This method is ours. One row for each kind of spend. Each row is **items × tries × price per try**.
+Nobody had written a number down before the run. This lesson shows how to plan the cost first, and how to put brakes on the run.
 
-Example for 30 ad versions (all numbers made up for this lesson):
+## The idea
 
-| Line                | Calculation          | Cost       |
-| ------------------- | -------------------- | ---------- |
-| Localise copy       | 6 markets × $0.10    | $0.60      |
-| Make images (batch) | 30 × 2 tries × $0.05 | $3.00      |
-| Check images        | 60 checks × $0.02    | $1.20      |
-| Producer agent run  | 1 run × $4.00        | $4.00      |
-| **Sum**             |                      | **$8.80**  |
-| Reserve, 25%        |                      | $2.20      |
-| **Plan total**      |                      | **$11.00** |
+### Helpers use more tokens
 
-Re-add it yourself. Notice two things. The image tries count tries, not keepers: two tries per version, so 60 checks. And the producer agent is the largest line, because the agent decides how long it runs.
+A **token** is a small piece of text. Models charge by the token. The [Anthropic post on its research system](https://www.anthropic.com/engineering/multi-agent-research-system) shares its own numbers: "In our data, agents typically use about 4× more tokens than chat interactions, and multi-agent systems use about 15× more tokens than chats."
 
-## Real prices, with dates
+The post's conclusion: multi-agent systems need "tasks where the value of the task is high enough to pay for the increased performance."
 
-Use the live pricing page for the price per try, and write the date next to it. On 2026-10-07, Google's pricing page lists Nano Banana 2.1 images at $0.0336 for a 1K image on Standard, and $0.0168 on Batch. On the same date, OpenAI's pricing page lists GPT Image 2.5 image output at $30.00 per 1M tokens on Standard and $15.00 on Batch. These prices will change. The method will not.
+Those are Anthropic's figures for research work, not a rule for audio studios. Our reading: the direction is what matters. Every extra helper adds its own prompts and its own model calls.
 
-## Why the reserve
+### The budget table
 
-Claude's batch docs say: "Because of high throughput and concurrent processing, batches may go slightly over your Workspace's configured spend limit." A limit set in an account is not a wall for a batch. Keep a reserve in the plan, so a small overrun still fits in the client's number. The reserve percent is your choice. Write it down.
+This method is ours. Write one row for each kind of spend. Each row is **items × tries × price per try**.
 
-## Caps at three levels
+Three rules make the table honest:
 
-Our view: a cap at one level is not enough.
+- **Count tries, not keepers.** If each cover gets 3 tries, you pay for 3 images, and you check 3 images.
+- **Add an agent line.** The lead agent's own run costs money, and it is the line that moves most.
+- **Add a reserve on top of the sum.** Write the percent down.
 
-1. **Each item.** A maximum number of tries. Two tries for each image in the example.
-2. **Each batch.** Send a pilot first (Chapter 4). Then send the rest.
-3. **The whole run.** A money limit that ends the work.
+### Real prices, with dates
 
-The tools differ. In Claude's Agent SDK, Claude "decides on its own when to spawn a subagent and how many to spawn", and a subagent can spawn its own, "so one prompt can grow into a tree of agents." The docs list three caps. Depth defaults to 3 layers. Concurrency defaults to 20 subagents at once. Spend is "No limit" by default, and you can set one with `max_budget_usd` in Python or `maxBudgetUsd` in TypeScript. At the spend cap, the SDK "refuses to spawn more subagents", stops background subagents that are still running, and ends the query with an `error_max_budget_usd` result. The docs say that on earlier releases some limits are missing or default differently, so check your version.
+Take the price per try from the live pricing page, and write the date next to it. On 2026-10-11:
 
-OpenAI's Agents SDK has a different brake. If a run goes past the `max_turns` value you set, it raises `MaxTurnsExceeded`. Agent Citadel covered this: each pass of the SDK's loop calls the model once, and `max_turns` caps the passes.
+- [Google's pricing page](https://ai.google.dev/gemini-api/docs/pricing) lists Nano Banana 2.1 at "$0.0336 per 1K image" on Standard and "$0.0168 per 1K image" on Batch.
+- [OpenAI's pricing page](https://developers.openai.com/api/docs/pricing) lists GPT Image 2.5 image output at $30.00 per 1M tokens on Standard and $15.00 on Batch.
+- The [Claude batch docs](https://platform.claude.com/docs/en/build-with-claude/batch-processing) say: "All usage is charged at 50% of the standard API prices."
 
-So ask your tool's owner: **what is the money limit, and who set it?** If the answer is "none", the cap is you.
+Prices change. The method does not.
 
-## Put an effort rule in the brief
+### Why a reserve
 
-Anthropic found that agents "struggle to judge appropriate effort for different tasks". So it put scaling rules in its prompts. Its examples: simple fact-finding needs 1 agent with 3 to 10 tool calls, and direct comparisons might need 2 to 4 helpers. Write the same kind of rule into the producer's brief: how many helpers, how many tries, and when to stop and ask.
+The Claude batch docs also say: "Because of high throughput and concurrent processing, batches may go slightly over your Workspace's configured spend limit." So an account limit is not a wall for a batch. A reserve keeps a small overrun inside the client's number.
 
-## Cheaper where it is easy
+### Caps at three levels
 
-Chapter 2 covered using a smaller model for easy roles. Anthropic's routing example sends easy, common work "to smaller, cost-efficient models". Our reading: use the cheap role for simple checks, and keep the strong role for judgment. Run a pilot to see if the cheap one is good enough.
+Our view: one cap is not enough.
 
-## What this means for your work
+1. **Each item:** a maximum number of tries.
+2. **Each batch:** a small test first, then the rest.
+3. **The whole run:** a money limit that ends the work.
 
-- **Write the budget table before the first request.** Items × tries × price.
-- **Date every price.** Take it from the live page.
-- **Add a reserve.** Batches can run a little over.
-- **Cap tries, batches and the whole run.**
-- **Find the money limit in your tool.** Do not assume one exists.
-- **Count helpers, not only images.** The agent line is the one that moves.
-- **Add the sum yourself.**
+Tools differ here. In the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/subagents) (an SDK is a software kit for developers), the docs say Claude "decides on its own when to spawn a subagent and how many to spawn". (A **subagent** is a helper agent started by another agent.) A subagent can start its own, "so one prompt can grow into a tree of agents." The docs list three caps:
+
+- Depth: default "`3` layers of subagents below your main agent".
+- Concurrency: default "`20` subagents running at once". This counts helpers, not money.
+- Spend: default "No limit". You set it with `max_budget_usd` in Python or `maxBudgetUsd` in TypeScript.
+
+At the spend cap, the SDK "refuses to spawn more subagents", "stops background subagents that are still running", and "ends the query with the `error_max_budget_usd` result subtype." The docs add that "On earlier releases, some of these limits are missing or default differently", so check your version.
+
+The [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) has a different brake: "If we exceed the `max_turns` passed, we raise a `MaxTurnsExceeded` exception." The docs describe the limit as "agent-loop turns (LLM calls)". It counts model calls, not money. Neither SDK knows your client's budget.
+
+Our advice: ask your tool's owner, "What is the money limit, and who set it?" If the answer is "none", the cap is you.
+
+### Put an effort rule in the brief
+
+The Anthropic research post says: "Agents struggle to judge appropriate effort for different tasks, so we embedded scaling rules in the prompts." Its examples:
+
+- "Simple fact-finding requires just 1 agent with 3-10 tool calls"
+- "direct comparisons might need 2-4 subagents with 10-15 calls each"
+- "complex research might use more than 10 subagents with clearly divided responsibilities"
+
+The post says these rules help "prevent overinvestment in simple queries". Write the same kind of rule into your lead agent's brief.
+
+### Cheaper where it is easy
+
+The [Anthropic post on building agents](https://www.anthropic.com/engineering/building-effective-agents) describes routing "easy/common questions to smaller, cost-efficient models". Our reading: use a smaller model for plain checks, keep the strong one for judgment, and test the cheap one first.
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+Brief:   "Make blurbs and covers for all 10 episodes. Bring in all the
+          helpers you like."
+Budget:  none written
+Caps:    none
+```
+
+### Step 2: the budget table
+
+Our example numbers are made up.
+
+```text
+Line              Calculation                     Cost
+Episode blurbs    10 episodes x $0.20             $2.00
+Covers (batch)    10 covers x 3 tries x $0.04     $1.20
+Check covers      30 checks x $0.06               $1.80
+Lead agent run    1 run x $5.00                   $5.00
+Sum                                               $10.00
+Reserve, 20%                                      $2.00
+Plan total                                        $12.00   (cap: $15.00)
+```
+
+Add it yourself: 2.00 + 1.20 + 1.80 + 5.00 = 10.00. The reserve is 20% of 10.00, which is 2.00. The plan total is 12.00, under the $15 cap.
+
+### Step 3: the hard case
+
+**The hard case is the check line.** A first draft said:
+
+```text
+Check covers      10 checks x $0.06               $0.60
+```
+
+That counts keepers, not tries. Every try is an image, and every image is checked. 10 covers × 3 tries = 30 checks. The draft was $1.20 too low. With the wrong line, the sum is $8.80 and the plan looks safer than it is.
+
+### Step 4: the caps and the brief
+
+```text
+Per item:   max 3 tries per cover; then a person picks the best
+Per batch:  test 2 covers the normal way, then batch the other 8
+Lead agent: max_budget_usd = 5.00 on its SDK call
+Whole run:  a person stops the job if total spend passes $12.00
+Brief:      "Use 1 helper for blurbs and 1 for covers.
+             Stop and ask a person if a cover fails 3 tries."
+```
+
+Simplified. See the docs for the exact request shape.
+
+The Claude Agent SDK docs say the spend cap "Counts the call's own spend, subagent requests included". Our reading: it does not see a cover batch you send through another API. So the whole-run limit still needs a person, or a script, watching the total. The $3 between the plan total and the client cap is room for a batch that goes slightly over.
+
+### Step 5: why it is better
+
+- **The number exists before the run.** Everyone can check it.
+- **Tries are counted honestly**, so checks are counted honestly too.
+- **Three brakes.** Tries, a test before the batch, and a spend cap.
+- **The brief limits effort.** The lead cannot start 9 helpers for one blurb.
+
+## Common mistakes
+
+1. **Counting keepers instead of tries.** The image and check lines come out too low. Fix: items × tries × price, for every line.
+2. **Assuming the tool has a money limit.** In the Claude Agent SDK, spend has "No limit" by default. Fix: set `max_budget_usd` yourself.
+3. **Trusting an account limit to stop a batch.** Batches can go slightly over. Fix: keep a written reserve.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+The studio wants 200 cover variations for a poster contest, using Nano Banana 2.1 at 1K. Use the prices listed above from 2026-10-11.
+
+1. What do 200 images cost on Standard?
+2. What do they cost on Batch?
+3. What must you write next to these numbers in the budget?
+
+### Answer
+
+1. **$6.72.** Our maths: 200 × $0.0336 = $6.72.
+2. **$3.36.** Our maths: 200 × $0.0168 = $3.36. That is half the Standard price.
+3. **The date and the page.** Prices change, so write "Google pricing page, 2026-10-11" next to them, and check the page again before the run.
+
+## Recap
+
+- Plan the money before the run: items × tries × price for every line, an agent line, and a written reserve. Add it up yourself.
+- Cap each item, each batch and the whole run. The Claude Agent SDK has no spend limit by default, and OpenAI's `max_turns` counts model calls, not money.
+- Agents are poor at sizing their own effort, so write scaling rules into the brief, and use smaller models for plain checks.
