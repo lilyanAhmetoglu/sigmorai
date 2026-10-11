@@ -133,7 +133,7 @@ export const REALMS = [
     npc: 'Guildmaster Ines',
     tier: 'intermediate',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 10,
@@ -142,7 +142,7 @@ export const REALMS = [
     npc: 'Lanternist Oto',
     tier: 'intermediate',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 11,
@@ -151,7 +151,7 @@ export const REALMS = [
     npc: 'Dyer Sabe',
     tier: 'beginner',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 12,

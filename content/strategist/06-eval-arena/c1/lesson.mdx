@@ -1,7 +1,7 @@
 ---
 id: strategist/r6/c1/lesson
 title: Define success
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -17,84 +17,150 @@ sources:
     url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
 ---
 
-## Why it matters
+## Goal
 
-Many AI pilots end with one sentence: "It seems to work." OpenAI's evaluation guide names this as an anti-pattern: **vibe-based evals**, where "it seems like it's working" is the whole test, or where nobody writes evals until after launch.
+After this lesson you can:
 
-An **eval** (evaluation) is a test for an AI system. Anthropic's post on evals describes it simply: give the AI an input, then apply grading logic to its output to measure success. You can't grade anything until you say what success is. This chapter is about writing that down before you buy, build or launch.
+- Turn a vague goal like "it should work well" into success criteria with a number and a test.
+- Set several criteria for one tool, with a stricter target for the mistakes that cost the most.
+- Build a test set from your own work, with the hard and messy cases included.
 
-## Good criteria have four qualities
+## The problem
 
-You met these four qualities in realm 2; here we apply them to buying decisions.
+A property company manages 4,000 flats. Tenants send repair requests by email: a broken boiler, a leaking tap, a lost key. A vendor sells a tool that reads each email, picks the right trade (plumber, electrician, locksmith) and sets the urgency.
 
-Anthropic's guide to success criteria says good criteria are:
+Five staff tried it for two weeks. The team lead said: "It seems to work. People like it." The director now wants to sign a three-year contract.
 
-- **Specific:** say exactly what you want. Not "good performance", but "accurate sentiment classification".
-- **Measurable:** use numbers, or a clear scale that people apply the same way each time.
-- **Achievable:** base targets on benchmarks, earlier experiments, research or expert knowledge.
-- **Relevant:** match the purpose and the users. The guide's example: citation accuracy can be critical for a medical app and matter less for a casual chatbot.
+Nobody wrote down what "work" means or counted mistakes. Nobody asked what happens when the tool marks a gas smell as "routine". Finance asks: "What exactly are we buying, and how will we know if it fails?"
 
-The guide shows that even "hazy" goals can be measured. A bad safety criterion is "Safe outputs". A good one is: "Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter."
+This lesson shows how to write success down before you buy, build or launch. The guidance below is from each vendor's docs (October 2026).
 
-Example: a legal team wants a contract summary tool. "It should summarise contracts well" is not a criterion. "On 200 of our past supplier contracts, the summary lists the notice period and the renewal date correctly in at least 95% of cases" is specific and measurable.
+## The idea
 
-## One number is rarely enough
+An **eval** (evaluation) is a test for an AI system. The Anthropic post [Demystifying evals for AI agents](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) puts it simply: "give an AI an input, then apply grading logic to its output to measure success." You cannot grade anything until you decide what success is. That decision is a **success criterion**: one thing the tool must do, with a target.
 
-The same guide lists criteria that may matter for a use case: task fidelity, consistency, relevance and coherence, tone and style, privacy preservation, context utilisation, latency and price. It says most use cases need evaluation along several success criteria.
+**"It seems to work" is not a test.** The [OpenAI evaluation guide](https://developers.openai.com/api/docs/guides/evaluation-best-practices) lists "vibe-based evals" as an anti-pattern. It means trusting a feeling ("it seems like it's working"), or writing no evals until after launch.
 
-Its sentiment example sets four targets at once: a quality score, a share of non-toxic outputs, a response-time limit, and a rule about errors. That last one says 90% of errors should cause only inconvenience, not an egregious error. The guide adds that you would also define what "inconvenience" and "egregious" mean.
+**Four qualities of a good criterion.** The [Claude docs on success criteria](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) list them:
 
-That idea fits business work well. Not every mistake costs the same.
+- **Specific.** Say exactly what you want. "Good performance" is not specific. Name the task and what "right" means.
+- **Measurable.** Use numbers, or a clear scale that people apply the same way each time.
+- **Achievable.** "Base your targets on industry benchmarks, prior experiments, AI research, or expert knowledge."
+- **Relevant.** Fit the purpose and the users. "Strong citation accuracy might be critical for medical apps but less so for casual chatbots."
 
-## Put a price on mistakes
+Even fuzzy goals like safety can get a number. The docs show a bad safety criterion, "Safe outputs", and a good one: "Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter." The good one names a test size, a check and a limit.
 
-OpenAI's accuracy guide makes the same point with money. There is a difference between a bad draft that a person has to fix and refunding a customer $1,000 instead of $100. The guide says to start any accuracy discussion with a rough idea of what a failure costs you and what a success saves or earns you.
+**One number is rarely enough.** The same docs list criteria that may matter: task fidelity (how well it does the job), consistency, relevance and coherence, tone and style, privacy, use of context, latency (speed) and price. They say: "Most use cases need multidimensional evaluation along several success criteria." Speed and price are real criteria, not only buying questions.
 
-Example: for the contract tool, a clumsy sentence costs a lawyer one minute. A missed auto-renewal clause can lock the company into another year with a supplier. These two errors need different targets, not one shared accuracy score.
+Their sentiment example sets four targets at once. One is about errors: "90% of errors would cause inconvenience, not egregious error". A footnote says that in reality you would define both of those words, too.
 
-## Test on your own work
+**Not every mistake costs the same.** The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) says "there is a difference between producing a bad copy that a human needs to fix vs. refunding a customer $1000 rather than $100." It tells you to start with "a rough picture of how much a failure by the LLM costs you, and how much a success saves or earns you".
 
-OpenAI's guide says the word "evals" can mean three things: industry benchmarks that compare models in isolation, standard numerical scores, and specific tests you build for your own application. The guide is about the third kind.
+Our example: you can live with a doorbell that misses one ring in fifty. You cannot live with a smoke alarm that does. Give costly mistakes their own, stricter target. Keep cheap mistakes in the test too, with a looser target, because many small errors still add up.
 
-A vendor's benchmark score tells you about a model on someone else's tasks. Your acceptance test should look like your own work. Anthropic's guide says to design evals that mirror your real-world task distribution and to include edge cases, for example:
+**Test on your own work, not only a benchmark.** The OpenAI guide says "evals" can mean three things. Industry benchmarks are "for comparing models in isolation". Standard scores are tools you can use. The third kind is tests you build for your own application, and the guide is about that kind. A vendor's benchmark score is about someone else's tasks.
 
-- irrelevant or missing input data,
-- very long input,
-- ambiguous cases where even humans would disagree.
+The Claude docs say: "Design evals that mirror your real-world task distribution." In plain words: your test should hold the same mix of jobs as your real work. They also say not to forget edge cases (rare or hard inputs), such as:
 
-## A five-step eval process
+- "Irrelevant or nonexistent input data"
+- "Overly long input data or user input"
+- **Ambiguous** tasks, where "even humans would find it hard to reach an assessment consensus"
 
-OpenAI's guide gives a simple workflow:
+**Who should write the criteria.** The Anthropic post says evals "force product teams to specify what success means". It warns that two engineers may handle edge cases in different ways after reading one spec, and a written test removes that doubt. It adds that the people nearest to the users and the product needs are the best ones to define success. It names "product managers, customer success managers, or salespeople". So business people should write the criteria, not leave them to the vendor or the engineers.
 
-1. **Define the eval objective:** what are the success criteria?
-2. **Collect a dataset:** for example production data, historical data, expert-made examples or synthetic data.
-3. **Define eval metrics:** how will you check that the criteria are met?
-4. **Run and compare evals.**
-5. **Continuously evaluate:** run evals on every change, monitor the app and grow the eval set over time.
+## Worked example
 
-Its document Q&A example sets clear numbers for the metrics, including "70+% positively rated answers". The point is not the exact numbers. The point is that the target exists before the test runs.
+### Step 1: the weak criteria
 
-## Business people should write the criteria
+```text
+Repair triage tool: acceptance criteria v1
+1. The tool should understand tenant emails well.
+2. Urgent jobs are handled safely.
+3. Staff are happy with it after the trial.
+4. It should be fast and not too expensive.
+```
 
-Anthropic's post says evals force product teams to specify what success means. It gives a reason: two engineers can read the same spec and handle edge cases differently. An eval suite removes that doubt.
+What goes wrong:
 
-The post also says the people closest to product requirements and users are best placed to define success. It names product managers, customer success managers and salespeople.
+- "Well" and "safely" have no number and no test. Nobody can pass or fail them.
+- "Staff are happy" is a feeling, not a scale people apply the same way.
+- "Fast" and "not too expensive" name the right topics, but give no limit.
+- Privacy is missing, and the costly mistakes have no target of their own.
 
-## A success sheet
+### Step 2: price the mistakes
 
-This sheet is a tool for this course. Before a pilot, fill in one row per criterion:
+The repairs manager estimates the cost of each mistake:
 
-| Criterion          | Target                    | How we measure              | Cost of a miss |
-| ------------------ | ------------------------- | --------------------------- | -------------- |
-| Renewal date right | 95% of 200 past contracts | Compare with lawyer's notes | High           |
-| Summary length     | Under 250 words           | Word count                  | Low            |
-| Personal data      | Never in the summary      | Reviewer check              | High           |
-| Time to answer     | Under 30 seconds          | Tool log                    | Low            |
+```text
+Mistake                                  Rough cost
+Wrong trade on a routine job             a second visit, about $90
+Routine job marked urgent                an out-of-hours fee, about $150
+Gas smell or flood marked routine        danger to tenants, possible legal case
+```
 
-## Key points
+The last row needs its own, much stricter target.
 
-- "It seems to work" is not a test; write success criteria first.
-- Good criteria are specific, measurable, achievable and relevant.
-- Most uses need several criteria: quality, tone, privacy, speed and price.
-- Put a rough cost on each kind of failure; set stricter targets for costly ones.
-- Test on your own tasks and edge cases, not only on a vendor's benchmark.
+### Step 3: write criteria with numbers
+
+```text
+Test set: 400 past repair emails from last year, in the real mix
+(about 60% plumbing, 25% electrical, 15% other), including:
+  - 40 emails with no address or no flat number
+  - 30 very long emails with photos and old threads pasted in
+  - 30 emails where two repair managers disagreed on urgency
+
+Criterion            Target                                   How we check
+Danger jobs          100% of the 25 gas/flood/fire emails      code check on
+                     marked urgent                            the label
+Trade correct        at least 92% of the 400                  compare with the
+                                                              job that was done
+Urgency correct      at least 90% of routine and urgent jobs  manager's label
+Missing details      asks for the address, never guesses one  reviewer reads all 40
+Personal data        tenant phone numbers never sent to the   reviewer check
+                     trade outside the job card
+Speed                95% of labels within 60 seconds          tool log
+Price                under $0.05 per email                    vendor bill ÷ emails
+```
+
+### Step 4: the hard case
+
+**This is the hard case.** Look at the 30 emails where two managers disagreed on urgency. There is no single "right" label to compare with. If you grade them like the rest, the tool fails or passes by luck.
+
+So these 30 get their own rule: the tool must flag each one for a person, or pick the more urgent of the two labels. A tool that marks one of them "routine" fails that row, even if one manager agreed.
+
+### Step 5: why it is better
+
+- **Every row can pass or fail.** Each has a number, a test set and a way to check.
+- **The costly mistake has its own target.** Danger jobs are not hidden inside an average.
+- **The test looks like real work.** It uses the real mix of trades and the messy emails.
+- **Written before the trial.** Nobody can move the goalposts after seeing a result.
+
+## Common mistakes
+
+1. **A goal with no number.** "Fast", "accurate" or "safe" alone cannot fail. Fix: add a number, a test set and how you will check it.
+2. **One average for all errors.** A rare, costly mistake disappears inside a good overall score. Fix: give costly mistakes their own stricter target, and keep cheap ones with a looser target.
+3. **Testing only clean, typical cases.** The tool looks great until real, messy input arrives. Fix: build the test from your own past work in its real mix, and add missing, very long and unclear inputs.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A dental clinic group wants an AI chat tool that books, moves and cancels appointments on its website. The manager wrote these criteria. Find three problems and fix them.
+
+```text
+1. Patients find the bot friendly.
+2. The bot books appointments correctly.
+3. We will measure results after three months live.
+```
+
+### Answer
+
+1. **A feeling, not a measure.** Fix: "On 200 past chats, at least 90% of replies score 4 or 5 on our 1–5 tone guide, rated by two receptionists."
+2. **No number, no test, no edge cases.** Fix: "On 300 past requests in the real mix, at least 97% of bookings have the right date, time and dentist." Add requests with no date, very long ones, and unclear ones. Add a stricter row for the costly mistake: cancelling a visit the patient wanted to keep.
+3. **Testing only after launch.** Fix: run the test before the bot goes live. Add speed and price rows. Let the front-desk team write the criteria, because they know the patients best.
+
+## Recap
+
+- Write success criteria before you buy, build or launch. Each one should be exact, have a number, be realistic and fit the purpose.
+- Most tools need several criteria, including speed and price. Put a rough cost on each kind of mistake, and set stricter targets for the costly ones.
+- Test on your own work, in its real mix, with edge cases. A vendor's benchmark is not your test.

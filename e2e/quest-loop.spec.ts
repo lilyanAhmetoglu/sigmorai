@@ -33,6 +33,12 @@ const QUEST = '/quest/strategist/r0/c1';
 /** Clerk's account button (UserButton); `cl-<element>` is Clerk's stable appearance class. */
 const ACCOUNT_BUTTON = '.cl-userButtonTrigger';
 
+/**
+ * The page's main region. While a page streams, React can hold a hidden second copy of late
+ * content at the end of <body>, so an unscoped getByText can match twice (strict mode fails).
+ */
+const main = (page: Page) => page.locator(`#${MAIN_CONTENT_ID}`);
+
 /** Pick one option per question by its text, inside that question's group. */
 async function pick(page: Page, answers: Answer[], which: 'right' | 'wrong') {
   for (const answer of answers) {
@@ -160,12 +166,8 @@ test('a case cleared on the builder path credits its strategist twin', async ({ 
 
   // The strategist realm page shows its twin as cleared, and says where.
   await page.goto(realmHref(REALMS[0].slug, 'strategist'));
-  // Scoped to the main region: while the page streams, React can hold a hidden second copy of the
-  // chapter list at the end of <body>, and an unscoped getByText then matches twice.
   await expect(
-    page
-      .locator(`#${MAIN_CONTENT_ID}`)
-      .getByText(REALMS_TEXT.creditedFrom(TRACK_TEXT.builder.label)),
+    main(page).getByText(REALMS_TEXT.creditedFrom(TRACK_TEXT.builder.label)),
   ).toBeVisible();
   // The lock follows the credit: chapter 5 opens (chapters 1–3 are not done).
   const c5 = page
@@ -176,7 +178,7 @@ test('a case cleared on the builder path credits its strategist twin', async ({ 
 
   // The twin's case is a replay: no HP, no XP.
   await page.goto('/quest/strategist/r0/c4/challenge');
-  await expect(page.getByText(QUEST_TEXT.replayNote)).toBeVisible();
+  await expect(main(page).getByText(QUEST_TEXT.replayNote)).toBeVisible();
   await pick(page, answersFor('strategist/00-bootstrap-village/c4', 'case.json'), 'right');
   await submit(page);
   await expect(page.getByText(QUEST_TEXT.passedReplay)).toBeVisible();
