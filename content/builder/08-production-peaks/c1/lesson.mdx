@@ -65,7 +65,7 @@ The [Claude errors page](https://platform.claude.com/docs/en/api/errors) says a 
 | Claude 400 `invalid_request_error`, "You have reached your specified API usage limits"     | A spend limit you set yourself |
 | Claude 500 or 529, OpenAI 503 `server_is_overloaded`                                       | A problem on the vendor side   |
 
-The spend-cap 429 is the trap. The Claude docs say: "Retrying, including the SDK's automatic retries, fails until access resumes." Usage pauses until the first day of the next month, unless the organization gets a higher limit sooner. The docs call it "the maximum your organization can spend". Our reading: another key in the same organization gets the same error. OpenAI has a similar case: a hard spend limit makes affected requests return a 429. Its guide says: "Don't retry quota, billing, or other errors that require you to take action."
+The spend-cap 429 is the trap. The Claude docs say: "Retrying, including the SDK's automatic retries, fails until access resumes." Access comes back only when the next month starts, unless the organization gets a higher limit sooner. The docs call it "the maximum your organization can spend". Our reading: another key in the same organization gets the same error. OpenAI has a similar case: when a hard spend limit is hit, affected requests get a 429. Its guide says: "Don't retry quota, billing, or other errors that require you to take action."
 
 ### Retries can make it worse
 
@@ -100,7 +100,7 @@ The other vendors work the same way:
 
 ### Caching adds room
 
-For most Claude models, "only uncached input tokens count toward your ITPM rate limits". The docs' example: with a 2,000,000 ITPM limit and an 80% cache hit rate, you can process about 10 million input tokens a minute (2M uncached plus 8M cached).
+For most Claude models, "only uncached input tokens count toward your ITPM rate limits". The docs' example: with a 2,000,000 ITPM limit and an 80% cache hit rate, you can process roughly 10,000,000 input tokens a minute (2M uncached plus 8M cached).
 
 ## Worked example
 
@@ -152,7 +152,7 @@ The limit is 600 RPM. The queue sends about 50 tips in the first second. Our rea
 - Spend-cap errors stop at once, and a person hears about it.
 - Jitter spreads the retries, so workers do not hit the limit together.
 - One layer and a time cap keep the worst case small: 3 requests and 30 s.
-- A steady ramp avoids the 429s that come from fast growth.
+- Steady steps, for the queue and for new traffic, avoid 429s from short bursts and fast growth.
 
 ## Common mistakes
 
@@ -175,4 +175,4 @@ A streamed tip stops halfway with an error event, after the API already sent 200
 
 - A 429 can be a rate limit, an acceleration limit or a spend cap. Only some of them clear with time.
 - Never retry before `retry-after` ends, add jitter, cap attempts and total time, and keep one retry layer.
-- Keep workloads apart with workspaces or projects. Limits belong to the organization, workspace or project, not the key.
+- Keep workloads apart with workspaces or projects. The organization, workspace or project owns the limits, not the key.

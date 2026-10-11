@@ -77,7 +77,7 @@ A fallback answers when the main model cannot. The vendors already show small ve
 
 - **Claude Priority Tier:** with `service_tier` set to `auto`, a request uses Priority capacity when available and falls back to standard ([service tiers](https://platform.claude.com/docs/en/api/service-tiers)). New Priority commitments are no longer sold.
 - **Claude fast mode:** when it is rate limited, you can "catch the rate limit error and retry without `speed: "fast"`". The docs warn this causes a prompt cache miss: "Requests at different speeds do not share cached prefixes."
-- **OpenAI Flex:** on a `429 Resource Unavailable`, retry with standard processing by setting `service_tier` to `auto` (chapter 2).
+- **OpenAI Flex:** on a `429 Resource Unavailable`, send the request again on standard processing by setting `service_tier` to `auto` (chapter 2).
 
 A second model is a bigger step. Our rules for it:
 
@@ -177,7 +177,7 @@ switches:   model id, prompt version, fallback on/off, traffic %, all without a 
 ### Step 6: why it is better
 
 - A model retirement is a config change, not a code hunt.
-- The fallback is tested, visible, and sized against its own limit.
+- The fallback passed the evals, and only traffic that fits its limit can use it.
 - The ramp follows the OpenAI docs' rule of thumb and reaches full demand in about an hour.
 - A bad change rolls back in seconds, not 25 minutes.
 
@@ -203,6 +203,6 @@ A team reviews its launch plan and finds two choices. Find the problem in each.
 
 ## Recap
 
-- Models retire. The Claude docs promise 60 days' notice or more. The OpenAI docs promise 6 months or more for generally available models, and preview models can go in about 2 weeks.
+- Models retire. The Claude docs promise 60 days' notice or more. The OpenAI docs promise 6 months or more when a model is generally available, and preview models can go in about 2 weeks.
 - Use a fallback only for rate limits, overloads and timeouts. Test it on your evals and at peak load, and log when it is used.
 - Ramp in steps, use alerts below hard limits, and put every risky choice behind a switch.
