@@ -137,15 +137,24 @@ in_tokens=2400 out_tokens=180 cached_tokens=2000
 
 The user is a hash, not a name or email. The prompt and reply text are not in the line. Here `total_ms` and `vendor_ms` are close, so this call spent its time in processing, not on the way there.
 
-### Step 3: the hard case, a call with no answer
+### Step 3: the hard case, choosing your own id
+
+The first version of the bot sent the user's email as its own id:
 
 ```text
-time=2026-10-07T13:47:55Z feature=holidays model=<model id>
-user=hash:91bb... server_id=none client_id=bot-7f3e90
-status=timeout attempts=1 total_ms=60000
+X-Client-Request-Id: jürgen.weiß@example.com
 ```
 
-No server id came back. But the team sent `bot-7f3e90` as `X-Client-Request-Id`, so OpenAI support can check whether the request arrived. Without it, this call would be lost.
+This has three problems. The OpenAI API reference allows "only ASCII characters", so the letters ü and ß make the request fail with a 400 error. One user sends many requests, so the id is not unique per request. And an email is customer data in every log line.
+
+The fix: make a new random id for each call, before you send it, and write it in the log line.
+
+```text
+X-Client-Request-Id: bot-4c09d2a7
+log: client_id=bot-4c09d2a7 user=hash:91bb... feature=holidays
+```
+
+Now every call has an id you control, even when the server sends nothing back.
 
 ### Step 4: charts and alerts
 
@@ -176,11 +185,12 @@ check:  daily totals vs the vendor's usage report
 
 Not graded. Write your answer down before you read the answer.
 
-A research agent on the OpenAI Agents SDK answers one question with 4 model calls and 3 tool calls. Users say some answers take 40 seconds. The team has one log line per model call, and nothing else. What can they not see, and what should they add?
+A finance lead wants a chart of the company's Claude spend for every hour of the day. The plan: read the cost endpoint of Claude's Usage and Cost API. The company also has an older Priority Tier commitment. Find the two problems with the plan.
 
 ### Answer
 
-They cannot see how the calls connect: which tool calls belong to which run, in what order, and which step took the 40 seconds. A slow tool call does not appear at all, because only model calls are logged. Fix: use the SDK's tracing, which is on by default in the normal server-side path. One trace then shows every model call, tool call and handoff of a run. Add a custom span around any slow step you want to time, and group related runs with `withTrace`.
+1. **The cost endpoint has no hourly data.** The Claude docs say: "Daily granularity only (`1d`)". For an hourly view, read the usage endpoint with `1h` buckets. It gives token counts, not money.
+2. **Priority Tier spend is missing from the cost endpoint.** The Claude docs say: "Priority Tier costs are not available in the cost endpoint." Track that usage in the usage endpoint instead, by `service_tier`.
 
 ## Recap
 

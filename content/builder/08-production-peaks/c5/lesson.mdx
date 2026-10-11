@@ -173,12 +173,12 @@ The team's client has a 30 s timeout per attempt and 3 attempts. On a bad day on
 
 Not graded. Write your answer down before you read the answer.
 
-A team turns on Claude fast mode for its chat. They see that the time to first token did not change, and they say: "Fast mode is broken." They also plan to switch the model to Claude Opus 4.7 to save money. Find the two problems.
+A team uses Claude fast mode for a code review helper. At busy times some calls get a 429 error. Their standard Opus limit still shows plenty of room, so they say: "The 429 must be a bug." Their plan: on a 429, send the same call again at standard speed, and keep the prompt cache savings. Find the two problems.
 
 ### Answer
 
-1. **Fast mode is working.** The docs say it speeds up the output, and the first token is not where the gain is. Check how fast the full reply arrives instead.
-2. **Opus 4.7 does not support fast mode.** The docs say requests to it with `speed: "fast"` return an error. Fast mode works on Claude Opus 5.5, Claude Opus 5 and Claude Opus 4.8.
+1. **The 429 is not a bug.** The Claude docs say: "Fast mode has a dedicated rate limit that is separate from standard Opus rate limits." Check the `anthropic-fast-*` rate limit headers, not the standard ones.
+2. **The fallback is fine, but the cache will miss.** The Claude docs say: "Requests at different speeds do not share cached prefixes." So the first standard call gets no cache discount. Count that cost before you choose the fallback.
 
 ## Recap
 
