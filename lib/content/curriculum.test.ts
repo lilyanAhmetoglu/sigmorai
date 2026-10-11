@@ -28,8 +28,9 @@ describe('curriculum constants', () => {
     expect(REALMS.filter((r) => r.track !== null).every((r) => r.id >= 9)).toBe(true);
   });
 
-  test('r9 Canvas Workshop: creator only, no art yet (flat surface-3 scene)', () => {
-    expect(REALMS[9]).toMatchObject({ slug: 'canvas-workshop', track: 'creator', scene: false });
+  test('r9 Canvas Workshop: creator only, with its own level art (realm-09)', () => {
+    expect(REALMS[9]).toMatchObject({ slug: 'canvas-workshop', track: 'creator', scene: true });
+    expect(realmArt(9)).toBe('/levels/realm-09');
   });
 
   test('one floor row per floor, n = position + 1', () => {

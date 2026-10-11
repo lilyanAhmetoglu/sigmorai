@@ -46,7 +46,8 @@ test('level map: a realm with no art shows a named banner; no sideways scroll on
   page,
 }) => {
   await page.setViewportSize(PHONE);
-  const realm = REALMS.find((r) => r.slug === 'canvas-workshop')!;
+  // The first realm still without art (r9–r11 have theirs since the realm-art PR).
+  const realm = REALMS.find((r) => !r.scene)!;
   await page.goto(`/map/${realm.slug}`);
   await expect(page.locator('.quest-map-banner[data-flat]')).toContainText(realm.name);
   const sideways = await page.evaluate(
