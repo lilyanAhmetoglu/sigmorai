@@ -1,7 +1,7 @@
 ---
 id: creator/r8/c5/lesson
 title: Incident plan
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · Safety best practices
@@ -23,93 +23,170 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/safety-guidance
 ---
 
-## Why it matters
+## Goal
 
-At 09:10 someone finds an API key pasted into a public design file. At 11:40 an approved ad is live with a garbled logo. On Friday a video tool stops working for good. Each is an **incident**: something goes wrong in production, and the clock is running.
+After this lesson you can:
 
-You do not need to fix them yourself. You need a plan written before they happen, so that nobody argues about who does what.
+- Write a one-page incident plan with a trigger, a first action and a named owner on every row.
+- Put "stop the harm" before "find the cause", and know when a vendor's normal order changes.
+- Read a vendor's deprecation page and turn a shutdown date into a deadline on your calendar.
 
-## What counts as an incident
+## The problem
 
-This list is ours, not a vendor's.
+Kiln is a small studio that makes short product videos for online shops. Two AI tools run its business:
 
-| Kind                | Example                                      |
-| ------------------- | -------------------------------------------- |
-| A secret leaks      | An API key in a public file                  |
-| A bad asset is live | A wrong logo, a wrong claim, a missing label |
-| A tool changes      | A model is retired or an API is shut down    |
-| Someone misuses it  | A fan-facing generator makes an unsafe image |
-| A limit stops work  | A hard spend limit or a rate limit on launch |
+- a video pipeline that calls a Veo 3.1 preview model through the Gemini API
+- a "mood board" web tool where clients type ideas and get images from an OpenAI image model
 
-## Five steps for any incident
+The studio's whole incident plan is one line in the team wiki:
 
-This method is also ours. Use it as a frame.
+```text
+If anything breaks, post in #general. Whoever sees it, fixes it.
+```
 
-1. **Spot.** How will you hear about it?
-2. **Contain.** Stop the harm first: pause, revoke, switch off.
-3. **Fix.** Replace the asset, the key or the tool.
-4. **Tell.** Say who needs to know, and who says it.
-5. **Learn.** Change the plan so it is less likely to happen again.
+An **incident** is something going wrong in production (the live work clients see), while the clock runs. With this plan, everyone sees the alarm, and everyone assumes someone else is on it. This lesson replaces the one line with a real page.
 
-Contain comes before fix. Pausing a bad ad takes a minute. Finding the cause can take a day.
+## The idea
 
-## Spot: plan how you will hear
+### Five steps for any incident
 
-Google's safety guidance says: "No matter how much you test and mitigate, you can never guarantee perfection, so plan upfront how you'll spot and deal with problems that arise." It suggests a monitored channel for user feedback.
+This frame is ours, not a vendor's.
 
-OpenAI says users should have an easy way to report problems, such as a listed email address or a ticket form. That method "should be monitored by a human and responded to as appropriate".
+```text
+1 Spot     how will we hear about it?
+2 Contain  stop the harm: pause, revoke, switch off
+3 Fix      replace the asset, the key or the tool
+4 Tell     who must know, and who tells them
+5 Learn    change the plan so it is less likely next time
+```
 
-A channel nobody reads is not a plan. Name the person who reads it.
+Contain comes before fix. Pausing a bad ad takes a minute. Finding why it went wrong can take a day, and the harm keeps going while you look.
 
-## A leaked key: revoke, replace
+A comparison: in a kitchen fire you turn off the gas first. You find out who left the pan on later.
 
-OpenAI's guidance is short: if you believe a key "has been exposed, misused, or otherwise compromised, revoke it promptly and replace it with a new key".
+### Spot: plan how you will hear
 
-OpenAI also describes the normal order for changing a key: create a replacement, update your applications to use it, and revoke the old key "once you've verified that the replacement works". In a leak you may revoke first, because the harm is live. Then replace.
+The [Gemini safety guidance](https://ai.google.dev/gemini-api/docs/safety-guidance) says: "No matter how much you test and mitigate, you can never guarantee perfection, so plan upfront how you'll spot and deal with problems that arise." It suggests a monitored channel where users can share feedback.
 
-Afterwards, look at the usage page to see what the key did. OpenAI says to keep keys out of code and public repositories, and to use environment variables or a secret manager.
+The [OpenAI safety guide](https://developers.openai.com/api/docs/guides/safety-best-practices) says users should have an easy way to report problems, such as a listed email address or a ticket form. That method "should be monitored by a human and responded to as appropriate".
 
-## A tool that goes away
+Our reading: a channel that nobody is named to read is not monitored.
 
-Models and APIs are retired. Vendors give notice, but the notice differs.
+### Contain: a leaked key
 
-- **OpenAI:** generally available models get at least 6 months. Specialized variants get at least 3 months. Preview models "may be retired with much shorter notice, such as 2 weeks". OpenAI does not recommend previews for business-critical work unless you can migrate on short notice.
-- **Claude:** at least 60 days' notice before retirement for publicly released models. "Requests to retired models will fail."
-- **Gemini:** its page lists the earliest possible shutdown dates, and says the exact date will be communicated with advance notice.
+An API key is the password your tools use to call a vendor. The OpenAI safety guide says: "If you believe an API key has been exposed, misused, or otherwise compromised, revoke it promptly and replace it with a new key."
 
-A real example: OpenAI told developers on March 24, 2026 that the Videos API and the Sora 2 models would be removed on September 24, 2026. After that date, calls to them cannot work. Retrying does nothing.
+The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) also describes the normal, calm change of a key, called **rotation**: create a replacement, update your applications to use it, and revoke the old key "once you've verified that the replacement works".
 
-What helps:
+Two orders, two situations:
 
-- **Know what you use.** Claude's Usage page can export a list of usage by API key and model.
-- **Give one person the job of reading the deprecation pages** each month.
-- **Test a replacement before the date.** Claude's page says to test with newer models well before the retirement date.
-- **Be careful with previews.** A model with "preview" in its name can go away fast.
+```text
+Normal rotation:  new key -> update apps -> revoke old
+Leak:             revoke old now -> new key -> update apps
+```
 
-## A bad asset that is live
+In a leak the harm is live, so the slow, safe order is the wrong one. Afterwards, the production guide says API key usage can be monitored on the Usage page once tracking is on. It also says to keep keys out of code and public repositories, and to use environment variables or a secret manager instead.
 
-For a wrong logo or claim, the vendors' docs do not decide. Your plan does. A good first move is to pause the ad or post, swap in the approved master, and tell the people who must know. Chapter 1 told you to keep a master. This is why.
+### Trace: who did it?
 
-## Someone misuses your tool
+If the public can use your tool, one bad user can cause trouble for your whole account. The OpenAI safety guide recommends **safety identifiers**: a string that uniquely identifies each user, sent with each request. They give "a stable way to trace activity back to an individual end user" and "reduce the chance that one user's misuse disrupts access for your broader organization". The guide says: "Hash the username or email address in order to avoid sending us any identifying information." A hash turns text into a scrambled code that cannot easily be turned back.
 
-If your studio builds something fans can use, OpenAI recommends **safety identifiers**: a string that identifies each user, such as a hash of their email. OpenAI says they give "a stable way to trace activity back to an individual end user" and "reduce the chance that one user's misuse disrupts access for your broader organization". Without them, one bad user can put the whole account at risk.
+### Plan for tools that go away
 
-## Write the plan on one page
+Vendors retire models and APIs. They give notice, but the notice is different for each vendor.
 
-This table is ours. Fill it in before launch.
+- **OpenAI** ([deprecations page](https://developers.openai.com/api/docs/deprecations)): generally available models get at least 6 months; specialized variants at least 3 months. Preview models "may be retired with much shorter notice, such as 2 weeks". OpenAI does not recommend previews "for business-critical production workloads unless you can migrate on short notice".
+- **Claude** ([model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations)): at least 60 days' notice for publicly released models. "Requests to retired models will fail." The page suggests testing newer models "well before the retirement date". Its Usage page can export a list of usage by API key and model.
+- **Gemini** ([deprecations](https://ai.google.dev/gemini-api/docs/deprecations)): the shutdown dates in its table are "the _earliest possible dates_" a model might be retired. Google says it will tell users the exact date with advance notice.
 
-| Trigger                | First action                    | Owner | Who is told |
-| ---------------------- | ------------------------------- | ----- | ----------- |
-| Key leaked             | Revoke it, then replace         | name  | name        |
-| Wrong asset live       | Pause, swap in the master       | name  | name        |
-| Tool retirement notice | Test a replacement, set a date  | name  | name        |
-| User reports misuse    | Check the user, block if needed | name  | name        |
+A real example from the OpenAI page: on March 24, 2026, developers were told that the Videos API and the Sora 2 models would be removed on September 24, 2026. The table lists no replacement. After a shutdown date, calls fail. Retrying does nothing.
 
-## What this means for your work
+## Worked example
 
-- **Write the plan before launch.** Names, not teams.
-- **Contain first.** Stop the harm, then find the cause.
-- **Revoke leaked keys at once.**
-- **Watch the deprecation pages.** A shutdown date is a deadline.
-- **Avoid previews for anything the business needs.**
-- **Keep the master.** It is how you replace a wrong asset fast.
+### Step 1: the weak plan
+
+```text
+If anything breaks, post in #general. Whoever sees it, fixes it.
+```
+
+What is missing: no triggers, no first actions, no owners, no way for clients to report, and no watch on the tools.
+
+### Step 2: list the triggers
+
+Our list for Kiln:
+
+```text
+a key leaks            a wrong video is live      a client reports an unsafe image
+a tool is retired      a limit stops the pipeline
+```
+
+### Step 3: write one row per trigger
+
+The names are made up for this example.
+
+```text
+Trigger              First action (contain)             Then (fix)                 Owner
+Key leaked           revoke the key now                 new key, update apps,      Dana
+                                                        check the Usage page
+Wrong video live     pause the ad, swap in the master   find the cause             Theo
+Unsafe image report  check the user's history,          review the prompt rules    Dana
+                     block if needed
+Tool retirement      test a replacement now             switch before the date     Theo
+Pipeline stopped     pause new orders, tell clients     find the meter that ran    Theo
+                                                        out, pace the job
+Reports inbox        read twice a day                   reply within one day       Sam
+```
+
+### Step 4: the hard case
+
+**The hard case is the video pipeline.** Theo opens the Gemini deprecations page in October 2026 and finds the model Kiln uses:
+
+```text
+veo-3.1-generate-preview   shutdown date: October 22, 2026
+recommended replacement:   gemini-omni-1.1-flash
+```
+
+Three things make this hard:
+
+- **The date is the earliest possible one.** The page says the exact date will be announced. It could be later, but Kiln cannot plan on that.
+- **It is a preview model.** Kiln built a paying service on it. The Gemini page tracks previews too, and this one has a date only days away.
+- **Retrying will not help.** After a shutdown, the endpoint is gone.
+
+So Theo treats October 22 as the real deadline. The plan: test the replacement on five past orders this week, compare the results with the approved masters, and switch the pipeline before the date. Theo also books a monthly check of all three vendors' deprecation pages.
+
+### Step 5: add the mood board fixes
+
+The mood board tool sends no safety identifier. Dana adds one: a hash of each client's login email, sent with every request. Now one client's misuse can be traced to that client, instead of putting the whole account at risk.
+
+### Step 6: why it is better
+
+- **Every row has a name.** Nobody waits for "someone".
+- **Contain comes first.** Each row starts with the step that stops the harm.
+- **Deadlines come from the vendor's page,** not from the day the tool breaks.
+- **Clients can report,** and a named person reads the reports.
+
+## Common mistakes
+
+1. **Using the calm rotation order during a leak.** The old key keeps working while you update apps. Fix: in a leak, revoke first, then replace.
+2. **Building paid work on a preview model with no exit plan.** Previews can go fast. Fix: pick a generally available model, or keep a tested replacement ready.
+3. **Reading the Gemini shutdown date as fixed and late.** It is the earliest possible date. Fix: plan to switch before it.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Kiln adds a free "try it" button to the mood board. Visitors can make three images without logging in, so there is no username or email to hash.
+
+1. Can Kiln still send a safety identifier for these visitors? What would it send?
+2. Must Kiln send safety identifiers at all?
+
+### Answer
+
+1. **Yes: a session ID.** The OpenAI safety guide says: "If you offer a preview of your product to non-logged in users, you can send a session ID instead." A session ID is a code for one visit.
+2. **No, but it is wise.** The guide says safety identifiers "are recommended for products where individual users interact with a model, but they are not required". Without them, one visitor's misuse is harder to trace.
+
+## Recap
+
+- Write the plan before launch: one row per trigger, with a first action that contains the harm and a named owner.
+- In a leak, revoke the key first and replace it after. The calm order (new key, update, then revoke) is for normal rotation.
+- Watch the deprecation pages. OpenAI previews may get about 2 weeks' notice, Claude gives at least 60 days, and Gemini lists the earliest possible shutdown dates. A shutdown date is a deadline.

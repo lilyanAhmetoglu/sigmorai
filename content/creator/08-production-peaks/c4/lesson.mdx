@@ -1,7 +1,7 @@
 ---
 id: creator/r8/c4/lesson
 title: Rate limits
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · Rate limits
@@ -20,84 +20,179 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/rate-limits
 ---
 
-## Why it matters
+## Goal
 
-It is launch morning, 09:00. The whole studio presses "generate". Half the requests fail. Nobody changed the prompts. What happened?
+After this lesson you can:
 
-You hit a limit. A limit is not a bug, and it does not always say "wait". Tool Forge, chapter 5, taught you to read a `429` after it happens. This lesson is about planning before launch, so that day one does not stop.
+- Name the meters a vendor uses to limit you, and find the one that runs out first.
+- Plan a big job as a steady, rising pace instead of one burst.
+- Tell a rate-limit error apart from a spend cap and an overload, and know which ones are worth a retry.
 
-## Limits are meters
+## The problem
 
-Every vendor counts your use with several meters. Hit one, and you get an error, even if the others are low.
+Driftwood is an animation studio. A streaming client needs a short text description for each of 1,800 storyboard panels, for an accessibility track. The studio uses a Claude model through the API (the service its tools call).
 
-| Meter         | Means                       | Where the docs name it |
-| ------------- | --------------------------- | ---------------------- |
-| RPM           | requests per minute         | OpenAI, Claude, Gemini |
-| TPM           | tokens per minute           | OpenAI, Gemini         |
-| ITPM and OTPM | input and output tokens/min | Claude                 |
-| RPD           | requests per day            | OpenAI, Gemini         |
-| IPM           | images per minute           | OpenAI, Gemini         |
+Each request sends the panel notes plus the studio's style guide, about 5,000 input tokens. A token is a small piece of text, roughly part of a word. Each reply is about 300 output tokens.
 
-OpenAI says limits "can be hit across any of the options depending on what occurs first". Its example: 20 requests with only 100 tokens can fill a limit of 20 requests per minute, even if the token limit is far from used. Gemini gives the same kind of example. Gemini adds that IPM is counted only for models that can generate images.
+The producer's plan for Thursday night:
 
-Limits also differ by model. A fast image model and a premium one can have different limits. Look up the limit for the exact model you will use.
+```text
+Our limit is 50 requests per minute.
+1,800 / 50 = 36 minutes.
+Start at 23:00, send everything as fast as the script can.
+Done by 23:36.
+```
 
-## Who shares a limit
+At 23:01 the log fills with `429` errors. Nobody changed a prompt. The plan only looked at one number.
 
-Read where the meter lives.
+## The idea
 
-- **OpenAI:** limits are "defined at the organization level and at the project level, not user level".
-- **Claude:** the service sets limits at the organization level. You can also set limits for your workspaces.
-- **Gemini:** limits "are applied per project, not per API key". Daily request quotas reset at midnight Pacific time.
+### A limit is a set of meters
 
-Example: a designer creates a second API key for a test, inside the same Gemini project. The test and the live campaign still share one limit. A new key is not a new limit. A separate project is.
+A **rate limit** is a cap on how much you can send in a stretch of time. Every vendor uses several meters at once. Hit any one of them, and you get an error, even if the others are low.
 
-OpenAI suggests separate projects for staging and production. You can then "set custom rate and spend limits per project", so a rehearsal cannot use up the live campaign's limit.
+| Meter | Counts                   | Named in the docs of   |
+| ----- | ------------------------ | ---------------------- |
+| RPM   | requests per minute      | OpenAI, Claude, Gemini |
+| TPM   | tokens per minute        | OpenAI, Gemini         |
+| ITPM  | input tokens per minute  | Claude                 |
+| OTPM  | output tokens per minute | Claude                 |
+| RPD   | requests per day         | OpenAI, Gemini         |
+| IPM   | images per minute        | OpenAI, Gemini         |
 
-## Pace the work, do not burst it
+The [Gemini docs](https://ai.google.dev/gemini-api/docs/rate-limits) say: "Your usage is evaluated against each limit, and exceeding any of them will trigger a rate limit error." The [OpenAI docs](https://developers.openai.com/api/docs/guides/rate-limits) say limits can be hit "depending on what occurs first". Gemini counts IPM only for models that can make images.
 
-Claude's limits use a token bucket. Capacity "is continuously replenished up to your maximum limit, rather than being reset at fixed intervals". Claude also says a rate of 60 requests per minute might be enforced as 1 request per second, so short bursts can trigger errors.
+Limits also depend on the model, so look them up for the exact model you use. The Gemini docs add that limits are "more restricted for experimental and preview models".
 
-So 60 requests sent in the first second can fail, even though 60 per minute is allowed. Spread the requests out. OpenAI returns headers such as the remaining requests and tokens and the time until reset, so a tool can pace itself.
+A comparison: a car has a speed limit, a fuel tank and a driving-hours rule. Any one of them can stop the trip.
 
-A **queue** helps. Requests wait in line and leave at a steady pace. Ask your tool's owner whether one exists.
+### Where a limit lives
 
-## Ramp up, do not jump
+- **OpenAI:** limits are set "at the organization level and at the project level, not user level".
+- **Claude:** the [Claude docs](https://platform.claude.com/docs/en/api/rate-limits) say the API enforces limits at the organization level, and you may set your own limits for workspaces.
+- **Gemini:** "Rate limits are applied per project, not per API key." Requests-per-day quotas (fixed daily allowances) "reset at midnight Pacific time".
 
-Limits are not only about size. They are also about speed of growth.
+So a second API key in the same project is not a second limit. For rehearsals, the [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) suggests a staging project (a test copy) apart from the live one, so you can "set custom rate and spend limits per project".
 
-- **OpenAI:** a `slow_down` error "can occur even when your traffic is within its requests-per-minute and tokens-per-minute limits". It reflects how quickly traffic increased. As a rule of thumb for token traffic, once you reach 1 million input tokens per minute, increase by no more than 50% every 15 minutes. OpenAI says the exact point varies by model and conditions.
-- **Claude:** a sharp rise in usage can cause `429` errors from "acceleration limits". Claude says to "ramp up your traffic gradually and maintain consistent usage patterns".
+### Pace, do not burst
 
-Both vendors say the same thing: grow gradually. Going from zero to full speed at 09:00 is a risk.
+The Claude docs say the API uses a token bucket: capacity "is continuously replenished up to your maximum limit, rather than being reset at fixed intervals". They also say a rate of 60 requests per minute "might be enforced as 1 request per second", so "Short bursts of requests can exceed the limit".
 
-## Money is a limit too
+So spread requests out evenly. OpenAI responses carry headers (extra lines of data on each reply) such as the remaining requests and the time until reset, so a script can slow itself down.
 
-Spend controls stop traffic as well as rate limits do.
+### Ramp up, do not jump
 
-- **OpenAI** has two controls. A spend alert "sends a notification; API traffic continues". A hard spend limit means affected requests "return a `429` error".
-- **Claude** has a monthly spend cap per tier. At the cap, usage pauses until the next month, and the `429` has no `retry-after` header.
-- **Gemini** has spend-based limits in a rolling 10-minute window. Some tiers do not apply it.
+Limits also watch how fast traffic grows.
 
-Tiers also matter. Limits depend on a tier that rises with usage and spending. A new account may start low. Claude says new organizations "may start in the Evaluation tier". Check your tier, and ask for higher limits before the launch, not on the day. Vendors also say limits are maximums, not guarantees. Gemini says "actual capacity may vary".
+- **OpenAI:** a `slow_down` error "can occur even when your traffic is within its requests-per-minute and tokens-per-minute limits". As a rule of thumb, once traffic reaches 1 million input tokens per minute, raise it "by no more than 50% every 15 minutes".
+- **Claude:** a sharp rise can trip an acceleration limit, which also returns a `429`. The docs say: "ramp up your traffic gradually and maintain consistent usage patterns."
 
-## A worked plan
+The Gemini rate-limit page says nothing about ramp speed. Our advice: ramp up on every vendor anyway.
 
-All numbers are made up for this example. A studio needs 2,400 images for launch. The image limit is 60 per minute.
+### Money stops traffic too
 
-- Minimum time: 2,400 divided by 60 is 40 minutes. It cannot be done in 10.
-- So generate before the launch, not at 09:00.
-- Ramp: start well below 60 per minute and raise the pace in steps.
-- Rehearse in a staging project.
-- Set a spend alert below the hard limit, so people hear before traffic stops.
+- **OpenAI** has two controls. A spend alert "Sends a notification; API traffic continues". With a hard spend limit, "Affected API requests return a `429` error".
+- **Claude** has a monthly spend cap per tier. At the cap, the [Claude errors page](https://platform.claude.com/docs/en/api/errors) says the `429` "has no `retry-after` header and keeps failing until access resumes". A lower spend limit you set yourself returns a `400` error instead.
+- **Gemini** has spend-based limits counted over a rolling 10-minute window. Whether they apply depends on your billing history and tier.
 
-## What this means for your work
+Tiers matter too. A tier is a level that rises as you use and pay more. The Claude docs say new organizations "may start in the Evaluation tier", with lower limits. The Claude and Gemini docs both say a limit is a ceiling, not a promise. The Gemini docs say "actual capacity may vary".
 
-This checklist is ours, not a vendor rule.
+### Which errors are worth a retry
 
-- **Find the meters for your model.** Name them: requests, tokens, images, days.
-- **Find where the limit lives.** Organization, project or key.
-- **Do the sum.** Items divided by the per-minute limit gives the minimum time.
-- **Pace and ramp.** A queue and a gradual start beat a burst.
-- **Rehearse in staging.** Never test in the live project.
-- **Set an alert before the cap.** Know what happens at the cap.
+A **retry** means sending the same request again. **Backoff** means waiting a little longer after each failed try.
+
+- A rate-limit `429` usually tells you when to try again. Claude sends a `retry-after` header. OpenAI may send `Retry-After`; without it, the OpenAI docs suggest exponential backoff with a little random delay.
+- A spend-cap `429` on Claude keeps failing. Retrying does nothing.
+- An overload is another kind of failure: `529` on Claude, `503` with `server_is_overloaded` on OpenAI. It is about the vendor's traffic, not your limit.
+
+## Worked example
+
+The limits below are made up for this example. The vendor rules are from the docs above.
+
+### Step 1: the weak plan
+
+```text
+Limit:  RPM 50
+Plan:   1,800 requests, as fast as possible, from 23:00
+Guess:  36 minutes
+```
+
+### Step 2: list every meter
+
+The studio's real limits for this model (our example):
+
+```text
+RPM    50 requests per minute
+ITPM   200,000 input tokens per minute
+OTPM   40,000 output tokens per minute
+```
+
+### Step 3: the hard case, find the meter that runs out first
+
+**The hard case is that the request meter is not the one that binds.** Work out each meter for one minute:
+
+```text
+RPM:   50 requests                               -> 50 per minute
+ITPM:  200,000 / 5,000 tokens per request        -> 40 per minute
+OTPM:  40,000 / 300 tokens per request           -> 133 per minute
+```
+
+The smallest is 40. The input-token meter runs out first. So the fastest the job can go is 40 per minute, and 1,800 / 40 = 45 minutes. The 36-minute plan was never possible.
+
+### Step 4: pace and ramp
+
+Our plan stays below the top speed, and climbs in steps:
+
+```text
+23:00-23:05   10 per minute    50 requests
+23:05-23:10   20 per minute   100 requests
+23:10-00:05   30 per minute 1,650 requests
+Total                       1,800 requests in 65 minutes
+```
+
+At 30 per minute, each meter has room: 30 requests, 150,000 input tokens and 9,000 output tokens per minute. The script sends one request every 2 seconds, never a burst.
+
+### Step 5: the better plan
+
+```text
+Rehearse:  a 50-request test in a separate workspace with its own limits
+Pace:      one request every 2 s at full speed, after a 10-minute ramp
+Retries:   follow retry-after on a 429, then try again; cap the tries
+Spend:     check the month's spend before 23:00; a cap 429 means stop
+Watch:     a person checks the log at 23:15
+```
+
+### Step 6: why it is better
+
+- **Every meter is checked.** The tightest one sets the pace.
+- **No burst, no jump.** The pace is even and climbs in steps.
+- **Retries are smart.** The script waits when told to, and stops on a spend cap.
+- **Real numbers.** 65 minutes is a plan the team can keep.
+
+## Common mistakes
+
+1. **Planning from the request meter alone.** Big prompts can fill the token meter first. Fix: work out every meter for one minute, and use the smallest.
+2. **Retrying every `429` the same way.** A spend cap does not clear with time. Fix: read the error body and the headers before you retry.
+3. **Rehearsing in the live project.** The test and the real job share one limit. Fix: rehearse in a separate project or workspace with its own limits.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Use the Driftwood numbers. A teammate notices that 4,500 of the 5,000 input tokens in every request are the same style guide. They turn on prompt caching for it, so the model stores that part and reuses it.
+
+The Claude docs say: "For most Claude models, only uncached input tokens count toward your ITPM rate limits."
+
+1. After the first request, about how many input tokens per request count toward ITPM?
+2. Which meter now runs out first, and what is the shortest possible time for 1,800 requests?
+
+### Answer
+
+1. **About 500.** Only the uncached part counts. The first request that writes the cache still counts in full, because the docs say tokens being written to the cache count toward ITPM.
+2. **RPM.** ITPM now allows about 200,000 / 500 = 400 per minute, and OTPM still allows 133. RPM allows 50, the smallest. So the shortest time is 1,800 / 50 = 36 minutes. Still ramp up, and still do not burst. Check your model: the docs name Claude Haiku 3.5 as a model that also counts cached reads.
+
+## Recap
+
+- A limit is several meters at once. Any one can stop you, so find the one that runs out first for your request size.
+- Spread requests evenly and raise the pace in steps. Bursts and sudden jumps cause errors even under the per-minute limits.
+- Know what stops traffic: rate limits, spend caps, hard spend limits and overloads. Retry only when waiting can help, and rehearse in a separate project or workspace.
