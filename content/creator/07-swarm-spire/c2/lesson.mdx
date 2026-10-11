@@ -1,7 +1,7 @@
 ---
 id: creator/r7/c2/lesson
 title: Roles
-minutes: 6
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic · How we built our multi-agent research system
@@ -17,70 +17,218 @@ sources:
     url: https://www.anthropic.com/engineering/building-effective-agents
 ---
 
-## Why it matters
+## Goal
 
-Say your pipeline has a step that needs judgment, such as checking a tagline for tone. You may give that step to a helper agent with its own job. A group of helpers is a **studio**. Each helper has a **role**.
+After this lesson you can:
 
-A role is not a name. "Art director" on a slide means nothing to a model. A role is a written brief that says what to do, what to return, and what to leave alone. This lesson shows what goes in it.
+- Write a role card for a helper agent: job, input, output, tools, boundaries and check.
+- Give each role only the tools its job needs.
+- Pick which role to test first on a cheaper, smaller model.
 
-In Agent Citadel you learned to start with one agent and split only for a clear reason. This lesson assumes you have that reason.
+## The problem
 
-## A role is a brief
+An indie game studio needs 80 inventory icons: swords, bows, potions, keys and more. A lead agent plans the work. (An **agent** is a model that plans and uses tools on its own.) It hands parts of the job to helper agents. A helper that a lead agent starts is called a **subagent**.
 
-Anthropic built a multi-agent research system, and it learned how a lead agent should brief its helpers. Each helper "needs an objective, an output format, guidance on the tools and sources to use, and clear task boundaries."
+The first try uses one short line per helper:
 
-It also reports what happens without that. At first the lead gave short instructions such as "research the semiconductor shortage". The helpers misread the task or repeated each other. One explored the 2021 car chip crisis while two others both studied 2025 supply chains. Anthropic says that without detailed descriptions, agents "duplicate work, leave gaps, or fail to find necessary information".
+```text
+Icon maker 1:  "Make the weapon icons."
+Icon maker 2:  "Make the weapon icons."
+Checker:       "Check the icons."      Tools: all tools
+```
 
-The studio version: ten helpers each get the order "localise the ad". Three pick the same market. Two skip a market. Nobody notices until the files arrive.
+The result on Monday:
 
-## The role card
+- Both icon makers drew a sword. Nobody drew the crossbow.
+- The checker "fixed" three icons by redrawing them in a new style, and saved over the originals.
+- Nobody can say what "checked" means for any icon.
 
-This template is ours, not a vendor format. It follows Anthropic's four needs, plus two more.
+The helpers were not lazy. Their briefs were empty. This lesson shows what a role brief needs.
 
-| Field          | What it holds                                        |
-| -------------- | ---------------------------------------------------- |
-| **Job**        | One sentence. One verb.                              |
-| **Input**      | What the role gets: files, approved copy, the market |
-| **Output**     | The exact shape of the answer, such as a file name   |
-| **Tools**      | Only the tools this role needs                       |
-| **Boundaries** | What it must not do or touch                         |
-| **Check**      | Who or what looks at the output next                 |
+## The idea
 
-Example card (made up): **Localiser.** Job: write the tagline in one market's language. Input: the approved English tagline, the market name, the brand tone page. Output: one line of text, nothing else. Tools: none. Boundaries: do not change the English meaning, do not add claims. Check: the copy checker.
+### A role is a brief, not a name
 
-## Keep each job narrow
+"Art director" on a slide means nothing to a model. A **role** is a written brief that says what to do, what to return and what to leave alone.
 
-OpenAI's orchestration guide says: "Give each specialist a narrow job." It also says to keep the short note that tells the model when to pick a specialist "short and concrete".
+The [Anthropic post on its multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) describes how a lead agent should brief its helpers. Each subagent "needs an objective, an output format, guidance on the tools and sources to use, and clear task boundaries."
 
-Claude's Agent SDK has the same idea. Each subagent has a `description`, which says "when to use this agent", and a `prompt`, the system prompt "defining its role and behavior". The docs say a tailored prompt means each subagent can have specific expertise "that would be unnecessary noise in the main agent's instructions."
+The post also shows what happens without that. At first, the lead gave short orders like "research the semiconductor shortage". One helper explored the 2021 car chip crisis, while two others both studied 2025 supply chains. The post says that without detailed task descriptions, agents "duplicate work, leave gaps, or fail to find necessary information".
 
-## Give each role only the tools it needs
+That is the sword and crossbow problem. Two helpers read one vague order, so they did the same part and skipped another.
 
-Claude's docs list "tool restrictions" as a benefit of subagents: they "can be limited to specific tools, reducing the risk of unintended actions." Their example is a reviewer that can read files but cannot change them.
+### The role card
 
-For a studio, the checker can open files but cannot post. The localiser needs no tools. Only the role that makes images gets the image tool. Agent Citadel, chapter 6, covered why access should be small.
+This template is ours, not a vendor format. The first four fields follow the Anthropic list. The last two are our addition.
 
-## Match the model to the job
+| Field          | What it holds                                   |
+| -------------- | ----------------------------------------------- |
+| **Job**        | One sentence, one verb                          |
+| **Input**      | What the role gets: files, item ids, style page |
+| **Output**     | The exact shape of the answer, like a file name |
+| **Tools**      | Only the tools this job needs                   |
+| **Boundaries** | What it must not do or touch                    |
+| **Check**      | Who or what looks at the output next            |
 
-Claude subagents can use a different model from the main agent. The `model` setting accepts an alias such as `sonnet` or `haiku`, or `inherit` to use the main model. Anthropic's routing example is the same idea: send easy, common questions "to smaller, cost-efficient models" and hard or unusual ones to more capable models.
+Our habit: if the job sentence needs "and", it is often two roles.
 
-Our reading for a studio: a role that checks "is the logo file there, and is the line under 40 characters" is easier than a role that writes a launch idea. Test the smaller model on the easy role before you pay for the big one.
+Our advice: do not plan on a helper asking for missing facts. Nothing makes a model stop and ask. Put the facts in the card.
 
-## Roles in our ad studio
+### Keep each job narrow
 
-A sample set (ours, made up):
+The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says: "Give each specialist a narrow job." It also says to keep `handoff_description` (the short note that tells the model when to pick a specialist) "short and concrete".
 
-- **Producer.** Plans, hands out items, collects results. Does not make assets.
-- **Localiser.** Writes the tagline for one market.
-- **Visual maker.** Makes one image from approved words and a layout.
-- **Checker.** Reads the output against the rubric. It does not fix, it reports.
+The same guide warns against too many roles: "Start with one agent whenever you can." Splitting too early "creates more prompts, more traces, and more approval surfaces".
 
-Four roles. Not fifty. Fifty versions are fifty **items** passing through four roles. Anthropic's early agents did spawn "50 subagents for simple queries", and it added scaling rules to its prompts to stop that.
+The [Claude Agent SDK docs](https://platform.claude.com/docs/en/agent-sdk/subagents) use two fields for each subagent:
 
-## What this means for your work
+- `description`: "Natural language description of when to use this agent"
+- `prompt`: "The agent's system prompt defining its role and behavior"
 
-- **Write a role card for every helper.** Job, input, output, tools, boundaries, check.
-- **One verb per job.** If the job needs "and", it may be two roles.
-- **Remove tools the role does not need.**
-- **Try a cheaper model on the easy roles.**
-- **Count roles, not items.** Fifty ads do not need fifty agents.
+So the description helps the main agent choose. The prompt holds the full brief.
+
+Our example of the two fields for the file checker:
+
+```text
+description: Use to check icon files for size, transparency and file name.
+prompt:      You check icon PNGs. For each item id, report PASS or FAIL
+             with one reason. Never edit, move or redraw a file.
+```
+
+Simplified. See the docs for the exact request shape.
+
+The description is short, because it only answers "when?". The prompt is longer, because it says how to do the job and what to leave alone. The docs say a tailored prompt can hold expertise "that would be unnecessary noise in the main agent's instructions."
+
+### Give each role only the tools it needs
+
+The Claude docs name tool restrictions as one benefit: subagents "can be limited to specific tools, reducing the risk of unintended actions." Their example is a reviewer with only read and search tools, so it can read files but never change them.
+
+One detail matters: if you leave the `tools` field out, the subagent "inherits every" tool available to subagents. No list means all tools.
+
+A comparison: a role's tool list is like the keys you hand a temp worker. You give the key to one room, not the whole building.
+
+### Match the model to the job
+
+A Claude subagent can run on a different model from the main agent. The `model` field accepts an alias such as `sonnet` or `haiku`, and `'inherit'` "uses the main model."
+
+The [Anthropic post on building agents](https://www.anthropic.com/engineering/building-effective-agents) gives the same idea in its routing example: send "easy/common questions to smaller, cost-efficient models" and hard or unusual ones to more capable models.
+
+Our reading for a studio: a role that checks plain facts (is the file 128 by 128 pixels? is the name on the list?) is easier than a role that makes judgment calls. Test the smaller model on the plain role first. Do not assume a creative role is easy, even when it looks short.
+
+### Count roles, not items
+
+80 icons do not need 80 agents. They are 80 **items** that pass through a few roles. The Anthropic research post says its early agents made errors like "spawning 50 subagents for simple queries".
+
+## Worked example
+
+### Step 1: the weak cards
+
+```text
+Icon maker 1:  "Make the weapon icons."
+Icon maker 2:  "Make the weapon icons."
+Checker:       "Check the icons."     Tools: all tools
+```
+
+What is missing, field by field:
+
+- **Job:** vague. Which icons? How many?
+- **Input:** none. No item list and no style page.
+- **Output:** none. What file size, what file name?
+- **Tools:** the checker has every tool, so it can redraw and save over files.
+- **Boundaries and check:** none.
+
+### Step 2: give each maker its own items
+
+The fix for the duplicate sword is in the **Input** field, not the job line. Each maker gets its own list.
+
+```text
+Role:        Icon maker
+Job:         Draw one icon for each item id you are given.
+Input:       Item ids from the plan sheet (maker 1: wpn-01 to wpn-20,
+             maker 2: wpn-21 to wpn-40); the style page; the palette file.
+Output:      One 128x128 PNG per item, named <item id>.png
+Tools:       Image tool; read files
+Boundaries:  Only your own ids. Do not change the style page.
+Check:       File checker, then Style judge
+```
+
+### Step 3: the hard case
+
+**The hard case is the checker.** "Check the icons" hides two very different jobs:
+
+- Plain checks: size, transparent background, file name matches the id.
+- Judgment: does the icon match the game's art style?
+
+The one-verb rule splits it into two roles. Now each one gets the right model and the right tools.
+
+```text
+Role:        File checker
+Job:         Check each PNG for size, transparency and file name.
+Output:      PASS or FAIL per item id, with the reason
+Tools:       Read files
+Boundaries:  Never edit, redraw or move a file.
+Model:       Try a smaller model first (plain, rule-based work)
+
+Role:        Style judge
+Job:         Compare each icon with the style page.
+Output:      PASS or FAIL per item id, with one line of feedback
+Tools:       Read files
+Boundaries:  Report only. Do not fix.
+Model:       Keep the stronger model (judgment work)
+```
+
+Neither checker can save over a file now. The Monday problem cannot happen again.
+
+### Step 4: the final set
+
+```text
+Lead:         plans, hands out item ids, collects results.  Tools: plan sheet
+Icon maker:   draws icons for its own ids.                  Tools: image tool, read files
+File checker: checks size, transparency, name.              Tools: read files
+Style judge:  compares with the style page.                 Tools: read files
+```
+
+Simplified. See the docs for the exact field names and request shape.
+
+The lead makes no assets. That is not a gap. Its job is to plan and collect.
+
+### Step 5: why it is better
+
+- **No duplicates, no gaps.** Each maker owns a fixed list of ids.
+- **Small tool lists.** Only the makers can draw. No role can overwrite files it checks.
+- **The right model for each role.** The plain checker can be tested on a cheaper model.
+- **Four roles for 80 items**, not 80 agents.
+
+## Common mistakes
+
+1. **The same vague order to several helpers.** They repeat each other and leave holes. Fix: give each helper its own items in the Input field.
+2. **No tool list.** In the Claude SDK, a missing `tools` field means the subagent gets every tool. Fix: list only what the job needs.
+3. **Choosing the cheap model by how short the job looks.** A short creative job can still need judgment. Fix: test the smaller model on plain, rule-based roles first.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A draft card says:
+
+```text
+Role:   Lore writer
+Job:    Write the item description and post it to the game's public wiki.
+Tools:  Text editor; wiki posting tool
+```
+
+1. Why is this card a warning sign?
+2. Rewrite it as two roles. Give each role its tools.
+3. Where should a person come in?
+
+### Answer
+
+1. **The job has two verbs: write and post.** One role both makes the text and publishes it, with no check between.
+2. **Two roles.** Lore writer: writes one description per item id, returns plain text. Tools: none. Publisher: posts approved text only. Tools: the wiki posting tool.
+3. **Between the two roles.** A person approves the text before the Publisher runs. Our habit: anything public waits for a person's yes.
+
+## Recap
+
+- A role is a written brief. Each helper needs a goal, an answer format, advice on tools and sources, and clear limits. Without them, helpers repeat work and miss parts.
+- Keep jobs narrow and tool lists small. Tool limits lower the chance of actions you did not want, and a missing tool list in the Claude SDK means every tool.
+- Match the model to the role: try a smaller model on plain, rule-based roles, and count roles, not items.

@@ -1,7 +1,7 @@
 ---
 id: creator/r7/c1/lesson
 title: Pipelines
-minutes: 6
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic · Building effective agents
@@ -11,71 +11,179 @@ sources:
     url: https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md
 ---
 
-## Why it matters
+## Goal
 
-A client sends one approved ad and asks for fifty versions: ten markets, five sizes each. One chat cannot do this well. The chat gets long, details drift, and nobody can say which version is done.
+After this lesson you can:
 
-A **pipeline** is a line of fixed steps that every version goes through. In Agent Citadel you learned to pick a fixed workflow over an agent when you can write the steps on one page. This lesson is about drawing that line well. Chapters 2 to 6 fill it in: roles, handoffs, batches, shared state and cost.
+- Break a big creative job into a fixed line of steps, and give every step a scope: once, each or all.
+- Say which steps may run side by side, and which steps must wait.
+- Put a cheap check before a costly step, and send different inputs down different paths.
 
-## Chain: one step feeds the next
+## The problem
 
-Anthropic describes prompt chaining like this: it "decomposes a task into a sequence of steps, where each LLM call processes the output of the previous one." You can add programmatic checks, which it calls a gate, on any step. It says the main goal is "to trade off latency for higher accuracy, by making each LLM call an easier task."
+A podcast studio starts a new season of 6 episodes. For every episode, the client wants a short written summary and 4 square video clips with burned-in captions. The season also needs one cover image. At the end, the client wants a press kit with every file.
 
-One of its own examples fits localised ads: "Generating Marketing copy, then translating it into a different language." Step 1 writes the line. Step 2 translates it. Each call has one small job.
+The team puts the whole job into one long chat with a model. It goes badly:
 
-OpenAI's Agents SDK docs list the same idea for orchestrating "via code": "Chaining multiple agents by transforming the output of one into the input of the next." Its example is a blog post: research, outline, write, critique, improve.
+- By episode 4 the chat is very long, and the caption style starts to drift.
+- Two clips spell a guest's name wrong. The team sees it only after the clips are rendered, so it pays to render them again.
+- Nobody can say which of the 24 clips are finished.
 
-## Parallel: independent steps at the same time
+The job has a clear shape. This lesson shows how to draw that shape as a pipeline.
 
-Anthropic names a second pattern, parallelization. One form is sectioning: "Breaking a task into independent subtasks run in parallel." OpenAI says that running agents in parallel "is useful for speed when you have multiple tasks that don't depend on each other."
+## The idea
 
-The test is in the last words: **do not depend on each other**. The German tagline does not need the French tagline. So all ten markets can run at the same time. But "pack the 50 files" needs every file first, so it must wait for all of them.
+### A pipeline is a fixed line of steps
 
-## Fixed steps are easier to predict
+A **pipeline** is a line of steps that every item goes through, in the same order. You write the steps down before the work starts.
 
-OpenAI's docs compare two ways to run agents. If the LLM decides the steps, you rely on its judgment. If your code decides, "orchestrating via code makes tasks more deterministic and predictable, in terms of speed, cost and performance."
+The [Anthropic engineering post on agents](https://www.anthropic.com/engineering/building-effective-agents) calls the simplest form **prompt chaining**. It "decomposes a task into a sequence of steps, where each LLM call processes the output of the previous one." (An LLM, or large language model, is a model that reads and writes text.) The post names the main goal: "to trade off latency for higher accuracy, by making each LLM call an easier task." In plain words: the job takes a bit longer, but each step is small, so each step goes wrong less often.
 
-For fifty versions of one ad, you know the steps. So fix them. Save judgment for the one place that needs it, such as a person approving the master.
+One of the post's own chaining examples is close to creator work: "Generating Marketing copy, then translating it into a different language." One call writes. The next call translates.
 
-## Our method: once, each, all
+You can also put a check between two steps. The post allows programmatic checks "on any intermediate steps to ensure that the process is still on track". It calls such a check a **gate**.
 
-This part is ours, not a vendor's. Every step in a pipeline runs at one of three **scopes**:
+A small comparison: a gate is like a printer's proof. You check one proof sheet before you print a thousand copies.
 
-| Scope    | Meaning                        | Example                                   |
-| -------- | ------------------------------ | ----------------------------------------- |
-| **Once** | One time for the whole job     | Approve the master ad and the brand rules |
-| **Each** | One time per item, in parallel | Localise a tagline, make one size         |
-| **All**  | After every item has finished  | Collect the files, person signs off, send |
+### Code decides the steps, or the model decides
 
-In Tool Forge you met the pipeline sheet. Add one column to it: **Runs**. Write once, each or all on every row.
+An **agent** is a model that plans and uses tools on its own. The [OpenAI Agents SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md) (an SDK is a software kit for developers) describe two ways to decide which agent runs when. This is called **orchestration**. Either the LLM decides the steps, or your code decides them.
 
-Example (numbers made up for this lesson): 10 markets and 5 sizes make 50 versions. The words depend on the market only. So localising is "each market", ten runs, not fifty. Making the image is "each version", fifty runs.
+The docs compare the two: "orchestrating via code makes tasks more deterministic and predictable, in terms of speed, cost and performance." They list chaining as one way to do it: "Chaining multiple agents by transforming the output of one into the input of the next." Their example is a blog post: research, outline, write, critique, improve.
 
-## Put cheap checks before costly steps
+Code is a choice, not a must. The same page also describes an agent that uses "handoffs to delegate tasks to sub-agents", and agents that call other agents as tools.
 
-In Agent Citadel you saw a gate on a storyboard. The same idea works here. A check on the translated tagline takes a second. An image render takes longer and costs more. Check the words first, so a wrong tagline never reaches the render.
+Some jobs cannot be written as a fixed line. The Anthropic post describes **orchestrator-workers**: a central LLM splits the task and hands parts to worker models. There, "subtasks aren't pre-defined, but determined by the orchestrator based on the specific input."
 
-## Routing: different inputs, different paths
+Our reading: if you can write every step on one page before the job starts, let code fix the steps. Keep the model's judgment for the places that need it.
 
-Anthropic describes routing this way: it "classifies an input and directs it to a specialized followup task." Its customer-service example sends refund requests and technical questions down different paths.
+### Parallel: steps that do not wait
 
-A studio version (ours): a request says "new market" or "resize only". New markets go through localising. A resize goes straight to the image step, because the words are already approved.
+The Anthropic post names a second workflow, **parallelization**. It has two forms:
 
-## A sample line for 50 ads
+- Sectioning: "Breaking a task into independent subtasks run in parallel."
+- Voting: "Running the same task multiple times to get diverse outputs."
 
-This is our example, with made-up scopes:
+The OpenAI docs say that running agents in parallel "is useful for speed when you have multiple tasks that don't depend on each other."
 
-1. Approve master ad and brand rules. **Once**, by a person.
-2. Localise the tagline. **Each** market.
-3. Check each tagline. **Each** market. A gate.
-4. Make the image. **Each** version.
-5. Check each image. **Each** version.
-6. Collect files, sign off, send. **All**, by a person.
+So the test is one question: **does this step need the output of that step?** The summary of episode 2 does not need the summary of episode 5. Both can run at the same time. But a clip check needs the clip first. And the press kit needs every file.
 
-## What this means for your work
+### Routing: different inputs, different paths
 
-- **Write the steps first, then add agents only where a step needs judgment.**
-- **Give every step a scope:** once, each or all.
-- **Run independent items in parallel.** Make the last step wait for all of them.
-- **Put cheap checks before costly steps.**
-- **Keep the line fixed.** A fixed line is easier to cost, test and repeat.
+The post's third workflow: "Routing classifies an input and directs it to a specialized followup task." Its example sends customer service queries "(general questions, refund requests, technical support)" into different processes.
+
+A studio version (ours): interview episodes need the guest's name and job title approved. Solo episodes have no guest, so they skip that step.
+
+### Our method: once, each, all
+
+This part is ours, not a vendor's. Every step runs at one of three **scopes**:
+
+| Scope    | Meaning                              | Podcast example                         |
+| -------- | ------------------------------------ | --------------------------------------- |
+| **Once** | One time for the whole job           | Approve the caption style and the cover |
+| **Each** | One time per item, items in parallel | Write one clip's captions               |
+| **All**  | When the whole set is done           | Build the press kit, sign off, send     |
+
+Two rules make the scopes work:
+
+- **An "each" step runs at the level where its input changes.** A summary changes with the episode, not with the clip. So it runs once per episode.
+- **An "all" step waits.** It starts only when every item is finished and has passed its check.
+
+### Cheap checks before costly steps
+
+Our advice: put a quick, cheap check in front of every slow, costly step. Checking a line of caption text takes seconds. Rendering a video clip takes longer and costs more. So check the text first. A wrong name then never reaches the render.
+
+```text
+caption text -> [gate: text check] -> render clip -> [clip check]
+     cheap            cheap             costly          medium
+```
+
+## Worked example
+
+### Step 1: the weak line
+
+```text
+1  Write the episode summary          for every clip
+2  Write the caption text             for every clip
+3  Render the clip with captions      for every clip
+4  Check the clip                     for every clip
+5  Make the season cover
+6  Build the press kit
+```
+
+What goes wrong:
+
+- Step 1 runs per clip. But four clips of one episode share one summary. So 24 runs do the work of 6.
+- The caption text is checked only inside step 4, after the render is paid for.
+- Steps 5 and 6 have no scope. Nothing says the press kit must wait.
+- Nothing treats interview episodes and solo episodes differently.
+
+### Step 2: count the items
+
+Our example numbers are made up.
+
+```text
+6 episodes x 4 clips = 24 clips
+4 episodes are interviews, 2 are solo
+```
+
+### Step 3: the hard case
+
+**The hard case is the guest's name.** It appears in clip captions, so it looks like an "each clip" problem. But the spelling does not change from clip to clip. It changes with the episode. So the name check belongs at the episode level: one approval per interview episode, 4 runs, not 24.
+
+The routing step decides which episodes need it. Solo episodes go straight to the summary.
+
+### Step 4: the better line
+
+```text
+1  Approve caption style; make the cover   once, person
+2  Route: interview or solo?               each episode, 6 runs
+3  Approve guest name and title            each interview episode, 4 runs
+4  Write the episode summary               each episode, 6 runs
+5  Write the caption text                  each clip, 24 runs
+6  Check the caption text (gate)           each clip, 24 runs
+7  Render the clip                         each clip, 24 runs
+8  Check the rendered clip                 each clip, 24 runs
+9  Build press kit, sign off, send         all, person
+```
+
+Now read it for parallel work:
+
+- Step 4 runs for all 6 episodes at the same time. No summary needs another summary.
+- Steps 5 to 8 run for different clips at the same time. Inside one clip they stay in order.
+- Step 9 waits until all 24 clips have passed step 8 and all 6 summaries exist.
+
+### Step 5: why it is better
+
+- **Each step is small.** One summary, one caption, one render. Small steps drift less.
+- **Scopes save runs.** The summary runs 6 times, not 24. The name check runs 4 times, not 24.
+- **The gate saves money.** A wrong name stops at step 6, before step 7 is paid for.
+- **Done is clear.** Step 9 cannot start early, so "finished" means every clip passed.
+
+## Common mistakes
+
+1. **Scoping a step at the wrong level.** A step runs once per clip when its input only changes per episode. Fix: ask what the step's input changes with, and run it at that level.
+2. **Checking only after the costly step.** Then every mistake is paid for twice. Fix: put a cheap gate in front of the costly step.
+3. **Starting an "all" step early.** Part of the set goes out unfinished. Fix: start it only when every item has finished and passed its check.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+For each job, say whether it fits a fixed pipeline run by code, or the orchestrator-workers pattern. Give one reason.
+
+1. Every Monday, turn the newest episode into one summary and 4 captioned clips.
+2. A client sends a box of unlabelled old tapes and says: "Make the best archive edit you can."
+3. Every month, resize 30 approved photos into 3 shop sizes.
+
+### Answer
+
+1. **Fixed pipeline.** The steps are the same every week, and you can write them on one page. The OpenAI docs say that code-run orchestration is more predictable.
+2. **Orchestrator-workers.** Nobody knows the steps until someone looks at the tapes. The Anthropic post says that in this pattern, subtasks are not pre-defined but decided from the input.
+3. **Fixed pipeline.** The steps are known. Each photo is independent, so the 30 photos can run in parallel.
+
+## Recap
+
+- A pipeline is a fixed line of small steps. Chaining trades a little speed for accuracy, and a cheap gate before a costly step saves money.
+- Give every step a scope: once, each or all. Run "each" steps at the level where the input changes, and make "all" steps wait for every item to finish and pass.
+- Run steps in parallel when they do not depend on each other, and use routing when different inputs need different paths.

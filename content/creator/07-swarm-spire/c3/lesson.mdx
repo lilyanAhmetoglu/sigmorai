@@ -1,7 +1,7 @@
 ---
 id: creator/r7/c3/lesson
 title: Handoffs
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: OpenAI docs · Orchestration and handoffs
@@ -20,68 +20,177 @@ sources:
     url: https://www.anthropic.com/engineering/multi-agent-research-system
 ---
 
-## Why it matters
+## Goal
 
-In a studio, work moves. The localiser finishes a tagline. The visual maker needs it. The checker needs both. Each move is a **handoff**.
+After this lesson you can:
 
-A bad handoff is a quiet failure. The next role gets half the story, or too much of it, and does confident work on the wrong thing. This lesson shows the two ways vendors pass work, what the next role sees in each, and what a good handoff note holds.
+- Choose between a handoff and an agent used as a tool, by asking who owns the reply.
+- Say what the next agent sees in each pattern, and write a note that carries the missing facts.
+- Keep private data out of a handoff, and keep a helper's full report on the way back.
 
-## Two ways to pass work
+## The problem
 
-OpenAI's orchestration guide names two patterns, and asks first "who owns the final user-facing answer at each branch of the workflow."
+An illustration agency runs a client portal. A front-desk agent chats with clients. (An **agent** is a model that plans and uses tools on its own.) Behind it are two specialist agents:
 
-| Pattern             | What happens                               | Use it when                                                    |
-| ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
-| **Handoff**         | "Control moves to the specialist agent"    | A specialist should take over the conversation for that branch |
-| **Agent as a tool** | "The manager keeps ownership of the reply" | A manager should stay in control and call specialists          |
+- a **Mockup maker** that places a draft illustration on a book cover template
+- a **Revisions specialist** that talks with a client about changes to a commission
 
-In the SDK a handoff is shown to the model as a tool. For an agent named `Refund Agent`, the tool is called `transfer_to_refund_agent`.
+Last week, three things went wrong:
 
-Our reading for a batch of ads: the producer is answerable for all fifty versions, so the producer should stay in control. Helpers are called as tools. A handoff fits better when the next role should talk to the client directly.
+- The Mockup maker got the note "Do the mockup we talked about." It made a mockup for the wrong book.
+- The Revisions specialist took over a chat and saw the agency's internal fee notes for that client.
+- A quality helper found five problems in a cover. The client was told "looks mostly fine".
 
-## What the next role sees
+Each problem happened at a **handoff**: a moment when work moves from one agent to another. This lesson shows how to make those moves safe.
 
-The two patterns have opposite defaults.
+## The idea
 
-- **OpenAI handoff.** The SDK docs say "it's as though the new agent takes over the conversation, and gets to see the entire previous conversation history." You can change this with an input filter.
-- **OpenAI agent as a tool.** The nested run starts with its own state: "the parent run's conversation state is not inherited automatically."
-- **Claude subagent.** Its context "starts fresh, with no parent conversation". The docs say: "The only content you pass from parent to subagent is the Agent tool's prompt string."
+### Two ways to pass work
 
-So a handoff may share too much, and a subagent may get too little. Both have a cost.
+The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says the first design choice is "deciding who owns the final user-facing answer at each branch of the workflow." It names two patterns:
 
-**Too much:** the full history may hold things the next role should not see, such as the client's price list. OpenAI warns that its nested handoff history, an opt-in beta, "does not redact sensitive data". It adds: "Treat the receiving agent and its model provider as recipients of the forwarded history."
+| Pattern             | What happens (OpenAI docs)                 | Use it when                                           |
+| ------------------- | ------------------------------------------ | ----------------------------------------------------- |
+| **Handoff**         | "Control moves to the specialist agent"    | A specialist should take over that branch             |
+| **Agent as a tool** | "The manager keeps ownership of the reply" | A manager should stay in control and call specialists |
 
-**Too little:** a fresh subagent knows nothing you did not write down. Claude's docs say to include "any file paths, error messages, or decisions the subagent needs directly in that prompt."
+In the [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/handoffs.md) (an SDK is a software kit for developers), a handoff is shown to the model as a tool. The docs say: "Handoffs are represented as tools to the LLM." For an agent named `Refund Agent`, the tool is called `transfer_to_refund_agent`.
 
-## The handoff note
+Our reading for the portal: the Revisions specialist should talk with the client directly, so a handoff fits. The Mockup maker only makes a file, and the front desk should still answer the client, so it fits as a tool.
+
+### What the next agent sees
+
+The patterns have opposite defaults. This is the part teams get wrong.
+
+- **OpenAI handoff.** The SDK docs say "it's as though the new agent takes over the conversation, and gets to see the entire previous conversation history." You can change this with an **input filter**, a function that picks which parts of the history go on.
+- **OpenAI agent as a tool.** The [SDK tools page](https://github.com/openai/openai-agents-python/blob/main/docs/tools.md) says "the parent run's conversation state is not inherited automatically."
+- **Claude subagent.** (A **subagent** is a helper agent that a main agent starts.) The [Claude Agent SDK docs](https://platform.claude.com/docs/en/agent-sdk/subagents) say its context "starts fresh, with no parent conversation". The parent's chat, tool results and system prompt are not part of it. The docs say: "The only content you pass from parent to subagent is the Agent tool's prompt string".
+
+```text
+handoff (OpenAI)      -> sees the whole chat, unless you filter it
+agent as tool (OpenAI)-> does not get the parent's chat
+subagent (Claude)     -> sees only the prompt you write
+```
+
+So one pattern can share too much, and the others can share too little.
+
+### Too much: private data in the history
+
+The full chat can hold things the next agent should not see, like fee notes or a client's home address.
+
+The OpenAI SDK also has **nested handoff history**, an opt-in beta (a feature still being tested). It packs the earlier chat into summaries. But the docs warn that it "does not redact sensitive data". They add: "Treat the receiving agent and its model provider as recipients of the forwarded history."
+
+Our reading: a line like "please ignore the fee notes" does not help. Both the agent and the company that runs its model already have them. Use an input filter so the data never goes.
+
+### Too little: a fresh helper knows only your note
+
+The Claude docs say to include "any file paths, error messages, or decisions the subagent needs directly in that prompt." "See the chat above" points to a chat the helper cannot see.
+
+A handoff can also carry a small piece of data that the model fills in. The OpenAI SDK docs give `reason`, `language`, `priority` or `summary` as examples. They say it "does not replace the next agent's main input". It is a label, not a place for the whole brief.
+
+### The return trip
+
+The Claude docs say the parent "receives the subagent's final report, but may summarize it in its own response." Only the final message comes back. The helper's tool calls and results stay inside the helper.
+
+To keep the report word for word, the docs say to "include an instruction to do so" in the prompt you give the main agent. The [Anthropic research post](https://www.anthropic.com/engineering/multi-agent-research-system) calls the loss of detail between agents a "game of telephone". Its fix: helpers "store their work in external systems, then pass lightweight references back".
+
+### The handoff note
 
 This template is ours. Write one for every move:
 
-| Part            | What it holds                                    |
-| --------------- | ------------------------------------------------ |
-| **Goal**        | What the next role must produce                  |
-| **Done so far** | What is finished and approved                    |
-| **Inputs**      | File names or ids, not pasted copies             |
-| **Must hold**   | Rules that cannot change: tagline, colours, logo |
-| **Open**        | What is still unknown                            |
-| **Return**      | The shape of the answer you want back            |
+| Part            | What it holds                         |
+| --------------- | ------------------------------------- |
+| **Goal**        | What the next agent must produce      |
+| **Done so far** | What is finished and approved         |
+| **Inputs**      | File names or ids, not pasted copies  |
+| **Must hold**   | Facts that cannot change              |
+| **Open**        | What is still unknown                 |
+| **Return**      | The shape of the answer you want back |
 
-Example (made up): "Goal: make the 9:16 image for market DE. Done: tagline approved, file `tea-de-copy.txt`. Inputs: `master-layout.png`. Must hold: green lid, logo bottom right. Open: none. Return: one PNG named `tea-de-9x16.png`."
+## Worked example
 
-OpenAI's SDK shows the same idea on a small scale. A handoff can carry a small piece of data the model fills in, such as `reason`, `language`, `priority` or `summary`.
+### Step 1: the weak note to the Mockup maker
 
-## What comes back
+```text
+Do the mockup we talked about.
+```
 
-The return trip needs care too. Claude's docs say the parent "receives the subagent's final report, but may summarize it in its own response." Only the subagent's final message returns to the parent. Its tool calls and results stay inside.
+The Mockup maker is called as a tool, so it does not get the front desk's chat. "We talked about" points to nothing it can read. It guessed the book.
 
-So if the checker finds six failed rubric lines, the producer might report "a few small issues". If the full list matters, say so in the brief: ask the checker to save its report as a file, and tell the producer to quote it in full. The docs say that to keep subagent output word for word, you should "include an instruction to do so".
+### Step 2: the better note
 
-Anthropic's research post calls the loss of detail from passing results through many hands a "game of telephone". Chapter 5 shows its fix.
+```text
+Goal:        One mockup of the cover for "The Salt Road", 6x9 inch template.
+Done so far: Client approved draft v3 on Tuesday.
+Inputs:      salt-road-v3.png, template-6x9.psd
+Must hold:   Title top centre, author name bottom, no text over the boat.
+Open:        Spine width not known yet. Leave the spine blank.
+Return:      One PNG named salt-road-mockup-v3.png, and one line
+             listing anything you could not do.
+```
 
-## What this means for your work
+Every fact the helper needs is in the note. Files are named, not pasted. The open question is said out loud, so the helper does not invent a spine.
 
-- **Decide who owns the answer.** Producer in control: agents as tools. Next role in control: a handoff.
-- **Write down what the next role needs.** A fresh helper knows only the note.
-- **Do not forward everything.** Filter out what the next role must not see.
-- **Use file names, not pasted blobs.**
-- **Ask for important results to be saved whole.** A summary can drop the detail you need.
+### Step 3: the hard case
+
+**The hard case is the Revisions specialist.** A handoff fits, because the specialist should own the chat with the client. But by default it sees the whole history, and the history holds the agency's fee notes.
+
+Weak fix: add "Ignore the fee notes" to the instructions. The notes are still sent.
+
+Good fix: an input filter that passes only the client's messages about the commission and the approved brief.
+
+```text
+handoff to:    Revisions specialist
+input filter:  keep the client's messages about this commission
+               keep the approved brief
+               drop internal fee notes and other clients' names
+metadata:      reason = "client asks for colour change", priority = "normal"
+```
+
+Simplified. See the docs for the exact request shape.
+
+### Step 4: the return trip
+
+The quality helper finds five problems. The fix has two parts:
+
+- The helper saves its report as `salt-road-qa-v3.md` and returns the file name.
+- The main prompt says: "Quote the quality report in full to the client manager. Do not summarize it."
+
+### Step 5: why it is better
+
+- **The right owner.** The front desk keeps the reply for mockups. The specialist owns the chat for revisions.
+- **No guessing.** A tool helper gets a full note, because it cannot see the chat.
+- **No leaks.** The filter decides what leaves. A polite request does not.
+- **No lost detail.** The full report lives in a file, and the summary rule is written down.
+
+## Common mistakes
+
+1. **Pointing to a chat the helper cannot see.** Fix: write the goal, files, rules and open questions into the note.
+2. **Forwarding the full history by default.** Fix: use an input filter, and drop what the next agent does not need.
+3. **Trusting the parent's summary of a report.** Fix: save the report as a file, and ask for it word for word.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A main agent starts a Claude subagent with this prompt:
+
+```text
+Fix the export problem from before and use the size we agreed.
+```
+
+1. What will the subagent know about "the export problem" and "the size"?
+2. Name three kinds of facts the prompt should carry, using the Claude docs' list.
+3. Rewrite the prompt.
+
+### Answer
+
+1. **Nothing.** A fresh subagent does not get the parent's chat or tool results. It gets only this prompt string.
+2. **File paths, error messages and decisions.** The docs list these as things to put directly in the prompt.
+3. Our example: "Re-export `poster-final.psd` as PNG at 2400x3600 (size agreed with the client on Monday). The last export failed with the error `Image too large for target`. Return the new file name."
+
+## Recap
+
+- Ask who owns the reply. Control moves with a handoff; with an agent as a tool, the manager keeps the reply.
+- Know what the next agent sees. An OpenAI handoff sends the whole history unless you filter it. A tool helper and a fresh Claude subagent see only what you write.
+- Protect both directions. Filter private data before it leaves, and save important reports as files so a summary cannot drop the detail.
