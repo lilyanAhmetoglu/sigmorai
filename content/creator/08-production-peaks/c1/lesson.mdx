@@ -1,7 +1,7 @@
 ---
 id: creator/r8/c1/lesson
 title: Provenance
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: C2PA · Content Credentials explainer (spec 2.2)
@@ -20,66 +20,179 @@ sources:
     url: https://newsroom.tiktok.com/en-us/partnering-with-our-industry-to-advance-ai-transparency-and-literacy
 ---
 
-## Why it matters
+## Goal
 
-A brand posts 40 AI images. A journalist asks: "Where did this image come from?" Your best answer is a record inside the file. That record only helps if it survives, and if you read it correctly.
+After this lesson you can:
 
-Bootstrap Village, chapter 6, introduced Content Credentials. This lesson goes one step further. It shows what is inside one, how to read a check result, and what a credential can never tell you.
+- Say what a Content Credential holds, and what it can never prove.
+- Read every field of a provenance check, one entry at a time.
+- Record the history of a file made from several parts, including a gap in that history.
 
-## What is inside a Content Credential
+## The problem
 
-C2PA calls the record a **Content Credential**. Its technical name is a C2PA Manifest. The explainer describes it as a "cryptographically bound structure that records an asset's provenance".
+Inkwell is a small illustration studio. A publisher buys a book cover from them. The contract asks for a short provenance note: where the cover came from and which parts used AI.
 
-A credential holds **assertions**. These are statements about the file: where it came from, what was done to it, and whether AI was used. Each action can be done by a person or by an AI system. When AI did it, the credential marks it as AI.
+The cover is a composite. A designer joined three parts: a photo of an old bookshop, an AI background of a stormy sky, and the publisher's logo.
 
-The credential is **signed** with the key of the software or hardware that did the work. The signature protects the record from silent change.
+The studio manager runs a provenance check on the final cover and writes one line in the archive sheet:
 
-If you build a banner from three images, each source image is an **ingredient**. C2PA records each ingredient, and its own credential, in the banner's history. The result is a family tree of provenance.
+```text
+cover-final.png   AI used: no   (the check said not_detected)
+```
 
-## Tamper-evident is not the same as true
+A week later the publisher opens the file in a viewer and sees an AI step in its history. Nobody lied. The manager read one field and stopped.
 
-C2PA says any change to the file or to the credential, "however insignificant", stops the pieces from matching. So a change can be seen. That is what **tamper-evident** means.
+## The idea
 
-It does not mean the picture is true. The explainer says provenance "cannot tell you whether the digital content is true, accurate or factual". Credentials show information that is well-formed and untampered. They do not judge it.
+### What a Content Credential is
 
-Example: a credential on a tent image says "made with AI". A caption that says "real tent, real storm" is still false. The credential even shows why.
+C2PA (the Coalition for Content Provenance and Authenticity) writes an open standard for file history. The [C2PA explainer](https://c2pa.org/specifications/specifications/2.2/explainer/Explainer.html) calls the record a **Content Credential**, also known as a C2PA Manifest (a block of signed data that goes with the file). It describes it as "a cryptographically bound structure that records an asset's provenance". Provenance means the history of a file. An asset can be an image, video, audio recording or document.
 
-## Reading a check result
+A credential holds **assertions**: statements about the file. The explainer names three kinds: its origin, its modifications, and its use of AI.
 
-OpenAI offers a provenance check for images. For each image it returns a c2pa entry. Read these fields:
+The credential is signed with the private key of the software or hardware that did the work. A signature is a digital seal that anyone can check.
 
-| Field              | Values                                       | What it tells you                                   |
-| ------------------ | -------------------------------------------- | --------------------------------------------------- |
-| `validation_state` | `trusted`, `valid`, `invalid`, `not_present` | The state of the manifest                           |
-| `issuer`           | a name, when known                           | Who issued it                                       |
-| `outcome`          | `detected` or `not_detected`                 | Whether OpenAI AI-generation credentials were found |
+A comparison: a credential is like a receipt stapled to a parcel. It says who packed it and what went in, not whether the gift is nice.
 
-Three rules from OpenAI's page:
+### Tamper-evident, not true
 
-- `detected` needs a `trusted` or `valid` manifest that names OpenAI as issuer and includes an AI-generation action.
-- A manifest from another company gives `not_detected`. The `issuer` and `validation_state` can still describe it.
+The explainer says that any change to the file or to the credential, "however insignificant", stops the two from matching. The match uses a hash (a short fingerprint of the data, made by maths). So a change can be seen: the record is **tamper-evident**. It does not stop anyone from editing.
+
+The explainer also says provenance "alone cannot tell you whether the digital content is true, accurate or factual". A credential shows that the record is well-formed and untouched. It does not judge the picture.
+
+A credential is also not a lock. Unlike DRM (digital rights management, which limits who can open or copy a file), a credential puts no limit on access, the explainer says.
+
+### Gaps, missing credentials and soft bindings
+
+The explainer answers three questions.
+
+- **Should you distrust a file with no credential?** The answer is "Maybe." Nobody has to add a credential, and files without one should not be "universally less trusted". The sender counts too, for example a publisher you know.
+- **Is provenance always complete?** No. If a tool that does not know C2PA crops a file, the record may miss the crop. When the file later goes into a tool that does know C2PA, the new signer "implicitly attests" to the crop. The signer vouches for it without listing it.
+- **Can a credential be removed?** Yes. So C2PA describes **durable** credentials: a hard binding (the hash) plus a **soft binding**, such as an invisible watermark or a fingerprint lookup. The soft binding lets the credential "be discovered in cloud-hosted storage even if it is removed from the asset".
+
+### Files made from parts
+
+When a file is made from other files, each part is an **ingredient**. The explainer says each ingredient is recorded in the new file's provenance, with its own provenance, which "creates a tree of provenance, much like a family tree".
+
+There is one limit. The ingredient's own data is usually not inside the new file's credential. So its hard binding cannot be checked again later. Instead, it is checked at the moment it is added, and a record of that check is kept.
+
+### Reading the OpenAI provenance check
+
+The [OpenAI docs](https://developers.openai.com/api/docs/guides/content-provenance) describe an API (a service your tools call) that checks images and audio. It accepts PNG, JPEG and WebP images. For an image, it returns two entries: a `c2pa` entry and a `synthid` entry (SynthID is an invisible watermark). Audio gets only a `synthid` entry. The docs say: "Read each applicable entry in `results` independently." The response has no top-level `outcome` that sums them up.
+
+The `c2pa` entry has these fields:
+
+| Field              | Values                                       | Tells you                                     |
+| ------------------ | -------------------------------------------- | --------------------------------------------- |
+| `validation_state` | `trusted`, `valid`, `invalid`, `not_present` | the state of the manifest                     |
+| `issuer`           | a name, when known                           | who issued the manifest                       |
+| `outcome`          | `detected`, `not_detected`                   | whether OpenAI AI-generation credentials show |
+
+The rules in the docs:
+
+- `detected` only appears when the manifest is `trusted` or `valid`, OpenAI is the issuer, and an AI-generation action is listed.
+- A third-party manifest, a manifest without an AI-generation action, an `invalid` one or a `not_present` one all give `not_detected`.
+- The issuer and validation state "can still describe a manifest even when the outcome is `not_detected`".
 - "Don't treat an `invalid` manifest as reliable provenance evidence."
+- `not_present` means no C2PA manifest is available in the image.
 
-So `not_detected` does not always mean "no credentials". The file may carry a good manifest from someone else. OpenAI also says to check the issuer before you name a provider.
+Three more lines from the same page:
 
-## Missing or incomplete credentials
+- A `not_detected` result is "not proof that the content is human-created".
+- "Check the C2PA issuer before attributing an image to a particular provider."
+- "Verify the original file when possible." A copy may have lost what the original still has.
 
-Should you distrust a file with no credentials? The C2PA explainer answers: "Maybe." Adding provenance is optional. C2PA says it does not want a two-tier world where files without credentials are "universally less trusted". Trust also depends on the source.
+So `outcome` answers one narrow question: did OpenAI's own AI credential show up? It does not answer whether AI was used.
 
-Provenance is also not always complete. If a tool that does not know C2PA crops a file, the credential may not record the crop. If the file later goes into a tool that does know C2PA, the new signer "implicitly attests" to that crop.
+### Platforms read credentials too
 
-Credentials can be removed. That is why C2PA describes **durable** credentials. A hard binding (a hash) is joined by a **soft binding**, such as an invisible watermark or a fingerprint lookup. The soft binding helps find the credential in cloud storage even after it was removed from the file. Chapter 2 covers watermarks.
+The [TikTok newsroom post](https://newsroom.tiktok.com/en-us/partnering-with-our-industry-to-advance-ai-transparency-and-literacy) from May 2024 announced that TikTok would start reading Content Credentials. It uses them to label AI content uploaded from some other platforms. The [YouTube Help page](https://support.google.com/youtube/answer/14328491) says YouTube may add an AI label to "Content that contains C2PA metadata". So the history inside a file can turn into a label on your post.
 
-## Platforms read them
+## Worked example
 
-Credentials are not only for journalists. In May 2024, TikTok said it was launching the ability to read Content Credentials, so it could label AI content made on other platforms. YouTube says it may add an AI label to content that contains C2PA metadata. So a credential can cause a label on your post. Chapter 3 covers labels.
+### Step 1: the weak record
 
-## What this means for your work
+```text
+cover-final.png   AI used: no   (the check said not_detected)
+```
 
-This checklist is ours, not a vendor rule.
+The manager turned `outcome` into an answer about AI. That field only speaks about OpenAI's own credential.
 
-- **Keep one master.** Save the original export, with its credentials, in a safe place.
-- **Test your export path.** Ask which step drops metadata, and fix it if you can.
-- **Read all three fields.** Check `validation_state`, `issuer` and `outcome`, not only the outcome.
-- **Never write a claim a credential disproves.** A credential says how a file was made, not whether your caption is true.
-- **Do not distrust a file only for a missing credential.** Look at the source and the master.
+### Step 2: read every entry
+
+The full check result for the cover (our example):
+
+```text
+c2pa     validation_state: valid
+         issuer:           Brushwork Software Ltd
+         outcome:          not_detected
+synthid  outcome:          not_detected
+```
+
+Our reading:
+
+- The manifest is `valid`. The record is intact.
+- The issuer is the maker of the studio's design app (a made-up name), not OpenAI. So `not_detected` is expected, whatever the cover contains.
+- The SynthID entry says the watermark was not found in the final pixels. It does not rule out AI.
+
+### Step 3: open the history
+
+Open the cover in a viewer that shows the whole credential. It lists three ingredients:
+
+```text
+ingredient 1   bookshop.jpg    camera capture
+ingredient 2   sky.png         own credential: AI generation action
+ingredient 3   logo.svg        from the publisher
+```
+
+The AI step was in ingredient 2 the whole time.
+
+### Step 4: the hard case
+
+**The hard case is the sky.** Before the designer used it, a junior cropped it in a small photo app that does not know C2PA. The record shows the sky only as it was when it entered the design app. The crop is not listed.
+
+Is this tampering? No. Provenance is not always complete. When the design app signed the cover, it implicitly attested to the crop. The gap is honest. Our habit: write it down, do not hide it.
+
+### Step 5: the good record
+
+```text
+cover-final.png
+  c2pa:      valid, issuer Brushwork Software Ltd, not_detected
+  synthid:   not_detected
+  history:   3 ingredients; sky.png has an AI generation action
+  gap:       sky.png cropped in a non-C2PA app before use
+  master:    /masters/cover-final.png (original export)
+  note:      Background sky made with AI. Photo and logo are not AI.
+```
+
+### Step 6: why it is better
+
+- **Each entry is read alone.** No field answers a question it was not built for.
+- **The history and its gap are written down.** The record says which ingredient used AI, and where the crop happened.
+- **The note is true.** A credential cannot make a caption true; the team writes a true one.
+
+## Common mistakes
+
+1. **One yes/no column for a whole check.** It hides which entry said what. Fix: give each entry and each field its own column.
+2. **Reading a missing crop as fraud.** A tool that does not know C2PA can leave a gap. Fix: look at who signed the next step, and note the gap.
+3. **Archiving only the posted copy.** The OpenAI docs warn that editing, converting or sharing a file can remove its metadata. Fix: keep the original export as the master.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Five years later, a researcher asks Inkwell to prove that the sky inside the cover was never changed after it was added. A teammate says: "Easy. The cover's credential has the sky's credential inside it. We just check the sky's hash again."
+
+1. Can the team check the sky's hard binding again from the cover alone?
+2. What does the cover's credential offer instead?
+
+### Answer
+
+1. **No, most likely not.** The C2PA explainer says the ingredient's actual data is usually not included in the new file's credential. Without that data, the hash cannot be checked again.
+2. **A record of the check made when the sky was added.** The ingredient's binding and credential are validated at that moment, and the result is kept in the cover's credential. If the team still has the original sky file, they can check that file itself.
+
+## Recap
+
+- A Content Credential is a signed record of a file's origin, edits and AI use. It is tamper-evident, but it cannot say whether a picture is true, and it does not lock the file.
+- Read each check entry on its own. `outcome` only says whether OpenAI's AI credential was found; `issuer` and `validation_state` still matter, and an `invalid` manifest is not evidence.
+- History can have gaps, and a file without a credential is not automatically suspect. Ingredients, soft bindings and a kept master fill in the story.
