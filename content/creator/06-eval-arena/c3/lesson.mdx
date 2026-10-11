@@ -1,7 +1,7 @@
 ---
 id: creator/r6/c3/lesson
 title: Model graders
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -20,75 +20,167 @@ sources:
     url: https://developers.openai.com/api/docs/deprecations
 ---
 
-## Why it matters
+## Goal
 
-Scoring 200 images by hand takes a person most of a day. A **model grader** is a second model that looks at each image and applies your rubric. It is fast and it never gets tired. It can also be wrong in ways that look confident.
+After this lesson you can:
 
-Prompt Forest, chapter 6, listed what a vision model gets wrong when it looks at an image. This chapter assumes you know those limits. The question here is how to check a grader before you trust its scores.
+- Choose what code, a model judge and a person should each check.
+- Write a judge prompt for one rubric line, with a short reason and a way out.
+- Check a judge against people before you trust it, and read where it goes wrong.
 
-## Three ways to grade
+## The problem
 
-Claude's guide ranks the options by speed and reliability:
+A small team sells icon packs. Each week an image model makes about 400 icons. The rules: one object per icon, no stray letters, even line width. Checking 400 icons by hand takes a full day, so the team adds a **model judge**: a second model that looks at each icon and applies the rules.
 
-- **Code-based grading** is the "fastest and most reliable", but it "lacks nuance".
-- **Human grading** is the "most flexible and high quality, but slow and expensive". The guide says to avoid it if possible.
-- **LLM-based grading** is "fast and flexible, scalable and suitable for complex judgment". The guide adds: "Test to ensure reliability first then scale."
+They test the judge for one afternoon. It looks fine, so they switch it on.
 
-Anthropic's post adds the weak points of a model grader: it is "non-deterministic", "more expensive than code" and "requires calibration with human graders for accuracy". Use code for what code can check, such as file size and format. Use a model for what needs looking, and people to calibrate it.
+A month later, buyers complain. About one icon in twenty has tiny letters near the edge, like a fake label. The judge passed almost all of them. Nobody had checked how often the judge was wrong, or what kind of mistakes it made.
 
-## Three shapes of judging
+A model judge is fast and never gets tired. It can also be wrong in a calm, confident way. This lesson shows how to check one before you trust it.
 
-OpenAI's guide lists how a model judge can work:
+## The idea
+
+### Three kinds of grader
+
+A **grader** is whatever gives the score. The [Claude docs on evaluations](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) compare three kinds:
+
+- **Code-based grading:** "Fastest and most reliable, extremely scalable", but it "lacks nuance for more complex judgments".
+- **Human grading:** "Most flexible and high quality, but slow and expensive. Avoid if possible."
+- **LLM-based grading:** "Fast and flexible, scalable and suitable for complex judgment. Test to ensure reliability first then scale."
+
+The [Anthropic post on evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) lists the weak points of model graders: "Non-deterministic", "More expensive than code" and "Requires calibration with human graders for accuracy". **Non-deterministic** means the same input can get a different grade on another run.
+
+Our order: use code for what code can check (file type, size, transparency). Use a model judge for what needs eyes. Use people to check the judge.
+
+A comparison: a model judge is like a new junior proofreader. Fast, useful, but you check a sample of their work before you stop looking.
+
+### Three ways to judge
+
+The [OpenAI evaluation docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) list these:
 
 - **Pairwise comparison:** show two outputs and ask which is better on given criteria.
 - **Single answer grading:** score one output on its own.
-- **Reference-guided grading:** give the judge a gold-standard output to compare with.
+- **Reference-guided grading:** give the judge a "gold standard" answer to compare with.
 
-It also says "Use pairwise comparison or pass/fail for more reliability", and "LLMs are better at discriminating between options". A question like "Does the label read exactly Fernhill?" is more reliable than "Rate this image from 1 to 100".
+They say: "Use pairwise comparison or pass/fail for more reliability", because "LLMs are better at discriminating between options". In plain words: "Does this icon contain any letters?" works better than "Rate this icon from 1 to 100".
 
-## Write the grader prompt like a rubric
+The same docs say model judges are "cheaper to run and more scalable than human evaluation".
 
-Claude's tips for an LLM grader:
+### Write the judge prompt like a rubric line
 
-- "Have detailed, clear rubrics". Its example is a rule that either holds or does not.
-- Ask for a plain output: only "correct" or "incorrect", or a scale of 1 to 5.
-- "Encourage reasoning": use a grader with thinking turned on, so it reasons before it scores. OpenAI agrees: reasoning before scoring "improves eval performance".
+Tips from three sources:
 
-Anthropic adds two more tips. First, "give the LLM a way out", such as an instruction to return "Unknown" when it lacks the information. Second, grade each dimension with its own judge. In its words: grade each dimension "with an isolated LLM-as-judge rather than using one to grade all dimensions".
+- **One clear line.** The Claude docs: "Have detailed, clear rubrics". They also suggest a plain output, such as only "correct" or "incorrect".
+- **Reason first.** The Claude docs say to use a grader "with thinking on, so that it reasons before it produces an evaluation score". The OpenAI docs agree: "reasoning before scoring improves eval performance".
+- **A way out.** The Anthropic post says: "To avoid hallucinations, give the LLM a way out". Its example: the judge may return Unknown if it does not have enough information.
+- **One judge per line.** The same post advises grading every dimension "with an isolated LLM-as-judge rather than using one to grade all dimensions".
 
-For a candle image, that means one judge call for the logo line, one for the label line and one for the extra-objects line. Each returns pass, fail or unknown, plus a one-sentence reason.
+### Known biases
 
-## Known biases
+The OpenAI docs list two challenges for a model judge: "Position bias (response order), verbosity bias (preferring longer responses)". For text, they say to "Control for response lengths". Images have no word count, so our reading is that verbosity bias may not carry over. Position bias does matter for images. Our test: show every pair twice, once in each order. If the judge keeps picking whichever came first, the order decides, not the image.
 
-OpenAI lists two challenges for a model judge: "Position bias (response order), verbosity bias (preferring longer responses)". The guide says that models tend to favour longer responses, so you should control for length. Images have no word count, so we cannot say verbosity bias carries over. Position bias is easy to test, though. Show each pair of images in both orders. If the judge keeps picking whichever image came first, its pick tells you about the order.
+### Check the judge against people
 
-## Calibrate against people
+The OpenAI docs: "Use human feedback to calibrate automated scoring." **Calibrate** means you compare the judge with people and adjust until they agree. And: "Once the LLM judge reaches a point where it's faster, cheaper, and consistently agrees with human annotations, scale up."
 
-OpenAI says to "use human feedback to calibrate automated scoring". Its advice for scaling: "Once the LLM judge reaches a point where it's faster, cheaper, and consistently agrees with human annotations, scale up."
+The [OpenAI graders page](https://developers.openai.com/api/docs/guides/graders) gives a method. Take answers that people have ranked from best to worst, and check that the model grader puts them in the same order. It also warns about "grader hacking": a model can score highly with a model grader "but score poorly on expert human evaluations".
 
-OpenAI's graders page gives a method. Pick answers that people have ranked from best to worst, and check that the model grader gives the same order. It also warns that a model that learns to exploit a grader can score well with the grader while scoring poorly with expert people.
+The Anthropic post adds: "You won't know if your graders are working well unless you read the transcripts and grades from many trials." For you, the transcript is the judge's reason for each icon.
 
-A simple calibration, with made-up numbers. A person and a judge both mark 30 images pass or fail on the logo line. The person passes 20 and fails 10. The judge agrees on 18 of the 20 passes and on 4 of the 10 fails.
+### A tool note
 
-- Agreement: (18 + 4) / 30 = 73%.
-- The judge passed 24 images. The person passed 20.
-- It passed 6 of the 10 images the person failed.
+The OpenAI docs say OpenAI is deprecating graders as part of its evals workflows. The [deprecations page](https://developers.openai.com/api/docs/deprecations) gives two dates. "Oct 31, 2026": "Existing evals become read-only." "Nov 30, 2026": "The Evals dashboard and API are scheduled to shut down." The ideas in this lesson do not depend on one tool. Our habit: keep rubrics, anchors and human labels in files you own.
 
-The overall number hides where the judge is wrong. Here it lets bad images through. Read the judge's reasons on the images it got wrong, fix the prompt, and run the check again. Anthropic says: "You won't know if your graders are working well unless you read the transcripts and grades from many trials."
+## Worked example
 
-## Same image, different grade
+### Step 1: the weak judge
 
-Anthropic lists model graders as "Non-deterministic". If the same image passes on Monday and fails on Tuesday, that is a known trait, not a mystery. Run the grader on the same set two or three times. If the grades change a lot, the rubric line is too loose.
+```text
+Rate this icon from 1 to 100 for overall quality.
+Reply with one number.
+```
 
-## Tool note
+What goes wrong: three rules are mixed into one number. There is no reason to read, no way to say "I can't tell", and nobody knows which number means pass.
 
-OpenAI says it is deprecating graders and the Evals platform. Its deprecations page gives the Evals dates: read-only on October 31, 2026, and scheduled to shut down on November 30, 2026. The ideas here do not depend on one platform. Keep your rubric, your anchor images and your human labels in files you own.
+### Step 2: split the work
 
-## What this means for your work
+```text
+Code:   PNG? transparent background? exactly 512x512?
+Judge:  no stray letters | one object | even line width
+People: check the judge on a labelled sample, then spot-check
+```
 
-- **Use code first, a model judge second, people to calibrate.**
-- **Ask narrow yes-or-no questions**, one judge per rubric line, with an "unknown" option.
-- **Ask for a short reason before the verdict.**
-- **Show pairs in both orders** to test for position bias.
-- **Check the judge on images people have already marked**, and look at where it differs, not only the overall agreement.
-- **Do not scale up until the judge agrees with people** consistently.
+### Step 3: one judge prompt per line
+
+```text
+Look at the icon. Question: does it contain any letters,
+numbers or text-like marks? Check all four edges.
+First, reason in one or two lines. After that, give exactly one of
+PASS (no text), FAIL (text found) or UNKNOWN,
+and one sentence that says where you looked.
+```
+
+Simplified. See the docs for the exact request shape.
+
+### Step 4: the hard case
+
+**The hard case is the calibration.** A person marks 40 icons pass or fail on the "no stray letters" line. The judge marks the same 40. The numbers are our example.
+
+```text
+Person:  30 pass, 10 fail
+Judge:   agrees on 29 of the person's 30 passes
+         agrees on 5 of the person's 10 fails
+```
+
+Our maths:
+
+- Agreement: (29 + 5) / 40 = 34 / 40 = 85%.
+- The judge passed 29 + 5 = 34 icons. The person passed 30.
+- The judge let 5 of the 10 bad icons through.
+
+85% sounds good. But one overall number cannot show which way the judge is wrong. This judge is too lenient: half the bad icons get through, which is exactly what the buyers saw. It is not ready to scale.
+
+Now look at the reasons the judge wrote for the 6 icons it got wrong. Say the reasons show it looked only at the centre. Add "Check all four edges" (already in step 3), run the same 40 again, and compare.
+
+### Step 5: run it again on the same set
+
+Run the judge three times on the same 40 icons. If an icon's grade flips between runs, that line is too loose. Our advice: tighten the wording or add an anchor image, then run again.
+
+### Step 6: why it is better
+
+- **Code does what code can do**, cheaply and the same way every time.
+- **One narrow question per judge**, with a reason and an UNKNOWN option.
+- **The judge was checked against a person** before it was trusted, and the type of mistake was read, not only the overall score.
+
+## Common mistakes
+
+1. **Trusting the overall agreement.** 85% can hide a judge that lets most bad work through. Fix: count each kind of mistake on its own.
+2. **One judge for the whole rubric.** The lines blur into one mood. Fix: one judge call per line, each with pass, fail or unknown.
+3. **Showing pairs in one fixed order.** The judge may favour first place. Fix: show each pair in both orders.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+The icon team adds four new checks. For each one, choose code, a model judge or a person.
+
+```text
+A  The file is a PNG with a transparent background.
+B  The icon shows exactly one object.
+C  A new pack of religious holiday icons for a client in a
+   country the team does not know well.
+D  The file name follows the pattern pack-0001.png.
+```
+
+### Answer
+
+1. **A: code.** A script reads the file type and the transparency. The Claude docs call code "Fastest and most reliable".
+2. **B: a model judge.** It needs eyes, and it is one narrow yes-or-no question. Calibrate it on icons a person has marked.
+3. **C: a person.** It needs cultural judgment, and a mistake is costly. Human grading is slow, so keep it for cases like this and for calibration.
+4. **D: code.** A simple pattern check. A model would be slower and less reliable.
+
+## Recap
+
+- Use code for what code can check, a model judge for what needs eyes, and people to calibrate the judge. The Claude docs say to test reliability first, then scale.
+- Ask the judge one narrow question per line, let it reason first, and give it a way out such as UNKNOWN. Show pairs in both orders to test for position bias.
+- Before you scale, compare the judge with people. Look at the kind of mistake, not only the overall agreement, and run the same set more than once.
