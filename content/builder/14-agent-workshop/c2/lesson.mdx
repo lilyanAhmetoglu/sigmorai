@@ -1,7 +1,7 @@
 ---
 id: builder/r14/c2/lesson
 title: Hook recipes
-minutes: 10
+minutes: 12
 sources:
   - kind: docs
     title: Automate actions with hooks (Claude Code docs)
@@ -17,55 +17,99 @@ sources:
     url: https://geminicli.com/docs/hooks/
 ---
 
-Agent Citadel, chapter 2 (Stop conditions), used a `Stop` hook to keep Claude from saying "done" too early. Chapter 3 (The harness) drew the line: an instruction is a request, a hook is enforcement. This chapter uses hooks at other moments in the loop, with four recipes: format, guard, notify and validate.
+## Goal
 
-A note on dates: the event names and fields below are from each vendor's page in October 2026.
+After this lesson you can:
 
-## One idea, three sets of names
+- Pick the right hook moment for a job: before a tool call, after it, or at the end of a turn.
+- Write a hook script whose exit code does what you mean.
+- Say when a hook from a repo runs without anyone checking it.
 
-A hook is a script the agent's harness runs at a fixed moment, such as before a tool call (our plain gloss). Anthropic: hooks give "deterministic control: certain actions always happen rather than relying on the LLM to choose to run them." Google: Gemini CLI runs hooks "at specific points in the agentic loop".
+## The problem
 
-The moments have different names per tool:
+A developer works on a small Python library. They often ask the agent for a change and walk away. When they come back, the agent says "Done", but the unit tests fail. The developer added a line to the instruction file: "Always run the tests before you finish." It helps on most days. On some days the agent still stops with red tests.
 
-| Moment                   | Claude Code    | Codex          | Gemini CLI     |
-| ------------------------ | -------------- | -------------- | -------------- |
-| Before a tool call       | `PreToolUse`   | `PreToolUse`   | `BeforeTool`   |
-| After a tool call        | `PostToolUse`  | `PostToolUse`  | `AfterTool`    |
-| The agent sends an alert | `Notification` | not listed     | `Notification` |
-| The agent's turn ends    | `Stop`         | `Stop`         | `AfterAgent`   |
-| A session starts         | `SessionStart` | `SessionStart` | `SessionStart` |
+An instruction is a request. The developer wants a check that runs every time, whatever the model decides. That is a **hook**: a script that the agent's harness (the program around the model) runs at a fixed moment.
 
-All three use the same three levels in JSON: an event, a `matcher` that filters it (for tool events, a pattern on the tool name), and one or more handlers with a `command`. Where the file lives:
+## The idea
 
-- **Claude Code:** a `hooks` block in a settings file, such as `.claude/settings.json` for one project.
-- **Codex:** `hooks.json` or `[hooks]` in `config.toml`, for example `<repo>/.codex/hooks.json`.
-- **Gemini CLI:** `.gemini/settings.json` in the project.
+### Hooks run at fixed moments
 
-## How a hook answers
+The [Claude Code guide](https://code.claude.com/docs/en/hooks-guide) says hooks give "deterministic control: certain actions always happen rather than relying on the LLM to choose to run them." The moments have different names in each tool:
 
-The hook gets the event as JSON on stdin (standard input; our plain gloss). It answers with an exit code (the number a script returns when it ends; 0 means OK) and, sometimes, JSON on stdout (the script's normal output). A reason for a block goes to stderr (its error output). Our plain glosses.
+| Moment                   | Claude Code    | Codex         | Gemini CLI     |
+| ------------------------ | -------------- | ------------- | -------------- |
+| Before a tool call       | `PreToolUse`   | `PreToolUse`  | `BeforeTool`   |
+| After a tool call        | `PostToolUse`  | `PostToolUse` | `AfterTool`    |
+| The agent sends an alert | `Notification` | not listed    | `Notification` |
+| The agent's turn ends    | `Stop`         | `Stop`        | `AfterAgent`   |
 
-- **Exit 2 blocks a tool call** in all three. Claude Code: "Claude Code blocks the action. Write a reason to stderr." Codex: "You can also use exit code `2` and write the blocking reason to `stderr`." Gemini CLI: "The target action (tool, turn, or stop) is aborted."
-- **Exit 0 is not a yes.** Claude Code: for `PreToolUse`, exit 0 "doesn't approve the tool call: the normal permission flow still applies."
-- **Other codes don't block on their own.** In Claude Code, with plain text or empty stdout, the action "proceeds as a non-blocking error". In Gemini CLI, "the interaction proceeds using original parameters."
-- **Keep stdout clean in Gemini CLI.** "Your script must not print any plain text to `stdout` other than the final JSON object."
+All three use JSON with the same three levels: an event, a `matcher` that filters it (for tool events, a pattern on the tool name), and one or more handlers with a `command`. Where the config lives:
 
-Our example: a guard script that prints nothing and exits 1 by mistake does not block anything. It only shows an error.
+- **Claude Code:** a `hooks` block in a settings file, such as `.claude/settings.json`.
+- **Codex:** `hooks.json` or `[hooks]` tables in `config.toml`, for example `<repo>/.codex/hooks.json` ([Codex docs](https://learn.chatgpt.com/docs/hooks)).
+- **Gemini CLI:** `.gemini/settings.json` in the project ([Gemini CLI docs](https://geminicli.com/docs/hooks/)).
 
-## Recipe 1: format on edit
+### How a hook answers
 
-Anthropic's example runs Prettier "on every file Claude edits". It uses `PostToolUse` with an `Edit|Write` matcher, in `.claude/settings.json`:
+A hook is like a gate guard with a stamp. It gets the event as JSON on stdin (standard input). It answers with an exit code (the number a script returns; 0 means OK) and sometimes JSON on stdout (normal output). The reason for a block goes to stderr (error output).
+
+- **Exit 2 blocks** a tool call in all three. The [Claude Code reference](https://code.claude.com/docs/en/hooks) for exit 2 on `PreToolUse`: "Blocks the tool call". The Codex docs: "You can also use exit code `2` and write the blocking reason to `stderr`." Gemini CLI: "The target action (tool, turn, or stop) is aborted."
+- **Exit 0 is not a yes** in Claude Code. For `PreToolUse`, exit 0 "doesn't approve the tool call: the normal permission flow still applies."
+- **Other codes do not block** on their own. In Claude Code, the action "proceeds as a non-blocking error". In Gemini CLI, "the interaction proceeds using original parameters." So a guard that exits 1 lets the command through.
+- In Claude Code, a JSON deny is strong: "A hook that returns `permissionDecision: "deny"` blocks the tool even in `bypassPermissions` mode" (a mode that never asks for permission).
+
+### Before or after the tool call
+
+A `PostToolUse` hook gets the tool input, such as the file path. It is the place to format a file the agent just edited. The Claude Code guide runs Prettier "on every file Claude edits" with `PostToolUse` and an `Edit|Write` matcher. A `PreToolUse` formatter would run before the edit, on the old file.
+
+Codex makes file edits with its `apply_patch` tool, and "`matcher` values can use `apply_patch`, `Edit`, or `Write`". A `Bash` matcher catches shell commands, such as `git`, not file edits.
+
+An after-hook cannot take anything back. The Claude Code guide: "`PostToolUse` hooks can't undo actions since the tool has already executed." Codex says it "can't undo side effects from a tool that already ran." So format after, but guard before.
+
+Two limits on guards:
+
+- **Hooks run side by side.** Codex: "one hook can't prevent another matching hook from starting." Codex runs all matching hooks from all files.
+- **Not every Codex tool passes a hook.** Hosted tools, such as `WebSearch`, "don't use the local function-tool hook path." The Codex advice: "Treat tool hooks as a useful guardrail, not a complete enforcement boundary."
+
+### At the end of a turn
+
+A `Stop` hook runs when the agent finishes its reply. In Claude Code, exit 2 on `Stop` "Prevents Claude from stopping, continues the conversation". In Codex, a `Stop` hook that returns `"decision": "block"` with a `reason` "tells Codex to continue", with the reason as the next prompt. Gemini CLI's `AfterAgent` can "force retry or halt execution".
+
+### Who decides that a hook may run
+
+The Claude Code reference warns: "Command hooks execute shell commands with your full user permissions." So each tool has a trust step:
+
+- **Codex:** "Codex records trust against the hook's current hash" (a hash is a fingerprint of the text), "so new or changed hooks are marked for review and skipped until trusted." You review them with `/hooks`.
+- **Gemini CLI:** if a hook's name or command changes, "it is treated as a **new, untrusted hook**".
+- **Claude Code:** in an interactive session, project hooks wait for the workspace trust dialog. In a `-p` or SDK run (headless: no person at the screen), "Claude Code never shows the dialog and treats the folder as trusted". Before you script `claude -p` over a repo you did not write, the docs say to review its `.claude/` settings, start with `--bare`, or turn hooks off with `--settings '{"disableAllHooks": true}'`.
+
+## Worked example
+
+Our example: the Python library from The problem, in Claude Code.
+
+### Step 1: the weak version
+
+```text
+CLAUDE.md:
+Always run the tests before you finish.
+```
+
+The model reads this, and most days follows it. Nothing checks that it did.
+
+### Step 2: a Stop hook
+
+`.claude/settings.json` (`Stop` has no matcher support, so there is none):
 
 ```json
 {
   "hooks": {
-    "PostToolUse": [
+    "Stop": [
       {
-        "matcher": "Edit|Write",
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tests-green.sh"
           }
         ]
       }
@@ -74,57 +118,70 @@ Anthropic's example runs Prettier "on every file Claude edits". It uses `PostToo
 }
 ```
 
-In Codex, file edits go through `apply_patch`, and "`matcher` values can use `apply_patch`, `Edit`, or `Write`". Gemini CLI lists "run tests" as a common use of `AfterTool`.
-
-Know the limit. Anthropic: "`PostToolUse` hooks can't undo actions since the tool has already executed." Codex says the same: it "can't undo side effects from a tool that already ran." So format after an edit, but guard before one.
-
-## Recipe 2: guard a command
-
-A guard is a `PreToolUse` hook on the shell tool (`Bash`) that blocks a risky command. Anthropic's example script (shortened):
+`.claude/hooks/tests-green.sh` (our example):
 
 ```bash
-if echo "$COMMAND" | grep -q "drop table"; then
-  echo "Blocked: dropping tables is not allowed" >&2
+#!/bin/bash
+if ! python -m pytest -q > /tmp/pytest.log 2>&1; then
+  echo "Unit tests fail. Read /tmp/pytest.log and fix them before you finish." >&2
   exit 2
 fi
 exit 0
 ```
 
-Claude gets the stderr text as feedback, so it can change its plan. In Codex, a JSON answer with `"permissionDecision": "deny"` also blocks. Gemini CLI uses `BeforeTool` to "block dangerous ops".
+Now when the agent tries to stop with red tests, exit 2 sends it back to work, and the stderr line tells it why.
 
-Three facts make a guard strong or weak:
+### Step 3: the hard case, a test the agent cannot fix
 
-- **Claude Code: a deny holds in every mode.** "A hook that returns `permissionDecision: "deny"` blocks the tool even in `bypassPermissions` mode" (the mode that skips every permission prompt; our plain gloss).
-- **Hooks run side by side.** Claude Code: "One hook returning `deny` doesn't stop sibling hooks from executing." Codex: "one hook can't prevent another matching hook from starting."
-- **Codex: not every tool passes the hook.** Hosted tools such as `WebSearch` "don't use the local function-tool hook path". OpenAI's advice: "Treat tool hooks as a useful guardrail, not a complete enforcement boundary."
+One test calls a staging server. On Friday the server is down. The agent cannot fix that. The hook blocks, the agent tries again, the hook blocks again, and the turn goes round and round.
 
-## Recipe 3: notify a person
+The Claude Code reference gives the hook a field for this: `stop_hook_active` "is `true` when Claude Code is already continuing as a result of a stop hook." Its advice: "Check this value or process the transcript to avoid blocking on a condition that will never resolve." There is also a safety net: Claude Code "overrides a Stop hook after it blocks eight times in a row with no tool call from Claude in between". Do not rely on the net. A turn that keeps calling tools resets that count.
 
-Claude Code fires `Notification` "when Claude is waiting for input or permission". Anthropic's example sends a desktop alert, "so you can switch to other tasks without checking the terminal." Gemini CLI also has `Notification`, for "Forward to desktop alerts, logging". Google marks its impact "Advisory".
+The fixed script:
 
-Codex's hooks page lists no `Notification` event. Two other events can send the alert (our advice): `Stop`, which runs at the end of each turn, and `PermissionRequest`, which "runs when Codex is about to ask for approval".
+```bash
+#!/bin/bash
+INPUT=$(cat)
+if [ "$(echo "$INPUT" | jq -r '.stop_hook_active')" = "true" ]; then
+  exit 0
+fi
+if ! python -m pytest -q > /tmp/pytest.log 2>&1; then
+  echo "Unit tests fail. Read /tmp/pytest.log and fix them before you finish." >&2
+  exit 2
+fi
+exit 0
+```
 
-## Recipe 4: validate before the turn ends
+Our reading: the agent now gets one extra pass to fix the tests. If they still fail, it stops, and its last reply can say which test is red. A person decides about the staging server.
 
-Chapter 2 of Agent Citadel used Claude Code's `Stop` hook for this. Codex has the same idea. One use it lists: "Run a custom validation check when a chat turn stops, enforcing standards". A `Stop` hook that returns `"decision": "block"` with a `reason` "tells Codex to continue", using the reason as the next prompt. Gemini CLI's `AfterAgent` can "force retry or halt execution".
+### Step 4: why it is better
 
-Some checks need judgment, not a fixed rule. Claude Code also has hooks "that use a Claude model to evaluate conditions" (`"type": "prompt"` and `"type": "agent"`).
+- The test run happens at every turn end. It does not depend on the model remembering a line.
+- The block reason tells the agent what to do next.
+- The `stop_hook_active` check means a problem the agent cannot fix ends with a report, not a long loop.
 
-## Who decides that a hook may run
+## Common mistakes
 
-A hook is code that runs on your machine. Anthropic: "Command hooks execute shell commands with your full user permissions." So each tool has a trust step:
+1. **A block with no reason.** The script exits 2 but writes nothing to stderr. The agent knows it was stopped, not why. Fix: write one clear sentence to stderr before `exit 2`.
+2. **A slow hook on a busy event.** A full test suite on every `PostToolUse` runs after each edit and slows the whole session. Fix: put heavy checks on `Stop`, and keep per-edit hooks fast.
+3. **Debug lines on stdout.** Gemini CLI says: "Your script **must not** print any plain text to `stdout` other than the final JSON object." Fix: send logs to stderr, for example `echo "debug" >&2`.
 
-- **Codex:** for hooks an admin does not manage, "Codex requires you to review and trust the exact hook definition." It records trust against the hook's hash (a fingerprint of the file's text; our plain gloss), "so new or changed hooks are marked for review and skipped until trusted."
-- **Gemini CLI:** "If a hook's name or command changes (for example, via `git pull`), it is treated as a **new, untrusted hook** and you will be warned before it executes."
-- **Claude Code:** in an interactive session, hooks wait until you accept the workspace trust dialog. But in a `-p` or SDK run (no person at the screen), "Claude Code never shows the dialog and treats the folder as trusted". Before you run `claude -p` on a repo you didn't write, Anthropic says to review its `.claude/` settings, or turn hooks off for that run with `--settings '{"disableAllHooks": true}'`.
+## Try it
 
-## Key points
+Not graded. Write your answer down before you read the answer.
 
-- Hooks run at fixed moments. Claude Code and Codex say `PreToolUse` / `PostToolUse`; Gemini CLI says `BeforeTool` / `AfterTool`.
-- Exit 2 blocks a tool call in all three. In Claude Code, exit 0 is not approval. Other codes don't block on their own.
-- Format with a post-tool hook. It can't undo, so guard with a pre-tool hook.
-- Claude Code: a `PreToolUse` deny holds even in `bypassPermissions` mode.
-- Codex: hosted tools skip tool hooks. A hook is a guardrail, not a full wall.
-- Notify with `Notification` (Claude Code, Gemini CLI); Codex lists no such event.
-- Validate at turn end: `Stop` (Claude Code, Codex), `AfterAgent` (Gemini CLI).
-- Hooks run as you. Codex and Gemini CLI re-ask after a hook changes; `claude -p` trusts the folder, so review the repo first.
+A Gemini CLI `BeforeTool` hook should block `rm -rf`. It exits 0 and prints JSON with `"decision": "deny"`. But the script first prints the line `checking command...` to stdout. The block never happens.
+
+1. What does Gemini CLI do with this output?
+2. Fix the script in one change.
+
+### Answer
+
+1. The Gemini CLI docs say: "If `stdout` contains non-JSON text, parsing will fail." The CLI then falls back to Allow. So the stray line turns the deny into an allow.
+2. Send the line to stderr: `echo "checking command..." >&2`. The docs say Gemini CLI "captures `stderr` but never attempts to parse it as JSON." Now stdout holds only the JSON, and the deny works.
+
+## Recap
+
+- Hooks run at fixed moments: before a tool call, after it, and at turn end. Gemini CLI names them `BeforeTool`, `AfterTool` and `AfterAgent`.
+- Exit 2 blocks in all three tools; write the reason to stderr. A different non-zero code does not block. An after-hook cannot undo, so guard before and format after.
+- Hooks run with your permissions. Codex and Gemini CLI re-ask after a hook changes. A `claude -p` run trusts the folder, so review the repo or turn hooks off first.
