@@ -33,6 +33,13 @@ describe('curriculum constants', () => {
     expect(realmArt(9)).toBe('/levels/realm-09');
   });
 
+  test('r12–r15 have their own level art (realm-12 … realm-15)', () => {
+    expect(REALMS[12]).toMatchObject({ slug: 'echo-caverns', track: 'creator', scene: true });
+    expect(REALMS[13]).toMatchObject({ slug: 'pattern-atelier', track: 'creator', scene: true });
+    expect(REALMS[14]).toMatchObject({ slug: 'agent-workshop', track: 'builder', scene: true });
+    expect(REALMS[15]).toMatchObject({ slug: 'guild-hall', track: 'strategist', scene: true });
+    for (const id of [12, 13, 14, 15]) expect(realmArt(id)).toBe(`/levels/realm-${id}`);
+  });
   test('one floor row per floor, n = position + 1', () => {
     expect(MATH_FLOORS.map((f): number => f.n)).toEqual(
       [...Array(MATH_FLOOR_COUNT).keys()].map((i) => i + 1),
@@ -144,7 +151,7 @@ describe('realm paths', () => {
     },
   );
 
-  test('folders of the real realms with no art yet (r9, r10, r11, r12, r13, r14, r15)', () => {
+  test('folders of the specialist realms (r9 to r15)', () => {
     expect(realmFolder(9)).toBe('09-canvas-workshop');
     expect(realmFolder(10)).toBe('10-reel-hollow');
     expect(realmFolder(11)).toBe('11-pigment-bazaar');

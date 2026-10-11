@@ -42,18 +42,25 @@ test('level map: a visitor at 390px is not scrolled down on load', async ({ page
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
 });
 
-test('level map: a realm with no art shows a named banner; no sideways scroll on a phone', async ({
-  page,
-}) => {
+test('level map: no sideways scroll on a phone', async ({ page }) => {
   await page.setViewportSize(PHONE);
-  // The first realm still without art (r9–r11 have theirs since the realm-art PR).
-  const realm = REALMS.find((r) => !r.scene)!;
-  await page.goto(`/map/${realm.slug}`);
-  await expect(page.locator('.quest-map-banner[data-flat]')).toContainText(realm.name);
+  await page.goto('/map/prompt-forest?track=strategist');
+  await expect(page.locator('.quest-map-banner')).toBeVisible();
   const sideways = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
   );
   expect(sideways).toBe(false);
+});
+
+test('level map: a realm with no art shows a named banner', async ({ page }) => {
+  const realm = REALMS.find((r) => !r.scene);
+  test.skip(
+    !realm,
+    'every realm has art; the flat banner is covered by the SPECIALIST_REALMS unit test in lib/content/curriculum.test.ts',
+  );
+  await page.setViewportSize(PHONE);
+  await page.goto(`/map/${realm!.slug}`);
+  await expect(page.locator('.quest-map-banner[data-flat]')).toContainText(realm!.name);
 });
 
 test('world map: markers show name, status and progress at zoom 1, on a phone too', async ({
