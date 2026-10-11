@@ -1,7 +1,7 @@
 ---
 id: creator/r6/c5/lesson
 title: Safety checks
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · Moderation
@@ -23,70 +23,161 @@ sources:
     url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
 ---
 
-## Why it matters
+## Goal
 
-A beautiful image that your client cannot publish is a failed image. Safety is a gate in your scorecard, next to the logo and the label. Realm 0, chapter 6 covered the rules: rights, policies and provenance. This chapter is about testing a model against them, and about what the safety tools do and do not tell you.
+After this lesson you can:
 
-## Make safety a number
+- Explain what vendor filters and a moderation check do, and what their results do not prove.
+- Build everyday, edge and adversarial test sets, each with a safety target set in advance.
+- Read safety results by the worst set, not the average, and route doubtful images to a person.
 
-Chapter 1 showed Claude's rate-style criterion for safety. Google adds a habit: "think about the minimum acceptable levels of safety metrics before testing". Then you can compare results with a line you set in advance, not one you invent after seeing them.
+## The problem
 
-Google's safety guide names two kinds of testing:
+A bedtime-story video channel for young children makes each episode from about 30 illustrated frames. An image model draws the frames, and each frame gets a short caption on screen.
 
-- **Safety benchmarking:** metrics that reflect how your application could be unsafe, tested on an evaluation set. Google warns about over-relying on "off the shelf" approaches. It says you will likely need your own test sets.
-- **Adversarial testing:** "proactively trying to break your application". It tells you to "select test data that is most likely to elicit problematic output", including rare cases and edge cases.
+The team's safety plan was one sentence: "The vendor filters everything." They never tested it.
 
-## Layer 1: the vendor's filters
+Last week a parent wrote in. In a story about a storm, one frame showed a wolf with bared, bloody teeth. Nothing was blocked, and nobody had looked at the frame before upload.
 
-OpenAI's image guide says all prompts and generated images "are filtered in accordance with our content policy". Its `moderation` parameter has two values: `auto` (the default), which is "standard filtering", and `low`, which is "less restrictive filtering".
+The team asks: the filter was on, so how did this happen? The answer: a filter is one layer, and nobody tested what it lets through. This lesson builds a safety check you can measure.
 
-Google's Gemini API has adjustable safety filters for four categories: harassment, hate speech, sexually explicit and dangerous. It also has "built-in protections against core harms, such as content that endangers child safety", which "are always blocked and cannot be adjusted". A detail to know: the API blocks "based on the probability of content being unsafe and not the severity". So test with your own examples.
+## The idea
 
-For an A/B test (chapter 4), use the same safety settings on both models. If one model runs with less strict filtering, a difference in blocked prompts may come from the setting.
+### Safety is a gate with a number
 
-## Layer 2: a moderation check
+An image your client cannot publish is a failed image, however good it looks. So safety is a gate in your rubric, and it needs a target.
 
-OpenAI's moderation model, `omni-moderation-latest`, accepts text and images. The guide says the endpoint is free to use and image files can be up to 20 MB.
+The [Gemini API safety guidance](https://ai.google.dev/gemini-api/docs/safety-guidance) says it is good practice "to think about the minimum acceptable levels of safety metrics before testing". Then you judge results against a line you set first, not one you invent after.
+
+The same page names two kinds of testing:
+
+- **Safety benchmarking:** design safety metrics for how your app could be unsafe, and test them on an evaluation set. The page warns against over-relying on "off the shelf" approaches, because a team will probably have to build its own test data.
+- **Adversarial testing:** "proactively trying to break your application". The page says to "select test data that is most likely to elicit problematic output from the model", including "rare or unusual examples and edge-cases".
+
+It also notes: "LLMs are known to sometimes produce different outputs for the same input prompt. Multiple rounds of testing may be needed to catch more of the problematic outputs."
+
+### Layer 1: the vendor's filters
+
+The [OpenAI image docs](https://developers.openai.com/api/docs/guides/image-generation) say: "All prompts and generated images are filtered in accordance with our content policy." The `moderation` parameter has two values:
+
+- `auto` (the default): "Standard filtering that seeks to limit creating certain categories of potentially age-inappropriate content."
+- `low`: "Less restrictive filtering."
+
+The [Gemini API safety settings](https://ai.google.dev/gemini-api/docs/safety-settings) have adjustable filters in four categories: harassment, hate speech, sexually explicit and dangerous. Separate from those, the API has "built-in protections against core harms, such as content that endangers child safety". These "are always blocked and cannot be adjusted".
+
+Two details matter:
+
+- **Probability, not severity.** The page says the API "blocks content based on the probability of content being unsafe and not the severity". A very harmful frame can have a low probability score. So test with your own examples.
+- **Off unless you turn them on.** "If the threshold is not set, the default block threshold is **Off** for Gemini 2.5 and 3 models." When you set one, `BLOCK_ONLY_HIGH` (shown as Block few in Google AI Studio) blocks only high probability. `BLOCK_MEDIUM_AND_ABOVE` (Block some) blocks medium and high.
+
+Our advice for any A/B test: use the same safety settings on both sides. With `low` on one side and `auto` on the other, a gap in blocked prompts could be caused by the setting rather than the model.
+
+### Layer 2: a moderation check
+
+A **moderation check** is a separate model that scores content for harm. The [OpenAI moderation docs](https://developers.openai.com/api/docs/guides/moderation) say: "The `omni-moderation-latest` model accepts text and image inputs. It doesn't classify audio. The moderation endpoint is free to use, and image files can be up to 20 MB."
 
 Read the results with care:
 
-- **A zero is not always a clean bill.** Some categories are "Text only", such as harassment, hate and illicit. The guide says that if you send only images, the model "will return a score of 0 for these unsupported categories". Our fix: send the image together with its prompt or caption, so the text categories have text to score.
-- **Scores are signals.** OpenAI says to "Treat moderation scores as signals for your application's policy, not as an automatic blocking decision." Start with `flagged`, then use the categories and scores for logging, routing and review queues.
-- **Scores can drift.** OpenAI plans to keep upgrading the underlying model, so "custom policies that rely on `category_scores` may need recalibration over time". Chapter 6 shows how to catch that.
+- **Some zeros mean "not checked".** Some categories, such as harassment, hate and illicit, are marked "Text only". The docs say that if you send only images, the model "will return a score of 0 for these unsupported categories". Others support images too, for example violence and sexual content. Our fix: send the caption with the frame, so the text categories have text to score.
+- **Scores are signals.** The docs say: "Start with `flagged` for a first-pass decision, then inspect `categories` and `category_scores` for logging, routing, audit trails, or human-review queues." And: "Treat moderation scores as signals for your application's policy, not as an automatic blocking decision."
+- **Scores can drift.** The docs say the underlying model will keep being upgraded, so "custom policies that rely on `category_scores` may need recalibration over time."
 
-OpenAI also says not to send known or suspected child sexual abuse material to the Moderation API, because it is not designed for that. Follow the vendor's separate child-safety guidance for that risk.
+One firm rule from the same page: "Do not send known or suspected child sexual abuse material (CSAM) to the Moderation API." It is not built for that. Follow the vendor's separate child-safety guidance.
 
-## Layer 3: people
+### Layer 3: people
 
-Claude's vision docs say: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight." Google's guide says that plans should include monitoring, because "you can never guarantee perfection". A person should look at flagged images, and at a sample of the images that were not flagged.
+The [Claude vision docs](https://platform.claude.com/docs/en/build-with-claude/vision) say: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight." The Gemini guidance adds that "you can never guarantee perfection", so decide in advance how you will catch problems. Our habit: a person checks every flagged frame, plus a sample of frames that were not flagged.
 
-Anthropic describes why layers help. It compares evaluation to the Swiss Cheese Model: "no single evaluation layer catches every issue", and with several methods, "failures that slip through one layer are caught by another."
+Why layers? The [Anthropic post on evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) uses the Swiss Cheese Model: "no single evaluation layer catches every issue. With multiple methods combined, failures that slip through one layer are caught by another."
 
-## Test with three sets
+A comparison: each layer is a slice of cheese with holes. One slice lets things through. Stack three, and the holes rarely line up.
 
-Our design, following Google's adversarial testing advice:
+## Worked example
 
-- **Everyday set:** normal briefs.
-- **Edge set:** briefs that can go wrong without bad intent, such as a request for "a tough-looking crowd" or a real brand name.
-- **Adversarial set:** briefs written to push the model past its limits.
+### Step 1: the weak plan
 
-Google also notes that "LLMs are known to sometimes produce different outputs for the same input prompt", so a single round may miss problems.
+```text
+Layer:    the vendor's filter, settings never checked
+Test set: none
+Review:   none before upload
+```
 
-Report each set on its own. Google says that with several metrics, "you may want to focus on worst-case performance across your evaluation set rather than average performance." Here are made-up numbers and a made-up target of 98% on every set:
+### Step 2: set targets first
 
-| Set         | Images | Safe | Rate |
-| ----------- | ------ | ---- | ---- |
-| Everyday    | 300    | 300  | 100% |
-| Edge        | 100    | 93   | 93%  |
-| Adversarial | 50     | 38   | 76%  |
+Written before any test. The targets are our example.
 
-All together, 431 of 450 are safe, which is 95.8%. That looks close to the target. But two sets are far below it, and the adversarial set is at 76%. The scorecard should say fail.
+```text
+Every set must reach at least 97% safe frames.
+"Safe" = a reviewer would show it to a 4-year-old.
+```
 
-## What this means for your work
+### Step 3: build three test sets
 
-- **Set a safety target before you test**, for every set.
-- **Use the same filter settings on both models.**
-- **Treat a moderation zero with care.** Send the text with the image.
-- **Use scores to route images to people**, not to decide alone.
-- **Build everyday, edge and adversarial sets**, and report each one.
-- **Judge safety by the worst set**, not the average.
+```text
+Everyday     400 normal story briefs (a picnic, a bath, a farm)
+Edge         120 briefs that can go wrong with no bad intent:
+             a storm, a wolf, a doctor's visit, a lost toy
+Adversarial   60 briefs written to push past the limits,
+             in many sentence shapes and lengths
+```
+
+### Step 4: set up the layers
+
+```text
+1  Generate with the same filter settings for every model tested.
+2  Send each frame WITH its caption to omni-moderation-latest.
+3  flagged = true          -> review queue, a person decides
+   flagged = false         -> a person checks a random 1 in 10
+   high violence score     -> review queue, even if not flagged
+4  Run every set twice, because outputs vary.
+```
+
+Simplified. See the docs for the exact request shape.
+
+### Step 5: the hard case
+
+**The hard case is reading the results.** After review:
+
+| Set         | Frames | Safe | Rate  |
+| ----------- | ------ | ---- | ----- |
+| Everyday    | 400    | 400  | 100%  |
+| Edge        | 120    | 114  | 95.0% |
+| Adversarial | 60     | 51   | 85.0% |
+
+All together: 565 of 580, which is 97.4%. That is above the 97% target.
+
+The weak reading: "We pass." The better reading: the target was for every set. Edge is at 95.0% and adversarial at 85.0%. Both fail. The Gemini guidance says that with several metrics, "you may want to focus on worst-case performance across your evaluation set rather than average performance." The big easy set hides the weak spots. The scorecard says fail.
+
+### Step 6: why it is better
+
+- **Targets come first**, per set.
+- **Hard sets show how the model fails**, not only how it behaves on easy days.
+- **Three layers**, and a person decides the doubtful frames.
+
+## Common mistakes
+
+1. **Reading a zero on a text-only category as clean.** With an image alone, that score is always 0. Fix: send the caption or prompt with the image.
+2. **Letting the moderation result decide alone.** Scores are signals and can drift. Fix: use them to route frames to a person.
+3. **Reporting one overall safety rate.** Easy frames hide the hard ones. Fix: report each set, and judge by the worst.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team uses the Gemini API for story frames on a Gemini 3 model. Nobody has set a threshold for the dangerous category.
+
+1. What is the block threshold for that category right now?
+2. The team wants to block content with a medium or high probability of being dangerous. Which API value does that?
+3. After that change, can they say "all severe dangerous content is now blocked"?
+
+### Answer
+
+1. **Off.** The safety settings page says the default is Off for Gemini 2.5 and 3 models when no threshold is set.
+2. **`BLOCK_MEDIUM_AND_ABOVE`**, shown as Block some in Google AI Studio.
+3. **No.** Gemini filters work on probability, not severity. A severe frame can still have a low probability score. Test with your own edge and adversarial briefs, and keep a person in the loop.
+
+## Recap
+
+- Set a safety target for each test set before you test, and build everyday, edge and adversarial sets. Judge by the worst set, not the average.
+- Vendor filters are one layer: know the settings, keep them the same in any comparison, and remember that Gemini blocks by probability, not severity.
+- A moderation score is a signal. Categories marked Text only return 0 when you send an image alone, so send the text too, and route doubtful images to a person.
