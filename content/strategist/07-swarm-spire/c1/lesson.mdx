@@ -32,13 +32,19 @@ After this lesson you can:
 
 A market research firm sends its CEO a weekly briefing on 10 competitors. Today two analysts do it by hand. They check each competitor's prices, news and job adverts. Then they write one two-page memo that compares all 10.
 
-A consultant proposes a **multi-agent system**: several AI agents that work together on one job. (An **agent** is a model that uses tools in a loop until a task is done.) The plan has 12 agents. One agent reads prices for all 10 firms, one reads news, one reads job adverts. Then five agents write the memo in a chain: draft, tone, facts, charts, summary. Each writer needs the output of the writer before it. Every agent gets the same one-line instruction: "Research the competitors."
+A consultant proposes a **multi-agent system**: several AI agents that work together on one job. (An **agent** is a model that uses tools in a loop until a task is done.) The plan has 6 agents. One agent reads prices for all 10 firms, one reads news, one reads job adverts. Then three agents write the memo in a chain: first draft, fact check, final polish. Each writer needs the output of the writer before it. Every agent gets the same one-line instruction: "Research the competitors."
 
 The head of strategy must say yes or no. The question is not "how many agents?" It is "where does a team help, and where does it only add cost?" The advice below comes from the Anthropic engineering posts, the Claude Code docs and the OpenAI docs (October 2026).
 
 ## The idea
 
-**Start with one.** The Anthropic post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) recommends "finding the simplest solution possible, and only increasing complexity when needed". Sometimes that means no agent at all. The post also warns that agentic systems "often trade latency and cost for better task performance". The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says the same: "Start with one agent whenever you can." More specialists are worth it only if they clearly help with one of four things:
+**Start with one.** Both vendors give the same first rule:
+
+- The Anthropic post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) recommends "finding the simplest solution possible, and only increasing complexity when needed". Sometimes that means no agent at all.
+- The same post warns that agentic systems "often trade latency and cost for better task performance".
+- The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says: "Start with one agent whenever you can."
+
+More specialists are worth it only if they clearly help with one of four things:
 
 - capability isolation (each agent has only the tools it needs),
 - policy isolation (each agent follows only its own rules),
@@ -68,7 +74,11 @@ manager:  user -> manager -> helper A, helper B -> manager -> answer
 handoff:  user -> triage -> specialist -> answer
 ```
 
-**A team costs more.** A **token** is a small piece of text that a model reads or writes; you pay per token. The research post (June 2025) reports that in its data, agents used "about 4× more tokens than chat interactions", and multi-agent systems "about 15× more tokens than chats". So the task must be valuable enough to pay for that. The Claude Code page says each active teammate adds its own token use. Its advice is to start with "3-5 teammates" for most work. It adds: "Three focused teammates often outperform five scattered ones." The OpenAI Agents API has a setting that caps how many subagents run at once. The default is 6, not counting the coordinator.
+**A team costs more.** A **token** is a small piece of text that a model reads or writes; you pay per token. The vendors give these numbers:
+
+- **Chat vs agents.** The research post (June 2025) reports that in its data, agents used "about 4× more tokens than chat interactions", and multi-agent systems "about 15× more tokens than chats". So the task must be valuable enough to pay for that.
+- **Team size.** The Claude Code page says token use "scales with the number of active teammates". Its advice is to start with "3-5 teammates" for most work, because "Three focused teammates often outperform five scattered ones."
+- **A cap on helpers.** The OpenAI Agents API has a setting that limits how many subagents run at once. The guide says: "The default is 6, excluding the coordinator."
 
 **Brief every member.** The research post says each subagent needs an objective, a format for its output, guidance on the tools and sources to use, and clear task boundaries. Without them, agents duplicate work or leave gaps. Its own early brief, "research the semiconductor shortage", was so vague that subagents ran the same searches.
 
@@ -79,18 +89,18 @@ handoff:  user -> triage -> specialist -> answer
 ```text
 Consultant plan: weekly competitor briefing
   Agents 1-3   Read prices / news / job adverts for all 10 firms
-  Agents 4-8   Write the memo in a chain:
-               draft -> tone -> facts -> charts -> summary
-  Brief for all 12: "Research the competitors."
-  Size: 12 agents from week one
+  Agents 4-6   Write the memo in a chain:
+               first draft -> fact check -> final polish
+  Brief for all 6: "Research the competitors."
+  Size: 6 agents from week one, no test against one agent
 ```
 
 What goes wrong:
 
 - **The split is by topic, not by independent piece.** Each reader covers all 10 firms, so three agents visit the same websites.
-- **The writing chain is dependent work.** Each writer needs the full draft and waits for the one before. That is one task cut into five pieces.
+- **The writing chain is dependent work.** Each writer needs the full draft and waits for the one before. That is one task cut into three pieces.
 - **One vague brief for all.** It names no objective, format, sources or limits.
-- **Too big, too soon.** Twelve agents cost more tokens, with no test that a team is better.
+- **No test first.** Six agents cost more tokens, and nobody checked that a team beats one agent.
 
 ### Step 2: sort the work by independence
 
@@ -131,7 +141,7 @@ Brief for checker 1:
 ## Common mistakes
 
 1. **"More agents means faster."** Each agent adds tokens, and dependent steps can't run side by side. Fix: start small and grow only when a test shows it helps.
-2. **Splitting by skill, not by independence.** A "tone agent" that needs the whole draft is not independent. Fix: split only work that needs no other part's result.
+2. **Splitting by skill, not by independence.** A "polish agent" that needs the whole draft is not independent. Fix: split only work that needs no other part's result.
 3. **Handoff when one owner must combine.** In a handoff, control moves away. Fix: use a manager that calls helpers when one answer must bring all the parts together.
 
 ## Try it
@@ -149,9 +159,9 @@ A team uses Claude Code agent teams. It has 18 separate contracts to check again
 
 ### Answer
 
-1. **Three.** The Claude Code page says to start with 3–5 teammates. Its own example: for 15 independent tasks, 3 teammates is a good starting point. Eighteen is close to that.
-2. **About six each.** The page says 5–6 tasks per teammate keeps everyone busy, and the lead can move work if someone gets stuck. Our maths: 18 ÷ 3 = 6.
-3. **No.** The page says agent teams are experimental and disabled by default. Someone must turn them on first.
+1. **Three.** The Claude Code page says to start with 3–5 teammates. Its own example: "If you have 15 independent tasks, 3 teammates is a good starting point." Eighteen is close to that.
+2. **About six each.** The page says: "Having 5-6 tasks per teammate keeps everyone productive". The lead can also move work if someone gets stuck. Our maths: 18 ÷ 3 = 6.
+3. **No.** The page says: "Agent teams are experimental and disabled by default." Someone must turn them on first.
 
 ## Recap
 
