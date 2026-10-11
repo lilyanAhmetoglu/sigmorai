@@ -1,7 +1,7 @@
 ---
 id: strategist/r15/c3/lesson
 title: Connected apps
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Claude Help Center · Use connectors to extend Claude's capabilities
@@ -26,80 +26,141 @@ sources:
     url: https://support.google.com/gemini/answer/14959807
 ---
 
-## Why it matters
+## Goal
 
-A custom helper knows the files you upload. A **connected app** lets the assistant reach into the tools your team already uses, such as Google Drive, Gmail, Slack or a calendar. Each vendor uses its own word: Anthropic says **connectors**, and Google says **Connected Apps**. OpenAI calls the connection an app, which you install as part of a **plugin**. Product names and limits below come from each vendor's help pages (October 2026). They change often; check the page before you buy.
+After this lesson you can:
 
-## What a connected app can do
+- Explain what a connected app lets an assistant see and do, and whose permissions it uses.
+- Plan a rollout: who turns it on, who signs in, and which actions need a person to approve.
+- Find the real cause when a connected app shows something it "should not".
 
-- **Anthropic:** "Connectors let Claude access your apps and services, retrieve your data, and take actions within connected services." Its examples: "connect Claude to Linear to create issues, to Slack to send messages, or to Google Drive to search your files."
-- **OpenAI:** you can "Install the Google Drive plugin to work across Drive, Docs, Sheets, and Slides" or "Install the Slack plugin to summarize channels or draft replies."
-- **Google:** "Gemini Apps can connect to other apps to complete your request". "With your permission, Gemini can also help you take actions, like editing and managing your content in other apps."
+## The problem
 
-So a connected app can do two kinds of thing: **read** (search, summarize) and **act** (send, create, change). MCP Bridgelands, chapter 1, made the same split: reading is not the same as acting. Behind many of these connections sits MCP (Model Context Protocol), which MCP Bridgelands, chapter 2, explains. This chapter is about what a team turns on, not how the protocol works.
+A logistics firm with 60 staff uses Claude on a Team plan. Last month an admin turned on the Google Drive connector. Last week a junior route planner asked Claude: "What do our drivers earn on average?" Claude answered from a salary spreadsheet.
 
-## What the assistant may read
+The head of HR is angry. The message to the AI lead says: "The AI is leaking pay data. Turn off every connected app today. When we turn them back on, write 'never show salaries' in the instructions."
 
-Anthropic and OpenAI state the key rule the same way: the assistant sees only what the signed-in person can already see.
+The planners also want Claude to add and move delivery slots in the shared Google Calendar. The AI lead must answer HR and plan the next step. The product facts below come from each vendor's help pages (October 2026).
 
-- **Anthropic:** "Claude inherits each person's permissions from the connected service. If someone can't access a specific file, channel, or record in the source system, the connector can't reach it from Claude either."
-- **OpenAI:** "signing in to Google Drive through ChatGPT lets its plugin work with documents your account can already access. It doesn't unlock other files or add Google Drive permissions."
-- **Google:** the Gemini app also has its own reading limits. With work apps, Google says Gemini can't "Access comments or images in Gmail" or "Access pictures and videos in your Drive."
+## The idea
 
-One exception to watch. Anthropic: "Custom connectors that use a shared credential reach whatever that credential can access." A **shared credential** is one login used for everyone, not each person's own. Then the assistant may see more than the person asking.
+A **connected app** is our name for a link between an AI assistant and a tool your team already uses, such as Google Drive, Gmail, Slack or a calendar. Each vendor uses its own word. Anthropic says **connectors**. Google says **Connected Apps**. In ChatGPT, the connection comes inside a **plugin**.
 
-Our example: an intern connects Drive. The finance folder is closed to the intern in Drive, so it stays closed in the assistant too.
+**It can read, and it can act.** The [Claude docs](https://support.claude.com/en/articles/11176164-use-connectors-to-extend-claude-s-capabilities) say: "Connectors let Claude access your apps and services, retrieve your data, and take actions within connected services." The [ChatGPT docs](https://learn.chatgpt.com/docs/plugins) give examples, such as: "Install the Slack plugin to summarize channels or draft replies." The [Gemini docs](https://support.google.com/gemini/answer/13695044) say: "With your permission, Gemini can also help you take actions, like editing and managing your content in other apps." So treat **read** actions (search, summarize) and **write** actions (send, create, change, delete) as two different risks.
 
-## Turning an app on for a team
+**It sees what the person can see.** This is the key rule.
 
-Turning an app on for the team is not the same as giving each person access.
+- The Claude docs: "Claude inherits each person's permissions from the connected service. If someone can't access a specific file, channel, or record in the source system, the connector can't reach it from Claude either."
+- The [ChatGPT migration guide](https://learn.chatgpt.com/docs/migrate-custom-gpts): "signing in to Google Drive through ChatGPT lets its plugin work with documents your account can already access. It doesn't unlock other files or add Google Drive permissions."
 
-- **Anthropic:** on Team and Enterprise plans, an Owner enables the connector first. "Enabling a connector makes it available to your team, but it doesn't automatically grant anyone access. Each person still needs to authenticate individually before they can use it." To **authenticate** is to sign in to the other app and approve the link.
-- **OpenAI:** "Making an MCP server or plugin available in ChatGPT doesn't grant access to files, records, or actions in the connected service." And: "Installing a plugin for everyone doesn't, by itself, provide a shared account."
-- **Google:** "For users with a work or school Google Account, access to apps must be enabled by your Workspace administrator."
+**The exception is a shared login.** The Claude docs: "Custom connectors that use a shared credential reach whatever that credential can access." A **credential** is a login. A shared one is one login used for everyone. Then each person reaches what that login can reach, not only their own records.
 
-## Read first, act later
+**Turned on is not signed in.** On Claude Team and Enterprise plans, an Owner enables a connector first. The Claude docs: "Enabling a connector makes it available to your team, but it doesn't automatically grant anyone access. Each person still needs to authenticate individually before they can use it." To **authenticate** is to sign in to the other app and approve the link. (One exception is in beta: with Enterprise-managed auth, an organization can authorize a connector once, and members get access on first login.) The [ChatGPT plugin controls page](https://learn.chatgpt.com/docs/enterprise/apps-and-connectors) agrees: "Installing a plugin for everyone doesn't, by itself, provide a shared account." For Gemini with a work account, "access to apps must be enabled by your Workspace administrator" ([Gemini docs](https://support.google.com/gemini/answer/14959807)).
 
-Admins can limit what a connected app may do.
+**Admins can limit actions.** In Claude Team and Enterprise, Owners "can limit which actions a connected service can take across your organization". For each tool, they "select Always allow, Needs approval, or Blocked". This "applies org-wide to everyone using the connector—individual users can't override it." The same page adds that these limits "never" grant "more access than the source system permits".
 
-- **Anthropic:** owners on Team and Enterprise plans "can limit which actions a connected service can take across your organization". Its examples include "Allow Claude to search and summarize email, but prevent it from sending messages." Each tool can be set to "Always allow, Needs approval, or Blocked". This "applies org-wide to everyone using the connector—individual users can't override it."
-- **Anthropic's default for send and share actions:** for Gmail sending and for sharing or moving Drive files, "By default, Claude asks for your approval before each of these actions."
-- **OpenAI's rollout advice:** "Whatever the initial set, start with read actions. Before enabling write actions, identify the plugin owner, review MCP server scopes and service permissions, confirm data access, and document external effects and a recovery path."
+Some send and share actions already ask first. The [Claude page on Google Workspace](https://support.claude.com/en/articles/10166901-use-google-workspace-connectors) says, for Gmail sending and for sharing or moving Drive files: "By default, Claude asks for your approval before each of these actions."
 
-Some limits are built in. Google lists actions Gemini can't do with work apps. For example, in Gmail it cannot "Create an email draft or delete emails in Gmail."
+The ChatGPT plugin controls page gives this rollout advice: "Whatever the initial set, start with read actions." Before write actions, it lists checks: an owner, scopes, data access, and "a recovery path". It also gives a record to keep: "For each connected service, record the business owner, permitted data, approved read or write actions, authentication method, and a support or removal contact."
 
-## One card per connected app
+**Projects and sharing on Claude.** The Claude docs add two rules for Team and Enterprise: "Connectors are only available in private projects." And: "Chats with synced content can't be shared."
 
-OpenAI's Enterprise guide gives a simple record to keep: "For each connected service, record the business owner, permitted data, approved read or write actions, authentication method, and a support or removal contact."
+**Check the source.** An answer from a connected app can still be wrong. The Gemini docs: "Gemini Apps can hallucinate responses or provide outdated information, like from an older email when there's a more recent one. To check the information, click and review the sources listed after the response." Claude's answers from Google Workspace include "citations indicating which emails, calendar events, or documents were used as sources".
 
-Our example card:
+**The other app has its own rules.** The Claude docs: "Connected services process data on their own infrastructure, under their own terms". The ChatGPT docs: "When ChatGPT sends data through an MCP server, that service's terms and privacy policy apply." (**MCP**, the Model Context Protocol, is an open standard for linking AI apps to tools.)
 
+Our comparison: a connected app is like giving a new assistant your own office key. It opens the doors your key opens, and no others. If a door should be locked, lock the door.
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+HR's plan
+1. Turn off every connected app for everyone, today.
+2. Later, turn Drive back on. Add to the instructions:
+   "never show salaries".
+3. Turn on Calendar so Claude can add, move and delete
+   delivery slots. No approvals, to save time.
 ```
-App:          Google Drive
-Owner:        Priya (sales ops)
-Data:         Sales and Clients folders only
-Actions:      read and search; no share, move or delete
-Sign-in:      each person's own Google account
-Remove/help:  it-help@example.com
+
+What goes wrong:
+
+- Step 1 stops all the useful reads (route notes, depot manuals) and does not touch the real cause.
+- Step 2 is a request to the model, not a control. The file is still in reach.
+- Step 3 turns on write actions on a shared calendar with no person in the loop, and with no way back named.
+
+### Step 2: find the real cause
+
+Claude uses each person's own Drive permissions. So the planner could already open that spreadsheet in Drive. The connector only found it faster. The leak is in Drive sharing: the salary folder is open to "anyone in the company".
+
+### Step 3: the good plan
+
+```text
+Card: Google Drive
+  Owner:       Aylin (operations)
+  Data:        route notes, depot manuals, ops folders
+  Actions:     search and read: Always allow
+               share, move, trash: Needs approval
+  Sign-in:     each person's own Google account
+  Removal:     it-help@example.com
+  First:       HR closes the salary folder in Drive
+
+Card: Google Calendar
+  Owner:       Aylin (operations)
+  Data:        "Delivery slots" calendar
+  Actions:     view events: Always allow
+               create, update, delete: Needs approval
+  Sign-in:     each person's own Google account
+  Recovery:    weekly calendar export; slot changes
+               are logged by the planner who approves
 ```
 
-MCP Bridgelands, chapter 1, used the same idea for integrations: one card each.
+### Step 4: the hard case
 
-## Check the source
+**The hard case is HR's demand to keep the salary rule in the instructions.** It sounds safe. But a sentence in the instructions only asks the model. The spreadsheet stays reachable for everyone who can open it in Drive, through Claude or straight in Drive.
 
-An answer that uses a connected app can still be wrong. Google: "Gemini Apps can hallucinate responses or provide outdated information, like from an older email when there's a more recent one. To check the information, click and review the sources listed after the response." Anthropic says Claude's answer from Google Workspace "includes citations indicating which emails, calendar events, or documents were used as sources". Our advice: open the cited email or file before you act on the answer.
+The fix is in the source system. HR limits the salary folder to HR staff. Then nobody else can reach it through the connector either, because the connector follows each person's own access. No prompt line is needed.
 
-## Where the data goes
+### Step 5: why it is better
 
-The other app has its own rules. Anthropic: "Connected services process data on their own infrastructure, under their own terms". OpenAI: "When ChatGPT sends data through an MCP server, that service's terms and privacy policy apply."
+- **The real leak is closed,** in Drive, for every tool, not only for Claude.
+- **Useful reads come back** the same day.
+- **Calendar changes wait for a person,** so a wrong slot change is caught before it happens.
+- **Each app has a card** with an owner and a way to remove it.
 
-Two more Anthropic rules for Team and Enterprise plans: "Connectors are only available in private projects" and "Chats with synced content can't be shared."
+## Common mistakes
 
-## Key points
+1. **Turning everything off after one scare.** You lose the value and keep the cause. Fix: find where the access really comes from, and fix it there.
+2. **Forgetting the other service's terms.** The connected app handles your data under its own rules. Fix: read that service's terms before you connect it.
+3. **No record of who owns a connection.** Nobody knows whom to ask when it breaks. Fix: keep one card per app, with an owner and a removal contact.
 
-- Connected apps (connectors, plugins, Connected Apps) let the assistant read from and act in your team's tools.
-- The assistant sees only what the signed-in person can see. A shared credential can see more.
-- An admin turning an app on is not access. Each person still signs in.
-- Our advice: start with read actions. Block send, share and delete, or require approval for them.
-- Keep one card per app: owner, data, actions, sign-in, removal contact.
-- Check the cited source before you act on an answer.
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Say if each claim is right or wrong, and why.
+
+```text
+1. "In Claude we set 'create documents' in Drive to
+   Always allow. Now members can edit files they can
+   only view in Drive."
+2. "On my work Gemini account I asked for a calendar
+   event plus a Tasks reminder. Our admin has not
+   enabled Tasks, but the event will still be made."
+3. "Our new custom connector points to a server on our
+   private office network. It works, because Claude
+   Desktop runs on an office laptop."
+```
+
+### Answer
+
+1. **Wrong.** The Claude docs say these settings never grant more access than the source system permits. A person still needs edit rights in Drive.
+2. **Wrong.** The Gemini docs say that if one of the needed services is not enabled, "neither of the actions will be completed".
+3. **Wrong.** The Claude docs say custom connectors are reached "from Anthropic's cloud infrastructure, not from your local machine". The server must be reachable over the public internet, or the firewall must allowlist Anthropic's IP ranges.
+
+## Recap
+
+- A connected app reads from and acts in your team's tools, using each person's own permissions. A shared login reaches whatever that login can reach.
+- An admin turning an app on is not access: each person signs in. Admins can set each action to allow, approve or block, and start with reads.
+- Fix access in the source system, keep one card per app, and check the cited source before you act on an answer.
