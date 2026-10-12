@@ -10,6 +10,165 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-12 (beginner chapters in r0, strategist r16 Domain playbooks)
+
+Maintainer decisions, 2026-10-12. This block adds two things. It changes no older block, with three exceptions, named here: (1) "Shared-chapter groups unchanged" in Acceptance criteria stays true for old groups, but r0 now gets four new groups. (2) The slot budget line in the 2026-10-08 block ("only s7, s8, s9 remain") becomes "s7 and s8 remain": r16 takes s9. (3) "No idea is shared by all 3 tracks today" (shared-chapters spec, Context) stops being true. The topic list comes from the Anthropic Academy research of 2026-10-12. No lesson text is written in this step.
+
+**Plain summary.** Every path gets four new beginner chapters at the end of r0 (c7–c10). They are written once and copied to the three paths, and one clear counts on all three. The strategist path gets one new realm, r16, with six chapters, one work area each (HR, legal, finance, sales, teaching, small teams). No schema change, no migration.
+
+### A. r0 c7–c10 "First steps" on all three paths
+
+- **Chapters and ids.** On `builder`, `strategist` and `creator`, realm r0 Bootstrap Village grows from 6 to 10 chapters. New ids: `<track>/r0/c7…c10/lesson · challenge · quick-check`. New folders: `content/<track>/00-bootstrap-village/c7…c10/` with `lesson.mdx`, `case.json`, `quick-check.json` (12 folders, 36 files). The r0 boss is unchanged: it keeps its 5 questions on c1–c6 (each question tests a different chapter; a boss does not test every chapter).
+
+  | Id    | Outline title (≤ 16 chars) | Maintainer's name  | Goal: after this lesson you can …                                                                    |
+  | ----- | -------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------- |
+  | `c7`  | Your first chat            | Your first chat    | ask, read the answer, follow up, and start a new chat when the old one goes wrong, in any chat app   |
+  | `c8`  | Hand off or keep           | Hand off or keep?  | decide if AI should do a task at all, and which part of it                                           |
+  | `c9`  | Fair & honest              | Be fair, be honest | spot bias in an answer, say when you used AI, and own the result                                     |
+  | `c10` | Stay safe                  | Stay safe with AI  | spot prompt injection, fake media and oversharing as a normal user, and know what to do in each case |
+
+  Titles are shortened so they fit a map pin (16 characters, curriculum spec). The id never changes; voice-guardian may change a title.
+
+- **Can one chapter live on three paths? Yes, as three copies plus one group.** The data model allows it today:
+  - `SameGroupSchema` (`lib/types/curriculum.ts`) takes `members` with `min(2)` and no maximum.
+  - `content:check` (`sharedChapterProblems`, `lib/content/validate.ts`) asks for one member per track, and each member must be a live realm chapter with its own files.
+  - `creditorsOf` (`lib/content/shared.ts`) returns every other member of a `same` group. So a clear on one path credits the other two.
+
+  What the model does **not** allow: one file for three paths. A member's files live under its own track folder, and the exercise id holds the track. So "written once" means: **one text, three byte-identical copies, only the `id` fields differ** (`builder/r0/c7/lesson` vs `strategist/r0/c7/lesson`). A test keeps the copies the same (see Tests). Example: a typo fix in `strategist/…/c7/lesson.mdx` fails the test until the same fix is in the builder and creator copies.
+
+- **The four groups** in `content/shared-chapters.json` (kind `same`, one per chapter):
+
+  ```json
+  { "id": "first-chat",       "kind": "same", "members": ["builder/r0/c7",  "strategist/r0/c7",  "creator/r0/c7"] }
+  { "id": "hand-off-or-keep", "kind": "same", "members": ["builder/r0/c8",  "strategist/r0/c8",  "creator/r0/c8"] }
+  { "id": "fair-and-honest",  "kind": "same", "members": ["builder/r0/c9",  "strategist/r0/c9",  "creator/r0/c9"] }
+  { "id": "safe-as-a-user",   "kind": "same", "members": ["builder/r0/c10", "strategist/r0/c10", "creator/r0/c10"] }
+  ```
+
+  The content-reviewer checks for a group (`content/CLAUDE.md` → Shared chapters) pass by design: (1) the three lessons are the same text; (2) each case is the same case; (3) no r0 boss question tests c7–c10.
+
+- **One voice for all three paths.** The text is plain product voice for a normal user. Examples come from everyday work that fits every path: an email, a short report, a picture for a post. No path-only words ("API", "token budget", "brief template"), and no link to a path-only chapter, because the same text sits on all three paths.
+- **They teach the user level only.** Deeper chapters already exist and stay as they are: builder r2 c6 Prompt injection, creator r0 c6 Rights & safety, strategist r0 c6 Data & privacy, strategist r2 (use-case scoring), strategist r8 (policy). A chapter may be in one group only (`content:check`), so c7–c10 cannot also join a `covers` group with those chapters. That is fine: they teach different depths.
+- **Lessons follow the template** in `content/CLAUDE.md` (Goal · The problem · The idea · Worked example · Common mistakes · Try it · Recap), with Elder Maren in the DialogBox lines. `minutes` 8–12. Each case: 3–5 questions, 4 options each. Each quick check: 3 questions.
+- **Outline.** Each of the three `outline.json` files gets c7–c10 in r0 `chapters`. The r0 `topic` and `boss.task` lines stay as they are.
+
+### B. Strategist r16 "Domain playbooks" (specialist realm)
+
+- **`REALMS` row 16** (`lib/constants/curriculum.ts`): `{ id: 16, slug: 'trade-quarter', name: 'Trade Quarter', npc: 'Envoy Rasa', tier: 'beginner', track: 'strategist', scene: false }`. Folder: `content/strategist/16-trade-quarter/`. Certificate slug: `strategist-r16` (automatic). The name follows the place style of other realms (Guild Hall, Pigment Bazaar): a market quarter where every trade has its own stall. The NPC follows "Title Name" (Steward Oda, Foreman Ryn). Both are drafts for voice-guardian; the slug and the number are fixed once the row ships.
+- **Map place: slot `s9`, after r2.** Strategist outline order becomes `0, 1, 15, 2, 16, 3, 4, 5, 6, 7, 8`. `WORLD_MAP.slotRealms` += `{ slot: 's9', realm: 16 }` (`lib/constants/world-map.ts`, plus one line in the comment above it). I ran the trail test's own clipping rule (`lib/constants/world-map.test.ts`) for every free slot at every place in the strategist order: only s9 after r2, s7 after r6, and s8 after r4, r7 or r8 cross no core island. After r2 fits the content: r2 teaches how to find and score a use case; r16 shows that idea in six work areas. Tier `beginner`, because it sits between r2 (beginner) and r3 (intermediate). After r16, slots s7 and s8 are free.
+- **Outline entry** (draft, voice-guardian): topic "AI in one work area: HR, legal, finance, sales, teaching, small teams"; lore "Every stall in this quarter trades in its own coin. Learn what the Oracle may carry at each one, and what stays in human hands."; boss task "Set the human check for each team" (strategist boss tasks are 3–8 words, 2026-10-08 review fix).
+
+  | Id   | Outline title     | Maintainer's name          | What AI does well                     | The main risk                                     | The human check                            |
+  | ---- | ----------------- | -------------------------- | ------------------------------------- | ------------------------------------------------- | ------------------------------------------ |
+  | `c1` | HR & hiring       | HR and hiring              | job ads, policy Q&A, interview notes  | AI that ranks or rejects people (a high-risk use) | a person makes every hiring decision       |
+  | `c2` | Legal & contracts | Legal and contracts        | summarise and compare long contracts  | a missed or invented clause                       | a lawyer checks before anyone signs        |
+  | `c3` | Finance & numbers | Finance and numbers        | draft the analysis, explain a table   | wrong maths that looks right                      | every number is re-computed with a tool    |
+  | `c4` | Sales & support   | Sales, marketing, support  | drafts, replies, ticket routing       | off-brand text or false promises to a customer    | a brand and fact check before it goes out  |
+  | `c5` | Teach & learn     | Teaching and learning      | a tutor that asks questions           | the learner copies answers and learns nothing     | the teacher sets the rules and checks work |
+  | `c6` | Small teams       | Nonprofits and small teams | one safe first workflow, little money | private data in a free tool, no one owns the job  | one named owner and one data rule          |
+
+  "Legal & contracts" and "Finance & numbers" are 17 characters. The strategist outline already has titles of 17–20 characters, so this is a soft limit; voice-guardian decides.
+
+- **Each lesson** follows the `content/CLAUDE.md` template, not the r15 `## Why it matters` shape. "The idea" has the same three parts every time: what AI does well here, the main risk, the human check. Links back, not repeats: c1 → r8 (policy, risk tiers), c3 → r0 c3 (hallucinations), c4 → r4 (human in the loop), c6 → r2 (score a use case) and r15 c6 (seats and spend).
+- **Boss** `content/strategist/16-trade-quarter/boss/case.json`, id `strategist/r16/boss/challenge`: exactly 5 questions, one longer `exhibit` (`BRIEF:` one organisation with six teams, `PLAN:` the draft AI use per team). One question for each of five chapters; one chapter has no boss question (r14 and r15 did the same).
+- **No shared group for r16.** It is on one path only.
+
+### Sources (rule 3)
+
+- **Anthropic Academy and `anthropics/courses` are a topic guide only.** Never copy text, quiz items, diagrams or examples: parts are CC BY-NC (NonCommercial), and Sigmorai will be commercial. Never cite them as a lesson source: the lessons sit behind sign-in, so the content-reviewer cannot check a claim. We do not rebuild the "4D" framework under our name.
+- **Lessons stay vendor-neutral.** Each lesson cites official docs of at least two vendors where two document the idea (Anthropic + OpenAI when both do), plus a standards body or law page only where the claim needs it.
+- **Planned sources per chapter.** None of these pages was fetched in this spec step. **The content-reviewer must fetch every page in its PR and confirm that it exists and says the claim.** A page that fails is dropped, never cited from memory.
+
+  | Chapter        | Existing ids                                                                   | New ids                    |
+  | -------------- | ------------------------------------------------------------------------------ | -------------------------- |
+  | r0 c7          | `claude-support`, `chatgpt-docs`, `gemini-apps-help`                           | none                       |
+  | r0 c8          | `claude-docs`, `openai-docs`, `google-responsible-ai`                          | none                       |
+  | r0 c9          | `anthropic-aup`, `openai-docs`, `google-responsible-ai`, `ec-digital-strategy` | `nist-ai-rmf`              |
+  | r0 c10         | `claude-docs`, `openai-docs`, `c2pa`, `claude-support`, `chatgpt-docs`         | `owasp-genai`              |
+  | r16 c1 HR      | `anthropic-aup`, `openai-docs`, `ec-digital-strategy`                          | `nist-ai-rmf` (if not yet) |
+  | r16 c2 Legal   | `claude-docs`, `openai-docs`, `gemini-docs`                                    | none                       |
+  | r16 c3 Finance | `claude-docs`, `openai-docs`, `gemini-docs`                                    | none                       |
+  | r16 c4 Sales   | `claude-docs`, `openai-docs`, `openai-cookbook`                                | none                       |
+  | r16 c5 Teach   | `claude-support`, `chatgpt-docs`, `gemini-apps-help`                           | none                       |
+  | r16 c6 Small   | `claude-support`, `chatgpt-docs`, `google-responsible-ai`                      | none                       |
+
+- **New `content/sources.yaml` entries.** Each is added only in the PR whose lesson first cites it, with `trustTier: official`. Each is official for its own owner only, never the only source for a vendor idea.
+  - `nist-ai-rmf`: the NIST AI Risk Management Framework page on `www.nist.gov` (under `/itl/`), owner `nist`. **Content-reviewer must verify the page exists.**
+  - `owasp-genai` → `https://genai.owasp.org`, owner `owasp` (the LLM Top 10 and its prompt injection entry). **Content-reviewer must verify the page exists.**
+  - Only if a lesson needs the legal text, not the Commission's summary: `eur-lex` → `https://eur-lex.europa.eu`, owner `european-union` (the AI Act and its high-risk list for hiring). **Content-reviewer must verify the page exists.** First choice is the existing `ec-digital-strategy` (the Commission's AI Act pages).
+  - Not added: `anthropic.com/constitution` and `ai.google/responsibility/principles`. The AUP and the Google Responsible GenAI Toolkit already cover what c9 needs. Add one only if a lesson cites it.
+- **Pages to check first** (the research names them but did not read them): ChatGPT study mode, Claude learning mode, Gemini Guided Learning (r16 c5); the AUP high-risk use list (r16 c1, r0 c9); the AI Act hiring rule (r16 c1). If one of these is gone, the chapter keeps its goal and cites what exists.
+- **Hook clash (found while writing this spec).** `.claude/hooks/guard-write.sh` reads `sk-` plus 20 more URL characters as an API key. The NIST page path (`…/ai-risk-…`) matches, so the write of the `nist-ai-rmf` entry and its lesson frontmatter is blocked. Fix before A3, in its own `fix(harness)` PR: match `sk-` only at the start of a word. Example: `sk-ant-…` still blocks, `ai-risk-management-…` passes. Add a case to `bun run hooks:test`.
+
+### PR order (small slices, branch from `canary`)
+
+| PR  | Title (`feat(content)`)                 | Files                                                                                                                                                                                           |
+| --- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | r0 c7 your first chat on every path     | 3 `outline.json` · 9 files under `*/00-bootstrap-village/c7/` · `shared-chapters.json` (`first-chat`) · `ids.test.ts` · `shared.test.ts` · `validate.test.ts` · `outlines.test.ts`              |
+| A2  | r0 c8 hand off or keep on every path    | 3 `outline.json` · 9 files under `c8/` · `shared-chapters.json` (`hand-off-or-keep`) · `ids.test.ts` (GROWN)                                                                                    |
+| A3  | r0 c9 fair and honest on every path     | same shape, group `fair-and-honest` · `sources.yaml` (`nist-ai-rmf`). Needs the hook fix above first                                                                                            |
+| A4  | r0 c10 stay safe on every path          | same shape, group `safe-as-a-user` · `sources.yaml` (`owasp-genai`)                                                                                                                             |
+| B1  | r16 trade quarter chapters 1–3          | `REALMS` row 16 · `slotRealms` s9 · strategist `outline.json` (6 titles) · c1–c3 (9 files) · `ids.test.ts` (INSERTED) · `curriculum.test.ts` · `certificates.test.ts` · `sources.yaml` if cited |
+| B2  | r16 trade quarter chapters 4–6 and boss | c4–c6 (9 files) · `boss/case.json` · `sources.yaml` if cited                                                                                                                                    |
+
+- **Why one chapter per PR, on three paths at once.** A group needs all three members live (`content:check`), so a chapter on one path only would need a second PR to add its group. One PR = one text, its three copies and its group. Outline chapters must be `c1…cN` in order, so A1 → A2 → A3 → A4 run in that order. Each A-PR has more than 5 files, but 9 of them are one text copied; the cto review sees one chapter.
+- **Release A1–A4 to `main` together.** Each A-PR merges into `canary` alone. The `canary` → `main` release waits until A4 is in, so players see the r0 boss lock again only once, not four times.
+- **B1–B2 can run beside A.** The only shared files are `ids.test.ts` (GROWN vs INSERTED lines: one rebase) and `sources.yaml` (`nist-ai-rmf`: the first PR that cites it adds it).
+- B1 ships the outline with 6 titles and only c1–c3 files: chapters up to `MIN_CHAPTERS` may be COMING SOON (PR 4a rule).
+- **Gates per PR:** devil (scoped to that PR) → content-reviewer on each chapter (every claim vs the live page) → voice-guardian (titles, NPC, lore, boss task, DialogBox lines) → cto. Checks: `bun run content:check`, `typecheck`, `lint`, `test`, `build`; read one lesson at 360px; play one case on a branch DB.
+
+### Tests that must change
+
+- `lib/content/ids.test.ts`: `GROWN` gets `0: 7` on all three tracks in A1, then `0: 8`, `0: 9`, `0: 10` in A2–A4 (creator becomes `{ 0: 10, 1: 9 }`). In A1, the "every chapter step and boss of one track" test stops using the hand formula `(CORE_IDS.length + 1) * …` and uses `gridIds('builder', GROWN.builder, INSERTED.builder).length`. B1: `INSERTED.strategist` → `{ 1: [15], 2: [16] }`.
+- `lib/content/shared.test.ts` (A1, new case): a `same` group with three members on three tracks. A clear on any one credits the other two; `creditorsForTrack` lists the two other tracks' cases; `applyCredit` names the track the credit came from.
+- `lib/content/validate.test.ts` (A1, new case): a `same` group with one member on each of the three tracks passes. The "two members on one track" failure test already exists.
+- `lib/content/outlines.test.ts` (A1, new case): for every `same` group whose members are all r0 chapters numbered 7 or higher, the three `lesson.mdx`, `case.json` and `quick-check.json` copies are equal once the track in each `id` is replaced. This is the "written once" guard. It reads real content, like the tests already in that file.
+- `lib/content/curriculum.test.ts` (B1): `REALMS[16]` matches `{ slug: 'trade-quarter', track: 'strategist', scene: false }`; `realmFolder(16)` → `16-trade-quarter`; `trackRealms('strategist')` contains it and the other two tracks do not.
+- `lib/grading/certificates.test.ts` (B1): slugs contain `strategist-r16`.
+- No edit, must stay green: `lib/constants/world-map.test.ts` (trail and slot tests read the committed outline) and `lib/grading/open.test.ts` (it passes chapter counts in, so a 10-chapter r0 changes nothing there).
+- **e2e: no change.** The shared-credit flow in `e2e/quest-loop.spec.ts` (builder r0 c6 → strategist r0 c4) still covers credit end to end, and the three-member case is pure code with a unit test. The quest loop uses strategist r0 c1, which does not move.
+
+### XP and progress (decided)
+
+- **New r0 chapters gate the r0 boss.** This is the grown-realm rule locked on 2026-10-07: the boss needs every chapter in the outline. Why: "cleared" must mean "did every chapter", the same as creator r1 when it grew to 9.
+- **A player who already beat the r0 boss loses nothing.** The realm stays CLEARED, the certificate stays, and no XP is taken back. `realmStatus` (`lib/grading/track-map.ts`) reads the boss, so the realm does not go back to "in progress", and the Continue card does not send them back to r0. On the realm page c7 shows OPEN (their c6 is cleared). Example: Lena beat the r0 boss in September. After the release, r0 still says CLEARED, and she sees four new chapters she can play for XP.
+- **A player still inside r0** sees c7 open after their c6 case, and the boss stays locked until c10 is cleared. The release waits for A4, so this happens once.
+- **Other realms do not change.** Open-tier realms are open from day one; nothing outside r0 reads r0's chapters.
+- **XP amounts do not change** (`XP_REWARDS`). Each new chapter pays 165 XP (lesson 10 + case 150 + quick check 5), so each path can earn 660 more XP in r0. The case pays once across the three paths (the group credits it, and a credited case is a 0-XP replay). The lesson and the quick check pay on each path, as for every shared chapter today (shared-chapters spec: "Lessons and quick checks differ per path and pay their own small XP"). So a player on all three paths gets at most 2 × 15 XP extra per chapter for reading the same text again.
+- **r16** is a new strategist-only realm: 6 × 165 + 500 = 1,490 more XP on the strategist path. This adds to the path imbalance already in Risks.
+- **No schema change, no migration.** Ids are `text`. Not `SCHEMA REVIEW REQUIRED`.
+
+### Risks for this block
+
+- **The mentor index sees each r0 lesson three times.** `lib/mentor/index-build.ts` indexes every `lesson.mdx`, so the same chunk is embedded three times (small cost) and can fill three of the top search results. Accept for now; run the mentor eval after A1. If answers get worse, dedupe chunks by content hash at query time in a separate `mentor` PR.
+- **Play order.** A true beginner on the builder path reaches "Your first chat" only after Tokens … Costs (c1–c6). Ids are forever and play order is id order, so the new chapters cannot go first.
+- **Copy drift.** Three copies can drift apart. The `outlines.test.ts` guard stops it in CI.
+
+### Acceptance criteria (this block)
+
+- [ ] On each path, r0 lists 10 chapters; c7 opens after c6's case; the r0 boss opens only after c10's case.
+- [ ] A clear of `builder/r0/c7/challenge` shows `strategist/r0/c7` and `creator/r0/c7` as DONE with "Cleared on the Builder path", and their cases are 0-XP replays.
+- [ ] A player whose r0 boss was cleared before the release still sees r0 CLEARED and keeps the certificate.
+- [ ] The three copies of each new r0 chapter are equal except for their ids (test).
+- [ ] `/realms?track=strategist` lists Trade Quarter after Tool Forge, with the STRATEGIST ONLY badge and the flat `neutral` scene; builder and creator never list it; the world map shows it on s9.
+- [ ] Every new lesson follows the template; every cited url sits under a `trustTier: official` entry and was fetched in its PR; no lesson cites Anthropic Academy or `anthropics/courses`.
+- [ ] `XP_REWARDS` unchanged; no migration file.
+
+### Calls under 95% (with my lean)
+
+1. **"Written once" = three identical copies + a test.** Lean: yes. Why: it uses the data model as it is, and the test stops drift. Other option: one source folder plus a build step that writes the copies; downside: a new content mechanism and a second place to edit.
+2. **One voice on all three paths.** Lean: yes, plain everyday voice. Why: one identical text cannot carry three path voices, and a zero-start reader is the same person on every path. Other option: three path versions with the same facts; downside: three times the review, and "written once" is lost.
+3. **c7–c10 come after c6 in play order.** Lean: accept. Why: ids are forever and play order is id order. Other option: an exception that opens r0 c7–c10 without c6; downside: a special case in the open rule (`lib/grading/open.ts`), which is a grading change.
+4. **The new chapters gate the r0 boss.** Lean: yes (the 2026-10-07 grown-realm rule). Other option: new chapters are extra and never gate the boss; downside: "cleared" stops meaning "did every chapter", and r0 would be the only realm with that rule.
+5. **Release A1–A4 to `main` together.** Lean: yes. Why: players see the boss lock again once, not four times. Other option: release each; downside: in-progress players see the boss lock three more times.
+6. **r16 after r2 on slot s9, tier beginner.** Lean: yes. Why: it applies r2's use-case scoring, and s9 is the only free slot near r2 whose trail crosses no island. Other option: after r8 on s8, tier intermediate (an end-of-path capstone); downside: a strategist meets the work-area examples only at the very end.
+7. **Names: Trade Quarter (`trade-quarter`), Envoy Rasa.** Lean: yes, as drafts for voice-guardian before B1. Other option: "Market Row" / "Factor Juno"; downside: none big, but the slug is fixed once it ships, so decide in B1.
+8. **Short titles** ("Hand off or keep", "Fair & honest", "Stay safe", "Sales & support", "Teach & learn", "Small teams"). Lean: yes, map pins fit 16 characters. Other option: keep the full names; downside: labels wrap or get cut on the map at 360px.
+9. **Sources: two new ids** (`nist-ai-rmf`, `owasp-genai`), the EU AI Act through the existing `ec-digital-strategy`, `eur-lex` only if needed. Lean: yes. Other option: also add `anthropic.com/constitution`; downside: a values document is a weak source for a user-safety claim.
+10. **Accept duplicate mentor chunks for now.** Lean: yes, run the mentor eval after A1. Other option: dedupe in the same PR; downside: a content PR would touch `lib/mentor/`, which needs its own eval gate.
+11. **r16 uses the `content/CLAUDE.md` lesson template, not the r15 shape.** Lean: yes, the maintainer asked for the template. Other option: match r15 (`## Why it matters`); downside: two lesson shapes inside one path's specialist realms.
+12. **Fix the key-shape hook before A3.** Lean: yes, a word-start match for `sk-`. Other option: cite only a NIST page whose path has no `risk-`; downside: it bends the source to fit a tool bug.
+
 ## Amendments locked 2026-10-08 (PR 9 devil pass: first builder and strategist realms)
 
 - **The "Later" list is replaced.** Builder r4 already teaches hooks (`Stop`), subagents, memory/instruction files and permissions; r5 MCP; r6 c6 GitHub Actions. Strategist r5 c3–c6 already cover vendors, security review, total cost and lock-in; r7 roles, change and adoption; r8 governance and rollout. So "Coding Agents (instruction files, hooks, subagents)", "AI Procurement" and "Team Enablement" are dropped as realms. First builder realm = r14 coding-agent practice (skills, hook recipes, plugins, headless/SDK, agents in CI, parallel runs). First strategist realm = r15 AI at work (the assistant products a team uses). "AI Product" waits until an official doc base exists. Realm numbers follow ship order: r14 builder, r15 strategist (the picture's "r17" is stale).
