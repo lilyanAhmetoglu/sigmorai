@@ -16,6 +16,9 @@ sources:
     title: Claude docs · Admin API
     url: https://platform.claude.com/docs/en/manage-claude/admin-api
   - kind: docs
+    title: Claude docs · Update API key
+    url: https://platform.claude.com/docs/en/api/admin/api_keys/update
+  - kind: docs
     title: Claude docs · Workspaces
     url: https://platform.claude.com/docs/en/manage-claude/workspaces
   - kind: docs
@@ -39,11 +42,11 @@ After this lesson you can:
 
 ## The problem
 
-An online grocery company has 1,100 staff. Its app has an AI helper for order questions, and its warehouse team uses an AI tool to plan delivery routes. Both call a vendor's API.
+An online grocery company has 1,100 staff. Its app has an AI helper for order questions, and its warehouse team uses an AI tool to plan delivery routes. Both call the Claude API.
 
-On a Sunday, a developer copies an API key into a public code page by mistake. By Monday morning, the AI bill for the weekend is many times a normal weekend. An email alert went out on Sunday, but it went to a team address that nobody reads on weekends.
+On a Sunday, a developer copies the order helper's API key into a public code page by mistake. By Monday morning, the AI bill for the weekend is many times a normal weekend. The key sits in the company's Default Workspace, next to the route tool's key.
 
-On Monday nobody knows who leads. One person wants to delete the developer's account. Another wants to shut down every AI tool in the company. A third wants to email all customers that "no data was affected", before anyone has checked.
+On Monday nobody knows who leads. One person wants to shut down every AI tool in the company. Another wants to email all customers that "no data was affected", before anyone has checked.
 
 Every one of these ideas is fast. None of them is a plan. The vendor facts in this lesson come from each vendor's docs (October 2026).
 
@@ -74,7 +77,7 @@ Name one **incident owner** for each AI use before anything goes wrong. A plan w
 
 Two steps look strong but can fail or go too far:
 
-- **Removing a person.** On the Claude Admin API page, a personal key ends when its user leaves the organization, but "Workspace API keys continue to work."
+- **Removing a person.** On the Claude Admin API page, a personal key ends when its user leaves the organization, but "Workspace API keys continue to work." There is one exception: "In the Claude Code workspace, each key is bound to the member who created it and stops working when that member is removed."
 - **Archiving a workspace.** The Claude workspaces page says this archives every API key created for that workspace, and it "Cannot be undone".
 
 **Step 3: Investigate.** Logs answer "who changed what, and when".
@@ -97,7 +100,7 @@ If something goes wrong with AI, call IT.
 
 What goes wrong:
 
-- **Spot:** the alert went to an address with no reader.
+- **Spot:** nobody looked at spend until Monday.
 - **Contain:** "call IT" gives no first step, so people grab the biggest switch.
 - **Tell:** nobody owns the message, so a guess almost went to every customer.
 
@@ -109,9 +112,9 @@ Our example plan for the grocery company:
 Owner        Head of platform (deputy: lead developer)
 1 Spot       Spend alerts go to the on-call phone, read 24/7.
              App report form goes to support, answered same day.
-2 Contain    Leaked or abused key: set it to inactive, make a
-             new key, lower the workspace spend limit.
-             Never archive a shared workspace as a first step.
+2 Contain    Leaked key: set it to inactive and make a new one.
+             After that, move each tool to its own workspace
+             with its own spend limit.
 3 Investigate  Audit logs on since launch. Owner pulls them.
 4 Tell       Legal and data protection lead within 1 hour.
              Customer message only after legal checks the facts.
@@ -129,21 +132,21 @@ The 1 hour and the 5 days are our own choices, not vendor numbers.
 
 ### Step 4: the hard case
 
-**The hard case is the developer's account.** The team removes the developer from the organization and marks the key "dealt with". But the key was a workspace key. Per the Claude Admin API page, a workspace key does not stop when the person who made it leaves. So the leak is still open.
+**The hard case is the Default Workspace.** Someone says "lower the workspace spend limit". But the leaked key and both tools are in the Default Workspace, and the Claude workspaces page says: "You cannot set limits on the Default Workspace". The same page says the Default Workspace "cannot be renamed, archived, or deleted."
 
-The fix: contain by the key, not by the person. Check the key type, then set that key to inactive.
+The fix: contain by the key. Set it to inactive and make a new one. Then, as a Learn action with an owner, move each tool to its own workspace, so the next incident can be capped there.
 
 ### Step 5: why it is better
 
 - **Fast and small.** One key off, one new key on. Nothing else stops.
-- **Reversible.** A key can be made active again; an archived workspace can't come back.
+- **Reversible.** The [Claude update API key reference](https://platform.claude.com/docs/en/api/admin/api_keys/update) lists `active` as a status you can set, so a key can be turned on again. An archived workspace can't come back.
 - **Honest.** No message goes out with a guess in it.
 
 ## Common mistakes
 
-1. **An alert with no reader.** The signal works, but nobody sees it. Fix: send alerts to a named person or an on-call phone.
-2. **The biggest switch first.** Archiving or shutting down everything stops other work, and some steps can't be undone. Fix: start with the smallest step that can be undone.
-3. **Guessing in the first message.** A claim like "no data was affected" can turn out false. Fix: say what you know, and when you will update.
+1. **No owner named before the incident.** On the day, people argue about who leads. Fix: name an owner and a deputy for each AI use now.
+2. **One shared key for every tool.** When it leaks, turning it off stops everything. Fix: one key per tool, so you can turn off just one.
+3. **Testing the plan for the first time in a real incident.** Gaps show up when it costs most. Fix: walk through it once a year with a made-up case, like a fire drill.
 
 ## Try it
 
