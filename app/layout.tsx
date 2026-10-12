@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 import { Atkinson_Hyperlegible, JetBrains_Mono, Pixelify_Sans, Silkscreen } from 'next/font/google';
+import { CookieNotice } from '@/components/cookie-notice';
 import { BRAND_COLOR, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/constants';
 import './globals.css';
 
@@ -61,6 +62,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         {/* No ClerkProvider here: each group layout mounts it only where a page
             needs it (ClerkGate), so a visitor downloads no Clerk. */}
         {children}
+        {/* Last in <body>: sticky to the screen bottom, never over the page end. */}
+        <CookieNotice />
         {/* Cookieless page views and Web Vitals (SIG-39); /privacy says what they collect. */}
         <Analytics />
         <SpeedInsights />
