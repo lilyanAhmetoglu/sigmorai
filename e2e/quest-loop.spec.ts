@@ -7,6 +7,7 @@ import {
   HP_PER_CHALLENGE,
   HUD_TEXT,
   LEADERBOARD_TEXT,
+  LESSON_DONE_ID,
   MAIN_CONTENT_ID,
   NAV_ITEMS,
   ONBOARDING_TEXT,
@@ -95,7 +96,8 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   await expect(banner.locator(ACCOUNT_BUTTON)).toBeVisible();
 
   // Lesson: one step at a time. Continue moves focus to each step (named by
-  // its heading); the last button moves it to "Lesson done", which still needs a press.
+  // its heading); the last button, Finish lesson, marks it done (the same press
+  // as the panel's "Lesson done") and moves focus to the panel's Continue.
   await page.goto(`${QUEST}/lesson`);
   const stepTitles = lessonStepTitles(CHAPTER_DIR);
   const progress = page.getByRole('progressbar', { name: QUEST_TEXT.stepLabel });
@@ -107,11 +109,14 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   }
   await expect(progress).toHaveAttribute('aria-valuenow', String(stepTitles.length));
   await page.getByRole('button', { name: QUEST_TEXT.finish, exact: true }).click();
-  // Lesson done: one button, +10 XP once. Exact: "Go to Lesson done" contains the same words.
-  const lessonDone = page.getByRole('button', { name: QUEST_TEXT.lessonDone, exact: true });
-  await expect(lessonDone).toBeFocused();
-  await lessonDone.click();
+  // +10 XP once, and the panel's button is now Continue, with focus on it.
   await expect(page.getByText(QUEST_TEXT.lessonCleared(XP_REWARDS.lesson))).toBeVisible();
+  await expect(
+    page.locator(`#${LESSON_DONE_ID}`).getByRole('link', { name: QUEST_TEXT.continue }),
+  ).toBeFocused();
+  await expect(page.getByRole('button', { name: QUEST_TEXT.lessonDone, exact: true })).toHaveCount(
+    0,
+  );
 
   // Case, first try: every answer wrong costs 1 HP and shows only the count.
   await page.goto(`${QUEST}/challenge`);

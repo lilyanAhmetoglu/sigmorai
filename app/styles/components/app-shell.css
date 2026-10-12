@@ -1,8 +1,12 @@
 /*
  * App shell: skip link, sticky header, nav (desktop row + mobile <details>
  * menu), footer. Design: Sigmorai App.dc.html → the in-app top bar and footer.
- * Every nav target keeps a 44px hit area (min-h-11; the design's 8px padding
- * gave ~29px). Desktop row from lg; below it the Menu toggle.
+ * The bar is full width, like the design's top bar (padding 12px → 32px), so
+ * logo + nav + a player's HUD fit one row from xl (~1160px of content; the
+ * 1200px container left 1136px and wrapped the HUD onto a ragged second row).
+ * Below xl the nav moves into the Menu toggle. Every nav target keeps a 44px
+ * hit area (min-h-11); the current item's plate is the design's ~28px block
+ * (8px padding), drawn by ::before inside that hit area.
  * Dropped from the design (no token): the header's second 3px ink-800 line
  * (box-shadow 0 3px 0), 11px HUD labels (use text-hud), 18px logo text (uses text-body-lg).
  */
@@ -15,13 +19,13 @@
     @apply bg-xp text-text-on-accent font-hud text-hud tracking-hud shadow-notch not-sr-only fixed top-2 left-2 z-30 flex min-h-11 items-center px-4 py-3 no-underline;
   }
 
-  /* Sticky only from lg: on a phone the wrapped header is ~200px tall and
+  /* Sticky only from lg: on a phone the wrapped header is ~170px tall and
      would pin too much of the screen. `relative` anchors the mobile menu panel. */
   .site-header {
     @apply bg-ink-900 border-ink-950 relative z-20 border-b-3 lg:sticky lg:top-0;
   }
   .site-header-bar {
-    @apply max-w-app mx-auto flex flex-wrap items-center gap-3 px-3 py-2.5 sm:px-6 lg:px-8;
+    @apply flex flex-wrap items-center gap-3 px-3 py-2.5 sm:px-6 lg:px-8 xl:flex-nowrap;
   }
 
   .site-logo {
@@ -31,23 +35,35 @@
     @apply text-ink-100;
   }
 
+  /* min-w-0: if a row ever runs out of room, the nav list wraps inside
+     itself instead of pushing the page into a horizontal scroll. */
   .site-nav {
-    @apply hidden lg:block;
+    @apply hidden min-w-0 xl:block;
   }
   .nav-list {
     @apply m-0 flex list-none flex-wrap gap-1 p-0;
   }
   .nav-link {
-    @apply font-hud text-hud tracking-hud text-text-2 inline-flex min-h-11 items-center gap-2 px-3 uppercase no-underline;
+    @apply font-hud text-hud tracking-hud text-text-2 relative isolate inline-flex min-h-11 items-center gap-2 px-3 uppercase no-underline;
   }
-  a.nav-link:hover {
+  a.nav-link:not([aria-current]):hover {
     @apply text-text-1;
   }
   .nav-link[aria-current='page'] {
-    @apply bg-ink-100 text-ink-950;
+    @apply text-ink-950 before:bg-ink-100 before:absolute before:inset-x-0 before:inset-y-2 before:-z-10 before:content-[''];
   }
   .mobile-menu {
-    @apply ml-auto lg:hidden;
+    @apply ml-auto xl:hidden;
+  }
+  /* A visitor's right side (Sign in + Start free) is small: the nav row fits from lg. */
+  .site-header-bar:has(.hud-bar[data-state='signed-out']) .site-nav {
+    @apply lg:block;
+  }
+  .site-header-bar:has(.hud-bar[data-state='signed-out']) .mobile-menu {
+    @apply lg:hidden;
+  }
+  .site-header-bar:has(.hud-bar[data-state='signed-out']) .hud-bar {
+    @apply lg:ml-auto;
   }
   .mobile-menu-toggle {
     @apply font-hud text-hud tracking-hud text-ink-100 bg-ink-700 shadow-notch inset-shadow-bevel inline-flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 px-3 uppercase select-none;
