@@ -84,7 +84,10 @@ Three SVG settings matter for a handoff:
 | `svg_include_id`      | false   | "Adds the layer name to the id attribute of an svg element."                                                      |
 | `use_absolute_bounds` | false   | "Use the full dimensions of the node regardless of whether or not it is cropped or the space around it is empty." |
 
-On outlines, the page says: "Rendering text elements as outlines guarantees that the text looks exactly the same in the SVG as it does in the browser/inside Figma." On `<text>`, it says this "allows text to be selectable inside SVGs", but "visual accuracy is not guaranteed".
+The page weighs the two:
+
+- Outlines: "Rendering text elements as outlines guarantees that the text looks exactly the same in the SVG as it does in the browser/inside Figma."
+- `<text>`: it "allows text to be selectable inside SVGs", but "visual accuracy is not guaranteed".
 
 The Figma MCP server has its own export tool. The [Figma tools page](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) says `download_assets` returns "temporary URLs that must be fetched to retrieve file contents".
 
@@ -121,7 +124,11 @@ The same page says the UI "doesn't yet support property mapping or dynamic examp
 
 ### Tokens: the Variables REST API
 
-**Variables** are named values in Figma, like colours and spacing (often called design tokens). The [Figma Variables REST API page](https://developers.figma.com/docs/rest-api/variables/) says: "To use this API, you must have a Full seat in an Enterprise org; guests cannot use the API." Reading needs "View access" for "Any organization member"; writing needs "Full seats, admins" and "Edit access". The [Figma variables endpoints page](https://developers.figma.com/docs/rest-api/variables-endpoints/) lists "Limited by Figma plan" as one possible 403 error.
+**Variables** are named values in Figma, like colours and spacing (often called design tokens). The [Figma Variables REST API page](https://developers.figma.com/docs/rest-api/variables/) sets the rules:
+
+- "To use this API, you must have a Full seat in an Enterprise org; guests cannot use the API."
+- Reading needs view access to the file. Writing needs a Full seat or admin role, plus edit access.
+- The [Figma variables endpoints page](https://developers.figma.com/docs/rest-api/variables-endpoints/) lists "Limited by Figma plan" as one possible 403 error (403: the server refused you).
 
 A comparison: an export is a photo of a dish. Code Connect and variables are the recipe card.
 
@@ -164,7 +171,7 @@ Simplified. See the docs for the exact request shape.
 So you choose per asset. Our advice:
 
 - **Chart labels:** `<text>`. Translation needs real text. Check the chart in two browsers before you sign it off.
-- **The service's logo wordmark:** keep outlines. Its shape must never change, and nobody translates a logo.
+- **The service's logo wordmark** (the name drawn as a logo): keep outlines. Its shape must never change, and nobody translates a logo.
 
 ### Step 4: why it is better
 
@@ -179,7 +186,7 @@ icon edges may be trimmed ->   full frame of each icon
 ## Common mistakes
 
 1. **Exporting before you check the formats.** Some pages may not support a format. Fix: call `get-export-formats` first, and use a listed key.
-2. **Promising a transparent PNG on a Free plan.** Canva lists transparent backgrounds for Pro and above. Fix: check the plan before you promise.
+2. **Promising a transparent PNG on a Free plan.** The Canva docs list transparent backgrounds for Pro and above. Fix: check the plan before you promise.
 3. **Turning every SVG text into `<text>`.** The look is not guaranteed. Fix: keep outlines when the exact shape matters more than editing.
 
 ## Try it

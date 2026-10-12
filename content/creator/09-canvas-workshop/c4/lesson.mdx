@@ -85,7 +85,7 @@ Other vendors work differently:
 
 When you expand, the old photo must sit somewhere in the new, bigger frame. The [Adobe docs on placement](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/placement/) say it controls "how an image is positioned and sized in the final generation". Two options:
 
-- **Alignment**, for example `"horizontal": "left"`, pins the photo to one side. The new image grows on the other side.
+- **Alignment**, for example `"horizontal": "left"`, pins the photo to one side. Our reading: the new image grows on the other side.
 - **Inset** sets "margins (in pixels) from each side of the frame".
 
 ### Three composites
@@ -114,18 +114,22 @@ Adaptive Composite works "by adapting and regenerating the subject to match the 
 
 The guide's example says to "check once every second and wait for a success or failure message".
 
-**Uploads.** The [Adobe upload page](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/image-upload/) says: "The upload id is valid for 7 days from the date of upload." Supported formats are JPEG, PNG and WebP.
+**Uploads.** The [Adobe upload page](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/image-upload/) says: "The upload id is valid for 7 days from the date of upload." It also says: "Supported formats include `image/jpeg`, `image/png`, and `image/webp`."
 
 **Rate limits.** The [Adobe usage notes](https://developer.adobe.com/firefly-services/docs/firefly-api/getting-started/usage-notes/) give the default limits "per organization":
 
 - "4 requests per minute (RPM)"
-- "9,000 requests per day (RPD)", for organizations that got a higher per-minute limit
+- "9,000 requests per day (RPD)". The page says this one matters for teams whose account manager raised the limit "beyond 4 RPM".
 
 Over the limit, "you'll receive an HTTP 429 Too Many Requests error". The page's fixes: reduce requests, "Implement retry logic via a retry-after HTTP header or an exponential backoff strategy" (wait longer after each failed try), or ask your account manager for more.
 
 ### Resize the layout, expand the photo
 
-Not every size change needs AI pixels. The [Canva docs on resize-design](https://www.canva.dev/docs/apps/mcp/tools/resize-design/) say it creates "a copy of an existing design at new dimensions, with the layout rearranged to fit". Also: "The original is unchanged. It isn't for resizing a single element within a page." It needs a plan "with premium features, such as Canva Pro".
+Not every size change needs AI pixels. The [Canva docs on resize-design](https://www.canva.dev/docs/apps/mcp/tools/resize-design/) say:
+
+- It creates "a copy of an existing design at new dimensions, with the layout rearranged to fit".
+- "The original is unchanged. It isn't for resizing a single element within a page."
+- It needs a plan "with premium features, such as Canva Pro".
 
 A comparison: resize moves the furniture into a new room. Expand paints more wall.
 
@@ -190,9 +194,9 @@ upload ID used forever    ->   ID dated, re-uploaded after 7 days
 
 ## Common mistakes
 
-1. **Reading the first answer as the image.** An async call returns a job. Fix: poll `statusUrl` until it says succeeded or failed.
+1. **Reading the first answer as the image.** An async call returns a job. Fix: poll `statusUrl` (ask it again and again) until it says succeeded or failed.
 2. **Using a layout resize for one picture.** Canva's `resize-design` changes the whole design, not one element. Fix: resize the layout there, and expand only the photo.
-3. **Trusting the exact edge of an OpenAI mask.** OpenAI says the mask is only guidance. Fix: check the edges of every result by eye.
+3. **Trusting the exact edge of an OpenAI mask.** The OpenAI docs say the mask is only guidance. Fix: check the edges of every result by eye.
 
 ## Try it
 
@@ -201,7 +205,7 @@ Not graded. Write your answer down before you read the answer.
 A children's book studio has three jobs:
 
 1. A Canva poster with a title, text and art must also exist as a 16:9 slide.
-2. A single square illustration needs more sky at the top for a tall print.
+2. A square illustration must sit in the middle of a wide print, with 300 pixels of new art on the left and 300 on the right.
 3. The team wants to edit a photo with Gemini, but nobody can paint masks.
 
 Which tool or way of working fits each job?
@@ -209,7 +213,7 @@ Which tool or way of working fits each job?
 ### Answer
 
 1. **Canva `resize-design`.** It makes a copy at the new size with the layout rearranged. The poster stays as it was.
-2. **Firefly Expand.** It grows a picture past its edges. The layout tool would not add new sky to one picture.
+2. **Placement with `inset`.** The Adobe docs say inset sets "margins (in pixels) from each side of the frame". Set `left` and `right` to 300.
 3. **Describe the change in words.** The Gemini docs show semantic masking: the prompt says which part to change, with no mask file.
 
 ## Recap

@@ -58,9 +58,13 @@ This lesson shows what each step of an AI edit returns, and how to check it.
 
 ### Figma: the agent writes into the file
 
-An **MCP server** is a plug that lets an AI assistant call tools in another app. Figma's write tool is `use_figma`. The [Figma tools page](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) calls it "General-purpose create, edit, and inspect". It is marked as remote-only (it works on the web server, not the desktop one). The page adds that the write tools "work best with a skill", and names `figma-use` for Figma Design.
+An **MCP server** is a plug that lets an AI assistant call tools in another app. Figma's write tool is `use_figma`. The [Figma tools page](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) calls it "General-purpose create, edit, and inspect". It is marked as remote-only (it works on the web server, not the desktop one). The page adds that the write tools "work best with a skill", and names `figma-use` for Figma Design. (A **skill** is a set of instructions the agent loads before it uses the tools.)
 
-The [Figma write-to-canvas page](https://developers.figma.com/docs/figma-mcp-server/write-to-canvas/) explains how: "Write to canvas works by letting your client execute JavaScript in the context of a Figma file through the Plugin API." The result is real frames, components and auto layout, "rather than generating a screenshot or static export". The tools page says: "When relevant, the agent will first check your design system or existing file content before creating anything from scratch."
+The [Figma write-to-canvas page](https://developers.figma.com/docs/figma-mcp-server/write-to-canvas/) explains how:
+
+- "Write to canvas works by letting your client execute JavaScript in the context of a Figma file through the Plugin API."
+- The result is real frames, components and auto layout, "rather than generating a screenshot or static export".
+- The tools page adds: "When relevant, the agent will first check your design system or existing file content before creating anything from scratch."
 
 **Seats.** A seat is the kind of Figma licence a person has. The write page says: "You need a Full seat to write to Figma files with agents. Dev seat holders can use the Figma MCP server for read-only workflows such as pulling design context, variables, and screenshots. To modify an existing file, you also need edit permission for that file."
 
@@ -71,11 +75,20 @@ The [Figma write-to-canvas page](https://developers.figma.com/docs/figma-mcp-ser
 - "Custom fonts aren't supported yet"
 - "Components must be manually published before Code Connect completes"
 
-The tools page does not fully agree on images. It says `use_figma` "can work with pages, frames, components, variants, variables, styles, text, images, and more". It also lists a separate remote-only tool, `upload_assets`. That tool "Uploads assets (PNG, JPG, GIF, and WebP) into a Figma file. Max 10MB per asset." With a link to a node (one item, like a frame), "the image is uploaded as a fill to that node". Our advice: read both pages before you plan a job with pictures or brand fonts.
+The tools page does not fully agree on images:
+
+- It says `use_figma` "can work with pages, frames, components, variants, variables, styles, text, images, and more".
+- It lists a separate remote-only tool, `upload_assets`: "Uploads assets (PNG, JPG, GIF, and WebP) into a Figma file. Max 10MB per asset."
+- With a link to a node (one item, like a frame), "the image is uploaded as a fill to that node".
+
+Our advice: read both pages before you plan a job with pictures or brand fonts.
 
 **A place to draft.** The tools page says `create_new_file` "Creates a new blank Figma Design, FigJam, or Figma Slides file in your drafts folder." The write page does not describe an undo step for `use_figma`. Our advice: let the agent build in a new file or a copy, and move the good parts yourself.
 
-**Review.** The write page says: "Open the file in Figma and inspect the generated or updated content." Then refine it. It also says: "Large changes work best incrementally", with the client working "in smaller steps" to "validate as it goes".
+**Review.** The write page gives two rules:
+
+- "Open the file in Figma and inspect the generated or updated content." Then refine it.
+- "Large changes work best incrementally": the client works in smaller steps and checks each one.
 
 ### Canva: an edit is a transaction
 
@@ -90,10 +103,13 @@ commit-editing-transaction  -> status "committed" = saved
 Step by step:
 
 1. **Open.** The tool "Returns a `transaction_id` and the design's editable elements (`richtexts` and `fills`), each with an `element_id`." It also returns `edit_design_url`, a link that opens the design in Canva.
-2. **Apply.** The [Canva docs on perform-editing-operations](https://www.canva.dev/docs/apps/mcp/tools/perform-editing-operations/) say: "Check `edit_operation_results` for a per-operation `status` of `success`." Edits stay in draft until you commit. The same page says: "On responsive pages, use `find_and_replace_text` rather than `replace_text`." For pictures: "Don't pass a raw image URL into an editing operation." Upload it first with `upload-asset-from-url` "to get an `asset_id`".
+2. **Apply.** The [Canva docs on perform-editing-operations](https://www.canva.dev/docs/apps/mcp/tools/perform-editing-operations/) give three rules. Edits stay in draft until you commit.
+   - "Check `edit_operation_results` for a per-operation `status` of `success`."
+   - "On responsive pages, use `find_and_replace_text` rather than `replace_text`."
+   - For pictures: "Don't pass a raw image URL into an editing operation." Upload it first with `upload-asset-from-url` "to get an `asset_id`".
 3. **Commit.** The [Canva docs on commit-editing-transaction](https://www.canva.dev/docs/apps/mcp/tools/commit-editing-transaction/) say: "A `status` of `committed` confirms the edits are saved." And: "If the transaction isn't committed, the edits are discarded."
 
-**Cancel.** The [Canva docs on cancel-editing-transaction](https://www.canva.dev/docs/apps/mcp/tools/cancel-editing-transaction/) say it discards "every edit applied since start-editing-transaction". After that, the draft edits "can't be recovered" and "The `transaction_id` is now invalid".
+**Cancel.** The [Canva docs on cancel-editing-transaction](https://www.canva.dev/docs/apps/mcp/tools/cancel-editing-transaction/) say it discards "every edit applied since start-editing-transaction". After that the draft edits "can't be recovered", and the transaction id is no longer valid.
 
 **Two people at once.** The commit page warns: "Commit can fail if the design is edited concurrently (for example, a person editing in the browser) during your transaction. Retrying the same transaction won't help, because its snapshot is stale. Cancel it, start a fresh transaction, re-apply, and commit."
 
@@ -107,7 +123,7 @@ A comparison: a Canva transaction is like a shopping basket. Nothing is yours un
 
 You can also stop a write in the AI app itself.
 
-- The [Claude docs on the MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) (a beta feature) say: "Denylisting write or destructive tools is recommended when building read-only assistants, or when you want a human confirmation step before state changes."
+- The [Claude docs on the MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) (a beta feature) say: "Denylisting write or destructive tools is recommended when building read-only assistants, or when you want a human confirmation step before state changes." (A **denylist** is a block list. A tool on it cannot be called.)
 - The [OpenAI docs on MCP](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say: "Use the available configurations of the `require_approval` and `allowed_tools` parameters to ensure that any sensitive actions require an approval flow."
 
 ## Worked example
@@ -162,18 +178,18 @@ assistant: "The four titles now use the new name.
             Open the page in Canva to check it: <edit_design_url>"
 ```
 
-Only now may the assistant say "saved". The link lets you check all four places with your own eyes.
+The link lets you check all four places with your own eyes.
 
 ### Step 5: why it is better
 
 - The right operation for a responsive page.
 - Every operation is checked before the commit.
-- The message matches the real state, and the person gets the link.
+- The person gets the edit link and checks the page.
 
 ## Common mistakes
 
 1. **Using `replace_text` on a responsive page.** Canva's page names another operation for that. Fix: use `find_and_replace_text`.
-2. **Ending with words only.** A summary is not the design. Fix: return the edit link, so a person opens and checks it.
+2. **Editing a design you cannot edit.** The Canva docs say editing operations "are only available on designs and assets for which you have edit permissions". Fix: check the account's edit rights before you start.
 3. **Giving an assistant write tools it does not need.** Fix: denylist the write tools, or set approvals, so a person says yes first.
 
 ## Try it

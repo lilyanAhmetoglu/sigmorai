@@ -19,9 +19,6 @@ sources:
     title: Figma developer docs · Working in Dev Mode (plugins)
     url: https://developers.figma.com/docs/plugins/working-in-dev-mode/
   - kind: docs
-    title: Figma developer docs · Publishing (plugins)
-    url: https://developers.figma.com/docs/plugins/publishing/
-  - kind: docs
     title: Figma developer docs · Figma MCP server introduction
     url: https://developers.figma.com/docs/figma-mcp-server/
   - kind: docs
@@ -101,7 +98,11 @@ The [Figma plugins introduction](https://developers.figma.com/docs/plugins/) set
 
 **Dev Mode** is the read-only view for developers. The [Figma docs on Dev Mode plugins](https://developers.figma.com/docs/plugins/working-in-dev-mode/) say these plugins "can be used for inspection and code generation". They "are read-only" and "won't be able to edit the contents of the document."
 
-**Network access.** A **manifest** is the plugin's settings file. The [Figma manifest docs](https://developers.figma.com/docs/plugins/manifest/) say that with `networkAccess`, "Your plugin can only access the domains that you specify." The value `["none"]` means "The plugin cannot access any external network resources." The [Figma guide to network requests](https://developers.figma.com/docs/plugins/making-network-requests/) uses `["none"]` as a test: run the plugin, note each **CSP error** (the browser refused a request), then "remove 'none' and add the domains that your plugin requires to the allowedDomains list."
+**Network access.** A **manifest** is the plugin's settings file.
+
+- The [Figma manifest docs](https://developers.figma.com/docs/plugins/manifest/) say that with `networkAccess`, "Your plugin can only access the domains that you specify."
+- The value `["none"]` means "The plugin cannot access any external network resources."
+- The [Figma guide to network requests](https://developers.figma.com/docs/plugins/making-network-requests/) uses `["none"]` as a test: run the plugin, note each **CSP error** (the browser refused a request), then "remove 'none' and add the domains that your plugin requires to the allowedDomains list."
 
 **AI agents.** The [Figma MCP server](https://developers.figma.com/docs/figma-mcp-server/) gives "design information and context to AI agents". **MCP** (Model Context Protocol) is a standard way for an AI assistant to call tools.
 
@@ -121,7 +122,7 @@ The [Canva page on app surfaces](https://www.canva.dev/docs/apps/platform-concep
 - **Canva for your platform** brings Canva "into your own web apps and platforms, using the Canva REST APIs".
 - **Canva for AI assistants** is there "so that your users can create, edit, and export designs from the AI tools they already use", through the [Canva MCP server](https://www.canva.dev/docs/apps/mcp/).
 
-The [Apps inside Canva page](https://www.canva.dev/docs/apps/apps-inside-canva/) says these apps "are JavaScript files that run inside an iframe" (a small web page inside the editor). You can share one through the Apps Marketplace, or privately with your team.
+The [Apps inside Canva page](https://www.canva.dev/docs/apps/apps-inside-canva/) says these apps "are JavaScript files that run inside an iframe" (a small web page inside the editor). The page says you can "either distribute the app publicly through the Apps Marketplace, or share it privately with members of your team".
 
 ### Intents
 
@@ -130,7 +131,7 @@ The [Canva intents page](https://www.canva.dev/docs/apps/intents/) says: "All ne
 Two of them matter for the studio:
 
 - The [Design Editor intent](https://www.canva.dev/docs/apps/intents/design-editor/) makes "specialized editing tools that appear alongside the Canva design surface".
-- The [Content Publisher intent](https://www.canva.dev/docs/apps/intents/content-publisher/) lets users "publish Canva designs directly to external platforms". It requires App UI Kit components and your platform's own sign-in.
+- The [Content Publisher intent](https://www.canva.dev/docs/apps/intents/content-publisher/) lets users "publish Canva designs directly to external platforms". Its page says: "You must use App UI Kit components." And: "This intent requires you to implement third-party platform authentication and content publishing APIs."
 
 The intents page lists four technical rules:
 
@@ -190,7 +191,7 @@ The root file only calls the two `prepare` functions, right away, with no waitin
 
 But the intents page also says: "Things like authentication, settings, and data management can be common across multiple intents."
 
-Our reading: share the code, not a live global value. Put the sign-in in one module that both intent folders import. Each intent calls it when Canva starts that intent. The portal sign-in is also why Content Publisher apps "might need a backend", as its page says.
+Our reading: share the code, not a live global value. Put the sign-in in one module that both intent folders import. Each intent calls it when Canva starts that intent. The portal sign-in is also why Content Publisher apps "might need a backend" (a server you run yourself), as its page says.
 
 ### Step 4: why it is better
 
@@ -205,8 +206,8 @@ portal button in editor panel ->   Content Publisher intent, shown at publish
 ## Common mistakes
 
 1. **Waiting before you register.** Canva needs the intents at once. Fix: call each `prepare` function first, and load data later.
-2. **Building a public app on a preview API.** It will not pass review. Fix: ship without it, or wait until the API is stable.
-3. **Putting every intent in one file.** The intents page says the Canva CLI and other tools assume a folder per intent, even for one intent. Fix: give each intent its own folder.
+2. **Keeping the sign-in in a global object.** The intents page says "The app must not create global state." Fix: put the sign-in in one module that each intent folder imports.
+3. **Putting every intent in one file.** The intents page says the Canva CLI (Canva's command-line tool) and other tools assume a folder per intent, even for one intent. Fix: give each intent its own folder.
 
 ## Try it
 
@@ -222,7 +223,7 @@ Your Figma team asks for three tools. Where should each one live?
 
 1. **A Dev Mode plugin for inspection.** The Dev Mode page names inspection as a use, with context from tools such as Jira.
 2. **A widget.** It stays on the canvas, and anyone viewing the file can see it and use it.
-3. **A plugin that also calls the REST API.** A plugin can only read the open file. The compare page names linters that read other files through the REST API.
+3. **A plugin that also calls the REST API.** A plugin can only read the open file. The compare page names linters (tools that check files for mistakes) that read other files through the REST API.
 
 ## Recap
 
