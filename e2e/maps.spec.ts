@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { MAP_TEXT, QUEST_STOP_TEXT, REALMS, WORLD_MAP_TEXT } from '@/lib/constants';
+import { realmStopCount } from './content';
 
 /**
  * Clear maps (level-art and world-map specs, amendments 2026-10-08), signed
@@ -79,8 +80,8 @@ test('world map: markers show name, status and progress at zoom 1, on a phone to
   const label = marker.locator('.world-marker-label');
   await expect(label).toBeVisible();
   await expect(label).toContainText('Bootstrap Village', { ignoreCase: true });
-  // One bar cell per chapter and the boss.
-  await expect(label.locator('.world-marker-cell')).toHaveCount(7);
+  // One bar cell per chapter and the boss, as the outline lists them.
+  await expect(label.locator('.world-marker-cell')).toHaveCount(realmStopCount('strategist', 0));
   // The accessible name starts with the visible tag, then the name (WCAG 2.5.3).
   await expect(marker).toHaveAccessibleName(
     new RegExp(`^${WORLD_MAP_TEXT.startHere.toLowerCase()}, Bootstrap Village, 00, open, `),

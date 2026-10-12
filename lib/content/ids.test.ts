@@ -148,7 +148,7 @@ describe('bad ids are rejected', () => {
   });
 });
 
-/** A track's outline as committed in content/ (creator r1 has 9 chapters; every other realm 6). */
+/** A track's outline as committed in content/ (chapter counts per realm come from it; see `GROWN`). */
 const realOutline = async (track: (typeof TRACKS)[number]) =>
   trackOutlineSchema(track).parse(
     await Bun.file(`${import.meta.dir}/../../${CONTENT_DIR}/${track}/${OUTLINE_FILE}`).json(),
@@ -178,9 +178,9 @@ const gridIds = (
 
 /** Realms grown past 6 chapters in each track's committed outline (realm → chapter count). */
 const GROWN: Record<(typeof TRACKS)[number], Record<number, number>> = {
-  builder: {},
-  strategist: {},
-  creator: { 1: 9 },
+  builder: { 0: 8 },
+  strategist: { 0: 8 },
+  creator: { 0: 8, 1: 9 },
 };
 
 /**
@@ -208,8 +208,8 @@ describe('trackExerciseIds', () => {
 
   test('every chapter step and boss of one track, in map order, all unique', async () => {
     const ids = trackExerciseIds('builder', await realOutline('builder'));
-    // +1 = r14 Agent Workshop, the one builder specialist realm.
-    expect(ids).toHaveLength((CORE_IDS.length + 1) * (MIN_CHAPTERS * CHAPTER_STEPS.length + 1));
+    // The grid, not a hand formula: it already counts grown realms and r14.
+    expect(ids).toHaveLength(gridIds('builder', GROWN.builder, INSERTED.builder).length);
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids[0]).toBe('builder/r0/c1/lesson');
     expect(ids.at(-1)).toBe(`builder/r${CORE_IDS.at(-1)}/boss/challenge`);

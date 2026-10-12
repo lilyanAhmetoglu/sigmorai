@@ -1,7 +1,7 @@
 /**
  * Certificate rules, pure (no IO). A certificate is derived from one
  * progress row: a realm's boss challenge (the boss open check already
- * proved the six chapter cases) or the Math Tower's floor 8 quick check
+ * proved every chapter case in the outline) or the Math Tower's floor 8 quick check
  * (it proved floors 1–7). Exercise ids come from buildExerciseId, so an id
  * read from a URL is never pasted into a query.
  */
