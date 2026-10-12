@@ -170,6 +170,9 @@ assert deny guard-write.sh "$(write_file 'lib/mentor/x.ts' 'const k = "sk-proj-a
 assert deny guard-write.sh "$(write_file 'lib/x.ts' 'const k = "sk-ant-abcdefghij1234567890abcdefghij"')"  "sk-ant- key, 30 chars"
 assert deny guard-write.sh "$(write_file 'lib/x.ts' 'const k = "sk-proj-abcdefghij1234567890abcdefghij"')" "sk-proj- key, 30 chars"
 assert deny guard-write.sh "$(write_file 'lib/x.ts' 'ANTHROPIC_API_KEY=sk-ant-abcdefghij1234567890abcdefghij')" "ANTHROPIC_API_KEY=sk-ant-..."
+# By design: a key glued to a letter or digit passes. No real key is written that way, and
+# matching inside words is what blocked risk-/task- URL slugs before.
+assert allow guard-write.sh "$(write_file 'lib/x.ts' 'const k = "xsk-abcdefghij1234567890abcdefghij"')" "sk- glued to a letter (allowed on purpose)"
 assert deny guard-write.sh "$(write_file 'lib/x.ts' 'const k = "sk-abcdefghij1234567890abcdefghij"')"      "quoted sk- key"
 assert deny guard-write.sh "$(write_file 'lib/x.ts' 'sk-abcdefghij1234567890abcdefghij')"                 "sk- key at line start"
 assert allow guard-write.sh "$(write_file 'docs/x.md' 'See https://www.nist.gov/itl/ai-risk-management-framework')" "NIST AI RMF URL (risk-management-framework)"

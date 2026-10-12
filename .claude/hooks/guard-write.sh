@@ -85,12 +85,12 @@ case "$path" in
   *__tests__/*|*.test.*|*.spec.*|*/fixtures/*|*/__fixtures__/*) exit 0 ;;
 esac
 
-# sk- must start a word: '(^|[^A-Za-z0-9])' skips risk-/task-/desk- URL slugs, and
-# (no \b) works the same in GNU and BSD grep. It also covers sk-ant- and sk-proj-.
 # ── 4. Hardcoded live credentials ────────────────────────────────────────────
 # The allowlist is checked on the MATCHING LINE only; a whole-file check would
 # let a real key through whenever the word "example" appears anywhere.
 # (here-strings, not `printf | grep -q`: see the SIGPIPE note in guard-bash.sh)
+# sk- must start a word: '(^|[^A-Za-z0-9])' skips risk-/task-/desk- URL slugs, and
+# (no \b) works the same in GNU and BSD grep. It also covers sk-ant- and sk-proj-.
 key_lines=$(grep -E '((^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{20,}|sk_live_[A-Za-z0-9]{10,}|pk_live_[A-Za-z0-9]{10,}|rk_live_[A-Za-z0-9]{10,}|whsec_[A-Za-z0-9]{10,}|e2b_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|vercel_blob_rw_[A-Za-z0-9_]{10,}|npg_[A-Za-z0-9]{10,})' <<<"$content")
 # The -n test is load-bearing: <<<"" feeds grep one EMPTY line, which -v counts
 # as a non-allow-listed line, so without it every keyless write would be denied.
