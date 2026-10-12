@@ -1,7 +1,7 @@
 ---
 id: creator/r6/c1/lesson
 title: Define quality
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -17,78 +17,174 @@ sources:
     url: https://developers.openai.com/api/docs/guides/image-generation
 ---
 
-## Why it matters
+## Goal
 
-Two image models, forty test images, one question: which model is better? If the answer is "this one feels nicer", you cannot show that to a client, and you cannot repeat it next month.
+After this lesson you can:
 
-Earlier chapters taught you to review one output (Prompt Forest, chapter 6) and to write a rubric for a review loop (Agent Citadel, chapter 3). This realm is about judging a whole model, with evidence. The first step comes before you look at any result: decide what "good" means.
+- Write quality criteria that are specific, measurable, achievable and relevant, before you see a single result.
+- Build a small test set from real briefs, real failures and hard cases.
+- Spot a broken test before you blame the model.
 
-## What an eval is
+## The problem
 
-Anthropic defines an eval as "a test for an AI system: give an AI an input, then apply grading logic to its output to measure success." OpenAI explains why you need one. Models can produce different output from the same input, and evals are "a way to test your AI system despite this variability".
+A small studio makes picture-book spreads with an image model. Last month the art lead wrote a new prompt kit: a fixed style block, a colour list and a character sheet. Now the team wants to know: is the new kit better than the old one?
 
-For you, the input is a brief, the output is an image or a clip, and the grading logic is what the rest of this realm builds.
+Here is how they decide:
 
-## Four traits of a good criterion
+1. They run both kits on 15 prompts that the art lead wrote in one afternoon.
+2. Everyone looks at the pictures together.
+3. The art lead says: "The new one feels warmer. Let's switch."
 
-Claude's guide says good success criteria are specific, measurable, achievable and relevant.
+Two weeks later, a publisher sends back six spreads. The main character, a fox in a yellow coat, has a red coat on two pages and a green coat on one. Nobody checked for that. Nobody had written down what "better" means.
 
-- **Specific.** Say what you want. "Good performance" is not a target.
-- **Measurable.** Use numbers. A clear scale can help too, if people use it the same way each time and you pair it with numbers. Claude says even hazy topics such as safety can be measured. Its example: "Safe outputs" is the bad version. The good version is "Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter."
+This lesson fixes that first step: write down what good means before the first run.
+
+## The idea
+
+### What an eval is
+
+An **eval** is a test with a score. The [Anthropic post on evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) defines it as "a test for an AI system: give an AI an input, then apply grading logic to its output to measure success." For a creator, the input is a brief. The output is an image or a clip. The grading logic is your list of checks.
+
+Why you need one: the [OpenAI evaluation docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) say "Models sometimes produce different output from the same input". Evals are "a way to test your AI system despite this variability".
+
+A comparison: an eval is like a bakery's bread check. They weigh every loaf; they don't ask if it looks nice.
+
+### Four traits of a good criterion
+
+A **criterion** is one thing you check, such as "the fox's coat is yellow". The [Claude docs on success criteria](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say good criteria are:
+
+- **Specific.** Say exactly what you want. The docs' example: not "good performance" but "accurate sentiment classification".
+- **Measurable.** Use numbers, or a clear scale. The docs say qualitative measures "can be valuable if consistently applied along with quantitative measures".
 - **Achievable.** Base the target on what current models can do. A target no model can reach tells you nothing.
-- **Relevant.** Match the criterion to the job. Claude's example: strong citation accuracy is critical for a medical app and matters less for a casual chatbot. In our world, an exact logo matters on a packshot and matters less on a mood board.
+- **Relevant.** Match the criterion to the job. The docs' example: strong citation accuracy "might be critical for medical apps but less so for casual chatbots".
 
-Here is the same idea for an image. This target is made up for the example.
+The same docs show that even a "hazy" topic like safety can be a number:
 
-- Weak: "The label looks right."
-- Better: "The label reads exactly 'Fernhill Soy Candle' in at least 95% of test jobs, with no extra letters."
+```text
+Bad:   Safe outputs
+Good:  Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter.
+```
 
-## One score is not enough
+The good version names a share, a number of trials and who decides.
 
-Claude's guide says: "Most use cases need multidimensional evaluation along several success criteria." Its list of common criteria includes consistency, tone and style, latency and price.
+### One score is not enough
 
-Prompt Forest gave you a checklist for one output. This list is ours, and you can use it as a start for a model test:
+The Claude docs say: "Most use cases need multidimensional evaluation along several success criteria." Their list of common criteria includes consistency, tone and style, latency and price. **Latency** means how long you wait for a result.
 
-1. Fit to the brief: size, subject, number of items.
-2. Brand: colours and style.
-3. Text and logos: every letter right.
-4. Flaws: odd hands, melted edges, extra objects.
-5. Safety: nothing your client could not publish (chapter 5).
-6. Cost per image and time per image.
+So give each criterion its own target. Our reason: a kit can win on look and lose on cost, and one blended number hides that.
 
-Give each one its own target. A model can win on look and lose on cost. One blended score hides that.
+### A test set from real work
 
-## Build a test set from real work
+A **test set** is the fixed list of jobs you run every time. The Claude docs say: "Design evals that mirror your real-world task distribution. Don't forget to factor in edge cases!" An **edge case** is a rare or hard job, such as a night scene or a very long title.
 
-Claude says to be task-specific: "Design evals that mirror your real-world task distribution," and to include edge cases. OpenAI lists "Biased design" as an anti-pattern: "Creating eval datasets that don't faithfully reproduce production traffic patterns."
+You do not need a huge set. The Anthropic post says teams wait "because they think they need hundreds of tasks. In reality, 20-50 simple tasks drawn from real failures is a great start."
 
-Anthropic says teams often wait because they think they need hundreds of tasks. Its advice: "20-50 simple tasks drawn from real failures is a great start." It also says to begin with what you already check by hand.
+Good test jobs come from your records. The OpenAI docs: "Log everything: Log as you develop so you can mine your logs for good eval cases." For a studio, that means past briefs and notes on what went wrong.
 
-For a studio, that means:
+### Criteria before the first run
 
-- Take real briefs from the last few months.
-- Add the jobs that went wrong: the long label, the dark background, the client who sent a tiny logo.
-- Keep the set in a file you own.
+The OpenAI docs put this first and say to do it early:
 
-OpenAI adds a habit: "Log everything." You log as you work so you can mine your logs for good test cases.
+- Their process starts with "Define eval objective".
+- Their tips say: "Evaluate early and often."
+- They name an anti-pattern "Vibe-based evals": using "it seems like it's working" as an evaluation strategy.
+- The same anti-pattern covers waiting "until you ship before implementing any evals".
 
-## Write the criteria before the first run
+The Anthropic post says that early on, "evals force product teams to specify what success means".
 
-OpenAI's process starts with "Define eval objective". It names "vibe-based evals" as an anti-pattern: "Using 'it seems like it's working' as an evaluation strategy, or waiting until you ship before implementing any evals." Anthropic says evals force teams "to specify what success means".
+Our habit: write the criteria and the targets before you make one test image. If you write them after, it is easy to pick the ones that favour the result you already like.
 
-Our rule, and a simple one: write the criteria and the pass targets down before you generate a single test image. If you write them afterwards, it is easy to pick the ones that favour the model you already like.
+### Read the test before you blame the model
 
-## Check the test itself
+A test can be broken. The Anthropic post says: "A good task is one where two domain experts would independently reach the same pass/fail verdict." It also says that with frontier models, "a 0% pass rate across many trials (i.e. 0% pass@100) is most often a signal of a broken task, not an incapable agent". That post is about agents. Our reading: the habit carries over to image tests.
 
-A test can be broken. Anthropic says a good task is one where "two domain experts would independently reach the same pass/fail verdict." It also says that, with frontier models, a 0% pass rate across many trials "is most often a signal of a broken task, not an incapable agent". That sentence is about agents, but the habit carries over to image tests.
+Here is a real way to break an image test. The [OpenAI image docs](https://developers.openai.com/api/docs/guides/image-generation) say that for custom sizes on the two GPT Image 2.5 models, "neither edge may exceed 3840 pixels". A test that asks for a wider image fails every time, on both kits. That is a fact about the test.
 
-Example: a test asks for a 4096x4096 image. OpenAI's guide says that, for its two GPT Image 2.5 models, neither edge may exceed 3840 pixels. A different vendor may set a different limit. If every model fails a test, read the test before you blame the models.
+## Worked example
 
-## What this means for your work
+### Step 1: the weak plan
 
-- **Write the criteria before the first run**, with a target for each.
-- **Make each one specific and measurable.** A share of test jobs, not a feeling.
-- **Use several criteria**, and include cost and speed.
-- **Build the test set from real briefs and real failures.** Start with 20 to 50 jobs.
-- **Keep the test set and the criteria in files you own.**
-- **Read any test that every model fails.** It may be broken.
+```text
+Run:       old kit and new kit on 15 prompts from one afternoon
+Criteria:  decided after looking ("feels warmer")
+Score:     the art lead's overall feeling
+```
+
+What goes wrong:
+
+- The criteria come after the results, so they follow taste.
+- The 15 prompts are all easy daytime scenes.
+- Nothing checks the fox's coat, the thing the publisher cared about.
+
+### Step 2: write criteria with targets
+
+Write these before any run. The numbers are our example.
+
+```text
+C1  Character: coat, eyes and ears match the character sheet
+    in at least 36 of 40 spreads.
+C2  Text space: the top third is calm enough for 40 words
+    in at least 36 of 40 spreads.
+C3  Palette: only colours from the 8-colour list
+    in at least 32 of 40 spreads.
+C4  Flaws: no extra paws, no melted edges, no extra objects
+    in at least 36 of 40 spreads.
+C5  Safety: nothing frightening for ages 3 to 6, in 40 of 40.
+C6  Cost: at most $0.20 per spread. Time: at most 60 seconds.
+```
+
+### Step 3: build the test set
+
+```text
+40 jobs, kept in a file the studio owns:
+  25  real briefs from the last three months
+  10  jobs that went wrong before: the coat colour drift,
+      a night scene, a crowd of 12 animals, a snowy page
+   5  hard cases: the fox seen from behind, the fox very small,
+      a spread with a long title
+```
+
+### Step 4: the hard case
+
+**The hard case is test 27.** Its brief says: "The fox at the market, in the usual outfit." In 4 of 5 runs, the new kit draws the fox in a scarf and no coat, so C1 fails.
+
+The weak reading: "The new kit forgets the coat." The better reading: read the brief first. "Usual outfit" can mean the yellow coat, or the scarf the fox wears in the first book. Two experts could read it two ways, so the test cannot give a fair verdict. The Anthropic post says "Ambiguity in task specifications becomes noise in metrics." The test is broken, not the kit.
+
+Fix the test, and write down why. Our fix: "The fox at the market, in the yellow coat from the character sheet." Now the brief and C1 ask for the same thing. Our advice: never drop or change a test without a short note that says what was wrong.
+
+### Step 5: why it is better
+
+- **Criteria first.** Taste cannot bend them after the run.
+- **Several targets.** A kit can win on palette and still fail on the coat. You see both.
+- **Real jobs and real failures.** The coat drift is now in the set.
+- **An unclear test is caught.** Nobody blames the kit for a vague brief.
+
+## Common mistakes
+
+1. **Deciding what good means after you look.** You end up measuring what you like. Fix: write criteria and targets before the first run.
+2. **A test set of easy prompts.** Every model passes, and the real failures never show up. Fix: build the set from real briefs, past failures and hard cases.
+3. **Changing the test set between runs.** You cannot tell if the kit got better or the jobs got easier. Fix: keep the jobs in a file, run the same ones every time, and change a job only with a written note.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A music video team tests an image model for quick storyboard frames. The frames only need to show the camera angle and who is in the shot. They write three criteria. Which trait from the Claude docs does each one break?
+
+```text
+A  Every frame is great.
+B  500 of 500 frames have zero flaws of any kind, first try.
+C  The film grain matches real 35mm film in 95% of frames.
+```
+
+### Answer
+
+1. **A breaks specific and measurable.** "Great" names no thing and no number. A better line: "The camera angle in the brief is clear in at least 9 of 10 frames."
+2. **B breaks achievable.** Zero flaws in every frame, with no second try, is a target no current model is likely to hit. Base the target on what models can do today.
+3. **C breaks relevant.** A storyboard only needs angle and people. Film grain matters for a final frame, not for this job.
+
+## Recap
+
+- An eval is an input, an output and grading logic. Write the criteria and targets before the first run, and make each one specific, measurable, achievable and relevant.
+- Give every criterion its own target, and count cost and time as criteria too. Build the test set from real work: 20 to 50 jobs, with past failures and edge cases.
+- When a test fails, read the test first. An unclear brief, or a size above a vendor's limit (3840 pixels per edge on GPT Image 2.5), breaks the test, not the model.

@@ -1,7 +1,7 @@
 ---
 id: creator/r7/c4/lesson
 title: Batch runs
-minutes: 7
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Batch processing
@@ -17,72 +17,152 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/pricing
 ---
 
-## Why it matters
+## Goal
 
-Fifty image requests sent one by one means fifty tickets to watch. A **batch** is one parcel: you send all the requests together, go away, and collect the results later. In Bootstrap Village you learned that batch is cheaper and slower. This chapter is about how a batch run works, and how it goes wrong.
+After this lesson you can:
 
-Job tickets and retries were covered in Tool Forge. A batch is a job with many parts, so the same ideas apply to each part.
+- Plan a batch run: one id per item, a test request first, and a start time that fits the longest wait.
+- Read a batch result: match by id, sort each item by its final state, and resend only what is missing.
+- Check whether a step can go in a batch at all, and what each vendor bills when part of a batch fails.
 
-## The shape of a batch
+## The problem
 
-All three vendors work the same way. You send a list of requests. **Each request carries its own id.**
+A photo studio is moving its archive to a new website. The site needs alt text (a short text description for people who cannot see the image) for 2,000 photos. A model with vision (it can read images) can write it. The launch is on Saturday at 09:00.
 
-- **Claude:** each request has a `custom_id`, 1 to 64 characters. Results come back after the batch ends.
-- **OpenAI:** a file with one request per line. Each line "must include a unique `custom_id` value". You upload the file, start the batch and collect an output file.
-- **Gemini:** each line has a "user-defined key". The key "is used in the response to indicate which output is the result of which request."
+The team's plan on Friday:
 
-Example id (ours): `tea-de-9x16`, for the tea ad, German market, 9:16 size. A good id says which item it is.
+```text
+Send all 2,000 photos in one batch at 22:00.
+Name the requests 1 to 2000.
+Fill the website table from the top of the result file down.
+```
 
-## Results come back in any order
+No step in this plan is safe. A **batch** is one parcel of many requests. You send them together, go away, and collect the results later. It is cheaper and slower than sending requests one by one. This lesson shows how a batch run works, and how it goes wrong.
 
-Claude says: "Batch results can be returned in any order, and may not match the ordering of requests when the batch was created." OpenAI says the same: "the output line order may not match the input line order." Both say to use the id, not the position.
+## The idea
 
-So the first result you see is not "ad number 1". Match every result to its item by id. A studio that matches by position can attach a French image to a German row, and nobody sees it.
+### Every request carries its own id
 
-## Some parts can fail while the batch finishes
+All three vendors work the same way: you send a list of requests, and each request has an id that you choose.
 
-A batch is not all-or-nothing. Each request ends in its own state.
+- **Claude:** each request has "A unique `custom_id`". It "Must be 1 to 64 characters" ([Claude docs](https://platform.claude.com/docs/en/build-with-claude/batch-processing)).
+- **OpenAI:** a file with one request per line. Each line "must include a unique `custom_id` value" ([OpenAI docs](https://developers.openai.com/api/docs/guides/batch)).
+- **Gemini:** each line has a user-defined key ([Gemini docs](https://ai.google.dev/gemini-api/docs/batch-api)). The docs say the key "is used in the response to indicate which output is the result of which request."
 
-- **Claude:** `succeeded`, `errored`, `canceled` or `expired`. For the last three, "You will not be billed for these requests."
-- **OpenAI:** the output file holds the successes. Failed requests go into an error file. If the batch runs out of time, unfinished requests are cancelled, "any responses to completed requests are made available", and "You will be charged for tokens consumed from any completed requests." Expired requests are in the error file with the code `batch_expired`.
-- **Gemini:** a job can be `JOB_STATE_SUCCEEDED`, `FAILED`, `CANCELLED` or `EXPIRED`. An expired job ran or waited "for more than 48 hours" and "will not have any results to retrieve". Google suggests submitting again or "splitting up the requests into smaller batches".
+Our habit: make the id name the item. `arch-1987-0412` says which photo it is. `17` says nothing.
 
-Two lessons follow. First, read the final state of each item, as you did for tickets in Tool Forge. Second, the vendors differ on partial results. Check the rule for the vendor you use.
+### Results come back in any order
 
-Our method for the fix: **collect the ids that did not succeed, and send only those in a new, small batch.** Use the three buckets from Tool Forge, chapter 5. If an item failed because the request was wrong, fix it first. If it only expired, send it again as it is.
+The Claude docs say: "Batch results can be returned in any order, and may not match the ordering of requests when the batch was created." The OpenAI docs say "the output line order **may not match** the input line order."
 
-## How long is the window?
+So the first result is not "photo 1". Match every result to its item by id, never by position. If you match by position, a beach photo can get the alt text of a portrait, and nobody notices.
 
-- **Claude:** "most batches completing within 1 hour". The batch expires if it does not finish in 24 hours. Results "are available for 29 days after creation".
-- **OpenAI:** "Each batch completes within 24 hours (and often more quickly)."
-- **Gemini:** "The target turnaround time is 24 hours, but in majority of cases, it is much quicker." A job that runs or waits more than 48 hours expires.
+### Each item ends in its own state
 
-Plan for the long end. If the deadline is tomorrow morning, a batch sent at night is a risk. Download the results soon after they finish. A Claude batch is not kept for ever.
+A batch is not all-or-nothing. Each request ends on its own.
 
-## Test one first
+- **Claude:** `succeeded`, `errored`, `canceled` or `expired`. For the last three, the docs say: "You will not be billed for these requests."
+- **OpenAI:** successes go to an output file, and failed requests to an error file. When a batch runs out of time, "unfinished requests within that batch are cancelled, and any responses to completed requests are made available". Also: "You will be charged for tokens consumed from any completed requests." (A **token** is a small piece of text or image data. Models charge by the token.) Expired requests show the code `batch_expired`.
+- **Gemini:** a whole job can end as `JOB_STATE_SUCCEEDED`, `JOB_STATE_FAILED`, `JOB_STATE_CANCELLED` or `JOB_STATE_EXPIRED`.
+  - An expired job ran or waited "for more than 48 hours".
+  - It "will not have any results to retrieve".
+  - The docs suggest you try again or split the requests "into smaller batches".
 
-Claude warns that the check of each request in a batch happens late: "Validation of the `params` object for each message request is performed asynchronously, and validation errors are returned when processing of the entire batch has ended." Its best-practice list says to "Dry run a single request shape with the Messages API to avoid validation errors."
+Our method for the fix: **collect the ids that did not succeed, and send only those in a new, small batch.** If an item errored because the request was wrong, fix the request first, or it fails the same way again. If it only expired, send it again as it is.
 
-For a studio: run two or three versions the normal way first. Look at the images. Then send the other forty-seven as a batch. A typo found after a night of waiting costs a night.
+### How long is the wait?
 
-OpenAI adds a rule for its files: "each input file can only include requests to a single model." So one file for each model.
+- **Claude:** "most batches completing within 1 hour".
+  - A batch expires "if processing does not complete within 24 hours".
+  - Results "are available for 29 days after creation."
+- **OpenAI:** "Each batch completes within 24 hours (and often more quickly)".
+- **Gemini:** "The target turnaround time is 24 hours, but in majority of cases, it is much quicker."
 
-## What can go in a batch?
+Our advice: plan for the long end. If the deadline is tomorrow morning, a batch sent tonight is a risk.
 
-Not every step can be batched. Check the vendor's page.
+Size can change the wait. The Claude docs say processing time "depends on the size of the batch". The Gemini docs say: "consider breaking them into smaller batches if intermediate results are needed sooner". Our reading: no page promises a time, so splitting does not make a deadline safe.
 
-- **Images.** OpenAI lists `/v1/images/generations` and `/v1/images/edits` as batch endpoints, and says GPT Image 2.5 models support batch image generation and editing. Gemini says that for Nano Banana, you can use the Batch API "to get higher rate limits in exchange for a turnaround of up to 24 hours".
-- **Claude.** Messages requests can be batched, and the list includes vision. So Claude can check many images in one batch. It makes text, not images.
-- **Video.** The Veo 3.1 price block on Google's pricing page, checked on 2026-10-07, lists prices per second and no Batch row. Do not assume a video step can be batched. Ask or check first.
+Download results soon after they arrive. A Claude batch does not keep them forever.
 
-Gemini's Batch API page also says: "This feature is currently only available with the generateContent API."
+### Test one request first
 
-## What this means for your work
+In a Claude batch, bad requests are found late: "validation errors are returned when processing of the entire batch has ended." The docs' best-practice list says: "Dry run a single request shape with the Messages API to avoid validation errors." In plain words: send one request the normal way, check it works, then batch the rest.
 
-- **Give every request an id that names the item.** Match results by id.
-- **Never trust the order of the results.**
-- **Read the final state of each item.** Collect the ones that did not succeed.
-- **Send only the missing ids in a new, small batch.** Fix the broken ones first.
-- **Plan for the long end of the window.** Download results soon.
-- **Run two or three items normally before the big batch.**
-- **Check that the step you want is on the vendor's batch list.**
+Two more rules:
+
+- OpenAI: "each input file can only include requests to a single model." One model per file.
+- Claude: a batch is "limited to either 100,000 Message requests or 256 MB in size, whichever is reached first."
+
+### What can go in a batch?
+
+Not every step can be batched. Check the vendor's page for the exact model.
+
+- **Text and vision checks.** Claude batches hold Messages requests, and the docs list vision as supported. So Claude can describe or check many images in one batch. It returns text, not images.
+- **Images.** The OpenAI docs list `/v1/images/generations` and `/v1/images/edits` as batch endpoints (an endpoint is one URL the API answers at), and say GPT Image 2.5 "supports batch image generation and editing". For Nano Banana, the Gemini docs say you can use the Batch API "to get higher rate limits in exchange for a turnaround of up to 24 hours".
+- **Video.** On 2026-10-11, the Veo 3.1 block on [Google's pricing page](https://ai.google.dev/gemini-api/docs/pricing) lists prices per second and has no Batch row. Before you plan a video step into a batch, or count on a lower price, check the page.
+
+The Gemini batch page also says: "This feature is currently only available with the generateContent API."
+
+## Worked example
+
+### Step 1: the weak ids
+
+The team drops the plain numbers. Now it builds ids from file names:
+
+```text
+beach photo 12.jpg
+portraits/1987/anna-and-tom-at-the-lake-in-summer-with-the-dog-and-cat.jpg
+IMG_0001.JPG
+```
+
+### Step 2: check them against the rule
+
+The Claude docs say a `custom_id` "Must be 1 to 64 characters and contain only alphanumeric characters, hyphens, and underscores".
+
+- `beach photo 12.jpg`: spaces and a dot. Not allowed.
+- The portrait path: slashes, a dot, and 74 characters, which is over 64. Not allowed.
+- `IMG_0001.JPG`: a dot. Not allowed.
+
+### Step 3: the hard case
+
+**The hard case is the duplicate.** Two folders both hold `IMG_0001.JPG`. Removing the dot gives `IMG_0001` twice. But each request needs "A unique `custom_id`". So build the id from the archive number, which is unique:
+
+```text
+arch-1987-0412   arch-1991-0007   arch-2004-1180
+```
+
+Our habit: keep a table from id to file path outside the batch.
+
+### Step 4: why it is better
+
+- **Every id passes the vendor's rule** before the batch is sent.
+- **No two items share an id.**
+- **Each id names a real item**, so any result can be traced back.
+
+## Common mistakes
+
+1. **Using file names as ids.** Spaces, dots and slashes break the Claude rule. Fix: build ids from a unique item number.
+2. **One giant batch.** A Claude batch stops at 100,000 requests or 256 MB. Fix: split the job and use the same id rule in every batch.
+3. **Treating an expired Gemini job like a Claude one.** An expired Gemini job "will not have any results to retrieve". Fix: send it again, or split it into smaller batches.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+The studio buys a second archive. Now there are 140,000 photos, and the team wants one Claude batch. Each photo is sent inside its request, at about 500 KB per photo.
+
+1. Can all 140,000 go in one batch?
+2. Which limit do they reach first, the count or the size?
+3. What should they do?
+
+### Answer
+
+1. **No.** A Claude batch holds at most 100,000 requests or 256 MB, "whichever is reached first".
+2. **The size.** Our maths: 256 MB at about 500 KB per photo is only about 500 photos. The 100,000 count is far away.
+3. **Split the archive into many batches**, each under both limits. The Claude docs also suggest "breaking very large datasets into multiple batches". Use the same id rule in every batch.
+
+## Recap
+
+- Give every request an id that names the item, and match every result by id. The order can change.
+- Read each item's final state. Fix errored requests, resend expired ones, and send only the missing ids. Read what your vendor's docs say it bills when part of a batch fails.
+- Test one request the normal way first, plan for a wait of up to 24 hours, download results soon, and check that the model is on the vendor's batch list.
