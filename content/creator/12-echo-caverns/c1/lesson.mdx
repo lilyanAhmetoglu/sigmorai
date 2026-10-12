@@ -1,7 +1,7 @@
 ---
 id: creator/r12/c1/lesson
 title: Voice direction
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: OpenAI docs · Text to speech
@@ -23,92 +23,186 @@ sources:
     url: https://elevenlabs.io/docs/overview/capabilities/voices
 ---
 
-## Why it matters
+## Goal
 
-A plant shop wants a 30-second voice-over for its spring sale video. You paste the script into a speech model. The voice is clear, but flat. It reads "Everything must go!" like a weather report.
+After this lesson you can:
 
-Bootstrap Village, chapter 1, showed what a **speech model** is: you give it text, it gives you a voice track. This is called **TTS** (text to speech). Tool Forge, chapter 4, showed the audio file formats. This chapter is about **direction**: telling the voice how to say the words (tone, pace, emotion).
+- Put voice direction in the place each vendor gives for it, so the model does not read it aloud.
+- Control pace and pauses with the settings, tags and punctuation the docs describe.
+- Write an audio tag that clearly describes a voice, so the model does not turn it into a sound.
 
-A note on dates. The model names below are the ones on each vendor's page in October 2026. They change often.
+## The problem
 
-## The big problem: the model reads everything
+A planetarium plays one short voice line before each show: "Welcome. The lights will go down in a moment. Please stay in your seat." The team made it with a speech model. The take is fast and bright, like a radio advert. They want it slow, quiet and calm, with a clear pause before "Please".
 
-A speech model speaks the text you send. So where do you put "say this happily"? If you put it in the script, the model may say those words out loud.
+The words are right. The delivery is wrong. This lesson shows where to put delivery notes, and how to set pace and pauses.
 
-ElevenLabs says it plainly. Its models read emotion from cues like "she said excitedly". But "Descriptive text will be spoken out by the model and must be manually trimmed or removed from the audio if desired."
+The model names below are from each vendor's page in October 2026. They change often.
 
-Google says Gemini 3.8 TTS treats the text "strictly as a verbatim transcript". **Verbatim** means word for word. So stage directions in the text are a mistake there.
+## The idea
 
-Each vendor gives you another place for direction. There are two kinds:
+### Text, direction and voice
 
-- **A direction field** next to the text. It sets the delivery for a whole request or turn.
-- **Inline tags** inside the text. They mark one moment: a sigh, a pause, a laugh.
+A **TTS** model (text to speech) turns text into a voice track. Three inputs shape the result (our split):
 
-## Three vendors, three places
+- **Text:** the words to say.
+- **Direction:** how to say them: tone, pace, emotion.
+- **Voice:** who says them. **Timbre** is the sound of the voice itself: deep, bright, breathy (our plain gloss).
 
-| Vendor (October 2026)         | Whole delivery                          | One moment                                    |
-| ----------------------------- | --------------------------------------- | --------------------------------------------- |
-| OpenAI `gpt-4o-mini-tts`      | `instructions` field                    | none on the page                              |
-| Google Gemini 3.8 Flash TTS   | `style` in `speech_metadata`, per turn  | angle-bracket tags: `<sigh>`, `<short pause>` |
-| ElevenLabs Eleven v4 (and v3) | tags at the start of a line: `[warmly]` | square-bracket tags: `[sighs]`, `[laughs]`    |
+The key fact: the model speaks the text. So direction must not sit inside the words.
 
-**OpenAI.** With `gpt-4o-mini-tts` you can add `instructions`. The guide says you can prompt it to control "Accent", "Emotional range", "Intonation", "Impressions", "Speed of speech", "Tone" and "Whispering". The example is "Speak in a cheerful and positive tone." The API reference adds one limit: `instructions` "Does not work with `tts-1` or `tts-1-hd`." Those are OpenAI's other two speech models.
+- The [ElevenLabs docs](https://elevenlabs.io/docs/overview/capabilities/text-to-speech) say: "Descriptive text will be spoken out by the model and must be manually trimmed or removed from the audio if desired." Their example of descriptive text is "she said excitedly".
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/speech-generation) say: "Gemini 3.8 TTS treats the `text` field strictly as a verbatim transcript." **Verbatim** means word for word.
 
-**Google.** Gemini puts direction in a `style` field for each turn: "whispered urgently", "speaking slowly", "warm and enthusiastic". Short events go inside the text in angle brackets: `<sigh>`, `<cough>`, `<short pause>`, `<long pause>`. Google says to use human sounds here, not sound effects. Gemini 3.8 Flash TTS "supports over 130 languages". If your script is not in English, Google says to "continue to use English inline tags for best results."
+So each vendor gives direction its own place. There are two kinds (our grouping): a **field** next to the text for a whole line, and an **inline tag** inside the text for one moment.
 
-**ElevenLabs.** Eleven v4 and v3 use **audio tags** in square brackets: `[whispers]`, `[sighs]`, `[excited]`. A tag can also describe a whole delivery, like `[Low, steady voice, restrained urgency]`. One warning from the guide: v4 can make sound effects too, so a tag "can occasionally be interpreted as a request for a sound effect". Write tags that clearly describe the voice, like `[low, gravelly voice]`.
+| Vendor (October 2026)         | Whole line or turn                    | One moment                          |
+| ----------------------------- | ------------------------------------- | ----------------------------------- |
+| OpenAI `gpt-4o-mini-tts`      | the `instructions` field              | none on the page                    |
+| Google Gemini 3.8 Flash TTS   | `style` in `speech_metadata`          | angle-bracket tags: `<sigh>`        |
+| ElevenLabs Eleven v4 (and v3) | an audio tag at the start: `[warmly]` | an audio tag in the line: `[sighs]` |
 
-## Pace and pauses
+### OpenAI: the instructions field
 
-- **OpenAI** has a `speed` setting from `0.25` to `4.0`. The default is `1.0`. You can also ask for "Speed of speech" in `instructions`.
-- **Gemini** sets pace in `style`: "speaking rapidly" or "speaking slowly". Pauses are `<short pause>` and `<long pause>`. Commas, dashes and ellipses ("...") also add hesitation.
-- **ElevenLabs** has a speed setting from 0.7 to 1.2 (1.0 is the default). "Extreme values may affect the quality of the generated speech." Eleven v4 and v3 "do not support SSML break tags" (SSML is a tag language for speech, like `<break time="1.5s" />`), so use ellipses, tags and text structure for pauses there.
+The [OpenAI guide](https://developers.openai.com/api/docs/guides/text-to-speech) says you can prompt `gpt-4o-mini-tts` to control things like accent, intonation, tone, speed of speech and whispering. Its example is "Speak in a cheerful and positive tone."
 
-## Emphasis: capitals
+The [API reference](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create) adds one limit for `instructions`: "Does not work with `tts-1` or `tts-1-hd`." Those are OpenAI's other two speech models.
 
-Two vendors say the same thing about stress on a word. Gemini: "Capitalize specific words in the transcript" to put stress on them. ElevenLabs: "Capitalization increases emphasis." Both show nearly the same line: "It was a VERY long day".
+### Gemini: style and angle brackets
 
-## Less is more
+A **turn** is one block of text for one speaker (our plain gloss). In Gemini, delivery for a whole turn goes in `speech_metadata.style`, for example `"warm and enthusiastic"`. The voice name picks who speaks.
 
-Long direction can make a voice worse. Google's guide has a clear workflow:
+Short events go inside the text, in angle brackets: `<sigh>`, `<cough>`, `<short pause>`. The Gemini docs say to "stick to human vocalizations rather than non-vocal sound effects". If the script is not in English, they say to "continue to use English inline tags for best results."
 
-1. Test plain TTS first: "most requests need no `style` instruction at all."
-2. Add a short `style` string only to turns that need it.
-3. Don't put age, gender, names or a new accent in `style`. Pick a different voice instead.
+### ElevenLabs: audio tags
 
-Google also says long "Director's Notes" blocks are "the most common cause of voice drift". **Drift** means the voice slowly stops sounding like itself (our plain gloss). Don't add lines like "maintain identical timbre" either: Google says "extra prompt text increases drift."
+Eleven v4 and v3 use **audio tags**: short notes in square brackets, like `[whispers]` or `[sighs]`. A tag can set a whole delivery. The [ElevenLabs best practices](https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices) show `[Low, steady voice, restrained urgency]`.
 
-ElevenLabs gives similar advice from the other side: match tags to the voice. "A meditative voice shouldn't shout; a hyped voice won't whisper convincingly."
+One trap: Eleven v4 can also make sound effects, so "a tag can occasionally be interpreted as a request for a sound effect rather than a delivery instruction (or vice versa)." The docs suggest tags "that clearly describe the voice quality you want", such as `[low, gravelly voice]`.
 
-## Pick the voice first
+The tag must also suit the voice: "A meditative voice shouldn't shout; a hyped voice won't whisper convincingly."
 
-Direction works on top of a voice. A good voice match needs less direction.
+### Pace and pauses
 
-- **OpenAI** lists 13 built-in voices (its intro says 11), such as `coral`, `marin` and `cedar`. It recommends `marin` or `cedar` "For best quality". The voices are "currently optimized for English". `tts-1` and `tts-1-hd` have fewer voices.
-- **Gemini** has 30 prebuilt voices, each with a one-word label: Kore is "Firm", Puck is "Upbeat", Sulafat is "Warm". An Extended Voice Library adds hundreds more, filtered by language, accent and use.
-- **ElevenLabs** has a Voice Library of community voices. Check dates here: its Voices page says its built-in Default voices (not Library voices) "will expire on December 31, 2026".
+- **OpenAI:** the `speed` setting. The reference says: "Select a value from `0.25` to `4.0`. `1.0` is the default."
+- **Gemini:** `"speaking slowly"` or `"speaking rapidly"` in `style` sets pace for a turn. `<short pause>` and `<long pause>` go at exact points. Commas, dashes and ellipses ("...") add "natural conversational hesitation".
+- **ElevenLabs:** a speed setting with a default of 1.0, "to a minimum of 0.7" and "to a maximum of 1.2". The docs warn: "Extreme values may affect the quality of the generated speech."
 
-**Timbre** is the sound of a voice itself: deep, bright, breathy, gravelly (our plain gloss). Pick timbre with the voice. Steer mood with direction.
+ElevenLabs adds that Eleven v4 and v3 "do not support SSML break tags". **SSML** is an older tag language for speech (our plain gloss). For pauses there, use tags, ellipses and text structure. The docs say "Ellipses (...) add pauses and weight".
 
-## The same line, three ways
+### Stress on one word
 
-The plant shop's opening line, directed for each vendor (our examples):
+Both Google and ElevenLabs use capital letters. The Gemini docs say: "Capitalize specific words in the transcript" to put stress on them. The ElevenLabs docs say: "Capitalization increases emphasis." Both show nearly the same line: "It was a VERY long day".
 
-- **OpenAI:** `instructions`: "Warm and upbeat, like a friendly shop owner. Slightly fast." Text: "Spring is here, and so is our sale."
-- **Gemini:** `style`: "warm and enthusiastic". Text: "Spring is here... `<short pause>` and so is our sale."
-- **ElevenLabs v4:** "[warmly] Spring is here... [excited] and so is our sale."
+### Less direction, more voice
 
-Then listen. Did a tag become a sound effect? Did any direction get read aloud? Is the pace right for 30 seconds?
+The Gemini docs warn that long direction can hurt the voice:
 
-## Tell people it is AI
+- Long "Director's Notes" blocks "are the most common cause of voice drift". **Drift** means the voice slowly stops sounding like itself (our plain gloss).
+- Don't ask it to "maintain identical timbre". The docs say "extra prompt text increases drift."
+- Don't put "age, gender, names, or permanent accent changes" in `style`. Pick another voice, or design one.
+- Test with an empty `style` first: "most requests need no `style` instruction at all."
 
-OpenAI's TTS guide says its usage policies "require you to provide a clear disclosure to end users that the TTS voice they are hearing is AI-generated and not a human voice." Plan that line or label before the video ships. Bootstrap Village, chapter 6, covers the wider policy rules.
+So pick the voice before you direct it:
 
-## What this means for your work
+- **OpenAI** lists 13 built-in voices. "For best quality, we recommend using `marin` or `cedar`." Its "Voices are currently optimized for English."
+- **Gemini** prebuilt voices each have a one-word label: Kore is "Firm", Achernar is "Soft", Sulafat is "Warm".
+- **ElevenLabs** has a Voice Library. Check dates: the [Voices page](https://elevenlabs.io/docs/overview/capabilities/voices) says its Default voices "will expire on December 31, 2026".
 
-- **Keep direction out of the spoken text.** Use the field or the tags your vendor gives you.
-- **Field for the whole line, tag for one moment.** `instructions` or `style` for mood. A tag for a sigh or a pause.
-- **Start plain.** Add short direction only where the take sounds wrong.
-- **Pick the voice before you direct it.** Timbre comes from the voice.
-- **Listen for mistakes.** A tag can become a sound effect. Direction in the text can be read aloud.
-- **Plan the AI disclosure** with the script.
+### Tell people it is AI
+
+The OpenAI guide says its usage policies require "a clear disclosure to end users that the TTS voice they are hearing is AI-generated and not a human voice." Plan that label with the script.
+
+## Worked example
+
+The planetarium line again. Our goal: slow, quiet and calm, with a pause before "Please".
+
+### Step 1: the first take (before)
+
+```text
+model:  gpt-4o-mini-tts
+voice:  coral
+speed:  1.0
+input:  Welcome. The lights will go down in a moment. Please stay in your seat.
+```
+
+There is no direction, so the model picks its own delivery.
+
+### Step 2: voice, direction and speed (OpenAI)
+
+```text
+model:         gpt-4o-mini-tts
+voice:         marin
+speed:         0.9
+instructions:  Calm, quiet and slow, like a guide in a dark room.
+               Soft tone, close to a whisper.
+input:         Welcome. The lights will go down in a moment. Please stay in your seat.
+```
+
+- `marin` is one of the two voices the OpenAI guide recommends for quality.
+- `0.9` is our pick: a little slower, well inside the range.
+- The instructions name tone, pace and whispering, all things the guide says you can prompt.
+
+### Step 3: the same line on ElevenLabs Eleven v4
+
+```text
+[soft, slow, hushed voice] Welcome. The lights will go down in a moment... Please stay in your seat.
+```
+
+The tag describes only the voice. The ellipsis gives the pause before "Please".
+
+### Step 4: the hard case
+
+**This is the hard case.** A teammate wants "a space feeling" and changes the tag:
+
+```text
+[echo in a huge dome] Welcome. The lights will go down in a moment... Please stay in your seat.
+```
+
+This tag describes a room and a sound, not a voice. Eleven v4 can make sound effects, so this tag can be read as a sound request. Write a tag that only describes the voice:
+
+```text
+[low, slow, hushed voice] Welcome. The lights will go down in a moment... Please stay in your seat.
+```
+
+If the team still wants a room sound, our advice: add it in the audio edit.
+
+### Step 5: why it is better
+
+- **Each direction sits where the vendor reads it**: the OpenAI field, or a voice tag.
+- **Every tag describes a voice and the pause is marked**, so there are fewer surprises. Listen to check.
+
+## Common mistakes
+
+1. **A tag that sounds like a sound cue.** Words like "thunder" or "dome echo" describe sounds, not a voice. Fix: describe pitch, pace and loudness, like `[low, gravelly voice]`.
+2. **A tag that fights the voice.** A calm, meditative voice will not shout well. Fix: choose tags that suit the voice, or choose a different voice.
+3. **Fixing timing with a big speed jump.** The ElevenLabs docs say extreme values can hurt quality. Fix: cut some words first, then change speed a little and listen.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A museum audio tour has one Gemini 3.8 line and one ElevenLabs line.
+
+1. Gemini text: `Look up. That is the oldest star map in the city.` The director wants a small breath before "Look up", and a long pause after it. Write the new text.
+2. ElevenLabs Eleven v4: `[howling wind voice] Look up. That is the oldest star map in the city.` What could go wrong? Write a better tag.
+3. OpenAI `gpt-4o-mini-tts`: the take is at speed 1.0. The director wants it about 20% slower. Which value do you set?
+
+### Answer
+
+1. Put human-sound and pause tags inline, at the exact points:
+
+   ```text
+   <breath> Look up. <long pause> That is the oldest star map in the city.
+   ```
+
+2. "Howling wind" can be read as a sound effect, so you may get wind instead of a voice. Describe the voice only, for example `[slow, quiet, amazed voice]`.
+3. `0.8` (our maths: 1.0 minus 20%). It is inside OpenAI's range of 0.25 to 4.0. Listen after the change.
+
+Your words can differ. Check that each tag describes a voice or a human sound.
+
+## Recap
+
+- The model speaks the text. Put direction in the vendor's place: OpenAI `instructions`, Gemini `style`, or ElevenLabs audio tags.
+- Set pace with speed settings, pause tags and punctuation. Keep speed changes small.
+- Keep direction short, pick the right voice first, write tags that describe a voice, and tell listeners the voice is AI.

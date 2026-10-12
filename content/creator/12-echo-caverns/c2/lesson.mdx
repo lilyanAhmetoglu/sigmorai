@@ -1,7 +1,7 @@
 ---
 id: creator/r12/c2/lesson
 title: Dialogue
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Gemini API docs · Speech generation (text-to-speech)
@@ -14,96 +14,179 @@ sources:
     url: https://developers.openai.com/api/docs/guides/text-to-speech
 ---
 
-## Why it matters
+## Goal
 
-A pottery studio wants a 45-second trailer for its new podcast. Two hosts talk: Mia asks, Theo answers. You could record two people. Or you could generate the whole talk from a script.
+After this lesson you can:
 
-Bootstrap Village, chapter 1, said one Gemini speech request can have up to 2 speakers. Chapter 1 of this realm showed how to direct one voice. This chapter puts two or more voices in one clip, and shows how to write a script they can act.
+- Say how Gemini, ElevenLabs and OpenAI each build a talk between two or more voices.
+- Write a dialogue script that sounds spoken, not read: hesitations, cut-offs and trailing lines.
+- Plan the joins when you must make each line as its own audio file.
 
-A note on dates. The model names and limits below are the ones on each vendor's page in October 2026.
+## The problem
 
-## One request, or one request per line
+A small bakery wants a 30-second promo for its local radio slot. Two staff members talk: Sam asks about the new rye bread, and Ines answers. The owner wrote the script like a menu card. Every sentence is long and perfect. When a speech model reads it, the two voices sound like two people reading a leaflet.
 
-Vendors handle a conversation in different ways.
+This lesson shows how each vendor builds a dialogue, and how to write lines that a voice can act.
 
-| Vendor (October 2026)       | How a dialogue is built            | Speakers                                  |
-| --------------------------- | ---------------------------------- | ----------------------------------------- |
-| Google Gemini 3.8 TTS       | one request, a list of turns       | up to 2 per request, prebuilt voices only |
-| ElevenLabs Text to Dialogue | one request, a list of turns       | "no limit to the number of speakers"      |
-| OpenAI speech endpoint      | one request per line (our reading) | one `voice` per request                   |
+The model names and limits below are from each vendor's page in October 2026.
 
-**Gemini.** You list the speakers in `speech_config.speakers`, each with a name and a voice (for example Joe with `Puck`, Jane with `Kore`). Then each turn is its own text item with a `speech_metadata` note. Google says: "Every turn in a multi-speaker request must explicitly include `speaker`", and the name must match one of the configured speakers. A turn can also have its own `style`.
+## The idea
 
-There is a limit. Multi-speaker generation "supports up to 2 speakers using prebuilt voices". For a designed or cloned voice (chapter 3), Google says to "synthesize each speaker's turn individually" and join the audio yourself.
+### Three ways to build a dialogue
 
-**ElevenLabs.** Text to Dialogue works with Eleven v4 and Eleven v3 (v4 is recommended). "Each dialogue turn has its own text and voice": you send a list of turns, each with a `voice_id`. There is no speaker limit. There is a length limit: keep all the turn texts together "at or below 2,000 characters per request". Split a longer script and join the audio.
+A **turn** is one block of text for one speaker (our plain gloss). Vendors handle a list of turns in different ways.
 
-**OpenAI.** The speech endpoint takes three inputs: the model, the text and "The voice that will speak the output". So for two hosts, make one request per line, with the right voice each time, and join the files in order (our reading).
+| Vendor (October 2026)       | How a dialogue is built            | Speakers per request          |
+| --------------------------- | ---------------------------------- | ----------------------------- |
+| Google Gemini 3.8 TTS       | one request, a list of turns       | up to 2, prebuilt voices only |
+| ElevenLabs Text to Dialogue | one request, a list of turns       | no limit                      |
+| OpenAI speech endpoint      | one request per line (our reading) | one `voice` per request       |
 
-## Joining the pieces
+### Gemini: two prebuilt voices per request
 
-When you join clips yourself, check the file format first. Tool Forge, chapter 4, covers formats. Gemini gives one specific warning: a non-streaming Gemini 3.8 TTS request returns WAV "with a 44-byte RIFF header". A **header** is a small block of setup data at the start of a file (our plain gloss). Before you join turns, Google says to request raw PCM audio or strip each header.
+In the [Gemini docs](https://ai.google.dev/gemini-api/docs/speech-generation), you list the speakers in `speech_config.speakers`, each with a name and a voice. Each turn is its own text item with a `speech_metadata` note. The docs say: "Every turn in a multi-speaker request must explicitly include `speaker` inside `speech_metadata` matching one of the configured speakers." A turn can also carry its own `style`.
 
-## Write turns a voice can act
+There is a limit. Single-request generation "supports up to 2 speakers using prebuilt voices". For voices you designed or replicated, the docs say to "synthesize each speaker's turn individually" and join the audio yourself.
 
-A dialogue script is not an article. It is something people say. The vendor guides give practical rules.
+### ElevenLabs: a list of turns, any number of speakers
+
+In the [ElevenLabs docs](https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue), Text to Dialogue runs on Eleven v4 and Eleven v3, and they recommend v4. "In Text to Dialogue, each dialogue turn has its own text and voice." So each turn has its own `voice_id`.
+
+On speakers, the docs say: "There is no limit to the number of speakers in a dialogue." On length, there is a guide: keep all the turn texts together "at or below 2,000 characters per request for reliable generation". For longer scripts: "Split longer text into chunks and concatenate the resulting audio in your application."
+
+### OpenAI: one voice per request
+
+The OpenAI speech endpoint takes a model, the text and one `voice`. The [OpenAI guide](https://developers.openai.com/api/docs/guides/text-to-speech) shows no list of turns. So for two voices, our reading is: one request per line, with the right voice each time, then join the files in order.
+
+### Joining audio files
+
+When you join turns yourself, the file format matters. The Gemini docs give a clear warning. A normal (non-streaming) request returns WAV "with a 44-byte RIFF header". A **header** is a small block of setup data at the start of a file (our plain gloss). Before you join turns, the docs say to request raw PCM audio or "strip the WAV header from each turn". **PCM** is plain, uncompressed audio samples with no header (our plain gloss).
+
+Our advice for any vendor: make every piece in the same format and the same settings, so the joins match.
+
+### Write turns a voice can act
+
+A dialogue script is speech, not an article.
 
 **Label every turn.** One speaker per turn. On Gemini this is required.
 
-**New mood, new turn.** Google: "If the emotion or prosody shifts mid-dialogue, split the script into separate turns with distinct `style` values for each turn." **Prosody** is the music of speech: pitch, rhythm and stress (our plain gloss).
+**New mood, new turn.** The Gemini docs say: "If the emotion or prosody shifts mid-dialogue, split the script into separate turns with distinct `style` values for each turn." **Prosody** is the music of speech: pitch, rhythm and stress (our plain gloss).
 
-**Write how people talk.** Google suggests writing "natural conversational disfluencies and hesitations", like "Oh uh yeah I think... hm, so that's interesting". **Disfluencies** are the small "uh"s and restarts in real speech (our plain gloss). Use a few. A clean, formal script sounds read, not spoken.
+**Write how people talk.** The Gemini docs suggest "natural conversational disfluencies and hesitations". Their example is "Oh uh yeah I think... hm, so that's interesting". **Disfluencies** are the small "uh"s and restarts in real speech (our plain gloss).
 
-**Show interruptions with punctuation.** ElevenLabs shows a dash where one speaker is cut off, and a tag on the next turn:
-
-- Turn 1: "[cautiously] Hello, is this seat-"
-- Turn 2: "[jumping in] Free? [cheerfully] Yes it is."
-
-Ellipses show a sentence that trails off: "[indecisive] Hi, can I get uhhh..."
-
-**Let the listener react without a new turn.** Gemini has a special form for this. Put the listener's short reaction in pipe characters inside the active speaker's turn: `So the launch is Thursday |oh hmm| Are we actually ready?` Google calls these **backchannels**: the "mm-hm" and "oh really?" a listener says while the other person talks (our plain gloss).
-
-## Sound effects: the vendors disagree
-
-ElevenLabs lets dialogue tags be more than voice. Its Text to Dialogue page lists "Audio events" such as `[leaves rustling]`, `[gentle footsteps]` and `[applause]`. It also lists "Overall direction" tags like `[auctioneer]`.
-
-Gemini 3.8 TTS goes the other way. Its migration notes say: "Avoid sound-effect tags (such as applause or thuds)". Inline tags there are for human sounds: `<laugh>`, `<sigh>`, `<breath>`.
-
-So a door bell at the start of the trailer is a tag on ElevenLabs, but a separate sound on Gemini. Chapter 4 of this realm covers sound effects. Either way, our advice: if the exact timing of a sound matters, add it in your audio editor.
-
-## Takes, not one shot
-
-ElevenLabs says it plainly: "Several generations might be required to achieve the desired results." It suggests you generate several and choose the best. The models are **nondeterministic**: the same request can sound different each time. A `seed` parameter gives "more consistent results", "though subtle differences may still occur."
-
-Plan time for takes. Listen for the joins between turns, wrong names, and lines given to the wrong voice.
-
-## The trailer, in two formats
-
-The same three lines, written for each vendor (our examples).
-
-Gemini: speakers `Mia` → `Kore`, `Theo` → `Puck`. Then three turns:
+**Show a cut-off with a dash.** The ElevenLabs docs use punctuation for "interruptions":
 
 ```text
-Mia  (style: "curious, upbeat")  So Theo, what happens in a first class?
-Theo (style: "warm, relaxed")    You get muddy |ha| Very muddy. And uh... you make a bowl.
-Mia  (style: "laughing")         <laugh> A wobbly bowl, I bet.
+"[cautiously] Hello, is this seat-"
+"[jumping in] Free? [cheerfully] Yes it is."
 ```
 
-ElevenLabs Text to Dialogue: three turns, each with a `voice_id`:
+**Show a trailing line with an ellipsis.** "Ellipses can be used to indicate trailing sentences", as in "[indecisive] Hi, can I get uhhh..."
+
+**Let a listener react inside a turn (Gemini).** The Gemini docs say to "wrap listener reactions in pipe characters" within the turn of the person who is talking. Their example: `So the launch is Thursday |oh hmm| Are we actually ready?` These short reactions are called **backchannels**: the small sounds a listener makes while the other person talks (our plain gloss).
+
+### Sound effects: the vendors differ
+
+The ElevenLabs Text to Dialogue page lists "Audio events" as one form of tag, such as `[leaves rustling]` and `[applause]`. It also lists "Overall direction" tags like `[auctioneer]`.
+
+The Gemini docs go the other way: "Avoid sound-effect tags (such as applause or thuds)". Gemini puts only human sounds inline, like `<laugh>`, `<sigh>` and `<breath>`. They use angle brackets; ElevenLabs uses square brackets.
+
+### Plan for several takes
+
+The ElevenLabs docs say: "Several generations might be required to achieve the desired results." The models are **nondeterministic**: the same request can sound different each time. A `seed` parameter gives "more consistent results", though "subtle differences may still occur". In the ElevenLabs dashboard you can regenerate the same content "up to 2 times for free".
+
+## Worked example
+
+The bakery promo: Sam and Ines, about 30 seconds.
+
+### Step 1: the menu-card script (before)
 
 ```text
-voice A: [curious] So Theo, what happens in a first class?
-voice B: [warmly] You get muddy. Very muddy. And uh... you make a bowl.
-voice A: [laughing] A wobbly bowl, I bet.
+Sam:  Could you please tell our listeners about the new rye bread that is now available?
+Ines: Certainly. Our new rye bread is made with whole grains and baked fresh every morning in our oven.
+Sam:  That sounds excellent. Where can listeners purchase it?
+Ines: It is available at our shop on Mill Street from seven in the morning.
 ```
 
-Note the small change: the pipe reaction is a Gemini form. On ElevenLabs, write it as a normal turn or leave it out.
+Every line is complete and polite. Nobody hesitates or jumps in.
 
-## What this means for your work
+### Step 2: rewrite as speech (ElevenLabs Text to Dialogue)
 
-- **Check the speaker limit first.** Gemini: 2 prebuilt voices per request. ElevenLabs: no limit, but 2,000 characters or fewer per request.
-- **Custom voices may mean one request per turn.** Then join the audio yourself, and check the file headers.
-- **Label every turn.** New mood, new turn.
-- **Write speech, not prose.** A few "uh"s, dashes for cut-offs, ellipses for trailing lines.
-- **Put sound effects where the vendor allows them.** Or add them in the edit.
-- **Plan for several takes.** Listen for wrong voices and bad joins.
+Each turn gets its own `voice_id`. The tags and punctuation carry the acting.
+
+```text
+voice Sam:   [curious] So Ines, this new rye bread... what is it, exactly?
+voice Ines:  [warmly] Oh, it's, uh, whole grain. We bake it every morning, really early.
+voice Sam:   [teasing] How early is really ear-
+voice Ines:  [jumping in, laughing] Don't ask. Just come to Mill Street. We open at seven.
+```
+
+What changed:
+
+- **A hesitation:** "Oh, it's, uh, whole grain." One small "uh" is enough.
+- **A trailing question:** the ellipsis in Sam's first line.
+- **A cut-off:** Sam's line ends with a dash, and Ines jumps in.
+
+### Step 3: the hard case
+
+**This is the hard case.** The owner already pays for OpenAI and wants to use `marin` for Sam and `cedar` for Ines. The OpenAI speech endpoint takes one voice per request, so the plan changes (our reading):
+
+```text
+Request 1  voice: marin   text: Sam's line 1    file: 01-sam.wav
+Request 2  voice: cedar   text: Ines's line 1   file: 02-ines.wav
+Request 3  voice: marin   text: Sam's line 2    file: 03-sam.wav
+Request 4  voice: cedar   text: Ines's line 2   file: 04-ines.wav
+All four:  same model, same speed, same response_format (wav)
+```
+
+Two things get harder:
+
+- **The cut-off.** Sam's line ends with a dash, but Ines's line is a new file. Our advice: in the edit, start Ines's file a moment before Sam's file ends, so it sounds like a real interruption.
+- **The joins.** Number the files in script order, so no line ends up in the wrong place.
+
+### Step 4: why it is better
+
+- **The script sounds spoken**, so the voices have something to act.
+- **Each vendor gets the shape it expects**: a turn list with a voice each, or one request per line.
+- **The join plan is written down** before any audio is made, with one format for every file.
+
+## Common mistakes
+
+1. **Writing prose, not speech.** Long, perfect sentences sound read aloud. Fix: read the script out loud and cut it into shorter, natural lines.
+2. **Too many hesitations.** Five "uh"s in one line sound like a mistake. Fix: use one or two per turn, only where a person would pause.
+3. **Trusting the first take.** The models are nondeterministic. Fix: make several takes and listen for wrong voices, odd joins and wrong names.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A bike club wants a short dialogue for its podcast. Two hosts, Kit and Rafa. Here is the draft:
+
+```text
+Kit:  I would like to ask whether the Sunday ride will start at the bridge.
+Rafa: Yes. The Sunday ride will start at the bridge at nine o'clock.
+```
+
+1. Rewrite it for ElevenLabs Text to Dialogue so it sounds spoken. Rafa should cut Kit off before Kit finishes.
+2. The club wants to make it with OpenAI instead, with five lines in total. How many speech requests is that, and why?
+
+### Answer
+
+1. One way to write it:
+
+   ```text
+   voice Kit:   [curious] So, Sunday... we start at the bri-
+   voice Rafa:  [jumping in] The bridge, yes. Nine o'clock. Don't be late, uh, again.
+   ```
+
+   Kit trails, then gets cut off with a dash. Rafa jumps in with short lines and one small hesitation.
+
+2. **Five requests** (our reading): one per line, because the OpenAI speech endpoint takes one `voice` per request. Use the same format for each file, number them in order, and join them in the edit.
+
+Your lines can differ. Check that they sound spoken and show the cut-off.
+
+## Recap
+
+- Gemini puts up to 2 prebuilt voices in one request. ElevenLabs has no speaker limit but a 2,000-character guide per request. OpenAI takes one voice per request.
+- Write speech: label every turn, a new turn for a new mood, a few hesitations, dashes for cut-offs, ellipses for trailing lines.
+- When you join files yourself, use one format, mind WAV headers, and plan for several takes.
