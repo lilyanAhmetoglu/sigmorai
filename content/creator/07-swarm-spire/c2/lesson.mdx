@@ -15,6 +15,9 @@ sources:
   - kind: blog
     title: Anthropic · Building effective agents
     url: https://www.anthropic.com/engineering/building-effective-agents
+  - kind: repo
+    title: OpenAI Agents SDK (Python) · Handoffs
+    url: https://github.com/openai/openai-agents-python/blob/main/docs/handoffs.md
 ---
 
 ## Goal
@@ -76,7 +79,7 @@ Our advice: do not plan on a helper asking for missing facts. Nothing makes a mo
 
 ### Keep each job narrow
 
-The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says: "Give each specialist a narrow job." It also says to keep `handoff_description` (the short note that tells the model when to pick a specialist) "short and concrete".
+The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says: "Give each specialist a narrow job." It also wants the handoff description (the short note that tells the model when to pick a specialist) to be "short and concrete". The [OpenAI Agents SDK docs on handoffs](https://github.com/openai/openai-agents-python/blob/main/docs/handoffs.md) say to use that field "to hint when the model should pick that handoff".
 
 The same guide warns against too many roles: "Start with one agent whenever you can." Splitting too early "creates more prompts, more traces, and more approval surfaces".
 
@@ -121,89 +124,53 @@ Our reading for a studio: a role that checks plain facts (is the file 128 by 128
 
 ## Worked example
 
-### Step 1: the weak cards
+### Step 1: the weak plan
+
+The lead drafts a second plan for the 80 icons. It starts 80 helpers, one per icon. It also splits the makers by topic:
 
 ```text
-Icon maker 1:  "Make the weapon icons."
-Icon maker 2:  "Make the weapon icons."
-Checker:       "Check the icons."     Tools: all tools
+Sword maker, Bow maker, Potion maker, Key maker
 ```
 
-What is missing, field by field:
+### Step 2: count roles, not items
 
-- **Job:** vague. Which icons? How many?
-- **Input:** none. No item list and no style page.
-- **Output:** none. What file size, what file name?
-- **Tools:** the checker has every tool, so it can redraw and save over files.
-- **Boundaries and check:** none.
-
-### Step 2: give each maker its own items
-
-The fix for the duplicate sword is in the **Input** field, not the job line. Each maker gets its own list.
-
-```text
-Role:        Icon maker
-Job:         Draw one icon for each item id you are given.
-Input:       Item ids from the plan sheet (maker 1: wpn-01 to wpn-20,
-             maker 2: wpn-21 to wpn-40); the style page; the palette file.
-Output:      One 128x128 PNG per item, named <item id>.png
-Tools:       Image tool; read files
-Boundaries:  Only your own ids. Do not change the style page.
-Check:       File checker, then Style judge
-```
+80 icons are 80 items with the same job, the same tools and the same style page. That is one role that runs 80 times.
 
 ### Step 3: the hard case
 
-**The hard case is the checker.** "Check the icons" hides two very different jobs:
-
-- Plain checks: size, transparent background, file name matches the id.
-- Judgment: does the icon match the game's art style?
-
-The one-verb rule splits it into two roles. Now each one gets the right model and the right tools.
+**The hard case is the topic split.** The OpenAI guide says: "Split only when the next branch truly needs different instructions, tools, or policy." Put two of the makers side by side:
 
 ```text
-Role:        File checker
-Job:         Check each PNG for size, transparency and file name.
-Output:      PASS or FAIL per item id, with the reason
-Tools:       Read files
-Boundaries:  Never edit, redraw or move a file.
-Model:       Try a smaller model first (plain, rule-based work)
-
-Role:        Style judge
-Job:         Compare each icon with the style page.
-Output:      PASS or FAIL per item id, with one line of feedback
-Tools:       Read files
-Boundaries:  Report only. Do not fix.
-Model:       Keep the stronger model (judgment work)
+              Sword maker        Potion maker
+Instructions  same style page    same style page
+Tools         image tool         image tool
+Policy        same               same
 ```
 
-Neither checker can save over a file now. The Monday problem cannot happen again.
+Nothing differs, so it is one role: Icon maker. The topic goes in the Input field, as a list of item ids.
 
-### Step 4: the final set
+### Step 4: write the two fields (our example)
 
 ```text
-Lead:         plans, hands out item ids, collects results.  Tools: plan sheet
-Icon maker:   draws icons for its own ids.                  Tools: image tool, read files
-File checker: checks size, transparency, name.              Tools: read files
-Style judge:  compares with the style page.                 Tools: read files
+description: Use to draw inventory icons from a list of item ids.
+prompt:      You draw one 128x128 PNG icon for each item id you get.
+             Follow the style page and the palette file. Name each file
+             <item id>.png. Draw only the ids in your list.
 ```
 
-Simplified. See the docs for the exact field names and request shape.
-
-The lead makes no assets. That is not a gap. Its job is to plan and collect.
+Simplified. See the docs for the exact request shape.
 
 ### Step 5: why it is better
 
-- **No duplicates, no gaps.** Each maker owns a fixed list of ids.
-- **Small tool lists.** Only the makers can draw. No role can overwrite files it checks.
-- **The right model for each role.** The plain checker can be tested on a cheaper model.
-- **Four roles for 80 items**, not 80 agents.
+- **One role, many items.** The lead hands out id lists, not 80 briefs.
+- **Fewer moving parts.** An early split, the OpenAI guide warns, "creates more prompts, more traces, and more approval surfaces".
+- **A clear test for a new role.** It needs different instructions, tools or policy, not a new topic.
 
 ## Common mistakes
 
-1. **The same vague order to several helpers.** They repeat each other and leave holes. Fix: give each helper its own items in the Input field.
-2. **No tool list.** In the Claude SDK, a missing `tools` field means the subagent gets every tool. Fix: list only what the job needs.
-3. **Choosing the cheap model by how short the job looks.** A short creative job can still need judgment. Fix: test the smaller model on plain, rule-based roles first.
+1. **One agent per item.** 80 icons become 80 briefs. Fix: one role per job, with a list of items.
+2. **Splitting by topic.** A Sword maker and a Potion maker with the same brief are one role. Fix: split only when instructions, tools or policy differ.
+3. **A job line with "and".** It hides two jobs. Fix: one verb per role.
 
 ## Try it
 
@@ -213,19 +180,19 @@ A draft card says:
 
 ```text
 Role:   Lore writer
-Job:    Write the item description and post it to the game's public wiki.
-Tools:  Text editor; wiki posting tool
+Job:    Write each item description and translate it into French.
+Tools:  none
 ```
 
 1. Why is this card a warning sign?
-2. Rewrite it as two roles. Give each role its tools.
-3. Where should a person come in?
+2. Rewrite it as two roles.
+3. Which role's output is the next role's input?
 
 ### Answer
 
-1. **The job has two verbs: write and post.** One role both makes the text and publishes it, with no check between.
-2. **Two roles.** Lore writer: writes one description per item id, returns plain text. Tools: none. Publisher: posts approved text only. Tools: the wiki posting tool.
-3. **Between the two roles.** A person approves the text before the Publisher runs. Our habit: anything public waits for a person's yes.
+1. **The job has two verbs: write and translate.** Writing and translating need different instructions, so they are two jobs.
+2. **Two roles.** Lore writer: writes one English description per item id, returns plain text. Translator: turns each description into French, returns plain text. Neither role needs a tool.
+3. **The Lore writer's.** Its English text is the Translator's Input field. Our habit: check the English text before it goes on, so a mistake is not translated too.
 
 ## Recap
 

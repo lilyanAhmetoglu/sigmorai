@@ -51,7 +51,7 @@ An **agent** is a model that plans and uses tools on its own. The [OpenAI Agents
 
 The docs compare the two: "orchestrating via code makes tasks more deterministic and predictable, in terms of speed, cost and performance." They list chaining as one way to do it: "Chaining multiple agents by transforming the output of one into the input of the next." Their example is a blog post: research, outline, write, critique, improve.
 
-Code is a choice, not a must. The same page also describes an agent that uses "handoffs to delegate tasks to sub-agents", and agents that call other agents as tools.
+Code is a choice, not a must. The same page also describes an agent that uses "handoffs to delegate tasks to sub-agents", and agents that call other agents as tools. (A handoff moves the work to another agent. A sub-agent is a helper agent started by another agent.)
 
 Some jobs cannot be written as a fixed line. The Anthropic post describes **orchestrator-workers**: a central LLM splits the task and hands parts to worker models. There, "subtasks aren't pre-defined, but determined by the orchestrator based on the specific input."
 
@@ -100,71 +100,56 @@ caption text -> [gate: text check] -> render clip -> [clip check]
 
 ## Worked example
 
-### Step 1: the weak line
+### Step 1: the weak plan
 
-```text
-1  Write the episode summary          for every clip
-2  Write the caption text             for every clip
-3  Render the clip with captions      for every clip
-4  Check the clip                     for every clip
-5  Make the season cover
-6  Build the press kit
-```
+One chat, one prompt: "Make the season: 6 episode summaries, 24 captioned clips, 1 cover and a press kit." The chat grows with every episode, so late captions drift. Nothing says which file is finished.
 
-What goes wrong:
-
-- Step 1 runs per clip. But four clips of one episode share one summary. So 24 runs do the work of 6.
-- The caption text is checked only inside step 4, after the render is paid for.
-- Steps 5 and 6 have no scope. Nothing says the press kit must wait.
-- Nothing treats interview episodes and solo episodes differently.
-
-### Step 2: count the items
+### Step 2: write each step and what it needs
 
 Our example numbers are made up.
 
 ```text
-6 episodes x 4 clips = 24 clips
-4 episodes are interviews, 2 are solo
+Step                        Needs
+A  Write episode summary    that episode's transcript
+B  Write clip captions      that clip's transcript lines
+C  Render clip              that clip and its captions
+D  Make season cover        the show logo and season title
+E  Build press kit          every summary, every clip, the cover
 ```
 
-### Step 3: the hard case
+Each line is one small call with one job. B feeds C: that is a chain.
 
-**The hard case is the guest's name.** It appears in clip captions, so it looks like an "each clip" problem. But the spelling does not change from clip to clip. It changes with the episode. So the name check belongs at the episode level: one approval per interview episode, 4 runs, not 24.
-
-The routing step decides which episodes need it. Solo episodes go straight to the summary.
-
-### Step 4: the better line
+### Step 3: draw what waits on what
 
 ```text
-1  Approve caption style; make the cover   once, person
-2  Route: interview or solo?               each episode, 6 runs
-3  Approve guest name and title            each interview episode, 4 runs
-4  Write the episode summary               each episode, 6 runs
-5  Write the caption text                  each clip, 24 runs
-6  Check the caption text (gate)           each clip, 24 runs
-7  Render the clip                         each clip, 24 runs
-8  Check the rendered clip                 each clip, 24 runs
-9  Build press kit, sign off, send         all, person
+A x6  ----------------\
+B x24 -> C x24 -------> E
+D x1  ----------------/
 ```
 
-Now read it for parallel work:
+A, B and D need nothing from each other, so they start together. Each C waits only for its own B. E waits for everything.
 
-- Step 4 runs for all 6 episodes at the same time. No summary needs another summary.
-- Steps 5 to 8 run for different clips at the same time. Inside one clip they stay in order.
-- Step 9 waits until all 24 clips have passed step 8 and all 6 summaries exist.
+### Step 4: the hard case
+
+**The hard case is the cover.** The client says: "Show us a few ideas, we pick one." That is not a new step in the line. It is the same task run more than once. The Anthropic post calls this voting: "Running the same task multiple times to get diverse outputs."
+
+```text
+D  Make season cover   run 3 times, same brief -> a person picks 1
+```
+
+Our reading: put the person's pick before E, so the kit holds one cover.
 
 ### Step 5: why it is better
 
-- **Each step is small.** One summary, one caption, one render. Small steps drift less.
-- **Scopes save runs.** The summary runs 6 times, not 24. The name check runs 4 times, not 24.
-- **The gate saves money.** A wrong name stops at step 6, before step 7 is paid for.
-- **Done is clear.** Step 9 cannot start early, so "finished" means every clip passed.
+- **Small steps.** Late items do not drift.
+- **A clear map.** It shows what can start now and what must wait.
+- **The right pattern for each part.** A chain for the clips, voting for the cover.
 
 ## Common mistakes
 
 1. **Scoping a step at the wrong level.** A step runs once per clip when its input only changes per episode. Fix: ask what the step's input changes with, and run it at that level.
 2. **Checking only after the costly step.** Then every mistake is paid for twice. Fix: put a cheap gate in front of the costly step.
-3. **Starting an "all" step early.** Part of the set goes out unfinished. Fix: start it only when every item has finished and passed its check.
+3. **One long chat for the whole job.** Late items drift, and nobody can see what is done. Fix: write the steps down and run each one as its own small call.
 
 ## Try it
 
