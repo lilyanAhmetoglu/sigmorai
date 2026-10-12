@@ -4,12 +4,15 @@ import {
   CASE_FILE,
   CHAPTER_STEPS,
   CONTENT_DIR,
+  LESSON_FILE,
   MATH_AREA,
   MATH_FLOORS,
   MAX_CHAPTERS,
   MIN_CHAPTERS,
   OUTLINE_FILE,
+  QUICK_CHECK_FILE,
   REALMS,
+  SHARED_CHAPTERS_FILE,
   SIDE_STEPS,
   TRACKS,
   trackRealms,
@@ -19,6 +22,7 @@ import {
   ExerciseIdSchema,
   MathOutlineSchema,
   outlineRealmIssues,
+  SharedChaptersFileSchema,
   trackOutlineSchema,
 } from '@/lib/types';
 import {
@@ -103,6 +107,36 @@ describe.each([...TRACKS])('%s boss cases', (track) => {
   });
 });
 
+describe('a same group on every track is written once (shared-chapters.json)', () => {
+  // The three copies must be equal once each member's own id prefix is masked.
+  // Example: a typo fixed in strategist/…/c7/lesson.mdx only fails here until
+  // the builder and creator copies get the same fix.
+  test('its lesson, case and quick check are the same text apart from ids', async () => {
+    const { groups } = SharedChaptersFileSchema.parse(
+      await Bun.file(`${ROOT}/${CONTENT_DIR}/${SHARED_CHAPTERS_FILE}`).json(),
+    );
+    const everyTrack = groups.filter(
+      (g) => g.kind === 'same' && TRACKS.every((t) => g.members.some((m) => m.startsWith(`${t}/`))),
+    );
+    expect(everyTrack.length).toBeGreaterThan(0);
+    for (const group of everyTrack) {
+      for (const file of [LESSON_FILE, CASE_FILE, QUICK_CHECK_FILE]) {
+        const copies = await Promise.all(
+          group.members.map(async (member) => {
+            const [track, realm, chapter] = member.split('/');
+            const folder = realmFolder(Number(realm.slice(1)));
+            const text = await Bun.file(`${areaDir(track)}/${folder}/${chapter}/${file}`).text();
+            return text.replaceAll(`${member}/`, '<member>/');
+          }),
+        );
+        for (const copy of copies.slice(1)) {
+          expect(copy, `group "${group.id}": ${file} copies differ`).toBe(copies[0]);
+        }
+      }
+    }
+  });
+});
+
 describe('math outline', () => {
   test('parses, with one entry per MATH_FLOORS row, and valid ids', async () => {
     const { floors } = MathOutlineSchema.parse(await readOutline(MATH_AREA));
@@ -120,7 +154,8 @@ describe('broken outlines fail', () => {
 
   test('a track with a missing chapter', async () => {
     const outline = schema.parse(await readOutline(TRACKS[0]));
-    outline.realms[0].chapters.pop();
+    // A realm at the minimum: dropping one leaves it short (r0 grew past 6).
+    outline.realms.find((r) => r.chapters.length === MIN_CHAPTERS)!.chapters.pop();
     expect(schema.safeParse(outline).success).toBe(false);
   });
 

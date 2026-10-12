@@ -76,3 +76,37 @@ describe('applyCredit', () => {
     expect([...input]).toEqual([B_MCP]);
   });
 });
+
+describe('a same group with one member on each of the three tracks', () => {
+  // Confidence test: creditorsOf and applyCredit are generic over members.
+  const THREE: SharedChapterGroup[] = [
+    {
+      id: 'first-chat',
+      kind: 'same',
+      members: ['builder/r0/c7', 'strategist/r0/c7', 'creator/r0/c7'],
+    },
+  ];
+  const B = 'builder/r0/c7/challenge';
+  const S = 'strategist/r0/c7/challenge';
+  const C = 'creator/r0/c7/challenge';
+
+  test('each member is credited by the other two', () => {
+    expect(creditorsOf(B, THREE)).toEqual([S, C]);
+    expect(creditorsOf(S, THREE)).toEqual([B, C]);
+    expect(creditorsOf(C, THREE)).toEqual([B, S]);
+  });
+
+  test('creditorsForTrack lists the two other tracks’ cases', () => {
+    expect(creditorsForTrack('builder', THREE)).toEqual([S, C]);
+    expect(creditorsForTrack('strategist', THREE)).toEqual([B, C]);
+    expect(creditorsForTrack('creator', THREE)).toEqual([B, S]);
+  });
+
+  test('one clear credits the other two and names the track it came from', () => {
+    const { cleared, creditedFrom } = applyCredit(new Set([S]), THREE);
+    expect([...cleared].sort()).toEqual([B, C, S].sort());
+    expect(creditedFrom.get(B)).toBe('strategist');
+    expect(creditedFrom.get(C)).toBe('strategist');
+    expect(creditedFrom.has(S)).toBe(false);
+  });
+});

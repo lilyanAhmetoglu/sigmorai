@@ -1,7 +1,7 @@
 ---
 id: creator/r9/c4/lesson
 title: Expand & fill
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Adobe Firefly API docs · Overview
@@ -41,91 +41,183 @@ sources:
     url: https://www.canva.dev/docs/apps/mcp/tools/resize-design/
 ---
 
-## Why it matters
+## Goal
 
-Chapter 3 put text and photos into a fixed template. Some jobs need more. The approved photo is square, but the banner is wide. The product shot has a busy background.
+After this lesson you can:
 
-Prompt Forest taught the prompt side of edits (chapter 4) and sizes (chapter 8). This chapter is the job side: which operation, where the photo sits, how many jobs at once, and who checks.
+- Pick the right Firefly operation for a job: expand, fill or one of three composites.
+- Paint and read a mask, and say where a photo sits in a bigger frame.
+- Run an image job from start to file, and plan for its limits and its expiry dates.
 
-## Three operations
+## The problem
 
-Adobe's Firefly API gives each job its own name. The words in quotes are Adobe's.
+You are an illustrator. A publisher approved your square cover art for a new novel. Now marketing wants it in more shapes: a wide banner for the website and a tall version for phone stories. Somebody suggests: "Just ask the AI to make it wider."
 
-| Operation | What it does                                            | Use it when                       |
-| --------- | ------------------------------------------------------- | --------------------------------- |
-| Expand    | "Generatively expand an image out beyond its edges"     | the photo is too small for a size |
-| Fill      | "Generatively edit specific areas of an image"          | one area must change              |
-| Composite | "Blend product shots and objects into generated scenes" | the product needs a new scene     |
+A developer writes a small script for Adobe's Firefly API (a web service that edits images with AI). The first run gives no images at all. The script printed a job number and stopped. A week later the team runs it again for a new size, and it fails in a new way.
 
-OpenAI's and Google's image pages do not name an expand operation (our reading). You give their models an image and a prompt, and you set the output size. OpenAI's edits endpoint can also take a mask "that identifies the areas to replace". Size rules per vendor: see Prompt Forest, chapter 8.
+This lesson shows which operation fits which job, and how an image job really runs.
 
-## One photo, many sizes
+## The idea
 
-Adobe's expand tutorial is a real layout job. A team needs "differently sized image variations" for social media. It writes down the sizes first, for example "Instagram Post" at 1080 × 1080 and "Facebook Cover" at 820 × 312. Then it uploads the photo once and calls Expand for each size.
+### Four kinds of edit
 
-## Where the photo sits
+The [Adobe Firefly API docs](https://developer.adobe.com/firefly-services/docs/firefly-api/) cover several image operations. Three matter most here:
 
-Expand makes a new image area around your photo. Adobe's `placement` setting decides where your photo goes inside the new frame. It controls "how an image is positioned and sized in the final generation". There are two ways.
+- **Expand.** The [Expand tutorial](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/firefly-expand-image-api-tutorial) says it can "Generatively expand an image out beyond its edges". Its own example turns one picture into sizes for different social platforms.
+- **Fill.** The [Fill tutorial](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/firefly-fill-image-api-tutorial) says it can "Generatively edit specific areas of an image". Its example replaces the backgrounds of employee photos.
+- **Composite** (putting one object into a scene). See below.
 
-- **`alignment`** pins the photo to a side. Adobe's example uses `"horizontal": "left"` and `"vertical": "top"`, so the photo sits in the top-left corner.
-- **`inset`** sets a margin in pixels from each edge. Adobe's example is `left` 500, `top` 0, `right` 400, `bottom` 40.
+### Masks: which parts may change
 
-Example (ours). The headline sits on the right of your banner. Align the photo to the left, and the new part of the image lands under the headline.
+A **mask** is a black and white picture laid over your image. The [Adobe docs on masks](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/masking/) say:
 
-If the whole layout must change size, Canva's `resize-design` makes "a copy of an existing design at new dimensions, with the layout rearranged to fit" (on plans with premium features, such as Canva Pro). Our view: resize the layout there, and expand only the photo.
+- "Black areas are protected. No requested edits will apply to these regions."
+- "White areas are exposed. Requested edits will apply only to these regions."
 
-## Masks: check the colour rule
+The page compares white areas to "beams from flashlights". An **inverted** mask swaps the two colours, so the protected part becomes the editable part.
 
-A mask is a second image that says where the edit may go. The colour rule is not the same at every vendor.
+Other vendors work differently:
 
-- **Adobe.** "Black areas are protected." "White areas are exposed." An inverted mask swaps black and white. Adobe calls this "a quick way to reverse the selection of editable areas".
-- **OpenAI.** The mask needs an alpha channel (a see-through layer). Prompt Forest chapter 4 covers this.
-- **Google.** Its page calls word-based edits "Inpainting (semantic masking)". You name the area in words.
+- The [OpenAI docs on image generation](https://developers.openai.com/api/docs/guides/image-generation) say: "The mask image must also contain an alpha channel." (An **alpha channel** is the see-through layer of a PNG.) The image and mask "must be of the same format and size". And: "Masking with GPT Image is entirely prompt-based. The model uses the mask as guidance, but may not follow its exact shape with complete precision."
+- The [Gemini docs on image generation](https://ai.google.dev/gemini-api/docs/image-generation) describe "Inpainting (semantic masking)": you say in words which part to change, and no mask file is sent.
 
-Example (ours). The product and the headline space must not change, so you paint them black in an Adobe mask. If the colours are swapped, the product changes and the background stays. Check one result before you run the rest.
+### Placement: where the photo sits
 
-Adobe's fill tutorial changes the background of "thousands of employee photos". You upload each photo and its own mask, then send one prompt for the new background. For many photos, Adobe points to its Photoshop Create Mask API "to automate the creation of masks".
+When you expand, the old photo must sit somewhere in the new, bigger frame. The [Adobe docs on placement](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/placement/) say it controls "how an image is positioned and sized in the final generation". Two options:
 
-## Put the product in a scene
+- **Alignment**, for example `"horizontal": "left"`, pins the photo to one side. Our reading: the new image grows on the other side.
+- **Inset** sets "margins (in pixels) from each side of the frame".
 
-Adobe has three composite operations. Choose by what is allowed to change.
+### Three composites
 
-- **Generate Object Composite.** It makes the background from a prompt. "Use when no background image exists yet."
-- **Precise Composite.** It keeps the object exactly as it is. "Use when the subject must not be altered."
-- **Adaptive Composite.** It adapts and regenerates "the subject to match the scene". "Use when realism and seamless integration are the priority."
+The [Adobe composite guide](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/object-composite/) names three operations:
 
-A bottle with a printed label must stay exact, so Precise Composite fits (our view).
+| Operation                 | Use when                                            |
+| ------------------------- | --------------------------------------------------- |
+| Generate Object Composite | "no background image exists yet"                    |
+| Precise Composite         | "the subject must not be altered"                   |
+| Adaptive Composite        | "realism and seamless integration are the priority" |
 
-Adobe's overview adds two details. Harmonization (matching light and shadow to the scene) can be set "(0–100%)" or turned off. Adaptive Composite "automatically adjusts the object's rotation to match environmental cues". With its `preserveBackground` set to true, "the original background pixels are retained and only the composited object region is modified". For the Object Composite API, Adobe gives a "Maximum image size supported" of 10MB.
+Adaptive Composite works "by adapting and regenerating the subject to match the scene". So the object itself may change.
 
-## Many jobs at once
+### Jobs, uploads and limits
 
-Batch work is where an API saves the most time. It is also where rate limits stop you.
+**Async jobs.** These calls are **asynchronous**: the result comes later. The [Adobe async guide](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/how-tos/using-async-apis) gives the order:
 
-**Async jobs.** Expand, Fill and the composites have async versions: you start a job, then ask later if it is done (Tool Forge, chapter 3). Each call returns "a jobId and a statusUrl for polling job status" (polling means asking again and again). A `cancelUrl` stops a job you no longer need. The async guide starts several expand jobs together: "we can kick off multiple jobs at once".
+```text
+1. send the request
+2. get back jobId, statusUrl, cancelUrl  (no image yet)
+3. check statusUrl again and again       ("running")
+4. "succeeded" or "failed"
+5. on success, download from the result URL
+```
 
-**Rate limits.** The default is "4 requests per minute (RPM)" per organization. Over it, you get "HTTP 429 Too Many Requests". Adobe says to retry with "a retry-after HTTP header or an exponential backoff strategy" (wait longer after each failure). For more, "Contact your account manager to request higher rate limits".
+The guide's example says to "check once every second and wait for a success or failure message".
 
-**Uploads.** You upload a photo once and reuse its ID. The ID "is valid for 7 days from the date of upload".
+**Uploads.** The [Adobe upload page](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/image-upload/) says: "The upload id is valid for 7 days from the date of upload." It also says: "Supported formats include `image/jpeg`, `image/png`, and `image/webp`."
 
-Example (ours). 40 product photos in 3 sizes are 120 expand calls. At 4 calls a minute, that is at least 30 minutes. After 7 days, the same batch needs fresh uploads.
+**Rate limits.** The [Adobe usage notes](https://developer.adobe.com/firefly-services/docs/firefly-api/getting-started/usage-notes/) give the default limits "per organization":
 
-Keep the headline, the logo and the price in the design file, not in the picture (our advice; Prompt Forest chapters 1, 3 and 8 say why).
+- "4 requests per minute (RPM)"
+- "9,000 requests per day (RPD)". The page says this one matters for teams whose account manager raised the limit "beyond 4 RPM".
 
-## A review routine
+Over the limit, "you'll receive an HTTP 429 Too Many Requests error". The page's fixes: reduce requests, "Implement retry logic via a retry-after HTTP header or an exponential backoff strategy" (wait longer after each failed try), or ask your account manager for more.
 
-This routine is ours.
+### Resize the layout, expand the photo
 
-1. **Test three first.** The widest size, the tallest size, the hardest product.
-2. **Compare protected areas** with the original: label, face, logo.
-3. **Check new areas in the real layout** at full size: odd objects, repeats, seams.
-4. **Log it.** Source, operation, size, and who approved it.
+Not every size change needs AI pixels. The [Canva docs on resize-design](https://www.canva.dev/docs/apps/mcp/tools/resize-design/) say:
 
-## What this means for your work
+- It creates "a copy of an existing design at new dimensions, with the layout rearranged to fit".
+- "The original is unchanged. It isn't for resizing a single element within a page."
+- It needs a plan "with premium features, such as Canva Pro".
 
-- **Name the job:** expand, fill or composite.
-- **Set the placement** so the new space lands where the layout needs it.
-- **Check the mask colours** for your vendor.
-- **Pick Precise** when the product must not change.
-- **Count calls against the rate limit** before a batch.
-- **A person checks** every result in the real layout.
+A comparison: resize moves the furniture into a new room. Expand paints more wall.
+
+## Worked example
+
+The cover art from the problem. The size and dates are our example.
+
+### Step 1: the weak script
+
+```text
+2 June
+  upload cover.png            -> uploadId U1   (saved in the config file)
+  expand to 1024x512 (U1)     -> answer: jobId, statusUrl, cancelUrl
+  script: "Done!"             (prints the jobId and stops)
+```
+
+Two problems:
+
+- The answer to an expand call is a job, not a picture. Nobody asked the `statusUrl`.
+- The upload ID is saved "for later", with no date.
+
+### Step 2: follow the job to the end
+
+```text
+expand to 1024x512 (U1)  -> jobId J1, statusUrl
+check statusUrl           -> "running"
+check again (1 s later)   -> "running"
+check again               -> "succeeded", result.outputs[0].image.url
+download the file         -> banner_1024x512.png in your storage
+```
+
+Simplified. See the docs for the exact request shape.
+
+Now the script stops only on `succeeded` or `failed`, and it saves the real file.
+
+### Step 3: the hard case, the next week
+
+**This is the hard part.** On 11 June, marketing asks for the tall phone story. The script still has `U1` in its config.
+
+Count the days. `U1` was made on 2 June. The upload page says an upload ID is valid for 7 days. On 9 June `U1` reached 7 days. On 11 June it is 9 days old, so it is no longer valid.
+
+Our advice: store the upload date next to each ID. Before each run, upload again if the ID is 7 or more days old.
+
+```text
+11 June
+  U1 is 9 days old  -> upload cover.png again -> U2
+  expand to 1080x1920 (U2) -> poll -> "succeeded" -> download
+```
+
+### Step 4: one more check by eye
+
+The story is much taller than the square art. Expand invents all the new space above and below. Our advice: a person checks that the new areas fit the art before anything goes to the publisher.
+
+### Step 5: why it is better
+
+```text
+Weak                           Better
+stops at the jobId        ->   polls to succeeded or failed
+image link not saved      ->   file downloaded and stored
+upload ID used forever    ->   ID dated, re-uploaded after 7 days
+```
+
+## Common mistakes
+
+1. **Reading the first answer as the image.** An async call returns a job. Fix: poll `statusUrl` (ask it again and again) until it says succeeded or failed.
+2. **Using a layout resize for one picture.** Canva's `resize-design` changes the whole design, not one element. Fix: resize the layout there, and expand only the photo.
+3. **Trusting the exact edge of an OpenAI mask.** The OpenAI docs say the mask is only guidance. Fix: check the edges of every result by eye.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A children's book studio has three jobs:
+
+1. A Canva poster with a title, text and art must also exist as a 16:9 slide.
+2. A square illustration must sit in the middle of a wide print, with 300 pixels of new art on the left and 300 on the right.
+3. The team wants to edit a photo with Gemini, but nobody can paint masks.
+
+Which tool or way of working fits each job?
+
+### Answer
+
+1. **Canva `resize-design`.** It makes a copy at the new size with the layout rearranged. The poster stays as it was.
+2. **Placement with `inset`.** The Adobe docs say inset sets "margins (in pixels) from each side of the frame". Set `left` and `right` to 300.
+3. **Describe the change in words.** The Gemini docs show semantic masking: the prompt says which part to change, with no mask file.
+
+## Recap
+
+- Expand grows an image past its edges. Fill changes only the white part of a mask; black is protected. Composites put an object into a scene, and Precise Composite keeps the subject unchanged.
+- Placement decides where the old photo sits in the new frame: alignment or inset.
+- Image jobs run async: poll to the end and save the file. Upload IDs last 7 days, and the default limit is 4 requests per minute, with 429 when you go over.
