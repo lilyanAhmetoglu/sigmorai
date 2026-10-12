@@ -1,7 +1,7 @@
 ---
 id: creator/r9/c5/lesson
 title: Plugins vs MCP
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Figma developer docs · Compare the Figma APIs
@@ -45,80 +45,187 @@ sources:
   - kind: docs
     title: Canva developer docs · duplicatePage (preview API)
     url: https://www.canva.dev/docs/apps/api/preview/design-duplicate-page/
+  - kind: docs
+    title: Canva developer docs · Content Publisher intent
+    url: https://www.canva.dev/docs/apps/intents/content-publisher/
+  - kind: docs
+    title: Canva developer docs · Design Editor intent
+    url: https://www.canva.dev/docs/apps/intents/design-editor/
 ---
 
-## Why it matters
+## Goal
 
-Your team wants a button that swaps placeholder photos for approved ones from the brand library. Someone says: "Build a plugin." Someone else says: "Just connect an MCP server." Both can work. They start in different places and see different things.
+After this lesson you can:
 
-MCP Bridgelands taught what an MCP server is and how to scope one. This chapter puts servers next to plugins and in-editor apps, so you can pick.
+- Name the ways code can reach a Figma file or a Canva design, and say who must be there when it runs.
+- Spot the rules that stop a plan: background runs, network access, read-only modes and preview APIs.
+- Set up a Canva app with two intents, so Canva can show it at the right moment.
 
-## Figma: four ways in
+## The problem
 
-Figma's "Compare the Figma APIs" page names three APIs. Its MCP server is a fourth way in. The quotes are Figma's.
+You run a small illustration studio. Your developer builds a Canva app for the team. It should do two things:
 
-| Way in     | Who or what starts it                                                      | What it can touch                                              |
-| ---------- | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Plugin API | a user with the file open; "the plugin is reading or writing to that file" | "Can only read and edit the current file that a user has open" |
-| Widget API | a user adds it; it stays: it "persists on the canvas"                      | the file it was added to                                       |
-| REST API   | a script or schedule; "Figma does not need to be open"                     | many files, but "largely read-only"                            |
-| MCP server | an AI agent, through an MCP client                                         | design context for code, and writes "back to the canvas"       |
+- let designers drop studio illustrations into a design while they edit
+- send a finished design to the studio's client portal
 
-The REST API's write exceptions are short: "Comments and Comment Reactions", "Variables" and "Dev Resources". Chapter 6 uses the variables part.
+The first test is odd. The app opens a welcome screen as soon as it loads. The "send to portal" button never shows up where people publish. The developer asks: "Is the app wrong, or is Canva wrong?"
 
-## What a Figma plugin is
+The app is wrong. Before you fix it, you need a map of where code can live.
 
-Figma says plugins "run in files and perform one or more actions". You build them with JavaScript and HTML. A plugin can open its own window, an `<iframe>` (a small web page inside Figma), for its controls.
+## The idea
 
-The rules that shape a plugin:
+### Figma: three APIs
 
-- **A person starts it.** Actions "must be initiated by the user". "Users can only run one plugin and one action at a time."
-- **No background work.** "It's not possible to build plugins that run in the background."
-- **Only what is in the file.** A plugin sees styles and components "currently in the file, or have been imported into the file". It cannot see the file's comments, permissions or version history; Figma points to the REST API for those.
-- **Network access can be limited.** In `manifest.json` (the plugin's settings file), a `networkAccess` key holds `allowedDomains`. Then "Your plugin can only access the domains that you specify". Figma "recommends that your plugin only allows domains that are needed". A `reasoning` line is required for `"*"` (any domain) or for a local server. Figma's test starts with `"none"`, which blocks every call with a CSP error (content-security-policy: the browser refused the request). Then you "remove "none" and add the domains that your plugin requires".
-- **Dev Mode is read-only.** Plugins there "won't be able to edit the contents of the document". They are for inspection and code generation.
+An **API** is a set of commands that code can call. The [Figma page that compares its APIs](https://developers.figma.com/compare-apis/) names three:
 
-Plan updates with care. Once Figma approves a plugin, "you can publish any updates immediately". And "It's not possible for users to revert to a previous version". So a bad update reaches every user at once. The fix: "If you need to roll back any changes, you can republish an earlier version of the plugin."
+| API        | Who must be there                                                               |
+| ---------- | ------------------------------------------------------------------------------- |
+| Plugin API | "A user has a particular Figma design or FigJam file open"                      |
+| Widget API | the widget "persists on the canvas and is visible to anyone viewing the file"   |
+| REST API   | nobody: "Figma does not need to be open and a user does not need to be present" |
 
-## Canva: one SDK, three surfaces
+A **plugin** is a small program a person runs inside a file. A **widget** is an object that lives on the canvas. The **REST API** is a web API your own script calls from outside Figma. The page says it can run "on a set schedule (like a job that runs every night)".
 
-Canva has new names for its developer products. Its docs say: "The Canva Apps SDK, Connect APIs, and MCP are now unified in the Canva Developers SDK." Everything you build is now an "app". An app is built for one or more of three **surfaces** (places where it runs).
+Limits from the same page:
 
-| Old name     | Now                                                |
-| ------------ | -------------------------------------------------- |
-| Apps SDK     | the Apps inside Canva surface                      |
-| Connect APIs | the Canva REST APIs, for "Canva for your platform" |
-| Canva MCP    | the Canva for AI assistants surface                |
+- A plugin or widget "Can only read and edit the current file that a user has open in Figma".
+- A plugin can still reach other files. It "can also call the REST API to access contents of files other than the file where the plugin or widget is running."
+- The REST API "Is largely read-only", except for comments and comment reactions, variables, and dev resources.
 
-- **Apps inside Canva** run "in the Canva editor, in an iframe". They can import content, add elements to a design, and automate design tasks.
-- **Canva for your platform** runs "on your own infrastructure and calls the Canva REST APIs".
-- **Canva for AI assistants** connects to the Canva MCP server, so users can "create, edit, and export designs by asking for it in the AI tools they already use".
+### Figma plugin rules
 
-Apps inside Canva are built with **intents**. An intent is "a contract that lets Canva discover your app" and show it "wherever that capability is relevant". In plain words: you say what your app can do, and Canva decides where to offer it. "All new apps must implement at least one intent." The docs list four: Content Publisher, Data Connector, Design Editor and URL Expander.
+The [Figma plugins introduction](https://developers.figma.com/docs/plugins/) sets two rules for user actions:
 
-You can share an app "publicly through the Apps Marketplace" or "privately with members of your team". One warning about preview APIs (APIs that are not final yet). Canva's REST APIs page, for Canva for your platform, says: "Public apps that use preview APIs or features will not pass the review process." For apps inside Canva, a preview API page such as duplicatePage says: "You can't release public apps using this API until it's stable."
+- "Users can only run one plugin and one action at a time."
+- "It's not possible to build plugins that run in the background."
 
-## Who starts the work
+**Dev Mode** is the read-only view for developers. The [Figma docs on Dev Mode plugins](https://developers.figma.com/docs/plugins/working-in-dev-mode/) say these plugins "can be used for inspection and code generation". They "are read-only" and "won't be able to edit the contents of the document."
 
-In our words: a plugin or an app inside the editor starts with a person in the file. An MCP server starts with an AI assistant calling its tools. A REST script starts with nobody there.
+**Network access.** A **manifest** is the plugin's settings file. The [Figma manifest docs](https://developers.figma.com/docs/plugins/manifest/) say that with `networkAccess`, "Your plugin can only access the domains that you specify." The value `["none"]` means "The plugin cannot access any external network resources." The [Figma guide to network requests](https://developers.figma.com/docs/plugins/making-network-requests/) uses `["none"]` as a test: run the plugin, note each **CSP error** (the browser refused a request), then "remove 'none' and add the domains that your plugin requires to the allowedDomains list."
 
-Example (ours). "Swap the photos in this layout now" fits a plugin or an app inside Canva. "Make five posts from this brief" fits an assistant with an MCP server. "Check every brand file each night" fits the REST API. A Figma plugin cannot do the nightly job, because it cannot run in the background.
+**AI agents.** The [Figma MCP server](https://developers.figma.com/docs/figma-mcp-server/) gives "design information and context to AI agents". **MCP** (Model Context Protocol) is a standard way for an AI assistant to call tools.
 
-You can also mix them. In Canva, "a single app can be built for more than one" surface. In Figma, a plugin "can also call the REST API" to reach other files.
+### Canva: one SDK, three surfaces
 
-## Before you build a plugin
+An **SDK** is a kit of code tools. The [Canva Developers SDK page](https://www.canva.dev/docs/apps/) says every app "is built for one or more of three surfaces: inside Canva, on your own platform, or in an AI assistant." It also says the SDK "brings together three products that used to be documented separately":
 
-Figma's publishing page has a checklist for a "second 80% of the work". Some of its questions:
+```text
+Apps SDK       -> Apps inside Canva
+Connect APIs   -> Canva REST APIs (Canva for your platform)
+Canva MCP      -> Canva for AI assistants
+```
 
-- "The user has nothing selected?"
-- "A component selected? Are you alright with the change propagating to potentially hundreds of instances?"
+The [Canva page on app surfaces](https://www.canva.dev/docs/apps/platform-concepts-apps/) says what each is for:
 
-A photo-swap plugin meets both (our view). Write down the answer to each before the first line of code (our advice).
+- **Apps inside Canva** "run in the Canva editor and are built with intents".
+- **Canva for your platform** brings Canva "into your own web apps and platforms, using the Canva REST APIs".
+- **Canva for AI assistants** is there "so that your users can create, edit, and export designs from the AI tools they already use", through the [Canva MCP server](https://www.canva.dev/docs/apps/mcp/).
 
-## What this means for your work
+The [Apps inside Canva page](https://www.canva.dev/docs/apps/apps-inside-canva/) says these apps "are JavaScript files that run inside an iframe" (a small web page inside the editor). You can share one through the Apps Marketplace, or privately with your team.
 
-- **Ask who starts the work:** a person, an assistant or a script.
-- **A plugin works on the open file only,** and never in the background.
-- **Use Canva's new names:** Developers SDK, with three surfaces.
-- **Answer Figma's edge-case questions** before you build.
-- **Plan updates with care.** Approved plugin updates reach everyone at once.
+### Intents
+
+The [Canva intents page](https://www.canva.dev/docs/apps/intents/) says: "All new apps must implement at least one intent." An **intent** is a contract: your app does certain actions, and "Canva handles when and where to present the app's functionality to users." The page lists four: URL Expander, Content Publisher, Design Editor and Data Connector.
+
+Two of them matter for the studio:
+
+- The [Design Editor intent](https://www.canva.dev/docs/apps/intents/design-editor/) makes "specialized editing tools that appear alongside the Canva design surface".
+- The [Content Publisher intent](https://www.canva.dev/docs/apps/intents/content-publisher/) lets users "publish Canva designs directly to external platforms". It requires App UI Kit components and your platform's own sign-in.
+
+The intents page lists four technical rules:
+
+- "Intents must be registered immediately when the app loads."
+- "Intents must be registered synchronously." (in one go, without waiting for anything)
+- "The app must not immediately render UI."
+- "The app must not create global state." (values that every part of the app shares and can change)
+
+### Preview APIs
+
+Some Canva APIs are marked **preview**: not finished. The [Canva duplicatePage page](https://www.canva.dev/docs/apps/api/preview/design-duplicate-page/) says: "You can't release public apps using this API until it's stable." The [Canva REST APIs page](https://www.canva.dev/docs/apps/rest-apis/) says the same for REST: "Public apps that use preview APIs or features will not pass the review process".
+
+A comparison: the surfaces are doors into one house. Pick the door by who is standing outside: a person in the editor, your own platform, or an AI assistant.
+
+## Worked example
+
+The studio app from the problem. The file names are our example.
+
+### Step 1: the weak app
+
+```text
+src/index.tsx
+  await loadStudioSettings()          <- waits for the network first
+  showWelcomeScreen()                 <- UI at once
+  window.studio = { user, portal }    <- shared global object
+  register the editor feature         <- after the wait
+  (no Content Publisher at all; the portal button sits in the editor panel)
+```
+
+Four problems:
+
+- The intents are registered after a wait, not at once.
+- A screen appears before Canva asks for it.
+- A global object is shared by everything.
+- "Send to portal" is not a Content Publisher intent, so Canva never shows it where people publish.
+
+### Step 2: one folder per intent
+
+The intents page recommends "a dedicated folder for each intent":
+
+```text
+src/
+  index.tsx                   prepareDesignEditor(...)
+                              prepareContentPublisher(...)
+  intents/
+    design_editor/index.tsx   place studio illustrations
+    content_publisher/        settings and preview for the portal
+```
+
+Simplified. See the docs for the exact request shape.
+
+The root file only calls the two `prepare` functions, right away, with no waiting. Each feature loads its own data inside its own folder, when Canva calls it.
+
+### Step 3: the hard case, the shared sign-in
+
+**This is the hard part.** Both features need the studio login. The old app kept it in `window.studio`, a global object. That breaks the "no global state" rule.
+
+But the intents page also says: "Things like authentication, settings, and data management can be common across multiple intents."
+
+Our reading: share the code, not a live global value. Put the sign-in in one module that both intent folders import. Each intent calls it when Canva starts that intent. The portal sign-in is also why Content Publisher apps "might need a backend", as its page says.
+
+### Step 4: why it is better
+
+```text
+Weak                               Better
+register after a wait         ->   register at load, in one go
+welcome screen at once        ->   UI only when Canva calls an intent
+global object                 ->   shared sign-in module, no global state
+portal button in editor panel ->   Content Publisher intent, shown at publish
+```
+
+## Common mistakes
+
+1. **Waiting before you register.** Canva needs the intents at once. Fix: call each `prepare` function first, and load data later.
+2. **Building a public app on a preview API.** It will not pass review. Fix: ship without it, or wait until the API is stable.
+3. **Putting every intent in one file.** The intents page says the Canva CLI and other tools assume a folder per intent, even for one intent. Fix: give each intent its own folder.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Your Figma team asks for three tools. Where should each one live?
+
+1. While developers inspect a layer in Dev Mode, they want to see its ticket from the team's tracker.
+2. In a planning file, the whole team wants a vote that everyone can see and change.
+3. A designer runs a check on the open file, and it must also compare colours with the separate library file.
+
+### Answer
+
+1. **A Dev Mode plugin for inspection.** The Dev Mode page names inspection as a use, with context from tools such as Jira.
+2. **A widget.** It stays on the canvas, and anyone viewing the file can see it and use it.
+3. **A plugin that also calls the REST API.** A plugin can only read the open file. The compare page names linters that read other files through the REST API.
+
+## Recap
+
+- Figma: a plugin works in the open file while a person runs it. A widget stays on the canvas. The REST API runs with nobody there and is mostly read-only. Plugins never run in the background.
+- Canva: one Developers SDK, three surfaces: inside Canva, your platform (REST), AI assistants (MCP). Public apps cannot use preview APIs.
+- Apps inside Canva need at least one intent, registered at once and in one go, with no UI at start and no global state.
