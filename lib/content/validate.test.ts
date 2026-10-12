@@ -66,19 +66,27 @@ describe('broken content is caught, with the file name', () => {
     expect(issues[0].message).toContain('unexpected file');
   });
 
+  // r0 grew to more chapters (beginner chapters, 2026-10-12), so the tests
+  // below grow or shrink r2 Tool Forge, a realm that still has 6.
+  const R2 = 'builder/02-tool-forge';
+
+  /** builder realm 2 in a parsed outline. */
+  const realm2 = (data: { realms: { id: number; chapters: unknown[] }[] }) =>
+    data.realms.find((r) => r.id === 2)!;
+
   test('a broken outline', async () => {
     const root = await copyOfContent();
     const file = `${root}/builder/outline.json`;
     const data = await Bun.file(file).json();
-    data.realms[0].chapters.pop();
+    realm2(data).chapters.pop();
     await writeFile(file, JSON.stringify(data));
     expect((await validateContent(root)).map((i) => i.file)).toEqual(['builder/outline.json']);
   });
 
   test('a chapter folder past the outline count names the realm range from the outline', async () => {
     const root = await copyOfContent();
-    const c7 = 'builder/00-bootstrap-village/c7';
-    await cp(`${root}/${C1}`, `${root}/${c7}`, { recursive: true });
+    const c7 = `${R2}/c7`;
+    await cp(`${root}/${R2}/c1`, `${root}/${c7}`, { recursive: true });
     const issues = await validateContent(root);
     expect(issues.map((i) => i.file).sort()).toEqual(
       ['case.json', 'lesson.mdx', 'quick-check.json'].map((f) => `${c7}/${f}`),
@@ -89,18 +97,18 @@ describe('broken content is caught, with the file name', () => {
     }
   });
 
-  /** Adds a 7th chapter to builder realm 0's outline. */
-  async function growBuilderRealm0(root: string) {
+  /** Adds a 7th chapter to builder realm 2's outline. */
+  async function growBuilderRealm2(root: string) {
     const file = `${root}/builder/outline.json`;
     const data = await Bun.file(file).json();
-    data.realms[0].chapters.push({ id: 'c7', title: 'Grown chapter' });
+    realm2(data).chapters.push({ id: 'c7', title: 'Grown chapter' });
     await writeFile(file, JSON.stringify(data));
   }
 
   test('a grown realm: an outline chapter past 6 without its files fails', async () => {
     const root = await copyOfContent();
-    await growBuilderRealm0(root);
-    const c7 = 'builder/00-bootstrap-village/c7';
+    await growBuilderRealm2(root);
+    const c7 = `${R2}/c7`;
     const issues = await validateContent(root);
     expect(issues.map((i) => i.file)).toEqual(
       ['lesson.mdx', 'case.json', 'quick-check.json'].map((f) => `${c7}/${f}`),
@@ -112,14 +120,14 @@ describe('broken content is caught, with the file name', () => {
 
   test('a grown realm with all three files for its new chapter passes', async () => {
     const root = await copyOfContent();
-    await growBuilderRealm0(root);
+    await growBuilderRealm2(root);
     // Chapter 1's three files as chapter 7, with their ids moved to c7.
     for (const name of ['lesson.mdx', 'case.json', 'quick-check.json']) {
-      const text = await Bun.file(`${root}/${C1}/${name}`).text();
-      await mkdir(`${root}/builder/00-bootstrap-village/c7`, { recursive: true });
+      const text = await Bun.file(`${root}/${R2}/c1/${name}`).text();
+      await mkdir(`${root}/${R2}/c7`, { recursive: true });
       await writeFile(
-        `${root}/builder/00-bootstrap-village/c7/${name}`,
-        text.replaceAll('builder/r0/c1/', 'builder/r0/c7/'),
+        `${root}/${R2}/c7/${name}`,
+        text.replaceAll('builder/r2/c1/', 'builder/r2/c7/'),
       );
     }
     expect(await validateContent(root)).toEqual([]);
@@ -565,6 +573,13 @@ describe('shared chapters (content/shared-chapters.json)', () => {
     };
     expect(
       await issuesFor([same('mcp-basics', 'builder/r5/c1', 'strategist/r5/c2'), covers]),
+    ).toEqual([]);
+  });
+
+  test('a same group with one member on each of the three tracks passes', async () => {
+    // Confidence test: the schema already allows 2 or more members.
+    expect(
+      await issuesFor([same('three', 'builder/r1/c1', 'strategist/r1/c1', 'creator/r1/c1')]),
     ).toEqual([]);
   });
 

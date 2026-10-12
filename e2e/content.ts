@@ -26,3 +26,13 @@ export function lessonStepTitles(chapterDir: string): string[] {
   const body = source.replace(/^---\n[\s\S]*?\n---\n/, '');
   return postHeadings(body).map((heading) => heading.text);
 }
+
+type Outline = { realms: { chapters: unknown[] }[] };
+
+/** Stops on a realm's map: one per chapter in the track's outline, plus the boss. */
+export function realmStopCount(track: string, realmIndex: number): number {
+  const outline = JSON.parse(
+    readFileSync(join('content', track, 'outline.json'), 'utf8'),
+  ) as Outline;
+  return outline.realms[realmIndex].chapters.length + 1;
+}
