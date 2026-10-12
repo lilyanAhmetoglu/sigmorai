@@ -1,7 +1,7 @@
 ---
 id: creator/r5/c3/lesson
 title: Asset libraries
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: MCP specification · Resources
@@ -17,72 +17,163 @@ sources:
     url: https://developers.openai.com/api/docs/guides/tools-connectors-mcp
 ---
 
-## Why it matters
+## Goal
 
-Earlier you learned to find the right asset in a library. This chapter is about something before that: how the library is wired to the AI at all.
+After this lesson you can:
 
-Two choices matter. First, does the AI look at the live library, or at a copy? Second, what does the link let it see and do? You will not set it up. You will decide, and you will know what to ask the vendor.
+- Choose between linking a library to the AI and copying files into a vendor's storage.
+- Check that a library server offers what each AI vendor can use (tools, not only resources).
+- Keep the approved tool list steady, and keep secret files out until you know who stores them.
 
-## Link or copy
+## The problem
 
-This pair is ours.
+A photo agency has a large image archive. The archive company runs an MCP server in front of it, on public HTTPS. The server offers two tools, `search_photos` and `get_photo` (our example names). The agency's own app calls the OpenAI Responses API.
 
-- **Copy.** You upload files into a vendor's storage. The AI reads the copy. It is fixed, and it goes stale when the library changes.
-- **Link.** A server in front of the library answers when the AI asks. The AI sees what the library holds now.
+The archive holds two kinds of file:
 
-Example: the brand library replaces the old logo on Monday. A copy still holds the old logo on Tuesday. A link returns the new one.
+- **Photos** that clients can license.
+- **Release forms**: signed forms with the names and home addresses of the people in the photos.
 
-A link has a cost. Data leaves the library at every call. The last section of this lesson shows where it goes.
+Today, a teammate copies photos by hand into a vendor's file storage every month. The archive changes every day. Last week the AI suggested a photo that was removed from the archive two weeks ago.
 
-## What the library server offers
+The new plan: "Link the archive, forms included. OpenAI's MCP tool is ZDR-compatible, so nobody keeps a copy." This lesson checks that plan.
 
-An MCP server can offer more than tools. The specification says **resources** "allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information". It also says resources are "application-driven": the app decides how to bring them in.
+## The idea
 
-Tools are different. The specification calls tools "model-controlled": the model finds and calls them.
+### Link or copy
 
-Here is the catch. The two Claude pages differ:
+This pair is our way of naming the choice.
 
-- **Claude's API connector (beta)** says "only tool calls are currently supported" from the MCP feature set.
-- **Claude's connector docs** for building a server say a server "can expose" tools, prompts and resources to Claude's apps.
+- **Copy.** You put files into a vendor's storage. The AI reads the copy. The copy does not change when the archive changes, so it goes stale.
+- **Link.** A server stands in front of the archive. When the AI asks, the server answers from the archive as it is now.
 
-So a library that offers only resources may work in one place and not in the other. Our advice: ask for tools such as "list assets" and "get one asset", and test in each place you plan to use.
+```text
+COPY   archive --(by hand, monthly)--> vendor store --> AI
+LINK   archive <--> MCP server <--> AI   (asks each time)
+```
 
-## Ready-made links and their limits
+A link fixes the stale-photo problem. But it has a cost: data leaves the archive on every call. So you must know where that data goes.
 
-OpenAI's Responses API has built-in connectors for services such as Dropbox, Google Drive and SharePoint. It marks them as legacy. The page says `connector_id` "is deprecated for models released after September 1, 2026". For new models you use `server_url` for a remote server, or a tunnel for a private one. Existing models keep connector support.
+### What a library server can offer
 
-So, if your library lives in a cloud drive, do not plan around `connector_id`. Ask the library vendor for a remote MCP server instead.
+An MCP **server** can offer different kinds of things. Two matter here:
 
-## The tool list can change
+- **Resources.** The [MCP spec](https://modelcontextprotocol.io/specification/2026-07-28/server/resources) says: "Resources allow servers to share data that provides context to language models, such as files, database schemas, or application-specific information." They are "**application-driven**": the app (the **host**) decides how to bring them in.
+- **Tools.** Actions the model can call, such as "search photos". The spec calls tools model-controlled.
 
-The server's owner can change what the server offers. Both vendors say so:
+Now the catch. Two Claude pages say different things, because they are about different products:
 
-- Anthropic: "An MCP server can change its tools at any time." Its beta lets you pin a copy of the tool list, "so a server that changes its tools doesn't change what Claude sees partway through a conversation". That is on the Claude API.
-- OpenAI: "MCP servers may update tool behavior unexpectedly, potentially leading to unintended or malicious behavior."
+- The [Claude API MCP connector](https://platform.claude.com/docs/en/agents-and-tools/mcp-connector) (beta): "Of the feature set of the MCP specification, only tool calls are currently supported."
+- The [Claude connectors docs](https://claude.com/docs/connectors/building), for Claude apps such as claude.ai and Claude Code, say "Your server can expose these to Claude": tools, prompts and resources.
 
-Example: a library update adds a "delete asset" tool. If your set-up imports every tool, the AI now has a new power that nobody approved.
+So a library server that offers only resources may work in a Claude app and do nothing through the API connector. Our advice: ask the library vendor for tools (for example, search and get-one-file), and test in each place you will use the link.
 
-Our habit: keep a record of the tool list you approved, import only the tools you named, and test after a vendor update.
+### Built-in connectors are on the way out
 
-## A long list costs tokens
+OpenAI's Responses API also has built-in connectors for services such as Dropbox. The [OpenAI MCP docs](https://developers.openai.com/api/docs/guides/tools-connectors-mcp) say: "`connector_id` is deprecated for models released after September 1, 2026." The page points to `server_url` (a remote server) or `tunnel_id` (a local server through Secure MCP Tunnel) in its place. The page adds: "Existing models retain connector support."
 
-A library server can have many tools. Both vendors let you hold back the details:
+### The tool list can change under you
 
-- Claude: `defer_loading`, which means "tool description is not sent to the model initially".
-- OpenAI: `defer_loading: true`, so "the individual function definitions are loaded only when needed". OpenAI says this "can help reduce overall token usage". Both work together with each vendor's tool search.
+The server's owner can change it at any time. Both vendors warn about this:
 
-## Where the data goes
+- The Claude docs:
+  - "An MCP server can change its tools at any time."
+  - A newer beta header, `mcp-client-2026-09-15`, lets you pin the list, "so a server that changes its tools doesn't change what Claude sees partway through a conversation".
+  - "It's available on the Claude API."
+- The OpenAI docs: "MCP servers may update tool behavior unexpectedly, potentially leading to unintended or malicious behavior."
 
-A linked library sends asset data to a server, and often through a vendor. Check retention before you link anything secret.
+Our habit: write down the tool list you approved. Switch on only those tools by name. After a vendor update, compare the new list with yours, and test before use. A renamed tool is a new name your settings do not know. A new tool is a new power nobody approved.
 
-- Anthropic: "The MCP connector is not covered by ZDR arrangements." Data exchanged with MCP servers "is retained according to Anthropic's standard data retention policy". ZDR means zero data retention.
-- OpenAI: the MCP tool works with Zero Data Retention, but "data sent to an MCP server is subject to their data retention and data residency policies". It adds that this part is "your responsibility".
+### Long lists cost tokens
 
-Example: an unreleased campaign folder is under embargo. Put it outside the link until you know who keeps a copy, and for how long.
+A big library can have many tools. Both vendors let you hold back the details until they are needed:
 
-## What this means for your work
+- Claude: `defer_loading` means the "tool description is not sent to the model initially". It is used with the tool search tool.
+- OpenAI: with `defer_loading: true`, "the individual function definitions are loaded only when needed. This can help reduce overall token usage".
 
-- **Choose link or copy on purpose.** Link for things that change. Copy for things that must not.
-- **Ask for tools,** not only resources, and test where you will use them.
-- **Record the approved tool list** and re-check after updates.
-- **Keep secret folders out of the link** until retention is checked at every hop.
+### Where the data goes
+
+**ZDR** means zero data retention: the vendor does not keep your data after the request. Check it at every stop on the way.
+
+- The Claude docs: "The MCP connector is not covered by ZDR arrangements." Data exchanged with MCP servers "is retained according to Anthropic's standard data retention policy".
+- The OpenAI docs:
+  - "The MCP tool is compatible with Zero Data Retention and Data Residency".
+  - But "data sent to an MCP server is subject to their data retention and data residency policies."
+  - "It is your responsibility to ensure that the MCP server also adheres to any Zero Data Retention or Data Residency requirements you may have."
+
+So "the AI vendor has ZDR" is never the whole answer. The server is a third stop with its own rules.
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+Link:    photos + release forms -> archive server -> OpenAI
+Tools:   "whatever the server has"
+Reason:  "the MCP tool is ZDR-compatible, so nothing is kept"
+```
+
+### Step 2: check each stop
+
+```text
+Freshness  link answers from today's archive       -> fixes stale photos
+OpenAI     ZDR covers OpenAI's side only
+Server     keeps data by the archive company's own policy -> unknown
+Forms      names and addresses pass through the server -> who keeps them?
+Tool list  not written down -> an update can add a tool unseen
+```
+
+### Step 3: the hard case
+
+**The hard case is the OpenAI side.** It looks safe: the MCP tool is compatible with ZDR. But the photos and release forms also pass through the archive server, and that server keeps data by its own policy. The OpenAI docs put that check on you. "Compatible with ZDR" is not "no one keeps a copy".
+
+### Step 4: the good plan
+
+```text
+Link:      photos, through search_photos and get_photo.
+Forms:     wait. Ask the archive company for its retention and
+           residency policy in writing, then decide.
+Approved:  search_photos, get_photo. Saved in our sheet, dated.
+           Only these two in allowed_tools.
+After any server update: compare, test, then switch on.
+```
+
+### Step 5: why it is better
+
+- **The AI sees the archive as it is today.** No more removed photos.
+- **Every stop is checked:** OpenAI first, then the server.
+- **The forms wait** until the server's policy is known.
+- **A change to the server is seen, not discovered later.**
+
+## Common mistakes
+
+1. **Assuming "it works in the Claude app" means "it works in the API".** Fix: the API connector supports tool calls only, so test each place.
+2. **Reading "ZDR-compatible" as "nothing is kept anywhere".** Fix: check the vendor and the server separately.
+3. **Switching on "all tools" for a server you do not control.** Fix: name the approved tools and re-check after each update.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Answer each note with yes or no, and one reason.
+
+```text
+a) Our old flow uses connector_id with gpt-5.2, a model released
+   before September 2026. Will it stop working because of the
+   deprecation?
+b) With Claude's defer_loading on, the model sees every tool's full
+   description in the first turn.
+c) Pinning a Claude tool list needs a beta header.
+```
+
+### Answer
+
+1. **a) No.** gpt-5.2 came out before the cutoff date, and the OpenAI page says existing models keep connector support. For new work, still plan on `server_url`.
+2. **b) No.** With `defer_loading`, the tool description is not sent to the model at first. It works with tool search.
+3. **c) Yes.** Pinning comes with the `mcp-client-2026-09-15` beta header, on the Claude API.
+
+## Recap
+
+- A link shows the library as it is now; a copy goes stale. A link sends data out on every call, so check every stop.
+- Resources are app-driven context; tools are model actions. The Claude API connector supports tool calls only, so ask library vendors for tools. For OpenAI models that came out after the 1 September 2026 cutoff, `connector_id` is deprecated.
+- The server owner may change the tool list whenever the owner wants. Record and name the approved list, pin it on Claude if needed, and use `defer_loading` to save tokens. Claude's connector has no ZDR cover, and an MCP server keeps data by its own rules.
