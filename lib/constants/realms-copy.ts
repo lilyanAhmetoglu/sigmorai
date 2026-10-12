@@ -62,16 +62,8 @@ export const REALM_ACTION_TEXT: Record<RealmStatus, string> = {
   'tier-locked': 'View realm',
 };
 
-/** Realm card and realm page words. */
+/** Realm card and realm page words (the realm cards live on the world map). */
 export const REALMS_TEXT = {
-  title: 'Realms',
-  eyebrow: 'ALL REALMS',
-  /** "Explore realms · Builder path" (the label comes in caps). */
-  heading: (trackLabel: string) => `Explore realms · ${pathWord(trackLabel)} path`,
-  /** Meta description of the catalog. */
-  description:
-    'Every Sigmorai realm on every path. Each one is a course: its chapters, then a boss, built from official docs.',
-  intro: 'Every realm is a course: its chapters, then a boss, built from official docs.',
   trackSwitch: 'Path',
   signInNote: 'Sign in to save your progress and earn XP.',
   signIn: 'Sign in',
@@ -103,12 +95,8 @@ export const REALMS_TEXT = {
   chevronClosed: '▸',
   chevronOpen: '▾',
   nothingLive: 'No chapters in this realm are ready yet. They come soon.',
-  backIcon: '◂',
-  back: 'All realms',
   notFound: 'This realm does not exist.',
-  loading: 'Loading the realms',
   loadingRealm: 'Loading the realm',
-  error: "The realms didn't load. Try again in a moment.",
   errorRealm: "This realm didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;
@@ -264,10 +252,11 @@ export const WORLD_MAP_TEXT = {
   title: 'World map',
   metaTitle: 'World map · Sigmorai',
   description:
-    'The world of Sigmorai: every realm on your path, what you cleared and where you are.',
+    'The world of Sigmorai: every realm on your path, the Math Tower and the Frontier, what you cleared and where you are.',
   /** "STRATEGIST PATH" */
   eyebrow: (trackLabel: string) => `${trackLabel} PATH`,
-  intro: 'Each land is a realm on your path. Open a land to see its level map.',
+  intro:
+    'Each land is a realm on your path. Open a land to see its level map, or pick a realm card below.',
   /** The map box (a labelled section). */
   mapLabel: 'World map',
   hint: 'Scroll or swipe to move around the map. Zoom with + and −.',
@@ -292,9 +281,11 @@ export const WORLD_MAP_TEXT = {
   youAreHere: 'YOU ARE HERE',
   /** On the first open realm, for a visitor. */
   startHere: 'START HERE',
+  /** A landmark pin's accessible name: "Math Tower, side realm" (visible name first, WCAG 2.5.3). */
+  landmark: (name: string) => `${name}, side realm`,
   /** The line under the map that names the current realm: "00 Bootstrap Village". */
   here: (number: string, name: string) => `${number} ${name}`,
-  /** The list heading: "YOUR PATH" for a player, "REALMS ON THIS PATH" for a visitor. */
+  /** The realm cards' heading: "YOUR PATH" for a player, "REALMS ON THIS PATH" for a visitor. */
   pathHeading: 'YOUR PATH',
   pathHeadingVisitor: 'REALMS ON THIS PATH',
   /**
@@ -312,6 +303,8 @@ export const WORLD_MAP_TEXT = {
     open: 'Open',
     locked: 'Locked (advanced realm)',
     pathOnly: 'Only on this path',
+    /** The landmark pin's diamond (WORLD_LANDMARK_PIP). */
+    sideRealm: `Side realm: ${MATH_TOWER.name}, ${FRONTIER.name}`,
   },
   /** The level map's link back to the world map. */
   backIcon: '◂',
@@ -343,7 +336,7 @@ export const MATH_TEXT = {
   /** Visually hidden heading over a floor's formulas. */
   formulas: 'Formulas',
   backIcon: '◂',
-  back: 'All realms',
+  back: 'World map',
   loading: 'Loading the Math Tower',
   error: "The Math Tower didn't load. Try again in a moment.",
   retry: 'Retry',
@@ -365,13 +358,13 @@ export const FRONTIER_TEXT = {
   empty: FRONTIER_EMPTY,
   minutes: (n: number) => `${n} min`,
   backIcon: '◂',
-  back: 'All realms',
+  back: 'World map',
   loading: 'Loading the Frontier',
   error: "The Frontier didn't load. Try again in a moment.",
   retry: 'Retry',
 } as const;
 
-/** The "Side realms" link row on /realms. */
+/** The "Side realms" link row on the world map (components/realms/side-realms.tsx). */
 export const SIDE_REALMS_TEXT = {
   heading: 'SIDE REALMS',
   icon: '▸',

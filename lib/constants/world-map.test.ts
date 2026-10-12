@@ -13,6 +13,7 @@ import {
   WORLD_COMPASS_PX,
   WORLD_GLYPHS,
   WORLD_HERO,
+  WORLD_LANDMARK_PIP,
   WORLD_MAP,
   WORLD_MAP_ART,
   WORLD_MIN_ANCHOR_GAP,
@@ -181,9 +182,28 @@ describe('labels and pins', () => {
   const at = (x: number, y: number, [l, t, r, b]: Box): Box => [x + l, y + t, x + r, y + b];
   const anchors = places.filter(([name]) => !WORLD_MAP.landmarks.some((l) => l.id === name));
 
-  test('each state has its own pip shape', () => {
-    const shapes = Object.values(WORLD_STATUS_PIPS).map((rows) => rows.join('/'));
+  test('each state has its own pip shape, and the landmark pip is none of them', () => {
+    const shapes = [...Object.values(WORLD_STATUS_PIPS), WORLD_LANDMARK_PIP].map((rows) =>
+      rows.join('/'),
+    );
     expect(new Set(shapes).size).toBe(shapes.length);
+    // Every pip is 7×7 (world-map-art.tsx → PipSvg draws a 7×7 viewBox).
+    for (const rows of [...Object.values(WORLD_STATUS_PIPS), WORLD_LANDMARK_PIP]) {
+      expect(rows).toHaveLength(7);
+      for (const row of rows) expect(row).toHaveLength(7);
+    }
+  });
+
+  test('world-map.css stands a landmark plate like landmarkLabel (24px under the anchor, 20px + shadow)', async () => {
+    const css = await Bun.file(
+      `${import.meta.dir}/../../app/styles/components/world-map.css`,
+    ).text();
+    const [, t, , b] = landmarkLabel(WORLD_MAP.landmarks[0], 1);
+    expect(t - WORLD_MAP.landmarks[0].y).toBe(24);
+    expect(b - t).toBe(20 + 2);
+    const rule = css.match(/\.world-landmark-name \{([^}]*)\}/)?.[1] ?? '';
+    expect(rule).toContain(' h-5 ');
+    expect(rule).toContain('top-[calc(100%+--spacing(0.5))]');
   });
 
   test('every realm name fits its plate (Silkscreen 10px: under 8px a letter, 12px padding, 2px shadow)', () => {
@@ -211,25 +231,35 @@ describe('labels and pins', () => {
     expect(rule).toContain('top-[calc(100%+--spacing(0.5))]');
   });
 
-  test('at every zoom, no pin (with its pip) or label plate touches another, or a landmark label', () => {
+  test('at every zoom, no pin (with its pip) or label plate touches another, landmarks too', () => {
     const clashes: string[] = [];
     for (const z of ZOOM_STEPS) {
-      // Screen px on the stage; label plates show from zoom 1.
-      const said = anchors.flatMap(([name, p]): [string, Box][] => [
-        [`${name} pin`, at(p.x * z, p.y * z, WORLD_HERO.pinBox)],
-        ...(z >= 1
-          ? [[`${name} label`, at(p.x * z, p.y * z, WORLD_HERO.detail)] as [string, Box]]
-          : []),
-      ]);
+      // Screen px on the stage; realm label plates show from zoom 1, a
+      // landmark's pin and name plate at every zoom.
+      const said = [
+        ...anchors.flatMap(([name, p]): [string, Box][] => [
+          [`${name} pin`, at(p.x * z, p.y * z, WORLD_HERO.pinBox)],
+          ...(z >= 1
+            ? [[`${name} label`, at(p.x * z, p.y * z, WORLD_HERO.detail)] as [string, Box]]
+            : []),
+        ]),
+        ...WORLD_MAP.landmarks.flatMap((m): [string, Box][] => [
+          [`${m.id} pin`, at(m.x * z, m.y * z, WORLD_HERO.pinBox)],
+          [`${m.id} label`, landmarkLabel(m, z)],
+        ]),
+      ];
       said.forEach(([a, boxA], i) =>
         said.slice(i + 1).forEach(([b, boxB]) => {
           if (a.split(' ')[0] !== b.split(' ')[0] && hit(boxA, boxB))
             clashes.push(`${z}: ${a} × ${b}`);
         }),
       );
-      for (const m of WORLD_MAP.landmarks)
-        for (const [a, boxA] of said)
-          if (hit(landmarkLabel(m, z), boxA)) clashes.push(`${z}: ${m.id} label × ${a}`);
+      // Every landmark name plate stays on the stage.
+      for (const m of WORLD_MAP.landmarks) {
+        const [l, t, r, b] = landmarkLabel(m, z);
+        if (l < 0 || t < 0 || r > WORLD_MAP.width * z || b > WORLD_MAP.height * z)
+          clashes.push(`${z}: ${m.id} label off the stage`);
+      }
     }
     expect(clashes).toEqual([]);
   });

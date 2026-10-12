@@ -5,7 +5,7 @@ import {
   DASHBOARD_TEXT,
   QUEST_TEXT,
   questHref,
-  REALMS_HREF,
+  MAP_HREF,
   REALMS_TEXT,
   STEP_TEXT,
 } from '@/lib/constants';
@@ -29,7 +29,7 @@ export function ContinueCard({ next, realms }: Props) {
       <Panel tone="sunken" className="flex flex-col items-start gap-3">
         <p className="text-body leading-body m-0">{DASHBOARD_TEXT.nothingOpen}</p>
         <p className="text-small leading-body text-text-2 m-0">{DASHBOARD_TEXT.nothingOpenHint}</p>
-        <PixelButton href={REALMS_HREF} variant="secondary">
+        <PixelButton href={MAP_HREF} variant="secondary">
           {DASHBOARD_TEXT.browseAll}
         </PixelButton>
       </Panel>

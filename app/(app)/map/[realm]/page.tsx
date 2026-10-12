@@ -14,7 +14,6 @@ import {
   realmHref,
   REALMS,
   REALMS_TEXT,
-  realmsHref,
   TRACK_PARAM,
   WORLD_MAP_TEXT,
   worldMapHref,
@@ -131,7 +130,7 @@ export default async function MapRealmPage({ params, searchParams }: PageProps<'
           <DialogBox speaker={realm.npc}>{realm.lore}</DialogBox>
         </div>
         <div className="flex min-w-0 flex-[1_1_16rem] flex-wrap gap-3">
-          <PixelButton href={realmsHref(track)} variant="secondary">
+          <PixelButton href={worldMapHref(track)} variant="secondary">
             {MAP_TEXT.allRealms}
           </PixelButton>
           <PixelButton href={realmHref(realm.slug, track)} variant="secondary">

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { CSSProperties } from 'react';
+import { Panel } from '@/components/panel';
 import { PixelAvatar } from '@/components/pixel-avatar';
 import {
   heroSide,
@@ -23,7 +24,7 @@ import type {
   WorldView,
 } from '@/lib/types';
 import { ScrollToCurrent } from './scroll-to-current';
-import { Compass, Frame, Glyphs, Trail } from './world-map-art';
+import { Compass, Frame, Glyphs, LandmarkPip, Trail } from './world-map-art';
 import { anchorStyle, WorldMarker } from './world-marker';
 
 /** The current realm's marker: centred in the box on load. */
@@ -187,8 +188,10 @@ function Island({ land, shape, art }: IslandProps) {
  *
  * Layers: the SVG scales with the zoom; markers, landmarks and the hero do
  * not (world-map.css positions them by anchor × zoom), so they stay 44px
- * targets. Everything drawn is decoration (aria-hidden); the markers are the
- * links, and the path list under the box is the text view. ZoomControls sets
+ * targets. A landmark (Math Tower, the Frontier) stands like a realm marker:
+ * a pin with a diamond pip and its name plate, shown at every zoom.
+ * Everything drawn is decoration (aria-hidden); the markers are the links,
+ * and the realm cards and side-realm links under the box are the text view. ZoomControls sets
  * data-zoom on the box and world-map.css does the rest; with no JS the box
  * shows zoom 1. On load the box centres the current realm
  * (ScrollToCurrent).
@@ -302,14 +305,15 @@ export function WorldMap({ view, heroName, tag }: Props) {
                 className="world-landmark"
                 data-accent={l.accent}
                 data-align={l.align}
-                style={
-                  {
-                    ...anchorStyle(l),
-                    '--half-w': `${l.w / 2}px`,
-                    '--half-h': `${l.h / 2}px`,
-                  } as CSSProperties
-                }
+                aria-label={WORLD_MAP_TEXT.landmark(l.name)}
+                style={{ ...anchorStyle(l), '--half-w': `${l.w / 2}px` } as CSSProperties}
               >
+                {/* A pin like a realm's, with the side-realm diamond for its pip. */}
+                <span className="world-marker-pin">
+                  <span className="world-marker-pip">
+                    <LandmarkPip />
+                  </span>
+                </span>{' '}
                 <span className="world-landmark-name">{l.name}</span>
               </Link>
             </li>
@@ -337,9 +341,9 @@ export function WorldMapSkeleton() {
 
 /**
  * Everything under the /map header while the data loads, at its final
- * size: track switch, map box, hint + zoom row, path rows. No spinner. A
- * fragment, so the page's own gap spaces it. For the page's Suspense and
- * its loading.tsx.
+ * size: track switch, map box, hint + zoom row, side-realm buttons, realm
+ * cards. No spinner. A fragment, so the page's own gap spaces it. For the
+ * page's Suspense and its loading.tsx.
  */
 export function WorldMapBodySkeleton() {
   return (
@@ -351,9 +355,20 @@ export function WorldMapBodySkeleton() {
       <WorldMapSkeleton />
       {/* Hint + zoom row */}
       <div className="bg-surface-2 h-11" />
+      {/* Side realms: heading + two buttons */}
       <div className="flex flex-col gap-3">
+        <div className="bg-surface-2 h-4 w-32" />
+        <div className="flex flex-wrap gap-3">
+          <div className="bg-surface-2 h-11 w-44" />
+          <div className="bg-surface-2 h-11 w-44" />
+        </div>
+      </div>
+      {/* Realm cards */}
+      <div className="card-grid">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="bg-surface-2 h-11" />
+          <Panel key={i} tone="sunken">
+            <div className="h-48" />
+          </Panel>
         ))}
       </div>
     </>

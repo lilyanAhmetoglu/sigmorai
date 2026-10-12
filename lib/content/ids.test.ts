@@ -304,7 +304,7 @@ describe('realmExerciseIds', () => {
 });
 
 describe('questBackHref', () => {
-  test('a realm quest goes back to its realm, a floor to the tower, a Frontier step to the Frontier, anything else to the catalog', () => {
+  test('a realm quest goes back to its realm, a floor to the tower, a Frontier step to the Frontier, anything else to the world map', () => {
     expect(questBackHref('builder/r1/c2/challenge')).toBe(
       `/realms/${REALMS[1].slug}?track=builder`,
     );
@@ -314,7 +314,7 @@ describe('questBackHref', () => {
     expect(questBackHref('math/f1/lesson')).toBe('/math');
     expect(questBackHref('frontier/2026-10-05-some-slug/lesson')).toBe('/frontier');
     expect(questBackHref('frontier/2026-10-05-some-slug/quick-check')).toBe('/frontier');
-    expect(questBackHref('nonsense')).toBe('/realms');
+    expect(questBackHref('nonsense')).toBe('/map');
   });
 });
 

@@ -8,7 +8,8 @@ import {
 } from '@/components/map/world-map';
 import { WorldMapLegend } from '@/components/map/world-map-legend';
 import { ZoomControls } from '@/components/map/zoom-controls';
-import { PathList } from '@/components/realms/path-list';
+import { RealmCard } from '@/components/realms/realm-card';
+import { SideRealms } from '@/components/realms/side-realms';
 import { SignInNote } from '@/components/realms/sign-in-note';
 import { TrackSwitch } from '@/components/realms/track-switch';
 import { MAP_HREF, TRACK_PARAM, TRACK_TEXT, WORLD_MAP_TEXT, worldMapHref } from '@/lib/constants';
@@ -34,6 +35,10 @@ type MapData = { trackParam: string | string[] | undefined; page: RealmsPage };
  * the realm holding the next step. Each land links to its level map
  * (/map/<slug>). Public: a visitor sees the default path with no progress
  * and "START HERE". `?track=` picks the path, like the realm pages.
+ * The one realms hub (maintainer, 2026-10-12): under the map, the side
+ * realms (Math Tower, Frontier), then the realm cards of the old /realms
+ * catalog in path order (they replace the "Your path" list: same realms,
+ * more detail). /realms redirects here (next.config.ts).
  * In a route group so this loading.tsx never wraps /map/<slug>, whose layout
  * must 404 a bad slug before anything streams.
  * Not built yet: the Higgsfield art (PR 3); the world is drawn as a token
@@ -73,14 +78,15 @@ async function Eyebrow({ data }: { data: Promise<MapData> }) {
   return <p className="page-eyebrow">{WORLD_MAP_TEXT.eyebrow(TRACK_TEXT[page.map.track].label)}</p>;
 }
 
-/** The track switch, the map with its bar and key, and the path list. */
+/** The track switch, the map with its bar and key, the side realms and the realm cards. */
 async function WorldMapBody({ data }: { data: Promise<MapData> }) {
   const {
     trackParam,
     page: { viewer, map, heroName },
   } = await data;
   // Keep ?track= on the links only when the page got one (as the old redirect did).
-  const view = worldView(map, undefined, trackParam ? map.track : undefined);
+  const linkTrack = trackParam ? map.track : undefined;
+  const view = worldView(map, undefined, linkTrack);
   const tag = heroName ? WORLD_MAP_TEXT.youAreHere : WORLD_MAP_TEXT.startHere;
   const here = view.realms.find((r) => r.current);
 
@@ -108,11 +114,19 @@ async function WorldMapBody({ data }: { data: Promise<MapData> }) {
         <WorldMapLegend tag={tag} />
       </div>
 
+      <SideRealms />
+
       <section aria-labelledby={PATH_HEADING_ID} className="flex flex-col gap-3">
         <h2 id={PATH_HEADING_ID} className="page-eyebrow">
           {viewer === 'ready' ? WORLD_MAP_TEXT.pathHeading : WORLD_MAP_TEXT.pathHeadingVisitor}
         </h2>
-        <PathList realms={view.realms} currentTag={tag} labelledBy={PATH_HEADING_ID} />
+        <ul className="card-grid" aria-labelledby={PATH_HEADING_ID}>
+          {map.realms.map((realm) => (
+            <li key={realm.id}>
+              <RealmCard realm={realm} track={linkTrack} />
+            </li>
+          ))}
+        </ul>
       </section>
     </>
   );

@@ -18,10 +18,11 @@ import {
   REALM_STATUS_TEXT,
   realmHref,
   REALMS_TEXT,
-  realmsHref,
   SHARE_TEXT,
   SITE_NAME,
   TRACK_PARAM,
+  WORLD_MAP_TEXT,
+  worldMapHref,
 } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
 import { getRealmMeta, getRealmPage } from '@/lib/data/realms';
@@ -73,9 +74,9 @@ export default async function RealmPage({ params, searchParams }: PageProps<'/re
       className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6"
       data-accent={realmAccent(realm.id)}
     >
-      <Link href={realmsHref(track)} className="realm-back">
-        <span aria-hidden="true">{REALMS_TEXT.backIcon}</span>
-        {REALMS_TEXT.back}
+      <Link href={worldMapHref(track)} className="realm-back">
+        <span aria-hidden="true">{WORLD_MAP_TEXT.backIcon}</span>
+        {WORLD_MAP_TEXT.back}
       </Link>
 
       <header className="realm-hero">

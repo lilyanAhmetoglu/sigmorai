@@ -63,7 +63,7 @@ export const AI_TRAINING_AGENTS = [
 /** llms.txt words that no page meta already gives (lib/content/llms.ts). Plain voice. */
 export const LLMS_TEXT = {
   sections: { learn: 'Learn', blog: 'Blog', optional: 'Optional' },
-  realmsLabel: 'Realms',
+  mapLabel: 'World map',
   blogLabel: 'Blog',
   leaderboardLabel: 'Leaderboard',
   sitemapLabel: 'Sitemap',
