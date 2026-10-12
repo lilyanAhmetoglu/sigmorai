@@ -1,7 +1,7 @@
 ---
 id: math/f2/lesson
 title: Probability
-minutes: 9
+minutes: 10
 sources:
   - kind: docs
     title: Glossary (Claude docs)
@@ -14,27 +14,43 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-A language model writes one token at a time, and each step is a choice made with probabilities. This floor covers the probability you need to read that process: events, distributions, conditional probability, and sampling.
+## Goal
 
-## Probability is a number from 0 to 1
+After this lesson you can:
 
-A probability says how likely an event is. 0 means it never happens. 1 means it always happens. 0.25 means it happens 1 time in 4 on average.
+- Read a model's next-token output as a probability distribution, and turn logprobs back into probabilities.
+- Combine probabilities: add them for _this or that_, multiply them for _this, then that_.
+- Say which tokens greedy decoding, `topK` and `topP` let the model pick.
 
-Example: a fair 6-sided die. The event "roll a 6" has probability `1 / 6 ≈ 0.167`. The event "roll an even number" has 3 good outcomes (2, 4, 6), so its probability is `3 / 6 = 0.5`.
+## The problem
 
-## A distribution covers every outcome
+Your app asks a model to label each support ticket with one word, like ` refund` or ` bug`. The API can also return logprobs: a number for each likely token. You want a simple rule: accept the label alone when the model is sure, and send the ticket to a person when it is not.
 
-A distribution gives a probability to every possible outcome. The probabilities of all outcomes add up to exactly 1, because one of them must happen.
+The numbers look strange. They are negative, and the same word shows up twice with a capital letter. To write a safe rule, you need to read these numbers as probabilities. This lesson shows how.
 
-For the die: six outcomes, each `1 / 6`, and `6 × 1 / 6 = 1`.
+## The idea
 
-If you know all outcomes but one, you can find the last one: subtract the others from 1.
+### Probability is a number from 0 to 1
 
-## Next-token prediction
+A **probability** says how likely an **event** is. An event is something that can happen, like _roll a 6_. 0 means it never happens. 1 means it always happens. 0.25 means about 1 time in 4.
 
-The Claude glossary describes pretraining this way: language models "are pretrained to predict the next word, given the previous context of text in the document."
+Our example: a fair 6-sided die. Each **outcome** (one possible result) is `1 / 6 ≈ 0.167` (`≈` means "about").
 
-The model's output at each step is a distribution over its vocabulary: one probability for every token it knows. Here is a made-up example for the text `The sky is`:
+### A distribution covers every outcome
+
+A **distribution** gives each possible outcome a probability. All of them add up to exactly 1, because one outcome must happen. For the die: `6 × 1/6 = 1`.
+
+So the chance that an event does **not** happen is 1 minus its chance. The die does not show a 6: `1 − 1/6 = 5/6 ≈ 0.833`. The same rule finds a missing part of a distribution: subtract the parts you know from 1.
+
+### Or: add
+
+When two outcomes can't both happen, the chance of _one or the other_ is their sum. The die shows a 1 or a 2: `1/6 + 1/6 = 2/6 ≈ 0.333`.
+
+### Next-token prediction
+
+A **token** is a small piece of text, like ` blue` or `.`. The model's **vocabulary** is the list of every token it knows. The [Claude glossary](https://platform.claude.com/docs/en/about-claude/glossary) says that language models "are pretrained to predict the next word, given the previous context of text in the document."
+
+At each step, the model's output is a distribution over its whole vocabulary. Every token gets a probability, even very small ones. Our made-up example for the text `The sky is`:
 
 | Next token  | Probability |
 | ----------- | ----------- |
@@ -43,62 +59,132 @@ The model's output at each step is a distribution over its vocabulary: one proba
 | ` dark`     | 0.15        |
 | every other | 0.05        |
 
-The four rows add up to `0.60 + 0.20 + 0.15 + 0.05 = 1`. Real numbers depend on the model and the text before.
+The rows add up to `0.60 + 0.20 + 0.15 + 0.05 = 1`.
 
-## Conditional probability
+### Conditional probability
 
-These probabilities depend on the text that came before. That is a conditional probability, written with a bar:
+These numbers depend on the text before. That is a **conditional probability**, written with a bar `|` that you read as "given":
 
-`P(x_t | x_(t-1) … x_1)`: the probability of token x at step t, given all the tokens before step t.
+`P(x_t | x_<t)`: the probability of token x at step t, given all the tokens before step t.
 
-Change the text before, and the distribution changes. After `The sky at midnight is`, the token ` dark` should get a much bigger share than after `The sky is`.
+`x_t` is the token at step t. `x_<t` means every token before step t. Change the text before, and the distribution changes.
 
-The OpenAI cookbook defines the same idea. A logprob is `log(p)`, where p is the "probability of a token occurring at a specific position based on the previous tokens in the context."
+### Then: multiply
 
-## Many steps: multiply
+The chance of two tokens in a row is the chance of the first, times the chance of the second given the first. Our example: ` blue` has 0.60, and `.` then has 0.50. The pair has `0.60 × 0.50 = 0.30`.
 
-To get the probability of two tokens in a row, multiply the probability of the first by the probability of the second, given the first.
+### Logprobs
 
-Example: ` blue` has 0.60. Say `.` then has 0.50, given `The sky is blue`. The pair has probability `0.60 × 0.50 = 0.30`.
+Long texts multiply many small numbers. So APIs often return **logprobs** instead. The [OpenAI cookbook](https://developers.openai.com/cookbook/examples/using_logprobs) says "a logprob is log(p)", where p is the probability of a token "based on the previous tokens in the context".
 
-Long texts multiply many small numbers. The OpenAI API can return log probabilities (logprobs). With logs, multiplying becomes adding.
+`ln` (also written `log` here) is the natural logarithm: the `ln` button on a calculator. `e ≈ 2.718` is a fixed number, and `e^x` means e to the power (exponent) x. `e^x` undoes `ln`: `e^(ln p) = p`. So `e^(−0.105) ≈ 0.90`.
 
-`ln` is the natural logarithm: the ln button on a calculator. `e^x` undoes it: `e^(ln p) = p`. So you can take the ln of each step, add, and turn the sum back into a probability:
+Three facts from the OpenAI cookbook:
 
-- `ln 0.60 ≈ −0.511`
-- `ln 0.50 ≈ −0.693`
-- sum: `−1.204`, and `e^(−1.204) ≈ 0.30`, the same answer
+- "Logprob can be any negative number or 0.0."
+- "0.0 corresponds to 100% probability."
+- "Higher log probabilities suggest a higher likelihood of the token in that context."
 
-The OpenAI cookbook says the same: you add the logprobs of the tokens, and "Exponentiating that sum gives the joint probability." Exponentiating means taking e to the power of the sum. It also notes that a higher logprob means a more likely token, and a logprob of `0.0` corresponds to 100% probability. Every logprob is 0 or below, because no probability is above 1.
+Logs turn multiplying into adding. For the pair above: `ln 0.60 ≈ −0.511` and `ln 0.50 ≈ −0.693`. The sum is `−1.204`, and `e^(−1.204) ≈ 0.30`, the same answer. The cookbook says you sum the logprobs, and "Exponentiating that sum gives the joint probability." (Joint probability is the chance of all the tokens together.)
 
-## Sampling: picking from the distribution
+### Picking a token
 
-The model gives a distribution. Something still has to pick one token from it. Two simple ways:
+The model gives a distribution. Something still has to pick one token from it.
 
-- **Greedy:** always take the most likely token. In the table, that is always ` blue`.
-- **Sampling:** pick at random, with the probabilities as weights. Over 100 samples, ` blue` comes up about 60 times and ` clear` about 20 times.
+- **Greedy decoding:** always take the most probable token.
+- **Sampling:** pick at random, with the probabilities as weights. Over 100 picks from the sky table, ` blue` comes up about 60 times.
 
-The Gemini docs name the greedy case: a `topK` of 1 means the next token is the most probable one in the vocabulary, "also called greedy decoding".
+The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) describe two filters that run before the pick:
 
-Some settings remove unlikely tokens before the pick. The Gemini docs explain `topP` with an example: "if tokens A, B, and C have a probability of 0.3, 0.2, and 0.1 and the `topP` value is 0.5, then the model will select either A or B as the next token by using the temperature and exclude C as a candidate." A and B already add up to 0.5, so C is cut.
+- `topK`: "A topK of 1 means the selected token is the most probable among all the tokens in the model's vocabulary (also called greedy decoding)". A `topK` of 3 keeps the 3 most probable tokens.
+- `topP`: "Tokens are selected from the most to least probable until the sum of their probabilities equals the topP value."
 
-## Temperature, in one picture
+Our `topP` example: four tokens with 0.5, 0.3, 0.1 and 0.1, and `topP` 0.8. Take the biggest first: 0.5. Add the next: `0.5 + 0.3 = 0.8`. The sum has reached 0.8, so the last two tokens are out. The pick is then made between the first two.
 
-Temperature changes how random the pick is. The Claude glossary: "Lower temperatures result in more conservative and deterministic outputs that stick to the most probable phrasing and answers." Deterministic means the same output every time. Higher temperatures lead to "more creative and diverse outputs".
+A third setting, temperature, changes how random the pick is between the tokens that stay.
 
-Think of it as sharpening or flattening the table. Low temperature makes ` blue` win almost every time. High temperature gives ` clear` and ` dark` more chances. Floor 5 shows the exact formula.
+A small comparison: a distribution is a pie. Every token has a slice, and the slices always fill the whole pie.
 
-Two warnings from the docs:
+## Worked example
 
-- **Claude:** "Even with temperature set to 0, the results will not be fully deterministic and identical inputs may produce different outputs across API calls."
-- **Gemini:** for Gemini 3.x models, Google strongly recommends keeping these parameters at their default values, because changing them "can cause unexpected behavior, such as looping or degraded performance".
+Our example: the ticket labeller. The API returns logprobs for the first token of the label. Our rule: accept the label alone if its probability is at least 0.9. Otherwise a person reviews the ticket.
 
-On paper, greedy decoding always picks the same token. A served API can still vary for other reasons, so don't count on identical outputs.
+### Step 1: an easy ticket
 
-## Key points
+```text
+token      logprob
+ refund    -0.051
+```
 
-- A probability is a number from 0 to 1. A distribution gives one to every outcome, and they add up to 1.
-- At each step, the model gives a distribution over the next token, conditioned on the tokens before.
-- The probability of a sequence is the product of its steps. Logprobs turn that product into a sum.
-- Greedy decoding always takes the top token. Sampling picks with the probabilities as weights.
-- Temperature controls how random the pick is. Check your vendor's docs before you change it.
+Turn the logprob into a probability: `e^(−0.051) ≈ 0.950`. 0.950 is at least 0.9, so the app accepts ` refund`.
+
+### Step 2: the hard case
+
+```text
+token      logprob
+ refund    -0.511
+ Refund    -1.139
+ bug       -2.996
+```
+
+Turn each one back:
+
+- ` refund`: `e^(−0.511) ≈ 0.600`
+- ` Refund`: `e^(−1.139) ≈ 0.320`
+- ` bug`: `e^(−2.996) ≈ 0.050`
+
+Before: the top token is ` refund` at 0.600. That is under 0.9, so the first version of the rule sends this ticket to a person.
+
+**This is the hard case.** ` refund` and ` Refund` are two different tokens, but they are the same label for our app. The model can only produce one of them at this step, so they can't both happen. So the two chances add: `0.600 + 0.320 = 0.920`.
+
+After: the label "refund" has probability 0.920. That is at least 0.9, so the app accepts it.
+
+### Step 3: the fixed rule
+
+```text
+1. turn every logprob into a probability with e^x
+2. group tokens that mean the same label (case, leading space)
+3. add the probabilities inside each group
+4. accept the best group if its total is at least 0.9
+```
+
+### Step 4: why it is better
+
+- **Fewer wasted reviews.** The model was sure about the label. It only spread its probability over two spellings.
+- **Honest numbers.** Every check uses real probabilities, not raw logprobs.
+- **Same rule for every label.** Step 2 of the rule also catches other spellings, like a missing leading space.
+
+## Common mistakes
+
+1. **Reading a logprob as a percent.** `−0.105` is not minus 10%. Fix: take `e^x` first. `e^(−0.105) ≈ 0.90`.
+2. **Thinking a bigger minus number is more likely.** `−2.303` looks big, but it is further from 0. Fix: closer to 0 means more likely. `e^(−2.303) ≈ 0.10`.
+3. **Splitting one answer across spellings.** ` Yes` and ` yes` each look unsure on their own. Fix: group tokens that mean the same thing, then add.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Our example: the text so far is `The meeting is on`. Here is the model's table for the next token.
+
+| Next token  | Probability |
+| ----------- | ----------- |
+| ` Monday`   | 0.50        |
+| ` Friday`   | 0.30        |
+| ` the`      | 0.15        |
+| every other | 0.05        |
+
+1. You sample 200 times. About how many times do you get ` Monday`, ` Friday` and ` the`?
+2. Which token does greedy decoding pick?
+3. With `topK` set to 2, which tokens can still be picked?
+
+### Answer
+
+1. Multiply each probability by 200. ` Monday`: `0.50 × 200 = 100`. ` Friday`: `0.30 × 200 = 60`. ` the`: `0.15 × 200 = 30`. These are averages, so a real run will be close, not exact.
+2. ` Monday`, because it has the biggest probability. Greedy decoding picks it every time.
+3. ` Monday` and ` Friday`. `topK` keeps only the 2 most probable tokens, so ` the` and all the rest are out.
+
+## Recap
+
+- A distribution gives each outcome a probability, and they add up to 1. A model gives one over its whole vocabulary at every step.
+- _Or_ adds (when both can't happen). _Then_ multiplies. Logprobs turn that multiplying into adding, and `e^x` turns a logprob back into a probability.
+- Greedy decoding takes the top token. `topK` keeps a fixed number of tokens, and `topP` keeps tokens until their sum reaches its value.
