@@ -160,7 +160,7 @@ export const REALMS = [
     npc: 'Bard Lio',
     tier: 'beginner',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 13,
@@ -169,7 +169,7 @@ export const REALMS = [
     npc: 'Weaver Hale',
     tier: 'intermediate',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 14,
@@ -178,7 +178,7 @@ export const REALMS = [
     npc: 'Foreman Ryn',
     tier: 'intermediate',
     track: 'builder',
-    scene: false,
+    scene: true,
   },
   {
     id: 15,
@@ -187,7 +187,7 @@ export const REALMS = [
     npc: 'Steward Oda',
     tier: 'beginner',
     track: 'strategist',
-    scene: false,
+    scene: true,
   },
 ] as const satisfies readonly RealmRow[];
 
