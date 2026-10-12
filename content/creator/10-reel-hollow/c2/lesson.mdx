@@ -63,7 +63,7 @@ We sort keyframe features into three levels (our grouping). Each level pins more
 
 Luma places each keyframe by frame number, not by seconds. Positions sit "in the duration × 24fps grid: 5s → 0–120, 10s → 0–240". (fps means frames per second.)
 
-So the sum is: **seconds × 24 = frame number.** Luma's example request pins three images at `[0, 60, 120]`: the start, the middle and the end of a 5-second clip. Veo and Runway take no frame numbers.
+So the sum is: **seconds × 24 = frame number.** The example request in the Luma docs pins three images at `[0, 60, 120]`: the start, the middle and the end of a 5-second clip. Veo and Runway take no frame numbers.
 
 ### Luma's rules for keyframes
 
@@ -72,7 +72,7 @@ Break one of these and Luma refuses the request before it makes any video. The d
 - `keyframes` holds "1–64 guide-frame images". `keyframe_indexes` holds their frame numbers.
 - "The two arrays must be the same length, and you provide both or neither — one without the other is a 400".
 - Frame numbers "must be unique and within range". The largest is "120 for a 5s clip and 240 for 10s".
-- `keyframes` "is mutually exclusive with start_frame, end_frame, and loop". A keyframe at frame 0 already does the job of a start frame.
+- `keyframes` "is mutually exclusive with start_frame, end_frame, and loop". A keyframe at frame 0 already does the job of a start frame (our reading).
 - Multi-keyframe "lifts those anchors' restrictions", so it works on a 10-second clip.
 
 Other limits: a start or end image can be at most "50 MB and 8000 px per side". On Runway, the docs for MiniMax H3 Max say: "A last frame requires a first frame. Each image must be at least 256 pixels on both sides."
@@ -81,7 +81,7 @@ Other limits: a start or end image can be at most "50 MB and 8000 px per side". 
 
 On Runway, the [inputs page](https://docs.dev.runwayml.com/assets/inputs) warns that if an image does not match the output ratio, "the model will auto-crop your asset from the center". So make every keyframe in the output's shape (our advice).
 
-Our advice on content: all keyframes should share the same holds (the product, the light, the background). Change only what the beat needs. Our reading: if two keyframes disagree on a detail, that detail will change somewhere in the middle of the clip.
+Our advice on content: all keyframes should share the same holds (the product, the light, the background). Change only what the beat needs (a beat is one moment in the clip). Our reading: if two keyframes disagree on a detail, that detail will change somewhere in the middle of the clip.
 
 ## Worked example
 
@@ -122,7 +122,7 @@ This beat sheet format is ours. The frame number is seconds × 24.
 | 2    | 5.0 s  | 120   | same                           | dough puffed, pale  |
 | 3    | 10.0 s | 240   | same                           | golden loaf, crust  |
 
-All three photos come from one shoot on the same board, so the holds agree.
+The owner approved all three photos.
 
 ### Step 4: the fixed request
 
@@ -143,8 +143,6 @@ All three photos come from one shoot on the same board, so the holds agree.
 }
 ```
 
-No `start_frame` and no `end_frame`: the keyframes at 0 and 240 do that job.
-
 ### Step 5: why it is better
 
 - **It can run.** It uses the mode that supports 10 seconds.
@@ -164,13 +162,13 @@ Not graded. Write your answer down before you read the answer.
 For each job, pick a level (first frame, first + last, or many frames) and one vendor option from this lesson that fits. Give one reason.
 
 1. A logo clip must end on the exact approved logo picture. How it starts does not matter.
-2. A 10-second clip of a candle melting, with approved photos at 0, 4 and 10 seconds. Also write the frame numbers.
+2. A 10-second clip of a candle melting, with approved photos at 0, 4 and 10 seconds.
 3. A clip that must start from one approved photo of a bike. The rest is free.
 
 ### Answer
 
-1. **Last frame only.** On Luma, an `end_frame` alone is valid ("Either, both, or neither"), on a 5-second clip. On Veo, `lastFrame` needs the `image` parameter, and Veo 3.1 on Runway does not take a last frame alone. So Luma fits best.
-2. **Many frames on Luma.** It is 10 seconds with three photos, and multi-keyframe supports 10 seconds. Frame numbers: 0 × 24 = 0, 4 × 24 = 96, 10 × 24 = 240. So `[0, 96, 240]`.
+1. **Last frame only.** On Luma, an `end_frame` alone is valid ("Either, both, or neither"), on a 5-second clip. So Luma fits.
+2. **Many frames on Luma.** It is 10 seconds with three photos, and multi-keyframe supports 10 seconds.
 3. **First frame.** Any of the three vendors. Runway `gen4.5` takes a first frame, and so do Veo and Luma.
 
 ## Recap

@@ -21,6 +21,9 @@ sources:
   - kind: docs
     title: Gemini API docs · Generate and edit videos with Gemini Omni Flash
     url: https://ai.google.dev/gemini-api/docs/omni
+  - kind: docs
+    title: Luma Agents docs · Pricing
+    url: https://docs.agents.lumalabs.ai/guides/pricing
 ---
 
 ## Goal
@@ -61,14 +64,20 @@ Our advice: outpaint when the client approved the master's motion. Regenerate wh
 ### Luma reframe rules (October 2026)
 
 - **Ratios.** "Use one of the six Ray 3.2 video ratios": 9:16, 3:4, 1:1, 4:3, 16:9 and 21:9.
-- **Length.** "Reframe cannot produce output longer than 10s, and the source video is capped at the same 10s ceiling." For a longer clip: "split it into ≤10s segments and reframe each one". Output "Defaults to 5s".
+- **Length in.** "Reframe cannot produce output longer than 10s, and the source video is capped at the same 10s ceiling."
+- **Longer clips.** "split it into ≤10s segments and reframe each one".
+- **Length out.** Output "Defaults to 5s".
 - **Resolution.** "1080p works for landscape and square aspect ratios". Vertical 9:16 and 3:4 at 1080p "return a "coming soon" 400", so use 720p or lower for those.
 - **Prompt.** It says "how the new canvas area should be filled".
 - **No HDR.** HDR is "Rejected — reframe is standard dynamic range only". (HDR, high dynamic range, stores a wider range of bright and dark.)
 
 ### Where the source sits
 
-By default, Luma "fits the source video into the new canvas with a centered crop and outpaints the exposed area". To choose the place yourself, pass `video.source_position`, "a normalized rectangle measured as fractions of the output canvas". It has four fields: `x_norm` and `y_norm` (the top-left corner) and `w_norm` and `h_norm` (the size). "All four fields are required when source_position is present."
+By default, the Luma docs say, reframe "fits the source video into the new canvas with a centered crop and outpaints the exposed area". To choose the place yourself, pass `video.source_position`:
+
+- It is "a normalized rectangle measured as fractions of the output canvas".
+- It has four fields: `x_norm` and `y_norm` (the top-left corner) and `w_norm` and `h_norm` (the size).
+- "All four fields are required when source_position is present."
 
 A small comparison: the canvas is a new, bigger frame, and `source_position` says where you hang the old picture inside it.
 
@@ -78,25 +87,35 @@ To **upscale** is to make a clip bigger in pixels. On Runway, the [Professional 
 
 Enhance Frame Rate changes a clip to a set frame rate (frames per second), such as 25. "Inputs can be at most 300 seconds."
 
-On Google, Omni marks its 1080p and 4K outputs as "upscaled". The [Veo page](https://ai.google.dev/gemini-api/docs/veo) says Veo 3.1 "can also directly generate 720p, 1080p or 4k videos".
+On Google, the Omni page marks its 1080p and 4K outputs as "upscaled". The [Veo page](https://ai.google.dev/gemini-api/docs/veo) says Veo 3.1 "can also directly generate 720p, 1080p or 4k videos".
 
 ### HDR is its own delivery
 
 The Runway docs: "HDR (high dynamic range) stores a wider span of brightness than standard dynamic range (SDR)."
 
-- **Runway.** Gen-4.5 "can generate HDR natively". Ruby "converts any SDR video, including an Aleph edit, to HDR". Its inputs "must be SDR, at most 30 seconds, and up to 4K".
-- **Luma.** `hdr: true` "generates an HDR-encoded MP4". It "requires 720p or 1080p" and "is not supported with duration: "10s" or loop". `exr_export` adds an EXR file "for professional colour-grading workflows" and "Requires hdr: true".
+**Runway.**
+
+- Gen-4.5 "can generate HDR natively".
+- Ruby, Runway's SDR-to-HDR tool, "converts any SDR video, including an Aleph edit, to HDR".
+- Ruby inputs "must be SDR, at most 30 seconds, and up to 4K".
+
+**Luma.**
+
+- `hdr: true` "generates an HDR-encoded MP4".
+- It "requires 720p or 1080p".
+- It "is not supported with duration: "10s" or loop".
+- `exr_export` adds an EXR file (an image format that saves each frame with very high colour precision) "for professional colour-grading workflows". It "Requires hdr: true".
 
 ### File formats for the next person
 
 On Gen-4.5 and Aleph 2.0, Runway's `outputFormat` sets the file:
 
-| Value              | What you get                                                   |
-| ------------------ | -------------------------------------------------------------- |
-| `mp4` (default)    | an H.264 .mp4                                                  |
-| `prores`           | a ProRes .mov (a high-quality format for editing programs)     |
-| `png_sequence`     | a .zip of PNG frames, plus a separate .wav when there is sound |
-| `sdr_rec709_10bit` | a 10-bit Rec.709 .mp4                                          |
+| Value              | What you get                                                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `mp4` (default)    | an H.264 .mp4                                                                                                                          |
+| `prores`           | a ProRes .mov (a high-quality format for editing programs)                                                                             |
+| `png_sequence`     | a .zip of PNG frames, plus a separate .wav when there is sound                                                                         |
+| `sdr_rec709_10bit` | a 10-bit Rec.709 .mp4 (10-bit means more colour steps per channel than the usual 8; Rec.709 is the standard colour space for HD video) |
 
 The 10-bit file is for when "a grade needs more precision than 8-bit H.264". (A grade is a colour adjustment.) "That file is still SDR."
 
@@ -148,7 +167,7 @@ So we place the whole master inside the square and let Luma fill above and below
 }
 ```
 
-1080p is fine here, because the target is square, not vertical. `duration` is 10 seconds to keep the whole master.
+`duration` is 10 seconds to keep the whole master.
 
 ### Step 4: the delivery sheet
 
@@ -165,14 +184,13 @@ Download each file the same day, and keep both ids.
 ### Step 5: why it is better
 
 - **The painting stays in the frame**, because we chose where the master sits.
-- **The approved motion is untouched.** Reframe keeps the source frame for frame.
 - **Every file has a source id**, so you can redo any step later.
 
 ## Common mistakes
 
 1. **A new take when the motion is approved.** The client sees a different clip. Fix: outpaint with a reframe, and save new takes for new layouts.
 2. **Trusting the default centered crop.** An off-centre subject gets cut. Fix: set `source_position` so the subject stays in the canvas.
-3. **Keeping only the download link.** On Luma it expires after an hour. Fix: download the same day and keep every generation id.
+3. **Setting only part of `source_position`.** The Luma docs say all four fields are required. Fix: send `x_norm`, `y_norm`, `w_norm` and `h_norm` together.
 
 ## Try it
 

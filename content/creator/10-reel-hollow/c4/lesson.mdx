@@ -48,15 +48,24 @@ We sort edits into three kinds (our grouping):
 | Replace | a red scarf becomes blue    | everything but the scarf |
 | Relight | noon becomes night          | subject, motion, framing |
 
-Luma lists the first one as "Restyle an existing video while preserving its motion". The [Gemini API docs](https://ai.google.dev/gemini-api/docs/omni) give edit prompts such as "Make this video anime" and "Change the lighting to be more dramatic".
+The Luma docs list the first one as "Restyle an existing video while preserving its motion". The [Gemini API docs](https://ai.google.dev/gemini-api/docs/omni) give edit prompts such as "Make this video anime" and "Change the lighting to be more dramatic".
 
 ### Where each vendor edits (October 2026)
 
 **Luma** (`ray-3.2`). Send `type: "video_edit"`. The source can be a prior Luma generation id, a video URL, inline video, or an uploaded file. A source by URL or inline is "Max 200 MB, ≤18s".
 
-**Runway** (Aleph 2.0, model `aleph2`). The [API reference](https://docs.dev.runwayml.com/api) says `videoUri` is "The input video to edit. Must be 30 seconds or shorter." The [inputs page](https://docs.dev.runwayml.com/assets/inputs) adds that Aleph 2.0 "preserves the input video's resolution (up to 1080p)" and that input videos "must be 2–30 seconds and 30 FPS or lower". (FPS means frames per second.)
+**Runway** (Aleph 2.0, model `aleph2`). The [API reference](https://docs.dev.runwayml.com/api) and the [inputs page](https://docs.dev.runwayml.com/assets/inputs) set the limits:
 
-**Google** (Gemini Omni Flash). An edit is a conversation. "Each turn builds on the previous result." You pass the `previous_interaction_id` "without re-uploading the previous video". Uploaded videos for editing "must be 10 seconds or less". On [Google Cloud](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/video/edit-videos), the request sets `"task": "edit"`, and "Stored and asynchronous interactions are retained for up to 14 days."
+- `videoUri` is "The input video to edit. Must be 30 seconds or shorter."
+- Aleph 2.0 "preserves the input video's resolution (up to 1080p)".
+- Input videos "must be 2–30 seconds and 30 FPS or lower". (FPS means frames per second.)
+
+**Google** (Gemini Omni Flash). An edit is a conversation.
+
+- Turns: "Each turn builds on the previous result."
+- Reuse: you pass the `previous_interaction_id` "without re-uploading the previous video".
+- Length: uploaded videos for editing "must be 10 seconds or less".
+- On [Google Cloud](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/video/edit-videos), the request sets `"task": "edit"`, and "Stored and asynchronous interactions are retained for up to 14 days."
 
 ### How much may change: Luma's strength
 
@@ -76,7 +85,7 @@ A small comparison: strength is like a leash. Adhere is short, Reimagine is long
 
 ### Auto or manual controls
 
-Luma's recommended start is `auto_controls: true`. Then "the model derives the full conditioning schedule from the source video". (Conditioning means the signals from the source clip that steer the new one.)
+The Luma docs recommend starting with `auto_controls: true`. Then "the model derives the full conditioning schedule from the source video". (Conditioning means the signals from the source clip that steer the new one.)
 
 For finer work, `controls` turns on single signals: `pose` (the body skeleton), `depth` (scene shape), `normals` (surface shape), `trajectory` (motion paths) and `face` (face identity). One rule: "controls cannot be combined with auto_controls: true". Pick one or the other.
 
@@ -112,7 +121,7 @@ Our checklist. Play the source and the edit side by side, then frame by frame:
 3. **What you did not mention.** Faces, hands, logos, text.
 4. **File.** Same length, shape and resolution as the brief?
 
-Keep the new generation id. Luma says to keep it "for any further edits or reframes".
+Keep the new generation id. The Luma docs say to keep it "for any further edits or reframes".
 
 ## Worked example
 
@@ -140,7 +149,7 @@ The watercolour look must hold for all 25 seconds. We save three frames from the
 {
   "model": "aleph2",
   "videoUri": "https://example.com/dance-approved.mp4",
-  "promptText": "Make this video a soft watercolour painting. Keep everything else the same.",
+  "promptText": "Make this video a soft watercolour painting.",
   "keyframes": [
     { "uri": "https://example.com/frame-start-watercolour.png", "at": 0 },
     { "uri": "https://example.com/frame-middle-watercolour.png", "at": 0.5 },
@@ -148,8 +157,6 @@ The watercolour look must hold for all 25 seconds. We save three frames from the
   ]
 }
 ```
-
-The prompt names one change and says what stays (our advice, taken from the Gemini API docs).
 
 ### Step 4: check
 
@@ -164,8 +171,8 @@ Play the source and the edit side by side. The spin should land on the same beat
 ## Common mistakes
 
 1. **Making a new take when the motion is approved.** You lose the move the client liked. Fix: edit the approved clip.
-2. **Checking only the first frame.** A change can fade or drift later in the clip. Fix: check the start, the middle and the end, then step frame by frame.
-3. **Guide images from a new photo shoot.** They do not match the clip's pose and framing. Fix: make guide images from frames of the clip itself.
+2. **Skipping the later part of the clip.** A change can fade or drift there. Fix: check the start, the middle and the end, then step frame by frame.
+3. **A 60 FPS clip sent to Aleph 2.0.** Runway takes input videos at "30 FPS or lower". Fix: check the frame rate on the inputs page, and convert the clip before you send it.
 
 ## Try it
 

@@ -18,6 +18,9 @@ sources:
   - kind: docs
     title: Runway API docs · API reference
     url: https://docs.dev.runwayml.com/api
+  - kind: docs
+    title: Gemini API docs · Pricing
+    url: https://ai.google.dev/gemini-api/docs/pricing
 ---
 
 ## Goal
@@ -32,7 +35,7 @@ After this lesson you can:
 
 A travel agency wants a 24-second clip of a ferry trip. The ferry leaves the harbour, crosses the bay, and arrives at an island. The agency already approved one 5-second clip of the island pier.
 
-The first try asks one model for "a 24-second ferry trip". It does not work. The [Gemini API docs](https://ai.google.dev/gemini-api/docs/veo) describe Veo 3.1 as "a model for generating 8-second videos". Most video models make short clips. So a long clip is made of parts, and every join between two parts is a risk.
+The first try asks one model for "a 24-second ferry trip". It does not work. The [Gemini API docs](https://ai.google.dev/gemini-api/docs/veo) describe Veo 3.1 as "a model for generating 8-second videos". Shorter lengths work too: `durationSeconds`, the "Length of the generated video", takes "4", "6" or "8". Most video models we cite make short clips (our reading). So a long clip is made of parts, and every join between two parts is a risk.
 
 ## The idea
 
@@ -50,7 +53,11 @@ There are three ways to go longer (our grouping):
 
 ### Extend on Veo
 
-The Gemini API docs say you can "extend videos that you previously generated with Veo by 7 seconds and up to 20 times". The model builds on the clip's ending: "Extend finalizes the final second or 24 frames of your video and continues the action." The result is "a single video combining the user input video and the generated extended video for up to 148 seconds of video".
+The Gemini API docs describe Veo extension in three parts:
+
+- How much: you can "extend videos that you previously generated with Veo by 7 seconds and up to 20 times".
+- Where it starts: "Extend finalizes the final second or 24 frames of your video and continues the action."
+- What you get: "a single video combining the user input video and the generated extended video for up to 148 seconds of video".
 
 The rules, as of October 2026:
 
@@ -59,7 +66,7 @@ The rules, as of October 2026:
 - **Resolution.** "Video extension is also limited to 720p videos."
 - **Age.** "You can only extend videos that were generated or referenced in the last two days." If a video "is referenced for extension, its 2-day storage timer resets".
 
-The extension prompt says only what happens next. The Google example is short: "Extend this video with the paraglider slowly descending."
+The extension prompt says only what happens next. The example in the Gemini API docs is short: "Extend this video with the paraglider slowly descending."
 
 Watch the sound. The docs note: "voice is not able to be effectively extended if it's not present in the last 1 second of video". Our reading: if a voice must go on after the seam, it must still be speaking in the last second of the clip you extend.
 
@@ -84,7 +91,7 @@ Our advice: chain when you change model between parts, or when extension is not 
 
 ### Cut on purpose
 
-Not every seam must hide. The [Runway Multi-Shot docs](https://docs.dev.runwayml.com/recipes/multi-shot-video) make videos "composed of multiple shots that cut between scenes". Their tips:
+Not every seam must hide. The [Runway Multi-Shot recipe](https://docs.dev.runwayml.com/recipes/multi-shot-video) makes videos "composed of multiple shots that cut between scenes". Its docs give two tips:
 
 - "Write one clear idea per shot".
 - "Reuse the same product or style language across shots for visual consistency."
@@ -109,13 +116,17 @@ Our advice: when a seam fails, repair the later part, not the earlier one. Remak
 
 ### Keep the parts
 
-Long clips have many parts to lose. The Luma docs say: "The generation id does not expire — keep it if you plan to edit, extend, or reframe the video later." Download links "expire after 1 hour". On Veo, "Generated videos are stored on the server for 2 days".
+Long clips have many parts to lose.
+
+- Luma ids: "The generation id does not expire — keep it if you plan to edit, extend, or reframe the video later."
+- Luma downloads: links "expire after 1 hour".
+- Veo: "Generated videos are stored on the server for 2 days".
 
 So keep a parts log (our habit): part name, tool, id, prompt, last frame file, and where the download lives.
 
 ## Worked example
 
-The ferry clip again: about 24 seconds, ending on the approved 5-second island clip. That island clip was made on Luma.
+The ferry clip again: about 24 seconds, ending on the approved 5-second island clip. That island clip was filmed by the agency's own camera crew.
 
 ### Step 1: the weak plan
 
@@ -128,7 +139,7 @@ No model here makes 24 seconds in one go, and nothing ties the end to the approv
 
 ### Step 2: the crossing as one take
 
-The harbour and the crossing should feel like one take, so we extend. We pick Veo 3.1 Fast at 720p, because extension needs Veo 3.1 or Veo 3.1 Fast and 720p.
+The harbour and the crossing should feel like one take, so we extend. We pick Veo 3.1 Fast at 720p.
 
 ```text
 Part 1  Veo 3.1 Fast, 720p, 8 s
@@ -143,7 +154,7 @@ The extension prompt says only what happens next, and repeats the camera move. T
 
 ### Step 3: the hard case
 
-**The hard case is the end.** The island clip came from Luma. Veo extends only Veo-made videos, so we cannot extend the crossing into it.
+**The hard case is the end.** The island clip is camera footage, not a generated clip. Veo extends only Veo-made videos, and Luma extends by generation id, so neither can extend the crossing into it.
 
 So we build a short bridge with first and last frames (chapter 2):
 
@@ -159,7 +170,7 @@ The bridge starts where the crossing ends, and it ends where the island clip sta
 
 ### Step 4: check and log
 
-Check two seams: Part 2 to Part 3, and Part 3 to Part 4. Look hardest at the light. Then log every part's id and file.
+Check two seams: Part 2 to Part 3, and Part 3 to Part 4. Use the seam checklist above. Then log every part's id and file.
 
 ### Step 5: why it is better
 
