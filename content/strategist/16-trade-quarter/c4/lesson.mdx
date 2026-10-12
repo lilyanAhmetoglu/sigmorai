@@ -1,0 +1,172 @@
+---
+id: strategist/r16/c4/lesson
+title: Sales & support
+minutes: 11
+sources:
+  - kind: docs
+    title: Claude docs · Customer support agent
+    url: https://platform.claude.com/docs/en/about-claude/use-case-guides/customer-support-chat
+  - kind: docs
+    title: Claude docs · Ticket routing
+    url: https://platform.claude.com/docs/en/about-claude/use-case-guides/ticket-routing
+  - kind: docs
+    title: OpenAI docs · Safety best practices
+    url: https://developers.openai.com/api/docs/guides/safety-best-practices
+  - kind: docs
+    title: OpenAI Cookbook · Shaping your agent's personality
+    url: https://developers.openai.com/cookbook/examples/gpt-5/prompt_personalities
+---
+
+## Goal
+
+After this lesson you can:
+
+- Name the sales, marketing and support jobs where AI helps: first drafts, replies and sorting incoming messages.
+- Spot the two big risks when text goes to a customer: it sounds wrong for your brand, or it says something that is not true.
+- Set the human check: who reads it, against what, and when a person takes over from the tool.
+
+## The problem
+
+Sales, marketing and support teams write all day: product posts, offer emails, the same ten answers again and again.
+
+AI tools are fast at this. But this text goes **outside** the company, and a customer believes it. If a reply sounds rude, or says "yes" to something your company never offers, the customer holds you to it.
+
+So the question is not "can AI write it?". It can. The question is: **what must a person check before the customer sees it?** This lesson uses the Claude docs, the OpenAI docs and the OpenAI Cookbook (a set of worked examples from OpenAI), read in October 2026.
+
+## The idea
+
+Like every chapter in this realm, the idea has three parts: what AI does well, the main risk, and the human check.
+
+**1. What AI does well: many similar messages, in one steady voice.**
+
+The [Claude docs on customer support](https://platform.claude.com/docs/en/about-claude/use-case-guides/customer-support-chat) list signs that AI is a good fit. Two of them:
+
+- "Claude excels at handling a large number of similar questions efficiently, freeing up human agents for more complex issues."
+- "You can instruct Claude to consistently represent your brand's tone and values, whereas human agents may vary in their communication styles."
+
+AI can also sort messages. The [Claude docs on ticket routing](https://platform.claude.com/docs/en/about-claude/use-case-guides/ticket-routing) show how to sort support tickets (a ticket is one customer request) "based on customer intent, urgency, prioritization, customer profile, and more". The sorting is only as good as your list of types. The page says the tool's ability to route tickets "is directly proportional to how well-defined your system’s categories are". Vague types give vague sorting.
+
+The voice can be set too. The [OpenAI Cookbook](https://developers.openai.com/cookbook/examples/gpt-5/prompt_personalities) calls this a personality: it "defines the style and tone the model uses when responding". The page says a personality is "an operational lever" (a control you use on purpose), not decoration. It also warns: "keep them focused on how the agent responds, not what it must do." So the voice card says _how_ to talk. The facts live somewhere else.
+
+**2. The main risk: text that is off-brand, or a promise the company never made.**
+
+Two things go wrong:
+
+- **Off-brand.** The tone is wrong for your company: too pushy, too casual, or full of words your brand never uses.
+- **Untrue.** The text states a price, a feature or a promise that is not real.
+
+The second one costs the most. The Claude docs give a list of guardrails (rules that keep a support tool in its lane). Three of them are about this risk:
+
+- "Cross-check information: Verify that the agent's responses align with your company's policies and known facts."
+- "Avoid contractual commitments: Ensure the agent doesn't make promises or enter into agreements it's not authorized to make."
+- "Avoid mentioning competitors: Implement a competitor mention filter to maintain brand focus and not mention any competitor's products or services."
+
+The [OpenAI docs on safety](https://developers.openai.com/api/docs/guides/safety-best-practices) give a way to lower the risk at the start. A reply built from material you already checked is safer than a new one. The page gives this example: "routing a customer query to the best-matching existing customer support article, rather than attempting to answer the query from-scratch." The same page says prompts "can help constrain the topic and tone of output text" (constrain: keep inside limits).
+
+**3. The human check: a brand and fact check before it goes out, and a person who takes over.**
+
+There are two kinds of use, and each needs its own check.
+
+- **A draft that a person sends.** The person reads it against two things: the voice card (does it sound like us?) and the fact sheet or policy (is every claim true?). The OpenAI docs say: "Wherever possible, we recommend having a human review outputs before they are used in practice."
+- **A tool that answers customers by itself.** No one reads each reply first, so the checks move. The tool answers only from approved material, it hands hard cases to a person, and people read what customers report. The Claude docs measure the hand-off as "Escalation efficiency": the tool's "ability to recognize when a query needs human intervention and escalate appropriately" (escalate: pass up to a person). The OpenAI docs say customers should have an easy way to report problems, and that "This method should be monitored by a human and responded to as appropriate."
+
+Our reading of these pages: anything that gives the customer a right (a refund, a free item, a date, a price) is a promise. A person who is allowed to make that promise decides it. The tool can only repeat a rule that already exists in your policy.
+
+A small diagram (ours):
+
+```text
+AI drafts or sorts  →  posts, emails, replies, ticket types
+Voice card          →  how we sound (tone only)
+Fact sheet/policy   →  what is true (prices, rules, dates)
+A person checks     →  both, before it goes out
+A person takes over →  anything new, angry, risky or unclear
+```
+
+The Human in the loop chapter in Agent Citadel goes deeper into when a person must step in.
+
+## Worked example
+
+Noor does marketing for a small company that sells hiking gear online. The brand voice is calm and practical, never loud. Noor wants AI to draft three short social posts for a new rain jacket.
+
+### Step 1: the weak start
+
+```text
+Write 3 social posts for our new rain jacket.
+```
+
+The drafts are full of "AMAZING!!!" and "the best jacket ever made". Two of them say the jacket is "100% waterproof forever". Nobody gave the tool that fact.
+
+### Step 2: a voice card and a fact sheet, kept apart
+
+Noor writes the voice card once and keeps it in a project, so every chat uses it:
+
+```text
+VOICE CARD (how we sound)
+- Calm, practical, friendly. Short sentences.
+- No exclamation marks. No "best ever", no "amazing".
+- Talk about the walk, the weather, the use.
+```
+
+Then Noor adds the facts for this product only:
+
+```text
+FACT SHEET: Ridge rain jacket
+- Water resistance: 10,000 mm (lab test)
+- Weight: 380 g
+- Packs into its own pocket
+- Colours: grey, moss green
+- Price: 129
+
+Write 3 posts, under 40 words each. Use only the
+fact sheet for any claim. If a post needs a fact
+that is not on the sheet, write [NEED FACT].
+```
+
+The new drafts are calm and short. One says "[NEED FACT]: how long does the coating last?" That is a good result. The tool flagged a gap instead of filling it.
+
+### Step 3: the hard case, a name that should not be there
+
+**This is the hard case.** The third post reads well. It is calm and every number is right. But it ends with: "Lighter than the TrailMax Pro." TrailMax is a rival brand. The fact sheet says nothing about it.
+
+Noor deletes the line. There are two problems: the claim has no source, and naming a rival is against the company's own rule. Noor adds "Never name another brand" to the voice card, so the next drafts follow it.
+
+### Step 4: the check before posting
+
+Noor reads each post twice. First for the voice: does it sound like us? Then for the facts: Noor puts a tick next to each claim that matches a line on the fact sheet. Every claim has a tick. Then the posts go out.
+
+### Step 5: why it is better
+
+- **Voice and facts are separate.** The voice card is stable. The fact sheet changes for each product.
+- **Gaps are visible.** "[NEED FACT]" shows what is missing, so nobody invents it.
+
+## Common mistakes
+
+1. **A voice card made only of adjectives, like "fun and bold".** Fix: add two or three sample sentences in the right voice. The OpenAI docs say "giving a few high-quality examples of desired behavior" makes output easier to steer.
+2. **Counting only how many chats the tool closes alone.** Fix: also count the chats it should have passed to a person but did not. The Claude docs track escalation as its own measure.
+3. **Copying a customer's full name, address and order history into a drafting chat.** Fix (our advice): paste only what the reply needs. The Claude docs list "Remove Personally Identifiable Information (PII)" as a guardrail for what a support agent sends out (PII: details that point to one person). The same care makes sense for what you paste in.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A bakery's voice card says: "Warm and simple. No slang. No emoji. Never use 'cheap'." Here is an AI draft for a social post. Find three things that break the voice card.
+
+```text
+OMG 😍 our new cinnamon buns are totally lit!!
+Grab a box today, they're super cheap. Come by
+the shop on Market Street from 7 am.
+```
+
+### Answer
+
+- **Slang.** "OMG" and "totally lit" are slang. Say it simply: "Our new cinnamon buns are here."
+- **Emoji.** The heart-eyes emoji breaks the "no emoji" rule. Cut it.
+- **A banned word.** "Super cheap" uses the word the card bans. If price matters, give the real price from the shop's price list.
+
+The opening hours and the street are facts, not voice. A person still checks them against the shop's real details before the post goes out.
+
+## Recap
+
+- AI helps sales and support with many similar drafts and replies, and with sorting messages into clear types.
+- The main risks are a voice that is wrong for your brand and a claim or promise the company never made.
+- A person checks every outgoing draft for voice and facts. A tool that answers alone uses approved material, hands hard cases to a person, and people read what customers report.
