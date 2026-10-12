@@ -167,6 +167,41 @@ describe('buildTrackMap', () => {
     }
   });
 
+  test('unlock-all: every realm, chapter and boss with content is open; no content stays soon', () => {
+    const unlocked = (live: Set<string>) =>
+      buildTrackMap('strategist', outline, live, NONE, new Map(), REALMS, { unlockAll: true });
+    const { realms } = unlocked(ALL_LIVE);
+    for (const id of [0, ADVANCED]) {
+      const r = realm(realms, id);
+      expect(r.status).toBe('open');
+      for (const c of r.chapters) {
+        expect(c.status).toBe('open');
+        for (const s of c.steps) expect(s.status).toBe('open');
+      }
+    }
+    // A realm with no content files at all: nothing to play, so "soon", never a crash.
+    const empty = realms.find((r) => r.id !== 0 && r.id !== ADVANCED)!;
+    expect(empty.status).toBe('open');
+    expect(realmIsSoon(empty.chapters)).toBe(true);
+    // Off: the same map keeps the tier lock and the order.
+    const off = buildTrackMap('strategist', outline, ALL_LIVE, NONE, new Map(), REALMS, {
+      unlockAll: false,
+    });
+    expect(realm(off.realms, ADVANCED).status).toBe('tier-locked');
+    expect(realm(off.realms, 0).chapters[1].status).toBe('locked');
+  });
+
+  test('unlock-all keeps clears: a cleared case is still done', () => {
+    const r0 = realm(
+      buildTrackMap('strategist', outline, ALL_LIVE, new Set([caseId(0, 3)]), new Map(), REALMS, {
+        unlockAll: true,
+      }).realms,
+      0,
+    );
+    expect(r0.chapters[2].status).toBe('done');
+    expect(r0.status).toBe('in-progress');
+  });
+
   test('open-tier realms are open from day one (no realm-to-realm lock)', () => {
     const { realms } = map(NONE, NONE);
     for (const r of realms) {
@@ -333,6 +368,11 @@ describe('buildTowerMap', () => {
     const floors = buildTowerMap(LIVE, new Set(floorIds(1)));
     expect(status(floors).slice(0, 3)).toEqual(['done', 'open', 'locked']);
     expect(playableStep(floors[0])?.exerciseId).toBe('math/f1/lesson');
+  });
+
+  test('unlock-all opens every live floor; floors with no files stay soon', () => {
+    const floors = buildTowerMap(LIVE, NONE, { unlockAll: true });
+    expect(status(floors)).toEqual(['open', 'open', 'open', ...Array(5).fill('soon')]);
   });
 
   test('the lesson alone does not clear a floor', () => {

@@ -7,3 +7,4 @@ export { dbErrorSummary, isUniqueViolation, type DbErrorSummary } from './db-err
 export { rovingIndex } from './roving-index';
 export { parsePathParam, pathFromRedirect } from './path-param';
 export { networkShareHref, shareLinks, withUtm } from './share-links';
+export { isOnEmailAllowlist, parseEmailAllowlist } from './email-allowlist';

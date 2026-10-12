@@ -64,3 +64,10 @@ export const HERO_NAME_SCRIPT_GROUPS: readonly RegExp[] = [
   /\p{Script=Ethiopic}/u,
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Bopomofo}]/u,
 ];
+
+/**
+ * Server-only env var: a comma-separated list of tester emails that see every
+ * realm and chapter open (no tier lock, no chapter order). Read only by
+ * lib/data/unlock-all.ts. Never NEXT_PUBLIC_, never committed with a value.
+ */
+export const UNLOCK_ALL_EMAILS_ENV = 'UNLOCK_ALL_EMAILS';

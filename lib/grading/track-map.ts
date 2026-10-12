@@ -20,6 +20,7 @@ import type {
   FrontierSummary,
   LevelStatus,
   NextStep,
+  OpenOptions,
   RealmRow,
   RealmStatus,
   RealmTable,
@@ -51,6 +52,8 @@ type Sets = {
   chapterCount: number;
   /** Test seam: app code never passes `table` (REALMS is the default). */
   table?: RealmTable;
+  /** A server-side tester: no tier lock, no order (decideOpen). */
+  unlockAll?: boolean;
 };
 type Credited = ReadonlyMap<string, Track>;
 
@@ -65,9 +68,9 @@ export const realmChapterCount = (realm: Pick<RealmView, 'chapters'>): number =>
 function stepStatus(
   ref: ExerciseRef,
   id: string,
-  { live, cleared, chapterCount, table = REALMS }: Sets,
+  { live, cleared, chapterCount, table = REALMS, unlockAll }: Sets,
 ): StepStatus {
-  const open = decideOpen(ref, cleared, chapterCount, table);
+  const open = decideOpen(ref, cleared, chapterCount, table, { unlockAll });
   if (!open.ok && open.code === 'TIER_LOCKED') return 'tier-locked';
   if (cleared.has(id)) return 'done';
   if (!live.has(id)) return 'soon';
@@ -95,11 +98,11 @@ function chapterViews(
   track: Track,
   realm: RealmRow,
   titles: string[],
-  { live, cleared, table }: Omit<Sets, 'chapterCount'>,
+  { live, cleared, table, unlockAll }: Omit<Sets, 'chapterCount'>,
   credited: Credited,
 ): ChapterView[] {
   // Every outlined chapter (6 to 12): the boss needs all of them.
-  const sets: Sets = { live, cleared, chapterCount: titles.length, table };
+  const sets: Sets = { live, cleared, chapterCount: titles.length, table, unlockAll };
   const chapters = titles.map((title, i): ChapterView => {
     const chapter = i + 1;
     const steps = CHAPTER_STEPS.map((step) =>
@@ -117,8 +120,8 @@ function chapterViews(
   ];
 }
 
-function realmStatus(realm: RealmRow, chapters: ChapterView[]): RealmStatus {
-  if (!isRealmOpen(realm.tier)) return 'tier-locked';
+function realmStatus(realm: RealmRow, chapters: ChapterView[], unlockAll = false): RealmStatus {
+  if (!unlockAll && !isRealmOpen(realm.tier)) return 'tier-locked';
   if (chapters.at(-1)?.status === 'done') return 'cleared';
   if (chapters.some((c) => c.steps.some((s) => s.status === 'done'))) return 'in-progress';
   return 'open';
@@ -194,6 +197,8 @@ export const clearedLevels = (realms: RealmView[]): number =>
  * not in the outline is not on the map. `cleared` already holds the
  * credited cases (applyCredit); `credited` says which ones were credited and
  * from which track, for the chapter label. `table`: test seam: app code never passes `table`.
+ * `unlockAll`: a server-side tester sees every realm and chapter open (a
+ * chapter with no content file stays "soon").
  */
 export function buildTrackMap(
   track: Track,
@@ -202,8 +207,9 @@ export function buildTrackMap(
   cleared: ReadonlySet<string>,
   credited: Credited = new Map(),
   table: RealmTable = REALMS,
+  { unlockAll = false }: OpenOptions = {},
 ): TrackMap {
-  const sets = { live, cleared, table };
+  const sets = { live, cleared, table, unlockAll };
   const realms = outline.realms.map(({ id, topic, lore, chapters: outlined }): RealmView => {
     // The outline schema proved every id is a row on this track.
     const realm = realmRow(id, table);
@@ -225,7 +231,7 @@ export function buildTrackMap(
       scene: realm.scene,
       topic,
       lore,
-      status: realmStatus(realm, chapters),
+      status: realmStatus(realm, chapters, unlockAll),
       cleared: chapters.filter((c) => c.status === 'done').length,
       chapters,
     };
@@ -253,8 +259,9 @@ export function realmNeighbours(
 export function buildTowerMap(
   live: ReadonlySet<string>,
   cleared: ReadonlySet<string>,
+  { unlockAll = false }: OpenOptions = {},
 ): FloorState[] {
-  const sets = { live, cleared, chapterCount: 0 };
+  const sets = { live, cleared, chapterCount: 0, unlockAll };
   return MATH_FLOORS.map((floor): FloorState => {
     const steps = SIDE_STEPS.map((step) =>
       stepView({ area: MATH_AREA, floor: floor.n, step }, sets),

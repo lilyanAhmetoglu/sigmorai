@@ -40,6 +40,7 @@ import {
   type TrackMap,
 } from '@/lib/types';
 import { getHudState } from './hud';
+import { isUnlockAll } from './unlock-all';
 
 /**
  * Reads for the dashboard and the realm pages. Progress is scoped to Clerk's
@@ -123,11 +124,12 @@ export async function clearedIds(userId: string, area: ProgressArea): Promise<Se
  * and the /math page (lib/data/math.ts).
  */
 export const getTowerFloors = cache(async (userId: string | null): Promise<FloorState[]> => {
-  const [live, cleared] = await Promise.all([
+  const [live, cleared, unlockAll] = await Promise.all([
     liveIds(MATH_AREA),
     userId ? clearedIds(userId, MATH_AREA) : Promise.resolve(new Set<string>()),
+    userId ? isUnlockAll(userId) : Promise.resolve(false),
   ]);
-  return buildTowerMap(live, cleared);
+  return buildTowerMap(live, cleared, { unlockAll });
 });
 
 /**
@@ -155,12 +157,15 @@ const noClears = (): Promise<Credit> =>
   Promise.resolve({ cleared: new Set<string>(), creditedFrom: new Map() });
 
 const getTrackMap = cache(async (track: Track, userId: string | null): Promise<TrackMap> => {
-  const [outline, live, credit] = await Promise.all([
+  const [outline, live, credit, unlockAll] = await Promise.all([
     trackOutline(track),
     liveIds(track),
     userId ? trackClears(userId, track) : noClears(),
+    userId ? isUnlockAll(userId) : Promise.resolve(false),
   ]);
-  return buildTrackMap(track, outline, live, credit.cleared, credit.creditedFrom);
+  return buildTrackMap(track, outline, live, credit.cleared, credit.creditedFrom, REALMS, {
+    unlockAll,
+  });
 });
 
 /** `?track=` if valid, else the player's own track, else the beginner path. */

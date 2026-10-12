@@ -43,6 +43,7 @@ import type {
 } from '@/lib/types';
 import { nextUtcDayStart } from '@/lib/xp/day';
 import { getHudState } from './hud';
+import { isUnlockAll } from './unlock-all';
 
 /** Every step this page plays: a realm chapter step, a boss, a Math Tower floor or Frontier step. */
 type PlayableRef = ExerciseRef;
@@ -201,6 +202,12 @@ async function readyViewer(
   };
 }
 
+/** The signed-in user is an unlock-all tester (lib/data/unlock-all.ts). False for a visitor. */
+async function signedInUnlockAll(): Promise<boolean> {
+  const { userId } = await auth();
+  return userId ? isUnlockAll(userId) : false;
+}
+
 /**
  * The quest page's read. Signed-out readers see the case (no submit); only
  * the tier lock applies to them. A signed-in player also gets the chapter
@@ -214,7 +221,8 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
   if (!ref || !(await hasContent(exerciseId))) return { kind: 'not-found' };
   if (
     (ref.area === 'chapter' || ref.area === 'boss') &&
-    !isRealmOpen(realmRow(ref.realm)?.tier ?? 'advanced')
+    !isRealmOpen(realmRow(ref.realm)?.tier ?? 'advanced') &&
+    !(await signedInUnlockAll())
   ) {
     return { kind: 'locked', message: QUEST_ERROR_TEXT.TIER_LOCKED };
   }
@@ -237,7 +245,7 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
   let viewer: AnswerViewer = { status: 'signed-out' };
   if (hud.status === 'onboarding') viewer = { status: 'onboarding' };
   if (hud.status === 'ready' && userId) {
-    const open = await checkOpen(db, userId, exerciseId);
+    const open = await checkOpen(db, userId, exerciseId, { unlockAll: await isUnlockAll(userId) });
     if (!open.ok) return { kind: 'locked', message: open.message };
     viewer = await readyViewer(userId, exerciseId, kind);
   }
@@ -291,7 +299,7 @@ async function lessonViewer(exerciseId: string): Promise<LessonViewer> {
   // getHudState is cached per request; auth() gives the same session's id.
   const { userId } = await auth();
   if (hud.status !== 'ready' || !userId) return { status: 'signed-out' };
-  const open = await checkOpen(db, userId, exerciseId);
+  const open = await checkOpen(db, userId, exerciseId, { unlockAll: await isUnlockAll(userId) });
   if (!open.ok) return { status: 'not-open', message: open.message };
   const { cleared } = await readAttempts(db, userId, exerciseId, new Date());
   return { status: 'ready', cleared };
