@@ -1,7 +1,7 @@
 ---
 id: creator/r13/c4/lesson
 title: Reuse first
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Storybook docs · Using Storybook with AI
@@ -29,90 +29,208 @@ sources:
     url: https://learn.chatgpt.com/docs/extend/mcp
 ---
 
-## Why it matters
+## Goal
 
-Marlow Tea, the shop from chapter 1, asks an agent for a new price card. The agent builds it. It also builds a new button, a new badge and a new input field. The shop already has all three. Now there are two buttons, and only one of them uses the tokens.
+After this lesson you can:
 
-Chapter 3 gave the agent a rule: "Use `Button` from `src/ui/`." That rule names one component. But the agent also needs to know what else exists, how to import it and which props it takes. Without that, it guesses, and a guess is often a new component.
+- Name three ways to give an AI agent a list of your real components: Storybook manifests, a shadcn registry and Figma Code Connect.
+- Write component descriptions that help an agent pick the right component.
+- Share the setup so every teammate's agent sees the same list.
 
-This chapter is about the **reuse list**: a list of your real components that an agent reads before it builds anything (our plain gloss). Three tools give an agent such a list: Storybook, shadcn/ui and Figma Code Connect.
+## The problem
 
-A note on dates. The tool details below are from each vendor's page in October 2026.
+A travel site asks an AI agent for a new "trip summary" box. The site already has three boxes: `Card`, `Tile` and `Panel`. The agent picks `Tile`, which is made for photo grids. On the next task it gives up and builds a fourth box, `SummaryBox`.
 
-## Three places to look first
+The agent did not know what exists, or which box is for what. It needs a **reuse list**: a list of your real components that it reads before it builds anything (our term).
 
-| Tool (October 2026) | What the agent reads                         | How it gets there                      |
-| ------------------- | -------------------------------------------- | -------------------------------------- |
-| Storybook           | manifests of your documented components      | the Storybook MCP server               |
-| shadcn/ui           | registries of components it can install      | the shadcn MCP server                  |
-| Figma Code Connect  | the code component behind a design component | the Figma MCP server (Canvas Workshop) |
+## The idea
 
-All three use MCP (an MCP server is the plug that lets an agent read a tool's data; see Canvas Workshop).
+### Three ways in
 
-## Storybook: manifests
+All three use **MCP**, the plug that lets an agent call tools in another app.
 
-Storybook is a tool for building and documenting UI components one at a time (our plain gloss). Storybook says its AI capabilities are "currently in preview" and "The API may change in future releases."
+| Tool               | What the agent reads                         | How it gets there    |
+| ------------------ | -------------------------------------------- | -------------------- |
+| Storybook          | manifests of your documented components      | Storybook MCP server |
+| shadcn/ui          | registries of components it can install      | shadcn MCP server    |
+| Figma Code Connect | the code component behind a design component | Figma MCP server     |
 
-Storybook collects facts about your components into **manifests**. Storybook says: "Manifests are JSON objects that describe the contents of your Storybook in a concise, structured way". There are two kinds:
+### Storybook manifests
 
-- **Components manifest.** It holds "the components you have documented, such as their names, descriptions, props, and usage examples."
-- **Docs manifest.** It comes from your MDX docs pages. Storybook's examples include "accessibility guidelines, design tokens, etc."
+**Storybook** is a tool to build and document UI components one at a time. A **story** is one documented example of a component. The [Storybook manifests page](https://storybook.js.org/docs/ai/manifests) says the AI features are in preview, and "The API may change in future releases."
 
-The Storybook MCP server reads them. Its **docs toolset** (a group of tools) "provides tools that help the agent reuse components from your Storybook when generating UI." Two tools do most of the work:
+"Manifests are JSON objects that describe the contents of your Storybook in a concise, structured way". There are two kinds:
+
+- **Components manifest.** It holds "the components you have documented, such as their names, descriptions, props, and usage examples." (A **prop** is a setting you pass to a component.)
+- **Docs manifest.** It comes from your MDX docs pages, for example "accessibility guidelines, design tokens, etc."
+
+Storybook also says: "We highly recommend adding JSDoc comments to your components and their props". **JSDoc** is a comment block in the code, written as `/** … */`. Its own example says when to use a `Button`, and points to `Link` "For navigation".
+
+Three settings decide what the agent gets:
+
+- **Off by default.** The [Storybook AI page](https://storybook.js.org/docs/ai) warns that this manifest "is off by default and is not generated by every framework." To switch it on, set `componentsManifest: true` under `features` in `.storybook/main.ts`.
+- **Framework.** Manifests "are generated by the React frameworks, @storybook/angular-vite, and @storybook/vue3-vite." (A framework is the base kit the app is built with.)
+- **Curating.** "By default, all stories and independent docs pages have the manifest tag applied". To leave out a story that is "for instructional purposes only", you set `tags: ['!manifest']` on it.
+
+### The Storybook MCP tools
+
+The [Storybook MCP page](https://storybook.js.org/docs/ai/mcp/overview) has a **docs toolset** (a group of tools) that "help the agent reuse components from your Storybook when generating UI":
 
 - `docs-list` "Returns an index containing components and unattached docs entries."
 - `docs-show` returns one component's docs, "including its props, the first three stories".
 
-Check three things before you rely on it:
+The page warns: "If your framework generates no components manifest, the docs toolset is unavailable".
 
-- **It is off by default.** The components manifest "is off by default". You turn it on with `componentsManifest: true` in `.storybook/main.ts`.
-- **Not every framework makes one.** In October 2026, Storybook lists the React frameworks, `@storybook/angular-vite` and `@storybook/vue3-vite` (which also needs `experimentalDocgenServer`). For other frameworks, "the docs toolset is unavailable".
-- **It only knows what you documented.** A component with no story (one documented example of a component in Storybook) is not in the components manifest (our reading). You can also hide a story on purpose: a story tagged `'!manifest'` is left out, for example one that is "for instructional purposes only".
-
-## shadcn/ui: registries
-
-shadcn/ui is a set of UI components that you add to your own project as code (our plain gloss). A **registry** is a place that serves components to install. shadcn says: "Running your own registry allows you to distribute your custom components, hooks, pages, config, rules and other files to any project." It is "not limited to React."
-
-The shadcn MCP server lets an agent "browse available components, search for specific ones, and install them". Registries are listed in the project's `components.json`:
-
-```json
-{
-  "registries": {
-    "@marlow": "https://ui.marlowtea.example/r/{name}.json"
-  }
-}
-```
-
-That is our example; shadcn's own uses `@acme`. "No configuration is needed to access the standard shadcn/ui registry." A private registry can need a token. shadcn puts it in an environment variable such as `REGISTRY_TOKEN` in `.env.local`. Keep that file out of version control (our advice).
-
-So a studio can publish its own Button, Badge and PriceCard to `@marlow`. The agent then searches `@marlow` before it writes a new one (our example).
-
-## Figma: Code Connect
-
-Canvas Workshop, chapter 6, set up Code Connect, Figma's way to link a design component to the code component behind it (our plain gloss). Figma says it "helps AI agents generate code that's consistent with your actual component library", because the MCP server sends the import and usage code of your real component.
-
-## Connect once, for the whole team
-
-A reuse list helps only if every teammate's agent can reach it. Claude Code and Codex can both share MCP setup through the repo.
-
-- **Claude Code.** A project-scoped server lives in `.mcp.json` at the project root. Anthropic says: "Check `.mcp.json` into version control so everyone on your team gets the same MCP tools and services." Anthropic says Claude Code asks for approval before it uses a project server from `.mcp.json` in an interactive session. By default, a server you add uses local scope: Anthropic says it "stays private to you". User scope is private to your account too. Only project scope (`.mcp.json`) is shared.
-- **Codex.** Codex stores servers in `config.toml`. The default is `~/.codex/config.toml`, "but you can also scope MCP servers to a project with `.codex/config.toml` (trusted projects only)." Codex also "reads the MCP `instructions` field" that a server sends.
-
-## Tell the agent to look first
-
-Connecting a server is not enough. The agent must be told to use it. Storybook's setup page says to adjust your `AGENTS.md` (or `CLAUDE.md`), the rules files from chapter 3. Its example instructions include:
+Storybook's sample agent instructions include:
 
 - "Query `docs-list` to get a list of all components"
 - "Only use properties that are explicitly documented or shown in example stories"
 - "If a property isn't documented, do not assume properties based on naming conventions or common patterns from other libraries. Check back with the user in these cases."
 
-For Marlow Tea, the rule could read (our example): "Before you build UI, call `docs-list`. Use an existing component when one fits. If none fits, search `@marlow`. Ask before you create a new component."
+### shadcn registries
 
-## What this means for your work
+**shadcn/ui** is a set of UI components you copy into your own project as code. A **registry** serves components to install. The [shadcn registry page](https://ui.shadcn.com/docs/registry) says your own registry lets you "distribute your custom components, hooks, pages, config, rules and other files to any project", and it is "not limited to React."
 
-- **Give the agent a reuse list.** Manifests, a registry or Code Connect, not just one rule.
-- **Turn the manifest on.** Storybook's components manifest is off by default.
-- **Check your framework.** No components manifest means no docs toolset.
-- **Document what you want reused.** The manifest knows only documented components.
-- **Share the setup.** `.mcp.json` for Claude Code, `.codex/config.toml` for Codex.
-- **Write "look first" into the rules file.** Documented props only; ask before inventing.
+The [shadcn MCP page](https://ui.shadcn.com/docs/mcp) says an agent can "browse available components, search for specific ones, and install them". Also: "Registries are configured in your project's components.json file." The standard registry needs no setup. A private registry can need a token, set in `.env.local`.
+
+### Figma Code Connect
+
+**Code Connect** links a Figma design component to the code component behind it. The [Figma Code Connect page](https://developers.figma.com/docs/figma-mcp-server/code-connect-integration/) says this helps agents "generate code that's consistent with your actual component library". The server then sends import statements and "The actual component usage code".
+
+### Share the setup
+
+The [Claude Code MCP docs](https://code.claude.com/docs/en/mcp) list three scopes:
+
+| Scope   | Shared with team         | Stored in                   |
+| ------- | ------------------------ | --------------------------- |
+| Local   | No                       | `~/.claude.json`            |
+| Project | Yes, via version control | `.mcp.json` in project root |
+| User    | No                       | `~/.claude.json`            |
+
+"Local scope is the default." A local server "stays private to you". For the team: "Check `.mcp.json` into version control so everyone on your team gets the same MCP tools and services." Each person still approves a project server once.
+
+The [Codex MCP docs](https://learn.chatgpt.com/docs/extend/mcp) say Codex keeps servers in `~/.codex/config.toml` by default, "but you can also scope MCP servers to a project with .codex/config.toml (trusted projects only)."
+
+### Tell the agent to look first
+
+A connected server is not enough. Storybook says to adjust "your AGENTS.md (or CLAUDE.md, if you're using Claude)" so the agent uses the tools.
+
+## Worked example
+
+The travel site uses React with Storybook, and the components manifest is on. The agent can call `docs-list`. It still picks the wrong box.
+
+### Step 1: look at what the agent sees
+
+`docs-list` returns the names, and `docs-show` returns props and stories. But the three components have no descriptions:
+
+```tsx
+export const Card = (props: CardProps) => {
+  /* ... */
+};
+export const Tile = (props: TileProps) => {
+  /* ... */
+};
+export const Panel = (props: PanelProps) => {
+  /* ... */
+};
+```
+
+Three boxes, no reason to pick one. The agent guesses.
+
+### Step 2: say what each one is for
+
+We add a JSDoc comment to each component. Each one says what it is for, and what to use instead (our wording, in the shape of Storybook's own example):
+
+```tsx
+/**
+ * Card shows one item with a title, short text and one action.
+ * Use it for summaries, like a trip or an order.
+ * For a grid of photos, use Tile instead.
+ */
+export const Card = (props: CardProps) => {
+  /* ... */
+};
+
+/**
+ * Tile shows one photo with a caption, inside a photo grid.
+ * Not for text content: use Card.
+ */
+export const Tile = (props: TileProps) => {
+  /* ... */
+};
+```
+
+### Step 3: describe the props
+
+```tsx
+type CardProps = {
+  /** The heading at the top of the card. Keep it under 40 characters. */
+  title: string;
+  /** Optional button at the bottom. One action only. */
+  action?: React.ReactNode;
+};
+```
+
+### Step 4: the hard case
+
+**The hard case is `Panel`.** It looks almost the same as `Card`. The only difference is its job: `Panel` groups form fields on settings pages. A description that says "A box with a border" would not help, because `Card` is a box with a border too.
+
+So the description names the job and the place, and points to the other component:
+
+```tsx
+/**
+ * Panel groups related form fields on settings pages.
+ * Do not use it to show content: use Card.
+ */
+export const Panel = (props: PanelProps) => {
+  /* ... */
+};
+```
+
+We also add one MDX docs page, "Which box to use", with a short table. It goes into the docs manifest, next to the components.
+
+### Step 5: why it is better
+
+- **The reason travels with the component.** `docs-show` returns it every time.
+- **Look-alikes are told apart by job.** Not by how they look.
+- **Every description points somewhere.** "Use Card", "use Tile", so the agent is not left with a guess.
+
+## Common mistakes
+
+1. **Docs in a wiki only.** Manifests come from your Storybook files, so a wiki page is invisible to the agent. Fix: write usage notes as JSDoc or Storybook MDX.
+2. **Scripts that parse the manifest file.** Storybook says the schema "is not yet stable and should not be considered a public API". Fix: let the agent read it through the MCP tools.
+3. **Never testing the connection.** Storybook suggests a prompt like "List all documented components" and checking for a `docs-list` call. Fix: run that test once after setup.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A shop app has three small labels: `Badge`, `Tag` and `Pill`. They look alike.
+
+- `Badge` shows a number on an icon, like 3 items in the cart.
+- `Tag` shows a product category a shopper can tap to filter.
+- `Pill` shows an order status, like "Shipped".
+
+Write a JSDoc description for `Tag`. Say what it is for, and what to use instead for the other two jobs.
+
+### Answer
+
+One way to write it:
+
+```tsx
+/**
+ * Tag shows a product category. A shopper taps it to filter the list.
+ * For a count on an icon, use Badge. For an order status, use Pill.
+ */
+export const Tag = (props: TagProps) => {
+  /* ... */
+};
+```
+
+Your words can differ. Check three things: the job is named, the place or action is named, and the other two components are named for their jobs.
+
+## Recap
+
+- Give the agent a reuse list: Storybook manifests, a registry from shadcn (set in `components.json`), or Figma Code Connect.
+- In Storybook, switch the manifest on, and check that your framework makes one. Descriptions and JSDoc tell the agent which component fits which job.
+- Share servers with the team through `.mcp.json` (Claude Code) or `.codex/config.toml` (Codex), and tell the agent in its rules file to look first.
