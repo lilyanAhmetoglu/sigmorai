@@ -1,7 +1,7 @@
 ---
 id: creator/r10/c6/lesson
 title: Reframe & export
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Luma Agents docs · Video reframing
@@ -23,17 +23,25 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/omni
 ---
 
-## Why it matters
+## Goal
 
-The client approved a 16:9 master: a perfume bottle on a marble shelf, 10 seconds. Now the media plan asks for more. A 9:16 version for stories. A 1:1 version for the feed. A 4K file for a shop screen. A ProRes file for the editor.
+After this lesson you can:
 
-The master is what the client approved. Every new file should stay true to it.
+- Choose how to get a new shape from one approved master: crop, outpaint or regenerate.
+- Plan a reframe, an upscale and an HDR file inside each vendor's rules.
+- Pick the right file format for each person who gets the clip.
 
-Bootstrap Village, chapter 4, listed each model's sizes. Tool Forge, chapter 4, covered file types, auto-cropping and expiry. This chapter plans the deliverables from one master.
+## The problem
 
-## Three ways to a new shape
+A city museum approved a 10-second 16:9 master: soft light slowly reveals an old painting on a gallery wall. The painting sits on the left third of the frame. The clip was made on Luma.
 
-This grouping is ours.
+Now the museum needs a square version for its feed, a file for a colourist (the person who adjusts the colours), and a file for its social team. Each new file must stay true to the master. A new take would change the motion the museum approved.
+
+## The idea
+
+### Three ways to a new shape
+
+This grouping is ours:
 
 | Way        | What happens                               | Risk                   |
 | ---------- | ------------------------------------------ | ---------------------- |
@@ -41,80 +49,151 @@ This grouping is ours.
 | Outpaint   | keep the master, add new picture around it | the new area can drift |
 | Regenerate | make a new take in the new shape           | everything is new      |
 
-**Crop** works when the subject sits in the middle with space around it. If the bottle sits on the right, a 9:16 crop can cut it.
+**Outpaint** means the model adds new picture beyond the old edges.
 
-**Outpaint** means the model adds new picture beyond the edges. Canvas Workshop, chapter 4 (Expand & fill), did this for still images; here it is video.
+- The [Luma reframing docs](https://docs.agents.lumalabs.ai/guides/videos/reframing) say `video_reframe` "outpaints an existing video to a new target aspect ratio. The source video content is preserved frame-for-frame". Use it "when you want the same clip in a different shape". Use `video_edit` to restyle.
+- On Runway, Aleph 2.0 has `targetAspectRatio`, a "Target aspect ratio for expand/outpaint" ([API reference](https://docs.dev.runwayml.com/api)).
 
-- **Luma** `video_reframe` "outpaints an existing video to a new target aspect ratio". Luma says: "The source video content is preserved frame-for-frame". Use it for "the same clip in a different shape". Use `video_edit` (chapter 4) to restyle.
-- **Runway Aleph 2.0** has `targetAspectRatio`, a "Target aspect ratio for expand/outpaint". It "Letterboxes the input video and keyframes before generation". (Letterboxing means adding empty bars around the picture so it fits the new shape.)
+**Regenerate.** On Veo and Gemini Omni Flash, the shape is a setting of a new clip, 16:9 or 9:16. The [Gemini API docs](https://ai.google.dev/gemini-api/docs/omni) say: "Set the aspect_ratio to "9:16" to create portrait videos." A new take has new motion, so it needs a new approval (our advice).
 
-**Regenerate.** On Veo, the shape is a setting of a new clip: `aspectRatio` is "16:9" (the default) or "9:16". Gemini Omni Flash offers the same two. A new 9:16 take has new motion and new framing, so it needs a new approval (our advice).
+Our advice: outpaint when the client approved the master's motion. Regenerate when the new shape needs a new layout.
 
-Choose on purpose (our advice). Outpaint when the client approved the master's motion. Regenerate when the new shape needs a new layout, such as a tall shot that a wide frame cannot hold.
+### Luma reframe rules (October 2026)
 
-## Luma reframe rules (October 2026)
+- **Ratios.** "Use one of the six Ray 3.2 video ratios": 9:16, 3:4, 1:1, 4:3, 16:9 and 21:9.
+- **Length.** "Reframe cannot produce output longer than 10s, and the source video is capped at the same 10s ceiling." For a longer clip: "split it into ≤10s segments and reframe each one". Output "Defaults to 5s".
+- **Resolution.** "1080p works for landscape and square aspect ratios". Vertical 9:16 and 3:4 at 1080p "return a "coming soon" 400", so use 720p or lower for those.
+- **Prompt.** It says "how the new canvas area should be filled".
+- **No HDR.** HDR is "Rejected — reframe is standard dynamic range only". (HDR, high dynamic range, stores a wider range of bright and dark.)
 
-- **Six ratios:** 9:16, 3:4, 1:1, 4:3, 16:9 and 21:9.
-- **Length:** the source must be 10 seconds or shorter. Output is 5 seconds by default and 10 at most. For a longer clip, Luma says to "split it into ≤10s segments and reframe each one".
-- **Vertical 1080p is not ready.** At 1080p, 9:16 and 3:4 return a "coming soon" 400 error. Use 720p for vertical.
-- **Position:** by default Luma fits the source "with a centered crop". `video.source_position` sets where the source sits in the new frame instead.
-- **Prompt:** it describes "how the new canvas area should be filled".
-- **No HDR:** reframe is standard dynamic range only.
+### Where the source sits
 
-Example (ours). The bottle sits on the right of the master. For 9:16, set `source_position` so the bottle stays in the frame. Prompt: "Extend the marble wall and the soft window light above and below the shelf."
+By default, Luma "fits the source video into the new canvas with a centered crop and outpaints the exposed area". To choose the place yourself, pass `video.source_position`, "a normalized rectangle measured as fractions of the output canvas". It has four fields: `x_norm` and `y_norm` (the top-left corner) and `w_norm` and `h_norm` (the size). "All four fields are required when source_position is present."
 
-## Upscale: bigger, not newer
+A small comparison: the canvas is a new, bigger frame, and `source_position` says where you hang the old picture inside it.
 
-To **upscale** is to make a clip bigger in pixels.
+### Upscale: bigger, not newer
 
-- **Runway Magnific Video Upscaler** (`video_upscale`) raises a clip to 4K. Inputs can be "at most 30 seconds". Its `creativity` setting runs "from 0 (faithful) to 100" and sets "How much AI-generated detail to add". For an approved master, keep it low (our advice). High creativity adds detail the client never saw.
-- **Runway Enhance Frame Rate** changes a clip to a set frame rate (frames per second), such as 25 or 29.97. Inputs can be at most 300 seconds.
-- **Google.** Omni marks its 1080p and 4K outputs as "upscaled". Veo 3.1 "can also directly generate 720p, 1080p or 4k videos".
+To **upscale** is to make a clip bigger in pixels. On Runway, the [Professional outputs page](https://docs.dev.runwayml.com/guides/professional-outputs) says the Magnific Video Upscaler "raises the video to 4K. Inputs can be at most 30 seconds." Its `creativity` setting is "How much AI-generated detail to add during upscaling, from 0 (faithful) to 100." Our advice: keep it low on approved work, so no new detail appears.
 
-## Delivery formats
+Enhance Frame Rate changes a clip to a set frame rate (frames per second), such as 25. "Inputs can be at most 300 seconds."
 
-An MP4 is fine for social media. An editor or a colourist (the person who adjusts the colours) often wants more. Runway says film work often needs "a container it can open directly, such as ProRes or a PNG sequence". (A container is the file type that holds the video. ProRes is a high-quality video format that editing programs open easily.)
+On Google, Omni marks its 1080p and 4K outputs as "upscaled". The [Veo page](https://ai.google.dev/gemini-api/docs/veo) says Veo 3.1 "can also directly generate 720p, 1080p or 4k videos".
 
-On Gen-4.5 and Aleph 2.0, Runway's `outputFormat` sets the file. Colour grading means adjusting the colours in an editor. A 10-bit file stores colour in finer steps: Runway uses it when a grade "needs more precision than 8-bit H.264". Rec.709 is the name of the standard-range colour space these files use.
+### HDR is its own delivery
 
-| Value              | What you get                                                 |
-| ------------------ | ------------------------------------------------------------ |
-| `mp4` (default)    | an H.264 .mp4                                                |
-| `prores`           | a ProRes .mov                                                |
-| `png_sequence`     | a .zip of PNG frames, plus a separate .wav if there is sound |
-| `sdr_rec709_10bit` | a 10-bit Rec.709 .mp4, for colour grading                    |
+The Runway docs: "HDR (high dynamic range) stores a wider span of brightness than standard dynamic range (SDR)."
 
-Two traps:
+- **Runway.** Gen-4.5 "can generate HDR natively". Ruby "converts any SDR video, including an Aleph edit, to HDR". Its inputs "must be SDR, at most 30 seconds, and up to 4K".
+- **Luma.** `hdr: true` "generates an HDR-encoded MP4". It "requires 720p or 1080p" and "is not supported with duration: "10s" or loop". `exr_export` adds an EXR file "for professional colour-grading workflows" and "Requires hdr: true".
 
-- **ProRes 4444 is not a matte.** It is the default ProRes profile. An alpha channel is the part of a file that stores see-through areas. Runway says the alpha channel here "is present but fully opaque" (opaque means nothing is see-through), so choose these tiers "not for mattes". (A matte is a file with see-through parts, used to lay one picture over another.)
-- **These files are standard range.** Runway: "HDR is a separate delivery."
+### File formats for the next person
 
-**HDR** (high dynamic range) "stores a wider span of brightness than standard dynamic range (SDR)".
+On Gen-4.5 and Aleph 2.0, Runway's `outputFormat` sets the file:
 
-- **Runway.** Gen-4.5 can make HDR directly. Ruby (`video_to_hdr`) converts an SDR clip, "including an Aleph edit", to HDR. Inputs are at most 30 seconds. Runway says the output "keeps the source's own pixels".
-- **Luma.** `hdr: true` makes an HDR MP4 (720p or 1080p only; not with a 10-second duration, not with a loop). `exr_export` adds an EXR file (an image file type that stores very precise colour, used for colour grading). Reframe and extend stay standard range.
+| Value              | What you get                                                   |
+| ------------------ | -------------------------------------------------------------- |
+| `mp4` (default)    | an H.264 .mp4                                                  |
+| `prores`           | a ProRes .mov (a high-quality format for editing programs)     |
+| `png_sequence`     | a .zip of PNG frames, plus a separate .wav when there is sound |
+| `sdr_rec709_10bit` | a 10-bit Rec.709 .mp4                                          |
 
-## Order the steps
+The 10-bit file is for when "a grade needs more precision than 8-bit H.264". (A grade is a colour adjustment.) "That file is still SDR."
 
-Our advice: edit first, then reframe, then upscale, then convert the format. Each step works on the approved result of the step before.
+Two traps from the Runway docs:
 
-Two facts from the docs back this order (our reading). Luma's reframe rejects HDR, so HDR comes after it. And Ruby can turn an SDR result into HDR at the end.
+- ProRes and PNG files "stay in standard dynamic range. HDR is a separate delivery."
+- ProRes 4444 is the default profile. In the API reference, its alpha channel (the part that stores see-through areas) "is present but fully opaque; choose these tiers for 12-bit 4:4:4 color fidelity, not for mattes". (A matte is a file with see-through parts.)
 
-## Hand off to the editor
+### Keep the source
 
-Send a delivery sheet with the files. This format is ours:
+The Luma docs say: "The generation id does not expire — keep it if you plan to edit, extend, or reframe the video later." Download links "expire after 1 hour".
 
-| File | Ratio | Size | Frame rate | Format | Range | Sound | Source id |
-| ---- | ----- | ---- | ---------- | ------ | ----- | ----- | --------- |
+## Worked example
 
-Keep every source id. Luma says to keep the generation id "if you plan to edit, extend, or reframe the video later". Download every file the same day (Tool Forge, chapter 4).
+The museum master: 16:9, 10 seconds, painting on the left third.
 
-## What this means for your work
+### Step 1: the weak plan
 
-- **One master, many shapes.** Crop, outpaint or regenerate on purpose.
-- **Outpaint to keep approved motion.** Regenerate for a new layout.
-- **Check reframe limits:** 10 seconds, six ratios, no vertical 1080p yet.
-- **Upscale faithfully:** low creativity on approved work.
-- **Pick the format for the next person:** MP4 for social, ProRes or PNG frames for the editor.
-- **HDR is its own delivery**, and ProRes 4444 is not a matte.
-- **Send a delivery sheet** with every source id.
+```json
+{
+  "model": "ray-3.2",
+  "type": "video_reframe",
+  "source": { "generation_id": "<master id>" },
+  "aspect_ratio": "1:1",
+  "prompt": "Make it square."
+}
+```
+
+### Step 2: the hard case
+
+**The hard case is the painting's place.** With no `source_position`, Luma uses a centered crop. A square cut from the middle of a wide frame loses the left and right edges, and the painting is on the left.
+
+So we place the whole master inside the square and let Luma fill above and below. Our maths: the master is 16 wide and 9 high. If it fills the full width of a square, its height is 9 ÷ 16 = 0.5625 of the square. To centre it, the top edge sits at (1 − 0.5625) ÷ 2 = 0.21875.
+
+### Step 3: the fixed request
+
+```json
+{
+  "model": "ray-3.2",
+  "type": "video_reframe",
+  "source": { "generation_id": "<master id>" },
+  "aspect_ratio": "1:1",
+  "prompt": "Extend the gallery wall above and the wooden floor below, in the same soft light.",
+  "video": {
+    "duration": "10s",
+    "resolution": "1080p",
+    "source_position": { "x_norm": 0, "y_norm": 0.21875, "w_norm": 1, "h_norm": 0.5625 }
+  }
+}
+```
+
+1080p is fine here, because the target is square, not vertical. `duration` is 10 seconds to keep the whole master.
+
+### Step 4: the delivery sheet
+
+This format is ours:
+
+```text
+File            Ratio  Size   Range  Format          Source id
+feed-square     1:1    1080p  SDR    MP4             <reframe id>
+social-master   16:9   1080p  SDR    MP4             <master id>
+```
+
+Download each file the same day, and keep both ids.
+
+### Step 5: why it is better
+
+- **The painting stays in the frame**, because we chose where the master sits.
+- **The approved motion is untouched.** Reframe keeps the source frame for frame.
+- **Every file has a source id**, so you can redo any step later.
+
+## Common mistakes
+
+1. **A new take when the motion is approved.** The client sees a different clip. Fix: outpaint with a reframe, and save new takes for new layouts.
+2. **Trusting the default centered crop.** An off-centre subject gets cut. Fix: set `source_position` so the subject stays in the canvas.
+3. **Keeping only the download link.** On Luma it expires after an hour. Fix: download the same day and keep every generation id.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Pick an output for each person, and give one reason.
+
+1. The social team wants a file to post today.
+2. A colourist wants a Runway Gen-4.5 clip in standard range, but with more precision than a normal MP4.
+3. A grader asks for an EXR file next to an HDR MP4 from a 5-second Luma clip.
+4. A TV channel needs a clip at exactly 25 frames per second.
+
+### Answer
+
+1. **`mp4`**, the default H.264 file. Social media needs nothing more.
+2. **`sdr_rec709_10bit`.** It is for a grade that needs more precision than 8-bit H.264, and it is still SDR.
+3. **Luma `hdr: true` with `exr_export: true`**, at 720p or 1080p. EXR "Requires hdr: true", and HDR does not work at 10 seconds, so a 5-second clip fits.
+4. **Runway Enhance Frame Rate** with a target of 25. It sets the frame rate of a clip you already have.
+
+## Recap
+
+- Crop, outpaint or regenerate on purpose. A reframe keeps the master frame for frame. Use `source_position` when the subject is not in the centre.
+- Know the reframe limits: six ratios, 10 seconds in and out, vertical 1080p not yet, standard range only.
+- Upscale with low creativity, treat HDR as its own delivery, pick the format for the next person, and keep every id.
