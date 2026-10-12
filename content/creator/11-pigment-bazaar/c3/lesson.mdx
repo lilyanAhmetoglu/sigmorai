@@ -1,7 +1,7 @@
 ---
 id: creator/r11/c3/lesson
 title: Text & layout
-minutes: 9
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · GPT Image prompting guide
@@ -35,89 +35,173 @@ sources:
     url: https://www.recraft.ai/docs/recraft-studio/image-generation/working-with-text-and-prompts/adding-text-to-an-image
 ---
 
-## Why it matters
+## Goal
 
-A bakery wants a poster: the headline "Rye Days", the date "SAT 12 OCT" and a small line "Fresh from 7am". All three must be spelled right and sit in the right place.
+After this lesson you can:
 
-Bootstrap Village, chapter 1, and Prompt Forest, chapter 1, gave the warning: models can get text wrong, so read every letter. This chapter is the next step. It shows how to write text so each model has its best chance, and how to place it with boxes.
+- Write text into an image prompt so each model has its best chance to get it right.
+- Place text and objects with boxes, in each vendor's own number format.
+- Keep a layout correct when the image shape changes.
 
-## Four moves the guides give
+## The problem
 
-The vendors use different words for these four moves. The first three are in several guides; the fourth is Ideogram's.
+Harbour Runners is a running club. It wants a race graphic with three parts: the headline "HARBOUR 10K", a smaller line "Sunday 9am, North Pier", and the club's round badge in the bottom-right corner.
 
-1. **Quote the exact words.** OpenAI: "Put required wording in quotes". Ideogram: "Anything inside quotation marks is text to render." FLUX: "Put every string in quotation marks, with the capitalization and punctuation you want".
-2. **Say where it goes.** OpenAI says to "describe its position and typography". Ideogram: "Say where it appears." FLUX: "Place each block in the frame".
-3. **Describe the type.** Gemini: be clear about "the font style (descriptively)". FLUX: "Give weight, case, color, and character".
+The designer builds it as a square post with boxes. It looks right. Then the club asks: "Can we have it as a phone story too?" A story is tall: 9:16. The designer keeps the same boxes and changes only the shape. The headline now sits in a thin strip. The round badge comes out tall and narrow, like an egg.
+
+Nothing was misspelled. The boxes were right for one shape and wrong for the other. This lesson shows how to write text, how to place it, and how boxes behave when the frame changes.
+
+## The idea
+
+### Four moves for text
+
+The guides use different words for the same four moves.
+
+1. **Quote the exact words.** The [OpenAI guide](https://developers.openai.com/api/docs/guides/image-prompting): "Put required wording in quotes". The [Ideogram text page](https://docs.ideogram.ai/prompting/text-in-images): "Anything inside quotation marks is text to render." The [FLUX 3 style guide](https://docs.bfl.ai/guides/prompting_unified_style): "Put every string in quotation marks, with the capitalization and punctuation you want".
+2. **Say where it goes.** OpenAI: "describe its position and typography". Ideogram: "Say where it appears." FLUX: "Place each block in the frame".
+3. **Describe the type.** The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) ask you to be clear about "the font style (descriptively)". FLUX: "Give weight, case, color, and character".
 4. **Keep it short.** Ideogram: "Each extra word raises the odds of a typo or a dropped letter."
 
-Ideogram adds one more: "Mention the text early." Text near the start "comes out more reliably than text added at the end."
+Ideogram adds: "Mention the text early." Text near the start "comes out more reliably than text added at the end." For several blocks, it says to describe them "in reading order, from the top of the image down".
 
-## Spell it, count it, fence it
+### OpenAI's extra habits
 
-OpenAI's guide has three extra habits worth using with any model (our view):
+OpenAI's guide adds three habits, and they work with any model (our view):
 
-- **Spell it.** "Spell unusual words or brand names letter by letter when needed." For example: "the headline "Rye Days", spelled R-Y-E D-A-Y-S".
-- **Count it.** Its ad example says "Render the tagline exactly once".
-- **Fence it.** "Ask for no extra text, then check spelling and legibility in the output."
+- **Spell it:** "Spell unusual words or brand names letter by letter when needed."
+- **Fence it:** "Ask for no extra text, then check spelling and legibility in the output."
+- **Count it:** one of its ad examples says "Render the tagline exactly once".
 
-It also says to "Compare medium or high quality for small text, dense information, or multiple fonts."
+It also says: "Compare medium or high quality for small text, dense information, or multiple fonts."
 
-## Describe the font
+### Fonts: describe, don't name
 
-Ideogram is direct: "You can't pick a font by name. Ideogram doesn't load real fonts". Describe "the weight, shape and mood of the letters instead", like "bold sans-serif" (letters without the small feet at the ends of the strokes) or "thin and refined formal script".
+Ideogram is direct: "You can't pick a font by name." It explains: "Ideogram doesn't load real fonts". So "Describe the weight, shape and mood of the letters instead", such as a "bold sans-serif" (letters without small feet at the stroke ends).
 
-FLUX treats a name differently. Its guide says: "A font name works as a comparison: "a bold, white sans-serif typeface reminiscent of Helvetica or Inter"". So on FLUX, describe the type and add a name only as a comparison.
+FLUX uses a name only as a comparison. One of its examples describes "a bold, white sans-serif typeface reminiscent of Helvetica or Inter".
 
-On Ideogram, write "tall, condensed, bold sans-serif capitals in cream" rather than a font's brand name (our example). If the exact brand font matters, set the text in your design tool.
+Our advice: when a brand needs its exact font, set that text in a design tool.
 
-## Place text with boxes
+### Boxes place text
 
-Sentences place text roughly. Ideogram says: "Plain text gets you close, but the layout can shift from one run to the next."
+Sentences place text roughly. Ideogram: "Plain text gets you close, but the layout can shift from one run to the next."
 
-For exact places, some models take a **bounding box**: four numbers that mark a rectangle on the image. Each vendor writes the numbers in its own order.
+For exact places, some models take a **bounding box**: four numbers that mark an area of the image. Each vendor writes them in its own way.
 
-| Vendor (October 2026)    | Where the box goes                       | Number order and scale                                      |
-| ------------------------ | ---------------------------------------- | ----------------------------------------------------------- |
-| Ideogram 4.5 and 4.0     | JSON element with `text`, `desc`, `bbox` | `[y_min, x_min, y_max, x_max]`, 0 to 1000                   |
-| FLUX 3 Image             | Layout element with `id`, `bbox`, `desc` | `[top, left, bottom, right]`, 0 to 1000                     |
-| Recraft V3 and V3 Vector | `text_layout` list, one word per entry   | four corner points, each `[x, y]`, 0 to 1 from the top-left |
+| Vendor (October 2026)    | Where the box goes                   | Numbers                                                     |
+| ------------------------ | ------------------------------------ | ----------------------------------------------------------- |
+| Ideogram 4.5 and 4.0     | JSON element: `text`, `desc`, `bbox` | `[y_min, x_min, y_max, x_max]` on a 0–1000 grid             |
+| FLUX 3 Image             | layout row: `id`, `bbox`, `desc`     | `[top, left, bottom, right]` on a 0–1000 grid               |
+| Recraft V3 and V3 Vector | `text_layout` list, one word a row   | four corner points, each `[x, y]`, 0 to 1 from the top-left |
 
-Look at the order. Ideogram and FLUX put the **top edge first**. Recraft gives **points with x first**. A box copied from one tool to another lands in the wrong place (our warning). FLUX's own fix list says to check that the "coordinates use y before x".
+Ideogram and FLUX put the top edge first. Recraft lists points, x first. So a box copied from one tool to another lands in the wrong place (our warning). The [FLUX layout guide](https://docs.bfl.ai/guides/prompting_layout) says to check that "coordinates use y before x".
 
-## The three formats, in practice
+**FLUX layout.** "A layout prompt combines a caption with a JSON array of elements." The caption names each element by its id, like `<title_1>`. For text rows: "Quote the words and specify case, color, type style, and alignment." The guide also says: "Boxes guide composition rather than clipping content."
 
-**Ideogram JSON.** Each text block is an element with `"type": "text"`, the exact words in `text`, and the look in `desc`. Its jazz-poster example puts the headline in `[30, 50, 140, 950]`: a wide strip near the top.
+Two rules about shape, from the same guide:
 
-**FLUX layout.** "A layout prompt combines a caption with a JSON array of elements." The caption names each element by its id. For text, "Quote the words and specify case, color, type style, and alignment." FLUX adds: "Boxes guide composition rather than clipping content." Choose `aspect_ratio` before you place boxes, because the grid "stretches with the frame".
+- "Choose `aspect_ratio` before placing boxes."
+- "Grid units are relative to each axis. On a `2:3` image, a square needs a box 150 units wide for every 100 units tall."
 
-**Recraft text layout.** It works on "Recraft V3 and Recraft V3 Vector models only". Each entry is "A single word", from a fixed character list. Recraft Studio's notes say "Characters in different cases (like "B" and "b") are treated as the same symbol." They also say V3 "does not handle very small text reliably". So "Fresh from 7am" is three entries, and small lines are risky (our reading).
+**Recraft text layout.** The [Recraft API reference](https://www.recraft.ai/docs/api-reference/endpoints) says it "is supported by Recraft V3 and Recraft V3 Vector models only". Each row's `text` is "A single word containing only supported characters". Each point uses coordinates where "(0, 0) is the top-left corner, (1, 1) is the bottom-right corner". [Recraft Studio's notes](https://www.recraft.ai/docs/recraft-studio/image-generation/working-with-text-and-prompts/adding-text-to-an-image) add two limits:
 
-For the bakery headline on Ideogram (our example):
+- "Characters in different cases (like “B” and “b”) are treated as the same symbol."
+- Recraft V3 "does not handle very small text reliably".
 
-```json
-{
-  "type": "text",
-  "bbox": [40, 80, 180, 920],
-  "text": "Rye Days",
-  "desc": "Bold cream serif capitals across the top"
-}
+### A box places text; it does not spell it
+
+A box decides where words go. It does not check the letters (our reading of every guide above: each one still tells you to check the output). Proof-read every word in every image.
+
+### Limits and fixes
+
+Ideogram's limits:
+
+- "Ideogram handles titles and short blocks well. Add body copy or full documents later in a design tool."
+- "Non-Latin scripts and accented letters can come out wrong or not at all."
+
+Its fix list, in order:
+
+1. "Generate again."
+2. "Swap long or unusual words for shorter ones."
+3. Fix just the text in its editor, so the rest stays the same.
+
+Its tip: "It's often easier to keep an image whose text is right and fix the scene around it than the other way round."
+
+Some models are made for text. The [FLUX.2 overview](https://docs.bfl.ai/flux_2/flux2_overview) lists FLUX.2 [flex] as "Specialized for typography".
+
+## Worked example
+
+Our example. The club, the words and the numbers are made up.
+
+### Step 1: the square layout
+
+The designer set the shape first, then the boxes. FLUX 3 Image, `aspect_ratio` `1:1`:
+
+```text
+Caption: Flat graphic poster on a deep navy background. <title_1> runs across
+the top. <info_1> sits below it. <badge_1> sits in the bottom-right corner.
+
+[
+  { "id": "title_1", "bbox": [60, 60, 260, 940],
+    "desc": "Centered text reading \"HARBOUR 10K\" in bold, white condensed sans-serif capitals" },
+  { "id": "info_1", "bbox": [280, 160, 340, 840],
+    "desc": "Centered text reading \"Sunday 9am, North Pier\" in light grey sans-serif" },
+  { "id": "badge_1", "bbox": [720, 720, 920, 920],
+    "desc": "A round navy-and-white club badge with a small anchor" }
+]
 ```
 
-## A model tuned for type
+On a square, the badge box is 200 by 200 units. That is a square area.
 
-BFL's FLUX.2 overview lists its [flex] model under "Specialized for typography" and says it is for text and small details. If a page names a model for text, try it on text-heavy assets (our advice). Still check every letter.
+### Step 2: the same boxes on a tall frame
 
-## When the text is wrong
+The designer changes `aspect_ratio` to `9:16` and keeps every box. Grid units are relative to each axis. So 200 units across is now much narrower than 200 units down. Our maths: on 9:16, 200 units of width is 9/16 of 200 units of height, about 113. The badge area is tall and thin.
 
-Ideogram's fix list, in order: generate again; "Swap long or unusual words for shorter ones"; then fix just the text in its editor. Its tip: "It's often easier to keep an image whose text is right and fix the scene around it than the other way round."
+### Step 3: the hard case
 
-Know the limits too. Ideogram says long passages should be added "later in a design tool". It also says "Non-Latin scripts and accented letters can come out wrong or not at all."
+**The hard case is the round badge.** The headline only needs a wide strip, and it still has one. But the badge must stay round, so its area must stay square.
 
-## What this means for your work
+Our maths, from the guide's 2:3 rule: on 9:16, a square needs about 178 units of width for every 100 units of height (16 ÷ 9 × 100). For a badge 90 units tall:
 
-- **Quote, place, describe, keep short.** Use the four moves the guides give.
-- **Spell brand names letter by letter**, and ask for the text exactly once.
-- **Describe the type.** On Ideogram, never name a font; on FLUX, a name works only as a comparison.
-- **Use boxes for exact places**, and check each vendor's number order.
-- **Put long copy in your design tool**, not in the model.
-- **Proof-read every letter.** Boxes place text; they don't spell it.
+```text
+{ "id": "badge_1", "bbox": [790, 600, 880, 760],
+  "desc": "A round navy-and-white club badge with a small anchor" }
+```
+
+Height 880 − 790 = 90. Width 760 − 600 = 160, which is 90 × 16 ÷ 9.
+
+The caption still says "in the bottom-right corner". The FLUX guide asks for the position in words as well.
+
+### Step 4: why it is better
+
+- **Shape first.** The boxes are planned for the frame they will live in.
+- **A square stays square.** The badge box matches the frame's real width.
+- **Words and boxes agree.** If the model drifts, the caption still says where each part belongs.
+
+## Common mistakes
+
+1. **Text added at the end of a long prompt.** It is the last thing the model reads. Fix: name the words early, near the start.
+2. **Tiny text at the lowest quality.** Small lines need detail. Fix: compare medium and high quality, as OpenAI's guide says.
+3. **Throwing away an image with perfect text** to fix a small scene problem. Fix: keep it, and fix the scene around the text.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Write FLUX boxes as `[top, left, bottom, right]` on the 0 to 1000 grid.
+
+1. On a 1:1 image: a title strip across the top fifth, with a margin of 50 on the left, right and top.
+2. On a 1:1 image: a square logo, 150 units on each side, in the bottom-left corner, with a margin of 40.
+3. On a 2:3 image: you need a square area 100 units tall. How wide must the box be?
+
+### Answer
+
+1. **`[50, 50, 200, 950]`.** The top fifth ends at 200. The margins take 50 from the top, left and right.
+2. **`[810, 40, 960, 190]`.** The bottom edge is 1000 − 40 = 960, so the top is 960 − 150 = 810. On a square image, 150 units across equals 150 units down.
+3. **150 units wide.** The FLUX layout guide gives this exact rule: grid units are relative to each axis.
+
+## Recap
+
+- Quote the exact words, say where they go, describe the type, keep them short and early. Spell brand names, ask for no extra text, and check the output.
+- Fonts are described, not named. Use a name only as a FLUX comparison, and set exact brand fonts in a design tool.
+- Boxes place text but don't spell it. Each vendor has its own number order and scale, and FLUX grid units stretch with the frame, so choose the shape first.
