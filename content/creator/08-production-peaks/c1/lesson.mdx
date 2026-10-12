@@ -12,12 +12,6 @@ sources:
   - kind: docs
     title: OpenAI docs · Content provenance
     url: https://developers.openai.com/api/docs/guides/content-provenance
-  - kind: docs
-    title: YouTube Help · Disclosing use of GenAI content
-    url: https://support.google.com/youtube/answer/14328491
-  - kind: docs
-    title: TikTok Newsroom · Partnering with our industry to advance AI transparency and literacy
-    url: https://newsroom.tiktok.com/en-us/partnering-with-our-industry-to-advance-ai-transparency-and-literacy
 ---
 
 ## Goal
@@ -68,7 +62,7 @@ The explainer answers three questions.
 
 - **Should you distrust a file with no credential?** The answer is "Maybe." Nobody has to add a credential, and files without one should not be "universally less trusted". The sender counts too, for example a publisher you know.
 - **Is provenance always complete?** No. If a tool that does not know C2PA crops a file, the record may miss the crop. When the file later goes into a tool that does know C2PA, the new signer "implicitly attests" to the crop. The signer vouches for it without listing it.
-- **Can a credential be removed?** Yes. So C2PA describes **durable** credentials: a hard binding (the hash) plus a **soft binding**, such as an invisible watermark or a fingerprint lookup. The soft binding lets the credential "be discovered in cloud-hosted storage even if it is removed from the asset".
+- **Can a credential be removed?** Yes. So C2PA describes **durable** credentials: a hard binding (the hash) plus a **soft binding**, such as an invisible watermark (a hidden pattern mixed into the pixels or sound) or a fingerprint lookup. The soft binding lets the credential "be discovered in cloud-hosted storage even if it is removed from the asset".
 
 ### Files made from parts
 
@@ -78,7 +72,7 @@ There is one limit. The ingredient's own data is usually not inside the new file
 
 ### Reading the OpenAI provenance check
 
-The [OpenAI docs](https://developers.openai.com/api/docs/guides/content-provenance) describe an API (a service your tools call) that checks images and audio. It accepts PNG, JPEG and WebP images. For an image, it returns two entries: a `c2pa` entry and a `synthid` entry (SynthID is an invisible watermark). Audio gets only a `synthid` entry. The docs say: "Read each applicable entry in `results` independently." The response has no top-level `outcome` that sums them up.
+The [OpenAI docs](https://developers.openai.com/api/docs/guides/content-provenance) describe an API (a service your tools call) that checks images and audio. It accepts PNG, JPEG and WebP images. For an image, it returns two entries, one named `c2pa` and one named `synthid` (SynthID is an invisible watermark). Audio gets only a `synthid` entry. The docs say: "Read each applicable entry in `results` independently." No single `outcome` at the top of the response sums them up.
 
 The `c2pa` entry has these fields:
 
@@ -104,10 +98,6 @@ Three more lines from the same page:
 
 So `outcome` answers one narrow question: did OpenAI's own AI credential show up? It does not answer whether AI was used.
 
-### Platforms read credentials too
-
-The [TikTok newsroom post](https://newsroom.tiktok.com/en-us/partnering-with-our-industry-to-advance-ai-transparency-and-literacy) from May 2024 announced that TikTok would start reading Content Credentials. It uses them to label AI content uploaded from some other platforms. The [YouTube Help page](https://support.google.com/youtube/answer/14328491) says YouTube may add an AI label to "Content that contains C2PA metadata". So the history inside a file can turn into a label on your post.
-
 ## Worked example
 
 ### Step 1: the weak record
@@ -116,7 +106,7 @@ The [TikTok newsroom post](https://newsroom.tiktok.com/en-us/partnering-with-our
 cover-final.png   AI used: no   (the check said not_detected)
 ```
 
-The manager turned `outcome` into an answer about AI. That field only speaks about OpenAI's own credential.
+The manager read one summary and stopped. The cover's history is not in the summary.
 
 ### Step 2: read every entry
 
@@ -131,9 +121,8 @@ synthid  outcome:          not_detected
 
 Our reading:
 
-- The manifest is `valid`. The record is intact.
-- The issuer is the maker of the studio's design app (a made-up name), not OpenAI. So `not_detected` is expected, whatever the cover contains.
-- The SynthID entry says the watermark was not found in the final pixels. It does not rule out AI.
+- The record is intact and signed. It tells you who signed the final file (the studio's design app, a made-up name).
+- Neither entry lists the parts of the cover. For that, open the full credential.
 
 ### Step 3: open the history
 
@@ -167,15 +156,15 @@ cover-final.png
 
 ### Step 6: why it is better
 
-- **Each entry is read alone.** No field answers a question it was not built for.
+- **The history is read, not just the summary.** The ingredient list shows where AI was used.
 - **The history and its gap are written down.** The record says which ingredient used AI, and where the crop happened.
 - **The note is true.** A credential cannot make a caption true; the team writes a true one.
 
 ## Common mistakes
 
-1. **One yes/no column for a whole check.** It hides which entry said what. Fix: give each entry and each field its own column.
+1. **One AI yes/no for a composite file.** A cover can mix AI and non-AI parts. Fix: note AI use per ingredient, as in the good record.
 2. **Reading a missing crop as fraud.** A tool that does not know C2PA can leave a gap. Fix: look at who signed the next step, and note the gap.
-3. **Archiving only the posted copy.** The OpenAI docs warn that editing, converting or sharing a file can remove its metadata. Fix: keep the original export as the master.
+3. **Archiving only the posted copy.** The OpenAI docs warn: "Editing, converting, or sharing a file can remove its metadata." Metadata is data about the file, stored next to the pixels. Fix: keep the original export as the master.
 
 ## Try it
 
