@@ -17,84 +17,164 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-Floor 2 showed the model's output as a table of probabilities. The model does not make those probabilities directly. It makes raw scores, and one formula, softmax, turns the scores into probabilities. Temperature is one number inside that formula. This floor shows the formula and works it by hand.
+## Goal
 
-## Logits: raw scores
+After this lesson you can:
 
-In the math of a language model, the last step gives one raw score per token in its vocabulary. These scores are called logits. A logit can be any number: positive, negative or zero. A bigger logit means the model favours that token more.
+- Turn a list of logits into probabilities with softmax, by hand.
+- Say how temperature changes those probabilities, with numbers.
+- Read the temperature rules of different APIs before you send a value.
 
-Logits are not probabilities. They don't sit between 0 and 1, and they don't add up to 1. Here is a made-up example for the text `The sky is`:
+## The problem
 
-| Token    | Logit |
-| -------- | ----- |
-| ` blue`  | 2     |
-| ` clear` | 1     |
-| ` dark`  | 0     |
+A model does not give probabilities straight away. Its last step gives one raw score per option. One formula, softmax, turns the scores into probabilities. Temperature is one number inside that formula.
 
-## Softmax turns scores into probabilities
+If you write your own code around model scores, or you set temperature in an API call, you need to know what this formula does. Without it, you can get wrong numbers, crashes, or an API error. This lesson works the formula by hand.
+
+## The idea
+
+### Logits: raw scores
+
+At its last step, a language model gives one raw score for every token in its vocabulary (every token it knows). These scores are called **logits**. A logit can be any number: positive, negative or zero. A bigger logit means the model favours that token more.
+
+Logits are not probabilities. They don't sit between 0 and 1, and they don't add up to 1. Our made-up example:
+
+| Token    | Logit z |
+| -------- | ------- |
+| ` blue`  | 3       |
+| ` clear` | 1       |
+| ` dark`  | 0       |
+
+### Softmax turns scores into probabilities
+
+`e ≈ 2.718` is a fixed number. `e^z` means e to the power (exponent) z, so `e^2 = e × e ≈ 7.389`. Two facts you need: `e^0 = 1`, and `e^z` is always above 0.
 
 Softmax does two things. First it makes every score positive with `e^z`. Then it divides by the total, so the results add up to 1.
 
 `p_i = e^(z_i) / Σ e^(z_j)`: the probability of token i is e to the power of its logit z-i, divided by the sum of e to the power of every logit z-j.
 
-`e ≈ 2.718` is the same e as in floor 2, where `e^x` undid `ln`. `e^z` is always positive, and a bigger z gives a bigger `e^z`.
+`Σ` (sigma) means: add them all up. Worked with the logits above:
 
-Worked example with the logits above:
+| Token    | Logit z | e^z      | Probability               |
+| -------- | ------- | -------- | ------------------------- |
+| ` blue`  | 3       | `20.086` | `20.086 / 23.804 ≈ 0.844` |
+| ` clear` | 1       | `2.718`  | `2.718 / 23.804 ≈ 0.114`  |
+| ` dark`  | 0       | `1`      | `1 / 23.804 ≈ 0.042`      |
 
-| Token    | Logit z | e^z     | Probability              |
-| -------- | ------- | ------- | ------------------------ |
-| ` blue`  | 2       | `7.389` | `7.389 / 11.107 ≈ 0.665` |
-| ` clear` | 1       | `2.718` | `2.718 / 11.107 ≈ 0.245` |
-| ` dark`  | 0       | `1`     | `1 / 11.107 ≈ 0.090`     |
-
-The total is `7.389 + 2.718 + 1 = 11.107`. Check: `0.665 + 0.245 + 0.090 = 1.000`.
+The total is `20.086 + 2.718 + 1 = 23.804`. Check: `0.844 + 0.114 + 0.042 = 1.000`.
 
 Three things to notice:
 
-- The order stays the same. The biggest logit gets the biggest probability.
-- A gap of 1 in the logits means a ratio of `e` in the probabilities: ` blue` is `7.389 / 2.718 ≈ 2.718` times as likely as ` clear`.
-- Adding the same number to every logit changes nothing. Logits `(5, 4, 3)` give the same `0.665, 0.245, 0.090`. Only the gaps count.
+- **The order stays.** The biggest logit gets the biggest probability. Equal logits get equal probabilities.
+- **Gaps become ratios.** A gap of 2 in the logits means a ratio of `e^2 ≈ 7.389`. ` blue` is about 7.4 times as likely as ` clear`.
+- **Only the gaps count.** Add the same number to every logit, and nothing changes. Logits `(4, 2, 1)` also give `0.844, 0.114, 0.042`.
 
-## Temperature divides the logits
+### Temperature divides the logits
 
 In the textbook formula, temperature `T` divides every logit before softmax:
 
-`p_i = e^(z_i/T) / Σ e^(z_j/T)`: the same formula, with each logit divided by the temperature T first.
+`e^(z_i/T) / Σ e^(z_j/T)`: the same formula, with each logit divided by the temperature T first.
 
-Dividing by T changes the gaps. A small T makes the gaps bigger. A big T makes them smaller. Same logits `(2, 1, 0)`:
+Dividing by T changes the gaps. A small T makes the gaps bigger. A big T makes them smaller. Same logits `(3, 1, 0)`:
 
-| T   | Logits ÷ T    | ` blue` | ` clear` | ` dark` |
-| --- | ------------- | ------- | -------- | ------- |
-| 0.5 | `(4, 2, 0)`   | 0.867   | 0.117    | 0.016   |
-| 1   | `(2, 1, 0)`   | 0.665   | 0.245    | 0.090   |
-| 2   | `(1, 0.5, 0)` | 0.507   | 0.307    | 0.186   |
+| T   | Logits ÷ T      | ` blue` | ` clear` | ` dark` |
+| --- | --------------- | ------- | -------- | ------- |
+| 0.5 | `(6, 2, 0)`     | 0.980   | 0.018    | 0.002   |
+| 1   | `(3, 1, 0)`     | 0.844   | 0.114    | 0.042   |
+| 2   | `(1.5, 0.5, 0)` | 0.629   | 0.231    | 0.140   |
 
-Check T = 0.5: `e^4 ≈ 54.598`, `e^2 ≈ 7.389`, `e^0 = 1`, total `62.987`. So ` blue` gets `54.598 / 62.987 ≈ 0.867`.
+Check T = 2: `e^1.5 ≈ 4.482`, `e^0.5 ≈ 1.649`, `e^0 = 1`, total `7.131`. So ` blue` gets `4.482 / 7.131 ≈ 0.629`.
 
-Check T = 2: `e^1 ≈ 2.718`, `e^0.5 ≈ 1.649`, `e^0 = 1`, total `5.367`. So ` blue` gets `2.718 / 5.367 ≈ 0.507`.
+The ends, as math:
 
-The two ends, as math:
-
-- **T close to 0:** the gaps grow without limit, so the top token gets almost all the probability. That is greedy decoding from floor 2. (T = 0 itself would divide by zero. The Gemini docs below describe temperature 0 as always picking the most probable response.)
-- **T very large:** the gaps shrink toward 0, so every token gets almost the same share.
+- **T close to 0:** the gaps grow without limit, so the top token gets almost all the probability. (T = 0 itself would divide by zero.)
 - **T = 1:** the logits are used as they are.
+- **T very large:** the gaps shrink toward 0, so every token gets almost the same share.
 
-## Temperature in the APIs
+A small comparison: low temperature is a spotlight on the top token. High temperature is a floodlight on all of them.
 
-The cited docs don't give the exact sampling code. What they describe matches the formula: lower temperature is more focused, higher is more random.
+### Temperature in the APIs
 
-- **OpenAI:** temperature is "What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic." OpenAI also writes: "We generally recommend altering this or top_p but not both."
-- **Claude:** the Messages API says temperature "Defaults to `1.0`. Ranges from `0.0` to `1.0`." Use it "closer to `0.0` for analytical / multiple choice, and closer to `1.0` for creative and generative tasks." The field is now marked deprecated: "Models released after Claude Opus 4.6 do not support setting temperature." For those models, only 1.0 is accepted; other values get a 400 error.
-- **Gemini:** "A temperature of 0 is deterministic, meaning that the highest probability response is always selected." For Gemini 3.x models, Google strongly recommends keeping temperature at its default, because a change (for example "setting the temperature below 1.0") "can cause unexpected behavior, such as looping or degraded performance".
+The cited docs don't publish the exact sampling code. What they describe matches the formula: lower is more focused, higher is more random.
 
-The Claude glossary adds the warning from floor 2: "Even with temperature set to 0, the results will not be fully deterministic." The formula explains the pick; the served API can still vary for other reasons.
+- The [OpenAI API reference](https://developers.openai.com/api/reference/resources/responses/methods/create): "What sampling temperature to use, between 0 and 2." It adds: "We generally recommend altering this or top_p but not both."
+- The [Claude Messages API](https://platform.claude.com/docs/en/api/messages): temperature "Defaults to `1.0`. Ranges from `0.0` to `1.0`." The field is now marked deprecated: "Models released after Claude Opus 4.6 do not support setting temperature. A value of 1.0 will be accepted for backwards compatibility, all other values will be rejected with a 400 error."
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies): "A temperature of 0 is deterministic, meaning that the highest probability response is always selected." For Gemini 3.x models, Google recommends keeping it at the default, because a change "can cause unexpected behavior, such as looping or degraded performance".
 
-Note the ranges differ: 0 to 2 for OpenAI, 0 to 1 for Claude. The same number does not mean the same thing on every API. Read the docs for the model you call.
+The [Claude glossary](https://platform.claude.com/docs/en/about-claude/glossary) adds: "Even with temperature set to 0, the results will not be fully deterministic". The formula explains the pick. A served API can still vary for other reasons.
 
-## Key points
+So the ranges and rules differ from API to API. Check the docs for the exact model you call.
 
-- Logits are raw scores, one per token. They can be any number.
-- Softmax: `e^z` for each logit, divided by the total. The results are positive and add up to 1.
-- Logits `(2, 1, 0)` give `0.665, 0.245, 0.090`. Only the gaps between logits count.
-- Temperature divides the logits first. Low T sharpens the table, high T flattens it.
-- APIs differ in range and support. Some newer models don't let you change temperature at all.
+## Worked example
+
+Our example: you write your own softmax for a small label model. It returns one logit per label. Our rule: accept the top label if its probability is at least 0.8.
+
+```text
+label     logit
+refund    1002
+bug       1000
+other      999
+```
+
+### Step 1: the direct way (before)
+
+You compute `e^1002` first. That number has about 436 digits. A normal computer float stops near `e^709`, so it can't hold it. In Python, `math.exp(1002)` stops with an overflow error. In NumPy, you get `inf`, and `inf / inf` gives `nan` (not a number). Your rule gets no number to check.
+
+### Step 2: the hard case, shift first
+
+**This is the hard case.** The logits are fine. The direct formula is not safe for big numbers. Use the rule from The idea: only the gaps count. Subtract the biggest logit, 1002, from every logit.
+
+```text
+label     logit    minus 1002    e^z
+refund    1002      0            1
+bug       1000     -2            0.135
+other      999     -3            0.050
+```
+
+The total is `1 + 0.135 + 0.050 = 1.185`.
+
+### Step 3: the probabilities
+
+- refund: `1 / 1.185 ≈ 0.844`
+- bug: `0.135 / 1.185 ≈ 0.114`
+- other: `0.050 / 1.185 ≈ 0.042`
+
+Check: `0.844 + 0.114 + 0.042 = 1.000`. These are the same probabilities as logits `(3, 1, 0)` in The idea, because the gaps are the same (2 and 1).
+
+### Step 4: the decision
+
+After: refund has 0.844. That is at least 0.8, so the app accepts the label **refund**.
+
+### Step 5: why it is better
+
+- **No overflow.** After the shift, the biggest exponent is `e^0 = 1`. Every other one is between 0 and 1.
+- **Same answer.** The shift does not change any probability, because only the gaps count.
+- **Works for any size.** The same code handles logits near 0 and near 1000.
+
+## Common mistakes
+
+1. **Dividing the raw logits by their total.** Logits `(3, 1, 0)` would give `3 / 4 = 0.75` for ` blue`, and a negative logit would give a negative share. Fix: take `e^z` of every logit first.
+2. **Computing `e^z` on big logits directly.** The number can overflow. Fix: subtract the biggest logit first.
+3. **Changing temperature and `top_p` together.** Two knobs make the effect hard to read. Fix: the OpenAI reference recommends changing one of them, not both.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Our example: a choice between two tokens.
+
+1. Logits `(2, 0)`. Find both probabilities.
+2. Logits `(12, 10)`. Find both probabilities.
+3. In part 1, how many times as likely is the first token as the second?
+
+### Answer
+
+1. `e^2 ≈ 7.389` and `e^0 = 1`. The total is `8.389`. So `7.389 / 8.389 ≈ 0.881` and `1 / 8.389 ≈ 0.119`.
+2. The same: `0.881` and `0.119`. Subtract 10 from both, and you get `(2, 0)` again. Only the gap of 2 counts.
+3. `0.881 / 0.119 ≈ 7.4`. That is `e^2 ≈ 7.389`: a gap of 2 in the logits is a ratio of `e^2` in the probabilities.
+
+## Recap
+
+- Logits are raw scores. Softmax takes `e^z` of each one and divides by the total, so the results are positive and add up to 1. Only the gaps between logits count.
+- With temperature, each logit is divided by T before softmax. A low T makes the top token stronger. A high T spreads the probability out.
+- APIs differ in temperature range and support, and some newer models don't let you change it. Check the docs for your model.
