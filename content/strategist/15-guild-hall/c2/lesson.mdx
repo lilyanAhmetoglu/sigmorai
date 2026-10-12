@@ -1,7 +1,7 @@
 ---
 id: strategist/r15/c2/lesson
 title: Custom helpers
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Claude Help Center · What are projects?
@@ -23,88 +23,162 @@ sources:
     url: https://support.google.com/gemini/answer/15236321
 ---
 
-## Why it matters
+## Goal
 
-Prompt Forest, chapter 6 (Team playbooks), turned good prompts into a shared, tested play. This chapter puts a play inside the AI app, so nobody has to paste it. A **custom helper** is a saved setup with standing instructions and files that many chats reuse. The name is ours, not a vendor's. Two of these products are changing right now, and this chapter says how. Product names and limits below come from each vendor's help pages (October 2026). They change often; check the page before you buy.
+After this lesson you can:
 
-## What a custom helper holds
+- Build a custom helper with the right parts in the right place: rules in the instructions, facts in files.
+- Predict what each product does with a helper's name, files and chats.
+- Plan a move when a vendor changes the product that holds your helper.
 
-Every product in this chapter stores the same two things:
+## The problem
 
-1. **Standing instructions.** How the assistant should behave in every chat: tone, role, format.
-2. **Files.** The reference material it should use: a style guide, a price list, a policy.
+A solar panel installer has 5 sales reps. Each rep explains quotes to home owners by email. Each rep keeps a private "quote prompt" in a notes app and pastes it into a new chat every time.
 
-Our example: a support team's "Refund helper" has the instruction "Answer in under 120 words, friendly and direct, and quote the policy section you used", plus one file, the refund policy.
+After six months, the five prompts are all different. One rep still quotes last year's government rebate. Another rep's prompt says "be very short", so customers ask the same question twice. When a rep is sick, nobody can find that rep's prompt.
 
-## Claude projects
+The sales manager wants one shared setup that all five reps use, that stays current, and that someone owns. The product facts below come from each vendor's help pages (October 2026).
 
-Anthropic: "Projects allow you to create self-contained workspaces with their own chat histories and knowledge bases."
+## The idea
+
+A **custom helper** is our name for a saved setup that many chats reuse. Every product in this lesson stores the same two parts:
+
+1. **Standing instructions:** how the assistant should behave in every chat. Tone, role, format.
+2. **Files:** the reference material it should use. A price list, a policy, a style guide.
+
+```text
+custom helper
+  instructions  ->  how to answer     (changes rarely)
+  files         ->  what is true now  (changes often)
+```
+
+**Claude projects.** The [Claude docs](https://support.claude.com/en/articles/9517075-what-are-projects) say: "Projects allow you to create self-contained workspaces with their own chat histories and knowledge bases." A **knowledge base** is the set of files the project holds. The [Claude page on managing projects](https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects) explains each part:
 
 - **Files.** "Anything you upload to this space will be used across all of your chats within that project."
-- **Instructions.** You click "Set project instructions", and "Claude will use these instructions for all the chats within the project." Anthropic's example: "instructing Claude to use a more formal tone or answer questions from the perspective of a specific role or industry."
+- **Instructions.** You click "Set project instructions", and then "Claude will use these instructions for all the chats within the project."
 
 Two details catch people out:
 
-- **The name and description are only labels.** When you create a project, you "Give your project a name and description (note that Claude will not have access to these details)." So a rule written in the description does nothing. Put it in the instructions.
-- **Chats don't share what they learn.** "Context is not shared across chats within a project unless the information is added into the project knowledge base." If one chat learns a new fact, add it to the project's files, or the next chat won't know it.
+- **The name and description are labels for people.** When you create a project, you give it "a name and description (note that Claude will not have access to these details)". So a rule written there does nothing. Rules belong in the instructions.
+- **Chats in a project do not learn from each other.** The page says: "Context is not shared across chats within a project unless the information is added into the project knowledge base." A fact typed into one chat stays in that chat. To make every chat know it, add it to the project files.
 
-Limits differ by plan. Anthropic says projects "are available to all users", and "Free users can create a maximum of five projects."
+**ChatGPT projects** hold the same two parts. The [ChatGPT docs](https://learn.chatgpt.com/docs/projects) say: "Project instructions apply across its chats." One difference: the same page says ChatGPT projects "carry project files and context across related chats". So check how your product shares context before you rely on it.
 
-## ChatGPT projects
+**Custom GPTs are moving to plugins.** A **custom GPT** is OpenAI's older custom helper. The [ChatGPT migration guide](https://learn.chatgpt.com/docs/migrate-custom-gpts) is for ChatGPT Enterprise workspaces. It says: "We're transitioning custom GPTs to plugins." A **plugin** is "a reusable package for a workflow that can include skills, apps, or both." A **skill** is a saved set of instructions for a task. A **custom action** is the part of a GPT that connects it to an outside service.
 
-OpenAI's projects work the same way. "Each project has a **Chats** section that lists project chats and a **Sources** section for uploaded files and connected context. Project instructions apply across its chats."
-
-One limit on the web: "A ChatGPT project doesn't provide direct access to a folder on your computer, so upload or connect the sources you want ChatGPT to use."
-
-OpenAI also says when to skip a project: "Start a chat without a project when the work is self-contained and doesn't need shared project context."
-
-## Custom GPTs are moving to plugins
-
-OpenAI's older custom helper is the **custom GPT**. In OpenAI's table, with a custom GPT "You add instructions to guide the GPT's responses" and "You upload reference files as GPT knowledge." That is changing. OpenAI's guide for ChatGPT Enterprise workspaces says: "We're transitioning custom GPTs to plugins." It adds: "public GPTs in affected Enterprise workspaces are included, but public sharing and timelines for other plans may differ."
-
-A **plugin** is OpenAI's newer home for a saved helper. In OpenAI's words, a plugin is "a reusable package for a workflow that can include skills, apps, or both."
-
-What the move does to a GPT, in OpenAI's words:
+What the move does, in the guide's words:
 
 - "Migration turns your GPT's instructions into a skill and brings over its knowledge files and connected apps."
-- "Rebuild custom actions separately." (OpenAI: "Custom actions connect the GPT to external services.")
+- "Rebuild custom actions separately."
 - "The selected model does not carry over".
-- "Your new plugin starts private." You must share it again.
+- "Your new plugin starts private."
 - "The original GPT becomes read-only after migration."
 
-OpenAI's advice before you switch: "Ask owners to save a few familiar prompts and good results, including one harder case, so they can compare the replacement."
+Two rules decide who may start the move:
 
-## Gems, and their move to skills
+- The person "must be the GPT's creator or a workspace owner or admin, and the GPT must be published."
+- "Having access to someone else's GPT is not enough."
 
-Google's custom helper in the Gemini app is the **Gem**: in Google's words, "customized versions of Gemini" with their own instructions and files.
+Until the final retirement date, "the original GPT stays usable", but edits happen in the plugin.
 
-- **Instructions.** To create one, you "Enter a name and instructions for your Gem."
-- **Files.** Under "Knowledge", you can upload files or add them from Google Drive. "If you add a file from your Drive, Gemini will use the most recent version of the file. If you make changes to the file, these changes will be reflected in your Gem."
+Before you move, the guide's advice is: "Ask owners to save a few familiar prompts and good results, including one harder case, so they can compare the replacement."
 
-Gems are changing too. Google's page says: "Starting in November 2026, Gems will go away on personal Google accounts and automatically transition to skills."
+**Gems, and their move to skills.** Google's custom helper in the Gemini app is the **Gem**. The [Gemini docs](https://support.google.com/gemini/answer/15236321) call Gems "customized versions of Gemini". To build one, you "Enter a name and instructions for your Gem". Under "Knowledge" you can add files.
 
-## Where this leaves skills
+A file from Google Drive stays current. The [Gem page](https://support.google.com/gemini/answer/15146780) says:
 
-Both moves end in the same place: the instructions become a **skill**. Prompt Forest, chapter 6, and Swarm Spire, chapter 3 (Roles & skills), already cover skills and how to manage them as shared assets. This chapter does not repeat them.
+- "If you add a file from your Drive, Gemini will use the most recent version of the file. If you make changes to the file, these changes will be reflected in your Gem."
+- To add Drive files, "you need to have Keep Activity on and connect Google Workspace to Gemini Apps."
 
-The product that holds your helper can change under you. Our advice: keep the master copy of each helper's instructions and files in a place your team controls. Then a move from GPT to plugin, or from Gem to skill, is a copy and a test, not a rebuild from memory.
+Gems are changing too. The same page says: "Starting in November 2026, Gems will go away on personal Google accounts and automatically transition to skills."
 
-## Set one up well
+**Keep your own master copy.** Our advice: both moves end with the instructions inside a skill. The product that holds your helper can change under you. So keep the master copy of the instructions, the files and a few test prompts somewhere your team controls. Then a move is a copy and a check, not a rebuild from memory.
 
-Our checklist for any custom helper:
+## Worked example
 
-1. **One job per helper.** "Refund replies", not "Everything support does".
-2. **Rules go in the instructions.** Never in the name or description.
-3. **Facts go in files.** A price list changes; keep it in a file you can swap.
-4. **Name an owner.** Someone updates the files when the policy changes.
-5. **Keep test prompts.** Save a few normal requests and one hard one, as OpenAI suggests, and run them after every change.
+The solar installer from the problem.
 
-## Key points
+### Step 1: the weak helper
 
-- A custom helper is a saved setup: standing instructions plus files.
-- Claude projects and ChatGPT projects apply their instructions and files to every chat inside them.
-- Claude can't see a project's name or description. Rules go in the instructions.
-- Claude chats in one project don't share what they learn unless you add it to the project files.
-- OpenAI's Enterprise guide moves custom GPTs to plugins: instructions become a skill; custom actions must be rebuilt.
-- Google says Gems on personal accounts move to skills starting in November 2026.
-- Keep your master copy and your test prompts outside the tool.
+One rep's prompt becomes the team's Claude project (all numbers made up):
+
+```text
+Project name:  Quotes
+Description:   For all reps.
+Instructions:  You are a solar sales expert. Be very
+               short. The 2026 rebate is 30%. Panels
+               cost $310 each. Battery add-on $4,200.
+Files:         (none)
+Owner:         (none)
+```
+
+What goes wrong:
+
+- "Be very short" has no number, so every answer is a different length.
+- Prices and the rebate sit inside the instructions. When they change, someone must edit the rules text, and old copies of it keep the old numbers.
+- No owner, so nobody updates anything.
+
+### Step 2: split rules from facts
+
+Our test for each line: "Will this be different next quarter?" If yes, it is a fact and goes in a file. If no, it is a rule and goes in the instructions.
+
+### Step 3: the good helper
+
+```text
+Project name:  Quote explainer (sales)
+Instructions:  Explain a quote to a home owner in plain
+               words, friendly and clear, under 200 words.
+               Use prices and rebates only from the files.
+               If a number is not in the files, say so.
+Files:         price-list-Q4.pdf, rebate-rules-2026.pdf,
+               install-steps.pdf
+Owner:         Mia (sales ops). Swaps the price file on
+               the first day of each quarter.
+Used by:       all 5 reps, in this one project. The old
+               pasted prompts in notes apps are retired.
+```
+
+### Step 4: the hard case
+
+**The hard case is the rebate.** It looks like a rule ("always mention the 30% rebate"), so people put it in the instructions. But the government can change it. So the number is a fact. It goes in `rebate-rules-2026.pdf`. The instructions only say where to find numbers, and what to do when one is missing.
+
+This also fixes the "very short" problem. The length limit is a rule, so it stays in the instructions, now with a clear number of words.
+
+### Step 5: why it is better
+
+- **One source of truth.** All five reps use the same instructions and the same files.
+- **Easy to update.** A new price list is one file swap, not five edits.
+- **Owned.** Mia owns the files, so prices and rebates stay current.
+
+## Common mistakes
+
+1. **One helper for every job.** A helper that does quotes, complaints and hiring does each one badly. Fix: one helper per job.
+2. **Numbers inside the instructions.** Prices and rates go out of date there. Fix: keep changing facts in files; keep only rules in the instructions.
+3. **No owner.** Files go stale and nobody notices. Fix: name one person who updates the files.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A ChatGPT Enterprise team plans its custom GPT moves. Say if each line is right or wrong, and why.
+
+```text
+1. "Ana uses Ben's GPT every day, so Ana can start
+   the move to a plugin."
+2. "Our 'Contract summary' GPT is still a draft. We
+   will move it as it is."
+3. "After the move, we can still use the old GPT for
+   now, but we must make edits in the plugin."
+```
+
+### Answer
+
+1. **Wrong.** The guide says the person must be the GPT's creator or a workspace owner or admin. It also says: "Having access to someone else's GPT is not enough."
+2. **Wrong.** The GPT "must be published" before it can move. Publish it first.
+3. **Right.** The original becomes read-only, and it "stays usable" until retirement. New edits go into the plugin.
+
+## Recap
+
+- A custom helper holds two parts: instructions (how to answer) and files (what is true now). Claude can't see the name and description of a project, and its chats don't share what they learn unless it goes into the files.
+- GPTs are moving to plugins: instructions become a skill and files and apps come along, but custom actions and the model do not. A Gem's Drive file stays current, and Gems on personal accounts move to skills from November 2026.
+- Keep your own master copy and test prompts, so any move is a copy and a check.
