@@ -1,7 +1,7 @@
 ---
 id: creator/r13/c1/lesson
 title: Tokens as truth
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Design Tokens Community Group · Design Tokens Format Module 2025.10
@@ -26,94 +26,214 @@ sources:
     url: https://help.penpot.app/mcp/
 ---
 
-## Why it matters
+## Goal
 
-A tea shop, Marlow Tea, has one brand green. The designer has it in Figma. The developer has it in a CSS file. The agent that builds new pages has only a screenshot. Six months later the green changes. Figma is updated. The CSS file is not. The agent keeps guessing a green from pixels. Now the brand has three greens.
+After this lesson you can:
 
-Canvas Workshop, chapter 1, showed why a screenshot alone misleads an agent. Chapter 6 showed how Figma variables sync over the REST API. This chapter is about the file under all of that: **one token file** that Figma, the code and the agent all read.
+- Write a small design token file in the DTCG format, with groups, types and aliases.
+- Split raw colours from the jobs they do, so one change is one line.
+- Say what Figma, Penpot and an AI agent each read from that file.
 
-A note on dates. The tool details below are from each vendor's page in October 2026.
+## The problem
 
-## What a design token is
+A ceramics studio sells cups online. Its red is written in four places: the designer's Figma file, the shop's CSS (the code that styles the web page), a note in a shared drive, and the prompts the team gives an AI coding agent. Each place has a slightly different red.
 
-The Design Tokens Community Group (DTCG) defines a token as "information associated with a human readable name, at minimum a name/value pair". Its own examples are `color-text-primary: #000000` and `font-size-heading-level-1: 44px`.
+The studio wants one place that says what the red is and what it is for. Every tool should read it from there. This lesson builds that place: a design token file.
 
-The name is the point. A developer writes `color.brand.green`, not a hex code. When the value changes, every place that uses the name changes with it.
+## The idea
 
-## The DTCG format
+### A token is a name with a value
 
-The DTCG's **Design Tokens Format Module** describes "a file format to exchange design tokens between different tools". It is JSON. Its goal includes "Maintaining a 'single source of truth' for design tokens and automatically keeping design and development tools in sync with it".
+The [DTCG format](https://www.designtokens.org/tr/2025.10/format/) defines a token as "information associated with a human readable name, at minimum a name/value pair". DTCG is the Design Tokens Community Group. Its own examples are `color-text-primary: #000000` and `font-size-heading-level-1: 44px`. (A **hex code** like `#000000` is a colour written as six letters and numbers.)
 
-Check the status before you rely on it. Version 2025.10 is a "Final Community Group Report" from 28 October 2025. The DTCG home page calls it the "First stable version". The spec says it "is not a W3C Standard nor is it on the W3C Standards Track". A newer draft is in progress at `designtokens.org/TR/drafts`. Use 2025.10 unless your tools say otherwise (our advice).
+The name is the point. Code says `color.text.primary`, not a hex code. When the value changes, every place that uses the name gets the new value.
 
-The spec recommends the file extensions `.tokens` or `.tokens.json`.
+A small comparison: a token is like a contact in your phone. You tap a name, not a number. If the number changes, you fix it once.
 
-## The three parts you use every day
+### The file format
 
-Here is a small token file (our example):
+The DTCG Format Module describes "a file format to exchange design tokens between different tools". The file is **JSON** (a plain text format of names, values and curly braces). One goal it names is keeping a "single source of truth" for design tokens, so design and code tools stay in sync. The spec lists the file endings `.tokens` and `.tokens.json`.
+
+Check the status:
+
+- The page title is "Design Tokens Format Module 2025.10", a "Final Community Group Report" from 28 October 2025.
+- The [DTCG home page](https://www.designtokens.org/) says: "First stable version 2025.10 now available".
+- The spec "is not a W3C Standard nor is it on the W3C Standards Track".
+
+### Tokens and groups
+
+Three rules from the spec decide how a file is read:
+
+- **Token.** "An object with a $value property is a token."
+- **Group.** "A group is a set of tokens belonging to a specific category." It is an object with no `$value`. Think of it as a folder.
+- **The `$` sign.** "All properties defined by this format are prefixed with the dollar sign ($)." So your own token and group names must not start with `$`.
+
+### `$type`
+
+`$type` says what kind of value a token holds, such as `color` or `dimension`. You can set it on a token or on a group. When a token has no `$type`, the spec checks in this order:
+
+1. If the value is a reference, the token takes the type of the token it points at.
+2. Else it takes the type of "the closest parent group with a $type property".
+3. Else "the token's type cannot be determined and the token MUST be considered invalid."
+
+The spec is strict: "Tools MUST NOT attempt to guess the type of a token by inspecting the contents of its value." For a `dimension` (a size), the spec says the unit "may only be" `px` or `rem`.
+
+### Aliases
+
+An **alias** is a token whose value points at another token. You write it in curly braces, like `"{color.palette.clay-red}"`. The spec treats "alias" and "reference" as "synonyms". An alias can point at another alias. Two rules matter:
+
+- "References MUST NOT be circular." (A circle is A points at B, and B points at A.)
+- "Tools SHOULD preserve references and therefore only resolve them whenever the actual value needs to be retrieved." In a design tool, a change to the token behind an alias "SHOULD be reflected wherever those aliases are being used".
+
+Our reading: keep the link, not a copied value. The link is what makes one change reach every use.
+
+A `$description` adds "A plain text description explaining the token's purpose". People and agents can read it.
+
+### Figma and Penpot read the same file
+
+**Figma.** A Figma **variable** is a named, reusable value in a design file. The [Figma variables overview](https://help.figma.com/hc/en-us/articles/14506821864087-Overview-of-variables-collections-and-modes) says "Any variable can reference another variable of the same type", and calls this "aliasing". The [Figma import page](https://help.figma.com/hc/en-us/articles/15343816063383-Modes-for-variables) says: "Design tokens must be in a JSON file and follow the Design Tokens Community Group (DTCG) format." Its import table sets limits:
+
+- Dimension: "The token's unit value must be set to px. Other values are not supported."
+- Font family: "Tokens with an array value are not supported." (An array is a list in square brackets.)
+- Names: `color.accent.light` becomes `color/accent/light`.
+
+**Penpot.** The [Penpot tokens page](https://help.penpot.app/user-guide/design-systems/design-tokens/) says its tokens "adhere to the Design Tokens Format Module and its definitions, a draft by the W3C DTCG". It names no version. The same page writes references in `{}` and says they "are case sensitive".
+
+### The agent reads names too
+
+An **MCP server** is a plug that lets an AI agent read data from another tool. Figma's MCP server has `get_variable_defs`. The [Figma tools page](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) says it "Returns the variables and styles used in your Figma selection". The [Penpot MCP page](https://help.penpot.app/mcp/) lists the task "Inspect tokens and styles to translate them into code variables."
+
+Our advice: give the agent names, from the token file or the design tool. Do not give it only a picture of the screen.
+
+### One home
+
+Our advice: pick one home for the file, such as the code repo, and write it down. The design tools import from it, and the agent reads it.
+
+## Worked example
+
+The studio's notes say:
+
+```text
+Clay red  #b5462f  buttons, links, the logo
+Ink       #222222  body text
+Cream     #f6efe4  page background
+```
+
+### Step 1: the weak start
+
+The CSS has the values pasted in:
+
+```css
+.button {
+  background: #b5462f;
+}
+.link {
+  color: #b5462f;
+}
+```
+
+Nothing says which red is "the" red, or what each one is for.
+
+### Step 2: raw colours in one group
+
+We put the raw colours in a `palette` group inside `color`. We set `$type` once on the group, so every token inside gets it.
 
 ```json
 {
   "color": {
-    "$type": "color",
-    "green-600": {
-      "$value": {
-        "colorSpace": "srgb",
-        "components": [0.13, 0.45, 0.3],
-        "hex": "#21734d"
+    "palette": {
+      "$type": "color",
+      "clay-red": {
+        "$value": { "components": [0.71, 0.27, 0.18], "colorSpace": "srgb", "hex": "#b5462f" }
+      },
+      "ink": {
+        "$value": { "components": [0.13, 0.13, 0.13], "colorSpace": "srgb", "hex": "#222222" }
+      },
+      "cream": {
+        "$value": { "components": [0.96, 0.94, 0.89], "colorSpace": "srgb", "hex": "#f6efe4" }
       }
-    },
-    "brand": {
-      "$value": "{color.green-600}",
-      "$description": "Main brand colour. Buttons, links, the logo."
-    }
-  },
-  "space": {
-    "md": {
-      "$type": "dimension",
-      "$value": { "value": 16, "unit": "px" }
     }
   }
 }
 ```
 
-**`$value`.** The spec says: "An object with a $value property is a token." An object without one is a **group**, a folder for tokens (our plain gloss). Here `color` and `space` are groups.
+### Step 3: jobs as aliases
 
-**`$type`.** It tells tools what kind of value this is: `color`, `dimension`, `fontFamily` and more. You can set it on a token or on a group. Here every token in `color` gets the type `color` from its group. If a token has no `$type`, the spec looks in two places: an alias takes the type of the token it points at, and any other token takes it from the closest parent group. If neither gives a type, it "cannot be determined" and the token "MUST be considered invalid". The spec is strict: "Tools MUST NOT attempt to guess the type of a token by inspecting the contents of its value." A `dimension` value has a number and a unit, and the unit may only be `px` or `rem` (the spec's words).
+Next, a `role` group, also inside `color`, says what each colour is for. Each role points at a raw colour.
 
-**Aliases.** `"{color.green-600}"` is a reference to another token. The spec says "alias" and "reference" mean the same thing. `color.brand` has no colour of its own. It points at `color.green-600`. An alias can point at another alias, but "References MUST NOT be circular."
+```json
+"role": {
+  "$type": "color",
+  "text": { "$value": "{color.palette.ink}" },
+  "page": { "$value": "{color.palette.cream}" },
+  "action": {
+    "$value": "{color.palette.clay-red}",
+    "$description": "Buttons and other things a person presses."
+  }
+}
+```
 
-Aliases are how one file says what a colour is _for_. `green-600` is the raw colour. `brand` is the job. If Marlow Tea changes its brand to a darker green, you change one line: `brand` points at a new token. Nothing else moves.
+### Step 4: the hard case
 
-The spec also asks tools to keep the link: "Tools SHOULD preserve references and therefore only resolve them whenever the actual value needs to be retrieved." So a good tool keeps `{color.green-600}`, not a copied hex.
+**The hard case is the link.** Today it has the same red as the button. It is tempting to write `"link": { "$value": "{color.role.action}" }`. That is valid, but it ties two jobs together. If the studio later makes buttons darker for a sale, links turn darker too, and nobody asked for that.
 
-Two more properties help an agent. `$description` is plain text about the token's purpose. `$deprecated` marks a token people should stop using, with an optional reason, such as "Please use the border style for active buttons instead."
+Our advice: point each job at the raw colour, not at another job, unless the two jobs must always match.
 
-## One file, three readers
+```json
+"link": {
+  "$value": "{color.palette.clay-red}",
+  "$description": "Text links. Same red as action today, by choice."
+}
+```
 
-**Figma.** Figma variables are its version of tokens. Figma says color variables can be aliased "to implement design tokens", and "Any variable can reference another variable of the same type." Figma can import a token file: "Design tokens must be in a JSON file and follow the Design Tokens Community Group (DTCG) format." It can also export modes to a JSON file.
+### Step 5: why it is better
 
-Read Figma's import table before you trust a round trip. In October 2026:
+- **One change, one line.** A new red is one edit in `palette`.
+- **Jobs move on their own.** Buttons and links can split later with one edit.
+- **The file explains itself.** The `$description` tells people and agents why a token exists.
 
-- A `dimension` token becomes a Number variable, and its unit "must be set to px". `rem` is not supported.
-- A `fontFamily` token must be one font name. "Tokens with an array value are not supported."
-- Names become slash names: `color.accent.light` becomes `color/accent/light`. If two names end up the same, "only the first one encountered will be imported."
+## Common mistakes
 
-**Penpot.** Penpot says: "Penpot Design Tokens adhere to the Design Tokens Format Module and its definitions, a draft by the W3C DTCG." Penpot's page calls the format "a draft by the W3C DTCG" and names no version, so check which version it reads (our advice). Penpot also says tokens "can be exported from Penpot or integrated into other tools directly, without conversion". Aliases use the same curly braces, and Penpot says references "are case sensitive".
+1. **Naming a job after a look**, like `color.red-button`. When the button turns blue, the name lies. Fix: name raw tokens by look, and role tokens by job.
+2. **Two homes for the file.** One copy in a shared drive and one in the repo drift apart. Fix: pick one home and import from it everywhere.
+3. **Assuming every tool reads the same spec version.** Penpot's page says "a draft" and names no version. Fix: check each tool's page before you rely on a feature.
 
-**The agent.** Both design tools give an agent a way to read tokens by name, through an MCP server (an MCP server is the plug that lets an agent read a tool's data; see Canvas Workshop). Figma's MCP server has `get_variable_defs`, which Canvas Workshop, chapter 1, already showed: it returns the variables and styles a selection uses. Penpot's MCP server lists this developer task: "Inspect tokens and styles to translate them into code variables."
+## Try it
 
-## Where the truth lives
+Not graded. Write your answer down before you read the answer.
 
-Pick one home for the token file and write it down (our advice). For a small studio, that can be the repo, next to the code, as `brand.tokens.json`. Figma and Penpot import from it. The agent reads it, or reads the design tool's variables, never the screenshot alone.
+A plant nursery has these notes:
 
-Then check every round trip. Export from the design tool and compare with the file. A `rem` that became nothing, or a font list cut to one font, shows up in that diff (our note).
+```text
+Leaf green  #2f6b3a  buttons, the "in stock" badge
+Soil        #3b2f2a  body text
+Paper       #fbf8f1  page background
+```
 
-## What this means for your work
+1. Which names are raw colours, and which are jobs?
+2. Write the `role` group for the button and the badge.
+3. The button and the badge share one green. What should each one point at?
 
-- **Name decisions, not pixels.** A token is a name plus a value. Code and agents use the name.
-- **Use aliases for jobs.** Raw colours in one group, brand roles that point at them in another.
-- **Set `$type`.** Tools must not guess it.
-- **Know the version.** DTCG 2025.10 is the first stable version. It is a community group report, not a W3C Standard.
-- **Read the import limits.** Figma accepts `px` only for dimensions and one font per family token.
-- **Give the agent names.** `get_variable_defs` in Figma, token inspection in Penpot, or the token file itself.
+### Answer
+
+1. **Raw colours:** leaf green, soil, paper. **Jobs:** button, badge, body text, page background.
+2. One way to write it:
+
+```json
+"role": {
+  "$type": "color",
+  "action": { "$value": "{color.palette.leaf-green}" },
+  "badge-in-stock": {
+    "$value": "{color.palette.leaf-green}",
+    "$description": "Shows an item is in stock."
+  }
+}
+```
+
+3. **Both point at the raw green.** The badge does not point at the button. Then a later change to one job does not move the other. Your names can differ. Check that each job points at a raw colour.
+
+## Recap
+
+- A token is a name with a value. A DTCG file is JSON: an object with `$value` is a token, and one without it is a group.
+- Set `$type` on the token or its group, and use aliases in curly braces for jobs. Keep references, and never make a circle.
+- Figma and Penpot import DTCG files with their own limits, and agents can read tokens by name. Give one home to the file.

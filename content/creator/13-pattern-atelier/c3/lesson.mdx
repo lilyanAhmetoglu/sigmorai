@@ -1,7 +1,7 @@
 ---
 id: creator/r13/c3/lesson
 title: Rules files
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Figma developer docs · Add custom rules and instructions (Figma MCP server)
@@ -14,83 +14,191 @@ sources:
     url: https://learn.chatgpt.com/docs/agent-configuration/agents-md
 ---
 
-## Why it matters
+## Goal
 
-Monday: you tell the agent "use our Button component, not a new one". It does. Tuesday, in a new session, it builds a new button again. You type the same rule again. By Friday you have typed it five times, and one teammate never typed it at all.
+After this lesson you can:
 
-The fix is a **rules file**: a plain text file the agent reads at the start of every session. You write the design do's and don'ts once. Every session and every teammate gets the same rules.
+- Name the rules file each coding agent reads: `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex.
+- Write design rules that an agent can follow and a person can check.
+- Keep a rules file short, split rules by folder, and know what a rules file cannot do.
 
-Context Library, chapter 1, gave image models a short brand card and the rule "one rule, one place". A rules file is that card for a coding agent. Chapters 1 and 2 of this realm gave the agent tokens and modes. This chapter tells it how to use them.
+## The problem
 
-A note on dates. The file names and limits below are from each vendor's page in October 2026.
+A design team works with an AI coding agent. Every day someone types the same reminders in chat: "Put new screens in the screens folder." "Every image needs alt text." The agent follows them in that session. The next day, in a new session, it has forgotten. A new teammate never typed them at all.
 
-## Three vendors, one idea
+The fix is a **rules file**: a plain text file the agent loads each time a session starts. You write the design do's and don'ts once, and every session and every teammate gets them.
 
-**Figma** suggests project rules for its MCP server (an MCP server is the plug that lets an agent read a tool's data; see Canvas Workshop). Rules "help guide the AI toward consistent, high-quality output". Figma calls them "the 'unwritten rules' of a codebase that experienced devs know, and would want to pass on to a new junior hire". Figma does not choose the file for you: "check your IDE or MCP client's documentation for how to structure rules."
+## The idea
 
-**Anthropic.** Claude Code reads **CLAUDE.md** files. Claude "reads them at the start of every session". A project file sits at `./CLAUDE.md` or `./.claude/CLAUDE.md` and is shared "with your team through version control".
+### Three vendors, one idea
 
-**OpenAI.** Codex reads **AGENTS.md**: "Codex reads AGENTS.md files before doing any work." There is a global file in your Codex home folder and project files from the repo root down to the folder you work in.
+**Figma.** The [Figma rules page](https://developers.figma.com/docs/figma-mcp-server/add-custom-rules/) is for its MCP server (a plug that lets an agent read Figma data).
 
-| Tool (October 2026) | Project rules file                      | Notes from the page                                                |
-| ------------------- | --------------------------------------- | ------------------------------------------------------------------ |
-| Claude Code         | `CLAUDE.md` (or `AGENTS.md`, see below) | "target under 200 lines per CLAUDE.md file"                        |
-| Codex               | `AGENTS.md` (`AGENTS.override.md` wins) | stops adding files at `project_doc_max_bytes`, "32 KiB by default" |
-| Figma MCP server    | whatever your agent reads               | gives example rules for Figma work                                 |
+- It suggests "project-level instructions to help guide the AI toward consistent, high-quality output".
+- It calls them the "unwritten rules" that experienced developers "would want to pass on to a new junior hire".
+- The page does not pick the file: "check your IDE or MCP client's documentation for how to structure rules." (An IDE is a code editor.)
 
-## One file for two agents
+**Anthropic.** The [Claude Code memory docs](https://code.claude.com/docs/en/memory) say Claude "reads them at the start of every session". A project file sits at `./CLAUDE.md` or `./.claude/CLAUDE.md`, and it is "shared with your team through version control" (the shared history of the code).
 
-Many teams use more than one agent. Claude Code can read AGENTS.md too, with one catch. By default, "Claude reads AGENTS.md only when you have no CLAUDE.md in your working directory or above it". If you have both, Claude reads "Your CLAUDE.md files only".
+**OpenAI.** The [Codex AGENTS.md docs](https://learn.chatgpt.com/docs/agent-configuration/agents-md) say: "Codex reads AGENTS.md files before doing any work." There is a global file in your Codex home folder. Then Codex walks from the project root "down to your current working directory", reading the files on the way.
 
-The page names a fix: "A CLAUDE.md that already imports AGENTS.md". A CLAUDE.md can import a file with `@path/to/import`. So one way to share rules is this (our example):
+| Tool        | Project rules file                       | Size note from the docs                                            |
+| ----------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| Claude Code | `CLAUDE.md` (can also read `AGENTS.md`)  | "target under 200 lines per CLAUDE.md file"                        |
+| Codex       | `AGENTS.md` (`AGENTS.override.md` first) | stops adding files at `project_doc_max_bytes`, "32 KiB by default" |
+| Figma MCP   | whatever your agent reads                | gives example rules                                                |
 
-- `AGENTS.md` holds the design rules. Codex reads it.
-- `CLAUDE.md` holds one line, `@AGENTS.md`, plus anything only Claude needs.
+### How Codex joins its files
 
-Now there is one place to change a rule (our advice).
+The Codex docs say: "Codex concatenates files from the root down, joining them with blank lines." (Concatenate means join end to end.) Then: "Files closer to your current directory override earlier guidance because they appear later in the combined prompt."
 
-## What goes in: design do's and don'ts
+### When Claude Code reads AGENTS.md
 
-Figma's list of "unwritten rules" is a good start: "Which layout primitives to use", "Where component files belong", "How components should be named", "What should never be hardcoded".
+The Claude docs say: "By default, Claude reads `AGENTS.md` only when you have no `CLAUDE.md` in your working directory or above it." With both files, Claude reads "Your `CLAUDE.md` files only".
 
-Figma's own example rules include:
+The docs name a fix: "add a `CLAUDE.md` next to your `AGENTS.md` that imports it". A CLAUDE.md can pull in another file with `@path/to/import`. So a team can keep its rules in `AGENTS.md` and put the line `@AGENTS.md` in `CLAUDE.md`. One file, two agents.
 
-- "IMPORTANT: Always use components from `/path_to_your_design_system` when possible"
-- "Avoid hardcoded values, use design tokens from Figma where available"
-- "Follow WCAG requirements for accessibility"
+### What goes in
 
-Figma's example rules also include a "Required flow" for every Figma task. Run `get_design_context` first. If that is too large, run `get_metadata`, then fetch only the nodes you need. Run `get_screenshot`. Only then build. And "Validate against Figma for 1:1 look and behavior before marking complete."
+Figma's list of unwritten rules is a good start:
 
-One Figma rule settles a common fight: "When conflicts arise, prefer design‑system tokens and adjust spacing or sizes minimally to match visuals."
+- "Which layout primitives to use"
+- "Where component files belong"
+- "How components should be named"
+- "What should never be hardcoded"
 
-## Write rules an agent can check
+Three more sample rules from the page:
 
-Anthropic's advice: write instructions "concrete enough to verify". Its examples: "Use 2-space indentation" instead of "Format code properly", and "API handlers live in src/api/handlers/" instead of "Keep files organized".
+- "Follow WCAG requirements for accessibility" (WCAG is the W3C's set of web accessibility rules).
+- A "Required flow". Step 1: "Run get_design_context first to fetch the structured representation for the exact node(s)." Only after `get_design_context` and `get_screenshot` does the agent start to build.
+- "When conflicts arise, prefer design‑system tokens and adjust spacing or sizes minimally to match visuals."
 
-For design, that means (our examples):
+### Write rules a person can check
 
-- Weak: "Use brand colours." Strong: "Colours come from `brand.tokens.json`. Never write a hex code in a component."
-- Weak: "Respect dark mode." Strong: "Every new screen is built in Light and Dark. Name the mode in the task."
-- Weak: "Reuse things." Strong: "Use `Button` from `src/ui/`. Do not create a new button component."
+The Claude docs ask for instructions "concrete enough to verify". Their examples:
 
-## Keep it short and without conflicts
+- "Use 2-space indentation" instead of "Format code properly"
+- "API handlers live in `src/api/handlers/`" instead of "Keep files organized"
 
-Long files cost more and work worse. Anthropic says: "Longer files consume more context and reduce adherence." For rules that matter only in one part of the code, Claude Code has `.claude/rules/` files with a `paths` field, which "only apply when Claude is working with files matching the specified patterns". Codex lets a folder deeper in the repo add its own AGENTS.md: "Files closer to your current directory override earlier guidance because they appear later in the combined prompt."
+Our reading: a good rule names a file, a folder, a component or a value. Then anyone can look at the result and say yes or no.
 
-Contradictions are worse than gaps. Anthropic: "if two instructions contradict each other, Claude may pick one arbitrarily." If the root file says "8px spacing grid" and a folder file says "4px grid", decide which is true and delete the other (our advice).
+### Keep it short, one truth per rule
 
-## A rule is not a lock
+- **Size.** The Claude docs: "Longer files consume more context and reduce adherence." (Adherence means how well the agent follows it.)
+- **Rules for one folder.** Claude Code has `.claude/rules/` files with a `paths` field. They "only apply when Claude is working with files matching the specified patterns".
+- **No contradictions.** The Claude docs: "if two instructions contradict each other, Claude may pick one arbitrarily." So pick the one true rule and remove the other line.
 
-Anthropic is clear that CLAUDE.md is "context, not enforced configuration". To block an action no matter what Claude decides, it points to a **PreToolUse hook**: a script that runs before a tool call and can stop it (our plain gloss).
+### A rule is not a lock
 
-So use rules to guide and checks to prove (our advice). "Never write a hex code" is a rule. A lint check (a script that scans the code and fails the build on a rule break) that catches a hex code in a component is proof. A later chapter of this realm, Contrast checks, applies the same idea to colour contrast.
+The Claude docs say Claude treats these files "as context, not enforced configuration". To block an action "regardless of what Claude decides", the docs point to a **PreToolUse hook**: a script that runs before a tool call and can stop it.
 
-## What this means for your work
+Our advice: use rules to guide, and checks to prove. A **lint check** is a script that scans the code and fails on a rule break.
 
-- **Write the rule once.** In a file the agent reads every session, not in chat.
-- **Know who reads what.** Claude Code: CLAUDE.md. Codex: AGENTS.md. Figma's rules go in whichever file your agent reads.
-- **Share one file.** Put rules in AGENTS.md and import it from CLAUDE.md with `@AGENTS.md`.
-- **Make rules checkable.** Name the file, the component, the token.
-- **Keep it short.** Under 200 lines for a CLAUDE.md; Codex stops adding files when the combined files reach 32 KiB by default.
-- **Remove conflicts.** Two rules that disagree make the agent guess.
-- **Back key rules with checks.** A rules file guides; it does not enforce.
+## Worked example
+
+A design lead has a 600-line brand guide. It has the brand story, mood words, logo rules for print, chart rules and coding rules. The team uses Claude Code only.
+
+### Step 1: the weak start
+
+The lead pastes the whole guide into `CLAUDE.md`:
+
+```text
+CLAUDE.md  (600 lines)
+  Our story: we started in a garage in 2019 ...
+  Our voice is warm, playful, never cold ...
+  Logo clear space on print: 2x the height of the "o" ...
+  Charts: bars use the chart palette, never more than 6 colours ...
+  New screens go in src/screens/ ...
+```
+
+The Claude docs target under 200 lines, and longer files "reduce adherence". Most of these lines are not rules for code.
+
+### Step 2: sort every line
+
+We sort each line into one of three boxes (our method):
+
+```text
+Every task      rules for any code the agent writes
+One folder      rules for one part of the code only
+Not a rule      story, mood, print-only rules: keep in the guide
+```
+
+The story and the print logo rules leave the file. They stay in the brand guide, where people read them.
+
+### Step 3: write the root file
+
+```markdown
+# Design rules
+
+- New screens go in `src/screens/<ScreenName>/`.
+- Component files use PascalCase names, like `PriceTag.tsx`.
+- Build UI from components in `src/ui/`. Ask before you add a new component.
+- Every image has alt text. Decorative images use `alt=""`.
+- Icons come from `src/icons/`. Do not add an icon package.
+- Run `bun run test` before you say a task is done.
+```
+
+Each line names a folder, a file name pattern, a command or a thing you can see. A reviewer can say yes or no for each one.
+
+### Step 4: the hard case
+
+**The hard case is the chart rules.** They are real rules, and they matter. But they apply only to code in `src/charts/`. In the root file, they cost space in every session, also when the agent works on a login screen.
+
+So they go in a path-scoped rule (our file name):
+
+```markdown
+---
+paths:
+  - 'src/charts/**'
+---
+
+# Chart rules
+
+- Bars use the colours in `src/charts/palette.ts`, in order.
+- A chart has at most 6 colours. Group the rest as "Other".
+- Every chart has a text summary under it.
+```
+
+This file is `.claude/rules/charts.md`. It loads only when Claude works on files that match `src/charts/**`.
+
+### Step 5: why it is better
+
+- **Short root file.** Six lines that apply to every task, far under 200.
+- **Rules where they matter.** Chart rules load only for chart code.
+- **Every line is checkable.** No mood words that nobody can verify.
+
+## Common mistakes
+
+1. **Pasting the brand story into the rules file.** The agent cannot act on "warm and playful". Fix: keep only rules for the code, and leave the story in the guide.
+2. **Rules that live in chat.** They are gone in the next session. Fix: if you type a reminder twice, add it to the rules file.
+3. **Never reviewing the file.** Old rules point at folders that moved. Fix: review the rules file each time the design system changes.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A team uses Claude Code. Sort these lines from its guide into **every task**, **one folder** or **not a rule**:
+
+```text
+a. Our brand feels like a sunny morning.
+b. Forms live in src/forms/ and use the Field component.
+c. Email templates in src/email/ use tables for layout.
+d. Every button has a visible text label.
+e. The print logo is never smaller than 20 mm.
+```
+
+Then say where the email rule should live.
+
+### Answer
+
+- **Every task:** b and d. They apply to any screen and you can check them.
+- **One folder:** c. It applies only to `src/email/`.
+- **Not a rule:** a (a mood) and e (print only).
+
+The email rule goes in a file like `.claude/rules/email.md`, with `paths` set to `src/email/**`. Then it loads only for email code. Your file name can differ. Check that each kept line can be answered with yes or no.
+
+## Recap
+
+- Claude Code reads `CLAUDE.md`, and Codex reads `AGENTS.md`. Codex joins its files from the root down, and a CLAUDE.md can import AGENTS.md with `@AGENTS.md`.
+- Write rules that name a file, folder, component or command, so a person can check them. Keep the root file short and move folder rules into scoped files.
+- A rules file guides; it does not enforce. Remove contradictions, and use a hook or a lint check when you need a guarantee.
