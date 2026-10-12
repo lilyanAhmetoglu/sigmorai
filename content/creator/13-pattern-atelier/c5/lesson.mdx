@@ -1,7 +1,7 @@
 ---
 id: creator/r13/c5/lesson
 title: Contrast checks
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: W3C WAI · Understanding Success Criterion 1.4.3 Contrast (Minimum)
@@ -14,82 +14,169 @@ sources:
     url: https://developers.openai.com/api/docs/guides/images-vision
 ---
 
-## Why it matters
+## Goal
 
-Marlow Tea adds a grey for small notes: `text/muted`, `#6e7a74`, on the white page. A designer asks a model: "Is this readable enough?" The model answers: "About 4.5 to 1. It passes." (our example)
+After this lesson you can:
 
-It does not pass. The formula below gives 4.469 to 1. That is under the line, and the line is not rounded.
+- Say the contrast lines in WCAG 1.4.3, and the exceptions to them.
+- Work out a contrast ratio with the W3C formula, step by step.
+- Build a contrast check where a script decides and an AI model only helps.
 
-A model can misread a hex code or round a number. The formula cannot (our note). So the model can help you find the colour pairs and write the check, but the number decides.
+## The problem
 
-Agent Citadel, chapter 3, split checks into mechanical (script), model and person checks. Contrast is a mechanical check.
+A recipe app adds a yellow "Tip" box with grey text inside. A designer asks an AI model: "Is this readable?" The model looks at a screenshot and says yes. A week later, a user writes in: the tips are hard to read on a phone in the sun.
 
-## The rule: WCAG 1.4.3
+Contrast is a number, not an opinion. This lesson shows the rule, the formula, and a check that a script runs, not a model.
 
-**WCAG** is the W3C's set of rules for accessible web content (our plain gloss). Rule 1.4.3, "Contrast (Minimum)", is at Level AA, one of WCAG's conformance levels (our plain gloss). Its goal, in the W3C's words: "Text can be seen by more people."
+## The idea
 
-The rule says text needs "a contrast ratio of at least 4.5:1". There are three exceptions:
+### The rule: WCAG 1.4.3
 
-- **Large text** needs "a contrast ratio of at least 3:1". Large means "at least 18 point or 14 point bold". The W3C says 14pt and 18pt are "approximately 18.5px and 24px".
-- **Incidental text** has "no contrast requirement". That is text in an inactive control, pure decoration, text nobody can see, or text in a picture with "significant other visual content".
+**WCAG** is the W3C's set of rules for accessible web content. Rule 1.4.3 is called "Contrast (Minimum) (Level AA)". Level AA is one of WCAG's levels. The page notes a stricter line for level AAA: "The contrast ratio of 7:1 was chosen for level AAA". The [W3C page](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) gives its goal in five words: "Text can be seen by more people."
+
+The rule says text needs "a contrast ratio of at least 4.5:1". **Contrast ratio** compares how light two colours are. 1:1 is no difference, and 21:1 is black on white.
+
+There are three exceptions:
+
+- **Large text.** "Large-scale text and images of large-scale text have a contrast ratio of at least 3:1". Large means "18 point text or 14 point bold text". In screen pixels, 14pt and 18pt "are equivalent to approximately 18.5px and 24px".
+- **Incidental text.** Text in "an inactive user interface component", text that is "pure decoration", text "not visible to anyone", or text in "a picture that contains significant other visual content" has "no contrast requirement".
 - **Logos.** "Text that is part of a logo or brand name has no contrast requirement."
 
-The logo exception is small. The W3C says: "Beyond logos and logotypes, text that has insufficient contrast due to corporate identity or brand guidelines is not exempted". So a brand colour does not excuse a low-contrast button.
+The logo exception is small. The W3C page says: "Beyond logos and logotypes, text that has insufficient contrast due to corporate identity or brand guidelines is not exempted from the requirements of this criterion."
 
-The rule also covers "placeholder text" and text shown on hover or keyboard focus. Charts, graphs and diagrams fall under a different rule, 1.4.11 Non-text Contrast.
+The rule covers "placeholder text" (the grey hint in an empty field). It also covers text "shown when a pointer is hovering over an object or when an object has keyboard focus". Charts, graphs and diagrams fall under a different rule, "Success Criterion 1.4.11 Non-Text Contrast".
 
-## The formula
+### The formula
 
-The W3C defines the **contrast ratio** as:
+The W3C page defines the contrast ratio as:
 
-```
+```text
 (L1 + 0.05) / (L2 + 0.05)
+L1 = relative luminance of the lighter colour
+L2 = relative luminance of the darker colour
 ```
 
-L1 is the **relative luminance** of the lighter colour, and L2 of the darker one. Relative luminance is how bright a colour is, from 0 for black to 1 for white (our plain gloss of the W3C's definition). The W3C gives the full sRGB steps (sRGB is the standard colour space for screens): divide each 8-bit channel by 255, convert it, then add `0.2126 * R + 0.7152 * G + 0.0722 * B`. Ratios run "from 1 to 21".
+**Relative luminance** is how bright a colour is, "normalized to 0 for darkest black and 1 for lightest white". For sRGB (the standard colour space for screens), the W3C page gives these steps:
 
-Three notes from the W3C matter for a checker:
+1. Split the hex code into red, green and blue, and divide each by 255.
+2. Convert each channel: if it is 0.04045 or less, divide by 12.92. Else use `((c + 0.055) / 1.055) ^ 2.4`.
+3. Add them up: `L = 0.2126 * R + 0.7152 * G + 0.0722 * B`.
 
-- **No rounding.** The ratios are "threshold values", and "the computed values should not be rounded (e.g., 4.499:1 would not meet the 4.5:1 threshold)."
-- **Use the defined colours.** Check "the foreground and background colors obtained from the user agent, or the underlying markup and stylesheets, rather than the text as presented on screen." In a design system, that means the token values, not a screenshot (our reading).
-- **Check pairs that meet.** Contrast is checked "for color pairs specified in the content that an author would expect to appear adjacent". It is also "a failure if no background color is specified when the text color is specified".
+"Contrast ratios can range from 1 to 21".
 
-## Why not ask a model to look?
+### Three notes for a checker
 
-Anthropic and OpenAI both warn about the limits of image reading. The vendor details below are from each page in October 2026.
+- **No rounding.** The lines are "threshold values", and "the computed values should not be rounded (e.g., 4.499:1 would not meet the 4.5:1 threshold)."
+- **Use the defined colours.** Check "the foreground and background colors obtained from the user agent, or the underlying markup and stylesheets, rather than the text as presented on screen." (The user agent is the browser.) Our reading: in a design system, that means the token values.
+- **Check pairs that meet.** Check "color pairs specified in the content that an author would expect to appear adjacent". It is also "a failure if no background color is specified when the text color is specified".
 
-- **Anthropic.** Claude "might hallucinate or make mistakes when interpreting low-quality, rotated, or very small images under 200 pixels." Anthropic says: "Always carefully review and verify Claude's image interpretations, especially for high-stakes use cases."
-- **OpenAI.** "Vision models can make mistakes." The model "may struggle to understand graphs or text where colors or styles—like solid, dashed, or dotted lines—vary." Also, "Images may be resized before analysis".
+### Why a model should not decide
 
-A screenshot adds a second problem. The W3C says to use the colours from the markup and stylesheets, not the text as shown on screen. So even a perfect reading of a screenshot measures the wrong thing (our note).
+Both vendors warn about reading images:
 
-## A contrast check you can trust
+- The [Claude vision docs](https://platform.claude.com/docs/en/build-with-claude/vision): Claude "might hallucinate or make mistakes when interpreting low-quality, rotated, or very small images under 200 pixels." And: "Always carefully review and verify Claude's image interpretations, especially for high-stakes use cases."
+- The [OpenAI vision docs](https://developers.openai.com/api/docs/guides/images-vision): "Vision models can make mistakes." A model "may struggle to understand graphs or text where colors or styles—like solid, dashed, or dotted lines—vary." Also, "Images may be resized before analysis".
 
-Here are Marlow Tea's pairs. The numbers are ours, worked out with the W3C formula (our example).
+A screenshot has a second problem: the W3C asks you to check the colours your code sets, not "the text as presented on screen". So even a perfect reading of a screenshot measures the wrong thing (our reading).
 
-| Pair (mode)                                         | Text size | Ratio | Needs | Result |
-| --------------------------------------------------- | --------- | ----- | ----- | ------ |
-| `text/primary` on `bg/page` (Light)                 | 16px      | 16.89 | 4.5   | pass   |
-| `text/muted` `#6e7a74` on `bg/page` (Light)         | 14px      | 4.469 | 4.5   | fail   |
-| white on `button/primary` `#21734d` (Light)         | 16px      | 5.79  | 4.5   | pass   |
-| white on `button/primary` `#5fbf8f` (Dark)          | 16px      | 2.25  | 4.5   | fail   |
-| `#10201a` text on `button/primary` `#5fbf8f` (Dark) | 16px      | 7.51  | 4.5   | pass   |
+Our advice: a model can list the colour pairs and suggest fixes. A script with the formula gives the verdict.
 
-The dark button fails with white text and passes with dark text. Chapter 2 gave every name more than one value, so the check runs once per mode.
+## Worked example
 
-How to build it (our advice):
+The recipe app's tokens:
 
-1. **List the pairs in a file.** Text token, background token, text size class. A model can draft this list from your screens; you approve it.
-2. **Let a script do the maths.** It reads the token file from chapter 1, resolves the aliases, and applies the formula. No rounding.
-3. **Run it for every mode.** Light and dark, each brand.
-4. **Fail the build on a miss.** Like the lint check in chapter 3, a failed pair stops the change.
-5. **Ask the model to suggest a fix, then re-run the script.** The script, not the model, says when it passes.
+```text
+text/tip      #6b6b6b   grey text inside the Tip box
+bg/tip        #f2d58f   yellow Tip box
+bg/page       #ffffff   white page around the box
+```
 
-## What this means for your work
+The tip text is body text, so the line is 4.5:1.
 
-- **Know the numbers.** 4.5:1 for normal text, 3:1 for large text (about 24px, or 18.5px bold).
-- **Never round.** 4.47 or 4.499 is a fail.
-- **Brand colours get no pass.** Only logo text is exempt.
-- **Check tokens, not screenshots.** The W3C says to use the defined colours.
-- **Use models to list pairs and suggest fixes.** Not to give the verdict.
-- **Check every mode.** A pair that passes in Light can fail in Dark.
+### Step 1: luminance of the grey
+
+`#6b6b6b` has red, green and blue all equal to `6b`, which is 107.
+
+```text
+107 / 255                      = 0.4196
+0.4196 > 0.04045, so:
+((0.4196 + 0.055) / 1.055)^2.4 = 0.147
+R = G = B = 0.147, so L        = 0.147
+```
+
+When all three channels are the same, L equals the channel value, because the three weights add up to 1 (our note).
+
+### Step 2: luminance of the yellow
+
+`#f2d58f` has three different channels, so each one gets its own step 2, then the weights:
+
+```text
+channel   hex   /255     converted
+red       f2    0.9490   0.8879
+green     d5    0.8353   0.6654
+blue      8f    0.5608   0.2747
+
+L = 0.2126 * 0.8879 + 0.7152 * 0.6654 + 0.0722 * 0.2747 = 0.6845
+```
+
+(Our sums. The numbers are rounded here only to fit the page. A script keeps every digit.)
+
+### Step 3: the ratio
+
+The yellow is lighter, so it is L1.
+
+```text
+(0.6845 + 0.05) / (0.147 + 0.05) = 0.7345 / 0.197 = 3.73
+```
+
+3.73 is under 4.5. The tip text fails.
+
+### Step 4: the hard case
+
+**The hard case is the background.** The designer's first check put the grey on the white page: 5.33:1, a pass. But the tip text never sits on the white page. It sits on the yellow box. The W3C asks for the pairs "an author would expect to appear adjacent", and here that is grey on yellow.
+
+So the pairs file lists the real neighbours:
+
+```text
+pair                       text size   needs
+text/tip  on  bg/tip       body        4.5
+text/body on  bg/page      body        4.5
+```
+
+### Step 5: the fix, checked by the script
+
+A model suggests a darker grey, `#4d4d4d`. The script, not the model, checks it: `#4d4d4d` on `#f2d58f` is 5.91:1. Pass.
+
+Why this is better:
+
+- **The verdict comes from the formula**, using the token values.
+- **The pairs are the real neighbours**, so the check tests what users see.
+- **The model still helps**: it proposed a darker grey.
+
+## Common mistakes
+
+1. **Checking only the resting state.** Placeholder text and text on hover or focus count too. Fix: add those states as rows in the pairs file.
+2. **Using the text lines for icons and charts.** Those fall under 1.4.11, a different rule. Fix: check text with 1.4.3, and non-text parts with 1.4.11.
+3. **Dividing the wrong way.** Darker over lighter gives a number under 1. Fix: always put the lighter colour on top, so the result is between 1 and 21.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A search field has a light grey background (L = 0.9). Its placeholder text has L = 0.2. When a user types, the text turns black (L = 0).
+
+1. Work out the ratio for the placeholder text.
+2. Work out the ratio for the typed text.
+3. Does the placeholder need a check at all?
+
+### Answer
+
+1. `(0.9 + 0.05) / (0.2 + 0.05) = 0.95 / 0.25 = 3.8`. Under 4.5 for body text: it fails.
+2. `(0.9 + 0.05) / (0 + 0.05) = 0.95 / 0.05 = 19`. A pass.
+3. **Yes.** The W3C page says the rule covers placeholder text. Add it as its own row in the pairs file, then pick a darker grey and run the script again.
+
+## Recap
+
+- WCAG 1.4.3: 4.5:1 for text, 3:1 for large text. Only incidental and logo text are exempt, and brand guidelines are not an excuse.
+- The ratio is `(L1 + 0.05) / (L2 + 0.05)`, from the defined colours, with no rounding. Check the pairs that really sit next to each other.
+- Models can misread images. Let a model list pairs and suggest fixes, and let a script give the verdict.
