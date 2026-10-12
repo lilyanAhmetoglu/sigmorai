@@ -36,7 +36,7 @@ The [Claude glossary](https://platform.claude.com/docs/en/about-claude/glossary)
 
 ### Logs, in two lines
 
-`ln` is the natural logarithm, the `ln` button on a calculator. For a probability p between 0 and 1, `ln p` is 0 or below: `ln 1 = 0`, and the smaller p is, the more negative `ln p` gets. `e ≈ 2.718` is a fixed number, and `e^x` (e to the power x) undoes `ln`.
+`ln` is the natural logarithm, the `ln` button on a calculator. For a probability p between 0 and 1, `ln p` is 0 or below: `ln 1 = 0`, and the smaller p is, the more negative `ln p` gets. `e ≈ 2.718` is a fixed number (`≈` means "about"), and `e^x` (e to the power x) undoes `ln`.
 
 ### The loss for one token
 
@@ -95,7 +95,7 @@ One way to read it: if a model spreads its probability evenly over k tokens, eac
 
 ### Loss in a real training job
 
-When you fine-tune a model, the job reports loss so you can watch training. In the [OpenAI fine-tuning docs](https://developers.openai.com/api/docs/guides/supervised-fine-tuning), each checkpoint has a `metrics` object, and the example shows `"full_valid_loss": 0.134` next to `"full_valid_mean_token_accuracy": 0.874`. That page does not give the formula behind `full_valid_loss`. So compare runs with each other, and don't assume it is exactly the formula above.
+When you fine-tune a model, the job reports loss so you can watch training. In the [OpenAI fine-tuning docs](https://developers.openai.com/api/docs/guides/supervised-fine-tuning), each checkpoint (a saved copy of the model partway through training) has a `metrics` object, and the example shows `"full_valid_loss": 0.134` next to `"full_valid_mean_token_accuracy": 0.874`. That page does not give the formula behind `full_valid_loss`. So compare runs with each other, and don't assume it is exactly the formula above.
 
 A small comparison: cross-entropy is a surprise meter. A token the model expected costs little. A token it thought was nearly impossible costs a lot.
 
@@ -150,13 +150,13 @@ Our example: a model spreads its probability evenly over 8 tokens, so each one g
 
 1. What is the loss when the real token is one of the 8? (`ln 8 ≈ 2.079`)
 2. What is the perplexity?
-3. After training, the model gives the real token 0.5. What are the new loss and the new perplexity?
+3. Some tools use log base 2. What is the loss from part 1 in base 2? (`log₂ 8 = 3`)
 
 ### Answer
 
 1. `−ln(1/8) = ln 8 ≈ 2.079`.
 2. `e^2.079 ≈ 8`. The model was choosing between 8 equal options, and the perplexity says exactly that.
-3. Loss: `−ln 0.5 ≈ 0.693`. Perplexity: `e^0.693 ≈ 2`. The model now acts as if it were choosing between 2 options, not 8.
+3. `−log₂(1/8) = log₂ 8 = 3`. Same model, same guess, a different number. Only compare losses that use the same log.
 
 ## Recap
 

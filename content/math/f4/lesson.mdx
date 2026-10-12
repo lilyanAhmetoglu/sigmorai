@@ -67,11 +67,13 @@ D = |  4  3 |   ← document 1
 Dq = (4×3 + 3×4, −4×3 + 3×4, 6×3 + 8×4) = (24, 0, 50)
 ```
 
-In the [Claude docs](https://platform.claude.com/docs/en/build-with-claude/embeddings), the search code uses NumPy for this step: `similarities = np.dot(doc_embds, query_embd)`. `doc_embds` holds one embedding per document. Then `np.argmax(similarities)` picks the position of the highest score.
+In the [Claude docs](https://platform.claude.com/docs/en/build-with-claude/embeddings), the search code uses NumPy (a Python library for numbers) for this step: `similarities = np.dot(doc_embds, query_embd)`. `doc_embds` holds one embedding per document. Then `np.argmax(similarities)` picks the position of the highest score.
 
 ### Matrix times matrix
 
 To multiply two matrices, take the dot product of each row of the first with each column of the second. The number at row i, column j of the result is row i of the first · column j of the second.
+
+Our example:
 
 ```text
 | 1 2 |   | 5 6 |   | 1×5 + 2×7   1×6 + 2×8 |   | 19 22 |
@@ -82,7 +84,7 @@ Shape rule: an (m × n) matrix times an (n × p) matrix gives an (m × p) matrix
 
 ### The transpose
 
-The **transpose** flips a matrix: rows become columns. It is written with a small T, like `Kᵀ`.
+The **transpose** flips a matrix: rows become columns. It is written with a small T, like `Kᵀ`. Our example:
 
 ```text
 | 1 2 3 |ᵀ   | 1 4 |
@@ -106,7 +108,7 @@ The numbers inside `W` and `b` are the layer's **parameters**: the numbers that 
 
 The [OpenAI cookbook](https://developers.openai.com/cookbook/examples/customizing_embeddings) shows a learned matrix in real code. Its goal is to "customize OpenAI embeddings to a particular task". It says: "The output is a matrix that you can use to multiply your embeddings."
 
-In its code, the embedding is a row, so it goes on the left: `modified_embedding_1 = e1 @ matrix`. In Python, `@` is the matrix multiply. The matrix has `embedding_length` rows and `modified_embedding_length` columns, and the default for that is 2048. By the shape rule, the new embedding has 2048 numbers.
+In its code, the embedding is a row, so it goes on the left: `modified_embedding_1 = e1 @ matrix`. In Python, `@` is the matrix multiply. The matrix has `embedding_length` rows and `modified_embedding_length` columns. The cookbook code sets `modified_embedding_length: int = 2048`. By the shape rule, the new embedding has 2048 numbers.
 
 A small comparison: a matrix is a mixing desk. Each output is one slider setting over all the inputs.
 

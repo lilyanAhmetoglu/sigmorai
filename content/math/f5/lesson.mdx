@@ -47,7 +47,7 @@ Logits are not probabilities. They don't sit between 0 and 1, and they don't add
 
 ### Softmax turns scores into probabilities
 
-`e ≈ 2.718` is a fixed number. `e^z` means e to the power (exponent) z, so `e^2 = e × e ≈ 7.389`. Two facts you need: `e^0 = 1`, and `e^z` is always above 0.
+`e ≈ 2.718` is a fixed number (`≈` means "about"). `e^z` means e to the power (exponent) z, so `e^2 = e × e ≈ 7.389`. Two facts you need: `e^0 = 1`, and `e^z` is always above 0.
 
 Softmax does two things. First it makes every score positive with `e^z`. Then it divides by the total, so the results add up to 1.
 
@@ -97,9 +97,12 @@ A small comparison: low temperature is a spotlight on the top token. High temper
 
 The cited docs don't publish the exact sampling code. What they describe matches the formula: lower is more focused, higher is more random.
 
-- The [OpenAI API reference](https://developers.openai.com/api/reference/resources/responses/methods/create): "What sampling temperature to use, between 0 and 2." It adds: "We generally recommend altering this or top_p but not both."
-- The [Claude Messages API](https://platform.claude.com/docs/en/api/messages): temperature "Defaults to `1.0`. Ranges from `0.0` to `1.0`." The field is now marked deprecated: "Models released after Claude Opus 4.6 do not support setting temperature. A value of 1.0 will be accepted for backwards compatibility, all other values will be rejected with a 400 error."
-- The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies): "A temperature of 0 is deterministic, meaning that the highest probability response is always selected." For Gemini 3.x models, Google recommends keeping it at the default, because a change "can cause unexpected behavior, such as looping or degraded performance".
+- The [OpenAI API reference](https://developers.openai.com/api/reference/resources/responses/methods/create): "What sampling temperature to use, between 0 and 2."
+- The OpenAI API reference also says: "We generally recommend altering this or top_p but not both." (`top_p` is a second filter. It keeps the most likely tokens until their probabilities add up to that value. The Gemini docs call it `topP`.)
+- The [Claude Messages API](https://platform.claude.com/docs/en/api/messages): temperature "Defaults to `1.0`. Ranges from `0.0` to `1.0`."
+- The Claude Messages API now marks the field deprecated: "Models released after Claude Opus 4.6 do not support setting temperature. A value of 1.0 will be accepted for backwards compatibility, all other values will be rejected with a 400 error."
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies): "A temperature of 0 is deterministic, meaning that the highest probability response is always selected."
+- For Gemini 3.x models, the Gemini docs recommend keeping it at the default, because a change "can cause unexpected behavior, such as looping or degraded performance".
 
 The [Claude glossary](https://platform.claude.com/docs/en/about-claude/glossary) adds: "Even with temperature set to 0, the results will not be fully deterministic". The formula explains the pick. A served API can still vary for other reasons.
 
@@ -118,7 +121,7 @@ other      999
 
 ### Step 1: the direct way (before)
 
-You compute `e^1002` first. That number has about 436 digits. A normal computer float stops near `e^709`, so it can't hold it. In Python, `math.exp(1002)` stops with an overflow error. In NumPy, you get `inf`, and `inf / inf` gives `nan` (not a number). Your rule gets no number to check.
+You compute `e^1002` first. That number has about 436 digits. A normal computer float stops near `e^709`, so it can't hold it. The code stops with an overflow error, or it returns infinity and then "not a number". Your rule gets no number to check.
 
 ### Step 2: the hard case, shift first
 
