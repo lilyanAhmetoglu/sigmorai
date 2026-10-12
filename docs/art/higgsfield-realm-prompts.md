@@ -1,4 +1,4 @@
-# Higgsfield prompts: specialist realms r9 to r15 (no art yet)
+# Higgsfield prompts: specialist realms r9 to r16
 
 Ready to paste. Each realm has four layer prompts (sky, far, mid, near). Style block copied from `design/assets/art/HIGGSFIELD_PROMPTS.md` and the level-art plan (2026-10-05 amendments). Nothing here edits the repo.
 
@@ -20,7 +20,7 @@ Brand palette (tokens in `design/tokens/colors.css`): ink-950 #0A0913, ember #FF
 
 ### Core rotation check
 
-r0 morning, r1 noon, r2 sunset, r3 golden hour, r4 afternoon, r5 bright sky, r6 autumn pink sunset, r7 dusk, r8 night. New: r9 late morning (cream), r10 night hollow (oxblood/amber), r11 high noon (aqua/saffron), r12 cave (slate/cyan), r13 overcast (oatmeal/ochre), r14 cold dawn (steel/yellow), r15 blue hour (indigo/honey).
+r0 morning, r1 noon, r2 sunset, r3 golden hour, r4 afternoon, r5 bright sky, r6 autumn pink sunset, r7 dusk, r8 night. New: r9 late morning (cream), r10 night hollow (oxblood/amber), r11 high noon (aqua/saffron), r12 cave (slate/cyan), r13 overcast (oatmeal/ochre), r14 cold dawn (steel/yellow), r15 blue hour (indigo/honey), r16 after-rain morning (sage/terracotta).
 
 ---
 
@@ -248,6 +248,38 @@ r0 morning, r1 noon, r2 sunset, r3 golden hour, r4 afternoon, r5 bright sky, r6 
 
 ---
 
+## r16 Trade Quarter (strategist, NPC Envoy Rasa)
+
+**Mood:** Fresh morning just after rain, wet stone (distinct from the noon Pigment Bazaar and the blue-hour Guild Hall). Accent: terracotta + plum awnings and bottle-green trim on a rain-washed sage sky.
+
+**Palette:** rain-washed sage #CBD9CF, bottle green #3F6B4A, terracotta #C2603A, plum #6E3B5C, warm sand #E6CC9A
+
+**sky.png** (raw 2688x1152, final 1024x240)
+
+```text
+16-bit pixel art, side-scrolling platformer background layer, crisp hard pixels, no anti-aliasing, limited palette, layered parallax, seamless horizontal tile (left edge continues the right edge), no text, no letters, no numbers, no characters, no UI, no logos, no emblems, no symbols on banners or flags, no real brands, no watermark, no fake checkerboard background. wide landscape render 2688x1152, ground line at exactly 80% height. OPAQUE full-frame sky layer, no ground, no buildings; clouds or ceiling only; dithered colour bands. Realm "Trade Quarter": a fresh morning sky just after rain: pale rain-washed sage at the top to soft warm sand near the horizon, a few broken grey-green rain clouds drifting off, dithered bands. Sky and clouds only: no land, no hills, no towers, no castles, no birds. Palette: rain-washed sage #CBD9CF, bottle green #3F6B4A, terracotta #C2603A, plum #6E3B5C, warm sand #E6CC9A.
+```
+
+**far.png** (raw 2688x1152, final 1024x240)
+
+```text
+16-bit pixel art, side-scrolling platformer background layer, crisp hard pixels, no anti-aliasing, limited palette, layered parallax, seamless horizontal tile (left edge continues the right edge), no text, no letters, no numbers, no characters, no UI, no logos, no emblems, no symbols on banners or flags, no real brands, no watermark, no fake checkerboard background. wide landscape render 2688x1152, ground line at exactly 80% height. TRANSPARENT background; distant low-contrast silhouettes only, sitting on the 80% line, hazy and soft in colour (not blurry); nothing above 65% height except tall landmarks. Realm "Trade Quarter": a distant market town of low flat-roofed houses and many peaked tent tops, a few round warehouse domes and one tall plain watch tower, hazy grey-green. Palette: rain-washed sage #CBD9CF, bottle green #3F6B4A, terracotta #C2603A, plum #6E3B5C, warm sand #E6CC9A.
+```
+
+**mid.png** (raw 2688x1152, final 1024x240)
+
+```text
+16-bit pixel art, side-scrolling platformer background layer, crisp hard pixels, no anti-aliasing, limited palette, layered parallax, seamless horizontal tile (left edge continues the right edge), no text, no letters, no numbers, no characters, no UI, no logos, no emblems, no symbols on banners or flags, no real brands, no watermark, no fake checkerboard background. wide landscape render 2688x1152, ground line at exactly 80% height. TRANSPARENT background; mid-distance landmarks and platforms, medium contrast, base sits on the 80% line; leave open space in the centre for gameplay. Realm "Trade Quarter": a market street of narrow two-storey trading houses with striped terracotta and plum awnings (stripes only), open-front stalls with plain cloth canopies, crates and sacks, a set of hanging balance scales, a long plain wooden counter, rope lines with plain solid-colour cloths drying (no emblems, no symbols), blank hanging shop boards. Palette: rain-washed sage #CBD9CF, bottle green #3F6B4A, terracotta #C2603A, plum #6E3B5C, warm sand #E6CC9A.
+```
+
+**near.png** (raw 2688x1152, final 1024x240)
+
+```text
+16-bit pixel art, side-scrolling platformer background layer, crisp hard pixels, no anti-aliasing, limited palette, layered parallax, seamless horizontal tile (left edge continues the right edge), no text, no letters, no numbers, no characters, no UI, no logos, no emblems, no symbols on banners or flags, no real brands, no watermark, no fake checkerboard background. wide landscape render 2688x1152, ground line at exactly 80% height. TRANSPARENT background; foreground ground strip: a flat walkable path whose top surface is exactly at 80% height, with the highest contrast and a few small props on it; fully transparent above the ground. Realm "Trade Quarter": wet sand-coloured flagstone street with a flat top at 80%, small puddles, a few wooden crates, a sack of grain, a small hand cart, clay jars, short grass tufts at the edges. Palette: rain-washed sage #CBD9CF, bottle green #3F6B4A, terracotta #C2603A, plum #6E3B5C, warm sand #E6CC9A.
+```
+
+---
+
 ## After generating
 
 ### 1. Files and folders (mirror `public/levels/realm-0X`)
@@ -263,6 +295,7 @@ Folder number is two digits (`realmNumber()` pads the id), so r9 is `realm-09`, 
 | r13 Pattern Atelier | `public/levels/realm-13/` | `sky.png` `far.png` `mid.png` `near.png` |
 | r14 Agent Workshop  | `public/levels/realm-14/` | `sky.png` `far.png` `mid.png` `near.png` |
 | r15 Guild Hall      | `public/levels/realm-15/` | `sky.png` `far.png` `mid.png` `near.png` |
+| r16 Trade Quarter   | `public/levels/realm-16/` | `sky.png` `far.png` `mid.png` `near.png` |
 
 Same four names as realm-00 to realm-08 and `public/levels/math`. Only finished PNGs are committed; raw renders stay in your local art folder. Needs your `commit` go-word (git-safety rule).
 

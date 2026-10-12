@@ -196,7 +196,7 @@ export const REALMS = [
     npc: 'Envoy Rasa',
     tier: 'beginner',
     track: 'strategist',
-    scene: false,
+    scene: true,
   },
 ] as const satisfies readonly RealmRow[];
 
