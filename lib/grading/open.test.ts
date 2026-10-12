@@ -228,3 +228,39 @@ describe('specialist realms (fixture table: r9 creator, r10 builder)', () => {
     if (!result.ok) expect(result.code).toBe('INVALID_INPUT');
   });
 });
+
+describe('unlock-all (server-side tester)', () => {
+  const advanced = REALMS.find((r) => r.tier === 'advanced')!.id;
+  const on = { unlockAll: true };
+
+  test('a tier-locked realm opens only with unlockAll', () => {
+    const id = `builder/r${advanced}/c3/challenge`;
+    const off = decideOpen(ref(id), NONE, N, REALMS, { unlockAll: false });
+    expect(off.ok).toBe(false);
+    if (!off.ok) expect(off.code).toBe('TIER_LOCKED');
+    expect(decideOpen(ref(id), NONE, N, REALMS, on).ok).toBe(true);
+    expect(decideOpen(ref(`builder/r${advanced}/boss/challenge`), NONE, N, REALMS, on).ok).toBe(
+      true,
+    );
+  });
+
+  test('an order-locked chapter, boss and floor open only with unlockAll', () => {
+    for (const id of ['builder/r0/c3/challenge', 'builder/r1/boss/challenge', 'math/f5/lesson']) {
+      const off = decideOpen(ref(id), NONE, N);
+      expect(off.ok).toBe(false);
+      if (!off.ok) expect(off.code).toBe('NOT_OPEN');
+      expect(decideOpen(ref(id), NONE, N, REALMS, on).ok).toBe(true);
+    }
+  });
+
+  test('an open chapter stays open either way', () => {
+    expect(decideOpen(ref('builder/r0/c1/lesson'), NONE, N, REALMS, on).ok).toBe(true);
+    expect(decideOpen(ref('builder/r0/c1/lesson'), NONE, N).ok).toBe(true);
+  });
+
+  test('a chapter past the outline count is still INVALID_INPUT', () => {
+    const result = decideOpen(ref(`builder/r${advanced}/c7/lesson`), NONE, N, REALMS, on);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.code).toBe('INVALID_INPUT');
+  });
+});

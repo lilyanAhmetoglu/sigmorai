@@ -1,3 +1,4 @@
+// Imported by next.config.ts: no runtime `@/` imports here (only `import type`).
 import type { LeaderboardRange, NavItem, Track } from '@/lib/types';
 import { RANGE_PARAM } from './leaderboard';
 import { AUTH_ROUTES, CLERK_REDIRECT_PARAM } from './site';
@@ -46,19 +47,26 @@ export const signUpHref = (track: Track) =>
   `${AUTH_ROUTES.signUp}?${CLERK_REDIRECT_PARAM}=${encodeURIComponent(onboardingHref(track))}`;
 export const PROFILE_HREF = '/profile';
 export const DASHBOARD_HREF = '/dashboard';
+/**
+ * The prefix of every realm page (`/realms/<slug>`). `/realms` alone is not
+ * a page any more: it redirects (308, keeping `?track=`) to the world map,
+ * which holds the realm cards (next.config.ts → redirects). Link the list
+ * with MAP_HREF / worldMapHref, never with this.
+ */
 export const REALMS_HREF = '/realms';
 /** The search param that picks which track a realm page shows (`?track=builder`). */
 export const TRACK_PARAM = 'track';
 /** A realm page: `/realms/<slug>`, plus `?track=` when a track is given. */
 export const realmHref = (slug: string, track?: Track) =>
   `${REALMS_HREF}/${slug}${track ? `?${TRACK_PARAM}=${track}` : ''}`;
-/** The realms catalog for one track. */
-export const realmsHref = (track: Track) => `${REALMS_HREF}?${TRACK_PARAM}=${track}`;
 /** The Math Tower: the side realm's 8 floors (app/(app)/math). */
 export const MATH_HREF = '/math';
 /** The Frontier: the side realm of dated chapters on new docs (app/(app)/frontier). */
 export const FRONTIER_HREF = '/frontier';
-/** The world map (app/(app)/map/(world)): every realm of a path as a land on one map. */
+/**
+ * The world map (app/(app)/map/(world)): every realm of a path as a land on
+ * one map, the side realms and the realm cards. The one realms hub.
+ */
 export const MAP_HREF = '/map';
 /** The world map, plus `?track=` when a track is given. */
 export const worldMapHref = (track?: Track) =>
@@ -70,7 +78,7 @@ export const mapHref = (slug: string, track?: Track) =>
 export const QUEST_HREF = '/quest';
 export const questHref = (exerciseId: string) => `${QUEST_HREF}/${exerciseId}`;
 /** The quest page's fallback back link (a realm quest goes back to its realm: questBackHref). */
-export const QUEST_BACK_HREF = REALMS_HREF;
+export const QUEST_BACK_HREF = MAP_HREF;
 /** The public leaderboard: `/leaderboard`, plus `?range=` (lib/constants/leaderboard.ts). */
 export const LEADERBOARD_HREF = '/leaderboard';
 export const leaderboardHref = (range: LeaderboardRange) =>
@@ -82,14 +90,15 @@ export const AFTER_ONBOARDING_HREF = DASHBOARD_HREF;
  * The in-app nav, in the design's order (Sigmorai App.dc.html → navItems),
  * except Blog takes the design's MATH TOWER slot (maintainer, 2026-10-07):
  * the tower is a dashboard shortcut now. The design export still says MATH
- * TOWER until the next Claude Design pass.
+ * TOWER until the next Claude Design pass. No separate Realms item: the world
+ * map holds the realm cards and /realms redirects there (maintainer,
+ * 2026-10-12).
  * `live: false` until the route exists. Only live items show, so there are
  * no dead links and no rows of "soon" text. Flip it to true in the PR that
  * adds the page.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Dashboard', href: DASHBOARD_HREF, live: true },
-  { label: 'Realms', href: REALMS_HREF, live: true },
   { label: 'World map', href: MAP_HREF, live: true },
   { label: 'Leaderboard', href: LEADERBOARD_HREF, live: true },
   { label: 'Blog', href: BLOG_HREF, live: true },

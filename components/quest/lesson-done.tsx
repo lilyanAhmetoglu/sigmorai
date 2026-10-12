@@ -1,8 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useEffect, useRef } from 'react';
 import { PixelButton } from '@/components/pixel-button';
-import { completeLesson } from '@/lib/actions/quest';
 import {
   AUTH_ROUTES,
   AUTH_TEXT,
@@ -13,83 +12,45 @@ import {
   QUEST_TEXT,
   XP_REWARDS,
 } from '@/lib/constants';
-import type { LessonViewer, XpOutcome } from '@/lib/types';
+import type { LessonViewer } from '@/lib/types';
 import { ClearedPanel } from './cleared-panel';
-import { QuestToasts, type ToastItem } from './quest-toasts';
-
-type Props = {
-  exerciseId: string;
-  /** For the XP toast. */
-  title: string;
-  viewer: LessonViewer;
-  /** Where Continue goes: this chapter's case, or the realm page. */
-  nextHref: string;
-};
+import { bringIntoView, useLessonFinish, type LessonOutcome } from './lesson-finish';
+import { QuestToasts } from './quest-toasts';
 
 /** The panel's name (its LESSON bar). One panel per page, so a fixed id is safe. */
 const TITLE_ID = `${LESSON_DONE_ID}-title`;
 
-/** The last press. The XP comes from the server's reply, never from here. */
-type Outcome = { kind: 'done'; xp: XpOutcome } | { kind: 'error'; message: string };
-
 /**
  * The "Lesson done" panel (quest-actions spec → SIG-11 block): one explicit
- * button → completeLesson. The browser sends the lesson id only; the server
- * checks the session, the open rule and awards XP_REWARDS.lesson once.
+ * button → completeLesson. The press, its pending state and its result live in
+ * LessonFinishProvider, shared with the stepper's "Finish lesson" button, so
+ * either button marks it done once and both show the same result here.
  * Sticky on desktop (lesson.css), so the button stays in view on a long lesson.
+ * Must sit inside a LessonFinishProvider.
  */
-export function LessonDone({ exerciseId, title, viewer, nextHref }: Props) {
-  const [pending, startTransition] = useTransition();
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-  const toastId = useRef(0);
-  const buttons = useRef<HTMLDivElement>(null);
+export function LessonDone() {
+  const state = useLessonFinish();
+  const panel = useRef<HTMLElement>(null);
+  const reveal = state?.reveal ?? 0;
 
-  const dismissToast = useCallback(
-    (id: number) => setToasts((all) => all.filter((t) => t.id !== id)),
-    [],
-  );
-  const pushToast = (toast: Omit<ToastItem, 'id'>) =>
-    setToasts((all) => [...all, { ...toast, id: (toastId.current += 1) }]);
-
-  // The pressed button is replaced by Continue: move focus there, not to <body>.
+  // After a press (from either button) or the stepper's Finish on a replay: the
+  // panel to the middle of the screen, focus on its live control (Continue,
+  // the retry button, Sign in or Set up), not on <body>.
   useEffect(() => {
-    if (outcome?.kind === 'done') buttons.current?.querySelector<HTMLElement>('a')?.focus();
-  }, [outcome]);
+    const box = panel.current;
+    if (reveal === 0 || !box) return;
+    const control = box.querySelector<HTMLElement>('a[href], button:not([disabled])') ?? box;
+    bringIntoView(box, control, 'center');
+  }, [reveal]);
 
-  function press() {
-    if (pending) return;
-    // Empty the live region, so the same message twice is still read out.
-    setOutcome(null);
-    startTransition(async () => {
-      try {
-        const result = await completeLesson({ exerciseId });
-        if (!result.ok) return setOutcome({ kind: 'error', message: result.message });
-        const { xp } = result;
-        setOutcome({ kind: 'done', xp });
-        if (xp.awarded > 0) {
-          pushToast({
-            accent: 'xp',
-            title: QUEST_TEXT.xpToastTitle(xp.awarded),
-            text: QUEST_TEXT.xpToastText(title),
-          });
-        }
-        if (xp.levelAfter > xp.levelBefore) {
-          pushToast({ accent: 'success', title: QUEST_TEXT.levelUpTitle(xp.levelAfter) });
-        }
-      } catch {
-        setOutcome({ kind: 'error', message: QUEST_TEXT.lessonNoReply });
-      }
-    });
-  }
-
-  const done =
-    outcome?.kind === 'done' || (viewer.status === 'ready' && viewer.cleared && !outcome);
+  if (!state) return null;
+  const { viewer, nextHref, pending, outcome, done, toasts, dismissToast, press } = state;
   const awarded = outcome?.kind === 'done' ? outcome.xp.awarded : 0;
 
   return (
-    // The id and tabIndex: the lesson stepper's last button moves focus here (or to its first control).
+    // tabIndex: the focus fallback when the panel has no live control.
     <section
+      ref={panel}
       id={LESSON_DONE_ID}
       tabIndex={-1}
       aria-labelledby={TITLE_ID}
@@ -101,7 +62,7 @@ export function LessonDone({ exerciseId, title, viewer, nextHref }: Props) {
           <span id={TITLE_ID}>{QUEST_TEXT.lessonPanel}</span>
         </div>
         <div className="quest-case-body">
-          <div ref={buttons} className="quest-buttons">
+          <div className="quest-buttons">
             <Button
               viewer={viewer}
               done={done}
@@ -168,7 +129,7 @@ function Button({ viewer, done, pending, nextHref, onPress }: ButtonProps) {
 }
 
 /** The line under the button: why it is off, what it gives, or what happened. */
-function note(viewer: LessonViewer, outcome: Outcome | null, done: boolean): string {
+function note(viewer: LessonViewer, outcome: LessonOutcome | null, done: boolean): string {
   if (outcome?.kind === 'error') return outcome.message;
   if (outcome?.kind === 'done') {
     return outcome.xp.awarded > 0 ? QUEST_TEXT.clearedBody : QUEST_TEXT.lessonDoneReplay;

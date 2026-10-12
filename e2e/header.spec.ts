@@ -3,8 +3,10 @@ import {
   AUTH_ROUTES,
   AUTH_TEXT,
   BLOG_HREF,
+  COOKIE_NOTICE_TEXT,
   LIVE_NAV_ITEMS,
   MAP_HREF,
+  PRIVACY_HREF,
   SHELL_TEXT,
   SITE_NAME,
 } from '@/lib/constants';
@@ -22,7 +24,7 @@ const ROUTES = [
   '/blog/be-specific',
   '/privacy',
   '/sign-in',
-  '/realms',
+  '/math',
   '/map',
   '/leaderboard',
   '/quest/strategist/r0/c1/lesson',
@@ -103,4 +105,24 @@ test('the nav marks the current section', async ({ page }) => {
     'aria-current',
     'page',
   );
+});
+
+// The cookie notice (playwright.config.ts dismisses it for every other test).
+test.describe('cookie notice', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test('shows on a first visit, OK hides it for good', async ({ page }) => {
+    await page.goto('/');
+    const notice = page.getByRole('region', { name: COOKIE_NOTICE_TEXT.label });
+    await expect(notice).toBeVisible();
+    await expect(notice.getByRole('link', { name: COOKIE_NOTICE_TEXT.privacy })).toHaveAttribute(
+      'href',
+      PRIVACY_HREF,
+    );
+    await notice.getByRole('button', { name: COOKIE_NOTICE_TEXT.ok }).click();
+    await expect(notice).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole('banner')).toBeVisible();
+    await expect(notice).toHaveCount(0);
+  });
 });

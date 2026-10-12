@@ -3,6 +3,7 @@ import {
   WORLD_COMPASS_PX,
   WORLD_GLYPH_PX,
   WORLD_GLYPHS,
+  WORLD_LANDMARK_PIP,
   WORLD_MAP,
   WORLD_STATUS_PIPS,
 } from '@/lib/constants';
@@ -84,24 +85,35 @@ const PIP_PATHS = Object.fromEntries(
   ]),
 ) as Record<RealmStatus, [string, string][]>;
 
+const LANDMARK_PIP_PATHS = spritePaths(spriteRuns(WORLD_LANDMARK_PIP), 1);
+
+/** A pip svg: a 7×7 ink sprite (every pip is 7×7; a test checks), decoration only. */
+function PipSvg({ paths, className }: { paths: [string, string][]; className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 7 7"
+      shapeRendering="crispEdges"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <Sprite paths={paths} x={0} y={0} />
+    </svg>
+  );
+}
+
+/** A landmark's mark (WORLD_LANDMARK_PIP), for its pin and the map key. */
+export function LandmarkPip({ className }: { className?: string }) {
+  return <PipSvg paths={LANDMARK_PIP_PATHS} className={className} />;
+}
+
 /**
  * A realm's state as a small ink shape (WORLD_STATUS_PIPS), for a pin and
  * the map key. Its own <svg>, decoration only: the words are in the link's
  * accessible name and in the key.
  */
 export function StatusPip({ status, className }: { status: RealmStatus; className?: string }) {
-  const rows = WORLD_STATUS_PIPS[status];
-  return (
-    <svg
-      className={className}
-      viewBox={`0 0 ${rows[0].length} ${rows.length}`}
-      shapeRendering="crispEdges"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <Sprite paths={PIP_PATHS[status]} x={0} y={0} />
-    </svg>
-  );
+  return <PipSvg paths={PIP_PATHS[status]} className={className} />;
 }
 
 /** Terrain on one land (placed by terrainGlyphs). */

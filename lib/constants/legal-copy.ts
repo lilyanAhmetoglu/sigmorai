@@ -57,13 +57,29 @@ export const PRIVACY_TEXT = {
   eyebrow: 'LEGAL',
   title: 'Privacy',
   updatedLabel: 'Last updated',
-  updated: '7 October 2026',
+  updated: '12 October 2026',
   intro: `This page says what ${SITE_NAME} stores about you, why, who processes it, and how to get a copy or delete it.`,
 } as const;
 
 const CLERK_PRIVACY_URL = 'https://clerk.com/legal/privacy';
 const VERCEL_PRIVACY_URL = 'https://vercel.com/legal/privacy-notice';
 const RESEND_PRIVACY_URL = 'https://resend.com/legal/privacy-policy';
+
+/**
+ * The cookie notice (components/cookie-notice.tsx), on every route until
+ * dismissed. An information notice, not a consent gate: the site sets only
+ * Clerk's sign-in cookies (strictly necessary), so there is nothing to accept
+ * or reject. The "Cookies" section below must keep saying the same.
+ */
+export const COOKIE_NOTICE_TEXT = {
+  label: 'Cookie notice',
+  body: 'We only use cookies that keep you signed in. No ad or tracking cookies.',
+  privacy: 'Privacy',
+  ok: 'OK',
+} as const;
+
+/** localStorage key set when the notice is dismissed. Not a cookie. */
+export const COOKIE_NOTICE_STORAGE_KEY = 'sigmorai:cookie-notice-seen';
 
 export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
   {
@@ -191,6 +207,7 @@ export const PRIVACY_SECTIONS: readonly PrivacySection[] = [
     heading: 'Cookies',
     paragraphs: [
       'Only the cookies Clerk needs to keep you signed in. Web Analytics uses no cookies. Speed Insights records anonymous timing data only. No ad cookies, and no tracking across other websites.',
+      'The cookie notice at the bottom of the screen asks for no choice: there is nothing to turn on or off. When you press OK, your browser keeps a small note in its local storage so the notice does not come back. It is not a cookie, and it is never sent to us.',
     ],
   },
   {

@@ -5,7 +5,7 @@ import {
   DASHBOARD_TEXT,
   QUEST_TEXT,
   questHref,
-  REALMS_HREF,
+  MAP_HREF,
   REALMS_TEXT,
   STEP_TEXT,
 } from '@/lib/constants';
@@ -21,7 +21,8 @@ type Props = {
 
 /**
  * "Continue learning" (design: isDash): the first open step on the player's
- * track, or a plain empty state when nothing is open. Styles: realms.css.
+ * track, or a plain empty state when nothing is open. The button's link
+ * stretches over the whole card (one link, one big target). Styles: realms.css.
  */
 export function ContinueCard({ next, realms }: Props) {
   if (!next) {
@@ -29,7 +30,7 @@ export function ContinueCard({ next, realms }: Props) {
       <Panel tone="sunken" className="flex flex-col items-start gap-3">
         <p className="text-body leading-body m-0">{DASHBOARD_TEXT.nothingOpen}</p>
         <p className="text-small leading-body text-text-2 m-0">{DASHBOARD_TEXT.nothingOpenHint}</p>
-        <PixelButton href={REALMS_HREF} variant="secondary">
+        <PixelButton href={MAP_HREF} variant="secondary">
           {DASHBOARD_TEXT.browseAll}
         </PixelButton>
       </Panel>
@@ -55,7 +56,7 @@ export function ContinueCard({ next, realms }: Props) {
           accent={realmAccent(realm.id)}
         />
       </div>
-      <PixelButton href={questHref(next.step.exerciseId)}>
+      <PixelButton href={questHref(next.step.exerciseId)} className="continue-card-action">
         <RealmActionLabel status={realm.status} name={realm.name} />
       </PixelButton>
     </Panel>

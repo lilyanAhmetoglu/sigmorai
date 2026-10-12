@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { WORLD_MAP_TEXT } from '@/lib/constants';
 import type { RealmStatus } from '@/lib/types';
-import { StatusPip } from './world-map-art';
+import { LandmarkPip, StatusPip } from './world-map-art';
 
 type Props = {
   /** The current-realm tag on this map: "YOU ARE HERE" or "START HERE". */
@@ -52,11 +52,20 @@ const PIPS: Record<string, ReactNode> = {
   inProgress: <Pip status="in-progress" />,
   open: <Pip status="open" />,
   locked: <Pip status="tier-locked" />,
+  // A landmark pin (Math Tower, the Frontier): the math tint, as on the map.
+  sideRealm: (
+    <span className="world-marker-pin" data-accent="math" data-legend>
+      <span className="world-marker-pip">
+        <LandmarkPip />
+      </span>
+    </span>
+  ),
 };
 
 /**
  * The map key under the world map: what the route, the tag, the pin marks,
- * the hatching and a dashed coast mean. Each row is a small drawn sample (decoration,
+ * the hatching, a dashed coast and a side-realm pin (Math Tower, the
+ * Frontier) mean. Each row is a small drawn sample (decoration,
  * aria-hidden) and words, so nothing depends on colour alone. The samples
  * use the map's own classes and patterns, so key and map always match.
  * The hatch and stipple fills are url(#world-hatch) and url(#world-stipple)
@@ -75,6 +84,7 @@ export function WorldMapLegend({ tag }: Props) {
     ['open', legend.open],
     ['locked', legend.locked],
     ['pathOnly', legend.pathOnly],
+    ['sideRealm', legend.sideRealm],
   ];
   return (
     <ul className="world-legend" aria-label={WORLD_MAP_TEXT.legendLabel}>

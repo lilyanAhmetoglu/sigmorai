@@ -24,7 +24,7 @@ describe('sitemapEntries', () => {
   test('lists the public pages, indexable realms, live lessons and posts, in that order', () => {
     expect(urls).toEqual([
       `${SITE}/`,
-      `${SITE}/realms`,
+      `${SITE}/map`,
       `${SITE}/math`,
       `${SITE}/frontier`,
       `${SITE}/leaderboard`,

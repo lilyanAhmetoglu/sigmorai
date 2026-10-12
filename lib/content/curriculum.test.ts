@@ -33,17 +33,13 @@ describe('curriculum constants', () => {
     expect(realmArt(9)).toBe('/levels/realm-09');
   });
 
-  test('r12–r15 have their own level art (realm-12 … realm-15)', () => {
+  test('r12–r16 have their own level art (realm-12 … realm-16)', () => {
     expect(REALMS[12]).toMatchObject({ slug: 'echo-caverns', track: 'creator', scene: true });
     expect(REALMS[13]).toMatchObject({ slug: 'pattern-atelier', track: 'creator', scene: true });
     expect(REALMS[14]).toMatchObject({ slug: 'agent-workshop', track: 'builder', scene: true });
     expect(REALMS[15]).toMatchObject({ slug: 'guild-hall', track: 'strategist', scene: true });
-    for (const id of [12, 13, 14, 15]) expect(realmArt(id)).toBe(`/levels/realm-${id}`);
-  });
-
-  test('r16 Trade Quarter: strategist only, no level art yet (flat neutral scene)', () => {
-    expect(REALMS[16]).toMatchObject({ slug: 'trade-quarter', track: 'strategist', scene: false });
-    expect(realmArt(16)).toBeNull();
+    expect(REALMS[16]).toMatchObject({ slug: 'trade-quarter', track: 'strategist', scene: true });
+    for (const id of [12, 13, 14, 15, 16]) expect(realmArt(id)).toBe(`/levels/realm-${id}`);
   });
   test('one floor row per floor, n = position + 1', () => {
     expect(MATH_FLOORS.map((f): number => f.n)).toEqual(

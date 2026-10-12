@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ChapterCard } from '@/components/frontier/chapter-card';
 import { Panel } from '@/components/panel';
 import { SignInNote } from '@/components/realms/sign-in-note';
-import { FRONTIER_HREF, FRONTIER_TEXT, REALMS_HREF, SITE_NAME } from '@/lib/constants';
+import { FRONTIER_HREF, FRONTIER_TEXT, MAP_HREF, SITE_NAME } from '@/lib/constants';
 import { getFrontierPage } from '@/lib/data/frontier';
 import { socialMetadata } from '@/lib/og/metadata';
 
@@ -33,7 +33,7 @@ export default async function FrontierPage() {
 
   return (
     <div className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6" data-accent="neutral">
-      <Link href={REALMS_HREF} className="realm-back">
+      <Link href={MAP_HREF} className="realm-back">
         <span aria-hidden="true">{FRONTIER_TEXT.backIcon}</span>
         {FRONTIER_TEXT.back}
       </Link>

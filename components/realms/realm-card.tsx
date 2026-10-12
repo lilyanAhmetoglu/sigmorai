@@ -27,7 +27,8 @@ type Props = {
  * button. A specialist realm's bar uses its path colour: its realm accent is
  * still `neutral` (no token yet), which reads as disabled. A tier-locked realm says "locked" once (the note) and still links
  * to its page: learners may read its chapter list (curriculum spec), only the
- * steps stay shut. Styles: realms.css.
+ * steps stay shut. The button's link stretches over the whole card, so a
+ * click anywhere opens the realm (still one link). Styles: realms.css.
  */
 export function RealmCard({ realm, track }: Props) {
   const locked = realm.status === 'tier-locked';
@@ -40,7 +41,7 @@ export function RealmCard({ realm, track }: Props) {
           <span className="realm-card-tag">{REALMS_TEXT.number(realmNumber(realm.id))}</span>
           <span>{TIER_TEXT[realm.tier]}</span>
         </p>
-        <h2 className="realm-card-name">{realm.name}</h2>
+        <h3 className="realm-card-name">{realm.name}</h3>
         <PathRealmBadge track={realm.track} />
         <p className="realm-card-topic">{realm.topic}</p>
         <p className="realm-card-meta">{REALMS_TEXT.meta(realmChapterCount(realm))}</p>

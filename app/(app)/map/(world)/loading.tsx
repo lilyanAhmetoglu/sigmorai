@@ -1,7 +1,7 @@
 import { WorldMapBodySkeleton } from '@/components/map/world-map';
 
 /**
- * Header, map box and path-list placeholders at their final size, so nothing jumps. No spinner.
+ * Header, map box, side-realm and realm-card placeholders at their final size, so nothing jumps. No spinner.
  * The page itself is not async and streams with its own Suspense, so that usually wins; this
  * covers the route segment while it loads.
  */
