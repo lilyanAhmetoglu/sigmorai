@@ -1,7 +1,7 @@
 ---
 id: creator/r6/c6/lesson
 title: Regression
-minutes: 7
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic · Demystifying evals for AI agents
@@ -20,69 +20,163 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/image-generation
 ---
 
-## Why it matters
+## Goal
 
-You ran the scorecard once and picked a model. Then the vendor ships a new version, or says a model is now the old one, or your own prompt kit changes. Will last quarter's good results still be good? A **regression test** answers that. It re-runs jobs that already worked and flags anything that got worse.
+After this lesson you can:
 
-## Two kinds of tests
+- Keep two lists of test jobs: regression jobs that must keep passing, and capability jobs that are still hard.
+- Say which changes should trigger a test run, and treat a vendor's "move to the new model" note as one of them.
+- Repeat jobs and work out how often a whole set of images comes out right.
 
-Anthropic splits evals into two kinds:
+## The problem
 
-- **Capability evals** ask "What can this agent do well?" They "should start at a low pass rate", so they give the team "a hill to climb".
-- **Regression evals** ask "Does the agent still handle all the tasks it used to?" and "should have a nearly 100% pass rate". A drop signals that something is broken.
+A wedding stationery shop makes watercolour monograms and invitation art with an image model. Six months ago the team tested the setup carefully, and it worked.
 
-Anthropic adds that a capability eval with a high pass rate can "graduate" to become a regression suite.
+Since then, three things changed:
 
-For a studio: a capability test is a new hard job, such as a transparent-background label on a dark photo. A regression test is a job that works today and must keep working: the packshot with the exact logo, the 9:16 story with the safe zone.
+1. A designer added "gold foil look" to the style block in the prompt kit.
+2. The vendor posted a note that a newer model is recommended.
+3. The shop started selling sets of four matching cards.
 
-## Feed it with real failures
+Nobody re-ran the old tests after any of these. Then the complaints came: monograms with an "&" between two initials now often lose the "&". In the sets of four, at least one card often has a small flaw. A change that looked harmless broke a job that used to work.
 
-Anthropic says to look at the bug tracker and support queue. "Converting user-reported failures into test cases ensures your suite reflects actual usage". OpenAI says the same in its own words: grow the eval set over time, and log as you work to find good cases.
+This lesson shows how to catch that before a customer does.
 
-Every time a client finds a flaw, ask: what test would have caught this? Add it. Then a flaw you fixed once cannot come back unseen.
+## The idea
 
-## Run it on every change
+### Two kinds of test
 
-OpenAI's guide: "Set up continuous evaluation (CE) to run evals on every change, monitor your app to identify new cases of nondeterminism, and grow the eval set over time."
+The [Anthropic post on evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) splits evals into two kinds:
 
-For a studio, our list of changes that should trigger a run:
+- **Capability evals** ask "What can this agent do well?" They "should start at a low pass rate", giving teams "a hill to climb".
+- **Regression evals** ask "Does the agent still handle all the tasks it used to?" They "should have a nearly 100% pass rate". The post says "a decline in score signals that something is broken and needs to be improved."
 
-- A new model, or a new version of the model you use.
-- A change to your prompt kit, style block or reference images.
-- A change to size, quality or filter settings.
-- A vendor update to a moderation or safety model (chapter 5).
+A **regression** is when something that used to work stops working. The post adds that capability evals with high pass rates can "graduate" to become a regression suite.
 
-Vendors will tell you to move. Google's image page says of Nano Banana 2: "Recommended for all new projects to use Nano Banana 2.1." OpenAI's image guide says that, for new integrations, you should use one of the GPT Image 2.5 models. These notes are a reason to run your test. They are not proof that the new model is better for your jobs.
+For a creator: a capability job is a new, hard job, such as a monogram in a hand-lettered script. A regression job is one that works today and must keep working, such as the two initials with an "&".
 
-Anthropic describes the payoff: when a stronger model arrives, teams without evals "face weeks of testing", while teams with evals "can quickly determine the model's strengths, tune their prompts, and upgrade in days".
+A comparison: a regression list is like a pilot's pre-flight checklist. The plane flew yesterday. You still check the same things before every flight.
 
-## The same prompt gives a different image
+### Feed the suite with real failures
 
-Image models vary from run to run. Anthropic gives a way to count that. A metric called pass^k "measures the probability that all k trials succeed". It matters most when users expect good results every time. Its example: a 75% pass rate per trial over 3 trials gives about 42%.
+A **suite** is your full set of test jobs. The Anthropic post says to look at your bug tracker and support queue: "Converting user-reported failures into test cases ensures your suite reflects actual usage". The [OpenAI evaluation docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) say the same thing in other words: "grow the eval set over time".
 
-Made-up example for a studio. A model gets the logo right 9 times in 10. A client brief needs the logo right in all 3 images of a set.
+Our habit: every customer complaint gets a question. Which test would have caught this? Then add it. A flaw you fixed once cannot come back unseen.
 
-- All 3 right: 0.9 x 0.9 x 0.9 = 0.729, about 73%.
-- That is 27 sets in 100 with at least one wrong logo, even though each image is right 90% of the time.
+### Run it on every change
 
-So a regression run should repeat each job a few times, and report how often all repeats pass.
+The OpenAI docs: "Set up continuous evaluation (CE) to run evals on every change, monitor your app to identify new cases of nondeterminism, and grow the eval set over time." **Nondeterminism** means the same input can give a different output.
 
-## Keep the suite alive
+Our list of changes that should trigger a run:
 
-Anthropic warns that "An eval at 100% tracks regressions but provides no signal for improvement." Anthropic says this about capability evals. Your regression list should stay near 100%. When your capability list is always at 100%, move those jobs to the regression list and add harder capability jobs. It also says that "An eval suite is a living artifact that needs ongoing attention and clear ownership to remain useful." Give the suite an owner, and a date each quarter to review it.
+- a new model, or a new version of the one you use
+- any edit to the prompt kit, style block or reference images
+- a change to size, quality or filter settings
+- a vendor update to a moderation or safety model
 
-## Keep your files
+Vendors will tell you to move. The [Gemini API image docs](https://ai.google.dev/gemini-api/docs/image-generation) say of Nano Banana 2: "Recommended for all new projects to use Nano Banana 2.1." The [OpenAI image docs](https://developers.openai.com/api/docs/guides/image-generation) say: "For new integrations, use one of the GPT Image 2.5 models described above."
 
-OpenAI is deprecating its Evals platform. Its deprecations page gives these dates: existing evals become read-only on October 31, 2026, and the Evals dashboard and API are scheduled to shut down on November 30, 2026. The same page names a cookbook guide for moving to another tool.
+Our reading: these notes are a reason to run your suite. They are not proof that the new model is better for your jobs, and they say nothing about which of your jobs will still work.
 
-The lesson for a studio: your test jobs, rubric, anchor images and past results are an asset. Keep them as files you own, not only inside one vendor's tool. Then a tool can change and your scorecard stays.
+The payoff, in the Anthropic post's words: when more powerful models come out, "teams without evals face weeks of testing while competitors with evals can quickly determine the model's strengths, tune their prompts, and upgrade in days."
 
-## What this means for your work
+### The same prompt, a different image
 
-- **Keep two lists:** regression jobs that must keep passing, and capability jobs that are still hard.
-- **Turn every client complaint into a test.**
-- **Re-run the suite on every change**: model, prompt kit, settings, filters.
-- **Treat a vendor's "move to the new model" note as a trigger to test.**
-- **Repeat each job and report how often all repeats pass.**
-- **Add harder capability jobs when that list is always at 100%.**
-- **Keep the suite in files you own.**
+Image models vary from run to run, so one pass proves little. The Anthropic post gives a way to count this. **pass^k** "measures the probability that all k trials succeed". Its example: "If your agent has a 75% per-trial success rate and you run 3 trials, the probability of passing all three is (0.75)³ ≈ 42%." The post says this matters most "where users expect reliable behavior every time".
+
+Its partner metric, **pass@k**, "measures the likelihood that an agent gets at least one correct solution in k attempts". The post: "pass@k for tools where one success matters, pass^k for agents where consistency is essential."
+
+### Keep the suite alive
+
+The Anthropic post warns: "An eval at 100% tracks regressions but provides no signal for improvement." That warning is about capability evals. Our reading: a regression list should sit near 100%, and that is its job. When your capability list is always at 100%, move those jobs to the regression list and write harder capability jobs. The post also says: "An eval suite is a living artifact that needs ongoing attention and clear ownership to remain useful."
+
+### Keep your files
+
+Tools change. The [OpenAI deprecations page](https://developers.openai.com/api/docs/deprecations) lists the Evals platform dates:
+
+- "Oct 31, 2026": "Existing evals become read-only."
+- "Nov 30, 2026": "The Evals dashboard and API are scheduled to shut down."
+
+The page links a migration guide, "Moving from OpenAI Evals to Promptfoo". Our habit: keep test jobs, rubrics, anchor images and past results as files you own, so a tool can change and your suite stays.
+
+## Worked example
+
+### Step 1: the weak setup
+
+```text
+Tests:     run once, six months ago
+Triggers:  none
+Repeats:   one image per job
+Complaints: fixed one by one, never added to tests
+```
+
+### Step 2: two lists
+
+```text
+REGRESSION (must stay near 100%)
+  R-01  two initials with "&", serif
+  R-02  three initials, script
+  R-03  wreath around a monogram, sage green only
+  ...   30 jobs from orders that worked, plus past complaints
+
+CAPABILITY (expected to be hard)
+  C-01  hand-lettered script with long names
+  C-02  couple's pet in watercolour, matching the palette
+  ...   8 jobs
+```
+
+### Step 3: triggers and owner
+
+```text
+Run both lists when: model, prompt kit, settings or filters change,
+                     or a vendor posts a "move to" note.
+Repeats: each job 20 times. A set job passes only
+         if all four cards are right.
+Owner: one named designer. Review the lists every quarter.
+```
+
+### Step 4: the hard case
+
+**The hard case is the "harmless" edit.** A designer adds "gold foil look" to the style block. It only changes colour, so the designer wants to re-run just the colour jobs. The team's rule says: run the whole regression list on every change. The numbers are our example.
+
+```text
+Job    What it checks            Before    After the edit
+R-01   two initials with "&"     20 of 20  11 of 20
+R-02   three initials, script    20 of 20  20 of 20
+R-03   wreath, sage green only   20 of 20  20 of 20
+```
+
+The weak reading: "The colour job passes, so the edit is safe." The better reading: R-01 has nothing to do with colour, and it broke. The "&" now goes missing in 9 of 20 runs. You do not need to know why to see it. A run of only the "related" jobs would have missed it. Our advice: run the full regression list on every change, because you cannot predict what a prompt edit touches. Then fix the style block and run the whole list again.
+
+### Step 5: why it is better
+
+- **Every change triggers a run**, including the small "gold foil" edit.
+- **Complaints become tests**, so the lost "&" cannot come back unseen.
+- **Repeats show reliability**, the thing customers feel.
+- **A named owner keeps the suite alive.**
+
+## Common mistakes
+
+1. **Mixing both lists into one score.** Gains on hard jobs hide a broken easy one. Fix: report regression and capability separately.
+2. **Trusting a vendor's "recommended" note.** It is a trigger, not a test result. Fix: run your suite on the new model first.
+3. **One run per job.** A lucky pass hides a flaky job. Fix: repeat jobs and report how often all repeats pass.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A designer asks the model for 3 draft monograms and picks the best one. Each draft is good 80% of the time. The draft is only for the designer, who will fix it by hand.
+
+1. Which metric fits this job, pass@k or pass^k?
+2. About how often is at least one of the 3 drafts good?
+
+### Answer
+
+1. **pass@k.** Only one good draft is needed. The Anthropic post says pass@k fits "where one success matters".
+2. **About 99%.** Our maths: the chance that all 3 drafts are bad is 0.2 x 0.2 x 0.2 = 0.008. So at least one is good 1 - 0.008 = 0.992 of the time. Compare a set of cards that must all be right: there you need pass^k, and the number is much lower.
+
+## Recap
+
+- Keep two lists. The regression list should sit close to 100%, and a drop means something broke. Capability jobs start low; move them to regression when they stay at 100%.
+- Turn every complaint into a test, and run the suite on every change. A vendor's "move to the new model" note is a reason to run it, not a test result.
+- Repeat jobs. pass^k is the chance that all k tries succeed. In the Anthropic post's example, 75% per try is about 42% for three tries. Keep your suite in files you own.
