@@ -21,7 +21,8 @@ type Props = {
 
 /**
  * "Continue learning" (design: isDash): the first open step on the player's
- * track, or a plain empty state when nothing is open. Styles: realms.css.
+ * track, or a plain empty state when nothing is open. The button's link
+ * stretches over the whole card (one link, one big target). Styles: realms.css.
  */
 export function ContinueCard({ next, realms }: Props) {
   if (!next) {
@@ -55,7 +56,7 @@ export function ContinueCard({ next, realms }: Props) {
           accent={realmAccent(realm.id)}
         />
       </div>
-      <PixelButton href={questHref(next.step.exerciseId)}>
+      <PixelButton href={questHref(next.step.exerciseId)} className="continue-card-action">
         <RealmActionLabel status={realm.status} name={realm.name} />
       </PixelButton>
     </Panel>

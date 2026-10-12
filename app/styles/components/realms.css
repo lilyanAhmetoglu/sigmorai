@@ -21,9 +21,15 @@
     @apply bg-surface-3;
   }
 
-  /* Catalog card: scene on top, then the text. */
+  /* Catalog card: scene on top, then the text. The button link stretches
+     over the whole card (::after), so a click anywhere opens the realm. Still
+     one link for screen readers, and no nested interactive elements. */
   .realm-card {
-    @apply bg-surface-2 shadow-card m-0.75 flex h-full flex-col;
+    @apply bg-surface-2 shadow-card relative m-0.75 flex h-full flex-col;
+  }
+  .realm-card:hover,
+  .realm-card:has(.realm-card-action:focus-visible) {
+    @apply bg-surface-3;
   }
   .realm-card-scene {
     @apply aspect-video w-full;
@@ -54,6 +60,18 @@
   }
   .realm-card-action {
     @apply mt-1;
+  }
+  .realm-card-action::after,
+  .continue-card-action::after {
+    @apply absolute inset-0;
+    content: '';
+  }
+  /* A translate makes the link the box its ::after is placed in, so the
+     overlay would shrink to the button mid-click and the click would miss.
+     The pressed bevel still shows; only the 2px move is dropped here. */
+  a.realm-card-action:active,
+  a.continue-card-action:active {
+    translate: none;
   }
   .realm-card[data-status='tier-locked'] .realm-card-name {
     @apply text-text-3;
@@ -199,8 +217,14 @@
   }
 
   /* Dashboard: Continue learning */
+  /* Dashboard "Continue learning": same stretched link as .realm-card
+     (Panel is already position: relative). */
   .continue-card {
     @apply flex flex-wrap items-center gap-4;
+  }
+  .continue-card:hover,
+  .continue-card:has(.continue-card-action:focus-visible) {
+    @apply bg-surface-3;
   }
   .continue-card-scene {
     @apply shadow-notch aspect-video w-45 max-w-full flex-none;
