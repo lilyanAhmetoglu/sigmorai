@@ -65,14 +65,17 @@ The rules and limits below are from each vendor's page in October 2026.
 
 ### Design a voice from words
 
-The [Gemini voice design docs](https://ai.google.dev/gemini-api/docs/voice-design) say you can make "a brand-new, persistent vocal persona" from a description. You describe "a character's age, vocal timbre, accent, and baseline delivery". You get back a reusable `voice_...` ID and a short preview clip. The docs advise "A clear 1–2 sentence description".
+The [Gemini voice design docs](https://ai.google.dev/gemini-api/docs/voice-design) say you can make "a brand-new, persistent vocal persona" from a description. You get back a reusable `voice_...` ID and a short preview clip. Their advice for the description:
+
+- Describe "a character's age, vocal timbre, accent, and baseline delivery".
+- Keep it to "A clear 1–2 sentence description".
 
 Put lasting traits in the design. For the mood of one line, the [Gemini speech docs](https://ai.google.dev/gemini-api/docs/speech-generation) use a short `style` field on each turn.
 
-The [ElevenLabs Voice Design docs](https://elevenlabs.io/docs/eleven-creative/voices/voice-design) give three voice options per try. They list three pitfalls:
+ElevenLabs Voice Design gives three voice options per try. The [ElevenLabs Voice Design docs](https://elevenlabs.io/docs/eleven-creative/voices/voice-design) say: "we create three voice options based on your prompt". They list three pitfalls:
 
 - Don't write "accent" when you mean intonation. It "can trigger unwanted dialect shifts".
-- "Avoid FX words": "reverb," "echo," "phone," or "tape" "can negatively affect output quality".
+- "Avoid FX words" such as "reverb" or "echo". The docs say they "can negatively affect output quality".
 - "always specify the language and regional variant in the first sentence".
 
 The **preview text** is the line the new voice reads for you. It "should complement the voice description, not contradict it". A calm voice with an angry preview line leads to "unnatural or inconsistent results".
@@ -88,14 +91,16 @@ A **consent recording** is audio of the speaker agreeing, out loud, to the clone
 
 In English the statement is: "I am the owner of this voice and I consent to Google using this voice to create a synthetic voice model." The docs also say to record both "on the same microphone in the same acoustic setting so the speaker verification check succeeds reliably."
 
-**OpenAI.** The [OpenAI custom voices docs](https://developers.openai.com/api/docs/guides/custom-voices) say: "The consent audio recording must only include one of the following phrases. Any divergence from the script will lead to a failure." The sample "must match the consent recording". Custom voices "are limited to eligible customers". Other limits:
+**OpenAI.** The [OpenAI custom voices docs](https://developers.openai.com/api/docs/guides/custom-voices) say custom voices "are limited to eligible customers". Their rules for the recordings:
 
+- Consent: "The consent audio recording must only include one of the following phrases. Any divergence from the script will lead to a failure."
+- Sample: it "must match the consent recording".
 - "At most 20 voices can be created per organization."
 - "The audio samples must be 30 seconds or less."
 
 **ElevenLabs.** The [cloning concepts page](https://elevenlabs.io/docs/eleven-api/concepts/voice-cloning) says: "Both IVC and PVC include a voice verification step." IVC is Instant Voice Cloning; PVC is Professional Voice Cloning. The check uses "voice-captcha technology": a live test that you are the person giving the samples (our plain gloss).
 
-- For an instant clone, you also "confirm that you have the right and consent to clone the voice".
+- For an instant clone, the [IVC docs](https://elevenlabs.io/docs/eleven-creative/voices/voice-cloning/instant-voice-cloning) say you also "confirm that you have the right and consent to clone the voice".
 - A professional clone is stricter. The [PVC docs](https://elevenlabs.io/docs/eleven-creative/voices/voice-cloning/professional-voice-cloning) say: "You can only create a Professional Voice Clone of your own voice. Even with their consent, you cannot clone someone else's voice."
 - The way to share one: the voice owner can "create and verify a Professional Voice Clone on their own account, then share it with you privately using a sharing link".
 - The concepts page says PVC fits when "you are on a Creator plan or above".
@@ -114,7 +119,7 @@ The [ElevenLabs Prohibited Use Policy](https://elevenlabs.io/use-policy) (last u
 Its elections section adds two more lines:
 
 - No "Impersonating political candidates or elected officials without authorization".
-- No "Political campaigning without our prior written consent". That means ElevenLabs' written consent, not only the candidate's.
+- No "Political campaigning without our prior written consent". So the consent must come from ElevenLabs itself, not only from the candidate.
 
 The [OpenAI speech guide](https://developers.openai.com/api/docs/guides/text-to-speech) also requires "a clear disclosure to end users that the TTS voice they are hearing is AI-generated and not a human voice."
 
@@ -126,7 +131,7 @@ The [OpenAI speech guide](https://developers.openai.com/api/docs/guides/text-to-
 
 ### How long a voice lasts
 
-On Gemini, stored voices (designed or replicated) share a limit of "200 voices per project" and keep for 1 year. A **stateless** key (`voicekey_...`) is one Google does not store (our plain gloss); it lasts 7 days.
+On Gemini, stored voices (designed or replicated) share a limit of "200 voices per project". The voice design docs give them "a 1-year TTL (time-to-live)": they keep for 1 year. A **stateless** key (`voicekey_...`) is one Google does not store (our plain gloss). The table in the replication docs lists it as "Client-managed", with a life of 7 days.
 
 ## Worked example
 
@@ -158,16 +163,13 @@ A bright, bouncy cartoon chef in their 20s with a light, friendly tone.
 Quick, playful pacing and a warm smile in every line.
 ```
 
-Moods like "sad" or "whispering" now go in a short `style` on the lines that need them.
+Moods like "sad" or "whispering" now stay out of the design. You set them line by line.
 
 ### Step 3: the hard case: Ana's clone (OpenAI)
 
-**This is the hard case.** Ana has an old 2-minute clip from a cooking video. You can hear a fan, pans and soft music. Ana asks: "Can we just use this?"
+**This is the hard case.** Ana has an old 25-second clip from a cooking video. You can hear a fan, pans and soft music. Ana asks: "Can we just use this?"
 
-No. Two limits apply:
-
-- OpenAI samples "must be 30 seconds or less", and this clip is 2 minutes.
-- The model "copies exactly what you give it", so the fan, the pans and the music come with it.
+No. The OpenAI docs say the model "copies exactly what you give it", so the fan, the pans and the music come with it.
 
 The plan (after):
 

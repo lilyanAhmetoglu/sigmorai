@@ -63,20 +63,35 @@ The [OpenAI guide](https://developers.openai.com/api/docs/guides/speech-to-text)
 
 - **Timestamps:** "Use `whisper-1` when you need word or segment timestamps." Set `response_format` to `verbose_json` and `timestamp_granularities[]` to `word`, `segment` or both. The guide says this parameter "is only supported for `whisper-1`".
 - **Formats:** the [API reference](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create) lists `json`, `text`, `srt`, `verbose_json`, `vtt` and `diarized_json`. But: "For `gpt-4o-transcribe` and `gpt-4o-mini-transcribe`, the only supported format is `json`."
-- **Speed:** "There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency." **Latency** is waiting time.
+- **Speed:** "There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency." **Latency** is waiting time (our plain gloss).
 
 ### Who is speaking
 
 **Diarisation** means marking which speaker said each part (our plain gloss).
 
-- **OpenAI:** `gpt-4o-transcribe-diarize` returns `diarized_json`. You can "supply up to four short audio references with `known_speaker_names[]`", with clips "between 2–10 seconds". Two limits: this model "doesn't support prompts". Also, `timestamp_granularities` "is not available" for it.
-- **ElevenLabs:** the [speech to text docs](https://elevenlabs.io/docs/overview/capabilities/speech-to-text) list "Speaker diarization, up to 32 speakers" and "Precise word-level timestamps" for Scribe v2. Each word has a `start`, an `end` and a `speaker_id`.
-- **Google:** with Gemini you ask in the prompt. The [Gemini audio docs](https://ai.google.dev/gemini-api/docs/audio) show "Identify distinct speakers (e.g., Speaker 1, Speaker 2)." and "Provide accurate timestamps for each segment (Format: MM:SS)." You can also ask for one part: "Provide a transcript from 02:30 to 03:29."
+**OpenAI.** `gpt-4o-transcribe-diarize` returns `diarized_json`. You can "supply up to four short audio references with `known_speaker_names[]`", each "between 2–10 seconds". Two limits:
+
+- This model "doesn't support prompts".
+- `timestamp_granularities` "is not available" for it.
+
+**ElevenLabs.** The [speech to text docs](https://elevenlabs.io/docs/overview/capabilities/speech-to-text) list "Speaker diarization, up to 32 speakers" and "Precise word-level timestamps" for ElevenLabs' Scribe v2 model. Each word has a `start`, an `end` and a `speaker_id`.
+
+**Google.** With Gemini you ask in the prompt. The [Gemini audio docs](https://ai.google.dev/gemini-api/docs/audio) show prompt lines like these:
+
+- "Identify distinct speakers (e.g., Speaker 1, Speaker 2)."
+- "Provide accurate timestamps for each segment (Format: MM:SS)."
+- For one part only: "Provide a transcript from 02:30 to 03:29."
 
 ### Names and rare words
 
-- **OpenAI** (`gpt-transcribe`): "Use `keywords` for literal terms you expect to hear." and "Use `prompt` for unstructured context about the recording." The warning: "Keywords are hints, not required output. Include only relevant terms, and evaluate whether they improve accuracy without causing unspoken terms to appear."
-- **ElevenLabs:** **keyterm prompting** helps with "product names, names, or other specific terms". "Batch supports up to 1000 keyterms (50 characters each)". It costs extra.
+**OpenAI** (`gpt-transcribe`) gives two tools:
+
+- "Use `keywords` for literal terms you expect to hear."
+- "Use `prompt` for unstructured context about the recording."
+
+The warning: "Keywords are hints, not required output. Include only relevant terms, and evaluate whether they improve accuracy without causing unspoken terms to appear."
+
+**ElevenLabs.** **Keyterm prompting** helps with "product names, names, or other specific terms". **Batch** means you send a finished file, not live audio (our plain gloss). "Batch supports up to 1000 keyterms (50 characters each)". The docs add: "Keyterm prompting and transcript editing come at an additional cost."
 
 ### Clean or word for word
 

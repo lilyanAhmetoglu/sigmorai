@@ -50,9 +50,12 @@ There is a limit. Single-request generation "supports up to 2 speakers using pre
 
 ### ElevenLabs: a list of turns, any number of speakers
 
-In the [ElevenLabs docs](https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue), Text to Dialogue runs on Eleven v4 and Eleven v3, and they recommend v4. "In Text to Dialogue, each dialogue turn has its own text and voice." So each turn has its own `voice_id`.
+In the [ElevenLabs docs](https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue), Text to Dialogue runs on Eleven v4 and Eleven v3, and the docs recommend v4. "In Text to Dialogue, each dialogue turn has its own text and voice." So each turn has its own `voice_id`.
 
-On speakers, the docs say: "There is no limit to the number of speakers in a dialogue." On length, there is a guide: keep all the turn texts together "at or below 2,000 characters per request for reliable generation". For longer scripts: "Split longer text into chunks and concatenate the resulting audio in your application."
+The docs give two limits for one request:
+
+- Speakers: "There is no limit to the number of speakers in a dialogue."
+- Length: keep all turn texts together "at or below 2,000 characters per request for reliable generation". For longer scripts: "Split longer text into chunks and concatenate the resulting audio in your application."
 
 ### OpenAI: one voice per request
 
@@ -60,7 +63,7 @@ The OpenAI speech endpoint takes a model, the text and one `voice`. The [OpenAI 
 
 ### Joining audio files
 
-When you join turns yourself, the file format matters. The Gemini docs give a clear warning. A normal (non-streaming) request returns WAV "with a 44-byte RIFF header". A **header** is a small block of setup data at the start of a file (our plain gloss). Before you join turns, the docs say to request raw PCM audio or "strip the WAV header from each turn". **PCM** is plain, uncompressed audio samples with no header (our plain gloss).
+When you join turns yourself, the file format matters. The Gemini docs give a clear warning. A normal (non-streaming) request returns WAV, a common audio file type (our plain gloss), "with a 44-byte RIFF header". A **header** is a small block of setup data at the start of a file (our plain gloss). Before you join turns, the docs say to request raw PCM audio or "strip the WAV header from each turn". **PCM** is plain, uncompressed audio samples with no header (our plain gloss).
 
 Our advice for any vendor: make every piece in the same format and the same settings, so the joins match.
 
@@ -89,11 +92,14 @@ A dialogue script is speech, not an article.
 
 The ElevenLabs Text to Dialogue page lists "Audio events" as one form of tag, such as `[leaves rustling]` and `[applause]`. It also lists "Overall direction" tags like `[auctioneer]`.
 
-The Gemini docs go the other way: "Avoid sound-effect tags (such as applause or thuds)". Gemini puts only human sounds inline, like `<laugh>`, `<sigh>` and `<breath>`. They use angle brackets; ElevenLabs uses square brackets.
+The Gemini docs go the other way: "Avoid sound-effect tags (such as applause or thuds)". The Gemini docs allow only human sounds inline, like `<laugh>`, `<sigh>` and `<breath>`. They use angle brackets; ElevenLabs uses square brackets.
 
 ### Plan for several takes
 
-The ElevenLabs docs say: "Several generations might be required to achieve the desired results." The models are **nondeterministic**: the same request can sound different each time. A `seed` parameter gives "more consistent results", though "subtle differences may still occur". In the ElevenLabs dashboard you can regenerate the same content "up to 2 times for free".
+The ElevenLabs docs say: "Several generations might be required to achieve the desired results." The models are **nondeterministic**: the same request can sound different each time (our plain gloss). Two helps:
+
+- A `seed` parameter gives "more consistent results", though "subtle differences may still occur".
+- In the ElevenLabs dashboard you can regenerate the same content "up to 2 times for free".
 
 ## Worked example
 
