@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
+import { COOKIE_NOTICE_STORAGE_KEY } from './lib/constants/legal-copy';
 
 const BASE_URL = 'http://localhost:3000';
 const LOCAL_ENV = '.env.local';
@@ -25,6 +26,14 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     trace: 'retain-on-failure',
+    // Every test starts with the cookie notice dismissed, so the sticky bar
+    // never sits over a button a test clicks. header.spec.ts clears it to test the notice.
+    storageState: {
+      cookies: [],
+      origins: [
+        { origin: BASE_URL, localStorage: [{ name: COOKIE_NOTICE_STORAGE_KEY, value: '1' }] },
+      ],
+    },
   },
   projects: [
     { name: 'setup', testMatch: /global\.setup\.ts/ },
