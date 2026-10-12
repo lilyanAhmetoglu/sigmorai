@@ -80,7 +80,7 @@ A **moderation check** is a separate model that scores content for harm. The [Op
 
 Read the results with care:
 
-- **Some zeros mean "not checked".** Some categories, such as harassment, hate and illicit, are marked "Text only". The docs say that if you send only images, the model "will return a score of 0 for these unsupported categories". Others support images too, for example violence and sexual content. Our fix: send the caption with the frame, so the text categories have text to score.
+- **Some zeros mean "not checked".** Some categories, such as harassment, hate and illicit, are marked "Text only". The docs say that if you send only images, the model "will return a score of 0 for these unsupported categories". Others support images too, for example violence and sexual content. Our fix: put the caption text in the same request as the frame, so the text categories have text to score.
 - **Scores are signals.** The docs say: "Start with `flagged` for a first-pass decision, then inspect `categories` and `category_scores` for logging, routing, audit trails, or human-review queues." And: "Treat moderation scores as signals for your application's policy, not as an automatic blocking decision."
 - **Scores can drift.** The docs say the underlying model will keep being upgraded, so "custom policies that rely on `category_scores` may need recalibration over time."
 
@@ -147,7 +147,7 @@ Run 2:  116 safe
 Briefs unsafe in at least one run: 7
 ```
 
-The weak reading: "Run 1 is 97.5%, so edge passes." The better reading: a brief that made one unsafe frame can make one again. Count a brief as safe only if it was safe in every run: 120 - 7 = 113 of 120, which is 94.2%. That is below the 97% target. The Gemini guidance says "Multiple rounds of testing may be needed to catch more of the problematic outputs." A person reviews the 7 briefs, and the team writes 10 more like them for the next round.
+The weak reading: "Run 1 is 97.5%, so edge passes." The better reading: a brief that made one unsafe frame can make one again. Count a brief as safe only if it was safe in every run: 120 - 7 = 113 of 120, which is 94.2%. That is below the 97% target. This is why step 4 runs every set more than once. A person reviews the 7 briefs, and the team writes 10 more like them for the next round.
 
 ### Step 6: why it is better
 
@@ -157,7 +157,7 @@ The weak reading: "Run 1 is 97.5%, so edge passes." The better reading: a brief 
 
 ## Common mistakes
 
-1. **Reading a zero on a text-only category as clean.** With an image alone, that score is always 0. Fix: send the caption or prompt with the image.
+1. **Testing each set only once.** The same brief can give a safe frame on one run and an unsafe one on the next. Fix: run every set more than once, and count a brief as safe only if every run was safe.
 2. **Letting the moderation result decide alone.** Scores are signals and can drift. Fix: use them to route frames to a person.
 3. **Reporting one overall safety rate.** Easy frames hide the hard ones. Fix: report each set, and judge by the worst.
 
@@ -180,5 +180,5 @@ A team uses the Gemini API for story frames on a Gemini 3 model. Nobody has set 
 ## Recap
 
 - Set a safety target for each test set before you test, and build everyday, edge and adversarial sets. Judge by the worst set, not the average.
-- Vendor filters are one layer: know the settings, keep them the same in any comparison, and remember that Gemini blocks by probability, not severity.
+- Vendor filters are one layer: know the settings, keep them the same in any comparison, and remember that the Gemini filter works on the probability of harm, not its severity.
 - A moderation score is a signal. Categories marked Text only return 0 when you send an image alone, so send the text too, and route doubtful images to a person.

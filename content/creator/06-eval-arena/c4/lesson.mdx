@@ -100,7 +100,7 @@ Same rate, three times the bill. Read the usage from your own runs.
 
 The [Anthropic post on evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) says that early on, a change often has a big, clear impact, and "this large effect size means small sample sizes suffice". It also says "More mature agents may need larger, more difficult evals to detect smaller effects".
 
-Our rule for a studio: if one side wins 35 of 40 pairs, that is clear. If it wins 22 of 40, the gap is small. Do not call it a win. Test more pairs, or call it a tie and let cost, speed and the must-have gates decide. Write this rule down before the run.
+Our rule for a studio: if one side wins 35 of 40 pairs, that is clear. If it wins 22 of 40, the gap is small. Do not call it a win. Either run more pairs, or treat it as a tie and choose on cost, speed and the must-have gates. Write this rule down before the run.
 
 ### Offline first, live later
 
@@ -168,24 +168,31 @@ The weak reading: "v2 wins, switch today." The better reading: 33 is above the 3
 ## Common mistakes
 
 1. **Different settings on each side.** The test compares settings, not versions. Fix: write size and quality into the plan, the same on both sides, and never leave one side on `auto`.
-2. **Reviewers who can see the names.** Hope sneaks into the scores. Fix: rename to Left and Right and flip a coin per pair.
+2. **Reviewers who can see the names.** Hope sneaks into the scores. Fix: hide the version names and let a coin pick the sides.
 3. **Comparing the token rate instead of the bill.** The same rate can give different costs. Fix: read `usage` from your own runs and work out cost per image.
 
 ## Try it
 
 Not graded. Write your answer down before you read the answer.
 
-An editing job on a GPT Image 2.5 model sends reference images. The response `usage` shows 1,500 image input tokens per job, on average. The studio's budget is $0.15 per job. Leave text input out. Use the rates from the OpenAI image docs above.
+A team edits product photos on a GPT Image 2.5 model. Kit A sends 1 reference image with each job. Kit B sends 3. The response `usage` shows, per job on average:
 
-1. What does the image input cost per job?
-2. How much of the budget is left for image output?
-3. About how many image output tokens can each job use and stay in budget?
+```text
+Kit A:    800 image input tokens   3,000 image output tokens
+Kit B:  2,400 image input tokens   3,000 image output tokens
+```
+
+Leave text input out. Use the rates from the OpenAI image docs above.
+
+1. What does the image input cost per job on each kit?
+2. What is the full image cost per job on each kit?
+3. The team looked only at output tokens and said: "Same output, same cost." What did they miss?
 
 ### Answer
 
-1. **$0.012.** 1,500 / 1,000,000 x $8 = $0.012.
-2. **$0.138.** $0.15 - $0.012 = $0.138.
-3. **About 4,600.** $0.138 / $30 x 1,000,000 = 4,600. This is our maths; read your own `usage`. If you counted only output, you would think 5,000 tokens fit, and every job would go over budget.
+1. **Kit A: $0.0064. Kit B: $0.0192.** 800 / 1,000,000 x $8 = $0.0064, and 2,400 / 1,000,000 x $8 = $0.0192.
+2. **Kit A: about $0.096. Kit B: about $0.109.** Output is 3,000 / 1,000,000 x $30 = $0.09 on both. $0.09 + $0.0064 = $0.0964, and $0.09 + $0.0192 = $0.1092.
+3. **Input tokens have their own rate.** Here kit B uses three times the image input tokens, so it costs about 13% more per job. This is our maths; read your own `usage` for both input and output.
 
 ## Recap
 
