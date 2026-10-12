@@ -10,6 +10,14 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-12 (one hub)
+
+- **Maintainer feedback (2026-10-12):** "math tower also not visible; world map and realms are the same so I am confused. Keep the world map but merge it with realms so we still have the designs."
+- **One page:** `/map` is the hub. Top to bottom: header and track switch, the world map, a "Side realms" block (Math Tower, The Frontier), then the realm cards that were on `/realms`. The cards replace the "Your path" list under the map. `/realms/<slug>` and `/map/<slug>` are unchanged.
+- **Redirect:** `/realms` is a permanent (308) redirect to `/map` in `next.config.ts`; the query (`?track=`) passes through. The "Realms" nav item is gone. Older acceptance lines that say `/realms?track=…` (`path-curriculum-design-plan.md`, `creator-path-design-plan.md`) now mean `/map?track=…`.
+- **Landmarks:** Math Tower and The Frontier are no longer a transparent link around a thin plate. Each is a 44px link with a 28px pin in its own tint, a diamond pip meaning "side realm", and a name plate under it that shows at every zoom (realm plates still hide at ½). Accessible name: "<name>, side realm". The landmark footprint grows from 96×96 to 112×112 so the art fits around the pin. Terrain and the hero keep clear of the new pins; the geometry tests cover them.
+- **Legend:** a new row, "Side realm: Math Tower, The Frontier".
+
 ## Amendments locked 2026-10-08 (clear maps)
 
 - **Maintainer feedback (2026-10-08):** the realm markers were numbered squares. "Numbers only is misleading, make it more professional." This replaces the "Map labels stay quiet" rule of the cartography polish below (thin name plate only, no state word on the map).

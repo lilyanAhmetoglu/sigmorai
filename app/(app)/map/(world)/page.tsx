@@ -120,7 +120,7 @@ async function WorldMapBody({ data }: { data: Promise<MapData> }) {
         <h2 id={PATH_HEADING_ID} className="page-eyebrow">
           {viewer === 'ready' ? WORLD_MAP_TEXT.pathHeading : WORLD_MAP_TEXT.pathHeadingVisitor}
         </h2>
-        <ul className="card-grid" aria-labelledby={PATH_HEADING_ID}>
+        <ul className="card-grid">
           {map.realms.map((realm) => (
             <li key={realm.id}>
               <RealmCard realm={realm} track={linkTrack} />

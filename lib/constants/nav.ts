@@ -1,3 +1,4 @@
+// Imported by next.config.ts: no runtime `@/` imports here (only `import type`).
 import type { LeaderboardRange, NavItem, Track } from '@/lib/types';
 import { RANGE_PARAM } from './leaderboard';
 import { AUTH_ROUTES, CLERK_REDIRECT_PARAM } from './site';
