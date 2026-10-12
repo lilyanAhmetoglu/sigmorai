@@ -27,24 +27,26 @@ sources:
 
 After this lesson you can:
 
-- Write a one-page incident plan with a trigger, a first action and a named owner on every row.
-- Put "stop the harm" before "find the cause", and know when a vendor's normal order changes.
-- Read a vendor's deprecation page and turn a shutdown date into a deadline on your calendar.
+- Write an incident plan row with a trigger, a first action and a named owner.
+- Put "stop the harm" before "find the cause", and say when the order of a key change flips.
+- Keep a watch list of the exact models you use, and turn each vendor's shutdown date into your own switch-by date.
 
 ## The problem
 
-Kiln is a small studio that makes short product videos for online shops. Two AI tools run its business:
+Kiln is a small studio that makes short product videos for online shops. Three AI tools run its business:
 
-- a video pipeline that calls a Veo 3.1 preview model through the Gemini API
-- a "mood board" web tool where clients type ideas and get images from an OpenAI image model
+- a video pipeline on the Gemini API
+- a caption script on the Claude API
+- a "mood board" web tool where clients type ideas and get images from an OpenAI model
 
-The studio's whole incident plan is one line in the team wiki:
+The studio's whole incident plan is one line in the team wiki. Its list of tools is one more line:
 
 ```text
 If anything breaks, post in #general. Whoever sees it, fixes it.
+Tools: Veo, Claude, OpenAI images.
 ```
 
-An **incident** is something going wrong in production (the live work clients see), while the clock runs. With this plan, everyone sees the alarm, and everyone assumes someone else is on it. This lesson replaces the one line with a real page.
+An **incident** is something going wrong in production (the live work clients see), while the clock runs. On Monday, October 5, 2026, a client asks: "Will your video pipeline still work for our campaign at the end of the month?" Nobody at Kiln can answer.
 
 ## The idea
 
@@ -60,116 +62,114 @@ This frame is ours, not a vendor's.
 5 Learn    change the plan so it is less likely next time
 ```
 
-Contain comes before fix. Pausing a bad ad takes a minute. Finding why it went wrong can take a day, and the harm keeps going while you look.
+Contain comes before fix. Pausing a bad ad takes a minute. Finding why it went wrong can take a day, and the harm keeps going while you look. A comparison: in a kitchen fire you turn off the gas first. You find out who left the pan on later.
 
-A comparison: in a kitchen fire you turn off the gas first. You find out who left the pan on later.
+Each row of the plan has a trigger, a first action, a next step and one named owner. An example row (ours):
+
+```text
+Trigger: a limit stops the pipeline | First: pause new orders, tell clients
+Then: find the meter that ran out    | Owner: Theo
+```
 
 ### Spot: plan how you will hear
 
 The [Gemini safety guidance](https://ai.google.dev/gemini-api/docs/safety-guidance) says: "No matter how much you test and mitigate, you can never guarantee perfection, so plan upfront how you'll spot and deal with problems that arise." It suggests a monitored channel where users can share feedback.
 
-The [OpenAI safety guide](https://developers.openai.com/api/docs/guides/safety-best-practices) says users should have an easy way to report problems, such as a listed email address or a ticket form. That method "should be monitored by a human and responded to as appropriate".
-
-Our reading: a channel that nobody is named to read is not monitored.
+The [OpenAI safety guide](https://developers.openai.com/api/docs/guides/safety-best-practices) says users should have an easy way to report problems, such as a listed email address. That method "should be monitored by a human and responded to as appropriate". Our reading: if no one has the job of reading it, nobody really watches it.
 
 ### Contain: a leaked key
 
 An API key is the password your tools use to call a vendor. The OpenAI safety guide says: "If you believe an API key has been exposed, misused, or otherwise compromised, revoke it promptly and replace it with a new key."
 
-The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) also describes the normal, calm change of a key, called **rotation**: create a replacement, update your applications to use it, and revoke the old key "once you've verified that the replacement works".
-
-Two orders, two situations:
+The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) also describes the normal, calm change of a key, called **rotation**: "Before a key expires, create a replacement, update your applications to use it, and revoke the old key once you've verified that the replacement works."
 
 ```text
 Normal rotation:  new key -> update apps -> revoke old
 Leak:             revoke old now -> new key -> update apps
 ```
 
-In a leak the harm is live, so the slow, safe order is the wrong one. Afterwards, the production guide says API key usage can be monitored on the Usage page once tracking is on. It also says to keep keys out of code and public repositories, and to use environment variables or a secret manager instead.
+In a leak the harm is live, so the slow order is the wrong one. Afterwards, the production guide says key usage can be monitored on the Usage page once tracking is on. It also says to keep keys out of code and public repositories.
 
 ### Trace: who did it?
 
-If the public can use your tool, one bad user can cause trouble for your whole account. The OpenAI safety guide recommends **safety identifiers**: a string that uniquely identifies each user, sent with each request. They give "a stable way to trace activity back to an individual end user" and "reduce the chance that one user's misuse disrupts access for your broader organization". The guide says: "Hash the username or email address in order to avoid sending us any identifying information." A hash turns text into a scrambled code that cannot easily be turned back.
+If the public can use your tool, one bad user can cause trouble for your whole account. The OpenAI safety guide recommends **safety identifiers**: a string that uniquely identifies each user, sent with each request. They give "a stable way to trace activity back to an individual end user". The guide says: "Hash the username or email address in order to avoid sending us any identifying information." A hash turns text into a scrambled code that cannot easily be turned back.
 
-### Plan for tools that go away
+### Tools that go away
 
-Vendors retire models and APIs. They give notice, but the notice is different for each vendor.
+Vendors retire models. A **deprecation** is the notice that a model will go. The **shutdown** or **retirement** is the day it stops. The notice is different for each vendor:
 
-- **OpenAI** ([deprecations page](https://developers.openai.com/api/docs/deprecations)): generally available models get at least 6 months; specialized variants at least 3 months. Preview models "may be retired with much shorter notice, such as 2 weeks". OpenAI does not recommend previews "for business-critical production workloads unless you can migrate on short notice".
-- **Claude** ([model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations)): at least 60 days' notice for publicly released models. "Requests to retired models will fail." The page suggests testing newer models "well before the retirement date". Its Usage page can export a list of usage by API key and model.
-- **Gemini** ([deprecations](https://ai.google.dev/gemini-api/docs/deprecations)): the shutdown dates in its table are "the _earliest possible dates_" a model might be retired. Google says it will tell users the exact date with advance notice.
+- **OpenAI** ([deprecations page](https://developers.openai.com/api/docs/deprecations)): generally available models get "At least 6 months"; specialized variants "At least 3 months". Preview models "may be retired with much shorter notice, such as 2 weeks".
+- **Claude** ([model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations)): "at least 60 days' notice before model retirement for publicly released models". "Requests to retired models will fail." The table calls its dates "Tentative retirement date". The docs suggest testing newer models "well before the retirement date". The Usage page in the Claude Console can export a CSV "broken down by API key and model".
+- **Gemini** ([deprecations](https://ai.google.dev/gemini-api/docs/deprecations)): the shutdown dates in its table are "the _earliest possible dates_" a model might be retired. Google says it will tell users the exact date with advance notice. Once a model is shut down, "the endpoint is no longer available".
 
-A real example from the OpenAI page: on March 24, 2026, developers were told that the Videos API and the Sora 2 models would be removed on September 24, 2026. The table lists no replacement. After a shutdown date, calls fail. Retrying does nothing.
+A real example from the OpenAI page: on March 24, 2026, developers were told that the Videos API and the Sora 2 models would be removed on September 24, 2026. The table lists no replacement. After that date the calls fail.
 
 ## Worked example
 
-### Step 1: the weak plan
+### Step 1: the weak list
 
 ```text
-If anything breaks, post in #general. Whoever sees it, fixes it.
+Tools: Veo, Claude, OpenAI images.
 ```
 
-What is missing: no triggers, no first actions, no owners, no way for clients to report, and no watch on the tools.
+A product name is not a model. A vendor's deprecation table lists exact model IDs, so this list cannot be checked against it.
 
-### Step 2: list the triggers
+### Step 2: find the exact model IDs
 
-Our list for Kiln:
+Theo, the owner of the tools, reads the model ID in each script. For Claude, Theo also exports the usage CSV from the Console, to catch any old script still running. The result:
 
 ```text
-a key leaks            a wrong video is live      a client reports an unsafe image
-a tool is retired      a limit stops the pipeline
+Tool           Vendor   Exact model ID
+Video          Gemini   veo-3.1-generate-preview
+Captions       Claude   claude-sonnet-4-5-20250929
+Mood board     OpenAI   gpt-image-1.5
 ```
 
-### Step 3: write one row per trigger
+### Step 3: look up each ID on its vendor's page
 
-The names are made up for this example.
+From the three live pages, on October 5:
 
 ```text
-Trigger              First action (contain)             Then (fix)                 Owner
-Key leaked           revoke the key now                 new key, update apps,      Dana
-                                                        check the Usage page
-Wrong video live     pause the ad, swap in the master   find the cause             Theo
-Unsafe image report  check the user's history,          review the prompt rules    Dana
-                     block if needed
-Tool retirement      test a replacement now             switch before the date     Theo
-Pipeline stopped     pause new orders, tell clients     find the meter that ran    Theo
-                                                        out, pace the job
-Reports inbox        read twice a day                   reply within one day       Sam
+veo-3.1-generate-preview     shutdown October 22, 2026   replacement gemini-omni-1.1-flash
+claude-sonnet-4-5-20250929   deprecated September 30, 2026; tentative retirement November 30, 2026
+gpt-image-1.5                shutdown Dec 1, 2026        replacement gpt-image-2.5-sunburst
+                                                         or gpt-image-2.5-flare
 ```
 
 ### Step 4: the hard case
 
-**The hard case is the video pipeline.** Theo opens the Gemini deprecations page in October 2026 and finds the model Kiln uses:
+**The hard case is the video pipeline.** Its row has three problems at once:
+
+- **The date is the earliest possible one.** The Gemini page says the exact date will be announced later. It could move later, but Kiln cannot plan on that.
+- **It is close.** October 22 is 17 days after October 5. The client's campaign runs at the end of the month, after that date.
+- **The replacement is a different model.** Our reading: prompts and settings tuned for Veo may not give the same look on `gemini-omni-1.1-flash`. Kiln needs time to test.
+
+So Theo treats October 22 as the real deadline, not as a guess. Our rule: switch one week before the vendor's date. For video that is October 15. Theo runs five past orders through the replacement this week, compares them with the approved files, and tells the client the plan today.
+
+### Step 5: the better watch list
 
 ```text
-veo-3.1-generate-preview   shutdown date: October 22, 2026
-recommended replacement:   gemini-omni-1.1-flash
+Model ID                     Vendor date   Our switch-by   Owner
+veo-3.1-generate-preview     Oct 22        Oct 15          Theo
+claude-sonnet-4-5-20250929   Nov 30        Nov 23          Dana
+gpt-image-1.5                Dec 1         Nov 24          Dana
+
+Check: all three vendor pages on the first Monday of each month, and
+whenever a script gets a new model ID. Owner: Theo
 ```
-
-Three things make this hard:
-
-- **The date is the earliest possible one.** The page says the exact date will be announced. It could be later, but Kiln cannot plan on that.
-- **It is a preview model.** Kiln built a paying service on it. The Gemini page tracks previews too, and this one has a date only days away.
-- **Retrying will not help.** After a shutdown, the endpoint is gone.
-
-So Theo treats October 22 as the real deadline. The plan: test the replacement on five past orders this week, compare the results with the approved masters, and switch the pipeline before the date. Theo also books a monthly check of all three vendors' deprecation pages.
-
-### Step 5: add the mood board fixes
-
-The mood board tool sends no safety identifier. Dana adds one: a hash of each client's login email, sent with every request. Now one client's misuse can be traced to that client, instead of putting the whole account at risk.
 
 ### Step 6: why it is better
 
-- **Every row has a name.** Nobody waits for "someone".
-- **Contain comes first.** Each row starts with the step that stops the harm.
-- **Deadlines come from the vendor's page,** not from the day the tool breaks.
-- **Clients can report,** and a named person reads the reports.
+- **Exact IDs.** Each row can be checked against a vendor table.
+- **Our date, not theirs.** The switch-by date leaves a week to fix surprises.
+- **Words read carefully.** "Earliest possible" and "tentative" mean the date may move, so Kiln plans for the first date.
+- **A name on every row.** The client gets an answer the same day.
 
 ## Common mistakes
 
-1. **Using the calm rotation order during a leak.** The old key keeps working while you update apps. Fix: in a leak, revoke first, then replace.
-2. **Building paid work on a preview model with no exit plan.** Previews can go fast. Fix: pick a generally available model, or keep a tested replacement ready.
-3. **Reading the Gemini shutdown date as fixed and late.** It is the earliest possible date. Fix: plan to switch before it.
+1. **Listing products, not model IDs.** "Veo" or "Claude" does not match any row in a deprecation table. Fix: write down the exact ID each script calls.
+2. **Reading "earliest possible" as "probably later".** The Gemini date is the first day it may stop. Fix: plan to switch before it.
+3. **Testing the replacement in the last week.** Then there is no time to fix a bad result. Fix: set a switch-by date with a buffer, and test before it.
 
 ## Try it
 
@@ -187,6 +187,6 @@ Kiln adds a free "try it" button to the mood board. Visitors can make three imag
 
 ## Recap
 
-- Write the plan before launch: one row per trigger, with a first action that contains the harm and a named owner.
+- Write the plan before launch: one row per trigger, with a first action that stops the harm and a named owner.
 - In a leak, revoke the key first and replace it after. The calm order (new key, update, then revoke) is for normal rotation.
-- Watch the deprecation pages. OpenAI previews may get about 2 weeks' notice, Claude gives at least 60 days, and Gemini lists the earliest possible shutdown dates. A shutdown date is a deadline.
+- Keep a list of exact model IDs. OpenAI previews may get about 2 weeks' notice, Claude gives at least 60 days, and Gemini lists the earliest possible shutdown dates. Switch before the date, not on it.
