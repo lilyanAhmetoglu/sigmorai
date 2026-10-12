@@ -54,7 +54,7 @@ The SDK's [sessions](https://github.com/openai/openai-agents-python/blob/main/do
 
 The [Claude Agent SDK docs](https://platform.claude.com/docs/en/agent-sdk/subagents) show the same limit for helpers. A fresh **subagent** (a helper agent started by a main agent) does not receive "The parent's conversation history or tool results".
 
-Even a long chat has a ceiling. In the [Anthropic research system](https://www.anthropic.com/engineering/multi-agent-research-system), the lead agent saved its plan to memory, "since if the context window exceeds 200,000 tokens it will be truncated and it is important to retain the plan."
+Even a long chat has a ceiling. A model's **context window** is the most text it can hold at once. It is measured in **tokens**, small pieces of text. In the [Anthropic research system](https://www.anthropic.com/engineering/multi-agent-research-system), the lead agent saved its plan to memory, "since if the context window exceeds 200,000 tokens it will be truncated and it is important to retain the plan."
 
 So the rule is simple: **write down what matters, outside the chat.**
 
@@ -82,7 +82,10 @@ So we set the rule ourselves: **each column has one writer.** The reviewer write
 
 ### Pass file names, not pasted files
 
-When helpers pass whole outputs through the lead's chat, details get lost. The Anthropic research post calls this the "game of telephone". Its fix: helpers "store their work in external systems, then pass lightweight references back to the coordinator." The post says this "prevents information loss during multi-stage processing and reduces token overhead from copying large outputs through conversation history."
+When helpers pass whole outputs through the lead's chat, details get lost. The Anthropic research post calls this the "game of telephone". Its fix has two parts:
+
+- Helpers "store their work in external systems, then pass lightweight references back to the coordinator."
+- This "prevents information loss during multi-stage processing and reduces token overhead from copying large outputs through conversation history."
 
 A comparison: you send a colleague the link to a shared folder, not a photo of every page.
 
@@ -104,82 +107,58 @@ The OpenAI docs warn: "Avoid putting secrets in `RunContextWrapper.context` if y
 
 ## Worked example
 
-### Step 1: the weak setup
+### Step 1: the change
+
+On day 3 the client changes the brand font. Lessons 1 to 6 already have thumbnails. Lessons 7 to 12 do not.
+
+### Step 2: the weak fix
+
+The lead tells every helper in chat: "New font from now on."
+
+The message lives in one chat. A helper started later never sees it. And nothing says which old thumbnails used the old font.
+
+### Step 3: the better fix (our method)
+
+A person updates the read-only brand kit and names it kit v2. The tracker gets one more column, written by the thumbnail maker:
 
 ```text
-Status:     in the lead agent's chat ("8 of 12 done")
-Files:      helpers paste thumbnails and captions into the lead's chat
-Brand kit:  a doc every helper can edit
-Upload key: written at the top of the shared status doc
+id          Thumbnail        Kit used
+course-l05  l05-thumb.png    v1
+course-l06  l06-thumb.png    v1
+course-l07  -                -
 ```
 
-What goes wrong:
+### Step 4: the hard case
 
-- The status lives in one chat. When the chat closes, the status is gone.
-- Pasted files travel through the chat and can come out changed.
-- A helper can "improve" the brand kit by mistake.
-- Every role and person who reads the status doc sees the key.
+**The hard case is lesson 6.** It was started under v1 and saved after the change. The chat cannot say which font it has. The Kit used cell can, because the maker writes the version it read when it started. The lead marks every row with Kit used = v1 to redo, lesson 6 included.
 
-### Step 2: the better setup
+### Step 5: why it is better
 
-```text
-Tracker:    one row per lesson, id course-l01 ... course-l12
-            one writer per column (see the table above)
-Files:      saved in /course/files/, tracker holds the file name
-Brand kit:  /course/kit/, read-only for every agent
-Upload key: held only by the Publisher role, never in the tracker
-```
-
-### Step 3: the hard case
-
-**The hard case is the restart.** The lead's chat closed at 15:00. A new lead starts with an empty chat. It reads the tracker:
-
-```text
-course-l04  Captions done   Thumb done   Review FAIL (audio 03:12)
-course-l06  Script v2       Captions -   Thumb done   Review -
-course-l09  Captions done   Thumb done   Review FAIL (title typo)
-course-l11  Captions done   Thumb done   Review PASS  Sign-off waiting
-```
-
-The new lead does not ask the model to "remember". It does not ask one helper either: a helper knows its own column, not the reviews or the sign-off. It works from the rows:
-
-- l04 and l09 failed review. It sends them back with the reasons.
-- l06 has a new script but no captions. It sends the caption maker the file name `l06-script-v2.md`.
-- l11 waits for a person. The lead does nothing there.
-- Lessons with everything done and signed off are skipped. Nothing is paid for twice.
-
-The caption helper's old complaint is also explained: the script changed, but nobody wrote the new file name down. Now the Script column holds it.
-
-### Step 4: why it is better
-
-- **One truth.** "Which lessons are ready?" has one answer: read the tracker.
-- **No overwrites.** Each column has one writer. Disagreement goes in Notes.
-- **No lost detail.** Files stay in the folder. Only names travel.
-- **Cheap restarts.** A new lead continues from the record.
+- **One place for the rule.** The change lives in the kit, and every role reads the kit.
+- **A visible trail.** The tracker shows which items used the old rule.
+- **Less rework.** Only the affected rows are redone.
 
 ## Common mistakes
 
-1. **Treating the chat as the record.** A chat can close or be cut. Fix: keep a tracker outside the chat.
-2. **Letting anyone edit any cell.** Two writers make two truths. Fix: one writer per column, and a signed Notes column for disagreement.
-3. **Putting a key in the shared record.** Everyone who reads it gets the key. Fix: give a limited key to the one role that needs it.
+1. **Announcing a rule change in a chat.** A helper started later never sees it. Fix: change the kit, version it, and record the version each item used.
+2. **Free-text status.** "Mostly fine, see chat" tells the next role nothing. Fix: write a state (done, FAIL, waiting) and one reason.
+3. **Letting helpers edit the brand kit.** One "improvement" changes every later item. Fix: keep the kit read-only; a person changes it.
 
 ## Try it
 
 Not graded. Write your answer down before you read the answer.
 
-Where does each fact belong: the **tracker**, the **read-only brand kit**, a **file passed by name**, or **nowhere shared**?
+Where does each fact belong: the **tracker**, the **read-only brand kit**, or **both**?
 
-1. The course's title font and intro music.
-2. The full transcript of lesson 3.
-3. "Lesson 7 thumbnail: FAIL, text too small."
-4. The login for the video hosting site.
+1. The rule "thumbnail text at least 60 px high".
+2. "course-l08: captions done".
+3. "The brand kit changed to v2 on day 3."
 
 ### Answer
 
 1. **Brand kit.** It is the same for every lesson, and no role should change it.
-2. **A file passed by name.** Save `l03-transcript.md` in the folder and put the name in the tracker. Do not paste the whole text through a chat.
-3. **Tracker**, in the Review column, written by the reviewer only.
-4. **Nowhere shared.** Give the one role that uploads its own limited access.
+2. **Tracker**, in the Captions column, written by the caption maker.
+3. **Both.** The kit gets the new version, and each tracker row records the version it used.
 
 ## Recap
 

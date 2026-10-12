@@ -54,7 +54,7 @@ A **token** is a small piece of text. Models charge by the token. The [Anthropic
 
 The post's conclusion: multi-agent systems need "tasks where the value of the task is high enough to pay for the increased performance."
 
-Those are Anthropic's figures for research work, not a rule for audio studios. Our reading: the direction is what matters. Every extra helper adds its own prompts and its own model calls.
+Those are the post's own figures, not a rule for audio studios. Our reading: the direction is what matters. Every extra helper adds its own prompts and its own model calls.
 
 ### The budget table
 
@@ -94,9 +94,15 @@ Tools differ here. In the [Claude Agent SDK](https://platform.claude.com/docs/en
 - Concurrency: default "`20` subagents running at once". This counts helpers, not money.
 - Spend: default "No limit". You set it with `max_budget_usd` in Python or `maxBudgetUsd` in TypeScript.
 
-At the spend cap, the SDK "refuses to spawn more subagents", "stops background subagents that are still running", and "ends the query with the `error_max_budget_usd` result subtype." The docs add that "On earlier releases, some of these limits are missing or default differently", so check your version.
+At the spend cap, the SDK does three things:
 
-The [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) has a different brake: "If we exceed the `max_turns` passed, we raise a `MaxTurnsExceeded` exception." The docs describe the limit as "agent-loop turns (LLM calls)". It counts model calls, not money. Neither SDK knows your client's budget.
+- It "refuses to spawn more subagents".
+- It "stops background subagents that are still running".
+- It "ends the query with the `error_max_budget_usd` result subtype."
+
+The docs add that "On earlier releases, some of these limits are missing or default differently", so check your version.
+
+The [OpenAI Agents SDK](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) has a different brake. The runner works in a loop: "We call the LLM for the current agent, with the current input." Then: "If we exceed the `max_turns` passed, we raise a `MaxTurnsExceeded` exception." (An exception is an error that stops the run.) It counts turns of that loop, not money. Neither SDK knows your client's budget.
 
 Our advice: ask your tool's owner, "What is the money limit, and who set it?" If the answer is "none", the cap is you.
 
@@ -116,69 +122,43 @@ The [Anthropic post on building agents](https://www.anthropic.com/engineering/bu
 
 ## Worked example
 
-### Step 1: the weak plan
+### Step 1: the weak line
 
 ```text
-Brief:   "Make blurbs and covers for all 10 episodes. Bring in all the
-          helpers you like."
-Budget:  none written
-Caps:    none
+Covers   10 covers x "about 5 cents"   = $0.50
 ```
 
-### Step 2: the budget table
+No page, no date, no tries, no mode.
 
-Our example numbers are made up.
+### Step 2: price it from the page (2026-10-11)
+
+Our plan: 3 tries per cover, so 30 images.
 
 ```text
-Line              Calculation                     Cost
-Episode blurbs    10 episodes x $0.20             $2.00
-Covers (batch)    10 covers x 3 tries x $0.04     $1.20
-Check covers      30 checks x $0.06               $1.80
-Lead agent run    1 run x $5.00                   $5.00
-Sum                                               $10.00
-Reserve, 20%                                      $2.00
-Plan total                                        $12.00   (cap: $15.00)
+Nano Banana 2.1, 1K, Standard   30 x $0.0336 = $1.008, about $1.01
+Nano Banana 2.1, 1K, Batch      30 x $0.0168 = $0.504, about $0.50
 ```
-
-Add it yourself: 2.00 + 1.20 + 1.80 + 5.00 = 10.00. The reserve is 20% of 10.00, which is 2.00. The plan total is 12.00, under the $15 cap.
 
 ### Step 3: the hard case
 
-**The hard case is the check line.** A first draft said:
+**The hard case is the second vendor.** OpenAI's pricing page lists GPT Image 2.5 image output at $30.00 per 1M tokens (Standard) and $15.00 (Batch). That is a price per token, not per image. The page says: "For image generation cost estimates, use the calculator in the image generation guide." Do not guess. Use the calculator, and write its number and the date.
 
-```text
-Check covers      10 checks x $0.06               $0.60
-```
+### Step 4: who watches this line?
 
-That counts keepers, not tries. Every try is an image, and every image is checked. 10 covers × 3 tries = 30 checks. The draft was $1.20 too low. With the wrong line, the sum is $8.80 and the plan looks safer than it is.
-
-### Step 4: the caps and the brief
-
-```text
-Per item:   max 3 tries per cover; then a person picks the best
-Per batch:  test 2 covers the normal way, then batch the other 8
-Lead agent: max_budget_usd = 5.00 on its SDK call
-Whole run:  a person stops the job if total spend passes $12.00
-Brief:      "Use 1 helper for blurbs and 1 for covers.
-             Stop and ask a person if a cover fails 3 tries."
-```
-
-Simplified. See the docs for the exact request shape.
-
-The Claude Agent SDK docs say the spend cap "Counts the call's own spend, subagent requests included". Our reading: it does not see a cover batch you send through another API. So the whole-run limit still needs a person, or a script, watching the total. The $3 between the plan total and the client cap is room for a batch that goes slightly over.
+The Claude Agent SDK docs say the spend cap "Counts the call's own spend, subagent requests included". Our reading: a cover batch sent through another API is not in that count. So write down who watches it: a person or a script.
 
 ### Step 5: why it is better
 
-- **The number exists before the run.** Everyone can check it.
-- **Tries are counted honestly**, so checks are counted honestly too.
-- **Three brakes.** Tries, a test before the batch, and a spend cap.
-- **The brief limits effort.** The lead cannot start 9 helpers for one blurb.
+- **Each price has a page and a date.**
+- **Tries are in the count.**
+- **A per-token price is not turned into a guess.**
+- **Every line has someone watching it.**
 
 ## Common mistakes
 
-1. **Counting keepers instead of tries.** The image and check lines come out too low. Fix: items × tries × price, for every line.
-2. **Assuming the tool has a money limit.** In the Claude Agent SDK, spend has "No limit" by default. Fix: set `max_budget_usd` yourself.
-3. **Trusting an account limit to stop a batch.** Batches can go slightly over. Fix: keep a written reserve.
+1. **Prices with no date.** Fix: write the page and the date next to every price.
+2. **Turning a per-token price into a guess.** Fix: use the vendor's calculator.
+3. **Forgetting the lead agent's own run.** Fix: add an agent line; it is the line that moves most.
 
 ## Try it
 
@@ -199,5 +179,5 @@ The studio wants 200 cover variations for a poster contest, using Nano Banana 2.
 ## Recap
 
 - Plan the money before the run: items × tries × price for every line, an agent line, and a written reserve. Add it up yourself.
-- Cap each item, each batch and the whole run. The Claude Agent SDK has no spend limit by default, and OpenAI's `max_turns` counts model calls, not money.
+- Cap each item, each batch and the whole run. The Claude Agent SDK has no spend limit by default, and OpenAI's `max_turns` counts turns of the agent loop, not money.
 - Agents are poor at sizing their own effort, so write scaling rules into the brief, and use smaller models for plain checks.
