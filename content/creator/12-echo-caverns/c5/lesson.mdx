@@ -1,7 +1,7 @@
 ---
 id: creator/r12/c5/lesson
 title: Captions
-minutes: 9
+minutes: 11
 sources:
   - kind: docs
     title: OpenAI docs · Speech to text
@@ -20,19 +20,35 @@ sources:
     url: https://elevenlabs.io/docs/eleven-creative/products/subtitles
 ---
 
-## Why it matters
+## Goal
 
-A cooking channel posts a 4-minute video. Two hosts talk over each other. The chef's name is Aoife, and the dish is "colcannon". The channel wants English subtitles that viewers can switch on.
+After this lesson you can:
 
-The first automatic try wrote "Eva" and "cold cannon". The words were also on screen a second too late.
+- Say what a transcript has and what a subtitle file has, and pick a model that gives the output you need.
+- Turn word times from a transcript into subtitle cues that people can read.
+- Handle names, filler words, sounds and overlapping speech on purpose.
 
-Context Library, chapter 4, showed the basics: turning speech into text, file size limits, and cutting long audio. This chapter is about the next step: **captions**, the words on screen that follow the speech. Here, "captions" and "subtitles" mean the same thing (our plain gloss).
+## The problem
 
-A note on dates: models and limits below are from each vendor's page in October 2026.
+A gardening channel posts a 5-minute video about planting tomatoes. The presenter talks, and a neighbour sometimes laughs or jumps in. The channel wants subtitles that viewers can switch on.
 
-## A transcript is not a subtitle file
+The team has a transcript with a time for every word. They are not sure how to turn it into subtitles. Their first try put a whole paragraph on screen for 12 seconds.
 
-ElevenLabs has a table about the difference:
+The models and limits below are from each vendor's page in October 2026.
+
+## The idea
+
+### Transcript, cue and subtitle file
+
+Some words first (our plain glosses):
+
+- A **transcript** is the text of what was said.
+- A **timestamp** is the time in the audio when a word or part starts or ends.
+- A **cue** is one subtitle block on screen, with a start time and an end time.
+- **SRT** and **VTT** are two subtitle file types. A video player reads them to show the cues.
+- **Captions** and **subtitles** mean the same thing in this lesson.
+
+The [ElevenLabs subtitles docs](https://elevenlabs.io/docs/eleven-creative/products/subtitles) compare the two:
 
 | Feature (ElevenLabs)           | Transcripts | Subtitles                                                        |
 | ------------------------------ | ----------- | ---------------------------------------------------------------- |
@@ -41,71 +57,160 @@ ElevenLabs has a table about the difference:
 | Constraints                    | No          | Yes - characters per line, lines on screen at once, cue duration |
 | Overlapping segments supported | Yes         | No                                                               |
 
-Some words to know:
+### OpenAI: pick the model by the output
 
-- A **timestamp** is the time in the audio when a word or part starts or ends.
-- A **cue** is one subtitle block on screen, with a start time and an end time.
-- **SRT** and **VTT** are two subtitle file types. A video player reads them to show the cues (our plain gloss).
+The [OpenAI guide](https://developers.openai.com/api/docs/guides/speech-to-text) says to start with `gpt-transcribe`. It says to "Use a specialized model only if you need speaker labels, word timestamps, subtitle formats, or translation into English."
 
-Both OpenAI and ElevenLabs offer these two. OpenAI's API reference lists `srt` and `vtt` as response formats. ElevenLabs' Subtitle Editor exports "SRT" and "VTT".
+- **Timestamps:** "Use `whisper-1` when you need word or segment timestamps." Set `response_format` to `verbose_json` and `timestamp_granularities[]` to `word`, `segment` or both. The guide says this parameter "is only supported for `whisper-1`".
+- **Formats:** the [API reference](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create) lists `json`, `text`, `srt`, `verbose_json`, `vtt` and `diarized_json`. But: "For `gpt-4o-transcribe` and `gpt-4o-mini-transcribe`, the only supported format is `json`."
+- **Speed:** "There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency." **Latency** is waiting time (our plain gloss).
 
-## Timestamps: words or parts
+### Who is speaking
 
-**OpenAI.** Its guide says to start with `gpt-transcribe` for normal transcripts. It names special models "only if you need speaker labels, word timestamps, subtitle formats, or translation into English." For timestamps: "Use whisper-1 when you need word or segment timestamps." Set `response_format` to `verbose_json` and `timestamp_granularities[]` to `word`, `segment` or both. The reference adds that word timestamps add latency (waiting time); segment timestamps do not.
+**Diarisation** means marking which speaker said each part (our plain gloss).
 
-Model choice matters. The reference says that for `gpt-4o-transcribe` and `gpt-4o-mini-transcribe`, "the only supported format is json". So ask for `srt` or `vtt` with `whisper-1`. OpenAI's guide names a specialized model for "subtitle formats", and talks about using "whisper-1 for timestamps, subtitles, or translation".
+**OpenAI.** `gpt-4o-transcribe-diarize` returns `diarized_json`. You can "supply up to four short audio references with `known_speaker_names[]`", each "between 2–10 seconds". Two limits:
 
-**ElevenLabs.** ElevenLabs lists word-level timestamps for Scribe v2. Each word in the result has a `start` and an `end` in seconds (our reading), like `"start": 0.119`. Non-speech sounds come back as `audio_event`, for example laughter or applause.
+- This model "doesn't support prompts".
+- `timestamp_granularities` "is not available" for it.
 
-**Google.** Gemini returns what you ask for in the prompt. Google's example asks: "Provide accurate timestamps for each segment (Format: MM:SS)." You can also ask about one part: "Provide a transcript from 02:30 to 03:29." Our note: MM:SS counts whole seconds, so check these times against the video before you build cues from them.
+**ElevenLabs.** The [speech to text docs](https://elevenlabs.io/docs/overview/capabilities/speech-to-text) list "Speaker diarization, up to 32 speakers" and "Precise word-level timestamps" for ElevenLabs' Scribe v2 model. Each word has a `start`, an `end` and a `speaker_id`.
 
-## Who is speaking (diarisation)
+**Google.** With Gemini you ask in the prompt. The [Gemini audio docs](https://ai.google.dev/gemini-api/docs/audio) show prompt lines like these:
 
-**Diarisation** means marking which speaker said each part (our plain gloss). Context Library, chapter 4, showed OpenAI's `diarized_json` format. Two more details help with captions.
+- "Identify distinct speakers (e.g., Speaker 1, Speaker 2)."
+- "Provide accurate timestamps for each segment (Format: MM:SS)."
+- For one part only: "Provide a transcript from 02:30 to 03:29."
 
-- **OpenAI:** `gpt-4o-transcribe-diarize` can match voices to names. You can supply "up to four short audio references" with `known_speaker_names[]`, each clip "between 2–10 seconds". But this model "doesn't support prompts", and `timestamp_granularities` "is not available" for it.
-- **ElevenLabs:** Scribe v2 has "Speaker diarization, up to 32 speakers". Each word carries a `speaker_id`, like `speaker_0`.
-- **Google:** ask in the prompt. Its example: "Identify distinct speakers (e.g., Speaker 1, Speaker 2)."
+### Names and rare words
 
-Remember the table above: subtitles have no speaker labels. If viewers must know who speaks, that goes in the cue text (our advice).
+**OpenAI** (`gpt-transcribe`) gives two tools:
 
-## Names and rare words
+- "Use `keywords` for literal terms you expect to hear."
+- "Use `prompt` for unstructured context about the recording."
 
-"Eva" for Aoife is a common mistake. Each vendor lets you give a list of words to expect.
+The warning: "Keywords are hints, not required output. Include only relevant terms, and evaluate whether they improve accuracy without causing unspoken terms to appear."
 
-- **OpenAI** (`gpt-transcribe`): "Use keywords for literal terms you expect to hear." And "Use prompt for unstructured context about the recording." A warning: "Keywords are hints, not required output. Include only relevant terms, and evaluate whether they improve accuracy without causing unspoken terms to appear."
-- **ElevenLabs:** **keyterm prompting** helps with "product names, names, or other specific terms". Batch transcription "supports up to 1000 keyterms (50 characters each)". ElevenLabs says keyterm prompting costs extra; check its pricing page for the current rate.
+**ElevenLabs.** **Keyterm prompting** helps with "product names, names, or other specific terms". **Batch** means you send a finished file, not live audio (our plain gloss). "Batch supports up to 1000 keyterms (50 characters each)". The docs add: "Keyterm prompting and transcript editing come at an additional cost."
 
-For the cooking video (our example): keywords "Aoife" and "colcannon". Not the full menu of the channel.
+### Clean or word for word
 
-## Clean or word for word
+- **ElevenLabs:** with `no_verbatim`, "the model removes filler words, false starts and disfluencies". The docs call this "suitable for subtitles".
+- **OpenAI:** a prompt can help with "Preserving punctuation, capitalization, and filler words."
 
-Should captions keep "um" and "uh"? It depends on the channel.
+ElevenLabs results can also include `audio_event` items: "Non-speech sounds like laughter or applause".
 
-- **ElevenLabs:** `no_verbatim` "removes filler words, false starts and disfluencies". Its page says this is "suitable for subtitles".
-- **OpenAI:** a prompt can help with "Preserving punctuation, capitalization, and filler words".
+### Edit the cues
 
-## Edit the cues
+The ElevenLabs Subtitle Editor "uses red and green colors" to show if cues respect "characters per line, lines on screen, and cue length". You can change these rules. You can drag a cue's start and end, type exact times, split and merge cues, and export "SRT" or "VTT".
 
-ElevenLabs' Subtitle Editor shows the rules for each cue. It uses "red and green colors" to show if your subtitles respect "characters per line, lines on screen, and cue length". You can drag a cue's start and end, or type exact times. You can split, merge, add and delete cues.
+One trap: "the transcript and subtitles for a video are completely separate from each other". So a fix in one place is not a fix in the other.
 
-One trap: "Changes you make to subtitles ... do NOT affect the transcription, and vice versa." So fix the name in the subtitles too, not only in the transcript.
+## Worked example
 
-## Check the file
+The tomato video. The team used Scribe v2, so every word has a start and an end. Here is one short part (made-up times):
 
-Before you publish (our checklist):
+```text
+word        start   end     speaker
+Push        12.10   12.38   speaker_0
+the         12.38   12.50   speaker_0
+stem        12.50   12.86   speaker_0
+deep,       12.86   13.30   speaker_0
+right       13.62   13.90   speaker_0
+up          13.90   14.08   speaker_0
+to          14.08   14.20   speaker_0
+the         14.20   14.30   speaker_0
+first       14.30   14.62   speaker_0
+leaves.     14.62   15.20   speaker_0
+(laughter)  14.90   15.60   audio_event
+Finally!    15.10   15.70   speaker_1
+```
 
-1. **Names.** Search the file for every name and product. Is each one right?
-2. **Timing.** Play the video with the file on. Does each cue appear with its words, not after?
-3. **Length.** Can you read each cue before it goes?
-4. **Sounds.** Laughter or music: keep it, or remove it, on purpose.
-5. **Format.** The file opens in the player you use.
+### Step 1: set our cue rules
 
-## What this means for your work
+These numbers are ours, for this channel. Set them in the editor's rules:
 
-- **A transcript is the raw text. A subtitle file is cues with times.** You need both steps.
-- **Pick the model by the output.** On OpenAI, `whisper-1` gives word timestamps. On ElevenLabs, Scribe v2 gives word times and speakers.
-- **Ask for SRT or VTT** where the vendor offers it.
-- **Give a short list of names**, only ones that are spoken.
-- **Edit the cues, then fix them in both places** if the transcript is used too.
-- **Watch the video with the file** before you publish.
+```text
+max 2 lines per cue
+max 42 characters per line
+min 1 second on screen
+```
+
+### Step 2: group words into cues (before → after)
+
+Before: one cue for the whole paragraph, on screen for 12 seconds. Nobody can read that.
+
+After: start a new cue at a sentence end or a clear pause. There is a pause between "deep," (ends 13.30) and "right" (starts 13.62).
+
+```text
+Cue 1   12.10 -> 13.30   Push the stem deep,
+Cue 2   13.62 -> 15.20   right up to the first leaves.
+```
+
+Each cue starts at its first word's start and ends at its last word's end (our method). Both cues fit our rules: one line, under 42 characters, more than 1 second.
+
+### Step 3: the hard case
+
+**This is the hard case.** At 14.90 the neighbour laughs, and at 15.10 says "Finally!" while the presenter is still talking. The table says subtitle cues don't support overlapping segments. So two cues can't be on screen at the same time.
+
+Our fix:
+
+- Let Cue 2 end on time at 15.20.
+- Put "Finally!" in its own cue right after it.
+- Decide on the laughter: this channel keeps it, in brackets.
+- Check that the new cue is on screen for at least 1 second.
+
+```text
+Cue 3   15.20 -> 16.20   (laughs) Finally!
+```
+
+"Finally!" ends at 15.70, so the cue would only last 0.5 seconds. We keep it on screen until 16.20 to meet our 1-second rule.
+
+### Step 4: why it is better
+
+- **Short cues follow the speech**, so a viewer can read each one.
+- **Cues never overlap**, so the player shows one at a time.
+- **Sounds are kept on purpose**, not by accident.
+
+## Common mistakes
+
+1. **One cue for a whole paragraph.** Viewers can't read it in time. Fix: split at sentence ends and pauses, then check your line rules.
+2. **Building cues from MM:SS times alone.** MM:SS counts whole seconds, so a cue can start up to a second early or late (our note). Fix: check the times against the video.
+3. **Keeping or dropping sounds by chance.** Laughter or music may come back as an event. Fix: choose a rule for the channel and use it every time.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Here are word times from a short bread video (made up):
+
+```text
+Knead   3.00 3.40 | the 3.40 3.52 | dough 3.52 3.90 | for 3.90 4.05
+ten     4.05 4.30 | minutes. 4.30 4.90
+(pause)
+Then    5.60 5.80 | let 5.80 5.95 | it 5.95 6.05 | rest. 6.05 6.40
+```
+
+Use our rules: max 42 characters per line, min 1 second on screen.
+
+1. Make the cues, with start and end times.
+2. Does any cue break a rule? If yes, fix it.
+
+### Answer
+
+1. Two cues, split at the sentence end and the pause:
+
+   ```text
+   Cue 1   3.00 -> 4.90   Knead the dough for ten minutes.
+   Cue 2   5.60 -> 6.40   Then let it rest.
+   ```
+
+2. Cue 2 is only 0.8 seconds. Keep it on screen until 6.60, so it lasts 1 second. Both lines are under 42 characters.
+
+Your times can differ a little. Check that no cue is too short and no two cues overlap.
+
+## Recap
+
+- A transcript has word times and speakers. A subtitle file has cues with start and end times, and rules for length.
+- Pick the model by the output: on OpenAI, `whisper-1` gives word or segment timestamps, and some models give `json` only.
+- Build cues from word times, keep them short and apart, decide on sounds on purpose, and fix text in both the transcript and the subtitles.
