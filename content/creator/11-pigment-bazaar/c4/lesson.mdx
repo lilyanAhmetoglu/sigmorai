@@ -37,7 +37,7 @@ sources:
 After this lesson you can:
 
 - Say what a seed is, what it repeats, and what breaks a repeat.
-- Save everything you need to make an image again, on an API or on your own GPU.
+- Save everything you need to make an image again, on an API or on your own GPU (graphics card).
 - Explain what steps and guidance trade, and which models let you change them.
 
 ## The problem
@@ -62,7 +62,7 @@ A comparison: a seed is like the page number in a book of random noise. Same pag
 
 ### What a seed repeats
 
-Ideogram's rule has four parts. Keep the prompt, the model, the settings and the seed all unchanged. Then you get "the same or a very close result". It adds: "Change one word and keep the seed to try a small change while keeping most of the layout."
+The Ideogram settings page gives a rule with four parts. Keep the prompt, the model, the settings and the seed all unchanged. Then you get "the same or a very close result". It adds: "Change one word and keep the seed to try a small change while keeping most of the layout."
 
 And the limit, in a warning box: "Switching models, or changing a key idea in the prompt (say, "photo" to "painting"), gives a different image even with the same seed."
 
@@ -76,7 +76,7 @@ The [Ideogram 4.5 API page](https://developer.ideogram.ai/api-reference/images/g
 - `prompt`: "The final prompt the image was generated from."
 - `resolution`: the size it was made at.
 
-Why a "final" prompt? Because of `magic_prompt`. The page says `auto` "(the default) and `on` rewrite and expand the prompt before generation." The value `off` "keeps your wording". It also says: "A valid structured JSON prompt skips magic prompt unless `magic_prompt` is `on`." (A JSON prompt is a prompt written as named fields.)
+Why a "final" prompt? Because of `magic_prompt`. The page says `auto` "(the default) and `on` rewrite and expand the prompt before generation." The value `off` "keeps your wording and only converts it into a structured prompt." It also says: "A valid structured JSON prompt skips magic prompt unless `magic_prompt` is `on`." (A JSON prompt is a prompt written as named fields.)
 
 The `size` field matters too: "auto" or no size "picks a supported size based on the prompt."
 
@@ -105,12 +105,12 @@ The [FLUX.2 overview](https://docs.bfl.ai/flux_2/flux2_overview) says: "Preview 
 
 Two more knobs appear on some models. The [diffusers FLUX.2 page](https://huggingface.co/docs/diffusers/en/api/pipelines/flux2) explains both.
 
-- **Steps** (`num_inference_steps`) are the clean-up rounds. The default there is 50. "More denoising steps usually lead to a higher quality image at the expense of slower inference."
+- **Steps** (`num_inference_steps`) are the clean-up rounds. In `Flux2Pipeline` the default is 50; the [klein] KV pipeline on the same page defaults to 4. "More denoising steps usually lead to a higher quality image at the expense of slower inference."
 - **Guidance** (`guidance_scale`) is how hard the model follows your prompt. "Higher `guidance_scale` encourages a model to generate images more aligned with `prompt` at the expense of lower image quality."
 
 The same page has a prompt rewrite of its own, "caption upsampling". It runs when you set `caption_upsample_temperature`.
 
-Which FLUX.2 models let you change steps and guidance? BFL's table lists "Adjustable steps & guidance" for FLUX.2 [flex]. Most others say "Standard". FLUX.2 [klein] is "step-distilled": trained to work in only 4 inference steps (our gloss of the table).
+Which FLUX.2 models let you change steps and guidance? The BFL overview table lists "Adjustable steps & guidance" for FLUX.2 [flex]. Most others say "Standard". FLUX.2 [klein] is "step-distilled": trained to work in only 4 inference steps (our gloss of the table).
 
 ## Worked example
 
@@ -140,9 +140,9 @@ prompt:      (final) a longer text: the fern, the shelf, plus details
 
 ### Step 3: the hard case
 
-**The hard case is the final prompt.** `magic_prompt` was on `auto`, the default, so Ideogram rewrote the typed prompt. Our reading: the seed was paired with the rewritten words, not the typed ones. Even with seed 58213, sending the typed prompt again asks for a new rewrite.
+**The hard case is the final prompt.** `magic_prompt` was on `auto`, the default, so the API sent back a longer final prompt than the one typed. Sending the typed prompt again asks for a fresh rewrite.
 
-Our reading of the API page: send the saved final prompt, with the same seed, the same size, the same quality and `magic_prompt` set to `off`. Then no new rewrite runs.
+Our reading of the API page: send the saved final prompt, with the same seed, size and quality, and `magic_prompt` set to `off`. The page says `off` "keeps your wording and only converts it into a structured prompt".
 
 ```text
 model:         Ideogram 4.5
@@ -152,8 +152,6 @@ seed:          58213
 size:          1024x1024     (not "auto")
 quality:       high
 ```
-
-Expect a near match. It is not a promise of the very same pixels.
 
 ### Step 4: the good record, from now on
 
@@ -171,34 +169,31 @@ date:          2026-03-14
 
 ### Step 5: why it is better
 
-- **The seed travels with the words it was used with.** That is the final prompt, not the typed one.
+- **The final prompt is stored.** The record holds the words the API really used.
 - **Nothing is left on "auto".** Size and quality are written down.
 - **The master file is kept.** The best repeat is the original file itself.
 
 ## Common mistakes
 
 1. **Changing steps and guidance in the same test.** You can't tell which one helped. Fix: change one knob at a time and compare side by side.
-2. **"More is always better."** More steps cost time, and higher guidance can cost quality. Fix: treat both as trade-offs and test them on your real images.
-3. **Tuning steps on a model that doesn't offer it.** BFL lists [klein] as step-distilled with "Standard" controls. Fix: check the model table before you plan a tuning test.
+2. **Saving only a web copy.** A small copy can't go to print. Fix: keep the full-size master file with the record.
+3. **Tuning steps on BFL's API when the model doesn't offer it.** The BFL overview table gives [klein] "Standard" controls; only [flex] lists "Adjustable steps & guidance". Fix: check the model table before you plan a tuning test.
 
 ## Try it
 
 Not graded. Write your answer down before you read the answer.
 
-A teammate makes a hero image on their own GPU with diffusers and the FLUX.2 pipeline. They set `num_inference_steps=40`, `guidance_scale=3.5` and `caption_upsample_temperature=0.15`. Six months later, someone else must make it again on another machine.
+A teammate runs three jobs. For each, say what the run may change on its own, and what to save.
 
-List what the teammate must save. Give one reason for each.
+1. On the Ideogram 4.5 API: a valid structured JSON prompt, with `magic_prompt` on `auto`.
+2. On the Ideogram 4.5 API: a request with no `size` field.
+3. On diffusers FLUX.2: `caption_upsample_temperature=0.15` is set.
 
 ### Answer
 
-Our list:
-
-1. **The exact model and pipeline.** A different model gives a different image.
-2. **The prompt, word for word.** A key change in the prompt changes the image.
-3. **The seed, and that it used a CPU `Generator`.** The diffusers docs say CPU RNG is more stable across machines.
-4. **Steps and guidance (40 and 3.5).** They are settings, and the settings must match.
-5. **The caption upsampling setting.** With it set, the prompt is rewritten first. Save the rewritten prompt too if the pipeline shows it (our advice).
-6. **The image file itself.** Even then, a repeat is near, not guaranteed.
+1. **Nothing is rewritten.** The API page says: "A valid structured JSON prompt skips magic prompt unless `magic_prompt` is `on`." Save the JSON exactly as sent.
+2. **The size.** With no size, the API "picks a supported size based on the prompt". Save the `resolution` from the response.
+3. **The prompt.** With this value set, the pipeline tries caption upsampling first. Save the value, and the rewritten prompt if you can see it (our advice).
 
 ## Recap
 

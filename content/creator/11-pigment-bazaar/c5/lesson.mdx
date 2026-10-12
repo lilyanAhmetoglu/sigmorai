@@ -89,7 +89,7 @@ References are fast and easy to change. But you send them every time, and a matc
 - Subject models "focus on representing specific characters, products, or objects". Their example is "your brand mascot".
 - Style models "emphasize aesthetic qualities like color palettes, patterns, brush stroke techniques, or illustrative cues".
 
-Each model has a unique **asset ID**. Adobe says asset IDs help with "tracking updates and maintaining a clear record of styles, subjects, or structures captured in versions over time." In the API, a request goes to `/v3/images/generate-async` with the header `x-model-version: image3_custom` and a `customModelId`.
+Each model has a unique **asset ID**. The Adobe docs say asset IDs help with "tracking updates and maintaining a clear record of styles, subjects, or structures captured in versions over time." In the API, a request goes to `/v3/images/generate-async` with the header `x-model-version: image3_custom` and a `customModelId`.
 
 **Ideogram custom models** are trained in the app. The [custom models page](https://docs.ideogram.ai/create/custom-models) lists, in October 2026:
 
@@ -99,17 +99,21 @@ Each model has a unique **asset ID**. Adobe says asset IDs help with "tracking u
 - "Training usually takes a few hours."
 - The base model is Ideogram 3.0, and "You can't change it."
 
-Its tips: "Quality over quantity." "Add enough variety." And: "Make each caption say what is in the image."
+Its tips:
+
+- "Quality over quantity."
+- "Add enough variety."
+- "Make each caption say what is in the image."
 
 Sharing: "Your model starts private." You can share it with your team in a team space. **Publish** is different: "Make your model discoverable in the community gallery. Anyone will be able to find and use your model."
 
 ### A LoRA: a small add-on
 
-The [BFL training page](https://docs.bfl.ai/flux_2/flux2_klein_training) calls **LoRA** (Low-Rank Adaptation) "the most popular training method". The [diffusers docs](https://huggingface.co/docs/diffusers/main/en/using-diffusers/loading_adapters) explain it: it works "by inserting new weights into the diffusion model and then only the new weights are trained instead of the entire model." **Weights** are the numbers a model has learned (our gloss).
+The [BFL training page](https://docs.bfl.ai/flux_2/flux2_klein_training) calls **LoRA** (Low-Rank Adaptation) "the most popular training method". The [diffusers docs](https://huggingface.co/docs/diffusers/main/en/using-diffusers/loading_adapters) (diffusers is Hugging Face's library for running image models yourself) explain it: it works "by inserting new weights into the diffusion model and then only the new weights are trained instead of the entire model." **Weights** are the numbers a model has learned (our gloss).
 
-So a LoRA is a small file that sits on top of a base model. BFL lists it as "Lightweight (typically 10-200MB)" with "Fast training (1-3 hours on consumer GPUs)". Its minimum hardware starts at an NVIDIA GPU with 12GB of VRAM (memory on the graphics card).
+So a LoRA is a small file that sits on top of a base model. The BFL training page lists it as "Lightweight (typically 10-200MB)" with "Fast training (1-3 hours on consumer GPUs)". Its minimum hardware starts at an NVIDIA GPU with 12GB of VRAM (memory on the graphics card).
 
-BFL's caption rules for a training set:
+The BFL training page's caption rules for a training set:
 
 - "Include your trigger word consistently"
 - "Describe everything visible except the style/concept you want to teach the model"
@@ -118,7 +122,7 @@ A **trigger word** is a made-up word that switches the LoRA on in a prompt (our 
 
 Strength: in diffusers, "A value of 0 is the same as only using the base model weights, and a value of 1 is equivalent to using the fully finetuned LoRA."
 
-Two kinds of steps: BFL suggests "1500-2500 steps" of **training** for a style LoRA. That is not the same as the 4 **image** steps BFL lists for [klein] models (our note).
+Two kinds of steps: the BFL training page suggests "1500-2500 steps" of **training** for a style LoRA. That is not the same as the 4 **image** steps the BFL overview lists for the distilled [klein] 4B and 9B models (our note); the Base models are not step-distilled.
 
 Our advice on rights: train only on images your client owns or has licensed. Ideogram also asks you to accept its terms before your first model.
 
@@ -134,7 +138,7 @@ Our example. The magazine and the files are made up.
 2 travel photos     (for the places)
 ```
 
-Recraft says diverse images "widen the range". This set is very diverse, so the style spreads across paper, paint and photo.
+The Recraft styles page says diverse images "widen the range". This set is very diverse, so the style spreads across paper, paint and photo.
 
 ### Step 2: pick for one look
 
@@ -147,7 +151,7 @@ prompt:     "A harbour town at dusk with fishing boats and a lighthouse"
 
 ### Step 3: save the style once
 
-The designer creates the style once and saves the returned `style_id`. Every request in the month uses that id. The 5 images are not sent again.
+The designer saves the 5 pieces as one Recraft style, named `northbound-paper`. Each request in the month points to that style.
 
 ### Step 4: the hard case
 
@@ -165,12 +169,12 @@ The page says a request value overrides the stored value "for that request". A v
 ### Step 5: why it is better
 
 - **One look, not three.** Similar references sharpen the match.
-- **One saved style** for the whole month, with no images resent.
+- **One style for the month,** so covers and spots share one source.
 - **Two strengths from one style.** Covers stay tight, spots stay loose.
 
 ## Common mistakes
 
-1. **Mixing up training steps and image steps.** A style LoRA trains for 1,500 to 2,500 steps. A [klein] image uses 4. Fix: say which kind of step you mean in every note.
+1. **Mixing up training steps and image steps.** A style LoRA trains for 1,500 to 2,500 steps. A distilled [klein] 4B or 9B image uses 4. Fix: say which kind of step you mean in every note.
 2. **Sending more references than the model takes.** FLUX.2 [klein] takes up to 4; [pro], [max] and [flex] take up to 8 on the API. Fix: check the limit for the exact model first.
 3. **Losing track of which model made an image.** A trained model can change over time. Fix: on Adobe, record the asset ID with each image.
 
@@ -188,9 +192,9 @@ Using BFL's dataset tips, what would you fix before training?
 
 ### Answer
 
-1. **Size.** BFL says to "Use high-resolution images (1024px or higher)". Find the original photos, not the web copies.
-2. **Backgrounds.** BFL says to "Avoid repetitive backgrounds" and to vary settings. Otherwise the LoRA may learn the white wall as part of the look (our reading).
-3. **Watermarks.** BFL says to "Remove artifacts and low-quality samples". Drop the two watermarked images. The watermark also hints that the brand may not own them (our reading).
+1. **Size.** The BFL training page says to "Use high-resolution images (1024px or higher)". Find the original photos, not the web copies.
+2. **Backgrounds.** The BFL training page says to "Avoid repetitive backgrounds" and to vary settings. Otherwise the LoRA may learn the white wall as part of the look (our reading).
+3. **Watermarks.** The BFL training page says to "Remove artifacts and low-quality samples". Drop the two watermarked images. The watermark also hints that the brand may not own them (our reading).
 
 ## Recap
 

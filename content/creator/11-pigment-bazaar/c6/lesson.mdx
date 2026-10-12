@@ -10,6 +10,9 @@ sources:
     title: Black Forest Labs docs · FLUX.2 [klein] training
     url: https://docs.bfl.ai/flux_2/flux2_klein_training
   - kind: docs
+    title: Black Forest Labs docs · FLUX.2 LoRA inference
+    url: https://docs.bfl.ai/flux_2/flux2_lora_inference
+  - kind: docs
     title: Hugging Face diffusers docs · Quickstart
     url: https://huggingface.co/docs/diffusers/en/quicktour
   - kind: docs
@@ -58,7 +61,9 @@ The [BFL FLUX.2 overview](https://docs.bfl.ai/flux_2/flux2_overview) says, in Oc
 - "[klein] 4B is fully open under **Apache 2.0**."
 - "[klein] 9B is available under the **FLUX Non-Commercial License**."
 
-BFL also lists **Base** versions of [klein]. It calls them "ideal for fine-tuning, LoRA training, research, and custom pipelines". (Fine-tuning means more training on your own images.) And: "Base models are available as open weights for local development and research. They are not offered on the public API."
+The BFL overview also lists **Base** versions of [klein]. It calls them "ideal for fine-tuning, LoRA training, research, and custom pipelines". (Fine-tuning means more training on your own images.) And: "Base models are available as open weights for local development and research. They are not offered on the public API."
+
+BFL's [LoRA inference page](https://docs.bfl.ai/flux_2/flux2_lora_inference) (public beta, October 2026) does run your own LoRA on the Base models, through endpoints such as `flux-2-klein-base-4b-finetuned`.
 
 ### Read the licence first
 
@@ -72,7 +77,7 @@ A **licence** is the legal text that says what you may do with the weights (our 
 
 Our advice: for a paid job, a licence with "non-commercial" in its name is a stop sign. Read the full text, or ask whoever handles your contracts. A free download does not mean free for paid work. The licence comes with the weights, wherever you run them (our reading).
 
-Some downloads are also **gated**: you must log in to get them. The [diffusers quickstart](https://huggingface.co/docs/diffusers/en/quicktour) asks you to sign up for a Hugging Face account "to use gated models like Flux".
+Some downloads are also **gated**: you must log in to get them. The [diffusers quickstart](https://huggingface.co/docs/diffusers/en/quicktour) (diffusers is Hugging Face's library for running image models yourself) asks you to sign up for a Hugging Face account "to use gated models like Flux".
 
 ### The parts of a pipeline
 
@@ -87,17 +92,17 @@ The [diffusers FLUX.2 page](https://huggingface.co/docs/diffusers/en/api/pipelin
 
 A comparison: the text encoder reads the order, the transformer paints, the scheduler sets the pace, and the VAE frames the result.
 
-About the scheduler, the same page says Flux ships a default one: "Keep that scheduler unless you are intentionally experimenting." Swap it "only when the replacement is compatible with the checkpoint".
+About the scheduler, the same page says Flux ships a default one: "Keep that scheduler unless you are intentionally experimenting." Swap it "only when the replacement is compatible with the checkpoint" (a checkpoint is a saved model file).
 
-One more note from BFL: "FLUX.2 [klein] does not include prompt upsampling." So: "Write detailed, descriptive prompts for best results."
+One more note from the BFL overview: "FLUX.2 [klein] does not include prompt upsampling." So: "Write detailed, descriptive prompts for best results."
 
 ### Hardware and speed
 
 What the pages say, in October 2026:
 
-- **BFL:** [klein] gives "sub-second inference", and "4B runs on consumer GPUs (~13GB VRAM)". **VRAM** is the memory on the graphics card.
-- **Diffusers:** "Flux2 can be quite expensive to run on consumer hardware devices."
-- **Less memory:** "To use less memory, load in 4-bit with bitsandbytes." (4-bit is a smaller number format.) The FLUX.2 page warns this saves memory "with a trade-off in inference latency": each image can take longer.
+- **The BFL overview:** [klein] gives "sub-second inference", and "4B runs on consumer GPUs (~13GB VRAM)". **VRAM** is the memory on the graphics card.
+- **The diffusers FLUX.2 page:** "Flux2 can be quite expensive to run on consumer hardware devices."
+- **Less memory:** "To use less memory, load in 4-bit with bitsandbytes." (4-bit is a smaller number format; bitsandbytes is a library that does this.) The FLUX.2 page warns this saves memory "with a trade-off in inference latency": each image can take longer.
 - **Compile:** the quickstart says you can compile parts of the model to speed up later runs. "The first generate after compile is a cold start and is slow. Later generates are faster."
 
 Our reading: a vendor's speed figure was measured on the vendor's hardware. Yours may differ.
@@ -110,7 +115,7 @@ On your own machine, nothing is added for you beyond the pipeline's own parts.
 
 - The [diffusers legacy page](https://huggingface.co/docs/diffusers/en/using-diffusers/legacy_checkpoints) offers a safety checker "for older Stable Diffusion checkpoints". It adds: "Newer models such as Qwen-Image do not have this checker."
 - The FLUX.2 list of parts names neither a safety checker nor a watermark step (our reading of the list).
-- About Stable Diffusion, the diffusers team and Hugging Face "strongly recommend keeping the safety filter enabled in all public-facing circumstances". Our advice: keep that idea for any public app.
+- About Stable Diffusion, the diffusers legacy page says both the diffusers team and Hugging Face "strongly recommend keeping the safety filter enabled in all public-facing circumstances". Our advice: keep that idea for any public app.
 
 ## Worked example
 
@@ -167,7 +172,7 @@ delivery:   in 2 days, with time to re-run any rejects
 
 1. **Quoting the vendor's speed as your speed.** Fix: time 10 to 20 images on your machine, at your real size.
 2. **Timing the first image after compile.** It is a cold start. Fix: run one warm-up image, then start the clock.
-3. **Very short prompts on [klein].** BFL says [klein] does not upsample prompts. Fix: write detailed, descriptive prompts yourself.
+3. **Very short prompts on [klein].** The BFL overview says [klein] does not upsample prompts. Fix: write detailed, descriptive prompts yourself.
 
 ## Try it
 
@@ -182,7 +187,7 @@ A studio times its compiled pipeline. The first image takes 90 seconds. After th
 ### Answer
 
 1. **8 seconds.** 240 ÷ 30 = 8.
-2. **About 2 hours and 4 minutes.** 900 × 8 = 7,200 seconds, which is 2 hours. Add one 90-second cold start each morning: 3 × 90 = 270 seconds, about 4.5 minutes.
+2. **About 2 hours and 5 minutes.** 900 × 8 = 7,200 seconds, which is 2 hours. Add one 90-second cold start each morning: 3 × 90 = 270 seconds, about 4.5 minutes.
 3. **Review time and re-runs.** Compute is only part of the job. A person still checks every image, and some will need a second run (our advice).
 
 ## Recap
