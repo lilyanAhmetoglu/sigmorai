@@ -148,7 +148,7 @@ describe('bad ids are rejected', () => {
   });
 });
 
-/** A track's outline as committed in content/ (creator r1 has 9 chapters; every other realm 6). */
+/** A track's outline as committed in content/ (chapter counts per realm come from it; see `GROWN`). */
 const realOutline = async (track: (typeof TRACKS)[number]) =>
   trackOutlineSchema(track).parse(
     await Bun.file(`${import.meta.dir}/../../${CONTENT_DIR}/${track}/${OUTLINE_FILE}`).json(),
