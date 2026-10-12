@@ -71,15 +71,18 @@ It has your tracked files and nothing else.
 
 - **Set it up.** The Claude Code docs: "A worktree is a fresh checkout, so initialize your development environment there". The Gemini CLI docs say the same.
 - **Copy ignored files on purpose.** Files like `.env` are gitignored, so they are not there. Claude Code and Codex both read a `.worktreeinclude` file at the repo root. The Claude Code docs: "Only files that match a pattern and are also gitignored are copied, so tracked files are never duplicated."
-- **Check the starting point.** By default, Claude Code starts new worktrees "from the repository's default branch" on the remote. Set `worktree.baseRef` to `"head"` to "branch from your current local `HEAD`" (the commit you have checked out now). Then the worktree "carries your unpushed commits".
+- **Check the starting point.**
+  - By default, Claude Code starts new worktrees "from the repository's default branch" on the remote.
+  - Set `worktree.baseRef` to `"head"` to "branch from your current local `HEAD`" (the commit you have checked out now).
+  - Then the worktree "carries your unpushed commits".
 
 ### One branch, one place
 
-The Codex docs: "Git only allows a branch to be checked out in one place at a time." In the Codex app, **Create branch here** turns a worktree into a branch. "From here you can commit your changes, push your branch to your remote repository, and open a pull request." To move the work to your main folder (called Local), use **Hand off** instead.
+The Codex docs: "Git only allows a branch to be checked out in one place at a time." In the Codex app, **Create branch here** turns a worktree into a branch. "From here you can commit your changes, push your branch to your remote repository, and open a pull request on GitHub." To move the work to your main folder (called Local), use **Hand off** instead.
 
 ### Clean up
 
-- **Claude Code:** when you leave an interactive session, it removes a clean worktree or asks about one with work in it. But "Non-interactive runs with `-p` have no exit prompt, so Claude doesn't clean up their worktrees." Remove those with `git worktree remove`.
+- **Claude Code:** when you leave an interactive session, it removes a clean worktree from an unnamed session, and asks first for a named one or one with work in it. But "Non-interactive runs with `-p` have no exit prompt, so Claude doesn't clean up their worktrees". Remove those with `git worktree remove`.
 - **Codex:** "By default, Codex keeps your most recent 15 Codex-managed worktrees." Before it deletes one, "Codex saves a snapshot of the work on it."
 - **Gemini CLI:** "it **does not automatically delete** your worktree or branch."
 
@@ -122,10 +125,12 @@ All three edit the same files on disk. A test run in one terminal sees half-done
 ### Step 2: one worktree per task
 
 ```bash
-claude -w dark-mode "Add a dark-mode switch to the settings page"
-claude -w csv-export "Add CSV export to the reports API"
-claude -w rate-limit "Add a rate limit to the public API"
+claude -w dark-mode
+claude -w csv-export
+claude -w rate-limit
 ```
+
+Run one line per terminal. Then give each session its one task inside the session, for example "Add a dark-mode switch to the settings page".
 
 Each session now has its own folder under `.claude/worktrees/` and its own branch, such as `worktree-csv-export`. Before each agent runs tests, it installs dependencies in its own folder, because each new folder starts with no installed packages.
 
@@ -160,7 +165,7 @@ git worktree remove .claude/worktrees/rate-limit
 
 ## Common mistakes
 
-1. **Starting ten sessions at once.** The Claude Code docs: "Running several sessions or subagents at once multiplies token usage." Fix: start with two or three, and add more when merges stay calm.
+1. **Starting ten sessions at once.** The Claude Code docs: "Running several sessions or subagents at once multiplies token usage." (A subagent is a helper agent with its own context window.) Fix: start with two or three, and add more when merges stay calm.
 2. **Using an agent team and expecting worktrees.** The docs: "Agent teams don't isolate teammates in worktrees". Fix: "partition the work so each teammate owns a different set of files."
 3. **Leaving Gemini CLI worktrees behind.** The docs say "You are responsible for cleaning up your worktrees manually". Fix: remove each one when its branch is merged.
 
@@ -170,7 +175,7 @@ Not graded. Write your answer down before you read the answer.
 
 A team has a custom Claude Code subagent that renames a function across many files. Two copies sometimes run at once and edit the same files.
 
-1. What one frontmatter line makes this subagent always run in its own worktree?
+1. What one frontmatter line (a `key: value` line at the top of the subagent file) makes this subagent always run in its own worktree?
 2. What happens to that worktree when the subagent finishes and changed nothing?
 
 ### Answer
@@ -182,4 +187,4 @@ A team has a custom Claude Code subagent that renames a function across many fil
 
 - A worktree is a second folder for the same repo, with its own files and branch. Start one with `claude --worktree <name>`, the Codex app's **Worktree** option, or `gemini --worktree <name>`.
 - Each new worktree starts clean: set it up, and copy gitignored files with `.worktreeinclude`. Git lets one branch live in only one folder at a time. Clean-up differs per tool.
-- Worktrees keep work apart, not branches. Split tasks by file, merge one branch at a time, and rerun tests. Checkpoints undo inside one session, but Claude Code's skip Bash changes.
+- Worktrees keep the work apart while it runs, not the merge result. Split tasks by file, merge one branch at a time, and rerun tests. Checkpoints undo inside one session, but Claude Code's skip Bash changes.

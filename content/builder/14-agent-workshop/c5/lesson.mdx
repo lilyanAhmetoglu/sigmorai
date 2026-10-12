@@ -59,10 +59,13 @@ A plain-text prompt starts with almost nothing. The Claude Code docs: "Claude ha
 
 ### Review bots advise; people decide
 
-- **Claude Code Review:** "Findings are tagged by severity and don't approve or block your PR". Its check run "always completes with a neutral conclusion so it never blocks merging through branch protection rules." To gate merges on it, read the severity counts "in your own CI".
+- **Claude Code Review:**
+  - "Findings are tagged by severity and don't approve or block your PR".
+  - Its check run "always completes with a neutral conclusion so it never blocks merging through branch protection rules."
+  - To gate merges on it, read the severity counts "in your own CI".
 - **Codex code review:** on GitHub, "Codex flags only P0 and P1 issues" (the two highest priority levels). You write rules in `AGENTS.md`, under a `## Code Review Rules` heading. The [Codex docs](https://learn.chatgpt.com/docs/third-party/github) say the rules "don't replace tests, branch protections, or required approvals."
 
-Both read your rules files. Claude Code Review reads `CLAUDE.md` or `REVIEW.md`. Codex wants rules in the `AGENTS.md` "closest to the code the rules govern." It also says: "Leave mechanical checks in CI."
+Both read your rules files. Claude Code Review reads `CLAUDE.md` or `REVIEW.md`. Codex wants rules in the `AGENTS.md` "closest to the code the rules govern." The same page says: "Leave mechanical checks in CI."
 
 So the merge stays with a person (our advice). The Claude Code docs say: "review Claude's changes before merging." For GitLab, Claude Code for GitLab CI/CD is in beta, and "Every change flows through an MR so reviewers see the diff and approvals still apply" ([GitLab docs](https://code.claude.com/docs/en/gitlab-ci-cd)). An **MR** (merge request) is GitLab's name for a pull request.
 
@@ -118,7 +121,7 @@ What goes wrong:
 
 ### Step 2: grant only what the prompt needs
 
-This follows the daily report example in the Claude Code docs:
+This is adapted from the daily report example in the Claude Code docs (we keep one tool and add `--max-turns`):
 
 ```yaml
 name: Weekly issue report
@@ -176,7 +179,7 @@ A review workflow in the Claude Code docs runs a review skill with `--comment`. 
 claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
 ```
 
-A teammate removes the line. Their reason: the skill's own `allowed-tools` frontmatter already names the same tool.
+A teammate removes the line. Their reason: the skill's own `allowed-tools` frontmatter (the `key: value` block at the top of the skill file) already names the same tool.
 
 1. What changes in the next review?
 2. Why?
@@ -184,7 +187,7 @@ A teammate removes the line. Their reason: the skill's own `allowed-tools` front
 ### Answer
 
 1. Claude can no longer post its inline comments on the pull request.
-2. The docs say to "keep this line" because the action "starts the MCP server that posts inline comments only when `--allowedTools` in `claude_args` names it." The skill's frontmatter alone does not start that server.
+2. The docs say to "keep this line" because the action "starts the MCP server that posts inline comments only when `--allowedTools` in `claude_args` names it." The skill's frontmatter alone does not start that server. (An MCP server is a small program that gives the agent extra tools.)
 
 ## Recap
 

@@ -45,6 +45,8 @@ A **skill** solves this. A skill is a folder of instructions that the agent load
 
 All three vendors use the same shape: a folder with a `SKILL.md` file in it. The [Codex docs](https://learn.chatgpt.com/docs/build-skills) say: "A skill is a directory with a `SKILL.md` file plus optional scripts and references. The `SKILL.md` file must include `name` and `description`." In [Gemini CLI](https://geminicli.com/docs/cli/skills/), a skill is "a self-contained directory that packages instructions and assets into a discoverable capability." All three pages point to the same open standard, Agent Skills (agentskills.io).
 
+A note for free users. The Gemini CLI docs say: "Unpaid tier and Google One users: Gemini CLI was replaced by Antigravity CLI on June 18th, 2026."
+
 `SKILL.md` has two parts: frontmatter (a short block of `key: value` lines between `---` markers) that says when to use the skill, and the instructions below it. The fields differ a little:
 
 - **Codex** requires `name` and `description`.
@@ -67,7 +69,11 @@ step needs it -> reference file is read, script is run
 - **Gemini CLI:** "Only skill metadata (name and description) is loaded initially."
 - **Claude Code:** by default, "Description always in context, full skill loads when invoked".
 
-So the description is the trigger. The agent compares the task with the descriptions, not with the body. The Codex docs say: "Front-load the key use case and trigger words so a host can still match the skill if descriptions are shortened." Codex keeps the first list of skills to "at most 2% of the model's context window" and shortens descriptions first when many skills are installed. In Claude Code, the description plus `when_to_use` "is truncated at 1,536 characters in the skill listing".
+So the description is the trigger. The agent compares the task with the descriptions, not with the body. Space for descriptions is limited:
+
+- **Codex:** "Front-load the key use case and trigger words so a host can still match the skill if descriptions are shortened."
+- **Codex:** the first skill list stays at "at most 2% of the model's context window"; descriptions are shortened first.
+- **Claude Code:** the description plus `when_to_use` "is truncated at 1,536 characters in the skill listing".
 
 ### Instruction file, skill or subagent
 
@@ -78,7 +84,7 @@ The [Claude Code overview](https://code.claude.com/docs/en/features-overview) co
 
 The skills page names the moment to make one: "Create a skill when you keep pasting the same instructions, checklist, or multi-step procedure into chat, or when a section of CLAUDE.md has grown into a procedure rather than a fact."
 
-The other vendors agree. The [Codex customization page](https://learn.chatgpt.com/docs/customization/overview) says "skills package repeatable processes". Gemini CLI calls skills "on-demand expertise", unlike `GEMINI.md`.
+The other vendors agree. The [Codex customization page](https://learn.chatgpt.com/docs/customization/overview) says "skills package repeatable processes". The Gemini CLI docs call skills "on-demand expertise", unlike `GEMINI.md`.
 
 A skill is not a subagent (a helper agent that works in its own context window). A skill adds its text to your main conversation. A subagent works apart and sends back a summary. They can combine: in Claude Code, `context: fork` runs a skill "in a forked subagent context".
 
@@ -97,7 +103,7 @@ To stop the agent from starting one on its own:
 - **Claude Code:** `disable-model-invocation: true`. The docs: "Claude can't invoke the skill on its own. Use this for workflows with side effects or that you want to control timing". Their example is a deploy: "You don't want Claude deciding to deploy because your code looks ready."
 - **Codex:** in the optional `agents/openai.yaml` file, set `allow_implicit_invocation: false` under `policy:`. Then "Codex won't implicitly invoke the skill based on user prompt; explicit `$skill` invocation still works."
 
-The frontmatter field is the lock. A folder name or a short description does not change who can start a skill.
+Our reading: use the field. A folder name or a short description does not change who can start a skill.
 
 ### Keep the body short
 
@@ -111,7 +117,7 @@ The Claude Code docs warn: "Once a skill loads, its content stays in context acr
 | Codex       | `$HOME/.agents/skills`                     | `.agents/skills` in each folder from where you start, up to the root |
 | Gemini CLI  | `~/.gemini/skills/` or `~/.agents/skills/` | `.gemini/skills/` or `.agents/skills/`                               |
 
-Codex and Gemini CLI both read `.agents/skills/`. Google calls it "an interoperable path". Claude Code reads `.claude/skills/`, not `.agents/skills/`.
+Codex and Gemini CLI both read `.agents/skills/`. The Gemini CLI docs call it "an interoperable path". The Claude Code docs list `.claude/skills/` folders; `.agents/skills/` is not one of them.
 
 Claude Code and Codex both accept a skill folder that is a symlink (a symlink is a file-system shortcut to another folder). The Codex docs: "Codex supports symlinked skill folders and follows the symlink target when scanning these locations." So a mixed team can keep one copy in `.agents/skills/` and link to it from `.claude/skills/` (our advice).
 
@@ -123,8 +129,8 @@ Our example: the endpoint checklist from The problem, on a team that uses Claude
 
 ```md
 ---
-name: api
-description: API stuff
+name: add-endpoint
+description: Team notes from the 2025 API review, kept up to date by the platform group. Covers naming, input checks, error format, tests and docs. Use when adding an endpoint.
 ---
 
 (40-line endpoint checklist)
@@ -133,10 +139,10 @@ description: API stuff
 
 What goes wrong:
 
-- `API stuff` names no task and no trigger words. A request to add a refunds endpoint may not match it.
+- The task and the trigger words come last. When a host shortens descriptions, the end is cut first, so "adding an endpoint" can be lost.
 - When the skill does load, all 1,240 lines enter the conversation and stay there for every later turn.
 
-### Step 2: a description that says what and when
+### Step 2: put the task and trigger words first
 
 ```md
 ---
@@ -173,7 +179,7 @@ Move it into its own file and tell the agent when to read it:
 
 ### Step 4: why it is better
 
-- The description names the task, so the agent can match it.
+- The task and trigger words come first, so a shortened listing still matches.
 - The loaded skill is about 40 lines, not 1,240. The table is read only when a step needs a code.
 
 ## Common mistakes

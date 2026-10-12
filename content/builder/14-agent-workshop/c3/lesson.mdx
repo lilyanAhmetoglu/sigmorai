@@ -42,7 +42,7 @@ After this lesson you can:
 
 ## The problem
 
-A developer has a good setup for database work in one repo. It has a skill that writes a new migration, a subagent that reviews SQL, and a hook that checks each `.sql` file after an edit. The team has already said yes to a plugin, so the setup can go into other projects.
+A developer has a good setup for database work in one repo. It has a skill that writes a new migration, a subagent that reviews SQL, and a hook (a script that runs at a fixed moment) that checks each `.sql` file after an edit. The team has already said yes to a plugin, so the setup can go into other projects.
 
 The first try goes wrong. The plugin loads, but no skills show up. After a fix, the SQL check runs two times on every edit. This lesson shows how a plugin is built and loaded, so you can avoid both problems.
 
@@ -184,7 +184,7 @@ claude plugin validate ./db-tools
 claude --plugin-dir ./db-tools
 ```
 
-`validate` checks the manifest and the skill frontmatter. `--plugin-dir` "loads a plugin for one session without installing it". In the session, the skill now runs as `/db-tools:new-migration`, not `/new-migration`.
+`validate` checks the manifest and the skill frontmatter (the `key: value` block at the top of `SKILL.md`). `--plugin-dir` "loads a plugin for one session without installing it". In the session, the skill now runs as `/db-tools:new-migration`, not `/new-migration`.
 
 ### Step 4: the hard case, the check runs two times
 
@@ -200,7 +200,7 @@ The fix: once the plugin works, delete the old skill and agent from `.claude/` a
 
 ## Common mistakes
 
-1. **A `CLAUDE.md` at the plugin root.** The Claude Code docs: "Claude Code doesn't load a `CLAUDE.md` at the plugin root." Fix: write standing rules as a skill.
+1. **A `CLAUDE.md` at the plugin root.** The Claude Code docs: "Claude Code doesn't load a `CLAUDE.md` at the plugin root", and `claude plugin validate` warns about it. Fix: write standing rules as a skill.
 2. **Saving data next to the plugin's files.** `${CLAUDE_PLUGIN_ROOT}` changes on each update, and the docs say "Don't write state there". Fix: use the folder in `CLAUDE_PLUGIN_DATA`, which every hook also receives.
 3. **Editing an installed Gemini CLI extension's source and waiting for the change.** "Gemini CLI creates a copy of the extension during installation." Fix: while you build, use `gemini extensions link <path>`, which lets you "test changes immediately without reinstalling".
 

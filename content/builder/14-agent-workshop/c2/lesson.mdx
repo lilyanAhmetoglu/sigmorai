@@ -65,7 +65,7 @@ A `PostToolUse` hook gets the tool input, such as the file path. It is the place
 
 Codex makes file edits with its `apply_patch` tool, and "`matcher` values can use `apply_patch`, `Edit`, or `Write`". A `Bash` matcher catches shell commands, such as `git`, not file edits.
 
-An after-hook cannot take anything back. The Claude Code guide: "`PostToolUse` hooks can't undo actions since the tool has already executed." Codex says it "can't undo side effects from a tool that already ran." So format after, but guard before.
+An after-hook cannot take anything back. The Claude Code guide: "`PostToolUse` hooks can't undo actions since the tool has already executed." The Codex docs say a hook "can't undo side effects from a tool that already ran." So format after, but guard before.
 
 Two limits on guards:
 
@@ -74,7 +74,11 @@ Two limits on guards:
 
 ### At the end of a turn
 
-A `Stop` hook runs when the agent finishes its reply. In Claude Code, exit 2 on `Stop` "Prevents Claude from stopping, continues the conversation". In Codex, a `Stop` hook that returns `"decision": "block"` with a `reason` "tells Codex to continue", with the reason as the next prompt. Gemini CLI's `AfterAgent` can "force retry or halt execution".
+A `Stop` hook runs when the agent finishes its reply.
+
+- **Claude Code:** exit 2 on `Stop` "Prevents Claude from stopping, continues the conversation".
+- **Codex:** a `Stop` hook that returns `"decision": "block"` with a `reason` "tells Codex to continue", with the reason as the next prompt.
+- **Gemini CLI:** `AfterAgent` can "force retry or halt execution".
 
 ### Who decides that a hook may run
 
@@ -82,7 +86,7 @@ The Claude Code reference warns: "Command hooks execute shell commands with your
 
 - **Codex:** "Codex records trust against the hook's current hash" (a hash is a fingerprint of the text), "so new or changed hooks are marked for review and skipped until trusted." You review them with `/hooks`.
 - **Gemini CLI:** if a hook's name or command changes, "it is treated as a **new, untrusted hook**".
-- **Claude Code:** in an interactive session, project hooks wait for the workspace trust dialog. In a `-p` or SDK run (headless: no person at the screen), "Claude Code never shows the dialog and treats the folder as trusted". Before you script `claude -p` over a repo you did not write, the docs say to review its `.claude/` settings, start with `--bare`, or turn hooks off with `--settings '{"disableAllHooks": true}'`.
+- **Claude Code:** in an interactive session, project hooks wait for the workspace trust dialog. In a `-p` or SDK run (an SDK run is a run from your own code; both are headless: no person at the screen), "Claude Code never shows the dialog and treats the folder as trusted". Before you script `claude -p` over a repo you did not write, the docs say to review its `.claude/` settings, start with `--bare`, or turn hooks off with `--settings '{"disableAllHooks": true}'`.
 
 ## Worked example
 
@@ -135,7 +139,13 @@ Now when the agent tries to stop with red tests, exit 2 sends it back to work, a
 
 One test calls a staging server. On Friday the server is down. The agent cannot fix that. The hook blocks, the agent tries again, the hook blocks again, and the turn goes round and round.
 
-The Claude Code reference gives the hook a field for this: `stop_hook_active` "is `true` when Claude Code is already continuing as a result of a stop hook." Its advice: "Check this value or process the transcript to avoid blocking on a condition that will never resolve." There is also a safety net: Claude Code "overrides a Stop hook after it blocks eight times in a row with no tool call from Claude in between". Do not rely on the net. A turn that keeps calling tools resets that count.
+The Claude Code docs give the hook help for this:
+
+- **The field:** `stop_hook_active` "is `true` when Claude Code is already continuing as a result of a stop hook."
+- **The advice:** "Check this value or process the transcript to avoid blocking on a condition that will never resolve."
+- **The safety net:** Claude Code "overrides a Stop hook after it blocks eight times in a row with no tool call from Claude in between".
+
+Do not rely on the net. A turn that keeps calling tools resets that count.
 
 The fixed script:
 
@@ -164,7 +174,7 @@ Our reading: the agent now gets one extra pass to fix the tests. If they still f
 
 1. **A block with no reason.** The script exits 2 but writes nothing to stderr. The agent knows it was stopped, not why. Fix: write one clear sentence to stderr before `exit 2`.
 2. **A slow hook on a busy event.** A full test suite on every `PostToolUse` runs after each edit and slows the whole session. Fix: put heavy checks on `Stop`, and keep per-edit hooks fast.
-3. **Debug lines on stdout.** Gemini CLI says: "Your script **must not** print any plain text to `stdout` other than the final JSON object." Fix: send logs to stderr, for example `echo "debug" >&2`.
+3. **Debug lines on stdout.** The Gemini CLI docs say: "Your script **must not** print any plain text to `stdout` other than the final JSON object." Fix: send logs to stderr, for example `echo "debug" >&2`.
 
 ## Try it
 
