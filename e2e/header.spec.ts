@@ -24,7 +24,7 @@ const ROUTES = [
   '/blog/be-specific',
   '/privacy',
   '/sign-in',
-  '/realms',
+  '/math',
   '/map',
   '/leaderboard',
   '/quest/strategist/r0/c1/lesson',

@@ -18,7 +18,7 @@ import { FRONTIER_HREF, MATH_HREF } from './nav';
  * realm uses yet keeps the small SLOT size.
  */
 const SLOT = { w: 80, h: 64 } as const;
-const LANDMARK = { w: 96, h: 96 } as const;
+const LANDMARK = { w: 112, h: 112 } as const;
 
 /**
  * World map geometry (docs/plans/world-map-design-plan.md → Geometry). One
@@ -210,6 +210,21 @@ export const WORLD_STATUS_PIPS = {
 } as const satisfies Record<RealmStatus, readonly string[]>;
 
 /**
+ * The mark on a landmark's pin (Math Tower, the Frontier): a diamond, unlike
+ * every state pip, so a side realm never reads as a realm state. The map key
+ * explains it. Same letters as WORLD_STATUS_PIPS.
+ */
+export const WORLD_LANDMARK_PIP = [
+  '...#...',
+  '..###..',
+  '.#####.',
+  '#######',
+  '.#####.',
+  '..###..',
+  '...#...',
+] as const;
+
+/**
  * The compass rose sprite (same letters as WORLD_GLYPHS, plus `*` = north,
  * `o` = paper), drawn at WORLD_COMPASS_PX art px per pixel and centred in
  * WORLD_MAP.compass. The N sits on top of the north arm.
@@ -309,14 +324,15 @@ export const HERO_SIDES = [
 ] as const satisfies readonly HeroSide[];
 
 /**
- * A landmark label (world-map.css → .world-landmark), in screen px: 44px
- * tall, `top` px above the island's south edge. Its width is the name in the
- * 10px HUD font plus the padding. `char` is a little more than a Silkscreen
- * letter (measured: "MATH TOWER" 77px, "THE FRONTIER" 86px), so the box is
- * never smaller than the real label.
+ * A landmark (world-map.css → .world-landmark) stands like a realm marker:
+ * a 44px link on its anchor holding a 28px pin with a pip (WORLD_HERO.pinBox),
+ * and a one-line name plate `top` px under the anchor (like a realm's plate,
+ * WORLD_HERO.detail), `h` px tall with its 2px shadow. It shows at every zoom.
+ * Its width is the name in the 10px HUD font plus the padding. `char` is a
+ * little more than a Silkscreen letter (measured: "MATH TOWER" 77px, "THE
+ * FRONTIER" 86px), so the box is never smaller than the real plate.
  */
-const LANDMARK_LABEL = { top: -12, h: 44, pad: 24, char: 8 } as const;
-
+const LANDMARK_LABEL = { top: 24, h: 22, pad: 24, char: 8 } as const;
 /** The hero's box on one side, relative to the anchor (screen px). */
 export function heroBox(side: HeroSide): Box {
   const [x, y] = WORLD_HERO.sides[side];
@@ -329,11 +345,15 @@ const at = (x: number, y: number, [l, t, r, b]: Box): Box => [x + l, y + t, x + 
 /** Two boxes overlap (touching edges do not count). */
 const hits = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
 
-/** A landmark's label link box at zoom `z` (screen px, stage origin): [left, top, right, bottom]. */
+/**
+ * A landmark's name plate at zoom `z` (screen px, stage origin): [left, top,
+ * right, bottom]. Centred under the pin; `align: 'end'` ends it at the
+ * land's right edge instead, so it stays on the stage at zoom ½.
+ */
 export function landmarkLabel(m: WorldLandmark, z: number): Box {
   const w = m.name.length * LANDMARK_LABEL.char + LANDMARK_LABEL.pad;
   const left = m.align === 'end' ? (m.x + m.w / 2) * z - w : m.x * z - w / 2;
-  const top = (m.y + m.h / 2) * z + LANDMARK_LABEL.top;
+  const top = m.y * z + LANDMARK_LABEL.top;
   return [left, top, left + w, top + LANDMARK_LABEL.h];
 }
 
@@ -344,7 +364,7 @@ const PIN_GAP = 4;
  * Everything on the stage that says something, as boxes in art px, each
  * tagged with the zoom step it is for (null: the compass, every zoom):
  * every pin (core realms and slots, plus PIN_GAP), every marker's label
- * plate (shown from zoom 1), landmark labels, the compass, and for the current
+ * plate (shown from zoom 1), landmark pins and labels, the compass, and for the current
  * realm its tag and the hero. Drawn terrain (terrainGlyphs) stays out of
  * every box of each zoom it shows at, so a glyph never hides a pin or a word.
  */
@@ -362,7 +382,10 @@ export function worldKeepClear(
       boxes.push([at(p.x, p.y, art(pin)), z]);
       if (z >= 1) boxes.push([at(p.x, p.y, art(WORLD_HERO.detail)), z]);
     }
-    for (const m of geometry.landmarks) boxes.push([art(landmarkLabel(m, z)), z]);
+    for (const m of geometry.landmarks) {
+      boxes.push([at(m.x, m.y, art(pin)), z]);
+      boxes.push([art(landmarkLabel(m, z)), z]);
+    }
     if (current) {
       boxes.push([at(current.x, current.y, art(WORLD_HERO.tag)), z]);
       const side = heroSide(current, geometry) ?? 'left';
@@ -378,7 +401,7 @@ export function worldKeepClear(
  * Is the hero clear on this side of `anchor` at zoom `z`? Clear means it
  * stays on the stage and touches nothing that says something: no pin (its
  * own, a core realm's, or any slot's, as if a realm stood there), no
- * landmark label, and not its own marker's tag or name.
+ * landmark pin or label, and not its own marker's tag or name.
  */
 export function heroClear(
   anchor: { x: number; y: number },
@@ -392,8 +415,8 @@ export function heroClear(
   if (hero[0] < 0 || hero[1] < 0 || hero[2] > geometry.width * z || hero[3] > geometry.height * z)
     return false;
 
-  const pins = [...Object.values(geometry.realms), ...geometry.slots].map((p) =>
-    at(p.x * z, p.y * z, WORLD_HERO.pinBox),
+  const pins = [...Object.values(geometry.realms), ...geometry.slots, ...geometry.landmarks].map(
+    (p) => at(p.x * z, p.y * z, WORLD_HERO.pinBox),
   );
   const labels = geometry.landmarks.map((m) => landmarkLabel(m, z));
   const own = [

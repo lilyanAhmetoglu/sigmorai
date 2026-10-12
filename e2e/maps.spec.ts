@@ -1,5 +1,15 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MAP_TEXT, QUEST_STOP_TEXT, REALMS, WORLD_MAP_TEXT } from '@/lib/constants';
+import {
+  MAP_HREF,
+  MAP_TEXT,
+  MATH_HREF,
+  MATH_TOWER,
+  QUEST_STOP_TEXT,
+  REALMS,
+  REALMS_HREF,
+  TRACK_PARAM,
+  WORLD_MAP_TEXT,
+} from '@/lib/constants';
 import { realmStopCount } from './content';
 
 /**
@@ -89,4 +99,48 @@ test('world map: markers show name, status and progress at zoom 1, on a phone to
   // Zoom ½: the plates hide, the pins stay.
   await page.getByRole('button', { name: WORLD_MAP_TEXT.zoomOut }).click();
   await expect(label).toBeHidden();
+});
+
+test('/realms moves to the world map for good, keeping ?track=; realm pages stay', async ({
+  request,
+  page,
+}) => {
+  const res = await request.get(`${REALMS_HREF}?${TRACK_PARAM}=creator`, { maxRedirects: 0 });
+  expect(res.status()).toBe(308);
+  const to = new URL(res.headers().location, 'http://x');
+  expect(`${to.pathname}${to.search}`).toBe(`${MAP_HREF}?${TRACK_PARAM}=creator`);
+  await page.goto(`${REALMS_HREF}/${REALMS[1].slug}`);
+  await expect(page).toHaveURL(new RegExp(`${REALMS_HREF}/${REALMS[1].slug}$`));
+});
+
+test('world map: the Math Tower has a pin and a name on the map, and a side-realm link', async ({
+  page,
+}) => {
+  await page.setViewportSize(PHONE);
+  await page.goto(MAP_HREF);
+  // On the map: a 44px link with a visible name plate, named for screen readers too.
+  const landmark = page.getByRole('link', { name: WORLD_MAP_TEXT.landmark(MATH_TOWER.name) });
+  await expect(landmark).toHaveAttribute('href', MATH_HREF);
+  const box = await landmark.boundingBox();
+  expect(box?.width).toBeGreaterThanOrEqual(44);
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  await landmark.scrollIntoViewIfNeeded();
+  await expect(landmark.locator('.world-landmark-name')).toBeVisible();
+  // The map key explains its pin.
+  await expect(page.getByRole('list', { name: WORLD_MAP_TEXT.legendLabel })).toContainText(
+    WORLD_MAP_TEXT.legend.sideRealm,
+  );
+  // Under the map: the side-realm button goes to the tower.
+  await page.getByRole('link', { name: MATH_TOWER.name, exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`${MATH_HREF}$`));
+});
+
+test('world map: no sideways page scroll on a phone at 360px', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(MAP_HREF);
+  await expect(page.locator('.realm-card').first()).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
 });

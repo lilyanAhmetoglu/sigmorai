@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { MAP_HREF, REALMS_HREF } from './lib/constants/nav';
 import { clerkFapiOrigin, securityHeaders } from './lib/security/headers';
 
 const headers = securityHeaders({
@@ -30,6 +31,12 @@ const nextConfig: NextConfig = {
   // CSP, framing, sniffing, referrer and feature limits on every route (SIG-27).
   async headers() {
     return [{ source: '/(.*)', headers }];
+  },
+  // The realms list merged into the world map (maintainer, 2026-10-12). 308, so old links and
+  // search results move over. The query (`?track=`) passes through on its own. Only the exact
+  // path: the realm pages (/realms/<slug>) stay.
+  async redirects() {
+    return [{ source: REALMS_HREF, destination: MAP_HREF, permanent: true }];
   },
 };
 

@@ -4,7 +4,7 @@ import type { Track } from '@/lib/types';
 
 type Props = {
   current: Track;
-  /** The page URL for a track, e.g. realmsHref. */
+  /** The page URL for a track, e.g. worldMapHref. */
   hrefFor: (track: Track) => string;
 };
 

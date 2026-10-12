@@ -55,10 +55,10 @@ export const NOT_FOUND_TEXT = {
   title: 'Page not found',
   body: 'There is no page at this address. Check the link, or start again from one of these pages.',
   /** The in-app 404 (app/(app)/not-found.tsx): one link back, the HUD stays. */
-  appBody: 'There is no page at this address. Check the link, or go back to the realms.',
+  appBody: 'There is no page at this address. Check the link, or go back to the world map.',
   linksLabel: 'Where to go next',
   home: 'Home',
-  realms: 'Realms',
+  map: 'World map',
   blog: 'Blog',
 } as const;
 

@@ -15,14 +15,14 @@ import {
   LEADERBOARD_TEXT,
   LLMS_TEXT,
   MATH_HREF,
+  MAP_HREF,
   MATH_TEXT,
   PRIVACY_HREF,
   PRIVACY_META,
-  REALMS_HREF,
-  REALMS_TEXT,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITEMAP_HREF,
+  WORLD_MAP_TEXT,
 } from '@/lib/constants';
 import type { BlogPost } from '@/lib/types';
 import { absoluteUrl } from '@/lib/utils';
@@ -48,7 +48,7 @@ export function llmsTxt(posts: readonly LlmsPost[], siteUrl: string): string {
     LANDING_META.description,
     '',
     ...section(sections.learn, [
-      link(LLMS_TEXT.realmsLabel, REALMS_HREF, REALMS_TEXT.description),
+      link(LLMS_TEXT.mapLabel, MAP_HREF, WORLD_MAP_TEXT.description),
       link(MATH_TEXT.title, MATH_HREF, MATH_TEXT.description),
     ]),
     ...section(sections.blog, [

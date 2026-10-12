@@ -314,23 +314,29 @@
     top: max(0px, calc(var(--hero-y) + --spacing(18)));
   }
 
-  /* Landmark: a plain link with its name (Math Tower, the Frontier), on the
-     island's south shore, so the island itself stays visible. The link is a
-     transparent 44px-tall target; the name inside is a thin plate like a
-     realm's name. */
+  /* Landmark (Math Tower, the Frontier): stands like a realm marker, so it
+     is easy to find. A transparent 44px link on the anchor holding a 28px
+     pin in its accent with a diamond pip (WORLD_LANDMARK_PIP, "side realm"
+     in the map key), and a one-line parchment name plate 24px under the
+     anchor, at every zoom: landmarkLabel (lib/constants/world-map.ts) is its
+     box, and a test checks the h-5 and the top offset here. */
   .world-landmark {
-    @apply absolute z-10 flex min-h-11 -translate-x-1/2 items-center no-underline;
+    @apply absolute z-10 grid size-11 -translate-x-1/2 -translate-y-1/2 place-items-center no-underline;
     left: calc(var(--x) * var(--world-z));
-    top: calc((var(--y) + var(--half-h)) * var(--world-z) - --spacing(3));
+    top: calc(var(--y) * var(--world-z));
   }
   .world-landmark-name {
-    @apply bg-parchment-100 text-parchment-900 font-hud text-micro tracking-hud shadow-drop-sm px-1.5 py-px leading-tight whitespace-nowrap uppercase;
+    @apply bg-parchment-100 text-parchment-900 font-hud text-micro tracking-hud shadow-drop-sm absolute top-[calc(100%+--spacing(0.5))] left-1/2 flex h-5 w-max -translate-x-1/2 items-center px-1.5 leading-none whitespace-nowrap uppercase;
   }
-  /* Near the east edge: the label ends at the land's right edge, so it stays
-     on the stage at zoom ½. */
-  .world-landmark[data-align='end'] {
-    @apply -translate-x-full;
-    left: calc((var(--x) + var(--half-w)) * var(--world-z));
+  .world-landmark:hover .world-landmark-name {
+    @apply bg-parchment-200;
+  }
+  /* Near the east edge: the plate ends at the land's right edge (anchor +
+     half the land × zoom), so it stays on the stage at zoom ½. The link's
+     right edge is 22px (half of 44) right of the anchor. */
+  .world-landmark[data-align='end'] .world-landmark-name {
+    @apply left-auto translate-x-0;
+    right: calc(--spacing(5.5) - var(--half-w) * var(--world-z));
   }
 
   /* Under the box: where you are (tag + realm name, so the map at ½ still
@@ -379,6 +385,10 @@
   }
   svg + .world-marker-pip[data-legend] {
     @apply absolute right-0 bottom-0;
+  }
+  /* The side-realm row: a small landmark pin (20px, its pip on the corner). */
+  .world-marker-pin[data-legend] {
+    @apply size-5;
   }
   .world-legend-here {
     fill: var(--xp);

@@ -4,7 +4,7 @@ import { FloorCard } from '@/components/math/floor-card';
 import { RealmScene } from '@/components/realms/realm-scene';
 import { SignInNote } from '@/components/realms/sign-in-note';
 import { ShareButtons } from '@/components/share-buttons';
-import { MATH_HREF, MATH_TEXT, REALMS_HREF, SHARE_TEXT, SITE_NAME } from '@/lib/constants';
+import { MAP_HREF, MATH_HREF, MATH_TEXT, SHARE_TEXT, SITE_NAME } from '@/lib/constants';
 import { MATH_ART } from '@/lib/content/curriculum';
 import { getMathPage } from '@/lib/data/math';
 import { socialMetadata } from '@/lib/og/metadata';
@@ -35,7 +35,7 @@ export default async function MathPage() {
 
   return (
     <div className="max-w-app mx-auto flex w-full flex-col gap-6 px-4 py-6" data-accent="math">
-      <Link href={REALMS_HREF} className="realm-back">
+      <Link href={MAP_HREF} className="realm-back">
         <span aria-hidden="true">{MATH_TEXT.backIcon}</span>
         {MATH_TEXT.back}
       </Link>

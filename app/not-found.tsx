@@ -5,9 +5,9 @@ import {
   BLOG_HREF,
   HOME_HREF,
   MAIN_CONTENT_ID,
+  MAP_HREF,
   NOT_FOUND_META,
   NOT_FOUND_TEXT,
-  REALMS_HREF,
 } from '@/lib/constants';
 
 export const metadata: Metadata = {
@@ -35,8 +35,8 @@ export default function NotFound() {
         </div>
         <nav aria-label={NOT_FOUND_TEXT.linksLabel} className="flex flex-wrap gap-3">
           <PixelButton href={HOME_HREF}>{NOT_FOUND_TEXT.home}</PixelButton>
-          <PixelButton href={REALMS_HREF} variant="secondary">
-            {NOT_FOUND_TEXT.realms}
+          <PixelButton href={MAP_HREF} variant="secondary">
+            {NOT_FOUND_TEXT.map}
           </PixelButton>
           <PixelButton href={BLOG_HREF} variant="secondary">
             {NOT_FOUND_TEXT.blog}

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { PixelButton } from '@/components/pixel-button';
 import { RealmScene } from '@/components/realms/realm-scene';
-import { LANDING_TEXT, REALMS_HREF, REALMS_TEXT, realmHref, realmRow } from '@/lib/constants';
+import { LANDING_TEXT, MAP_HREF, REALMS_TEXT, realmHref, realmRow } from '@/lib/constants';
 import { realmAccent, realmNumber } from '@/lib/content/curriculum';
 import type { TrackOutline } from '@/lib/types';
 
@@ -56,7 +56,7 @@ export function RealmsPreview({ outline }: Props) {
         })}
       </ul>
       <div className="landing-cta">
-        <PixelButton href={REALMS_HREF} variant="secondary">
+        <PixelButton href={MAP_HREF} variant="secondary">
           {LANDING_TEXT.realmsAll}
         </PixelButton>
       </div>

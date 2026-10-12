@@ -9,11 +9,11 @@ import {
   LEADERBOARD_TEXT,
   LESSON_DONE_ID,
   MAIN_CONTENT_ID,
+  MAP_HREF,
   NAV_ITEMS,
   ONBOARDING_TEXT,
   QUEST_TEXT,
   REALMS,
-  REALMS_HREF,
   REALMS_TEXT,
   realmHref,
   SHELL_TEXT,
@@ -89,9 +89,9 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   await banner
     .getByRole('navigation', { name: SHELL_TEXT.navLabel })
     .first()
-    .getByRole('link', { name: NAV_ITEMS.find((item) => item.href === REALMS_HREF)?.label })
+    .getByRole('link', { name: NAV_ITEMS.find((item) => item.href === MAP_HREF)?.label })
     .click();
-  await expect(page).toHaveURL(new RegExp(`${REALMS_HREF}$`));
+  await expect(page).toHaveURL(new RegExp(`${MAP_HREF}$`));
   await expect(banner.getByRole('group', { name: HUD_TEXT.label })).toContainText(hero);
   await expect(banner.locator(ACCOUNT_BUTTON)).toBeVisible();
 

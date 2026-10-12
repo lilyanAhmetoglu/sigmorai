@@ -22,7 +22,7 @@ describe('llmsTxt', () => {
   test('links the public pages as absolute URLs, in H2 sections, Optional last', () => {
     const headings = lines.filter((l) => l.startsWith('## '));
     expect(headings).toEqual(['## Learn', '## Blog', '## Optional']);
-    for (const path of ['/realms', '/math', '/blog', '/leaderboard', '/sitemap.xml']) {
+    for (const path of ['/map', '/math', '/blog', '/leaderboard', '/sitemap.xml']) {
       expect(text).toContain(`](${SITE}${path}): `);
     }
   });
