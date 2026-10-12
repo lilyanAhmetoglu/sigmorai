@@ -38,7 +38,7 @@ export type QuestFailure = {
 };
 
 /**
- * How the open check runs. `unlockAll`: a server-side tester (UNLOCK_ALL_EMAILS)
+ * How the open check runs. `unlockAll`: a server-side tester (UNLOCK_ALL_USER_IDS)
  * skips the tier lock and the chapter / floor order. Never set from client input.
  */
 export type OpenOptions = { unlockAll?: boolean };

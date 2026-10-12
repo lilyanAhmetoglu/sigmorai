@@ -126,8 +126,8 @@ async function submitAnswers(
   // Pure (no IO), so it runs before the transaction: a malformed answer set never takes the row lock.
   const graded = gradeAnswers(questions, seed, answers);
   if (!graded.ok) return fail(graded);
-  // A Clerk read: before the transaction, so it never holds the row lock.
-  const unlockAll = await isUnlockAll(userId);
+  // A server-side tester (env allowlist of Clerk ids); never from the client.
+  const unlockAll = isUnlockAll(userId);
 
   let outcome: SubmitAnswersResult | QuestFailure;
   try {
@@ -193,8 +193,8 @@ export async function completeLesson(input: unknown): Promise<CompleteLessonResu
   const parsed = CompleteLessonInputSchema.safeParse(input);
   if (!parsed.success) return fail(questFailure('INVALID_INPUT'));
   const { exerciseId } = parsed.data;
-  // A Clerk read: before the transaction, so it never holds the row lock.
-  const unlockAll = await isUnlockAll(userId);
+  // A server-side tester (env allowlist of Clerk ids); never from the client.
+  const unlockAll = isUnlockAll(userId);
 
   let outcome: CompleteLessonResult;
   try {

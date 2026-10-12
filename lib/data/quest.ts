@@ -245,7 +245,7 @@ export async function getQuestPage(exerciseId: string): Promise<QuestPage> {
   let viewer: AnswerViewer = { status: 'signed-out' };
   if (hud.status === 'onboarding') viewer = { status: 'onboarding' };
   if (hud.status === 'ready' && userId) {
-    const open = await checkOpen(db, userId, exerciseId, { unlockAll: await isUnlockAll(userId) });
+    const open = await checkOpen(db, userId, exerciseId, { unlockAll: isUnlockAll(userId) });
     if (!open.ok) return { kind: 'locked', message: open.message };
     viewer = await readyViewer(userId, exerciseId, kind);
   }
@@ -299,7 +299,7 @@ async function lessonViewer(exerciseId: string): Promise<LessonViewer> {
   // getHudState is cached per request; auth() gives the same session's id.
   const { userId } = await auth();
   if (hud.status !== 'ready' || !userId) return { status: 'signed-out' };
-  const open = await checkOpen(db, userId, exerciseId, { unlockAll: await isUnlockAll(userId) });
+  const open = await checkOpen(db, userId, exerciseId, { unlockAll: isUnlockAll(userId) });
   if (!open.ok) return { status: 'not-open', message: open.message };
   const { cleared } = await readAttempts(db, userId, exerciseId, new Date());
   return { status: 'ready', cleared };
