@@ -1,7 +1,7 @@
 ---
 id: creator/r11/c4/lesson
 title: Seeds & steps
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Ideogram docs · Image settings
@@ -32,87 +32,171 @@ sources:
     url: https://developers.openai.com/api/docs/guides/image-generation
 ---
 
-## Why it matters
+## Goal
 
-A client picks draft 3 of 4: "Perfect. Same picture, but make the mug blue." You run the prompt again with "blue mug". The mug is blue, but the table, the light and the angle are all new. The client asks for the old picture back. You can't find it.
+After this lesson you can:
 
-Tool Forge, chapter 1, showed the order form: size, quality, background. This chapter adds the **knobs** (settings) that OpenAI's and Google's image guides don't list: the **seed**, the **steps** and the **guidance**. Some other models have them, and they help you repeat a result.
+- Say what a seed is, what it repeats, and what breaks a repeat.
+- Save everything you need to make an image again, on an API or on your own GPU (graphics card).
+- Explain what steps and guidance trade, and which models let you change them.
 
-## Why the same prompt gives a new picture
+## The problem
 
-Hugging Face's diffusers docs say it plainly: "Diffusion is a random process that generates a different output every time."
+Leafline is an online plant shop. In March, the team made 40 product backgrounds with the Ideogram 4.5 API. They saved each image and the prompt they typed.
 
-Diffusion models start from random noise and clean it up, step by step, until a picture appears (our plain summary). The noise is different each run, so the picture is different each run.
+In October, the print shop asks for one background again: the team's copy was a small web version, and the print needs a fresh, full-size run. The team sends the same prompt again. The new image is close in mood, but the shelf, the light and the pot are all different.
 
-A **seed** is the number that sets that starting noise (our plain gloss). Ideogram's settings page: "The seed is the number a run starts from."
+The team did not change the prompt. So what changed? The answer is in the parts nobody saved.
 
-## Where the seed lives
+## The idea
 
-| Where (October 2026)           | How you set it                                              |
-| ------------------------------ | ----------------------------------------------------------- |
-| Ideogram Image app             | **Seed** under **Advanced settings**, on every model        |
-| Ideogram API (Ideogram 4.5)    | `seed`: "Set for reproducible generation."                  |
-| Diffusers, on your own GPU     | a `Generator` with `manual_seed(0)`, passed to the pipeline |
-| FLUX 3 Image (BFL API)         | no seed: the endpoint rejects `seed` with HTTP `422`        |
-| OpenAI and Gemini image guides | no seed for repeats in either guide (more below)            |
+### Why the same prompt gives a new picture
 
-Two details from the pages:
+The [diffusers docs](https://huggingface.co/docs/diffusers/en/using-diffusers/reusing_seeds) (diffusers is Hugging Face's library for running image models yourself) say: "Diffusion is a random process that generates a different output every time."
 
-- **Ideogram returns the seed.** Every result in the API response has a `seed` field (the page marks it required). Save it with the image (our habit).
-- **FLUX 3 Image is strict.** BFL says the endpoint "rejects unknown fields with HTTP `422`, so fields from other BFL endpoints, such as `seed`, `width`, and `input_image`, don't work here."
+A diffusion model starts from random noise and cleans it up, step by step, until a picture appears (our plain summary). The noise is new each run, so the picture is new each run.
 
-## What a seed repeats, and what it does not
+A **seed** is the number that sets the starting noise. The [Ideogram settings page](https://docs.ideogram.ai/create/image-settings) says: "The seed is the number a run starts from."
 
-Ideogram's rule: "Use the same prompt, model, settings and seed to get the same or a very close result."
+A comparison: a seed is like the page number in a book of random noise. Same page, same start.
 
-That gives you the blue-mug fix: "Change one word and keep the seed to try a small change while keeping most of the layout."
+### What a seed repeats
 
-But a seed has limits. Ideogram warns: "Switching models, or changing a key idea in the prompt (say, "photo" to "painting"), gives a different image even with the same seed."
+The Ideogram settings page gives a rule with four parts. Keep the prompt, the model, the settings and the seed all unchanged. Then you get "the same or a very close result". It adds: "Change one word and keep the seed to try a small change while keeping most of the layout."
 
-The diffusers docs add more limits for your own machine:
+And the limit, in a warning box: "Switching models, or changing a key idea in the prompt (say, "photo" to "painting"), gives a different image even with the same seed."
 
-- **Use a CPU `Generator`.** "CPU RNG is more stable across machines." (RNG means random number generator.)
-- **Make a fresh one each time.** A `Generator` "keeps a random state that is consumed and updated when you use it." So "Reseed it or create a new `Generator` before each call when you need the same seed again."
-- **It is still not a promise.** Randomness can be limited, "but it is not _guaranteed_ even with an identical seed."
+In the Image app, every model has a **Seed** field, in its **Advanced settings**. When the field is empty it shows "Random", "which means each run gets a new seed."
 
-So a seed means "same or very close", not "pixel for pixel" (our reading).
+### Seeds on the Ideogram API
 
-## Rewriters and model updates break repeats
+The [Ideogram 4.5 API page](https://developer.ideogram.ai/api-reference/images/generate/ideogram-4-5) lists a `seed` field: "Set for reproducible generation." Each image in the response comes back with:
 
-Two more things change a result behind your back.
+- `seed`: the seed it used. The page marks it required, so it is always there.
+- `prompt`: "The final prompt the image was generated from."
+- `resolution`: the size it was made at.
 
-**A prompt rewriter.** Chapter 1 showed Magic Prompt. In Ideogram's API, `magic_prompt` set to `auto` (the default) or `on` will "rewrite and expand the prompt before generation." Each result returns "The final prompt the image was generated from." So log that final prompt next to the seed (our habit). On your own machine, the diffusers FLUX.2 pipeline tries this "caption upsampling" (its name for a prompt rewrite) only when you set `caption_upsample_temperature`.
+Why a "final" prompt? Because of `magic_prompt`. The page says `auto` "(the default) and `on` rewrite and expand the prompt before generation." The value `off` "keeps your wording and only converts it into a structured prompt." It also says: "A valid structured JSON prompt skips magic prompt unless `magic_prompt` is `on`." (A JSON prompt is a prompt written as named fields.)
 
-**A model that moves.** BFL has preview endpoints, "where our latest improvements land first". It also has fixed ones. A **snapshot** is a saved copy that does not change (our gloss). `flux-2-pro` is "A fixed snapshot of FLUX.2 [pro]. This endpoint will not change, making it suitable for workflows that require reproducibility." A seed can't repeat a picture if the model under it changed (our reading).
+The `size` field matters too: "auto" or no size "picks a supported size based on the prompt."
 
-## Steps and guidance
+### Seeds on your own GPU
 
-Two more knobs appear on some models.
+The diffusers docs explain seeds in code. You pass a `Generator`, set with `manual_seed`. Three rules:
 
-**Steps** (`num_inference_steps` in diffusers) is how many clean-up rounds the model runs. Diffusers: "More denoising steps usually lead to a higher quality image at the expense of slower inference." The FLUX.2 pipeline's default is 50.
+- "Use a CPU `Generator` when you care about reproducibility. CPU RNG is more stable across machines." (RNG means random number generator.) A GPU one "can diverge from CPU results."
+- A `Generator` "keeps a random state that is consumed and updated when you use it." So: "Reseed it or create a new `Generator` before each call when you need the same seed again."
+- It is still not a promise: randomness can be limited, "but it is not _guaranteed_ even with an identical seed."
 
-**Guidance** (`guidance_scale` in diffusers) is how hard the model follows your prompt. Diffusers: "Higher `guidance_scale` encourages a model to generate images more aligned with `prompt` at the expense of lower image quality."
+Our reading: a seed means near enough, not the very same pixels.
 
-So both are trade-offs. More steps cost time. More guidance can cost quality (our summary).
+### Where there is no seed
 
-Which FLUX.2 models expose them? BFL's model table lists "Adjustable steps & guidance" for FLUX.2 [flex] only. [klein], [pro] and [max] say "Standard". FLUX.2 [klein] is **step-distilled**: made to work in a few steps (our gloss). BFL lists 4 inference steps for it.
+- **FLUX 3 Image.** The [BFL page](https://docs.bfl.ai/flux_3/flux3_image_generate) says the endpoint "rejects unknown fields with HTTP `422`, so fields from other BFL endpoints, such as `seed`, `width`, and `input_image`, don't work here." HTTP 422 is an error reply: the request is refused.
+- **OpenAI and Gemini.** Neither image guide lists a seed for repeating an image (our check of both pages, October 2026). Google's [API reference](https://ai.google.dev/api/generate-content) has a general setting: "Seed used in decoding." But the image guide does not say it repeats an image, so don't count on it for that (our reading).
 
-Our advice: change one knob at a time, keep the seed fixed, and compare side by side.
+These guides offer other ways to keep a picture steady. The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation): "Multi-turn conversation is the recommended way to iterate on images." The [OpenAI docs](https://developers.openai.com/api/docs/guides/image-generation) let you carry an image forward in a conversation with `previous_response_id`. Our advice: on these two, save the approved file and keep editing it.
 
-## What OpenAI and Gemini give instead
+### Models that move
 
-Neither image guide lists a seed (our check of both pages, October 2026). Google's API reference does have one in its general settings: "Seed used in decoding. If not set, the request uses a randomly generated seed." But the image guide doesn't say it repeats an image. So don't count on it for that (our reading). The guides offer other ways to keep a picture steady.
+The [FLUX.2 overview](https://docs.bfl.ai/flux_2/flux2_overview) says: "Preview endpoints are where our latest improvements land first." It also lists fixed ones. `flux-2-pro` is "A fixed snapshot of FLUX.2 [pro]. This endpoint will not change, making it suitable for workflows that require reproducibility." A **snapshot** is a saved copy of a model that does not change (our gloss). Our reading: a seed can't repeat a picture if the model under it has changed.
 
-- **Stay in the conversation.** Gemini: "Multi-turn conversation is the recommended way to iterate on images." OpenAI's Responses API can carry an image forward with `previous_response_id`. Prompt Forest, chapter 3, showed this for a brand set.
-- **Keep the input image's details.** OpenAI's `input_fidelity` "controls how strongly a model preserves details from input images during edits and reference-image workflows." For `gpt-image-2`, OpenAI says to omit it: the model "processes every image input at high fidelity automatically."
+### Steps and guidance
 
-So for the blue mug on OpenAI or Gemini, save the approved file and edit it in the same conversation. Don't regenerate from the prompt (our advice).
+Two more knobs appear on some models. The [diffusers FLUX.2 page](https://huggingface.co/docs/diffusers/en/api/pipelines/flux2) explains both.
 
-## What this means for your work
+- **Steps** (`num_inference_steps`) are the clean-up rounds. In `Flux2Pipeline` the default is 50; the [klein] KV pipeline on the same page defaults to 4. "More denoising steps usually lead to a higher quality image at the expense of slower inference."
+- **Guidance** (`guidance_scale`) is how hard the model follows your prompt. "Higher `guidance_scale` encourages a model to generate images more aligned with `prompt` at the expense of lower image quality."
 
-- **Save the seed and the final prompt** with every image you might reuse.
-- **Same prompt, model, settings and seed** give the same or a very close result. Change one word for a small change.
-- **A new model means a new picture**, even with the same seed. Pin a fixed snapshot when you need repeats.
-- **On your own GPU, make a fresh CPU `Generator` per image.**
-- **Steps trade time for quality. Guidance trades quality for prompt-following.** Change one at a time.
-- **No seed for repeats in the OpenAI or Gemini image guides?** Save the approved file and edit it in the conversation.
+The same page has a prompt rewrite of its own, "caption upsampling". It runs when you set `caption_upsample_temperature`.
+
+Which FLUX.2 models let you change steps and guidance? The BFL overview table lists "Adjustable steps & guidance" for FLUX.2 [flex]. Most others say "Standard". FLUX.2 [klein] is "step-distilled": trained to work in only 4 inference steps (our gloss of the table).
+
+## Worked example
+
+Our example. Every name and number in it is invented.
+
+### Step 1: the weak record
+
+What the team saved in March:
+
+```text
+file:    fern-shelf-web.jpg   (a small web copy)
+prompt:  "A potted fern on a light oak shelf, soft morning light"
+```
+
+There is no seed. There is no record of `magic_prompt`, `size` or `quality`. So the October run started from new noise and a new rewrite.
+
+### Step 2: what the API had already sent back
+
+The March response held everything. It was just never stored:
+
+```text
+seed:        58213
+resolution:  1024x1024
+prompt:      (final) a longer text: the fern, the shelf, plus details
+             the rewrite added, such as a linen curtain and a white pot
+```
+
+### Step 3: the hard case
+
+**The hard case is the final prompt.** `magic_prompt` was on `auto`, the default, so the API sent back a longer final prompt than the one typed. Sending the typed prompt again asks for a fresh rewrite.
+
+Our reading of the API page: send the saved final prompt, with the same seed, size and quality, and `magic_prompt` set to `off`. The page says `off` "keeps your wording and only converts it into a structured prompt".
+
+```text
+model:         Ideogram 4.5
+prompt:        <the saved final prompt, word for word>
+magic_prompt:  off
+seed:          58213
+size:          1024x1024     (not "auto")
+quality:       high
+```
+
+### Step 4: the good record, from now on
+
+```text
+image:         fern-shelf-0007.png    (the full-size file, not only a web copy)
+model:         Ideogram 4.5
+typed prompt:  "A potted fern on a light oak shelf, soft morning light"
+final prompt:  <from the response>
+magic_prompt:  auto
+seed:          58213
+size:          1024x1024
+quality:       high
+date:          2026-03-14
+```
+
+### Step 5: why it is better
+
+- **The final prompt is stored.** The record holds the words the API really used.
+- **Nothing is left on "auto".** Size and quality are written down.
+- **The master file is kept.** The best repeat is the original file itself.
+
+## Common mistakes
+
+1. **Changing steps and guidance in the same test.** You can't tell which one helped. Fix: change one knob at a time and compare side by side.
+2. **Saving only a web copy.** A small copy can't go to print. Fix: keep the full-size master file with the record.
+3. **Tuning steps on BFL's API when the model doesn't offer it.** The BFL overview table gives [klein] "Standard" controls; only [flex] lists "Adjustable steps & guidance". Fix: check the model table before you plan a tuning test.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A teammate runs three jobs. For each, say what the run may change on its own, and what to save.
+
+1. On the Ideogram 4.5 API: a valid structured JSON prompt, with `magic_prompt` on `auto`.
+2. On the Ideogram 4.5 API: a request with no `size` field.
+3. On diffusers FLUX.2: `caption_upsample_temperature=0.15` is set.
+
+### Answer
+
+1. **Nothing is rewritten.** The API page says: "A valid structured JSON prompt skips magic prompt unless `magic_prompt` is `on`." Save the JSON exactly as sent.
+2. **The size.** With no size, the API "picks a supported size based on the prompt". Save the `resolution` from the response.
+3. **The prompt.** With this value set, the pipeline tries caption upsampling first. Save the value, and the rewritten prompt if you can see it (our advice).
+
+## Recap
+
+- A seed sets the starting noise. With nothing else changed, it repeats an image closely. A new model or a new key idea gives a new image.
+- Save the seed with the words it was used with: the final prompt after any rewrite. Leave nothing on "auto", and keep the master file.
+- Steps trade time for quality; guidance trades quality for prompt-following. Some models let you change them, some don't, and some APIs have no seed at all.
