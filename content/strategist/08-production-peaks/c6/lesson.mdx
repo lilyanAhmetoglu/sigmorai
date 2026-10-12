@@ -22,7 +22,7 @@ sources:
 After this lesson you can:
 
 - Turn a list of AI ideas into a one-page **AI roadmap** with three horizons: Now, Next and Later.
-- Give each roadmap line an owner, a tier, the things it needs first, a gate and the model it depends on.
+- Give each roadmap line an owner, a tier, the things it needs first, a **gate** (the check that must pass before a step starts) and the model it depends on.
 - Put the vendors' model retirement dates on the roadmap, so the plan does not break on a date you could have seen.
 
 ## The problem
@@ -36,7 +36,7 @@ Q2 2027  Feedback on student essays, all students
 Q2 2027  Chat helper for course questions
 ```
 
-Every line has a date. No line has an owner. Nobody knows what each item needs first. The essay feedback tool already runs as a small test on one vendor model, and nobody has checked that model's future. The board must decide what to fund next month, and asks: "Which of these dates can we trust?"
+The first line is a team of AI **agents** (an agent is an AI that can take actions, not only write text). Every line has a date. No line has an owner. Nobody knows what each item needs first. The essay feedback tool already runs as a small test on one vendor model, and nobody has checked that model's future. The board must decide what to fund next month, and asks: "Which of these dates can we trust?"
 
 A roadmap that is only a wish list of dates breaks the first time a vendor, a data gap or an incident gets in the way. The vendor facts in this lesson come from each vendor's docs (October 2026).
 
@@ -62,7 +62,7 @@ Dates get less certain as you move right. Say so on the page. Think of a weather
 6. What is the gate, and what is the stop rule?
 7. Which model and vendor does it depend on?
 
-**Order by simplicity and by what comes first.** Anthropic's post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) says: "we recommend finding the simplest solution possible, and only increasing complexity when needed." It also says: "Agentic systems often trade latency and cost for better task performance". (**Latency** means waiting time.) Our reading for a roadmap: a prompt or a fixed workflow comes before one agent, and one agent comes before a team of agents.
+**Order by simplicity and by what comes first.** The Anthropic engineering post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) says: "we recommend finding the simplest solution possible, and only increasing complexity when needed." It also says: "Agentic systems often trade latency and cost for better task performance". (**Latency** means waiting time.) Our reading for a roadmap: a prompt or a fixed workflow comes before one agent, and one agent comes before a team of agents.
 
 Things that must come first need a line of their own. A high-tier item that can act needs its approval step and its logs first. A tool that answers from your documents needs clean data first. Our advice: give each prerequisite its own line and owner, so it can be tracked and gated.
 
@@ -73,13 +73,16 @@ Things that must come first need a line of their own. A high-tier item that can 
 - **Deprecated:** "still functional but no longer recommended." Anthropic names a replacement and a retirement date.
 - **Retired:** "Requests to retired models will fail."
 
-The page warns: "Deprecated models are likely to be less reliable than active models." Customers with a live deployment get "at least 60 days' notice before model retirement for publicly released models." To find where you use a model, go to the Usage page in the Claude Console and export a CSV, which shows usage "broken down by API key and model." It also says to test "with the new models well before the retirement date."
+- The page warns: "Deprecated models are likely to be less reliable than active models."
+- Customers with a live deployment get "at least 60 days' notice before model retirement for publicly released models."
+- To find where you use a model, go to the Usage page in the Claude Console and export a CSV. It shows usage "broken down by API key and model."
+- It also says to test "with the new models well before the retirement date."
 
-The [OpenAI deprecations page](https://developers.openai.com/api/docs/deprecations) says OpenAI notifies "customers who are actively using the model by email" and also lists the change on that page, with blog posts for larger changes. It also lists minimum notice periods, which differ by model type (see Try it).
+The [OpenAI deprecations page](https://developers.openai.com/api/docs/deprecations) says OpenAI notifies "customers who are actively using the model by email" and also lists the change on that page, with blog posts for larger changes. It also lists minimum notice periods, which differ by model type (see Try it). For example, its 2026-10-01 entry says `gpt-5.1` "will be removed from the API on April 1, 2027, with six months' notice."
 
 So our advice: add a **model-change row** to the roadmap. Each half year, list the models in use, check both vendors' pages, and test the replacements.
 
-**Review on a rhythm, and early when needed.** Our advice: review every quarter. Review early when a vendor sends a deprecation notice, an incident happens, a use changes tier, or a pilot hits its stop rule. Keep a **Stopped** list with the reason for each stop. A stopped item is a success: the stop rule did its job.
+**Review on a rhythm, and early when needed.** Our advice: review every quarter. Review early when a vendor sends a deprecation notice, an incident happens, a use changes tier, or a pilot hits its stop rule. Keep a **Stopped** list that says why each item stopped. A stopped item is a success: the stop rule did its job.
 
 **Say what is a plan and what is a hope.** The [OpenAI safety guide](https://developers.openai.com/api/docs/guides/safety-best-practices) asks you to understand the system's limits and make sure users' "expectations are calibrated appropriately." A roadmap for the board should do the same.
 
@@ -92,7 +95,7 @@ The four lines above. What goes wrong:
 - **No owners**, so no one is responsible for any date.
 - **The hardest item comes first.** A team of five agents starts before one simple tool works.
 - **No prerequisites.** Exam grading decides students' results, a high-tier use in our tiers, but no approval step or appeal process is planned.
-- **No model check.** The essay tool's model may retire before Q2.
+- **No model check.** Nobody has checked the essay tool's model against the vendors' pages.
 
 ### Step 2: answer the seven questions
 
@@ -103,21 +106,22 @@ NOW (next 3 months)
   Chat helper for course questions
     Tier medium | Owner: A. Moreno, head of support
     Needs first: approved course FAQ pages
-    Gate: red-team test passed | Stop: wrong answers above
-    the agreed level | Model: one active model, named
+    Gate: red-team test passed | Stop: more than 5 wrong
+    answers in a weekly check of 100 | Model: one active
+    model, named
 
 NEXT (3 to 9 months)
   Essay feedback for all students
     Tier low (teachers read it first) | Owner: K. Osei
-    Needs first: model change (see hard case)
-  Exam grading helper: suggests a grade, a teacher decides
-    Tier high | Owner: R. Lind, head of exams
-    Needs first: teacher approval step, appeal process,
-    audit logs (each its own line and owner)
+    Needs first: none known; model on the model-change row
+  Exam marking helper, made smaller: it points a teacher
+  to answers that need a second look, and gives no grade
+    Tier low (teachers read it first) | Owner: R. Lind,
+    head of exams | Needs first: none
 
 LATER (9 to 18 months)
-  AI tutor: start as one simple workflow for one course.
-  A team of agents only if the simple version falls short.
+  AI tutor: an idea, no promise. No way to measure its
+  value yet, so it can't pass a gate.
 
 STANDING ROW
   Model change: each half year, list models, check both
@@ -130,23 +134,21 @@ STOPPED
 
 ### Step 3: the hard case
 
-**The hard case is the essay tool's model.** It runs on OpenAI's `gpt-5.1`. On the OpenAI deprecations page, the 2026-10-01 entry says `gpt-5.1` is deprecated and "will be removed from the API on April 1, 2027, with six months' notice." The recommended replacement is `gpt-6-sol`.
+**The hard case is the review rhythm.** The model-change row says "each half year". The Claude deprecations page promises "at least 60 days' notice before model retirement for publicly released models". The OpenAI page lists shorter periods for some model types (see Try it). So a notice can arrive, and the model can retire, between two half-year checks.
 
-The CEO's plan rolls the tool out to all students in Q2 2027, which starts on April 1. So any launch date in Q2 falls on or after the day the old model is removed.
-
-Our fix: the item stays in Next, but its first step is a model change. The team tests `gpt-6-sol` on a sample of past essays with known teacher grades, well before April. The rollout to all students starts only after that test passes. The model-change row catches the next case like this one before it reaches the board.
+Our fix: the OpenAI page says it notifies "customers who are actively using the model by email". Send vendor notices to the row's owner, not a shared inbox. A notice starts an early review that week. The half-year check stays, to catch what the notices miss.
 
 ### Step 4: why it is better
 
 - **Owned.** Every line has a person, so every date has someone who answers for it.
-- **Ordered.** Simple tools come first; the agent team waits for proof.
+- **Ordered.** Simple tools come first; the agent team waits until it can show value.
 - **Dated honestly.** Known model dates are on the page, and Later says "no promise".
 
 ## Common mistakes
 
-1. **Starting with the most complex item.** A team of agents adds cost and waiting time before a simple tool is proven. Fix: start with the simplest version, and build up only when tests show the need.
-2. **A prerequisite hidden inside a big item.** Nobody tracks it, so the date slips without warning. Fix: give each prerequisite its own line and owner.
-3. **A roadmap that only grows.** It turns into a wish list. Fix: keep a Stopped list with reasons.
+1. **Dates with no uncertainty shown.** The board reads a Later date as a promise. Fix: label Later items "no promise".
+2. **Checking only one vendor's deprecation page.** Two vendors means two calendars. Fix: the model-change row lists every model and both pages.
+3. **No measure of value.** An item can't show it worked, so it can't pass a gate. Fix: write how you will measure value before it moves to Now.
 
 ## Try it
 
