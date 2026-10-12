@@ -189,6 +189,15 @@ export const REALMS = [
     track: 'strategist',
     scene: true,
   },
+  {
+    id: 16,
+    slug: 'trade-quarter',
+    name: 'Trade Quarter',
+    npc: 'Envoy Rasa',
+    tier: 'beginner',
+    track: 'strategist',
+    scene: false,
+  },
 ] as const satisfies readonly RealmRow[];
 
 /** Whether a realm is on this track: a core realm, or a specialist realm the track owns. */
