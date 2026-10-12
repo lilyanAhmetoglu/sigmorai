@@ -14,7 +14,7 @@ type Props = { state: HudState };
  * server (HudSlot) or the client (PublicHud) passes the state.
  * No HP here: HP is per case and lives in the quest panel (quest-actions
  * spec). `data-state` sets the layout (hud-bar.css): a visitor's two buttons
- * stay on the logo row; a player's stats wrap to their own row below lg.
+ * stay on the logo row; a player's stats wrap to their own row below md.
  */
 export function HudBar({ state }: Props) {
   if (state.status === 'signed-out') {

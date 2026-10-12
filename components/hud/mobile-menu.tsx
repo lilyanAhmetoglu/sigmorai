@@ -7,7 +7,7 @@ import { NavLinks } from './nav-links';
 import { MenuSignIn } from './signed-out-actions';
 
 /**
- * Nav below lg. A native <details>, so it opens and closes without JS.
+ * Nav below xl. A native <details>, so it opens and closes without JS.
  * With JS it also closes on navigation and on Escape. Below sm it also holds
  * a visitor's Sign in (MenuSignIn), which has no room in the header bar there.
  */
