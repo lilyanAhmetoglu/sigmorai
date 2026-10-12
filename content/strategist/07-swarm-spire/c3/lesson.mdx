@@ -1,7 +1,7 @@
 ---
 id: strategist/r7/c3/lesson
 title: Roles & skills
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Skills for enterprise
@@ -20,80 +20,159 @@ sources:
     url: https://learn.chatgpt.com/docs/enterprise/admin-setup
 ---
 
-## Why it matters
+## Goal
 
-Once AI tools reach a team, three questions come up fast. Who may use what? Who owns each workflow and each shared prompt or skill? What can people do that they could not do before?
+After this lesson you can:
 
-If nobody answers, the answers appear by accident. The most eager person becomes an admin. Shared tools have no owner. This chapter gives you a simple way to answer all three.
+- Give each person the right kind of access: a seat, a built-in role or a custom role.
+- Explain why access in an AI tool does not open the other systems it connects to.
+- Run shared skills like company assets: a named owner, a separate reviewer, a registry, a review date and a tested merge.
 
-## Access: seat, admin role, custom role
+## The problem
 
-OpenAI's guide on roles and workspace permissions separates three things in ChatGPT Enterprise:
+A retail chain is about to open its AI tools to 500 head-office staff. Staff will work in ChatGPT Enterprise, and 40 developers will use Claude Code. During the pilot, teams built shared **skills**. A skill is a packaged set of instructions, and sometimes scripts, that the AI tool loads when a task needs it. Think of it as a written procedure for a new colleague.
 
-- A **seat** decides which product surfaces a member can use.
-- A **built-in role** decides administrative power. Owner manages workspace-wide settings, Admin manages supported operations and groups, Member has no admin rights, and Analytics Viewer can open workspace analytics.
-- A **custom role** decides which supported features a member can use. It does not replace the seat, and it does not grant rights in a connected system.
+The rollout plan says "IT owns it". The merchandising team built three small skills that work well. Next week it wants to merge them into one big skill. The chief operating officer asks two questions: who owns each part of the rollout, and when is a merge safe? The guidance below comes from the OpenAI ChatGPT Enterprise docs and the Claude docs (October 2026).
 
-The rollout guide adds a short rule: keep built-in administration roles limited to the people who administer the workspace.
+## The idea
 
-Anthropic's Claude Code analytics page also splits setup by role. Admins and Owners can view the dashboard. Only an Owner can turn on contribution metrics, and a GitHub admin must install the GitHub app.
+**Three kinds of access.** The OpenAI page [Roles and workspace permissions](https://learn.chatgpt.com/docs/enterprise/roles-and-workspace-permissions) separates three things in ChatGPT Enterprise:
 
-Example: a pilot lawyer needs to try the tool every day. She needs a seat and a feature role. She does not need the Admin role.
+- A **seat** decides which parts of the product a person can reach. The page calls them "product surfaces".
+- A **built-in role** decides administrative power. The page lists four:
+  - **Owner**: "manages workspace-wide settings".
+  - **Admin**: "manages supported operations and groups".
+  - **Member**: "doesn't have administrative rights".
+  - **Analytics Viewer**: "can access workspace analytics".
+- A **custom role** sets the features a person may use. It does not replace the seat. It does not give rights in a connected system.
 
-## Access stops at the next system
+The page adds: "Only workspace owners can configure role-based access control (RBAC) and create custom roles." The [OpenAI admin rollout guide](https://learn.chatgpt.com/docs/enterprise/admin-setup) gives a short rule: "Keep built-in administration roles limited to the people who administer the workspace." Our comparison: a seat is a ticket to the building, a custom role is a key to some rooms, and Admin is the master key.
 
-OpenAI's page lists six control boundaries: the workspace, local clients, Codex cloud (hosted coding tasks), the API platform, plugins and connected systems. It says a request must pass every boundary that applies. Workspace access can make a plugin available, but the connected service still decides what the signed-in account can read.
+The Claude Code side splits roles too. The [Claude Code analytics page](https://code.claude.com/docs/en/analytics) says Admins and Owners can view the dashboard. Configuring the analytics settings needs the Owner role. A GitHub admin must install the GitHub app.
 
-So a new AI role does not open the filing system. The filing system's own permissions still apply. Check them as a separate item in your rollout plan.
+**Access stops at the next system.** The OpenAI roles page lists six control boundaries:
 
-## Name an owner for every part
+- the ChatGPT workspace,
+- local clients (the desktop app and coding tools),
+- Codex cloud (hosted coding tasks),
+- the Platform API,
+- plugins,
+- connected systems.
 
-OpenAI's rollout guide starts by assigning an owner for each part: workspace access, local runtime policy, Codex cloud (hosted coding tasks), connected systems, and reporting and compliance.
+It says: "A request must pass every boundary that applies to it." Workspace access can make a plugin available. But the connected service still decides what data that person's account may see. So a new AI seat does not open the file server. The file server's own permissions still apply.
 
-Anthropic's Claude Code guide frames setup as a series of decisions: where the tool signs in, how settings reach devices, what to enforce, how to track usage, and how to handle data.
+**Test as an ordinary user.** The rollout guide says to test sign-in and feature access "with a member who has the intended permissions". Before people rely on the setup, it says to "Verify every applicable boundary with representative identities". A representative identity is a test account that has the same rights as the real users. Our reading: a test by an administrator proves little, because an admin can often do things that a normal member cannot.
 
-For a business team, here is a simple role map. It is our own tool for this course, not a vendor standard:
+**An owner for every part.** The OpenAI rollout guide starts by naming an owner for each part of the rollout:
 
-| Role           | Question it answers                                            |
-| -------------- | -------------------------------------------------------------- |
-| Sponsor        | Why are we doing this, and who funds it?                       |
-| Workflow owner | Is this workflow working, and does it still need to exist?     |
-| Builder        | Who made the prompt, skill or agent?                           |
-| Reviewer       | Is it safe and correct? (A different person from the builder.) |
-| Users          | Who does the daily work with it?                               |
+- workspace access,
+- local runtime policy,
+- Codex cloud,
+- connected systems,
+- reporting and compliance.
 
-One person can hold more than one role, with one limit: the builder should not be the only reviewer.
+The [Claude Code admin guide](https://code.claude.com/docs/en/admin-setup) frames setup as a series of decisions: where the tool signs in, how settings reach devices, what to enforce, how to see usage and spend, and how data is handled. Our reading: both guides point the same way. Each decision needs a person behind it.
 
-## Skills are shared assets
+**Skills are shared assets.** The Claude docs page [Skills for enterprise](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise) describes a lifecycle: plan, create and review, test, deploy, monitor, then iterate or deprecate. Three rules matter most to a manager:
 
-A **skill** is a packaged set of instructions, and sometimes scripts, that an AI tool loads when a task needs it. Think of it as a written procedure, like an onboarding guide for a new colleague. Anthropic and OpenAI both support skills, so the management questions are the same.
+1. **Separate duties.** The page says: "Skill authors should not be their own reviewers."
+2. **Keep a registry.** For each skill, record what it is for (purpose), who owns it, its version, what it depends on, and its evaluation status.
+3. **Start narrow.** Begin with skills for one specific workflow. Merge them into a broader skill only when its tests "confirm equivalent performance to the individual Skills it replaces".
 
-Anthropic's "Skills for enterprise" page describes a lifecycle: plan, create and review, test, deploy, monitor, then iterate or deprecate. Three of its rules matter to managers:
+The page also has a risk table to use before approval. It rates five things as **high** concern: scripts that run code; network access such as web addresses or API calls; references to MCP tools (tools in connected systems); hidden instructions that change behaviour; and passwords or keys written into the files. It rates file access outside the skill's folder, and instructions to use other tools, as **medium**. Its review checklist covers skills from outside vendors and from your own staff alike.
 
-1. **Separate duties.** Skill authors should not be their own reviewers.
-2. **Keep a registry.** For each skill, record purpose, owner, version, dependencies and evaluation status.
-3. **Start narrow.** Begin with specific, workflow-level skills. Merge them into a broader one only when the evaluations show equal performance.
+The OpenAI rollout guide asks for similar facts before it adds a plugin or skill to the rollout:
 
-The same page lists risk signs to check before approval. Scripts that run code and calls to outside web addresses are rated high concern. So are instructions that name connected tools.
+1. Confirm its source, accountable owner, intended audience and review date.
+2. Review what data and actions it needs.
+3. Test it with non-sensitive data and the least access it needs.
+4. Write down who will review it again later, and who will retire it.
 
-OpenAI's rollout guide asks for similar facts before a plugin or skill joins the rollout. Confirm its source, accountable owner, intended audience and review date. Test it with non-sensitive data and the least access it needs. Record who owns re-review and retirement.
+## Worked example
 
-Example: a finance analyst builds a skill that formats the monthly report. It runs a script and has no owner after she changes jobs. Under these rules it needs a named owner, a reviewer who is not the analyst, and a review date.
+### Step 1: the weak plan
 
-## Skills people need
+```text
+Rollout plan (draft)
+  Owner:      "IT", for everything
+  Analytics:  "someone in IT will switch it on"
+  Skills:     each team publishes its own; no shared list
+  Merge:      price-labels + shelf-plan + promo-copy
+              -> one "merch-assistant", next week, no tests
+```
 
-Roles also change what people must be good at. This list is ours, not a vendor's:
+What goes wrong:
 
-- **Briefing:** write a clear task with a goal, a format, sources and limits (chapter 1).
-- **Checking:** compare output with the source before it goes out (chapter 2 sets the review points).
-- **Escalating:** know when to hand a case to a person.
+- **"IT" is not a person.** When a connected system blocks a request, nobody knows who decides.
+- **Analytics needs three roles, not one.** See step 2.
+- **No registry.** Nobody can say what each skill does or who fixes it.
+- **The merge is untested.** A broad skill can be worse than the narrow ones it replaces.
 
-Plan time to teach these three, not only how to open the tool.
+### Step 2: name an owner for each part
 
-## Key points
+```text
+Part (OpenAI rollout guide)   Owner at the retail chain
+Workspace access              IT identity lead
+Local runtime policy          Endpoint security lead
+Codex cloud                   Head of engineering tools
+Connected systems             Each system's owner (e.g. product data lead)
+Reporting and compliance      Data protection officer
 
-- A seat, an admin role and a custom role are three different things.
-- Keep admin roles for people who administer; give everyone else the feature role they need.
-- Access in an AI tool does not open other systems; those systems keep their own rules.
-- Give every part of the rollout, and every shared skill, a named owner.
-- Authors should not be their own reviewers; keep a registry and review dates.
+Claude Code analytics
+  Turn it on:   a Claude Owner
+  GitHub app:   a GitHub admin installs it
+  View it:      Admins and Owners
+```
+
+### Step 3: the hard case
+
+**The hard case is the merge.** One big skill looks tidier. But the Claude page says to merge narrow skills "only when the consolidated Skill's evaluations confirm equivalent performance to the individual Skills it replaces."
+
+```text
+Before the merge
+  1  Each narrow skill has its test set. The page asks for
+     3-5 representative queries per skill: should trigger,
+     should not trigger, and edge cases.
+  2  Run the same queries against "merch-assistant".
+  3  Merge only if it does as well on every set.
+  4  Keep the old versions as a fallback.
+  5  Update the registry entry for the new skill.
+```
+
+### Step 4: why it is better
+
+- **Every part has a person.** When the product data system blocks a request, its owner decides.
+- **Analytics gets the right three people.** Nobody waits for a role that can't switch it on.
+- **The merge is tested, not guessed.**
+- **There is a way back.** The old skills stay as a fallback.
+
+## Common mistakes
+
+1. **Giving Admin to people who only need features.** Fix: use a custom role for features; keep built-in admin roles for administrators.
+2. **Thinking a seat opens connected systems.** Fix: check each connected system's own permissions for the account.
+3. **Letting builders approve their own skills.** Fix: name a different reviewer, record an owner and set a review date.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Use the risk table from the Claude skills page. Rate each skill as high or medium concern.
+
+```text
+1. A skill with an API key typed into its instructions file.
+2. A skill that reads files from folders outside its own folder.
+3. A skill whose instructions say: "Call crm-server:update_deal
+   to change the deal stage." (crm-server is an MCP server.)
+```
+
+### Answer
+
+1. **High.** Keys or passwords written into skill files are high concern. The checklist says credentials should use environment variables or secure credential stores (settings and vaults that keep secrets outside the files), and "never appear in Skill content".
+2. **Medium.** The page says paths outside the skill's folder "may access unintended data".
+3. **High.** It names a tool on an MCP server in the form `ServerName:tool_name`. The page says this "extends access beyond the Skill itself".
+
+## Recap
+
+- Name a person for each part of the rollout, not a department. Keep admin roles for the people who administer.
+- Access in an AI tool does not open other systems. Each connected system keeps its own permissions.
+- Every shared skill needs a named owner, a reviewer who is not the author, a registry entry and a review date. Merge skills only when tests show no loss.
