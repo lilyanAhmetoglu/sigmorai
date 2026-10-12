@@ -20,7 +20,7 @@ A segment must **start** with the binary to count, and heredoc bodies are droppe
 
 ### `guard-write.sh` denies
 
-Writes to generated `.next/`, `next-env.d.ts` or `drizzle/meta/` · `bun.lock` (run `bun install`) and foreign lockfiles · secret-shaped paths (`.env.example` allowed) · live-looking keys (`sk-…`, `sk-ant-…`, `sk_live_…`, `pk_live_…`, `rk_live_…`, `whsec_…`, `e2b_…`, `ghp_…`, `github_pat_…`, `vercel_blob_rw_…`, `npg_…`) · `NEXT_PUBLIC_` in front of a server secret (Anthropic, OpenAI, E2B, Judge0, database URL, Auth.js/OAuth secrets, Resend, Blob token, GitHub, webhooks).
+Writes to generated `.next/`, `next-env.d.ts` or `drizzle/meta/` · `bun.lock` (run `bun install`) and foreign lockfiles · secret-shaped paths (`.env.example` allowed) · live-looking keys (`sk-…` at a word start, so `risk-…` URLs pass, `sk-ant-…`, `sk_live_…`, `pk_live_…`, `rk_live_…`, `whsec_…`, `e2b_…`, `ghp_…`, `github_pat_…`, `vercel_blob_rw_…`, `npg_…`) · `NEXT_PUBLIC_` in front of a server secret (Anthropic, OpenAI, E2B, Judge0, database URL, Auth.js/OAuth secrets, Resend, Blob token, GitHub, webhooks).
 
 ### `lint-file.sh`
 
