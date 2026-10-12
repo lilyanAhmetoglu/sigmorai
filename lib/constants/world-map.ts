@@ -72,7 +72,7 @@ export const WORLD_MAP = {
     { id: 's6', x: 720, y: 470, w: 96, h: 128 },
     { id: 's7', x: 930, y: 440, ...SLOT },
     { id: 's8', x: 780, y: 150, ...SLOT },
-    { id: 's9', x: 280, y: 700, ...SLOT },
+    { id: 's9', x: 280, y: 700, w: 104, h: 80 },
     { id: 's10', x: 380, y: 420, w: 128, h: 96 },
   ] as readonly WorldSlot[],
   /**
@@ -83,7 +83,8 @@ export const WORLD_MAP = {
    * r12 Echo Caverns between r2 Tool Forge and r10 Reel Hollow,
    * r13 Pattern Atelier between r3 Context Library and r4 Agent Citadel,
    * r14 Agent Workshop (builder) between r4 Agent Citadel and r5 MCP Bridgelands,
-   * r15 Guild Hall (strategist) between r1 Prompt Forest and r2 Tool Forge.
+   * r15 Guild Hall (strategist) between r1 Prompt Forest and r2 Tool Forge,
+   * r16 Trade Quarter (strategist) after r2 Tool Forge.
    */
   slotRealms: [
     { slot: 's5', realm: 9 },
@@ -93,6 +94,7 @@ export const WORLD_MAP = {
     { slot: 's4', realm: 13 },
     { slot: 's6', realm: 14 },
     { slot: 's3', realm: 15 },
+    { slot: 's9', realm: 16 },
   ] as readonly WorldSlotRealm[],
   landmarks: [
     {
@@ -183,6 +185,7 @@ export const WORLD_TERRAIN: Readonly<Record<string, readonly WorldGlyphKind[]>> 
   13: ['house', 'tower'],
   14: ['forge', 'house'],
   15: ['house', 'tent'],
+  16: ['tent', 'house'],
   math: ['tower'],
   frontier: ['tent', 'pine'],
 };
