@@ -68,7 +68,7 @@ Who sees it first? -- outside --> Medium
      staff --> Low
 ```
 
-**Low tier: staff review, and check the facts.** Staff are the first readers, so their review is the main control. The [Claude guide to reducing hallucinations](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) lists techniques that help. It also warns: "while these techniques significantly reduce hallucinations, they don't eliminate them entirely. Always validate critical information". So even a low-tier draft needs a fact check for numbers and names.
+**Low tier: staff review, and check the facts.** Staff are the first readers, so their review is the main control. The [Claude guide to reducing hallucinations](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) lists techniques that help. (A **hallucination** is a confident answer the model made up.) It also warns: "while these techniques significantly reduce hallucinations, they don't eliminate them entirely. Always validate critical information". So even a low-tier draft needs a fact check for numbers and names.
 
 **Medium tier: limit what goes in and out.** The [OpenAI safety guide](https://developers.openai.com/api/docs/guides/safety-best-practices) gives several controls:
 
@@ -84,7 +84,11 @@ The [Claude jailbreak guide](https://platform.claude.com/docs/en/test-and-evalua
 - **Guardrails** "validate input, output, or tool behavior automatically."
 - **Human review** "pauses the run so a person or policy can approve or reject a sensitive action." Its examples include pausing "before side effects like cancellations, edits".
 
-The Claude jailbreak guide adds the **principle of least privilege**: give the AI only the data and actions it needs, "so that a successful injection can do minimal damage". Anthropic's post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) says: "The autonomous nature of agents means higher costs, and the potential for compounding errors." It recommends "extensive testing in sandboxed environments, along with the appropriate guardrails."
+Two more controls fit the high tier:
+
+- **Least privilege.** The Claude jailbreak guide says to give the AI only the data and actions it needs, "so that a successful injection can do minimal damage".
+- **Test in a sandbox first.** The Anthropic engineering post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) says: "The autonomous nature of agents means higher costs, and the potential for compounding errors." (A **sandbox** is a copy of the system where a mistake can't hurt real data.)
+- The same post recommends "extensive testing in sandboxed environments, along with the appropriate guardrails."
 
 **Tiers can change.** Our advice: place the use in a tier again when one of three things changes:
 
@@ -126,13 +130,15 @@ Our example register:
 ```text
 Newsletter (low)       Author edits. Dates and amounts checked
                        against the source. Owner: comms lead.
-Website assistant      Answers only from approved house-rule pages.
-(medium)               Input screened, answer length limited.
-                       Red-teamed before launch. Owner: digital lead.
-Deposit tool (high)    Tool proposes deductions; a property manager
-                       approves each one before it is written.
-                       No other write access. Tested in a sandbox
-                       first. Owner: head of accounts.
+Website assistant      Tenants log in first. Each answer links to
+(medium)               the house-rule page it came from. A report
+                       button goes to the digital team.
+                       Owner: digital lead.
+Deposit tool (high)    A tool guardrail rejects a deduction with no
+                       photo or lease clause attached. A human
+                       approval step pauses the run before anything
+                       is written to the accounts. Owner: head of
+                       accounts.
 Lease summary (low)    See the hard case.
 ```
 
@@ -154,14 +160,14 @@ Watch the next step. If the company lets the summary feed the deposit tool direc
 ### Step 5: why it is better
 
 - **Matched.** Legal is no longer a queue for newsletters.
-- **Focused.** The one use that moves money gets a person before each action and the least access.
+- **Focused.** The one use that moves money gets a tool check and a person before anything is written.
 - **Visible.** Each use has a tier, controls and an owner on one page.
 
 ## Common mistakes
 
 1. **One rule for every use.** Heavy checks everywhere slow the work and push staff to unapproved tools. Fix: tier first, then set controls per tier.
-2. **A check after the action for a high-tier use.** A monthly sample finds the error after the money moved. Fix: a person approves before the action.
-3. **A tier set once and never changed.** A use grows a new audience or new access. Fix: place it again when the audience, actions or data change.
+2. **Tiering by tool, not by use.** The same model can draft a newsletter and move money. Fix: tier each use on its own line.
+3. **A register with no owner per line.** Nobody updates it, and nobody answers for a use. Fix: one named owner per use.
 
 ## Try it
 
