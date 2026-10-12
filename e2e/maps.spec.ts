@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { MAP_TEXT, QUEST_STOP_TEXT, REALMS, WORLD_MAP_TEXT } from '@/lib/constants';
 
 /**
@@ -9,11 +9,18 @@ import { MAP_TEXT, QUEST_STOP_TEXT, REALMS, WORLD_MAP_TEXT } from '@/lib/constan
  */
 const PHONE = { width: 390, height: 844 };
 
+/**
+ * The real level map, not the loading.tsx skeleton: while the page streams,
+ * the skeleton's banner and cards can still be in the DOM. Only the real map
+ * is a <section>.
+ */
+const levelMap = (page: Page) => page.locator('section.quest-map');
+
 test('level map: a card per chapter and the boss, with a status word and steps', async ({
   page,
 }) => {
   await page.goto('/map/prompt-forest?track=strategist');
-  const cards = page.locator('.quest-stop');
+  const cards = levelMap(page).locator('.quest-stop');
   // 6 chapters + boss on the strategist path.
   await expect(cards).toHaveCount(7);
   const first = cards.first();
@@ -36,7 +43,7 @@ test('level map: a card per chapter and the boss, with a status word and steps',
 test('level map: a visitor at 390px is not scrolled down on load', async ({ page }) => {
   await page.setViewportSize(PHONE);
   await page.goto('/map/prompt-forest?track=strategist');
-  await expect(page.locator('.quest-stop').first()).toBeVisible();
+  await expect(levelMap(page).locator('.quest-stop').first()).toBeVisible();
   // ScrollToCurrent runs after hydration; give it a moment, then check nothing moved.
   await page.waitForTimeout(500);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -45,7 +52,7 @@ test('level map: a visitor at 390px is not scrolled down on load', async ({ page
 test('level map: no sideways scroll on a phone', async ({ page }) => {
   await page.setViewportSize(PHONE);
   await page.goto('/map/prompt-forest?track=strategist');
-  await expect(page.locator('.quest-map-banner')).toBeVisible();
+  await expect(levelMap(page).locator('.quest-map-banner')).toBeVisible();
   const sideways = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth,
   );
@@ -60,7 +67,7 @@ test('level map: a realm with no art shows a named banner', async ({ page }) => 
   );
   await page.setViewportSize(PHONE);
   await page.goto(`/map/${realm!.slug}`);
-  await expect(page.locator('.quest-map-banner[data-flat]')).toContainText(realm!.name);
+  await expect(levelMap(page).locator('.quest-map-banner[data-flat]')).toContainText(realm!.name);
 });
 
 test('world map: markers show name, status and progress at zoom 1, on a phone too', async ({
