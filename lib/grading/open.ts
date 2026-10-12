@@ -16,7 +16,7 @@ import { isRealmOpen, outlineChapterCount } from '@/lib/content/curriculum';
 import { buildExerciseId, parseExerciseId } from '@/lib/content/ids';
 import { hasContent } from '@/lib/content/load';
 import { applyCredit, withCreditors } from '@/lib/content/shared';
-import type { ExerciseRef, QuestFailure, RealmTable, Track } from '@/lib/types';
+import type { ExerciseRef, OpenOptions, QuestFailure, RealmTable, Track } from '@/lib/types';
 import { sharedGroups } from './credit';
 import { questFailure as fail } from './failure';
 import { trackOutline } from './outline';
@@ -41,6 +41,9 @@ import { trackOutline } from './outline';
  *
  * The Frontier (amended 2026-10-07, SIG-29): every chapter is open. No order,
  * no tier; only the content file must exist.
+ *
+ * Unlock-all (a server-side tester, lib/data/unlock-all.ts): no tier and no
+ * order. The outline and content-file checks still run.
  */
 
 export type OpenResult = { ok: true; ref: ExerciseRef } | QuestFailure;
@@ -85,14 +88,17 @@ export function ownClear(ref: ExerciseRef, table: RealmTable = REALMS): string {
 /**
  * The decision, given the ids this user has cleared (credit already added)
  * and the realm's chapter count from its track's outline. Pure: no IO.
+ * `unlockAll` skips the tier lock and the order (requiredClears).
  */
 export function decideOpen(
   ref: ExerciseRef,
   cleared: ReadonlySet<string>,
   chapterCount: number,
   table: RealmTable = REALMS,
+  { unlockAll = false }: OpenOptions = {},
 ): OpenResult {
   if (ref.area === MATH_AREA) {
+    if (unlockAll) return { ok: true, ref };
     if (requiredClears(ref, chapterCount, table).some((id) => !cleared.has(id))) {
       return fail('NOT_OPEN', floorNotOpenText(ref.floor - 1));
     }
@@ -105,6 +111,7 @@ export function decideOpen(
   // The grammar only parses a realm the track has; a ref built by hand may not.
   const realm = realmRow(ref.realm, table);
   if (!realm || !isRealmOnTrack(realm, ref.track)) return fail('INVALID_INPUT');
+  if (unlockAll) return { ok: true, ref };
   if (!isRealmOpen(realm.tier)) return fail('TIER_LOCKED');
   if (cleared.has(ownClear(ref, table))) return { ok: true, ref };
   if (requiredClears(ref, chapterCount, table).some((id) => !cleared.has(id))) {
@@ -129,11 +136,13 @@ async function chapterCountFor(ref: ExerciseRef): Promise<number | null> {
 /**
  * The full check for the session user. `exec` is the db or the caller's
  * transaction (a graded action runs it inside its user-row lock).
+ * `options.unlockAll` comes from isUnlockAll (server-side), never the client.
  */
 export async function checkOpen(
   exec: Db | Tx,
   userId: string,
   exerciseId: string,
+  options: OpenOptions = {},
 ): Promise<OpenResult> {
   const ref = parseExerciseId(exerciseId);
   if (!ref) return fail('INVALID_INPUT');
@@ -146,5 +155,6 @@ export async function checkOpen(
     .select({ id: progress.exerciseId })
     .from(progress)
     .where(and(eq(progress.userId, userId), inArray(progress.exerciseId, lookup)));
-  return decideOpen(ref, applyCredit(new Set(rows.map((r) => r.id)), groups).cleared, chapterCount);
+  const { cleared } = applyCredit(new Set(rows.map((r) => r.id)), groups);
+  return decideOpen(ref, cleared, chapterCount, REALMS, options);
 }

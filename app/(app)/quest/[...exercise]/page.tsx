@@ -7,6 +7,7 @@ import { PixelButton } from '@/components/pixel-button';
 import { AnswerForm } from '@/components/quest/answer-form';
 import { LessonBody } from '@/components/quest/lesson-body';
 import { LessonDone } from '@/components/quest/lesson-done';
+import { LessonFinishProvider } from '@/components/quest/lesson-finish';
 import { SourceList } from '@/components/quest/source-list';
 import { Tabs } from '@/components/tabs';
 import { QUEST_TEXT, SHARE_TEXT, SITE_NAME } from '@/lib/constants';
@@ -128,31 +129,36 @@ function LessonPage({ page, back }: LessonPageProps) {
           {tag}
         </p>
       </div>
-      <div className="quest-layout">
-        <section className="flex min-w-0 flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <h1 className="quest-title">{title}</h1>
-            <p className="quest-note">{QUEST_TEXT.minutes(minutes)}</p>
-          </div>
-          <Tabs
-            label={QUEST_TEXT.lessonTabsLabel}
-            items={[
-              {
-                label: QUEST_TEXT.lessonTab,
-                content: <LessonBody body={lesson.body} kind="lesson" npc={npc} accent={accent} />,
-              },
-              { label: QUEST_TEXT.sourcesTab, content: <SourceList sources={sources} /> },
-            ]}
-          />
-        </section>
-        <LessonDone
-          key={exerciseId}
-          exerciseId={exerciseId}
-          title={title}
-          viewer={viewer}
-          nextHref={nextHref}
-        />
-      </div>
+      {/* One "mark done" state for the stepper's Finish lesson and the panel's Lesson done. */}
+      <LessonFinishProvider
+        key={exerciseId}
+        exerciseId={exerciseId}
+        title={title}
+        viewer={viewer}
+        nextHref={nextHref}
+      >
+        <div className="quest-layout">
+          <section className="flex min-w-0 flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <h1 className="quest-title">{title}</h1>
+              <p className="quest-note">{QUEST_TEXT.minutes(minutes)}</p>
+            </div>
+            <Tabs
+              label={QUEST_TEXT.lessonTabsLabel}
+              items={[
+                {
+                  label: QUEST_TEXT.lessonTab,
+                  content: (
+                    <LessonBody body={lesson.body} kind="lesson" npc={npc} accent={accent} />
+                  ),
+                },
+                { label: QUEST_TEXT.sourcesTab, content: <SourceList sources={sources} /> },
+              ]}
+            />
+          </section>
+          <LessonDone />
+        </div>
+      </LessonFinishProvider>
     </div>
   );
 }

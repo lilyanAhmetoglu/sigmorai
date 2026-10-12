@@ -20,6 +20,7 @@ import { recordClear } from '@/lib/grading/award';
 import { clearReason, decideSubmitStart, hpAfterSubmit, storesAttempt } from '@/lib/grading/case';
 import { toActionFailure as fail, questFailure } from '@/lib/grading/failure';
 import { checkOpen } from '@/lib/grading/open';
+import { isUnlockAll } from '@/lib/data/unlock-all';
 import { LEADERBOARD_CACHE_TAG } from '@/lib/constants';
 import {
   CompleteLessonInputSchema,
@@ -125,6 +126,8 @@ async function submitAnswers(
   // Pure (no IO), so it runs before the transaction: a malformed answer set never takes the row lock.
   const graded = gradeAnswers(questions, seed, answers);
   if (!graded.ok) return fail(graded);
+  // A server-side tester (env allowlist of Clerk ids); never from the client.
+  const unlockAll = isUnlockAll(userId);
 
   let outcome: SubmitAnswersResult | QuestFailure;
   try {
@@ -132,7 +135,7 @@ async function submitAnswers(
       const now = new Date();
       const refused = await lockUser(tx, userId);
       if (refused) return refused;
-      const open = await checkOpen(tx, userId, exerciseId);
+      const open = await checkOpen(tx, userId, exerciseId, { unlockAll });
       if (!open.ok) return open;
       const { cleared, spent, tries } = await readAttempts(tx, userId, exerciseId, now);
       const start = decideSubmitStart(kind, cleared, spent, tries);
@@ -190,13 +193,15 @@ export async function completeLesson(input: unknown): Promise<CompleteLessonResu
   const parsed = CompleteLessonInputSchema.safeParse(input);
   if (!parsed.success) return fail(questFailure('INVALID_INPUT'));
   const { exerciseId } = parsed.data;
+  // A server-side tester (env allowlist of Clerk ids); never from the client.
+  const unlockAll = isUnlockAll(userId);
 
   let outcome: CompleteLessonResult;
   try {
     outcome = await db.transaction(async (tx) => {
       const refused = await lockUser(tx, userId);
       if (refused) return refused;
-      const open = await checkOpen(tx, userId, exerciseId);
+      const open = await checkOpen(tx, userId, exerciseId, { unlockAll });
       if (!open.ok) return open;
       // Lessons are never credited; award-once makes a second press 0 XP.
       const xp = await recordClear(tx, userId, exerciseId, 'lesson', new Date(), true);
