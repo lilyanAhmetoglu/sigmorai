@@ -17,81 +17,154 @@ sources:
     url: https://developers.openai.com/api/docs/guides/evaluation-best-practices
 ---
 
-You change a prompt, run your eval, and the score goes from 80 to 83. Is the new prompt better, or did you get lucky? This floor gives you three tools to answer that: the mean, the spread, and repeated trials.
+## Goal
 
-## Why one run is not enough
+After this lesson you can:
 
-The same input can give different outputs. The OpenAI docs: "Models sometimes produce different output from the same input, which makes traditional software testing methods insufficient for AI architectures." The Claude glossary says that even with temperature 0, "identical inputs may produce different outputs across API calls."
+- Compute the mean, the variance and the standard deviation of a set of eval runs.
+- Compare a gap between two prompts with the spread of their runs, and check that the runs are independent.
+- Compute the chance that an agent passes all of k trials, or at least one of them.
 
-So an eval score is a measurement with noise in it. Anthropic's engineering team writes: "Because model outputs vary between runs, we run multiple trials to produce more consistent results." They call each attempt at a task a trial.
+## The problem
 
-## The mean
+You change a prompt and run your **eval** (a set of test tasks with a score). The score goes up. Your team wants to ship the new prompt today.
 
-The mean is the usual average: add all values, then divide by how many there are.
+But the same prompt can score differently on every run. So a higher number can be real, or it can be luck. This lesson gives you three tools to tell the two apart: the mean, the spread, and repeated trials.
+
+## The idea
+
+### Why one run is not enough
+
+The same input can give different outputs. The [OpenAI docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) say: "Models sometimes produce different output from the same input, which makes traditional software testing methods insufficient for AI architectures." The [Claude glossary](https://platform.claude.com/docs/en/about-claude/glossary) says this happens "Even with temperature set to 0".
+
+So an eval score is a measurement with noise in it. The [Anthropic engineering team](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) calls each attempt at a task a **trial**, and writes: "Because model outputs vary between runs, we run multiple trials to produce more consistent results."
+
+### The mean
+
+The **mean** is the usual average: add all the values, then divide by how many there are.
 
 `x̄ = Σ x_i / n`: the mean, x-bar, is the sum of all values x-i, divided by the number of values n.
 
-Example: you run the same eval 5 times and get `78, 82, 80, 76, 84`.
+`x_i` is value number i. `Σ` (sigma) means: add them all up. `n` is how many values you have.
 
-- sum: `78 + 82 + 80 + 76 + 84 = 400`
-- n: `5`
-- mean: `400 / 5 = 80`
+Our example: four runs score `6, 8, 10, 12`. The sum is 36, and `36 / 4 = 9`.
 
-## The spread: variance and standard deviation
+### The spread: variance and standard deviation
 
-Two sets of runs can have the same mean and still look very different:
+Two sets of runs can have the same mean, but one can jump around much more. The **variance** puts a number on that:
 
-| Prompt | Five runs             | Mean |
-| ------ | --------------------- | ---- |
-| A      | `78, 82, 80, 76, 84`  | 80   |
-| B      | `60, 100, 80, 70, 90` | 80   |
+1. For each value, find its distance from the mean.
+2. Square each distance (multiply it by itself), so minus signs go away.
+3. Take the mean of the squares.
 
-B jumps around much more. Variance puts a number on that. For each value, take its distance from the mean, square it, then take the mean of the squares.
+Our four runs, mean 9:
 
-Prompt A, mean 80:
+- distances: `−3, −1, 1, 3`
+- squares: `9, 1, 1, 9`, sum `20`
+- variance: `20 / 4 = 5`
 
-- distances: `−2, 2, 0, −4, 4`
-- squares: `4, 4, 0, 16, 16`, sum `40`
-- variance: `40 / 5 = 8`
+The variance is in squared points, which is hard to read. The **standard deviation** is the square root of the variance, back in points: `√5 ≈ 2.24`. People often call it the spread.
 
-Prompt B, mean 80:
+Many tools divide by `n − 1` instead of `n` when the runs are a sample. Here that gives `20 / 3 ≈ 6.67`. A bigger number still means more spread. In this lesson we divide by n.
 
-- distances: `−20, 20, 0, −10, 10`
-- squares: `400, 400, 0, 100, 100`, sum `1000`
-- variance: `1000 / 5 = 200`
+### Is a change real?
 
-The squares are in "points squared", which is hard to read. The standard deviation is the square root of the variance, back in points: `√8 ≈ 2.8` for A and `√200 ≈ 14.1` for B.
+Compare the gap between two means with the spread of the runs.
 
-Many tools divide by `n − 1` instead of `n` when the values are a sample. With 5 runs that gives `40 / 4 = 10` for A. The idea is the same: a bigger number means more spread.
+- A gap much bigger than the spread is hard to explain as luck.
+- A gap smaller than the spread is weak evidence. One run can't tell a real gain from noise.
 
-## Is the change real?
+Averaging helps. If the runs are **independent** (one run does not change the next), the mean of n runs moves less than one run. Its standard deviation is the run's standard deviation divided by `√n`. Our example: runs with a spread of 6, averaged over 9 runs, give a mean with a spread of `6 / √9 = 6 / 3 = 2`.
 
-Compare the gap with the spread. Say the old prompt's runs look like prompt A or prompt B above, and the new prompt scores 83 once.
+How many runs you need depends on the size of the change. Anthropic writes that in early agent work, "this large effect size means small sample sizes suffice", and that "20-50 simple tasks drawn from real failures is a great start." Small changes need more data. The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) push the same way: "More questions with slightly lower signal automated grading is better than fewer questions with high-quality human hand-graded evals."
 
-- With A's spread (about 2.8 points), one run of 83 is about one standard deviation above 80. Runs of the old prompt already reach 84, so 83 proves very little.
-- With B's spread (about 14 points), a gap of 3 points is lost in the noise.
-- A gap of 15 points with a spread of 2.8 is hard to explain as luck.
+### Probability across trials
 
-Averaging helps. If the runs are independent (one run does not affect the next), the mean of n runs varies less than one run: its standard deviation is the run's standard deviation divided by `√n`. For prompt A, the mean of 4 runs has a spread of about `2.8 / √4 = 1.4`. More runs give a steadier mean.
+When a run must pass several independent trials, multiply the chances. `p^k` means p multiplied by itself k times (k is the power, or exponent). Anthropic defines two scores:
 
-How many runs you need depends on the size of the change. Anthropic notes that in early agent work, "each change to the system often has a clear, noticeable impact, and this large effect size means small sample sizes suffice", and that "20-50 simple tasks drawn from real failures is a great start." Small changes need more data before you trust them.
+- `pass^k`: it "measures the probability that all k trials succeed". Anthropic's example: "If your agent has a 75% per-trial success rate and you run 3 trials, the probability of passing all three is (0.75)³ ≈ 42%." Check: `0.75 × 0.75 × 0.75 = 0.421875`.
+- `pass@k`: it "measures the likelihood that an agent gets at least one correct solution in k attempts". To compute it, find the chance that every trial fails, then take that from 1.
 
-The Claude docs push in the same direction: "More questions with slightly lower signal automated grading is better than fewer questions with high-quality human hand-graded evals."
+Which one to use? Anthropic: "pass@k for tools where one success matters, pass^k for agents where consistency is essential."
 
-## Probability across trials
+Multiplying is only right when the trials are independent. Anthropic warns: "If multiple distinct trials fail because of the same limitation in the environment (like limited CPU memory), these trials are not independent".
 
-Floor 2's rule, multiply for steps in a row, also measures reliability. Anthropic defines `pass^k` as "the probability that all k trials succeed", and gives an example: "If your agent has a 75% per-trial success rate and you run 3 trials, the probability of passing all three is (0.75)³ ≈ 42%."
+A small comparison: one eval run is like one photo of a moving bird. Many photos tell you where it really is.
 
-Check it: `0.75 × 0.75 × 0.75 = 0.421875`, about 42%. An agent that looks good on one try can still fail a user who asks three times.
+## Worked example
 
-Anthropic also defines the opposite view: `pass@k` "measures the likelihood that an agent gets at least one correct solution in k attempts." To compute it, use "at least one passes = 1 − (all fail)". For 2 trials at 90%: `1 − 0.1 × 0.1 = 0.99`, or 99%, if the trials are independent.
+Our example: a support-agent prompt. You run the old prompt and the new prompt 5 times each on the same eval.
 
-Multiplying is only correct when the trials are independent (one run does not affect the next). Anthropic warns: "If multiple distinct trials fail because of the same limitation in the environment (like limited CPU memory), these trials are not independent because they're affected by the same factor, and the eval results become unreliable for measuring agent performance."
+```text
+old prompt   70, 74, 72, 68, 66
+new prompt   82, 80, 84, 78, 76
+```
 
-## Key points
+The decision: is the 10-point gain real enough to ship?
 
-- Model outputs vary between runs, so one eval run is a noisy measurement.
-- Mean: sum divided by count. `78, 82, 80, 76, 84` has mean 80.
-- Variance: the mean of the squared distances from the mean. Standard deviation is its square root.
-- A gap smaller than the spread is weak evidence. Run more trials; the mean of n independent runs has a spread `√n` times smaller.
-- If the trials are independent, the chance that all k trials pass is the per-trial rate to the power k: `0.75³ ≈ 0.42`.
+### Step 1: the means
+
+- old: `70 + 74 + 72 + 68 + 66 = 350`, and `350 / 5 = 70`
+- new: `82 + 80 + 84 + 78 + 76 = 400`, and `400 / 5 = 80`
+
+The gap is `80 − 70 = 10` points.
+
+### Step 2: the spreads
+
+Old prompt, mean 70:
+
+- distances: `0, 4, 2, −2, −4`
+- squares: `0, 16, 4, 4, 16`, sum `40`
+- variance: `40 / 5 = 8`, standard deviation `√8 ≈ 2.83`
+
+New prompt, mean 80:
+
+- distances: `2, 0, 4, −2, −4`
+- squares: `4, 0, 16, 4, 16`, sum `40`
+- variance: `40 / 5 = 8`, standard deviation `√8 ≈ 2.83`
+
+### Step 3: compare the gap with the spread
+
+One run moves about 2.83 points. Each mean comes from 5 runs, so it moves about `2.83 / √5 ≈ 2.83 / 2.24 ≈ 1.26` points. The gap is 10 points, about 8 times that. Also, the lowest new run (76) is above the highest old run (74).
+
+Before: one run each, and you could not tell. After: the gain looks real.
+
+### Step 4: the hard case
+
+**The hard case is the setup, not the numbers.** Before you ship, you read the run logs. All 5 old runs ran on a small test machine. In 3 of them, the agent lost points because the machine ran out of memory. The new runs used a bigger machine.
+
+Those 3 old failures share one cause, so they are not independent. They also hit only the old prompt. Part of the 10-point gap may come from the machine, not the prompt. The fix: run both prompts on the same machine, then compare again.
+
+### Step 5: why it is better
+
+- **Mean, not one run.** Five runs per prompt smooth out the noise.
+- **Gap against spread.** The 10 points are judged against how much runs move.
+- **Same setup.** Both prompts face the same machine, so only the prompt differs.
+
+## Common mistakes
+
+1. **Adding the raw distances to get the variance.** The minus and plus distances cancel. Our old prompt: `0 + 4 + 2 − 2 − 4 = 0`. Fix: square each distance first.
+2. **Comparing spreads made two ways.** One tool divides by n, another by `n − 1`. Fix: use the same rule for both prompts.
+3. **Running the two prompts in different setups.** A shared failure in one setup moves one mean only. Fix: same machine, same tasks, same graders for both.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Our example: a coding agent passes 80% of single trials. The trials are independent.
+
+1. Product A tries a task 3 times and keeps any attempt that passes. How likely is it that one or more of the 3 pass?
+2. Product B runs the agent for 3 customers, and every run must pass. What is the chance that all 3 pass?
+3. Product B's target is 90% for all 3. Does this agent meet it? Which of Anthropic's two scores fits each product?
+
+### Answer
+
+1. The chance that one trial fails is `1 − 0.8 = 0.2`. All 3 fail: `0.2 × 0.2 × 0.2 = 0.008`. At least one passes: `1 − 0.008 = 0.992`, or 99.2%.
+2. All 3 pass: `0.8 × 0.8 × 0.8 = 0.512`, or 51.2%.
+3. No. 51.2% is far below 90%. Product A needs one success, so `pass@k` fits it. Product B needs every run to work, so `pass^k` fits it. The same agent looks great on one score and weak on the other.
+
+## Recap
+
+- Model outputs vary between runs, so one eval run is a noisy measurement. Use the mean of several runs.
+- Variance is the mean of the squared distances from the mean, and the standard deviation is its square root. Compare a gap with that spread, and make sure the runs are independent.
+- If trials are independent, all k pass with chance `p^k`, and at least one passes with chance `1 − (1 − p)^k`.

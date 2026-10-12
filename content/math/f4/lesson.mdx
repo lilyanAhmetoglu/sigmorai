@@ -14,94 +14,175 @@ sources:
     url: https://developers.openai.com/cookbook/examples/customizing_embeddings
 ---
 
-Inside a neural network, one small step repeats again and again: take a list of numbers, mix it with a grid of learned numbers, and pass the result on. That grid is a matrix. This floor covers matrix times vector, matrix times matrix, the transpose, and the layer formula `y = Wx + b`. You only need the dot product from floor 1.
+## Goal
 
-## A matrix is a grid of numbers
+After this lesson you can:
 
-A matrix is a table of numbers with rows and columns. Its shape is written rows × columns.
+- Multiply a matrix by a vector, and say what shape goes in and what shape comes out.
+- Multiply two matrices, and flip a matrix with the transpose.
+- Run one neural-network layer `y = Wx + b` by hand, and count its parameters.
+
+## The problem
+
+Inside a neural network, one small step repeats again and again. It takes a list of numbers, mixes it with a grid of learned numbers, adds a few more numbers, and passes the result on. Search code does the same thing when it scores many documents at once.
+
+If you can't read that step, every model diagram is a black box. This lesson shows the step with numbers small enough to check by hand. You only need the dot product: multiply the numbers at each position, then add.
+
+## The idea
+
+### A matrix is a grid of numbers
+
+A **matrix** is a table of numbers with rows and columns. Its **shape** is written rows × columns.
 
 This matrix `W` has 2 rows and 3 columns, so its shape is 2 × 3:
 
+```text
+W = |  1  0  2 |
+    | -1  3  1 |
 ```
-W = | 1  0  2 |
-    | -1 3  1 |
-```
 
-A vector is a matrix with only one row or only one column. Floor 1's vectors fit inside this picture.
+A **vector** is a list of numbers. You can think of it as a matrix with only one column.
 
-## Matrix times vector
+### Matrix times vector
 
-To multiply a matrix by a vector, take the dot product of each row with the vector. Each row gives one number.
+To multiply a matrix by a vector, take the dot product of **each row** with the vector. Each row gives one number.
 
-Example with `W` above and `x = (2, 1, 3)`:
+Our example: `W` above and `x = (2, 1, 3)`.
 
 - row 1: `(1, 0, 2)·(2, 1, 3) = 2 + 0 + 6 = 8`
 - row 2: `(−1, 3, 1)·(2, 1, 3) = −2 + 3 + 3 = 4`
 - result: `Wx = (8, 4)`
 
-The shapes must fit. Each row of `W` has 3 numbers, so `x` must have 3 numbers too. A 2 × 3 matrix takes in 3 numbers and gives out 2. The matrix changes the size of the vector.
+The shapes must fit. The vector needs one number per **column** of the matrix. The result gets one number per **row**. So our 2 × 3 example needs 3 input numbers and returns 2. A matrix can change the size of a vector.
 
-## Many dot products at once
+### Many dot products at once
 
-Floor 1 scored documents one at a time. A matrix does them all in one step. Put one document vector in each row, then multiply by the query.
+Put one document vector in each row of a matrix `D`, and multiply by a query vector `q`. You get one score per document, in one step. Our example with 3 documents and `q = (3, 4)`:
 
-Same query `q = (3, 4)` and documents as floor 1:
+```text
+D = |  4  3 |   ← document 1
+    | -4  3 |   ← document 2
+    |  6  8 |   ← document 3
 
+Dq = (4×3 + 3×4, −4×3 + 3×4, 6×3 + 8×4) = (24, 0, 50)
 ```
-D = | 4  3 |   ← A
-    | -4 3 |   ← B
-    | 6  8 |   ← C
-```
 
-`Dq = (4×3 + 3×4, −4×3 + 3×4, 6×3 + 8×4) = (24, 0, 50)`
+In the [Claude docs](https://platform.claude.com/docs/en/build-with-claude/embeddings), the search code uses NumPy for this step: `similarities = np.dot(doc_embds, query_embd)`. `doc_embds` holds one embedding per document. Then `np.argmax(similarities)` picks the position of the highest score.
 
-Those are the three dot products from floor 1, in one result. The Claude docs' search example does exactly this with NumPy: `similarities = np.dot(doc_embds, query_embd)`. `doc_embds` holds one embedding per document, and the result is one score per document.
+### Matrix times matrix
 
-## Matrix times matrix
+To multiply two matrices, take the dot product of each row of the first with each column of the second. The number at row i, column j of the result is row i of the first · column j of the second.
 
-To multiply two matrices, take the dot product of each row of the first with each column of the second. The number at row i, column j of the result is row i of the first matrix · column j of the second.
-
-```
+```text
 | 1 2 |   | 5 6 |   | 1×5 + 2×7   1×6 + 2×8 |   | 19 22 |
 | 3 4 | × | 7 8 | = | 3×5 + 4×7   3×6 + 4×8 | = | 43 50 |
 ```
 
-The order matters. Swap the two and you get a different answer: the top-left number becomes `5×1 + 6×3 = 23`, not 19.
+Shape rule: an (m × n) matrix times an (n × p) matrix gives an (m × p) matrix. The two inner numbers (both n) must match. The order of the two matrices matters.
 
-Shape rule: an (m × n) matrix times an (n × p) matrix gives an (m × p) matrix. The two inner numbers must match.
+### The transpose
 
-## The transpose
+The **transpose** flips a matrix: rows become columns. It is written with a small T, like `Kᵀ`.
 
-The transpose of a matrix flips it: rows become columns. It is written with a small T, like `Kᵀ`.
-
-```
+```text
 | 1 2 3 |ᵀ   | 1 4 |
 | 4 5 6 |  = | 2 5 |
              | 3 6 |
 ```
 
-A 2 × 3 matrix becomes 3 × 2. Floor 8 uses the transpose to compare every token with every other token.
+A 2 × 3 matrix becomes 3 × 2.
 
-## A layer: y = Wx + b
+### A layer: y = Wx + b
 
-The basic layer of a neural network, written as math, is a matrix multiply plus one more vector:
+The basic layer of a neural network is a matrix multiply plus one more vector:
 
 `y = Wx + b`: the output y is the weight matrix W times the input x, plus the bias b.
 
-The bias `b` is a vector added at the end, one number per output. Continue the example: `Wx = (8, 4)` and `b = (1, −2)`, so `y = (8 + 1, 4 − 2) = (9, 2)`.
+The **bias** `b` is a vector with one number per output, added at the end. Our example: `Wx = (8, 4)` and `b = (1, −2)`, so `y = (8 + 1, 4 − 2) = (9, 2)`.
 
-The numbers inside `W` and `b` are the layer's parameters. Training changes them (floor 6 shows how). This small layer has `2 × 3 = 6` weights plus 2 bias numbers: 8 parameters. The Claude glossary describes LLMs as "AI language models with many parameters".
+The numbers inside `W` and `b` are the layer's **parameters**: the numbers that training learns. This layer has `2 × 3 = 6` weights plus 2 bias numbers, so 8 parameters. Real models have far more. The [Claude glossary](https://platform.claude.com/docs/en/about-claude/glossary) describes LLMs as "AI language models with many parameters".
 
-## A learned matrix on top of embeddings
+### A learned matrix on top of embeddings
 
-The OpenAI cookbook has a full example of a learned matrix. Its goal: "customize OpenAI embeddings to a particular task". It learns from pairs of texts marked similar or not similar, and "The output is a matrix that you can use to multiply your embeddings."
+The [OpenAI cookbook](https://developers.openai.com/cookbook/examples/customizing_embeddings) shows a learned matrix in real code. Its goal is to "customize OpenAI embeddings to a particular task". It says: "The output is a matrix that you can use to multiply your embeddings."
 
-In its code, the matrix has `embedding_length` rows and `modified_embedding_length` columns (2048 by default). Each embedding is multiplied by it with Python's `@` operator: `modified_embedding_1 = e1 @ matrix`. Here the embedding is a row, so it goes on the left. By the shape rule, a row of `embedding_length` numbers times that matrix gives a row of 2048 numbers.
+In its code, the embedding is a row, so it goes on the left: `modified_embedding_1 = e1 @ matrix`. In Python, `@` is the matrix multiply. The matrix has `embedding_length` rows and `modified_embedding_length` columns, and the default for that is 2048. By the shape rule, the new embedding has 2048 numbers.
 
-## Key points
+A small comparison: a matrix is a mixing desk. Each output is one slider setting over all the inputs.
 
-- A matrix is a grid of numbers. Its shape is rows × columns.
-- Matrix times vector: one dot product per row. `W` (2 × 3) times `(2, 1, 3)` gives `(8, 4)`.
-- One matrix multiply scores many documents at once.
-- Matrix times matrix: row · column for every pair. The inner sizes must match, and the order matters.
-- A layer is `y = Wx + b`. The numbers in `W` and `b` are the parameters that training changes.
+## Worked example
+
+Our example: a tiny layer scores a support ticket for two labels. The input `x` has 3 numbers that describe the ticket. Row 1 of `W` scores the label **refund**. Row 2 scores the label **bug**. The higher output wins.
+
+```text
+W = | 2  1  0 |   ← refund
+    | 1  0  2 |   ← bug
+
+x = (3, 1, 1)
+b = (−2, 1)
+```
+
+### Step 1: check the shapes
+
+`W` has 3 columns and `x` has 3 numbers, so the multiply works. `W` has 2 rows, so `Wx` has 2 numbers. `b` has 2 numbers too, so the add works.
+
+### Step 2: the multiply
+
+- refund: `(2, 1, 0)·(3, 1, 1) = 6 + 1 + 0 = 7`
+- bug: `(1, 0, 2)·(3, 1, 1) = 3 + 0 + 2 = 5`
+- `Wx = (7, 5)`
+
+Before: if you stop here, **refund** wins, 7 against 5.
+
+### Step 3: the hard case, the bias
+
+**This is the hard case.** The layer is not finished until you add `b`.
+
+- refund: `7 + (−2) = 5`
+- bug: `5 + 1 = 6`
+- `y = (5, 6)`
+
+After: **bug** wins, 6 against 5. The bias changed the answer. It is a learned number too, so it can move a decision on its own. A layer without its bias is a different layer.
+
+### Step 4: count the parameters
+
+`W` has `2 × 3 = 6` weights. `b` has 2 numbers. The layer has `6 + 2 = 8` parameters, and training sets all 8.
+
+### Step 5: why it is better
+
+- **Shapes first.** A shape check finds a broken layer before any number is wrong.
+- **The whole formula.** `Wx` alone gave the wrong label. `Wx + b` gave the layer's real answer.
+- **Easy to scale.** Put many tickets in the columns of one matrix, and one matrix multiply scores them all.
+
+## Common mistakes
+
+1. **Stopping after Wx.** The answer can change once the bias is added. Fix: always finish with `+ b`, one bias number per output.
+2. **Swapping the two matrices in a product.** `AB` and `BA` are usually different. Fix: keep the order from the formula.
+3. **Counting only the weights.** Our layer has 6 weights but 8 parameters. Fix: count rows × columns, then add one bias number per row.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Our example: two 2 × 2 matrices.
+
+```text
+A = | 1  0 |      B = | 0  1 |
+    | 2  1 |          | 1  3 |
+```
+
+1. Compute `AB`.
+2. Compute `BA`.
+3. Are they the same? What does that tell you about the order in a formula like `y = Wx + b`?
+
+### Answer
+
+1. `AB`: row 1 of A with each column of B: `1×0 + 0×1 = 0` and `1×1 + 0×3 = 1`. Row 2: `2×0 + 1×1 = 1` and `2×1 + 1×3 = 5`. So `AB = | 0 1 | | 1 5 |`.
+2. `BA`: row 1 of B with each column of A: `0×1 + 1×2 = 2` and `0×0 + 1×1 = 1`. Row 2: `1×1 + 3×2 = 7` and `1×0 + 3×1 = 3`. So `BA = | 2 1 | | 7 3 |`.
+3. No. The order changes the answer. In `Wx`, the matrix comes first and the vector second. Swapping them gives a different result, or no result at all if the shapes don't fit.
+
+## Recap
+
+- A matrix is a grid with a shape, rows × columns. To multiply it by a vector, dot each row with the vector: one input number per column, one output number per row.
+- Matrix times matrix is row · column for every pair. The inner sizes must match, and the order matters. The transpose swaps rows and columns.
+- A layer is `y = Wx + b`. The numbers in `W` and `b` are its parameters, and the bias can change the result.
