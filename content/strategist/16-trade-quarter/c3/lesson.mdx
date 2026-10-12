@@ -1,0 +1,174 @@
+---
+id: strategist/r16/c3/lesson
+title: Finance
+minutes: 11
+sources:
+  - kind: docs
+    title: Claude docs · Code execution tool
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool
+  - kind: docs
+    title: Claude docs · Reduce hallucinations
+    url: https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations
+  - kind: docs
+    title: OpenAI docs · Code Interpreter
+    url: https://developers.openai.com/api/docs/guides/tools-code-interpreter
+  - kind: docs
+    title: ChatGPT docs · Use ChatGPT
+    url: https://learn.chatgpt.com/docs/use-chatgpt
+  - kind: docs
+    title: ChatGPT docs · Prompting
+    url: https://learn.chatgpt.com/docs/prompting
+  - kind: docs
+    title: Gemini API docs · Code execution
+    url: https://ai.google.dev/gemini-api/docs/code-execution
+  - kind: docs
+    title: Anthropic Usage Policy
+    url: https://www.anthropic.com/legal/aup
+---
+
+## Goal
+
+After this lesson you can:
+
+- Use AI to draft the words around your numbers: the explanation, the summary, the questions to ask.
+- Explain why a number in an AI answer can be wrong even when it looks right.
+- Check every number yourself with a tool, like a spreadsheet, before the report goes out.
+
+## The problem
+
+Finance work is words and numbers together. A monthly report, a budget note, a short explanation of a table for the team. AI tools draft the words fast, and they write numbers in the same smooth way.
+
+That is the danger. A wrong number in a smooth sentence does not look wrong. If a total is off, or a number has no source, the report still reads well, and the reader trusts it. Then a decision is made on a number nobody checked.
+
+This lesson shows what AI is good for in finance work, why its maths can fail, and how a person checks it. The quotes are from the docs of Anthropic, OpenAI and Google, and from the Anthropic Usage Policy, read in October 2026.
+
+## The idea
+
+**1. What AI does well: the words around the numbers.** Turn a table into plain sentences. Draft the first version of a monthly note. List the questions a manager may ask. The [ChatGPT docs](https://learn.chatgpt.com/docs/prompting) give a prompt for a leadership brief that asks the tool to "distinguish reported facts from your analysis, cite each number to its source file". Facts from the file and the tool's own reading are kept apart.
+
+**2. The main risk: wrong maths that looks right.** The [Claude docs](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) warn that a model "can sometimes generate text that is factually incorrect or inconsistent with the given context". A number in a sentence is text too. The same page shows a finance prompt that gives the model a way out: if the report lacks the facts, say "I don't have enough information to confidently assess this."
+
+All three vendors offer a fix: a **code tool**. The model writes a small program, runs it, and uses the result.
+
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/tools-code-interpreter): Code Interpreter "allows models to write and run Python code in a sandboxed environment to solve complex problems in domains like data analysis, coding, and math." (A sandbox is a closed space where code can run safely.)
+- The [Gemini API docs](https://ai.google.dev/gemini-api/docs/code-execution): the model can "generate and run Python code", and can then "learn iteratively from the code execution results until it arrives at a final output".
+- The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/code-execution-tool): Claude "can analyze data, create visualizations, perform complex calculations".
+
+But a code tool does not run for every number. The Claude docs list when Claude runs code, for example "Non-trivial math (large numbers, many steps, precision-sensitive results)". They also list when it does not: "Claude answers directly without running code for: Simple arithmetic and well-known math facts". So even with the tool on, some numbers in an answer were never computed.
+
+The same page says how to ask for it: "If you want Claude to run code for a borderline request, ask explicitly (for example, 'run code to verify this')." (Explicitly: plainly, in clear words.)
+
+**3. The human check: every number is re-computed with a tool, and traced to its source.** The [ChatGPT docs](https://learn.chatgpt.com/docs/use-chatgpt) say:
+
+- "Verify important numbers, names, dates, quotes, and claims."
+- "Legal, financial, medical, security, and other high-stakes decisions require appropriate expert review."
+
+A small comparison: an AI draft of a report is like a receipt written by hand. It may be right, but you still add it up before you pay.
+
+Our rule from this: for a finance report, a person re-does every number with a tool they trust (a spreadsheet formula, a calculator), from the source file, before the report goes out. Not some numbers. Every number.
+
+There is one more line, about advice to a person. The [Anthropic Usage Policy](https://www.anthropic.com/legal/aup) lists Finance among its "High-risk Areas": "a personalized recommendation to buy, sell, hold, or allocate among specific investment products" (allocate: decide how to split money between them), and "advising an individual on their own taxes". For those, "A qualified person must meaningfully review" the output first.
+
+The policy also lists what is not high-risk. One item is "Business operations that do not advise or decide about a specific individual". Another is "General information or educational content, including explaining what a law says, how a condition or treatment works, or how investing works, without applying it to the individual's circumstances."
+
+Our reading: a company's own monthly report is business operations. Picking funds for one person, or advising them on their own taxes, is in the Finance area. Send that person to a qualified adviser. This lesson is not financial advice.
+
+A small diagram (ours):
+
+```text
+AI drafts       →  the sentences, the structure, the questions
+A tool computes →  every total, average and change, from the file
+A person signs  →  the report, and anyone's own money advice
+```
+
+The Hallucinations chapter in Bootstrap Village explains why a model can state something false with confidence.
+
+## Worked example
+
+Tomás is the office manager at a 20-person IT services firm. Each month Tomás shows the team how spending compares with the budget. This month Tomás wants a short explanation to go with the table.
+
+### Step 1: the table and the prompt
+
+```text
+Category    Budget   Actual
+Travel       4,000    3,100
+Software     5,000    5,900
+Training     2,000    1,400
+Subtotal    11,000   10,400
+Office       3,000    3,200
+```
+
+Tomás pastes it into the company's approved AI tool:
+
+```text
+Explain this budget table for a team meeting in five
+short bullets, in plain words. Say which categories are
+over budget and which are under, and give the total
+budget and total actual spend for the month.
+```
+
+### Step 2: the draft
+
+The draft reads well. Software is over budget, travel and training are under. The last bullet says: "In total, the team spent 24,000 against a budget of 25,000."
+
+### Step 3: the hard case, a total that looks fine
+
+**This is the hard case.** Nothing looks wrong. The total is under budget, which matches the bullets. But Tomás puts the table in a spreadsheet (headers in row 1, Travel in row 2) and adds up the four real categories with a formula:
+
+```text
+=SUM(C2:C4) + C6     →  13,600 actual
+=SUM(B2:B4) + B6     →  14,000 budget
+```
+
+The real total is 13,600 against 14,000. The draft added the Subtotal row as if it were one more category, so it counted three categories twice. The words around it were right. The total was not.
+
+### Step 4: fix the table, then the words
+
+Tomás removes the Subtotal row from what the tool sees, so it cannot be counted again. Tomás writes the two totals from the spreadsheet into the last bullet, and checks each of the other numbers in the bullets against the table, one by one.
+
+Before the meeting, Tomás asks the finance lead to look at the final page and the spreadsheet together. It takes five minutes, and now two people have seen every number.
+
+### Step 5: why it is better
+
+- **Every number has a source.** Each one comes from a cell or a formula, not from the flow of a sentence.
+- **The tool did the words.** Tomás saved time on the writing and spent it on the check.
+- **The table is cleaner.** Without the Subtotal row, the next draft starts from data that cannot be double-counted.
+
+## Common mistakes
+
+1. **Giving the tool a photo of a table and trusting the numbers it reads back.** Fix: compare a few of the read-back numbers with the original before you use any of them.
+2. **Fixing a wrong number in the text but not in the file.** Fix (our advice): correct the source file first, then ask for a new draft from it.
+3. **Sending the report before anyone who owns the money has seen it.** Fix (our advice): name one person who signs off each report, and give them the file with the draft.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A café sends you this table and an AI-written note. For each of the three claims, write the spreadsheet formula you would use to check it, and say if the claim is right. Assume the table starts in cell A1, with headers in row 1.
+
+```text
+Item      Cost
+Rent      2,400
+Staff     6,000
+Coffee    1,100
+Milk        500
+
+AI NOTE
+  a. Monthly costs add up to 10,000.
+  b. Staff is about 60% of all costs.
+  c. The average cost per item is 2,500.
+```
+
+### Answer
+
+- **a.** `=SUM(B2:B5)` gives 10,000. Right.
+- **b.** `=B3/SUM(B2:B5)` gives 0.6, so 60%. Right.
+- **c.** `=AVERAGE(B2:B5)` gives 2,500. Right.
+
+All three are right this time, and that is the point. You don't know until you check, and the check takes one minute. A right answer and a wrong one look exactly the same on the page.
+
+## Recap
+
+- In finance, AI is good at the words: explanations, structure, first drafts. Keep facts from the file apart from the tool's own reading.
+- A number in an AI answer may never have been computed, even with a code tool switched on.
+- Re-do every number with a tool from the source file, and keep personal money advice with a qualified person.
