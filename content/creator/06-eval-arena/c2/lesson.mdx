@@ -1,7 +1,7 @@
 ---
 id: creator/r6/c2/lesson
 title: Rubrics
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Define success criteria and build evaluations
@@ -17,71 +17,169 @@ sources:
     url: https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents
 ---
 
-## Why it matters
+## Goal
 
-Chapter 1 gave you criteria and targets. A **rubric** is the sheet a reviewer uses to turn a picture into a score. In Agent Citadel, chapter 3, you wrote yes-or-no lines for a review loop. This chapter goes further. You will score many images from two models, and some qualities, such as mood, do not fit a yes or no.
+After this lesson you can:
 
-The test of a good rubric is simple. Two reviewers use it on the same image and give the same score.
+- Turn a vague score into a rubric: yes-or-no lines for facts, short anchored scales for look, and a pass line.
+- Keep must-have lines as gates, so an average cannot hide a failure.
+- Test a rubric on two or three people and fix the lines where they disagree.
 
-## Where a rubric can start
+## The problem
 
-Claude's Managed Agents docs describe a rubric as "a markdown document describing per-criterion scoring". That page is a beta feature, so details may change. It also gives a tip for when you have no rubric: give Claude "an example of a known-good artifact", ask it to analyze what makes that content good, and turn the analysis into a rubric. The docs say this "often produces better results than writing criteria from scratch."
+A podcast network makes episode cover art for 12 shows with an image model. One freelancer used to review every cover with one question: "Rate it from 1 to 10." Anything 7 or above went out.
 
-The docs write this for any artifact. For a studio, the known-good artifact is an approved image. Treat the model's list as a first draft, then edit it yourself and test it on people (see below).
+Then two things happened:
 
-## Yes or no, or a short scale
+1. A second reviewer joined. On the same covers, the two often differed by 3 or 4 points. Nobody could say who was right.
+2. A cover scored 9 and went live. The show name was cut off at the edge. The host saw it first.
 
-Claude's guide says to be "empirical or specific". Tell the grader to output only "correct" or "incorrect", or to judge on a scale of 1 to 5. It adds that "Purely qualitative evaluations are hard to assess quickly and at scale."
+The reviewers are not lazy. The sheet is the problem. "1 to 10" does not say what to look at, what a 6 looks like, or which mistakes are never allowed. This lesson turns that sheet into a rubric.
 
-A good split, which is ours:
+## The idea
 
-- **Yes or no** for facts: Is the logo there? Does the label read "Fernhill"? Is the format 4:5?
-- **A short scale** for look: polish, mood, fit to the brand.
+### What a rubric is
 
-## Anchor every level
+A **rubric** is a scoring sheet: a list of lines, and for each line, how to score it. The [Claude docs on outcomes](https://platform.claude.com/docs/en/managed-agents/define-outcomes) (a beta feature, so details may change) define it as "a markdown document describing per-criterion scoring". They also warn why each line must be clear: "The grader scores each criterion independently, so vague criteria produce noisy evaluations." A **grader** is whoever applies the rubric, a person or a model.
 
-A scale with no examples means a different thing to each person. OpenAI's guide recommends a "show rather than tell" policy: provide "examples of different score levels (e.g., 1, 3, and 8 out of 10)".
+The test of a good rubric is simple. Two reviewers score the same image alone and get the same result.
 
-For images, that means pinning real images to the scale. For "mood, 1 to 5" you might keep three images on the rubric sheet: one that is a 1, one a 3 and one a 5. A reviewer who is unsure compares the new image to those three.
+A comparison: a rubric is like a driving test sheet. The examiner does not write "drove nicely: 7". The sheet says "stopped at the line: yes or no".
 
-OpenAI also says to "include a pass/fail threshold in addition to the numerical score". A 4 means little until you know whether 4 passes.
+### Where the first draft can come from
 
-## Gates and weights
+Writing a rubric from nothing is slow. The Claude outcomes docs give a tip: give Claude "an example of a known-good artifact" and ask it to analyze what makes that content good, then turn the analysis into a rubric. The docs say this "often produces better results than writing criteria from scratch."
 
-Anthropic's post says a task can combine grader scores in three ways: "weighted (combined grader scores must hit a threshold), binary (all graders must pass), or a hybrid." It also says: "For tasks with multiple components, build in partial credit."
+For a studio, the known-good artifact is approved work. Our advice: treat the model's list as a first draft. A person edits it, and people test it (see below).
 
-An example, with made-up numbers. An image gets these scores: brief fit 5, brand 5, text 5, logo 1. The mean is (5 + 5 + 5 + 1) / 4 = 4.0. If the pass line is a mean of 4.0, the image passes with a wrong logo. A client would not accept it.
+### Yes or no, or a short scale
 
-A hybrid fixes this, and the design is ours:
+The [Claude docs on evaluations](https://platform.claude.com/docs/en/test-and-evaluate/develop-tests) say how a grader should answer:
 
-- **Gates (binary).** Lines that must pass, such as an exact logo and exact label text. One fail means the image fails.
-- **Weights (scored).** Lines where more is better, such as polish and mood. These count toward a score.
+- The output should be "Empirical or specific".
+- Their example is to tell the grader "to output only 'correct' or 'incorrect', or to judge from a scale of 1–5".
+- They add: "Purely qualitative evaluations are hard to assess quickly and at scale."
 
-Partial credit still helps. It lets you see that a model that gets the logo and label right but misses the mood is better than one that fails all three. Keep the gates as gates, though.
+Our split:
 
-## Several rubrics, not one
+- **Yes or no** for facts. Is the show name complete? Is the episode number right?
+- **A short scale (1 to 5)** for look. Mood, polish, fit to the show's style.
 
-Claude's guide says that "A given use case, or even a specific success criteria for that use case, might require several rubrics for holistic evaluation." A packshot needs an exact product and label. A social story needs mood and a safe zone for text. Write one rubric for each kind of job.
+### Anchor every level
 
-## Test the rubric on people
+A 1-to-5 scale with no examples means something different to each person. The [OpenAI evaluation docs](https://developers.openai.com/api/docs/guides/evaluation-best-practices) recommend a "show rather than tell" policy: "providing examples of different score levels (e.g., 1, 3, and 8 out of 10)".
 
-OpenAI recommends to "Conduct multiple rounds of detailed human review to refine the scorecard." It also says: "A simple way to aggregate multiple reviewers is to take consensus votes."
+For images, an **anchor** is a real image pinned to a level. Keep one cover that is a 1, one that is a 3 and one that is a 5 next to the mood line. A reviewer who is unsure compares the new cover with those three.
 
-A way to do it:
+The same docs say to "Include a pass/fail threshold in addition to the numerical score". A 4 means little until you know whether 4 passes.
 
-1. Have two or three people score the same 20 images alone.
-2. Find the images where they differ by two points or more.
-3. Talk about those images, fix the wording of the rubric, and add an anchor image if needed.
-4. Score a fresh set and compare again.
+### Gates, weights and partial credit
 
-Anthropic adds a point about what to grade: "it's often better to grade what the agent produced, not the path it took." For you, grade the image and not the prompt that made it. A model may reach a good image by a path you did not expect.
+The [Anthropic post on evals](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) says scoring for a task "can be weighted (combined grader scores must hit a threshold), binary (all graders must pass), or a hybrid."
 
-## What this means for your work
+Our design for creators is a hybrid:
 
-- **Start from approved work.** A known-good image can give you a first draft of the rubric.
-- **Use yes or no for facts and a 1 to 5 scale for look.**
-- **Pin an anchor image to each level** of every scale.
-- **Add a pass line** next to every score.
-- **Make must-haves gates**, and do not let an average hide them.
-- **Write one rubric per kind of job.**
-- **Test the rubric with two or three people**, then fix the lines where they differ.
+- **Gates.** Must-have lines, scored yes or no. One fail means the image fails. Example: the show name is complete and spelled right.
+- **Weights.** Lines where more is better, scored 1 to 5. These add up to a score with a pass line.
+
+Why gates? An average lets a strong line cover a weak one. Our maths: five lines scored 5, 5, 5, 5 and 3 have a mean of 23 / 5 = 4.6. If the pass line is 4.5, the image passes, even if the 3 is a cut-off name. Raising the pass line does not fix this. Only a gate does.
+
+The same post also says: "For tasks with multiple components, build in partial credit." Our reading: keep the line-by-line results. An image that fails one gate is a near miss. An image that fails every line is far off. You want to see the difference, but the near miss still does not ship.
+
+### Grade the image, not the path
+
+The Anthropic post says "it's often better to grade what the agent produced, not the path it took." For a creator: score the cover, not the prompt or the tool that made it.
+
+### One rubric per kind of job
+
+The Claude docs say: "A given use case, or even a specific success criteria for that use case, might require several rubrics for holistic evaluation." A square cover and a vertical video still have different must-haves. Give each kind of job its own rubric.
+
+### Test the rubric on people
+
+The OpenAI docs recommend: "Conduct multiple rounds of detailed human review to refine the scorecard." To combine reviewers, they say "A simple way to aggregate multiple reviewers is to take consensus votes." A **consensus vote** means you go with what most reviewers chose.
+
+Our habit: three reviewers score the same set alone. Where two differ by 2 points or more on a line, talk about those images. Make the line clearer or add an anchor, and run a new round on images nobody has scored yet.
+
+## Worked example
+
+### Step 1: the weak sheet
+
+```text
+Rate the cover from 1 to 10. 7 or above ships.
+```
+
+Two reviewers, no anchors, no must-haves. The cut-off name scored 9 because everything else looked great.
+
+### Step 2: write the rubric
+
+```text
+EPISODE COVER RUBRIC (square, 3000x3000)
+
+Gates (yes / no, every one must be yes)
+  G1  Show name complete, spelled exactly, not cut by any edge
+  G2  Episode number correct
+  G3  Show name still readable when the cover is shrunk to 200x200
+
+Weights (1 to 5, anchor covers pinned for 1, 3 and 5)
+  W1  Mood fits the show's style guide
+  W2  Polish: no melted edges, no odd hands, no extra objects
+
+Pass: all gates yes AND W1 + W2 is 7 or more
+```
+
+The pass line and the sizes are our example.
+
+### Step 3: the hard case
+
+**The hard case is two failed covers.** Both fail, but not in the same way. The scores are our example.
+
+```text
+        Cover A                             Cover B
+G1      yes                                 no  (show name misspelled)
+G2      yes                                 no  (episode 41, not 14)
+G3      no  (name unreadable at 200x200)    no
+W1      5                                   2
+W2      4                                   2
+Result  FAIL                                FAIL
+```
+
+The weak reading: "Both failed, so redo both from zero." The better reading: keep the line-by-line result. Cover A misses one gate, and its weights add up to 9. Making the show name bigger is one fix. Cover B fails every gate and its weights add up to 4, so the prompt itself needs work. Neither ships, but they go to different queues. This is partial credit: the result shows how far each image is from a pass.
+
+### Step 4: why it is better
+
+- **Must-haves are gates**, so a beautiful cover with a broken name fails.
+- **Anchors** make a 3 mean the same thing to every reviewer.
+- **A pass line** sits next to every score.
+- **Line-by-line results** show a near miss apart from a far miss.
+
+## Common mistakes
+
+1. **Averaging must-have lines with look lines.** A high mood score buys back a wrong name. Fix: make must-haves yes-or-no gates.
+2. **A scale with no anchors.** Each reviewer invents their own 3. Fix: pin a real image to the low, middle and top levels.
+3. **One rubric for every job.** Lines that matter for one format are missing or wrong for another. Fix: give each kind of job its own rubric.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A video team writes rubric lines for vertical trailer stills. Say what you would do with each line: make it a yes-or-no gate, make it a 1-to-5 scale, rewrite it or drop it.
+
+```text
+A  The release date on the still is correct.
+B  The colours feel like the show.
+C  The designer used the approved prompt template.
+D  The still looks good.
+```
+
+### Answer
+
+1. **A: a gate.** It is a fact. A wrong date means the still cannot ship.
+2. **B: a 1-to-5 scale with anchors.** It is about look, so pin a still for 1, 3 and 5, and add a pass line.
+3. **C: drop it.** It grades the path, not the result. The Anthropic post says it is often better to grade what was produced. Check the still itself.
+4. **D: rewrite it.** "Looks good" names nothing. Split it into lines you can check, such as polish and readable text.
+
+## Recap
+
+- A rubric is a list of lines and how to score each one. Use yes or no for facts and an anchored 1-to-5 scale for look, with a pass line next to every score.
+- Make must-haves gates. An average, even with a higher pass line, lets a strong line hide a failed one. Keep the line-by-line results for partial credit.
+- Start from approved work, give each kind of job its own rubric, and test it on people in several rounds before you trust it.
