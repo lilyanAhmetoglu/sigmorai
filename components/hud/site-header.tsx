@@ -14,7 +14,7 @@ type Props = {
 
 /**
  * The one site header, on every page (the (app) layout and PublicShell, for
- * the (marketing) and (auth) layouts and the site 404): logo, nav (row from lg, Menu below; hidden while no page is
+ * the (marketing) and (auth) layouts and the site 404): logo, nav (row from xl, Menu below; hidden while no page is
  * live), HUD. Sticky from lg. Styles: app-shell.css.
  */
 export function SiteHeader({ hud }: Props) {
