@@ -1,7 +1,7 @@
 ---
 id: creator/r0/c3/lesson
 title: Multimodal input
-minutes: 7
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Vision
@@ -23,24 +23,40 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/audio
 ---
 
-## Why it matters
+## Goal
 
-A model that can **read** your media is a second pair of eyes. It can check 50 product shots for the logo, compare a draft with the brand guide, or turn a client's voice memo into notes. This is called **multimodal input**: you give the model an image or a sound, and it answers in text. This lesson covers what to send, how, and where models still get it wrong.
+After this lesson you can:
 
-## What the models can read
+- Prepare images so a model can read them: right format, upright, clear, big enough.
+- Write a prompt with several labelled images, in the order the vendor docs suggest.
+- Give a vision model jobs it does well, and keep a person on the jobs it does badly.
 
-- **Images.** Claude, OpenAI and Gemini models all read images. Anthropic's model overview says all current Claude models support text and image input. Google lists captioning, classification, visual question answering, object detection and segmentation.
-- **Audio.** Gemini can describe, summarize and transcribe audio, tell speakers apart, and detect emotion in speech and music. Its docs say it also understands non-speech sounds, like birdsong and sirens. OpenAI points you to its transcription API for "a transcript of an audio file".
+## The problem
 
-Example: a client sends a 4-minute voice memo with feedback on your storyboard. An audio-capable model can turn it into a list of changes with timestamps. You still listen to the parts that matter.
+A fashion brand shoots a new lookbook. The photographer sends 12 photos. The art director wants a model to compare each photo with the brand's style guide page. She writes:
 
-## How you send an image
+```text
+Here is our style guide and some lookbook photos.
+Check everything. Tell me who the model in each photo is,
+count every button, and say if any photo looks AI-made.
+```
 
-Claude and OpenAI accept an image in three ways: as a web **URL**, as **base64** (the image packed into text), or as a **file ID** from a files upload. You rarely do this by hand. Your tool or developer does. But the choice matters for long chats.
+She attaches the style guide and 12 photos. Some are phone files in HEIC format. Two are sideways. One is an animated GIF of a turning jacket.
 
-Claude's docs explain why: in a long chat, every turn sends the whole history again. A base64 image is re-sent each turn. An uploaded file is sent once and then referenced by its ID.
+The answers come back vague. The model refuses to name the person. The button counts are off. The GIF answer talks about only one pose. Nothing was broken. The prompt asked for things the model can't do well, and the files were not ready.
 
-## Limits differ by vendor
+## The idea
+
+A model that can **read** your media is a second pair of eyes. This is **multimodal input**: you send the model a picture or a recording, and it replies in text. It works like a careful assistant who is quick, but needs clear photos and clear questions.
+
+**What models can read.**
+
+- **Images.** The [Claude docs](https://platform.claude.com/docs/en/models/overview) say "All current models support text and image input". The [Gemini API docs](https://ai.google.dev/gemini-api/docs/image-understanding) list "image captioning, visual question and answering, image classification, object detection and segmentation".
+- **Audio.** The [Gemini API docs](https://ai.google.dev/gemini-api/docs/audio) say Gemini can "Describe, summarize, or answer questions about audio content", transcribe, tell speakers apart and detect emotion in speech and music. It also understands non-speech sounds, like birdsong and sirens. The [OpenAI docs](https://developers.openai.com/api/docs/guides/audio) point to file transcription for "A transcript of an audio file".
+
+**How an image is sent.** Claude and [OpenAI](https://developers.openai.com/api/docs/guides/images-vision) accept a web URL, base64 (the image packed into text), or a file ID from a files upload. The [Claude vision docs](https://platform.claude.com/docs/en/build-with-claude/vision) explain why this matters in long chats: each request "resends the full conversation history". A base64 image is sent again on every turn. An uploaded file is sent once and then referenced by its ID.
+
+**Limits differ by vendor.**
 
 | Vendor | File types                        | Images per request             | Other limits                            |
 | ------ | --------------------------------- | ------------------------------ | --------------------------------------- |
@@ -48,34 +64,109 @@ Claude's docs explain why: in a long chat, every turn sends the whole history ag
 | OpenAI | PNG, JPEG, WEBP, non-animated GIF | up to 1,500                    | up to 512 MB per request                |
 | Gemini | PNG, JPEG, WEBP, HEIC, HEIF       | up to 3,600 image files        | 20 MB per request for inline data       |
 
-Two small traps for designers:
+Two traps hide in this table:
 
-- **Animated GIFs.** Claude uses only the first frame. OpenAI accepts only non-animated GIFs.
-- **HEIC from phones.** Gemini lists HEIC. Claude and OpenAI do not list it, so convert phone photos to JPEG first.
+- **Animated GIFs.** The Claude docs say: "Animations are unsupported, and only the first frame is used." OpenAI accepts only non-animated GIFs.
+- **HEIC from phones.** The Gemini docs list HEIC. The Claude and OpenAI docs do not. Convert to JPEG first.
 
-## The order of image and text
+**Order and labels.** The vendors differ here too:
 
-Even the order of your prompt differs by vendor:
+```text
+Claude:  [image] then [text]   "works best when images come before text"
+Gemini:  [text] then [image]   for a single image with text,
+                               "place the text prompt before the image"
+```
 
-- Claude's docs say Claude "works best when images come before text".
-- Gemini's tips say, for a single image with text, "place the text prompt before the image".
+With several images, the Claude docs advise a short tag before each: "Image 1:", "Image 2:". Then you can ask about each image by name.
 
-When you send several images, Claude's docs suggest a label before each one: "Image 1:", "Image 2:". Then you can say "Is the logo in Image 2 the same blue as in Image 1?"
+**Where models get it wrong.**
 
-## Where models get it wrong
-
-The vendors list the weak spots. Plan your checks around them.
-
-- **Small, rotated or blurry images.** Claude "might hallucinate or make mistakes" on low-quality, rotated, or very small images under 200 pixels. OpenAI lists small text and rotated text as limits. Gemini says to check that images are correctly rotated.
-- **Counting.** Claude gives "approximate counts". OpenAI lists approximate counts of objects as a limit.
-- **Non-Latin text.** OpenAI lists text in non-Latin alphabets, such as Japanese or Korean, as a limit.
+- **Low quality.** The Claude docs say Claude "might hallucinate or make mistakes" on "low-quality, rotated, or very small images under 200 pixels". The OpenAI docs say its model "may misinterpret rotated or upside-down text and images". The Gemini API docs say: "Verify that images are correctly rotated."
+- **Counting.** Claude "can give approximate counts". OpenAI also lists approximate counts.
+- **Non-Latin text.** The OpenAI docs say its model "may not perform optimally" on text in "non-Latin alphabets, such as Japanese or Korean".
 - **Naming people.** Claude "cannot be used to name people in images and refuses to do so."
-- **Spotting AI images.** Claude "cannot determine whether an image is AI-generated". Don't use it as a fake detector.
+- **Spotting AI images.** Claude "cannot determine whether an image is AI-generated". The Claude docs say: "Do not rely on it to detect fake or synthetic images."
 
-Example: a retail team asks "How many cans are on this shelf?" for 30 phone photos. The model's numbers are estimates. If the exact count matters, a person counts.
+The Claude docs add one rule for all of this: "Do not use Claude for tasks requiring perfect precision or sensitive image analysis without human oversight."
 
-## What this means for your work
+## Worked example
 
-- **Prepare the files.** Rotate, crop to the detail, convert odd formats, keep images clear.
-- **Ask for checks, not perfect numbers.** "Is the logo visible: yes or no?" is a better job than "count every item".
-- **Keep a person on the high-stakes calls.** Claude's docs say not to use it for tasks that need perfect precision without human oversight.
+### Step 1: fix the files
+
+| File problem             | Fix                                         |
+| ------------------------ | ------------------------------------------- |
+| HEIC phone photos        | Convert to JPEG (Claude and OpenAI)         |
+| Two sideways photos      | Rotate them upright                         |
+| Animated GIF of a jacket | Export the key frames as separate JPEGs     |
+| Style guide is a PDF     | Export the one page you need as a PNG image |
+
+### Step 2: cut the wish list
+
+Keep the jobs the model does well. Drop or change the rest.
+
+```text
+"Who is the model?"      -> drop. Claude refuses to name people.
+"Count every button"     -> change to a yes/no check:
+                            "Are all buttons on the coat closed?"
+"Does it look AI-made?"  -> drop. Models can't tell.
+"Check everything"       -> change to 3 clear checks.
+```
+
+### Step 3: write the prompt (after)
+
+This is for Claude, so the images come first, each with a label.
+
+```text
+Image 1: [style guide page]
+Image 2: [lookbook photo 01]
+
+Image 1 is our style guide. Image 2 is a lookbook photo.
+Answer each check with yes or no, then one short reason.
+
+1. Is the background the light grey shown in Image 1?
+2. Is the logo tag visible on the garment?
+3. Is the model facing the camera, as in the guide's
+   example poses?
+```
+
+For Gemini with a single image, put the text first and the image after it.
+
+**The hard case is the GIF.** It looks like one file, but it holds many frames. Claude reads only the first frame, and OpenAI does not accept animated GIFs. Sending key frames as separate, labelled images makes every pose visible.
+
+### Step 4: why it is better
+
+- **Every file can be read.** Right format, upright, clear.
+- **Every check is a job models do well.** Yes/no checks, not exact counts, names or fake detection.
+- **The labels make answers clear.** "Image 2 fails check 1" points to one photo.
+- **A person decides the rest.** Who is in the photo and whether it is real stay with the team.
+
+## Common mistakes
+
+1. **Sending phone files as they are.** HEIC files and sideways photos cause errors or bad answers. Fix: convert to JPEG and rotate before you send.
+2. **Asking for exact numbers.** Models give estimates. Fix: ask a yes/no question, or let a person count when the number matters.
+3. **Many images, no labels.** "The second one" is unclear. Fix: put "Image 1:", "Image 2:" before each image and use those names in the questions.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A record label wants a model to check 20 album-cover drafts. Find three problems in this plan:
+
+```text
+Files: 20 covers as HEIC, 4 of them 150x150 thumbnails.
+Prompt (to Claude), text first, then the 20 covers:
+"Read the Japanese title on each cover and tell me
+if it is spelled right."
+```
+
+### Answer
+
+1. **Formats and size.** Convert HEIC to JPEG. Replace the 150×150 thumbnails: under 200 pixels, Claude can make mistakes.
+2. **Order and labels.** For Claude, put the images first, each with a label ("Image 1:" and so on).
+3. **The text check.** OpenAI's docs list non-Latin text, such as Japanese, as a weak spot. Ask a person who reads Japanese to check the spelling. The model can still flag covers where the title is missing.
+
+## Recap
+
+- Multimodal input: you send an image or a sound, and the model answers in text.
+- Prepare the files: a supported format, upright, clear, not tiny. Label each image, and use the order the vendor suggests.
+- Give the model yes/no checks. Keep a person on exact counts, names and "is this AI?" questions.

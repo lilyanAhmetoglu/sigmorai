@@ -70,9 +70,19 @@ export const matchesFilter = (topic: BlogTopic | null, filter: BlogFilter) =>
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 const H2 = /^ {0,3}##[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$/;
 
-/** Every `##` heading of a body, in order, skipping fenced code. */
-export function postHeadings(body: string): BlogHeading[] {
-  const headings: BlogHeading[] = [];
+/** One `##` section of a body: its heading (null for the text before the first `##`) and its lines. */
+export type PostSection = { heading: BlogHeading | null; text: string };
+
+/**
+ * A body split at every `##` heading, in order, skipping fenced code (a `##`
+ * inside a code block is not a heading). The heading line itself is not in
+ * `text`; `###` children stay in their section. The mentor index chunks
+ * lessons with this (docs/plans/mentor-design-plan.md).
+ */
+export function postSections(body: string): PostSection[] {
+  const sections: PostSection[] = [];
+  let current: { heading: BlogHeading | null; lines: string[] } = { heading: null, lines: [] };
+  const close = () => sections.push({ heading: current.heading, text: current.lines.join('\n') });
   let fence: string | null = null;
   for (const line of body.split('\n')) {
     const open = FENCE.exec(line);
@@ -80,16 +90,23 @@ export function postHeadings(body: string): BlogHeading[] {
       const mark = open[1][0];
       if (fence === null) fence = mark;
       else if (fence === mark) fence = null;
+    }
+    const match = fence === null && !open ? H2.exec(line) : null;
+    if (!match) {
+      current.lines.push(line);
       continue;
     }
-    if (fence !== null) continue;
-    const match = H2.exec(line);
-    if (match) {
-      const text = headingText(match[1]);
-      headings.push({ id: headingId(text), text });
-    }
+    close();
+    const text = headingText(match[1]);
+    current = { heading: { id: headingId(text), text }, lines: [] };
   }
-  return headings;
+  close();
+  return sections;
+}
+
+/** Every `##` heading of a body, in order, skipping fenced code. */
+export function postHeadings(body: string): BlogHeading[] {
+  return postSections(body).flatMap((s) => (s.heading ? [s.heading] : []));
 }
 
 /**

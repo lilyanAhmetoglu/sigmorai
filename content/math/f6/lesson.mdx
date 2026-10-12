@@ -17,41 +17,59 @@ sources:
     url: https://developers.openai.com/cookbook/articles/gpt-oss/fine-tune-transfomers
 ---
 
-Floor 4 said training changes the numbers in `W` and `b`. But which way, and by how much? The answer is the gradient: it says which way the error goes up, so training steps the other way. This floor covers slope, the derivative, and gradient descent, with numbers you can check by hand.
+## Goal
 
-## Slope: how fast a line climbs
+After this lesson you can:
 
-The slope of a straight line is how much y changes when x goes up by 1. Rise over run.
+- Read a slope and a derivative, and use the sign to tell which way is downhill.
+- Run gradient descent steps by hand with `θ ← θ − η∇L`.
+- Spot a learning rate that is too big, and pick a safer one.
 
-Example: `y = 3x + 1`. At `x = 2`, `y = 7`. At `x = 3`, `y = 10`. y went up by 3 for one step in x, so the slope is 3.
+## The problem
+
+Training a model means changing its parameters (its learned numbers) so that its error gets smaller. A model can have billions of them. Nobody sets them by hand.
+
+So training needs a rule that answers two questions for every parameter: which way to move, and how far. The answer is the gradient. If you read training settings like the learning rate or epochs (an epoch is one full pass through the training data), this lesson shows the math behind them, with numbers you can check by hand.
+
+## The idea
+
+### Slope: how fast a line climbs
+
+The **slope** of a straight line is how much y changes when x goes up by 1.
+
+Our example: `y = 3x + 1`. At `x = 2`, `y = 7`. At `x = 3`, `y = 10`. y went up by 3, so the slope is 3.
 
 A positive slope climbs to the right. A negative slope falls to the right. A slope of 0 is flat.
 
-## The derivative: slope at one point
+### The derivative: the slope at one point
 
-A curve has a different slope at each point. The derivative gives the slope at one point. You can estimate it: move x a tiny bit, and divide the change in y by that tiny step.
+A curve has a different slope at each point. The **derivative** is the slope at one point. You can estimate it: move a tiny bit to the right, and divide the change in height by that tiny step.
 
-Example: a loss `L(θ) = (θ − 3)²`. θ (theta) is one parameter. The loss is lowest, 0, at `θ = 3`.
+Our example loss: `L(θ) = (θ − 3)²`. A **loss** is one number for how wrong the model is, so lower is better. θ (the Greek letter theta) is one parameter. This loss is lowest, 0, at `θ = 3`.
 
 At `θ = 5`:
 
 - `L(5) = 2² = 4`
 - `L(5.01) = 2.01² = 4.0401`
-- slope ≈ `(4.0401 − 4) / 0.01 = 4.01`, so about 4
+- slope ≈ `(4.0401 − 4) / 0.01 = 4.01`, so about 4 (`≈` means "about")
 
-The exact rule for this curve is `L'(θ) = 2(θ − 3)`. At `θ = 5` that gives `2 × 2 = 4`. At `θ = 3` it gives 0: the bottom of the curve is flat.
+The exact rule for this curve is `L'(θ) = 2(θ − 3)`. (`L'` means the derivative of L.) At `θ = 5` it gives `2 × 2 = 4`. At `θ = 3` it gives 0: the bottom is flat.
 
-The sign tells you the way uphill. At `θ = 5` the slope is +4: the loss goes up if θ goes up. So to lower the loss, make θ smaller.
+**The sign shows the way uphill.** A positive slope means the loss rises if θ goes up, so make θ smaller. With a negative slope, a bigger θ gives a lower loss, so make θ bigger.
 
-## Gradient descent
+### Gradient descent
 
-Gradient descent repeats one step: move each parameter a little way downhill.
+**Gradient descent** repeats one step: move each parameter a little way downhill.
 
 `θ ← θ − η∇L`: update the parameters theta: subtract the learning rate eta times the gradient of the loss L.
 
-η (eta) is the learning rate, a number you choose. It sets the size of each step, and the right size depends on the problem. With one parameter, `∇L` is just the derivative.
+- `←` means "becomes": the new θ replaces the old one.
+- η (the Greek letter eta) is the **learning rate**, a number you choose. It sets the size of each step.
+- `∇L` is the **gradient**: the list of slopes, one per parameter. With one parameter, it is just the derivative.
 
-Worked example: `L(θ) = (θ − 3)²`, start at `θ = 5`, learning rate `η = 0.1`.
+Because of the minus sign, a positive slope makes θ smaller, and a negative slope makes θ bigger. Both move downhill.
+
+Our example: `L(θ) = (θ − 3)²`, start at `θ = 5`, learning rate `η = 0.1`.
 
 | Step | θ     | Loss   | Slope `2(θ − 3)` | New θ                  |
 | ---- | ----- | ------ | ---------------- | ---------------------- |
@@ -60,51 +78,107 @@ Worked example: `L(θ) = (θ − 3)²`, start at `θ = 5`, learning rate `η = 0
 | 3    | 4.28  | 1.6384 | 2.56             | `4.28 − 0.256 = 4.024` |
 | 4    | 4.024 | 1.0486 |                  |                        |
 
-The loss falls every step: 4, 2.56, 1.64, 1.05. Here each step keeps 80% of the distance to 3 (2, then 1.6, then 1.28, then 1.024), so θ keeps getting closer.
+The loss falls every step: 4, 2.56, 1.64, 1.05.
 
-## Too big a step
+### Too big a step
 
-The learning rate sets the step size. Try `η = 1.1` from `θ = 5`:
+Same loss, same start, but `η = 1.5`:
 
-- step 1: `θ = 5 − 1.1 × 4 = 0.6`, loss `(0.6 − 3)² = 5.76`
-- step 2: slope `2 × (−2.4) = −4.8`, `θ = 0.6 + 5.28 = 5.88`, loss `2.88² = 8.2944`
+- step 1: `θ = 5 − 1.5 × 4 = −1`, loss `(−1 − 3)² = 16`
+- step 2: slope `2 × (−4) = −8`, `θ = −1 − 1.5 × (−8) = −1 + 12 = 11`, loss `8² = 64`
 
-The loss went 4, 5.76, 8.29: up, not down. Each step jumps over the bottom and lands further away. Too small a learning rate has the opposite problem: every step is safe but tiny, so training is slow.
+The loss went 4, 16, 64: up, not down. Each step jumps right over the bottom and lands further away on the other side. A learning rate that is too small has the opposite problem: every step is safe but tiny, so training is slow.
 
-## Many parameters: the gradient
+A small comparison: gradient descent is walking down a hill in fog. You feel the slope under your feet, then take a step. The learning rate is the length of your step.
 
-A real model has many parameters. The gradient is the list of slopes, one per parameter: how the loss changes if you nudge that one parameter alone.
+### Many parameters
 
-Example: `L(a, b) = a² + 3b²`. The slope for a is `2a`, and the slope for b is `6b`. So `∇L = (2a, 6b)`.
+With many parameters, the gradient has one slope per parameter. Each slope says how the loss changes if you nudge that one parameter alone. Every parameter takes its own step, with the same η.
 
-At `(a, b) = (1, 1)`: loss `1 + 3 = 4`, gradient `(2, 6)`. With `η = 0.1`:
+### Gradient descent in real code
 
-- `a = 1 − 0.1 × 2 = 0.8`
-- `b = 1 − 0.1 × 6 = 0.4`
-- new loss: `0.8² + 3 × 0.4² = 0.64 + 0.48 = 1.12`
+The [OpenAI cookbook](https://developers.openai.com/cookbook/examples/customizing_embeddings) trains a matrix of embedding weights. Its update line is `matrix -= matrix.grad * learning_rate`. That is `θ ← θ − η∇L`, with the whole matrix as θ. Its function returns a "matrix optimized to minimize loss on training data".
 
-One step took the loss from 4 to 1.12. b moved more than a, because the loss is steeper in the b direction.
+You also meet these words when you fine-tune a hosted model. The [Claude glossary](https://platform.claude.com/docs/en/about-claude/glossary) says: "Fine-tuning is the process of further training a pretrained language model using additional data." It also says: "The Claude API does not currently offer fine-tuning". The [OpenAI fine-tuning guide](https://developers.openai.com/api/docs/guides/fine-tuning-best-practices) lists the settings:
 
-## Gradient descent in real code
+- Epoch: "An epoch is a single complete pass through your entire training dataset during model training."
+- Learning rate multiplier: "Adjusts the size of changes made to the model's learned parameters."
+- Batch size: "The number of examples the model processes in one forward and backward pass before updating its weights."
 
-The OpenAI cookbook's embedding example (the learned matrix from floor 4) trains with this exact step. Its update line is:
+For an open-weight model (a model whose weights you can download), the [OpenAI gpt-oss cookbook](https://developers.openai.com/cookbook/articles/gpt-oss/fine-tune-transfomers) sets `learning_rate = 2e-4`. That is `2 × 10⁻⁴ = 0.0002`, a very small step.
 
-`matrix -= matrix.grad * learning_rate`
+## Worked example
 
-That is `θ ← θ − η∇L`, with the whole matrix as θ. Its training function is described as returning a "matrix optimized to minimize loss on training data", and its default is `max_epochs = 100` passes over the data (the notebook's own runs use 30).
+Our example: a loss with two parameters, a and b.
 
-You also meet these words when you fine-tune a hosted model. The Claude glossary defines fine-tuning as "further training a pretrained language model using additional data"; it also says the Claude API does not currently offer it. OpenAI's fine-tuning guide lists the knobs:
+`L(a, b) = a² + 3b²`
 
-- **Epochs:** "An epoch is a single complete pass through your entire training dataset during model training."
-- **Learning rate multiplier:** "Adjusts the size of changes made to the model's learned parameters." OpenAI says a larger one can speed up training, and a smaller one tends toward slower but more stable training. That is the step-size trade-off above.
-- **Batch size:** "The number of examples the model processes in one forward and backward pass before updating its weights."
+Its lowest point is `(0, 0)`. The slope for a is `2a`, and the slope for b is `6b`. So the gradient is `∇L = (2a, 6b)`. We start at `(a, b) = (1, 1)`, where the loss is `1 + 3 = 4` and the gradient is `(2, 6)`.
 
-For an open-weight model, OpenAI's cookbook fine-tunes `gpt-oss-20b` with `learning_rate = 2e-4`, which is 0.0002: a very small step.
+The decision: which learning rate do you use, 0.4 or 0.1?
 
-## Key points
+### Step 1: try η = 0.4 (before)
 
-- Slope: how much y changes per step in x. The derivative is the slope at one point.
-- The sign of the derivative says which way is uphill. Training steps the other way.
-- Gradient descent: `θ ← θ − η∇L`. With `L = (θ − 3)²`, `θ = 5`, `η = 0.1`, one step gives `θ = 4.6`.
-- Too large a learning rate overshoots and the loss grows. Too small is slow.
-- The gradient is one slope per parameter. Fine-tuning settings like epochs and the learning rate multiplier control this same loop.
+- `a = 1 − 0.4 × 2 = 0.2`
+- `b = 1 − 0.4 × 6 = 1 − 2.4 = −1.4`
+- new loss: `0.2² + 3 × (−1.4)² = 0.04 + 5.88 = 5.92`
+
+The loss went up, from 4 to 5.92.
+
+### Step 2: the hard case
+
+**This is the hard case.** Parameter a did well: it moved from 1 to 0.2, close to its best value 0. Parameter b failed: it jumped from 1 to −1.4, past 0 and further away. Both use the same η, but the loss is much steeper in the b direction.
+
+Look at one step as a rule. Each step multiplies a by `1 − 2η` and b by `1 − 6η`:
+
+- `η = 0.4`: a is multiplied by `0.2`, b by `−1.4`. The size of b grows.
+- `η = 0.1`: a is multiplied by `0.8`, b by `0.4`. Both shrink toward 0.
+
+For b to shrink, `1 − 6η` must stay between −1 and 1. That means η must be below `2 / 6 ≈ 0.33`. The steepest direction sets the limit for everyone.
+
+### Step 3: η = 0.1 (after)
+
+Step 1, from `(1, 1)`:
+
+- `a = 1 − 0.1 × 2 = 0.8`, `b = 1 − 0.1 × 6 = 0.4`
+- loss: `0.64 + 3 × 0.16 = 0.64 + 0.48 = 1.12`
+
+Step 2, from `(0.8, 0.4)`, gradient `(1.6, 2.4)`:
+
+- `a = 0.8 − 0.16 = 0.64`, `b = 0.4 − 0.24 = 0.16`
+- loss: `0.4096 + 3 × 0.0256 = 0.4096 + 0.0768 ≈ 0.486`
+
+The loss falls: 4, 1.12, 0.486.
+
+### Step 4: why it is better
+
+- **Every parameter improves.** With 0.1, both a and b move toward 0 on every step.
+- **The limit is known.** The steepest slope tells you the biggest safe step.
+- **Checked by the loss.** The loss falls on every step, which is the signal to watch.
+
+## Common mistakes
+
+1. **Judging the learning rate by one parameter.** a looked fine with 0.4 while b got worse. Fix: find the steepest direction, and keep η below its limit.
+2. **Mixing up epochs and steps.** Our example: 1,000 examples with a batch size of 10 give 100 weight updates per epoch, so 3 epochs give 300. Fix: updates per epoch = examples ÷ batch size.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Our example: `L(θ) = (θ + 1)²`. Its exact slope rule is `2(θ + 1)`.
+
+1. Estimate the slope at `θ = 1`: compute `L(1)` and `L(1.01)`, then divide the change by 0.01.
+2. Compute the exact slope at `θ = 1` with the rule. Is your estimate close?
+3. At which θ is the slope 0? What is the loss there?
+
+### Answer
+
+1. `L(1) = 2² = 4` and `L(1.01) = 2.01² = 4.0401`. The estimate is `(4.0401 − 4) / 0.01 = 4.01`.
+2. `2 × (1 + 1) = 4`. Yes: 4.01 is very close. A smaller step than 0.01 would get even closer.
+3. `2(θ + 1) = 0` when `θ = −1`. The loss there is `(−1 + 1)² = 0`, the lowest it can be. That is where gradient descent is heading.
+
+## Recap
+
+- The derivative is the slope at one point. Its sign shows which way is uphill, so training steps the other way.
+- Gradient descent repeats `θ ← θ − η∇L`. The gradient has one slope per parameter, and all of them share the learning rate η.
+- A learning rate that is too big jumps over the bottom and the loss grows. The steepest direction sets the safe limit.

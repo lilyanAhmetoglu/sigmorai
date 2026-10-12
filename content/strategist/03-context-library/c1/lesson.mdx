@@ -1,7 +1,7 @@
 ---
 id: strategist/r3/c1/lesson
 title: Why context matters
-minutes: 7
+minutes: 10
 sources:
   - kind: docs
     title: OpenAI docs · Optimizing LLM accuracy
@@ -23,67 +23,145 @@ sources:
     url: https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
 ---
 
-## Why it matters
+## Goal
 
-A model learns from a large amount of text before you ever use it. It does not learn your price list, your refund rules or last week's policy change. Anthropic's Contextual Retrieval post gives an example: customer support chatbots need knowledge about the specific business they are used for.
+After this lesson you can:
 
-**Context** is the text you send the model with each request: instructions, documents and data. This realm is about giving the model the right business knowledge, at the right time, to the right person.
+- Sort a wrong answer into one of two groups: missing facts (a context problem) or wrong tone or format (a behaviour problem).
+- Explain why a newer model with a later knowledge cutoff does not fix missing company facts.
+- Plan the context for an assistant: only the current, useful pages, a rule that allows "I don't know", and spot checks.
 
-## Three gaps that context fills
+## The problem
 
-OpenAI's accuracy guide says you need to work on context when:
+A car leasing company has 40,000 customers. Its customer team tests a chat assistant. The assistant uses a general model and a one-line role prompt. No company documents are connected.
 
-1. the model lacks the knowledge because it wasn't in its training data,
-2. its knowledge is out of date, or
-3. the task needs proprietary (private company) information.
+The test goes badly:
 
-Example: a regional bus company wants an assistant for its call centre. "What is the difference between a single and a return ticket?" is general knowledge. "What does a monthly pass cost since the October price change?" needs recent facts. "Which depot covers route 14 on Sundays?" needs private facts. Only the first question has a chance without company context.
+- A customer asks about the early-return fee. The assistant gives a typical market figure. The company's own fee is different, and it changed in August.
+- A customer asks what the damage code on their return report means. The assistant invents a meaning.
+- The replies sound casual, with jokes. The company wants a calm, formal style.
 
-## Vendors publish a knowledge cutoff for each model
+The team leader asks: "Do we need a smarter model?" This lesson shows how to read these failures and what to fix first. The guidance below is from each vendor's docs (October 2026).
 
-Vendors publish how recent a model's knowledge is. Anthropic's models overview lists a "reliable knowledge cutoff": the date through which the model's knowledge is most extensive and reliable. It is Jun 2026 for Claude Opus 5.5 and Feb 2025 for Claude Haiku 4.5. OpenAI's GPT-5.5 page lists a knowledge cutoff of Dec 01, 2025. (Both pages checked on 2026-10-06.)
+## The idea
 
-A newer model moves that date forward. It does not add your private documents, and it can't know about a change you made yesterday. So "wait for a better model" doesn't close a context gap.
+**Context** is everything you send the model with a request: instructions, documents and data. A model learns from a large amount of public text before you use it. It never saw your fee table, your codes or last month's policy change. The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) gives a plain example: customer support chatbots "need knowledge about the specific business they're being used for."
 
-## Two kinds of memory
+**Three gaps that context fills.** The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) says you work on context when:
 
-OpenAI's guide compares it to an exam. You can attend class for six months and see many examples: that is **learned memory**, which the guide links to fine-tuning. Or you can bring the textbook and look things up: that is **in-context memory**. You give it in the prompt, or at larger scale with retrieval-augmented generation (RAG). The guide says the two are additive, not exclusive.
+1. the knowledge was not in the model's training set,
+2. the knowledge is out of date, or
+3. the task needs proprietary (private company) knowledge.
 
-Use this to read failures. The guide puts the wrong tone or style under model behaviour. Missing or out-of-date knowledge is a context problem. Example: the bus assistant answers in a jokey style you don't want. That is behaviour. It quotes last year's fare for a monthly pass. That is missing context: it doesn't have the textbook. The guide's method: evaluate, find out what went wrong, then take the step that fixes that problem.
+**Behaviour is a different problem.** The same guide puts other failures under the model's behaviour: the format is wrong, the tone or style is wrong, or the model does not follow the reasoning steps consistently. You fix behaviour with better instructions and examples. **Fine-tuning** (extra training on your own examples) is also on this side. It improves consistency. It is not the first tool for missing facts.
 
-## More context is not always better
+```text
+wrong fact, missing fact  -> context problem   -> give the right document
+wrong tone, wrong format  -> behaviour problem -> change the instructions
+```
 
-Anthropic's context engineering post describes **context rot**: as the number of tokens in the context window grows, the model's ability to recall information from that context goes down. The post calls context a finite resource. Its advice is to find the smallest possible set of high-signal tokens.
+**Two kinds of memory.** The OpenAI guide uses an exam picture. Months of classes are **learned memory**: the model learns from examples. Bringing the textbook into the exam is **in-context memory**: you put the facts in the prompt, or at larger scale you use **RAG** (retrieval-augmented generation: the system finds the right pages and adds them to the prompt). The guide calls the two "additive, not exclusive". Its method: evaluate, find out what went wrong, then take the step that fixes that problem.
 
-OpenAI's guide gives a similar warning. Models can struggle to keep attention across very large prompts, so pair long context with evaluation at different context sizes.
+**A newer model does not bring your facts.** Vendors publish a **knowledge cutoff** for each model: the date up to which its public knowledge is good. The [Claude models overview](https://platform.claude.com/docs/en/models/overview) defines it as "The date through which the model's knowledge is most extensive and reliable", and lists Jun 2026 for Claude Opus 5.5. The [OpenAI GPT-5.5 page](https://developers.openai.com/api/docs/models/gpt-5.5) lists "Dec 01, 2025 knowledge cutoff". A later date covers more public news. Your private fee table was never public, so no model learns it in training.
 
-Example: the bus company should not paste every timetable since 2015 into each request. It should send the current fares and the routes the caller asks about.
+**More context is not always better.** The [Anthropic context engineering post](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) describes **context rot**: "as the number of tokens in the context window increases, the model's ability to accurately recall information from that context decreases." (The **context window** is the most text one request can hold. **Tokens** are the small pieces of text a model reads.) The post calls context "a critical but finite resource". Its advice is to find "the smallest possible set of high-signal tokens". The OpenAI guide agrees: models "can struggle to maintain attention across very large prompts", so test long prompts "at different context sizes".
 
-## Let the model say "I don't know"
+**Let the model say "I don't know".** A **hallucination** is an answer the model made up and states as fact. The [Claude docs on reducing hallucinations](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) list simple steps:
 
-Anthropic's guide to reducing hallucinations lists simple steps that fit here:
+- Clearly allow the model to admit it is not sure.
+- Tell it to use only the documents you provide, not its general knowledge.
+- For long documents, ask it to pull out word-for-word quotes first and work from them.
 
-- Give the model explicit permission to say "I don't know".
-- Tell it to use only the information in the provided documents, not its general knowledge.
-- For long documents, ask it to pull out word-for-word quotes first, then work from those quotes.
+The same page warns that these steps reduce hallucinations but "don't eliminate them entirely". It says: "Always validate critical information, especially for high-stakes decisions."
 
-The guide also says these techniques reduce hallucinations but don't remove them. It tells you to always check critical information, especially for high-stakes decisions.
+Our example: a general model is like a smart temp worker on day one. The worker writes well and knows the industry. But nobody has given the worker your price list yet. You don't fix that by hiring a smarter temp. You hand over the right binder.
 
-## Ask four questions first
+## Worked example
 
-This checklist is a tool for this course. Before any knowledge project, ask:
+### Step 1: the weak plan
 
-1. **What does the assistant need to know** that a general model can't? (private, recent or specialist facts)
-2. **Where does it live today?** (a wiki, a shared drive, a CRM, one expert's inbox)
-3. **How often does it change?** (a yearly policy, weekly prices)
-4. **Who may see it?** (everyone, one team, one customer)
+The team leader writes this plan:
 
-The next chapters take these one at a time: knowledge bases, data readiness, access, freshness and citations.
+```text
+Plan A
+1. Switch to the newest, largest model.
+2. Add to the prompt: "Be accurate. Double-check your facts."
+3. Paste every policy and fee table since 2019 into each request,
+   so the model always has enough information.
+```
 
-## Key points
+What goes wrong:
 
-- Models don't know your private or recent facts; context supplies them.
-- Vendors publish a knowledge cutoff for each model; a newer model doesn't add your documents.
-- Wrong facts point to missing context; wrong tone or style points to behaviour.
-- More context is not always better; send the smallest set of useful information.
-- Allow "I don't know" and limit answers to the provided documents, then still check.
+- The newest model still has never seen the August fee or the damage codes.
+- "Double-check your facts" gives the model nothing to check against.
+- Old fee tables sit next to the new one. The model may quote either, and the long prompt makes recall worse.
+- Nothing fixes the casual tone.
+
+### Step 2: sort each failure
+
+```text
+Failure                         Group       First fix
+Early-return fee is wrong       context     add the current fee table
+Damage code is invented         context     add the code list
+Replies are casual, with jokes  behaviour   change the style instructions
+```
+
+### Step 3: the good plan
+
+```text
+Plan B
+Context:
+- Add the current fee table (August version) and the damage-code list.
+- Leave out old versions. Send only the pages that fit the question.
+Instructions:
+- Write in a calm, formal style. No jokes.
+- Answer only from the documents provided.
+- If the documents don't answer the question, say you don't know
+  and offer to pass the question to the customer team.
+Checks:
+- Re-run the same test questions.
+- Each week, a person checks a sample of fee answers.
+```
+
+### Step 4: the hard case
+
+A customer asks: "What is the fee if I return the car three months early **and** it has a scratch?" The answer needs two documents: the fee table and the damage-code list. **This is the hard case.** If the system sends only one of them, the model has half the facts and may guess the rest. The team adds this question to the test set. It checks that both documents arrive, and that the model says what it cannot answer instead of filling the gap.
+
+### Step 5: why it is better
+
+- **Each failure gets the right fix.** Facts come from documents; tone comes from instructions.
+- **Small, current context.** No old fee tables compete with the new one.
+- **A safe way out.** "I don't know" is allowed, so the model has less reason to invent a code.
+- **People still check.** The vendor docs say these steps reduce errors but do not remove them.
+
+## Common mistakes
+
+1. **Waiting for a better model to fix missing facts.** A later cutoff adds public knowledge, not your private rules. Fix: put the current document in the context.
+2. **Fixing a tone problem with more documents, or a fact problem with style rules.** Fix: sort the failure first, then choose the fix for that group.
+3. **Treating "I don't know" as the end of checking.** It lowers invented answers but does not stop them. Fix: keep spot checks on important answers.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A dental practice tests an appointment assistant. Sort each failure into context or behaviour, and give a first fix.
+
+```text
+1. It says a check-up costs 60 EUR. The practice charges 75 EUR since May.
+2. Its replies are one long paragraph. Patients want a short list.
+3. It names a dentist who left the practice last year.
+4. Asked about parking, it invents a car park that does not exist.
+```
+
+### Answer
+
+1. **Context.** The price is out of date. Add the current price list.
+2. **Behaviour.** The format is wrong. Change the instructions: "Answer in a short bulleted list."
+3. **Context.** The staff list is private and recent. Add the current staff page, and remove old ones.
+4. **Context**, plus a safe way out. Add the directions page. Also allow "I don't know" when the documents have no answer, and keep checking a sample.
+
+## Recap
+
+- Missing, old or private facts are a context problem. Wrong tone, format or reasoning is a behaviour problem. Sort first, then fix.
+- A newer model with a later knowledge cutoff does not add your private documents.
+- Send the smallest set of current, useful pages, allow "I don't know", and keep checking important answers.

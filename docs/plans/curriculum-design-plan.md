@@ -8,6 +8,11 @@
 
 ## Amendments
 
+## Amendments locked 2026-10-08 (lesson template)
+
+- **Every chapter lesson uses one fixed teaching template:** Goal → The problem → The idea → Worked example → Common mistakes → Try it → Recap. Why: the maintainer rated the lessons "messy, blog-like, no examples" (Claude's score 5/10: facts 8, structure 4, examples 4, practice 5, engagement 3). The pilot `builder/r1/c2` passed content-reviewer (0 blockers) and voice-guardian, and the maintainer approved it ("it is better").
+- The exact section and voice rules live in `content/CLAUDE.md` ("Lesson template"). Rollout: one PR per realm and path, each through content-reviewer and voice-guardian; ids, sources, cases and quick checks keep their meaning, so no learner progress is lost.
+
 ## Amendments locked 2026-10-07 (dashboard path list, per-path PR 2)
 
 - **Supersedes "up to `DASHBOARD_REALM_LIMIT` (3) active realms"** (2026-10-05 block below). `/dashboard` now lists every realm of the player's path in "YOUR PATH" (`components/realms/path-list.tsx`, shared with `/map`), with a "View on world map" link to `/map`. `DASHBOARD_REALM_LIMIT` is deleted. See `docs/plans/path-curriculum-design-plan.md` → PR 2.
@@ -29,6 +34,18 @@
 ## Amendments locked 2026-10-07 (header)
 
 - **Blog takes the Math Tower's header slot** (maintainer: the header holds meaningful items and must include Blog). The Math Tower is no longer a nav item. It stays reachable from the dashboard Math Tower panel (a "View the tower" link in every state) and keeps its `/math` routes and certificate. Later it becomes a chapter of the Scientist path. This replaces "a nav item + a dashboard shortcut" for the tower below; the Frontier's nav slot is decided when the Frontier ships.
+
+## Amendments locked 2026-10-08 (Clerk only where needed)
+
+- **`ClerkProvider` leaves the root layout** (devil measure: Clerk cost a plain visitor ~190 KB gzip per page view, its UI included). It mounts in three places, through `ClerkGate`, and **always with its UI**: (1) the `(app)` layout, only for a signed-in player (server `auth()`, which reads the proxy's headers: no DB, no network); (2) the new `(auth)` group, always; (3) the public pages (`(marketing)`) and the site 404, only after hydration and only when the `__client_uat` cookie says a player is likely. A visitor gets no Clerk script, no Clerk chunk and no Clerk request.
+- **Sign-in and sign-up move from `(marketing)` to `(auth)`** (same URLs, same shared header and footer via one public shell). This replaces "sign-in and sign-up live in `(marketing)`" in the one-header block below: they now need Clerk on every visit, the marketing pages don't.
+- **Never `prefetchUI={false}`, never two provider configs.** In Clerk 7.9 a Clerk loaded without its UI stays without it for the tab (UserButton and SignIn then throw), and a second provider reuses the loaded `window.Clerk`. The only lever is mount or don't mount.
+- **Components that use a Clerk hook branch on `useClerkMounted()`** and keep the Clerk branch in a lazy module, so no Clerk hook runs without its provider and `@clerk/*` stays out of a visitor's JS.
+- **E2E signs in from `/sign-in`** (a visitor's `/` no longer loads Clerk for `clerk.signIn`), and checks that a visitor on `/`, `/blog`, `/map` and a 404 loads no Clerk.
+- **Unchanged:** the proxy matcher, the CSP, `GET /api/hud`, `CLERK_WAIT_MS`, and server `auth()` everywhere.
+- **After review:** the `(app)` gate also opens on the cookie hint after hydration. Next keeps a layout on client navigation, so its server "no session" can be stale (a player signed in in another tab, then opens `/profile`). A late mount uses a plain `import()`: if the chunk fails, the page stays as it is with no Clerk. While a likely player's chunk downloads, the plain Sign in / Start free are hidden too (space kept, at most `CLERK_WAIT_MS`).
+- **Accepted for v1: one remount on a late mount.** When the gate opens after hydration, React mounts the page again once. An open Menu, focus or half-typed text is lost, and the landing scene restarts. Only a likely player sees it, and only in the first moments. On a very slow network the Sign in / Start free links can stay hidden for up to about two waits (`CLERK_WAIT_MS` twice): one while the chunk downloads, one while Clerk loads.
+- **A late mount makes one `clerk.browser.js` request.** Clerk adds its script tag during render. React 19 adopts an existing `script[async][src]` instead of adding a second one, and clerk.browser.js keeps an existing `window.Clerk`. Checked in the vendor code on 2026-10-08 (cto re-review).
 
 ## Amendments locked 2026-10-08 (one header)
 

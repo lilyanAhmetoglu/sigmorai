@@ -1,7 +1,7 @@
 ---
 id: creator/r2/c4/lesson
 title: Files & formats
-minutes: 6
+minutes: 12
 sources:
   - kind: docs
     title: Claude docs · Files API
@@ -35,76 +35,175 @@ sources:
     url: https://docs.dev.runwayml.com/ai-context.md
 ---
 
-## Why it matters
+## Goal
 
-A media pipeline is a chain of files. A logo goes in. An image comes out. That image goes into a video tool. A voice track comes out. Every hand-off can break: the file is the wrong type, too big, the wrong shape, or gone.
+After this lesson you can:
 
-Most of these breaks are not model problems. They are file problems. You can catch them with a short check before the job starts. This lesson shows what each vendor asks for and how long it keeps your files.
+- Pick how a file goes into a tool (link, inline or upload) and check it against the size limit for that route.
+- Choose an output file type that the next step can open, for example an audio file a video editor accepts.
+- Say how long each vendor keeps a file, and who else can see it.
 
-## How a file gets in
+## The problem
 
-There are three common ways to give a tool a file. (Bootstrap Village, chapters 3 and 4, covered what media models accept.)
+A bakery wants a 9:16 story video for its new cake. The plan has four steps:
 
-| Way                 | What it is                                         | Seen at                                                             |
-| ------------------- | -------------------------------------------------- | ------------------------------------------------------------------- |
-| A link (URL)        | The tool downloads the file from a web address     | OpenAI file inputs, Runway inputs                                   |
-| The file inline     | The file is packed as text (base64) in the request | OpenAI file inputs, Runway "data URI"                               |
-| An upload and an id | You upload once, then refer to the file by id      | Claude Files API, OpenAI file ids, Gemini Files API, Runway uploads |
+1. Two cake photos go into a Runway video job. Both are square. One is 3.1 MB, one is 4.1 MB. The team sends them inline in the request, because "5 MB is the limit".
+2. A voice-over is made with OpenAI speech as `pcm`, then handed to a video editor.
+3. A Veo clip of the shop front is made on Wednesday. The editor plans to download it on Saturday.
+4. The finished Runway link goes into a message to the bakery owner.
 
-Why use an upload? Anthropic says the Files API gives a "create-once, use-many-times approach". You do not send the same brand kit with every request. Google says to always use its Files API when the total request is larger than 100 MB.
+Every step looks fine. All four will cause trouble. None of these breaks is a model problem. They are file problems: the wrong size, the wrong shape, the wrong type, or a file that is gone.
 
-Each route has rules. Runway's inputs page is a good example:
+## The idea
 
-- A URL must be HTTPS and use a domain name. The server must send a correct `Content-Type`. Redirects are not followed.
-- Size limits differ by route. An image can be 16MB by URL but only 5MB as a data URI. Video by data URI is 16MB.
-- Base64 makes a file "about 33%" bigger. To fit a 5MB data URI, the original image must be 3.3MB or less.
+A media pipeline is a chain of hand-offs. Think of a relay race: the runners can be fast, but a dropped baton loses the race. Each hand-off has five things to check.
 
-Example: a 4MB product photo sent inline to Runway is over the 5MB limit once base64 has made it bigger. The same photo sent by URL, or as an upload, is under the limit.
+```text
+TYPE   can the next tool open this file type?
+SIZE   is it under the limit for the way I send it?
+SHAPE  does the aspect ratio match the next job?
+PLACE  where is it saved, and who can see it?
+TIME   when will the vendor delete it?
+```
 
-One privacy note from Anthropic: uploaded files are "accessible to your entire workspace, not scoped to an end user, conversation, or session". Do not put files for two clients in one workspace if they must stay apart.
+This checklist is ours, not a vendor rule. The facts behind each line come from the docs.
 
-## Shape: files get cropped
+### Three ways in
 
-Runway's primer warns that inputs "are auto-cropped to the target aspect ratio when they do not match, which can silently change your composition". Example: you give a square product photo to a 9:16 video job. The tool crops it. The label on the bottle may be cut off. Match the shape first.
+A tool can get a file in three ways:
 
-## How a file comes out
+| Way                 | What happens                                      | Examples                                             |
+| ------------------- | ------------------------------------------------- | ---------------------------------------------------- |
+| A link (URL)        | the tool downloads the file from a web address    | OpenAI `file_url`, Runway URL inputs                 |
+| Inline (base64)     | the file is written as text inside the request    | OpenAI `file_data`, Runway data URI                  |
+| An upload and an id | you upload once, then point to the file by its id | Claude Files API, OpenAI `file_id`, Gemini Files API |
 
-Outputs arrive in different ways:
+The [OpenAI file inputs docs](https://developers.openai.com/api/docs/guides/file-inputs) list all three. The [Claude Files API docs](https://platform.claude.com/docs/en/build-with-claude/files) call uploads a "create-once, use-many-times approach": you do not send the same brand kit with every request. The [Gemini Files API docs](https://ai.google.dev/gemini-api/docs/files) say to "Always use the Files API" when the whole request is larger than 100 MB.
 
-- **OpenAI images:** the Image API "returns base64-encoded image data". The default is `png`. You can ask for `jpeg` or `webp`. For a transparent background use `png` or `webp`.
-- **OpenAI speech:** the default is `mp3`. Other formats are `opus`, `aac`, `flac`, `wav` and `pcm`. The docs say `pcm` holds raw samples "without the header". Raw PCM has no header. Google's own sample adds a WAV header before saving, so a raw file may need the same before an editor opens it.
-- **Gemini speech:** the guide's sample saves the default WAV output (`audio/wav`).
-- **Runway:** the task result holds links to the output. These links are temporary.
+### Size depends on the route
 
-Pick the file type for the next step. A web banner may want `webp`. A video editor may want `wav` audio. A logo with no background needs `png` or `webp`.
+The [Runway inputs page](https://docs.dev.runwayml.com/assets/inputs) gives different limits per route:
 
-## How long files are kept
+| Input | By URL | By data URI |
+| ----- | ------ | ----------- |
+| Image | 16MB   | 5MB         |
+| Video | 32MB   | 16MB        |
+| Audio | 32MB   | 16MB        |
 
-This part surprises teams the most.
+The trap is base64. The data URI limit is for the **encoded** text, and the page says encoding "increases its size by about 33%". So a 5MB data URI fits an image file of only "3.3MB or less". For bigger files, the page says to "upload assets to object storage instead".
 
-| Where                    | How long                                                                   |
-| ------------------------ | -------------------------------------------------------------------------- |
-| Runway output links      | "expire within 24-48 hours"; "do not expose them directly in your product" |
-| Veo videos               | stored 2 days, then removed (Bootstrap Village, chapter 4)                 |
-| Gemini Files API uploads | stored 48 hours; you "can't download user-uploaded files"                  |
+URLs have rules too. The Runway page says: "All URLs must be HTTPS." And: "Redirects are not followed." A link that sends you on to another link counts as a failed request.
 
-Anthropic's Files API is different. Anthropic says uploaded files "persist until you delete them", or until an expiry time you set at upload. Check that against your client's data rules.
+### Shape: the tool crops for you
 
-Example: a Veo clip is made on Friday evening. Nobody downloads it. On Monday morning it is gone, and you must generate it again.
+The [Runway primer](https://docs.dev.runwayml.com/ai-context.md) warns that inputs "are auto-cropped to the target aspect ratio when they do not match, which can silently change your composition". Runway's own models crop from the center. Third-party models on Runway "may crop or resize inputs in other ways". Neither stretches the picture or adds bars. A square photo in a tall video loses its sides. Make the right shape yourself first, so you choose what stays in the frame.
 
-## A hand-off check
+### Type: pick the format the next step needs
 
-This is our checklist, not a vendor rule. Before each step in a chain, ask:
+The output format decides who can open the file.
 
-1. **Type.** Is the file type one the next tool accepts?
-2. **Size.** Is it under the limit for how I send it?
-3. **Shape.** Does its aspect ratio match the next job?
-4. **Place.** Where is it saved, and by whom?
-5. **Time.** When will the vendor delete it?
+- **OpenAI images.** The [image docs](https://developers.openai.com/api/docs/guides/image-generation) say the Image API returns "base64-encoded image data". The default is `png`; you can ask for `jpeg` or `webp`. Your code still has to save it as a file.
+- **OpenAI speech.** The [text-to-speech docs](https://developers.openai.com/api/docs/guides/text-to-speech) list the formats below.
+- **Gemini speech.** The [speech docs](https://ai.google.dev/gemini-api/docs/speech-generation) show a sample that saves "the default WAV output audio".
 
-## What this means for your work
+| OpenAI speech format | What the docs say                                            |
+| -------------------- | ------------------------------------------------------------ |
+| `mp3`                | "The default response format for general use cases."         |
+| `flac`               | "For lossless audio compression"                             |
+| `wav`                | "Uncompressed WAV audio"                                     |
+| `pcm`                | "Similar to WAV but contains the raw samples" with no header |
 
-- **Save results the same day.** Move files into your own storage and name them.
-- **Never share a temporary link as a deliverable.** It expires.
-- **Match shape and type before you submit.** Fix it in the file, not in the tool.
-- **Know where client files live.** Uploads can be visible to a whole workspace.
+The header is the short label at the start of an audio file. It tells a player how to read the sound. A raw file with no header is like a book with no cover and no page numbers: the words are there, but many apps cannot open it.
+
+### Time and place: who keeps the file, and for how long
+
+| Where                    | How long                                                                         |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| Runway output links      | "they will expire within 24-48 hours"                                            |
+| Veo videos               | "stored on the server for 2 days, after which they are removed"                  |
+| Gemini Files API uploads | "Files are stored for 48 hours", and "you can't download user-uploaded files"    |
+| Claude Files API uploads | "Files persist until you delete them"; you can also set an expiry time at upload |
+
+The [Runway outputs page](https://docs.dev.runwayml.com/assets/outputs) asks you to "download the data" and save it to your own storage, and says: "do not expose them directly in your product." The [Veo docs](https://ai.google.dev/gemini-api/docs/veo) say you "must download your video within 2 days of generation".
+
+The Claude Files API has a privacy point. Its docs warn that uploads are "accessible to your entire workspace, not scoped to an end user, conversation, or session". Any API key for that workspace can use them. For apps with many customers, the docs say to "create a separate workspace for each tenant". For a studio, a tenant is a client.
+
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+1  cake-a.png 3.1 MB, cake-b.png 4.1 MB, both 1:1
+   -> sent inline (data URI) to a 9:16 Runway job
+2  voice-over: OpenAI speech, response_format pcm -> video editor
+3  Veo shop-front clip, made Wednesday, download Saturday
+4  Runway output link -> message to the bakery owner
+```
+
+### Step 2: run the five checks on each step
+
+```text
+Step 1  SIZE   cake-a: 3.1 x 1.33 = about 4.1 MB encoded. Fits (under 3.3MB).
+               cake-b: 4.1 x 1.33 = about 5.5 MB encoded. Over 5MB.
+        SHAPE  1:1 into 9:16. The tool will crop the sides.
+Step 2  TYPE   pcm has no header. The editor may not open it.
+Step 3  TIME   Veo keeps the clip 2 days. Saturday is too late.
+Step 4  TIME   the link expires in 24-48 hours. PLACE: our storage.
+```
+
+### Step 3: the hard case
+
+**The hard case is the two photos.** Both are under 5 MB on disk, so both "look" fine. But the limit counts the base64 text, not the file on disk. Cake-a fits. Cake-b does not. A rule like "under 5 MB is OK" passes one and fails the other, and nobody knows why.
+
+The safe fix is one rule for both: send big images by HTTPS URL (16MB limit) or as an upload. Then the 33% does not matter. If you must send inline, check the file is 3.3MB or less.
+
+### Step 4: the good plan
+
+```text
+1  cake-a, cake-b: crop to 9:16 by hand, keep the cake centred.
+   Upload to our storage, send by HTTPS URL (no redirect).
+2  voice-over: response_format wav -> video editor
+3  Veo clip: download the same day it is made; name it shopfront-v1.mp4
+4  download the Runway video, save it in /bakery/final/,
+   send the owner our own copy, not the Runway link
+```
+
+### Step 5: why it is better
+
+- **Size uses the right number.** It checks the encoded size, or skips the problem with a URL.
+- **Shape is chosen, not cropped by chance.** The cake stays in the frame.
+- **The type fits the next tool.** `wav` carries a header, so the editor can read it.
+- **Files are saved before they vanish.** The client gets a file that does not expire.
+
+## Common mistakes
+
+1. **Reading the data URI limit as the file size.** Base64 adds about 33%. Fix: keep inline images at 3.3MB or less, or send a URL or an upload.
+2. **Sending a vendor's output link as the deliverable.** It expires. Fix: download the file the same day and share your own copy.
+3. **One shared workspace for every client.** Any key in it can use every file. Fix: one workspace per client for confidential files.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A teammate plans this for a yoga studio:
+
+```text
+- Logo, 2.9 MB PNG, sent inline (data URI) to a Runway image job
+- Class photo, 4:3, used in a 16:9 Runway video
+- Brand guide uploaded to the Gemini Files API on Monday,
+  to download again next week
+```
+
+Which lines are fine, and which will cause trouble?
+
+### Answer
+
+1. **Logo: fine.** 2.9 MB is under 3.3MB, so the encoded file stays under the 5MB data URI limit.
+2. **Class photo: trouble.** It will be auto-cropped to 16:9, and people at the top or bottom may be cut. Crop it yourself first.
+3. **Brand guide: trouble twice.** Gemini keeps uploads for 48 hours, and you cannot download a file you uploaded. Keep the master copy in your own storage.
+
+## Recap
+
+- Each route has its own size limit. A data URI limit counts the base64 text, which is about 33% bigger than the file.
+- Match the shape before the job, or the tool crops it. Pick the output type the next step can open: `wav` has a header, `pcm` does not.
+- Vendor files and links expire (Runway links in 24-48 hours, Veo videos after 2 days, Gemini uploads after 48 hours). Save your own copy, and keep each client's files in its own workspace.

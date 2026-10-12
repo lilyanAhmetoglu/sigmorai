@@ -1,7 +1,7 @@
 ---
 id: builder/r7/c2/lesson
 title: Handoffs
-minutes: 9
+minutes: 14
 sources:
   - kind: docs
     title: Orchestration and handoffs (OpenAI API docs)
@@ -29,65 +29,199 @@ sources:
     url: https://www.anthropic.com/engineering/multi-agent-research-system
 ---
 
-Chapter 1 drew the graph. This chapter is about one edge in it: the moment work moves from one agent to another. Every move answers two questions. Who owns the answer after the move? And what does the next agent get to see?
+## Goal
 
-## Two ways to delegate
+After this lesson you can:
 
-OpenAI's orchestration guide says the first design choice is "deciding who owns the final user-facing answer at each branch of the workflow." It offers two patterns:
+- Choose between a handoff and an agent-as-tool by asking who owns the reply.
+- Control which past messages a specialist can read, and know where that control stops.
+- Send small metadata with a handoff and check permissions in the right place.
 
-| Pattern         | What happens                             | Use it when                                                      |
-| --------------- | ---------------------------------------- | ---------------------------------------------------------------- |
-| Handoffs        | Control moves to the specialist agent    | A specialist should take over the conversation for that branch   |
-| Agents as tools | The manager keeps ownership of the reply | A manager should stay in control and call specialists as helpers |
+## The problem
 
-Example: a triage agent gets "I was charged twice." With a handoff, the refund agent takes over and answers the customer itself. With agents as tools, the triage agent calls the refund agent like a function, reads its result and writes the reply.
+A software company built its help chat with the OpenAI Agents SDK. The first agent a user meets is a triage agent. It has a tool, `lookup_account`, that returns the user's plan, seat count and billing address. It can hand off to two specialists: a tech agent and a plan agent.
 
-The guide says agents as tools is usually the better fit when the manager should synthesize the final answer, or the specialist does a bounded task such as summarization or classification. The SDK docs add that you can combine both: a specialist that received a handoff can still call other agents as tools.
+Last week, four things went wrong:
 
-## What a handoff looks like to the model
+1. A user asked about an app crash. The tech agent replied: "I can see your billing address is in Porto..." The tech agent never needed that.
+2. The support lead wants a log line for each tech handoff: the user's language and how urgent the problem is.
+3. A user asked to add 80 seats. The plan agent took over and made the change. Big changes like that should go to a sales person.
+4. After the tech agent answered, the user wrote "it still crashes". The message went back to triage, which routed it all over again.
 
-In the OpenAI Agents SDK, "Handoffs are represented as tools to the LLM." A handoff to an agent named `Refund Agent` becomes a tool named `transfer_to_refund_agent`. When you pass a plain `Agent`, its `handoff_description`, when set, is added to the tool's description as a hint for when the model should pick it.
+The same team also uses Claude Code subagents for internal work. One subagent was asked to "fix the failing test" and spent 20 minutes finding which test failed. The main agent already knew.
 
-So the routing advice is tool advice. The guide says: give each specialist a narrow job, and keep the `handoff_description` short and concrete. The SDK docs add: if there are several possible specialists, register one handoff per destination and let the model choose.
+Each problem sits on one edge of the graph: the moment work moves from one agent to another.
 
-## What the next agent sees
+## The idea
 
-This is where vendors differ, and where most handoff bugs live.
+Every move between agents answers two questions:
 
-**OpenAI handoffs pass the history.** "When a handoff occurs, it's as though the new agent takes over the conversation, and gets to see the entire previous conversation history." To change that, set an `input_filter`. One ready-made filter, `remove_all_tools`, removes tool calls from the history. The docs warn that it does not redact tool arguments or results already copied into ordinary messages. They also say to treat the receiving agent and its model provider as recipients of the forwarded history.
+- **Who owns the answer after the move?**
+- **What does the next agent see?**
 
-**Claude subagents start fresh.** In the Claude Agent SDK, a subagent's context window "starts fresh, with no parent conversation". "The only content you pass from parent to subagent is the Agent tool's prompt string, so include any file paths, error messages, or decisions the subagent needs directly in that prompt." The exception is a fork, which inherits the parent conversation.
+**Ownership.** The [OpenAI orchestration guide](https://developers.openai.com/api/docs/guides/agents/orchestration) says the first choice is "who owns the final user-facing answer". It offers two patterns:
 
-The two defaults fail in opposite ways. Full history can carry data the next agent should not see. A fresh start can leave out the one fact the next agent needed.
+- **Handoff.** "Control moves to the specialist agent". The specialist talks to the user.
+- **Agents as tools.** The manager stays the owner of the reply. It calls the specialist like a function, reads the result and writes the answer.
 
-## Write the brief
+The guide says agents as tools is usually the better fit when the manager should combine the final answer, or when the specialist does a bounded job "like summarization or classification". The [SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/multi_agent.md) add that you can mix them: a specialist that got a handoff can still call other agents as tools.
 
-With a fresh start, the brief is all the worker has. Realm 4, chapter 4 covered the four parts of a brief: an objective, an output format, tool and source guidance, and task boundaries.
+Think of a hospital. A handoff is a transfer to another doctor, who now talks to the patient. An agent-as-tool is a lab test: the same doctor orders it, reads it and explains it.
 
-## Data on the handoff itself
+**A handoff is a tool.** The [handoffs docs](https://github.com/openai/openai-agents-python/blob/main/docs/handoffs.md) say:
 
-Sometimes you want the model to send a little data with the handoff. OpenAI's `input_type` sets a schema for the handoff tool's arguments. The docs' example: a triage agent hands off to a refund agent with `{ "reason": "duplicate_charge", "priority": "high" }`, and an `on_handoff` callback logs it before the refund agent takes over.
+- "Handoffs are represented as tools to the LLM." By default the tool name is `transfer_to_<agent_name>`, so a "Tech agent" becomes `transfer_to_tech_agent`. `tool_name_override` changes it, once, in code.
+- A plain `Agent` adds its `handoff_description` to the tool description. The guide's advice: give each specialist a narrow job, and keep that description "short and concrete".
+- With several specialists, "register one handoff per destination and let the model choose".
 
-Two limits from the docs:
+**What the next agent sees: two defaults.**
 
-- `input_type` is for "metadata the model decides at handoff time". App state you already have belongs in the run context (chapter 3).
-- It does not authorize anything. `is_enabled` runs before the model returns handoff arguments. If permission depends on the arguments, check them at the start of `on_handoff`, and raise to stop the transfer.
+- **OpenAI handoffs pass the history.** The docs: the new agent "gets to see the entire previous conversation history." To change that, set an `input_filter`. A ready-made filter, `handoff_filters.remove_all_tools`, strips the tool call and tool result items.
+  - Tool data already written into a normal message stays. The docs say the filter "does not redact" that text.
+  - The docs also say to "Treat the receiving agent and its model provider as recipients of the forwarded history."
+- **Claude subagents start fresh.** The [Claude Agent SDK docs](https://code.claude.com/docs/en/agent-sdk/subagents) say a subagent's window "starts fresh". It has none of the parent's conversation. The only thing passed down is the prompt that the Agent tool sends. The exception is a fork, which inherits the parent conversation.
 
-## Checks do not follow automatically
+The two defaults fail in opposite ways. Full history can leak data. A fresh start can miss the one fact the worker needed. With a fresh start, the brief is everything. The [Anthropic research-system post](https://www.anthropic.com/engineering/multi-agent-research-system) lists what a good brief has: "an objective, an output format, guidance on the tools and sources to use, and clear task boundaries."
 
-A handoff moves control, but some checks stay behind. The OpenAI SDK docs: "Input guardrails run only for the first agent in the chain," and output guardrails "run only for the agent that produces the final output." A guardrail placed on a middle agent's input never runs. For checks around each tool call inside a multi-agent workflow, the docs point to tool guardrails.
+**Limits of the filter.** Two more rules from the handoffs docs:
 
-Claude Code puts a boundary on the way back. A subagent's report arrives under a header that marks it as subagent output, and says that instructions or approval claims inside it are the subagent's words and carry no authority from the user.
+- **Nested history is not redaction.** `nest_handoff_history` is an opt-in beta that is off by default. It summarizes earlier turns into a block. The docs say it only changes how the transcript looks. It "does not redact" anything sensitive.
+- **Server-managed history ignores filters.** If the run uses `conversation_id`, `previous_response_id` or `auto_previous_response_id`, handoff input filters are not supported. To keep history away from a specialist, start a separate run and pass in only the input you chose ("explicitly selected input"). In that new run, leave out the old conversation id and the old response id.
 
-## The next turn
+**Data on the handoff.** `input_type` sets a schema for the handoff tool's arguments. The model fills it in, the SDK checks it, and your `on_handoff` callback receives it. The docs call it metadata that "the model decides" during the handoff, like a reason or a priority. Two limits:
 
-A handoff can also decide who answers next time. The OpenAI results guide: after handoffs, reuse `last_agent` in Python when that specialist should stay in control for the next turn.
+- It does not change the specialist's main input, and it does not hide the history. App state you already have belongs in the run context instead.
+- It does not authorize anything. `is_enabled` turns a handoff on or off. It runs while the SDK prepares the handoffs, before the model fills in any arguments. Those values do not exist yet. If permission depends on the arguments, check them first thing in `on_handoff`, before any side effects, and raise to stop. The docs add that tool input guardrails are for function tools. They do not run on handoffs.
 
-## Key points
+**Checks stay behind.** A handoff moves control, but agent guardrails do not move with it. The [guardrails docs](https://github.com/openai/openai-agents-python/blob/main/docs/guardrails.md) say input guardrails "run only for the first agent in the chain", and output guardrails only for the agent that writes the final output. For checks around each function-tool call, use tool guardrails.
 
-- Decide ownership first: a handoff gives the specialist the reply; agents as tools keeps it with the manager.
-- OpenAI handoffs are tools named like `transfer_to_refund_agent`. Short, concrete descriptions help the model route.
-- OpenAI passes the whole history by default; use `input_filter` to change it. Claude subagents get only the prompt string.
-- A good brief has an objective, an output format, tool guidance and task boundaries.
-- `input_type` carries model-chosen metadata. Authorize inside `on_handoff`, not with `is_enabled`.
-- Input guardrails run only on the first agent, output guardrails only on the last.
+**Claude Code puts a boundary on the way back.** The [subagents docs](https://code.claude.com/docs/en/sub-agents) say a subagent's report arrives under a header. It says that instructions or approval claims inside are the subagent's words and "carry no authority from you."
+
+**The next turn.** The [results guide](https://developers.openai.com/api/docs/guides/agents/results) points, in Python, to `last_agent` on the result: reuse it "after handoffs" when the same specialist should answer next time.
+
+## Worked example
+
+### Step 1: the weak setup
+
+```python
+triage = Agent(
+    name="Triage agent",
+    tools=[lookup_account],
+    handoffs=[tech_agent, plan_agent],
+)
+result = await Runner.run(triage, user_message)
+```
+
+Why it fails:
+
+- No `input_filter`, so the tech agent sees the `lookup_account` result with the billing address.
+- Nothing records why or how urgently the tech handoff happened.
+- Nothing stops an 80-seat change.
+- Every new user message starts at `triage` again.
+
+### Step 2: filter, metadata and a log
+
+```python
+from pydantic import BaseModel
+from agents import Agent, RunContextWrapper, Runner, handoff
+from agents.extensions import handoff_filters
+
+class TechReason(BaseModel):
+    language: str
+    urgency: str  # "low" or "high"
+
+async def log_tech(ctx: RunContextWrapper[AppContext], data: TechReason):
+    print(f"tech handoff: language={data.language} urgency={data.urgency}")
+
+tech_handoff = handoff(
+    tech_agent,
+    input_type=TechReason,
+    on_handoff=log_tech,
+    input_filter=handoff_filters.remove_all_tools,
+)
+```
+
+The names are real SDK names. `AppContext` is our own class, and the log line is simplified.
+
+Now the tech agent no longer gets the tool items. But check the rest. If triage wrote "I see you are in Porto" in a normal message, the address is still there. A custom `input_filter` can remove or redact that text too.
+
+### Step 3: the hard case, a check that needs the arguments
+
+The plan agent changes seats. Changes over 50 seats must go to sales. The model chooses the seat number during the handoff, so `is_enabled` cannot see it. Check it inside `on_handoff`, before anything else:
+
+```python
+class SeatChange(BaseModel):
+    seats: int
+
+async def check_seats(ctx: RunContextWrapper[AppContext], data: SeatChange):
+    if data.seats > 50:
+        raise SeatLimitError("Send to sales")  # our own exception class
+    # only now: start any side effects
+
+plan_handoff = handoff(plan_agent, input_type=SeatChange, on_handoff=check_seats)
+```
+
+If `check_seats` returns normally, the SDK goes on with the transfer. If it raises, the transfer stops. Your app code then has to handle the error and send the user to sales (our app code: test how the error reaches you).
+
+### Step 4: keep the specialist for the next turn
+
+```python
+result = await Runner.run(current_agent, history + [new_message])
+current_agent = result.last_agent
+```
+
+Simplified: `history` stands for the earlier turns. The real names are `Runner.run` and `last_agent`.
+
+"It still crashes" now goes straight to the tech agent.
+
+### Step 5: the internal Claude subagent
+
+The weak brief was "fix the failing test". A better brief carries what the main agent knows:
+
+```text
+Objective: make test_export_csv pass.
+Known: it fails with "KeyError: 'currency'" since commit 4f2a1c.
+Scope: only src/export/. Do not change the test.
+Output: the diff, plus 2 lines on the cause.
+```
+
+### Step 6: why it is better
+
+- The tech agent gets the conversation without the tool output, and the team checks the messages too.
+- The log shows language and urgency for every tech handoff.
+- Big seat changes stop at a check in code, not at a model's choice.
+- Follow-up messages stay with the right specialist.
+- The subagent starts with the facts it cannot see on its own.
+
+## Common mistakes
+
+1. **Trusting the default history.** A specialist sees everything earlier in the chat. Fix: set an `input_filter`, then read what is left in plain messages.
+2. **Checking permission in the wrong place.** `is_enabled` runs too early to see the model's arguments. Fix: check them first in `on_handoff`, and raise if the check fails.
+3. **Assuming guardrails follow the handoff.** An input guardrail on a middle agent never runs. Fix: put input checks on the first agent and use tool guardrails for checks around each function tool.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+For each case, choose "handoff" or "agent as tool", and give one reason.
+
+```text
+A) A travel chat needs a short weather summary for the user's city.
+   The main agent will mention it in its own reply.
+B) A user wants to dispute a charge. A disputes specialist must
+   ask questions and guide them through several turns.
+C) A writing assistant asks three specialists for feedback on a
+   draft and merges their notes into one answer.
+```
+
+### Answer
+
+- **A: agent as tool.** It is a bounded job, and the main agent keeps the reply.
+- **B: handoff.** The specialist should take over the conversation for this branch. Keep it in control next turn with `last_agent`.
+- **C: agent as tool.** The manager must combine the answers, so it should keep ownership of the reply.
+
+## Recap
+
+- Decide ownership first. A handoff gives the specialist the reply. An agent-as-tool keeps it with the manager.
+- OpenAI handoffs pass the full history unless you filter it, and filters do not work with server-managed history. Claude subagents get only the prompt string, so write a full brief.
+- `input_type` carries model-chosen metadata. Authorize inside `on_handoff`. Input guardrails run only on the first agent, and output guardrails only on the last.

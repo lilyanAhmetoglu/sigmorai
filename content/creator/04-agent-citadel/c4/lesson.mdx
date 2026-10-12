@@ -1,7 +1,7 @@
 ---
 id: creator/r4/c4/lesson
 title: Stop rules
-minutes: 6
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic · Building effective agents
@@ -17,68 +17,234 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/agents
 ---
 
-## Why it matters
+## Goal
 
-A review loop has a hidden danger. If the ad never passes, the loop never ends. The agent keeps making clips, and every round costs credits and time.
+After this lesson you can:
 
-A **stop rule** says when the loop must end, and what happens then. You decide it before the first run, with a cool head. This lesson shows the rules that vendors give you, and the ones you add yourself.
+- Read the stop settings of two vendors, and say what each one counts.
+- Add your own stop rules for money, time and "no progress", and find which rule fires first.
+- Plan what a person receives when the loop stops without a pass.
 
-## Why stopping is part of the design
+## The problem
 
-Anthropic's description of agents says that "it's also common to include stopping conditions (such as a maximum number of iterations) to maintain control." It also warns that the autonomous nature of agents "means higher costs, and the potential for compounding errors".
+A game studio runs a loop that makes and reviews a 20-second animated banner. The maker makes a version. A separate reviewer checks it against five rubric lines. If a line fails, the maker tries again.
 
-Google gives a sense of the size. For its managed agents, which are in Public Preview, one interaction "can trigger multiple reasoning loops, typically consuming 100k to 3M tokens". A loop without a limit has no ceiling you can name.
+On Friday the loop runs all night. On Monday the team finds:
 
-## What vendors give you
+- 31 rounds, and the banner still fails one line.
+- A bill that is four times the job's budget.
+- A status that says the run "finished". A junior designer read that as "approved" and sent the banner to the client.
 
-Two vendors, two kinds of limit. They do not count the same thing.
+Nobody decided in advance when the loop should end, or what "ended" means. This lesson fixes that.
 
-**Claude outcomes (beta).** You give an agent a goal and a rubric, and a grader checks each round. The setting `max_iterations` is optional, with a default of 3 and a maximum of 20. Each round ends with a result:
+## The idea
 
-| Result                   | What happens next                                                                       |
-| ------------------------ | --------------------------------------------------------------------------------------- |
-| `satisfied`              | The work met the rubric. The session goes idle.                                         |
-| `needs_revision`         | The agent starts another round.                                                         |
-| `max_iterations_reached` | One final turn, then idle. "No further evaluation runs."                                |
-| `failed`                 | The rubric does not apply to the work, for example when it contradicts the description. |
+### Stopping is part of the design
 
-Read the third row twice. `max_iterations_reached` does **not** mean the work passed. It means the loop ran out of tries. A person must look.
+The [Anthropic engineering post on agents](https://www.anthropic.com/engineering/building-effective-agents) says a task often ends when it is complete, "but it's also common to include stopping conditions (such as a maximum number of iterations) to maintain control". The same post warns that agents bring "higher costs, and the potential for compounding errors".
 
-**OpenAI Agents SDK.** The SDK's loop calls the model, runs any tool the model asks for, and repeats. If the run goes past the `max_turns` value you set, it raises `MaxTurnsExceeded`. Each pass of the SDK's loop calls the model once, and `max_turns` caps the passes. You can turn the limit off with `max_turns=None`, which you should do rarely, if ever. The SDK also lets you give an error handler for `max_turns`, so the run returns a controlled final answer instead of ending in an error. The docs' own example returns the text "I couldn't finish within the turn limit. Please narrow the request."
+The [Gemini agents docs](https://ai.google.dev/gemini-api/docs/agents) show how far one run can go. For Google's managed agents (a Public Preview), "A single interaction can trigger multiple reasoning loops, typically consuming 100k to 3M tokens." A loop with no limit has no top number you can promise a client.
 
-Look at the units. Claude counts rounds of grading and revising. OpenAI counts model calls. A limit of 3 in one tool is not a limit of 3 in the other. Read what is counted before you copy a number.
+A comparison: a stop rule is like the timer on an oven. You set it before you walk away, not after you smell smoke.
 
-## Rules you add yourself
+### The Claude limit: max_iterations
 
-Vendor limits count tries. They do not know your money, your deadline, or whether the agent is stuck. Add your own. This list is ours, not a vendor's.
+The [Claude docs on outcomes](https://platform.claude.com/docs/en/managed-agents/define-outcomes) describe a loop with a rubric and a grader. The feature is **beta**. You start it with a `user.define_outcome` event. One setting limits the rounds:
 
-| Rule        | Question it answers                                               |
-| ----------- | ----------------------------------------------------------------- |
-| Pass        | Did the rubric pass? Then stop and hand over.                     |
-| Tries       | Have we used the maximum rounds?                                  |
-| Budget      | Would the next round take us over the money cap?                  |
-| Time        | Is the deadline too close for another round?                      |
-| No progress | Did the same line fail twice in a row? Another try will not help. |
+```json
+{
+  "type": "user.define_outcome",
+  "description": "Make a 20-second looping banner for the launch",
+  "rubric": { "type": "text", "content": "# Banner rubric\n..." },
+  "max_iterations": 5
+}
+```
 
-Budget needs one extra step. Stop **before** a round that would break the cap, not after. Example with made-up numbers: the cap is $40 and each round costs about $12. Three rounds cost $36. A fourth would reach $48. So the rule stops the agent after round three, even if tries are left.
+Simplified. See the docs for the exact request shape.
 
-No progress is the rule most teams forget. If line 3 fails in round 1 and fails again in round 2 for the same reason, round 3 will probably fail too. The maker is not learning from the feedback. Stop and ask a person.
+The docs' own comment on this setting says: "optional; default 3, max 20". So if you leave it out, you get 3. You cannot set more than 20.
 
-## What happens at the stop
+Each round ends with an outcome evaluation event. Its `result` field says what happens next:
 
-A stop is not a failure. It is a hand-over. Decide what the person receives:
+| Result                   | What happens next                                                                  |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `satisfied`              | The work meets the rubric. The session goes idle.                                  |
+| `needs_revision`         | The agent starts a new round.                                                      |
+| `max_iterations_reached` | One last short turn, then idle. The docs say: "No further evaluation runs."        |
+| `failed`                 | The rubric does not fit the work, for example it contradicts the task.             |
+| `interrupted`            | You sent a `user.interrupt` event while the outcome was active. Work on it pauses. |
 
-- the best version so far, and why it is "best"
-- the rubric result for each line, from the last round
-- the cost used and the rounds spent
-- a short note on what keeps failing
+Read the third row twice. `max_iterations_reached` does **not** mean "passed". It means "out of tries". The work may still fail a line. A person must look before anything ships.
 
-OpenAI's error-handler example does the same thing in code: the run ends with a planned message, not a raw error. In a studio the planned message goes to a producer, not to the client.
+### The OpenAI limit: max_turns
 
-## What this means for your work
+The [OpenAI Agents SDK docs](https://github.com/openai/openai-agents-python/blob/main/docs/running_agents.md) describe a different limit. The runner calls the model, runs any tools it asks for, and goes round again. The docs list the loop step by step. It starts with: "We call the LLM for the current agent, with the current input." Later: "If we exceed the `max_turns` passed, we raise a `MaxTurnsExceeded` exception." Our reading: each turn of the loop is one model call, so `max_turns` counts model calls.
 
-- **Set stop rules before the first run.** Pass, tries, budget, time, no progress.
-- **Check what a limit counts.** Rounds, model calls and money are different things.
-- **Never treat "limit reached" as "approved".** It means a person looks next.
-- **Stop before a round that breaks the budget.**
-- **Plan the hand-over.** The best draft, the rubric results and the cost, in one place.
+Two more facts from the same page:
+
+- You can switch the limit off with `max_turns=None`. Our advice: almost never do this.
+- You can pass an error handler for `"max_turns"`. Then the run returns a planned final output instead of ending with the error.
+
+```python
+def on_max_turns(_data: RunErrorHandlerInput[None]) -> RunErrorHandlerResult:
+    return RunErrorHandlerResult(
+        final_output="I couldn't finish within the turn limit. Please narrow the request.",
+        include_in_history=False,
+    )
+
+result = Runner.run_sync(
+    agent,
+    "Make the launch banner",
+    max_turns=12,
+    error_handlers={"max_turns": on_max_turns},
+)
+```
+
+This follows the docs' own example. Only the task text and the number are ours.
+
+### The units are different
+
+This is the trap. The two limits count different things:
+
+```text
+Claude max_iterations   counts rounds of grade + revise
+OpenAI max_turns        counts model calls
+```
+
+Our reading: one Claude round can hold many model calls: the agent may call tools many times before the grader looks. So "3" in one tool and "3" in the other are not the same limit. Read what a setting counts before you copy a number between vendors.
+
+And neither of them counts money or hours.
+
+### Rules you add yourself
+
+The vendor limits count tries. They do not know your budget, your deadline, or whether the maker is stuck. This list is ours, not a vendor's:
+
+| Rule        | It stops the loop when...                              |
+| ----------- | ------------------------------------------------------ |
+| Pass        | every rubric line passes                               |
+| Tries       | the maximum number of rounds is used                   |
+| Budget      | the **next** round would go over the money cap         |
+| Time        | the **next** round would end after the deadline        |
+| No progress | the same line fails for the same reason twice in a row |
+
+Two points make these rules work:
+
+- **Check before you start a round, not after.** A budget rule that fires after the money is spent is a report, not a rule.
+- **Whichever rule fires first wins.** The rules do not wait for each other. If one says stop, the loop stops, even if the others still allow more.
+
+The "no progress" rule is the one teams forget. When one line fails a second time for the same reason, the maker is not using the feedback. A third try will most likely fail the same way. Stop, and ask a person.
+
+### What happens at the stop
+
+A stop is not a disaster. It is a hand-over. Our habit: the person gets one short package:
+
+- the best version so far, and why it is the best
+- the result of each rubric line in the last round
+- money spent and rounds used
+- which stop rule fired
+- one line on what keeps failing
+
+## Worked example
+
+### Step 1: the weak settings
+
+```text
+Loop:     make -> review -> fix, until the reviewer passes it
+Limit:    none ("it will pass eventually")
+Status:   "finished" when the loop ends, for any reason
+```
+
+### Step 2: add the rules, with numbers
+
+The numbers here are made up for the example.
+
+```text
+Pass:         all 5 rubric lines pass
+Tries:        max_iterations = 5
+Budget:       cap $40; one round costs about $9
+Time:         one round takes about 2 hours; deadline 7 hours away
+No progress:  stop when one line fails two rounds running
+```
+
+### Step 3: work out when each rule would fire
+
+```text
+Tries:   5 rounds
+Budget:  4 rounds = $36. A 5th would make $45, over $40.
+         So the budget allows 4.
+Time:    3 rounds end at hour 6. A 4th would end at hour 8,
+         after the deadline. So time allows 3.
+```
+
+### Step 4: the hard case
+
+**The hard case is when the rules disagree.** Here is the real log:
+
+```text
+Round 1  line 2 FAIL (logo too small)          $9   total $9
+Round 2  line 4 FAIL (loop jumps at the cut)   $9   total $18
+Round 3  line 4 FAIL (loop jumps at the cut)   $9   total $27
+```
+
+Go through the rules in order after each round:
+
+- After round 1: one fail. Nothing fires. Start round 2.
+- After round 2: a **different** line failed. The maker fixed line 2, so it is making progress. No-progress does not fire. Time allows a 3rd round. Start round 3.
+- After round 3: line 4 failed twice in a row, for the same reason. **No progress fires.** Time would also stop the loop here. The budget still allows one more round, and tries allow two more.
+
+The loop stops after round 3. Two rules say stop; that is enough. The fact that the budget and tries rules would allow more does not matter. The first rule that fires wins.
+
+Note also why round 2 was right to run. A fail is not the same as no progress. The maker fixed one line and then hit a new one. That is what a loop is for.
+
+### Step 5: the better settings and the hand-over
+
+```text
+Before each round, check: pass? tries? budget? time? progress?
+If any says stop:
+  status = "stopped: <rule>", never "finished"
+  send producer: best version (round 3), line results,
+  $27 spent, 3 rounds, rule fired, "loop jumps at the cut"
+```
+
+### Step 6: why it is better
+
+- **Every limit is set before the run.** Nobody decides at 3 a.m.
+- **Money and time are rules, not hopes.** They stop the loop before a round that breaks them.
+- **A stuck loop stops early.** The no-progress rule saves the rounds that would fail anyway.
+- **"Stopped" never looks like "approved".** The status names the rule, and a person decides what ships.
+
+## Common mistakes
+
+1. **Reading `max_iterations_reached` as a pass.** It only means the tries ran out. Fix: always send this result to a person.
+2. **Copying a limit number between vendors.** Rounds and model calls are different units. Fix: read what each setting counts first.
+3. **Checking the budget after the round.** Then the cap is already broken. Fix: check before you start each round.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A studio runs a Claude outcome loop for a podcast trailer. The settings are:
+
+```text
+max_iterations: 8
+budget cap: $25, each round about $6
+time: each round about 3 hours, deadline 10 hours away
+```
+
+A teammate says: "The setting is 8, so the loop will run 8 rounds."
+
+1. How many rounds does the vendor setting allow?
+2. How many rounds does the budget allow? And the time rule?
+3. How many rounds will really run, and why?
+
+### Answer
+
+1. **Eight.** The setting is inside the allowed range (3 by default, 20 at most).
+2. **Budget: four.** Four rounds cost $24. A fifth would make $30, over the $25 cap. **Time: three.** Three rounds end at hour 9. A fourth would end at hour 12, after the deadline.
+3. **Three.** Whichever rule fires first wins, and here that is time. The vendor setting is only a ceiling. Hand the best version to a person.
+
+## Recap
+
+- Set stop rules before the first run: pass, tries, budget, time and no progress. As soon as one fires, the loop is over.
+- Know what each vendor limit counts. Claude's `max_iterations` (default 3, max 20) counts rounds of grading and revising; OpenAI's `max_turns` counts model calls and raises `MaxTurnsExceeded`.
+- A stop is a hand-over, not an approval. `max_iterations_reached` means out of tries, so a person gets the best version and the facts.

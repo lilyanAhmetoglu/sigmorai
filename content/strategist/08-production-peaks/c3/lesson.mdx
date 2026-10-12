@@ -1,7 +1,7 @@
 ---
 id: strategist/r8/c3/lesson
 title: Compliance
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: OpenAI docs · Production best practices
@@ -23,58 +23,124 @@ sources:
     url: https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed
 ---
 
-## Why it matters
+## Goal
 
-**Compliance** means following the laws, contracts and industry rules that apply to your company. For AI, the questions are usually the same: Where is the data processed and stored? How long is it kept? Who did what, and when? Can you show proof?
+After this lesson you can:
 
-This chapter is not legal advice. Your legal team decides which rules apply. Your job is to know which vendor settings answer their questions, and what those settings cost.
+- Answer the four compliance questions for an AI tool: where is data processed and stored, how long is it kept, who did what, and can you prove it?
+- Match each question to the vendor setting that answers it, and to what that setting costs.
+- Spot the limits and exceptions in the vendor docs before they end up as a false promise in a contract.
 
-## Start with your data
+## The problem
 
-OpenAI's production guide says that, before production, you need to assess the security and compliance requirements of your application. That means examining the data you handle, understanding how the API processes it, and deciding which regulations you must follow. It lists data storage, data transmission and data retention as common areas. It also mentions privacy protections such as encryption or anonymization where possible.
+An online pharmacy in the US has 600 staff. It wants two AI tools. One answers customer questions about orders. The other summarises prescriptions for the pharmacists. Prescriptions are health data.
 
-Example: a chain of 40 dental clinics wants AI to draft letters to patients. The letters include health details. That one fact changes the vendor settings, the contract and the audit needs.
+The legal team sends four questions before launch:
 
-## Where the data is processed
+1. Where is the data processed, and where is it stored?
+2. How long does the vendor keep it?
+3. If a setting changes, can we see who changed it, and when?
+4. Can we prove all of this to an auditor?
 
-Some rules say data must stay in a region. The two vendors offer different controls.
+The IT lead answers in one line: "The vendor is secure and compliant." Legal sends it back. A line like this proves nothing. It names no setting, no date and no exception.
 
-**Anthropic** has two independent settings:
+This lesson is not legal advice. Your legal team decides which rules apply. Your job is to know which vendor settings answer their questions, and what those settings cost. The vendor facts come from each vendor's docs (October 2026).
 
-- **Inference geo** controls where the model runs, per request or as a workspace default. A workspace can also restrict which geos are allowed, so a request for a geo outside the list returns an error.
-- **Workspace geo** controls where data is stored at rest. It is set when you create the workspace and can't be changed afterwards.
+## The idea
 
-**OpenAI** sets data residency per project: with it enabled, you choose a region when you create a new project. It can also select regional processing per request, from a project with Global geography, for supported endpoints and models. Processing stays in the region only where the region supports regional processing. OpenAI's page says residency does not apply to "system data", such as account information, usage statistics and billing information.
+**Compliance** means following the laws, contracts and industry rules that apply to your company. For AI, the questions are nearly always the four above.
 
-Both cost more. Anthropic's page prices US-only inference at 1.1x the standard rate for Claude 4.6 and later models. OpenAI's page says data residency endpoints are charged a 10% uplift for eligible models released on or after March 5, 2026. (Both pages checked on 2026-10-06.)
+**Start with your data.** The [OpenAI production guide](https://developers.openai.com/api/docs/guides/production-best-practices) says that before production you must assess "any security and compliance requirements". That means looking at the data you handle, how the API processes it, and which regulations apply.
 
-Example: the dental chain must keep processing in the US. With Anthropic, a workspace that allows only the "us" geo enforces this for every key in it. The budget must include the higher rate.
+- It names "data storage, data transmission, and data retention" as common areas.
+- It asks for privacy protections "such as encryption or anonymization where possible."
 
-## Health data and special agreements
+**Where the data is processed: Anthropic.** The [Claude data residency page](https://platform.claude.com/docs/en/manage-claude/data-residency) has "Two independent settings":
 
-Health data often needs a signed agreement with the vendor.
+- **Inference geo** sets the place where the model runs. You set it per request, or as a workspace default. A workspace can also restrict the allowed geos. If a request asks for a geo "not in this list, the API returns an error." The page says the workspace controls "enforce geo policies across all keys in a workspace."
+- **Workspace geo** sets the place where your data is stored (at rest). The page says it "is set when you create a workspace and can't be changed afterward."
 
-- Anthropic's page says that with a signed BAA (Business Associate Agreement) and a HIPAA-enabled organization, supported API features can process protected health information (PHI). Its feature table lists which features are eligible. When a HIPAA-enabled organization sends a request with a non-eligible feature, the API returns an error.
-- OpenAI's data controls page describes PHI processing on BAA-eligible endpoints for customers who signed its Business Associate and Healthcare Addendum and meet its setup conditions. It also lists endpoint and feature limits.
+Two limits matter. The geo setting works only on models from Claude 4.6 onward; on older models, a request with it returns "a 400 error". And on price: US-only inference "is priced at 1.1x the standard rate" for models from Claude 4.6 onward.
 
-Example: a developer at the dental chain wants to add a new API feature to the letter tool. The rule: check the vendor's eligibility list first. "We have a BAA" does not mean every feature is covered.
+**Where the data is processed: OpenAI.** The [OpenAI data controls page](https://developers.openai.com/api/docs/guides/your-data) sets **data residency** (where your data is stored and processed) per project:
 
-## Who did what: audit trails
+- You must first ask OpenAI's sales team if you are eligible.
+- To store data in a region, you "select the appropriate region from the dropdown when creating a new project."
+- Regions other than the US need more: you "must be approved for abuse monitoring controls, and execute a Modified Retention amendment."
+- You can also choose regional processing for one request: send it to the prefixed regional domain, with a key from a project that has Global geography (no fixed region). That changes where the request runs, not where the project stores data.
+- Residency "does not apply to system data", for example billing information, account information and usage statistics.
+- Price: "Data residency endpoints are charged a 10% uplift" for eligible models released on or after March 5, 2026.
 
-Auditors ask questions like "Who turned off the retention control on this project, and when?" You need logs that answer them.
+**Health data needs a signed agreement.** In the US, health data often falls under HIPAA, a health privacy law. A **BAA** (Business Associate Agreement) is the contract a vendor signs to handle that data.
 
-- OpenAI's Admin APIs include an Audit Logs endpoint that lists recent user actions and configuration changes for the organization.
-- Anthropic's Activity Feed records authentication, administrative and platform activity, among others, and keeps it for 6 years. Its page warns that recording is not retroactive: it starts when the Compliance API is first enabled, and earlier activity is not backfilled.
+- The [Claude retention page](https://platform.claude.com/docs/en/manage-claude/api-and-data-retention) says that with a signed BAA and a HIPAA-enabled organization, you can use supported API features to process PHI (protected health information). Its feature table lists what is eligible. It says: "Your signed BAA is the official source of truth for which features are covered." When an organization with HIPAA readiness sends a request with a non-eligible feature, "the API returns a `400` error".
+- The OpenAI data controls page covers PHI too. Customers sign a Business Associate and Healthcare Addendum. Then they may use BAA-eligible endpoints, once their setup meets OpenAI's conditions. "Endpoint and feature limitations listed on this page still apply."
 
-So turn audit logging on before launch, not after the first audit question.
+**Who did what: audit logs.** An **audit log** is a record of who changed what, and when.
 
-## Retention has exceptions
+- The [OpenAI Admin APIs page](https://developers.openai.com/api/docs/guides/admin-apis) has an Audit Logs endpoint "to list recent user actions and configuration changes for the organization."
+- The [Claude Activity Feed page](https://platform.claude.com/docs/en/manage-claude/compliance-activity-feed) says the feed records authentication, administrative and platform activity, among others. Records "are retained for 6 years." But: "Recording is not retroactive: it begins when the Compliance API is first enabled for your organization, and activity from before enablement is not backfilled."
 
-Retention promises have limits written into the docs. Anthropic's page says that even with ZDR or HIPAA arrangements, it may keep data where the law requires it, or where its automated trust and safety systems flag it. Flagged inputs and outputs may be kept for up to 2 years. Tell your legal team about such exceptions; don't write "nothing is ever stored" in a customer contract.
+Think of a security camera. It shows what happened after you switched it on, never before.
 
-## Keep an evidence file
+**Retention has exceptions.** **ZDR** (zero data retention) is an arrangement where the vendor does not store your prompts and replies after the reply. The Claude retention page says: "Even with ZDR or HIPAA arrangements in place, Anthropic may retain data where required by law or where it has been flagged by Anthropic's automated trust and safety systems." Inputs and outputs that get flagged may be kept "for up to 2 years."
 
-This checklist is a tool for this course. For each AI use, keep one file with:
+## Worked example
+
+### Step 1: the weak answer
+
+```text
+To: Legal
+Re: AI tools
+The vendor is secure and compliant. All good.
+```
+
+What goes wrong:
+
+- It answers none of the four questions.
+- It names no setting, so nobody can check it.
+- It hides the extra cost of US-only processing.
+
+### Step 2: answer each question with a setting
+
+Both tools run on Claude, on models from Claude 4.6 onward. Our example answer for the prescription tool:
+
+```text
+Q1 Where      Workspace "rx-summary": allowed geos = us only,
+              default geo = us.
+              Workspace geo = us (data at rest), set at creation.
+Q2 How long   HIPAA-enabled organization, signed BAA. HIPAA
+              readiness adds safeguards; it does not mean
+              immediate deletion. Exceptions: see Step 4.
+Q3 Who did    Compliance API enabled 2 Oct, before launch.
+   what       Activity Feed keeps records 6 years from then.
+Q4 Proof      Evidence file below, owner: compliance lead.
+```
+
+### Step 3: add the cost
+
+Our example maths, with made-up numbers. Legal asks for US-only processing for the prescription tool only. The order tool has no health data, so it stays on the standard rate.
+
+```text
+Order tool          $3,000 a month, standard rate
+Prescription tool   $5,000 a month, standard rate
+US-only uplift      1.1x on $5,000 = $500 more a month
+Per year            $500 x 12 = $6,000
+```
+
+Putting the order tool on US-only "just in case" would add another $300 a month. Finance must see these numbers before launch.
+
+### Step 4: the hard case
+
+**The hard case is one sentence in the customer contract.** Sales wants to write: "Our AI vendor never stores any of your data."
+
+This sentence can be false, even with a BAA or ZDR. The Claude page lists exceptions: data the law requires Anthropic to keep, and data its automated trust and safety systems flag. If a chat is flagged, its inputs and outputs may be kept for up to 2 years.
+
+Our advice: legal writes the contract line from the vendor's own words, with the exceptions. For example: "Our AI provider processes health data under a signed BAA. It may keep data where the law requires it, and may keep content flagged by its automated safety systems for up to 2 years." Then legal checks it against the signed agreement.
+
+### Step 5: keep an evidence file
+
+Our checklist, a tool for this course. One file per AI use:
 
 1. **Data map:** what data goes in, and its class (for example, health data).
 2. **Settings:** retention, region and allowed features, with the date checked.
@@ -82,10 +148,37 @@ This checklist is a tool for this course. For each AI use, keep one file with:
 4. **Logs:** where the audit trail lives, and who can read it.
 5. **Owner:** the person who keeps this file current.
 
-## Key points
+### Step 6: why it is better
 
-- Compliance asks: where is data processed, how long is it kept, who did what, and can you prove it?
-- Region controls differ by vendor: Anthropic per request and per workspace; OpenAI per project or per request. Both charge more (checked 2026-10-06).
-- A health-data agreement covers only eligible features; check the vendor's list.
-- Turn on audit logs before launch; Anthropic's Activity Feed doesn't record the past.
-- Vendors document retention exceptions; never promise "nothing is stored".
+- **Checkable.** Each answer names a setting and a date.
+- **Costed.** Finance sees the uplift per tool and per year.
+- **Honest.** Costs and exceptions are written down before someone promises more.
+
+## Common mistakes
+
+1. **An answer with no date.** Vendor pages change, so "compliant" without a date proves little. Fix: record the date you checked each setting.
+2. **IT deciding which law applies.** That is legal's job. Fix: legal names the rules; IT shows the settings that meet them.
+3. **Forgetting the price of a region.** Region controls cost more on newer models at both vendors. Fix: put the uplift in the budget.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A US team on Claude plans two things. Is each plan possible, according to the Claude data residency page?
+
+```text
+1. Make a new workspace that stores data at rest in the EU.
+2. Send part of the traffic with the "us" geo, so that it
+   gets its own, separate rate limits.
+```
+
+### Answer
+
+1. **Not today.** The page says: "Currently, `"us"` is the only available workspace geo."
+2. **No.** The page lists this limit: "Rate limits are shared across all geos." A different geo does not give extra capacity.
+
+## Recap
+
+- Compliance asks four questions: where data is processed and stored, how long it is kept, who did what, and can you prove it. Answer each with a named setting and a date.
+- Region controls differ: Anthropic per request and per workspace, OpenAI per new project or per request. Both cost more on newer models, and OpenAI residency does not cover system data.
+- Health data needs a signed agreement that covers only eligible features. Turn on audit logs before launch, and never promise that nothing is stored.

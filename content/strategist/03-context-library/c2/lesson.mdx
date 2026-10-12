@@ -1,7 +1,7 @@
 ---
 id: strategist/r3/c2/lesson
 title: Knowledge bases
-minutes: 7
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic Engineering · Introducing Contextual Retrieval
@@ -23,60 +23,150 @@ sources:
     url: https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy
 ---
 
-## Why it matters
+## Goal
 
-A **knowledge base** is the set of documents your assistant can draw on: policies, product sheets, past answers. The model doesn't read all of it every time. Something has to pick the right parts and hand them over. How that works decides cost, speed and whether answers are right.
+After this lesson you can:
 
-## Small library: just put it in the prompt
+- Decide whether a knowledge base can go straight into the prompt or needs search (RAG).
+- Choose meaning-based search, keyword search or both, based on how people ask.
+- Read a failed answer: did search miss the page, or did the model misuse it? Then write a full running-cost line.
 
-Anthropic's Contextual Retrieval post starts with a simple option. If your knowledge base is smaller than 200,000 tokens (about 500 pages), you can include the whole thing in the prompt, with no need for retrieval. Treat this as a rule of thumb from the post (Sept 2024), not a hard limit. The post says prompt caching makes this faster and cheaper.
+## The problem
 
-Example: a dental clinic chain has a 40-page handbook for its front desk. Sending all of it with each question is the simplest design. There is nothing to build and nothing to tune. If the handbook later grows into thousands of pages, the clinic should look at this choice again.
+A software company has 3,000 staff. Its IT helpdesk wants an assistant that answers staff questions from internal guides. There are about 12,000 pages: setup guides, how-to pages and a list of error messages.
 
-## Large library: retrieval (RAG)
+Staff ask in two ways:
 
-For knowledge bases too large for the context window, the post calls retrieval-augmented generation (RAG) the typical solution. It describes the steps:
+- In everyday words: "How do I share a large file with a client?"
+- With exact codes: "What does error E-4471 on the VPN mean?"
 
-1. Split the documents into smaller **chunks**, usually no more than a few hundred tokens.
-2. Turn each chunk into an **embedding**, a list of numbers that encodes meaning.
-3. Store the embeddings in a database you can search by meaning.
-4. When a question arrives, find the most relevant chunks and add them to the prompt.
+The project lead must choose a design and write a budget line for the finance team. This lesson explains the options and where they break. The guidance below is from each vendor's docs (October 2026).
 
-Think of it as a librarian who brings the five best pages to the reader, instead of the whole library.
+## The idea
 
-## Search by meaning and by exact words
+A **knowledge base** is the set of documents your assistant can use. The model does not read all of it for every question. Something must choose the right parts and hand them over.
 
-OpenAI's retrieval guide explains **semantic search**: it finds results with similar meaning even when they share few or no keywords. Its example query is "When did we go to the moon?" The best match, "The first lunar landing occurred in July of 1969", shares none of the query's words.
+**Small library: put it all in the prompt.** The [Anthropic Contextual Retrieval post](https://www.anthropic.com/engineering/contextual-retrieval) (September 2024) offers this size rule:
 
-Meaning is not always enough. Anthropic's post says embedding models can miss exact matches. Its example: a user searches for "Error code TS-999", and an embedding model might return pages about error codes in general. A keyword method called BM25 looks for that exact text. The post found that combining embeddings with BM25 worked better than embeddings alone.
+- If the knowledge base is smaller than "200,000 tokens", which the post puts at "about 500 pages of material", you can include all of it in the prompt, "with no need for RAG or similar methods". (**Tokens** are the small pieces of text a model reads.)
+- **Prompt caching** (the vendor reuses the already-read start of a prompt) makes this "significantly faster and more cost-effective".
+- Caching lowers the cost of a big prompt. It does not make a far larger library fit.
 
-OpenAI's file search guide also says the tool retrieves through semantic and keyword search.
+**Large library: retrieval (RAG).** For larger libraries, the same post describes **RAG** (retrieval-augmented generation):
 
-Example: an equipment wholesaler gets questions like "Is part HX-4410 in stock?" Codes like HX-4410 need exact matching. Questions like "Which pump suits salt water?" need meaning.
+1. Split the documents into **chunks**, "usually no more than a few hundred tokens".
+2. Turn each chunk into an **embedding**: a list of numbers that stands for its meaning.
+3. Store the embeddings in a **vector database** that can search by meaning.
+4. When a question comes in, find the best chunks and add them to the prompt.
 
-## Build it or use a hosted tool
+**Search by meaning.** The [OpenAI retrieval guide](https://developers.openai.com/api/docs/guides/retrieval) explains **semantic search**: it finds similar meaning "even when they match few or no keywords". Its example question is "When did we go to the moon?" The best match is "The first lunar landing occurred in July of 1969." The two share no words.
 
-You don't always have to build each step yourself. OpenAI's retrieval guide says that when you add a file to a vector store, it is automatically chunked, embedded and indexed. Its file search guide calls file search a hosted tool, so you don't write code to run the search yourself.
+**Search by exact words.** Meaning is not always enough. The Anthropic post explains: for the query "Error code TS-999", an embedding model "could miss the exact" match and return pages about error codes in general. **BM25** is a keyword method that looks for the exact text. In the post's tests, using embeddings and BM25 together found the right chunks more often than embeddings on their own. The [OpenAI file search guide](https://developers.openai.com/api/docs/guides/tools-file-search) says its tool also searches by "semantic and keyword search".
 
-Anthropic's embeddings page says Anthropic does not offer its own embedding model. It names Voyage AI as one provider and says you should assess a variety of embedding vendors for your use case.
+**Build it or use a hosted tool.** You don't have to build each step. The OpenAI retrieval guide says a file added to a **vector store** (OpenAI's searchable file storage) is "automatically chunked, embedded, and indexed". The file search guide calls the tool "a hosted tool managed by OpenAI", so you don't write the search code. On the Anthropic side, the [Claude embeddings page](https://platform.claude.com/docs/en/build-with-claude/embeddings) says "Anthropic does not offer its own embedding model". It names Voyage AI as one provider and says to "assess a variety of embeddings vendors".
 
-Cost example: OpenAI's retrieval guide prices vector store storage at free up to 1 GB across all stores, then $0.10 per GB per day (checked 2026-10-06). A 6 GB store costs (6 − 1) × $0.10 = $0.50 a day. That is storage only. OpenAI's pricing page adds $2.50 per 1,000 file search tool calls in the Responses API, and the tokens the tool uses are billed at the model's rates.
+**The full cost.** On the [OpenAI pricing page](https://developers.openai.com/api/docs/pricing), file search has three parts:
 
-## Two places where RAG breaks
+- **Storage:** "$0.10 / GB per day (1 GB free)". The retrieval guide says the free 1 GB is "across all stores".
+- **Tool calls:** "$2.50 / 1k calls". This price is for the Responses API (OpenAI's main API for model requests).
+- **Tokens:** "Tokens used for built-in tools are billed at the chosen model's per-token rates."
 
-OpenAI's accuracy guide says a RAG system can break down in two areas:
+**Two places where RAG breaks.** The [OpenAI accuracy guide](https://developers.openai.com/api/docs/guides/optimizing-llm-accuracy) names two areas:
 
-- **Retrieval:** it supplies the wrong context, so the model can't answer, or too much irrelevant context, which drowns out the real information and causes hallucinations.
-- **The model:** it gets the right context and still does the wrong thing with it.
+- **Retrieval.** Search brings the wrong context, so the model can't answer. Or it brings too much unrelated context. The guide says this "drowns out" the real facts and "causes hallucinations" (made-up answers stated as fact).
+- **The model.** The guide says it "can also get the right context and do the wrong thing with it".
 
-The fixes are different, so check which one it is. Look at each wrong answer: was the right passage among the retrieved chunks? If not, tune the search. If yes, work on the prompt.
+The fixes are different, so find out which one it is. The Anthropic post also shows that search can get much better. In its tests, adding a short context to each chunk cut failed retrievals "by 49% and, when combined with reranking, by 67%". (**Reranking** means a second step that re-sorts the found chunks.) Those are results on Anthropic's test data, not a promise for yours.
 
-Anthropic's post shows how much retrieval itself can improve. In its tests, adding context to each chunk before embedding and keyword indexing cut failed retrievals by 49%, and by 67% when combined with a reranking step. Treat those as Anthropic's test results, not a promise for your data.
+Our example: RAG is like a good librarian. You don't carry the whole library to the reader. The librarian brings the five best pages. If the reader still gets it wrong, ask first: did the librarian bring the right pages?
 
-## Key points
+## Worked example
 
-- A small knowledge base (under about 500 pages, a 2024 rule of thumb) can go straight into the prompt.
-- Larger ones need retrieval: chunk, embed, store, then fetch the best chunks.
-- Combine meaning-based search with exact keyword search for codes and IDs.
-- Hosted tools such as OpenAI file search do the chunking and indexing for you.
-- When an answer is wrong, first check whether retrieval found the right passage.
+### Step 1: the weak plan
+
+```text
+Plan A
+- Paste all 12,000 pages into every prompt. Caching makes it cheap.
+- If answers are wrong, switch to a bigger model.
+- Budget: storage only.
+```
+
+What goes wrong:
+
+- 12,000 pages is much more than the ~500-page rule of thumb. Caching does not change that.
+- A bigger model can't use a page it never receives.
+- The budget leaves out tool calls and tokens.
+
+### Step 2: choose the search
+
+```text
+Question type                         Search that fits
+"How do I share a large file?"        meaning (embeddings)
+"What does error E-4471 mean?"        exact words (keyword, e.g. BM25)
+Both kinds are common                 use both together
+```
+
+The team picks a hosted tool. OpenAI file search does meaning and keyword search. It also chunks and indexes the files for them.
+
+### Step 3: test and read the failures
+
+The team runs 100 real staff questions with known answers. For each wrong answer, they ask one question: **was the right passage in the retrieved chunks?**
+
+```text
+Wrong answers: 18
+  Right passage not retrieved           14  -> fix search
+  Right passage retrieved, answer wrong  4  -> fix the prompt
+```
+
+### Step 4: the hard case
+
+The hard case is the question "VPN fails with E-4471 after the update. What do I do?" **It needs both kinds of search.** The code needs an exact match. "After the update" needs meaning, because the guide page says "new version" and never "update". With meaning search alone, the right page did not appear. With both, it did.
+
+### Step 5: the budget line
+
+The store is 4 GB. Staff ask about 20,000 questions a month, and each one uses one search call.
+
+```text
+Storage:    (4 GB - 1 GB free) x $0.10 = $0.30 a day, about $9 a month
+Tool calls: 20,000 / 1,000 x $2.50 = $50 a month
+Tokens:     billed at the model's rates (estimate from the test run)
+```
+
+### Step 6: why it is better
+
+- **The right design for the size.** 12,000 pages need search.
+- **Search fits the questions.** Codes get exact matching; everyday words get meaning.
+- **Failures are sorted.** Most wrong answers came from search, so the team fixes search first.
+- **An honest budget.** Storage, calls and tokens are all listed.
+
+## Common mistakes
+
+1. **Making the prompt bigger instead of the search better.** Adding many more chunks fills the prompt with unrelated text. Fix: improve what search returns, for example with keyword search for codes.
+2. **Blaming the model first.** If the right page never arrived, a new model or prompt can't help. Fix: check the retrieved chunks for each wrong answer.
+3. **A budget with storage only.** Fix: add storage after the free 1 GB, tool calls and tokens.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A bank's internal assistant searches a 300-page product guide and a 9,000-page rule book. Answer three questions.
+
+```text
+1. Can the 300-page guide go straight into the prompt?
+2. Staff often ask about form numbers, like "form KX-12".
+   Meaning search alone often misses them. What do you add?
+3. A wrong answer cites the right rule-book page, but reads it wrongly.
+   Where do you work first: search or prompt?
+```
+
+### Answer
+
+1. **Yes, probably.** 300 pages is under the ~500-page rule of thumb from the Anthropic post. The 9,000-page rule book still needs search.
+2. **Keyword search next to meaning search**, for example BM25. Exact codes need exact matching.
+3. **The prompt.** Search did its job: the right page arrived. The model misused it, so improve the instructions.
+
+## Recap
+
+- Under about 500 pages (a 2024 rule of thumb), the whole library can go in the prompt. Larger ones need search: chunk, embed, store, then fetch the best chunks.
+- Use meaning search and keyword search together when people ask with codes or IDs.
+- For each wrong answer, first check whether search found the right passage. Budget storage, tool calls and tokens.

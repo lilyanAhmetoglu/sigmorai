@@ -2,14 +2,20 @@ import { clerk } from '@clerk/testing/playwright';
 import { neon } from '@neondatabase/serverless';
 import { expect, test, type Page } from '@playwright/test';
 import {
+  AUTH_ROUTES,
+  BLOG_HREF,
   HP_PER_CHALLENGE,
   HUD_TEXT,
   LEADERBOARD_TEXT,
+  MAIN_CONTENT_ID,
+  NAV_ITEMS,
   ONBOARDING_TEXT,
   QUEST_TEXT,
   REALMS,
+  REALMS_HREF,
   REALMS_TEXT,
   realmHref,
+  SHELL_TEXT,
   STEP_STATUS_TEXT,
   TRACK_TEXT,
   XP_REWARDS,
@@ -23,6 +29,15 @@ test.describe.configure({ mode: 'serial' });
 
 const CHAPTER_DIR = 'strategist/00-bootstrap-village/c1';
 const QUEST = '/quest/strategist/r0/c1';
+
+/** Clerk's account button (UserButton); `cl-<element>` is Clerk's stable appearance class. */
+const ACCOUNT_BUTTON = '.cl-userButtonTrigger';
+
+/**
+ * The page's main region. While a page streams, React can hold a hidden second copy of late
+ * content at the end of <body>, so an unscoped getByText can match twice (strict mode fails).
+ */
+const main = (page: Page) => page.locator(`#${MAIN_CONTENT_ID}`);
 
 /** Pick one option per question by its text, inside that question's group. */
 async function pick(page: Page, answers: Answer[], which: 'right' | 'wrong') {
@@ -44,7 +59,8 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   const checkAnswers = answersFor(CHAPTER_DIR, 'quick-check.json');
   const result = page.getByRole('status').filter({ hasText: /correct/ });
 
-  await page.goto('/');
+  // A visitor's / loads no Clerk (ClerkGate); the (auth) pages always do.
+  await page.goto(AUTH_ROUTES.signIn);
   await clerk.signIn({ page, emailAddress: E2E_EMAIL });
 
   // Onboarding: the setup deleted the users row, so this is a fresh hero.
@@ -58,12 +74,25 @@ test('a new hero clears chapter 1 and shows on the leaderboard', async ({ page }
   // The signed-in a11y check (a11y.spec.ts covers the public routes).
   await expectNoViolations(page);
   // One header everywhere: the static pages show the same HUD (PublicHud reads /api/hud).
-  for (const path of ['/', '/blog']) {
+  for (const path of ['/', BLOG_HREF]) {
     await page.goto(path);
     await expect(
       page.getByRole('banner').getByRole('group', { name: HUD_TEXT.label }),
     ).toContainText(hero);
   }
+  // On a public page Clerk mounts after hydration (the __client_uat hint), with
+  // its UI: the account button shows. A client navigation into the (app) group
+  // keeps the player's HUD and account button.
+  const banner = page.getByRole('banner');
+  await expect(banner.locator(ACCOUNT_BUTTON)).toBeVisible();
+  await banner
+    .getByRole('navigation', { name: SHELL_TEXT.navLabel })
+    .first()
+    .getByRole('link', { name: NAV_ITEMS.find((item) => item.href === REALMS_HREF)?.label })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`${REALMS_HREF}$`));
+  await expect(banner.getByRole('group', { name: HUD_TEXT.label })).toContainText(hero);
+  await expect(banner.locator(ACCOUNT_BUTTON)).toBeVisible();
 
   // Lesson: one step at a time. Continue moves focus to each step (named by
   // its heading); the last button moves it to "Lesson done", which still needs a press.
@@ -124,7 +153,8 @@ test('a case cleared on the builder path credits its strategist twin', async ({ 
   }
   const result = page.getByRole('status').filter({ hasText: /correct/ });
 
-  await page.goto('/');
+  // A visitor's / loads no Clerk (ClerkGate); the (auth) pages always do.
+  await page.goto(AUTH_ROUTES.signIn);
   await clerk.signIn({ page, emailAddress: E2E_EMAIL });
 
   // The deep case, on the builder path: a real clear, full XP.
@@ -136,7 +166,9 @@ test('a case cleared on the builder path credits its strategist twin', async ({ 
 
   // The strategist realm page shows its twin as cleared, and says where.
   await page.goto(realmHref(REALMS[0].slug, 'strategist'));
-  await expect(page.getByText(REALMS_TEXT.creditedFrom(TRACK_TEXT.builder.label))).toBeVisible();
+  await expect(
+    main(page).getByText(REALMS_TEXT.creditedFrom(TRACK_TEXT.builder.label)),
+  ).toBeVisible();
   // The lock follows the credit: chapter 5 opens (chapters 1–3 are not done).
   const c5 = page
     .getByRole('listitem')
@@ -146,7 +178,7 @@ test('a case cleared on the builder path credits its strategist twin', async ({ 
 
   // The twin's case is a replay: no HP, no XP.
   await page.goto('/quest/strategist/r0/c4/challenge');
-  await expect(page.getByText(QUEST_TEXT.replayNote)).toBeVisible();
+  await expect(main(page).getByText(QUEST_TEXT.replayNote)).toBeVisible();
   await pick(page, answersFor('strategist/00-bootstrap-village/c4', 'case.json'), 'right');
   await submit(page);
   await expect(page.getByText(QUEST_TEXT.passedReplay)).toBeVisible();

@@ -1,7 +1,7 @@
 ---
 id: builder/r14/c4/lesson
 title: Headless & SDK
-minutes: 11
+minutes: 12
 sources:
   - kind: docs
     title: Run Claude Code programmatically (Claude Code docs)
@@ -26,15 +26,23 @@ sources:
     url: https://geminicli.com/docs/cli/trusted-folders/
 ---
 
-Agent Citadel, chapter 3 (The harness), put the Agent SDK in the "library in your app" row. Chapters 1 to 3 here set up skills, hooks and plugins for a person at a keyboard. This chapter runs the same coding agent from a script, with nobody at the screen: a nightly job, a build step, a small tool.
+## Goal
 
-"Headless" means the agent runs once, prints a result and exits, with no chat screen (our plain gloss).
+After this lesson you can:
 
-A note on dates: the flags, fields and exit codes below are from each vendor's page in October 2026.
+- Run a coding agent once from a script and read its answer as JSON.
+- Set what a run may do and what it loads before it starts, since nobody is there to say yes.
+- Chain two runs into one conversation, and know when to move from the CLI to an SDK.
 
-## One command per tool
+## The problem
 
-stdout is where a program prints its result; stderr is a second stream for logs and errors (our plain gloss).
+A developer wants a weekly job that finds outdated packages, updates them and runs the tests. Nobody watches it. It runs on a build machine at 3 a.m.
+
+In chat, this is easy: ask, read, say yes to each edit. In a script there is no chat screen and nobody to say yes. The script must start the agent, limit it, read its answer and know if it failed. This is **headless** use: the agent runs once, prints a result and exits, with no chat screen.
+
+## The idea
+
+### One command per tool
 
 | Tool        | Run once from a script | Where the answer goes                       |
 | ----------- | ---------------------- | ------------------------------------------- |
@@ -42,74 +50,150 @@ stdout is where a program prints its result; stderr is a second stream for logs 
 | Codex       | `codex exec "<task>"`  | final message on stdout, progress on stderr |
 | Gemini CLI  | `gemini -p "<task>"`   | stdout                                      |
 
-- **Anthropic:** "Add the `-p` (or `--print`) flag to any `claude` command to run it non-interactively."
-- **OpenAI:** "Non-interactive mode lets you run Codex from scripts (for example, continuous integration (CI) jobs) without opening the interactive TUI. You invoke it with `codex exec`." (A TUI is a full-screen app in the terminal; our plain gloss.)
-- **Google:** "Headless mode is triggered when the CLI is run in a non-TTY environment or when providing a query with the `-p` (or `--prompt`) flag." (Non-TTY means no live terminal is attached, as in a CI job; our plain gloss.)
+stdout is where a program prints its result. stderr is a second stream for logs and errors.
 
-All three read piped input. Anthropic: "Non-interactive mode reads stdin". Codex treats "the prompt as the instruction and the piped content as additional context." Gemini CLI "reads the standard input (stdin) as context".
+- **Claude Code:** "Add the `-p` (or `--print`) flag to any `claude` command to run it non-interactively" ([Claude Code docs](https://code.claude.com/docs/en/headless)).
+- **Codex:** "You invoke it with `codex exec`" ([Codex docs](https://learn.chatgpt.com/docs/non-interactive-mode)). It runs "without opening the interactive TUI" (a TUI is a full-screen app in the terminal).
+- **Gemini CLI:** headless mode starts "when the CLI is run in a non-TTY environment or when providing a query with the `-p` (or `--prompt`) flag" ([Gemini CLI docs](https://geminicli.com/docs/cli/headless/)). Non-TTY means no live terminal is attached, as on a build machine.
 
-Our example: `cat build.log | claude -p "explain the root cause"` and `cat build.log | codex exec "explain the root cause"` do the same job.
+All three read piped input as extra context. For example, `cat build.log | codex exec "explain the root cause"`.
 
-## Get output a script can read
+### Get output a script can read
 
-Plain text is fine for a person. A script needs fields.
+Plain text is fine for a person. A script needs named fields.
 
-**Claude Code** uses `--output-format`: `text` (the default), `json` ("structured JSON with result, session ID, and metadata") or `stream-json` ("newline-delimited JSON for real-time streaming"; one JSON object per line, our plain gloss). In `json`, the answer text is in the `result` field. Add `--json-schema` with a JSON Schema (a file that describes the shape the JSON must have; our plain gloss), and "the structured output" is in the `structured_output` field.
+- **Claude Code** has `--output-format`. The default is `text`. With `json`, you get "structured JSON with result, session ID, and metadata": the answer is in `result`. With `--json-schema` (a JSON Schema is a file that describes the shape the JSON must have), the docs put "the structured output in the `structured_output` field."
+- **Codex** has `--json`: "`stdout` becomes a JSON Lines (JSONL) stream", one JSON object per line. Events include `thread.started`, `turn.completed`, `turn.failed` and `error`. `-o <path>` writes only the final message to a file. `--output-schema` asks for "a final response that conforms to a JSON Schema."
+- **Gemini CLI** has `--output-format json`: one object with `response` (the answer), `stats`, and an optional `error`.
 
-**Codex** uses `--json`: "`stdout` becomes a JSON Lines (JSONL) stream" (one JSON object per line; our plain gloss), with events such as `thread.started`, `turn.completed`, `turn.failed` and `error`. For only the last message, `-o <path>` (`--output-last-message`) writes it to a file. For a fixed shape, `--output-schema ./schema.json` asks for "a final response that conforms to a JSON Schema."
+### Check the exit code
 
-**Gemini CLI** uses `--output-format json`: one object with `response` (the answer), `stats` and an optional `error`. A streaming JSON option sends JSONL events such as `tool_use`, `tool_result` and `result`.
+An exit code is the number a program returns when it stops. `0` means it worked.
 
-Our example: `claude -p "list the TODOs" | jq '.result'` fails, because the default output is text. Add `--output-format json` first.
+- **Claude Code:** "exits with code 0 on success and a non-zero code when the run fails". One catch: "When a failure happens inside the run, such as missing authentication, Claude Code prints the failure as the result on stdout." So check the code before you trust `result`.
+- **Gemini CLI** lists its codes: `0` "Success", `1` "General error or API failure", `42` "Input error (invalid prompt or arguments)", `53` "Turn limit exceeded".
+- **Codex:** the page lists no exit codes. With `--json`, watch for the `turn.failed` and `error` events.
 
-## Check the exit code
+### Decide what the run may do
 
-A script must know if the run failed.
+Nobody can approve a tool call, so set the limits first.
 
-- **Claude Code:** "exits with code 0 on success and a non-zero code when the run fails". One catch: "When a failure happens inside the run, such as missing authentication, Claude Code prints the failure as the result on stdout."
-- **Gemini CLI** lists its codes: `0` success, `1` "General error or API failure", `42` "Input error (invalid prompt or arguments)", `53` "Turn limit exceeded".
-- **Codex:** the page lists no exit codes; with `--json`, watch for `turn.failed` and `error` events.
+- **Claude Code:** `--allowedTools` lets listed tools run without asking. `--permission-mode` sets a base mode:
+  - `dontAsk` "denies every call that would otherwise prompt, which is useful for locked-down CI runs" (CI: the jobs that run on each push).
+  - `acceptEdits`: Claude writes files without asking. Other shell commands "still need an `--allowedTools` entry or a `permissions.allow` rule".
+  - With no mode, the run takes a built-in start mode, "which can be `auto`, so pass the one you want".
+- **Codex:** "By default, `codex exec` runs in a read-only sandbox." (A sandbox is a box that limits what commands can touch.) For edits, pass `--sandbox workspace-write`. The Codex docs: it "requires commands to run inside a Git repository to prevent destructive changes".
 
-## Decide what the run may do
+### Decide what the run loads
 
-Nobody is there to say yes, so set the limits before the run starts. Agent Citadel, chapter 6 (Permissions), explained the rules; here are the script flags.
+Without extra flags, `claude -p` "loads the same context an interactive session would". That includes a project's hooks, "even in a folder you've never trusted."
 
-- **Claude Code:** `--allowedTools "Read,Edit,Bash"` pre-approves tools. Or pass a mode: `--permission-mode dontAsk` "denies every call that would otherwise prompt, which is useful for locked-down CI runs"; `acceptEdits` lets Claude write files without asking. Anthropic warns that a run with no mode set takes a built-in starting mode, "which can be `auto`, so pass the one you want".
-- **Codex:** "By default, `codex exec` runs in a read-only sandbox." To allow edits: `--sandbox workspace-write`. Use `--sandbox danger-full-access` "only in a controlled environment (for example, an isolated CI runner or container)." `--full-auto` is kept only as "a deprecated compatibility flag".
-- **Codex also checks for git.** "Codex requires commands to run inside a Git repository to prevent destructive changes." `--skip-git-repo-check` turns this off.
+- **Claude Code:** `--bare` skips "hooks, skills, custom commands, subagents, installed plugins, MCP servers, auto memory, and CLAUDE.md". The docs: bare mode "is useful for CI and scripts where you need the same result on every machine".
+- But "In bare mode, Claude Code never reads OAuth credentials or the system keychain." (OAuth credentials are a saved browser login.) Set `ANTHROPIC_API_KEY` instead.
+- **Gemini CLI:** in a folder that is not trusted, with Folder Trust on, a headless run "will throw a `FatalUntrustedWorkspaceError` and exit" ([Trusted Folders](https://geminicli.com/docs/cli/trusted-folders/)). `--skip-trust` trusts it for that session. Use it only on a repo you have checked (our advice).
 
-Our example: `codex exec "fix the lint errors"` reports a fix, but no file changes. The run was read-only. Add `--sandbox workspace-write`.
+### Run in steps
 
-## Decide what the run loads
+Each run is a new conversation unless you say otherwise.
 
-A headless run can pick up settings you did not plan for.
-
-- **Claude Code:** without `--bare`, `claude -p` "loads the same context an interactive session would", including hooks and `CLAUDE.md`. Chapter 2 showed the risk: it runs a project's hooks "even in a folder you've never trusted." `--bare` skips "hooks, skills, custom commands, subagents, installed plugins, MCP servers, auto memory, and CLAUDE.md". Anthropic: bare mode "is useful for CI and scripts where you need the same result on every machine", and it is "the recommended mode for scripted and SDK calls". One catch: "In bare mode, Claude Code never reads OAuth credentials or the system keychain." (OAuth credentials are the saved browser login; our plain gloss.) Set `ANTHROPIC_API_KEY` instead.
-- **Codex:** `--ignore-user-config` makes a run that "doesn't load `$CODEX_HOME/config.toml`", and `--ignore-rules` skips the user and project execpolicy `.rules` files.
-- **Gemini CLI:** in an untrusted folder with Folder Trust on, a headless run "will throw a `FatalUntrustedWorkspaceError` and exit." `--skip-trust` or `GEMINI_CLI_TRUST_WORKSPACE=true` trusts the folder for that session. Only do this for a repo you have checked (our advice).
-
-## Run in steps
-
-A two-step job can keep the same conversation.
-
-- **Claude Code:** `--continue` picks up the most recent conversation. For a named one, read `session_id` from the JSON output, then pass `--resume "$session_id"`.
+- **Claude Code:** `--continue` goes on with the latest conversation. `--resume` takes a session ID, which you read from the JSON output.
 - **Codex:** `codex exec resume --last "<next step>"`, or `codex exec resume <SESSION_ID>`.
 
-## When a script is not enough: the SDKs
+### When a script is not enough: the SDKs
 
-A command line is enough for a build step. For your own app, Anthropic and OpenAI each ship an SDK (software development kit: a library you call from your own code; our plain gloss).
+An **SDK** (software development kit) is a library you call from your own code.
 
-- **Claude Agent SDK** (Python and TypeScript): "the same tools, agent loop, and context management that power Claude Code". The packages give you "structured outputs, tool approval callbacks, and native message objects". From another language, Anthropic says to run the CLI "as a subprocess with the `-p` flag and `--output-format json`." Anthropic's terms: it does not allow third-party developers to offer claude.ai login for agents built on the SDK "Unless previously approved"; use API key login.
-- **Codex SDK:** OpenAI lists "Control Codex as part of your CI/CD pipeline" as one use. The TypeScript library (`@openai/codex-sdk`) starts a thread with `codex.startThread()`, runs a prompt with `thread.run(...)`, and resumes with `codex.resumeThread(threadId)`. The Python library (`openai-codex`) takes a sandbox per thread or turn: `Sandbox.read_only`, `Sandbox.workspace_write` or `Sandbox.full_access`.
+- The [Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview):
+  - **What it gives:** "the same tools, agent loop, and context management that power Claude Code", in Python and TypeScript.
+  - **Other languages:** the docs say to run the CLI "as a subprocess with the `-p` flag and `--output-format json`."
+  - **Login:** the docs say to use API keys. "Unless previously approved", Anthropic does not allow third-party products built on the SDK to offer claude.ai login.
+- The [Codex SDK](https://learn.chatgpt.com/docs/codex-sdk) lists "Control Codex as part of your CI/CD pipeline" as a use. In TypeScript you start a thread with `codex.startThread()` and continue one with `codex.resumeThread(threadId)`.
 
-Rule of thumb (our advice): start with the CLI in a script. Move to an SDK when your own code must react to each step, such as approving a tool call.
+Our rule of thumb: start with the CLI in a script. Move to an SDK when your own code must react to each step.
 
-## Key points
+## Worked example
 
-- Run once from a script: `claude -p`, `codex exec`, `gemini -p`.
-- Ask for machine output: `--output-format json` (Claude Code, Gemini CLI), `--json` (Codex). Schemas: `--json-schema` → `structured_output`, `--output-schema`.
-- Check the exit code. Claude Code can print an in-run failure as the result.
-- Set limits first: `--allowedTools` or `--permission-mode` (Claude Code); `codex exec` starts read-only, add `--sandbox workspace-write` to edit.
-- Control what loads: `--bare` (Claude Code, needs `ANTHROPIC_API_KEY`), `--ignore-user-config` (Codex), folder trust (Gemini CLI).
-- Continue a run: `--resume` (Claude Code), `codex exec resume` (Codex).
-- Need your own app? Use the Claude Agent SDK or the Codex SDK.
+The weekly package job from The problem, with Claude Code, in two steps.
+
+### Step 1: the weak script
+
+```bash
+claude -p "Find outdated packages in package.json"
+claude -p "Update the packages you found and run the tests"
+```
+
+What goes wrong:
+
+- The second run is a new conversation. It does not know which packages the first run found.
+- No permission mode is set, so the run takes whatever the built-in start mode is.
+- If the first run fails, the script goes on anyway.
+
+### Step 2: one conversation, checked
+
+```bash
+if ! out=$(claude -p "List outdated packages in package.json" \
+  --output-format json \
+  --permission-mode dontAsk \
+  --allowedTools "Read,Bash(npm outdated *)"); then
+  echo "step 1 failed: $out" >&2
+  exit 1
+fi
+session_id=$(echo "$out" | jq -r '.session_id')
+```
+
+Step 1 only reads, so `dontAsk` is safe: reads and the listed command run, and anything else is refused. The `session_id` is saved for step 2. The exit check stops the job before a failed result is used.
+
+### Step 3: the hard case, the edit step
+
+A first try reuses the same flags for step 2:
+
+```bash
+claude -p "Update the packages you found and run the tests" \
+  --resume "$session_id" \
+  --permission-mode dontAsk \
+  --allowedTools "Read,Bash(npm outdated *)"
+```
+
+Under `dontAsk`, file edits and `npm test` need approval, so they are refused. The run ends with no update. Step 2 needs a different limit:
+
+```bash
+claude -p "Update the packages you found and run the tests" \
+  --resume "$session_id" \
+  --output-format json \
+  --permission-mode acceptEdits \
+  --allowedTools "Bash(npm install *),Bash(npm test *)"
+```
+
+`acceptEdits` lets it change `package.json`. The two shell commands still need their own `--allowedTools` entries. Note the space before `*`: the docs say `Bash(git diff*)` without it "would also match `git diff-index`".
+
+### Why it is better
+
+- Step 2 knows what step 1 found, through `--resume`.
+- Each step gets the smallest limit it needs: read-only first, then edits plus two commands.
+- A failed step stops the job, with the reason in the log.
+
+## Common mistakes
+
+1. **Piping a very large file.** The Claude Code docs: "Piped stdin is capped at 10MB." Fix: write the content to a file and name the path in the prompt.
+2. **Stopping a run with `kill`.** On SIGTERM, "Claude Code exits with code 143" and "leaves the turn that was in progress unfinished". Fix: send SIGINT first if you want the turn to end.
+3. **Running `codex exec` in a plain folder, not a repo.** Codex stops, because it needs a Git repository. Fix: run it in the repo checkout. Use `--skip-git-repo-check` only "if you're sure the environment is safe."
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A script runs `codex exec` to review a pull request. A second run must fix what the review found, in the same session. The script also needs only the final review text in a file called `review.md`.
+
+1. Which flag writes the final message to `review.md`?
+2. What command starts the second run in the same session?
+
+### Answer
+
+1. `-o review.md` (long form `--output-last-message`). The Codex docs: it "writes the final message to the file and still prints it to `stdout`".
+2. `codex exec resume --last "<the fix task>"`, or `codex exec resume <SESSION_ID>` for a named session.
+
+## Recap
+
+- Run once from a script with `claude -p`, `codex exec` or `gemini -p`. Ask for JSON (`--output-format json` or `--json`) and check the exit code before you trust the answer.
+- Set limits before the run: `--allowedTools` and `--permission-mode` in Claude Code, `--sandbox` in Codex. Control what loads with `--bare` (needs `ANTHROPIC_API_KEY`) or folder trust in Gemini CLI.
+- Chain steps with `--resume` or `codex exec resume`. Move to the Claude Agent SDK or the Codex SDK when your own code must react to each step.

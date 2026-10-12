@@ -1,7 +1,7 @@
 ---
 id: strategist/r1/c2/lesson
 title: Give examples
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Prompting best practices
@@ -17,76 +17,151 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/prompting-strategies
 ---
 
-## Why it matters
+## Goal
 
-Some things are hard to describe but easy to show: your team's tone, the shape of a good answer, how you label a ticket. An example shows the model what "good" looks like at your company.
+After this lesson you can:
 
-## Show, don't only tell
+- Add 3–5 tagged examples to a prompt, so the model copies your format and tone.
+- Choose examples that are relevant, varied and in one format, including one hard case.
+- Find a pattern in your examples that you did not mean to teach.
 
-A prompt with a few examples is called a **few-shot** prompt. A prompt with no examples is **zero-shot**. Gemini's guide uses these names.
+## The problem
 
-Anthropic's guide calls examples one of the most reliable ways to steer the format, tone and structure of the output. OpenAI's guide says the model picks up the pattern from a handful of input and output examples, and applies it to the new input. You don't need to retrain the model.
+Mara, the operations lead at the training company, gets about 300 feedback comments after each month of courses. She wants each comment sorted, so the right person sees it. Her brief is clear now:
 
-Example: you want short, friendly replies to customer reviews. Instead of explaining your tone in a paragraph, you paste two real replies your team liked. The model copies their length and style.
-
-## How many examples?
-
-Start with a few, then test.
-
-- Anthropic's guide suggests 3–5 examples for best results.
-- Gemini's guide says models can often pick up a pattern from a few examples, but you may need to experiment with the number.
-- Gemini's guide also warns: with too many examples, the model may start to overfit. That means it copies the examples too closely instead of following the general pattern.
-
-Gemini's guide goes further and recommends always including few-shot examples. It says clear examples can even replace some of your instructions.
-
-## What makes a good example
-
-The three guides agree on three rules.
-
-**1. Relevant.** Anthropic's guide says examples should mirror your actual use case closely. Use real work, not toy cases.
-
-Example: for an HR assistant that answers leave questions, use real (anonymized) leave questions, not questions about the weather.
-
-**2. Varied.** Anthropic's guide says examples should cover edge cases and vary enough that the model doesn't pick up unintended patterns. OpenAI's guide says to show a diverse range of possible inputs. Gemini's guide asks for specific and varied examples.
-
-Example: if all three sample replies are to happy customers, the model may sound cheerful to an angry one too. Add one reply to a complaint.
-
-**3. Consistent.** Gemini's guide says all examples should share the same structure and formatting. If one example has a heading and the next does not, the model gets mixed signals.
-
-## Keep examples apart from the task
-
-The model must know where the examples stop and the real task starts. Anthropic's guide suggests wrapping examples in tags, such as `<example>`, so the model can tell them apart from your instructions. OpenAI's prompting page suggests keeping examples in a short, bulleted block that your team can scan and update.
-
-A simple layout you can type in any chat:
-
+```text
+Sort each feedback comment into one topic: Trainer, Content, Venue or
+Booking. Then say if someone must act: yes or no.
 ```
-Task: label each customer ticket as Billing, Delivery or Product.
+
+The results are uneven. One answer says `Venue, yes`. The next says `Topic: venue. Action needed.` A third writes two sentences about the room. Comments that mention two things get a different topic each time. A good brief tells the model what to do. It does not always show what a good answer looks like.
+
+This lesson adds a second tool: show the model a few solved examples. The guidance below is from each vendor's docs (October 2026).
+
+## The idea
+
+**Zero-shot** means the prompt has no examples. **Few-shot** means it has a few. The [Gemini docs](https://ai.google.dev/gemini-api/docs/prompting-strategies) use these names. The model looks for the pattern in the examples and uses it on the new input. The [OpenAI docs](https://developers.openai.com/api/docs/guides/prompt-engineering) say the model "picks up" the pattern, with no need to retrain (fine-tune) it.
+
+Our example: examples are like a finished form you give a new colleague. They copy the layout, the wording and the length, sometimes better than they follow a page of rules.
+
+The [Claude docs](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) call examples "one of the most reliable ways" to steer how the output looks, sounds and is organized. They say good examples are:
+
+- **Relevant.** They "mirror your actual use case closely". Use real work, not made-up toy cases.
+- **Diverse.** They "cover edge cases and vary enough" so the model doesn't learn **unintended patterns**: patterns you did not mean to teach. The OpenAI docs also ask for "a diverse range of possible inputs".
+- **Structured.** Each one sits in `example` tags, inside `examples` tags, so the model can tell examples apart from instructions.
+
+**How many?** The Claude docs say: "Include 3–5 examples for best results." The Gemini docs say the model can often learn from a few, but warn that with too many examples it "may start to overfit". **Overfit** means it sticks to the examples too tightly and misses the general pattern. The Gemini docs also say: "We recommend to always include few-shot examples in your prompts."
+
+**One format.** The Gemini docs say all examples should use the same layout, "to avoid responses with undesired formats".
+
+**Hidden patterns.** The model copies everything your examples share. In one Gemini example, two short sample answers made the model choose the shorter answer. That is useful when you want short answers, and a problem when you don't. The same goes for labels and tone: if every example has the same label or the same mood, that is a pattern too.
+
+**Keep examples easy to update.** The [OpenAI prompting page](https://developers.openai.com/api/docs/guides/prompting) suggests a "concise YAML-style or bulleted block" of examples, so your team can scan and update them. The Claude docs add that you can ask the model to check your examples for relevance and diversity, or to draft more from your first set.
+
+Our advice: build examples from real past work your team already approved. Remove names, emails and order numbers first, because a shared prompt sends them with every request.
+
+## Worked example
+
+### Step 1: the zero-shot prompt
+
+```text
+Sort each feedback comment into one topic: Trainer, Content, Venue or
+Booking. Then say if someone must act: yes or no.
+
+Comment: [the live comment]
+```
+
+What goes wrong: nothing shows the exact answer shape, and nothing shows what to do when a comment mentions two topics.
+
+### Step 2: add a rule for mixed comments
+
+```text
+If a comment has praise and a problem, choose the topic of the problem.
+Answer in this form: Topic | Act
+```
+
+Better, but "this form" still leaves room. Does `Venue | Yes` count? What about `Venue | yes, the heating`?
+
+### Step 3: add examples
+
+```text
+Sort each feedback comment into one topic: Trainer, Content, Venue or
+Booking. Then say if someone must act: yes or no.
+If a comment has praise and a problem, choose the topic of the problem.
 
 <examples>
-Ticket: "I was charged twice this month." → Billing
-Ticket: "The box arrived crushed." → Delivery
-Ticket: "The app crashes when I log in." → Product
+<example>
+Comment: The trainer explained contract law in a way I finally understood.
+Answer: Trainer | no
+</example>
+<example>
+Comment: The handouts still show last year's tax rates.
+Answer: Content | yes
+</example>
+<example>
+Comment: My booking confirmation had the wrong date, so I almost missed day one.
+Answer: Booking | yes
+</example>
+<example>
+Comment: Brilliant session and a very patient trainer, but the room was so cold that half of us kept our coats on all afternoon.
+Answer: Venue | yes
+</example>
+<example>
+Comment: Good coffee.
+Answer: Venue | no
+</example>
 </examples>
 
-Now label this ticket: "My parcel is three days late."
+Comment: [the live comment]
+Answer:
 ```
 
-## Watch out for hidden patterns
+**The hard case is the fourth example.** It praises the trainer but reports a problem with the room. It is also the longest comment. It shows the mixed-comment rule in action.
 
-The model looks for patterns in your examples, including ones you did not mean to teach.
+### Step 4: why it is better
 
-- **Length.** Gemini's guide shows a case where two short example answers led the model to prefer the shorter answer. That is useful when you want short replies, and a problem when you don't.
-- **Labels.** Anthropic's guide warns about unintended patterns. If every example is labelled Billing, that is a pattern too. Mix the labels.
-- **Errors.** Check examples as carefully as your final output. They are the pattern the model will follow.
+- **One format.** Every answer is `Topic | yes/no`, in the same case and order. The prompt ends with `Answer:`, so the model knows where to start.
+- **Varied.** All four topics appear. Both `yes` and `no` appear. Comments are short and long, positive and negative.
+- **Relevant.** All five are real (anonymized) comments from past courses.
+- **Five examples.** Inside the 3–5 range, so the prompt stays short.
+- **Tagged.** The model can tell the examples from the rules and from the live comment.
 
-## Where examples come from
+Then test it. Run the old and the new prompt on the same 30 past comments and compare.
 
-Use real past work that your team already approved: the best customer replies, a model report, a correctly labelled ticket. Remove names and private details first. Anthropic's guide also says you can ask the model to check your examples for relevance and variety, or to draft more examples from your first set. Review any example the model writes before you use it.
+## Common mistakes
 
-## Key points
+1. **Mixed formats.** Three examples say `Venue | yes` and one says `Topic: Venue (action needed)`. The model now has two shapes to copy. Fix: give every example exactly the same structure.
+2. **Toy examples.** "Comment: The course was good." teaches little, because real comments are longer and messier. Fix: use real past work, anonymized.
+3. **No line between examples and the task.** The live input looks like one more example, so the model may continue the list. Fix: wrap examples in tags and put the live input after them.
 
-- Examples show the model your format, tone and structure.
-- Start with about 3–5, then test. Too many can make the model copy them too closely.
-- Make them relevant, varied and consistent.
-- Mark where the examples start and end.
-- The model follows patterns in your examples, including ones you did not mean to teach.
+## Try it
+
+Not graded. A recruiter wants short replies to job applicants. Find two problems in these examples before you read the answer.
+
+```text
+<examples>
+<example>
+Applicant: Senior accountant, 12 years of experience.
+Reply: Thanks, Daniel! We'd love to invite you to an interview.
+</example>
+<example>
+Applicant: Finance director, 20 years of experience.
+Reply: Thanks, Aisha! We'd love to invite you to an interview.
+</example>
+<example>
+Applicant: Junior analyst, 2 years of experience.
+Response - Dear applicant, we'd love to invite you to an interview.
+</example>
+</examples>
+```
+
+### Answer
+
+1. **An unintended pattern.** Every example invites the person to an interview. The model may invite everyone, even people the team will reject. Fix: add an example of a polite "no", written in the same style.
+2. **Mixed formats.** Two examples use `Reply:` and a first name. The third uses `Response -` and "Dear applicant". Fix: use one label and one greeting style in every example.
+
+## Recap
+
+- Few-shot means a few input and output examples in the prompt. The model follows their layout, wording and length.
+- Good examples are relevant, varied and in one format. Use about 3–5, in tags, with one hard case.
+- The model copies everything the examples share, including patterns you did not mean. Check what your examples have in common.

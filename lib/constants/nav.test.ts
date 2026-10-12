@@ -8,27 +8,37 @@ import { Glob } from 'bun';
  */
 const ROOT = `${import.meta.dir}/../..`;
 
-/** The only places that render SiteHeader: the two route-group layouts and the site 404. */
-const SHELLS = ['app/(app)/layout.tsx', 'app/(marketing)/layout.tsx', 'app/not-found.tsx'];
+/** The only places that render SiteHeader: the (app) layout and the public-page shell. */
+const SHELLS = ['app/(app)/layout.tsx', 'components/hud/public-shell.tsx'];
+
+/** The pages that take the public-page shell: the (marketing) and (auth) layouts and the site 404. */
+const PUBLIC_SHELLS = ['app/(marketing)/layout.tsx', 'app/(auth)/layout.tsx', 'app/not-found.tsx'];
+
+const GROUPS = ['app/(app)/', 'app/(marketing)/', 'app/(auth)/'];
 
 async function files(pattern: string): Promise<string[]> {
   return Array.fromAsync(new Glob(pattern).scan({ cwd: ROOT }));
 }
 
 describe('the one site header', () => {
-  test('every page is inside the (app) or (marketing) group', async () => {
+  test('every page is inside the (app), (marketing) or (auth) group', async () => {
     const pages = await files('app/**/page.{ts,tsx,mdx}');
     expect(pages.length).toBeGreaterThan(0);
-    const outside = pages.filter(
-      (path) => !path.startsWith('app/(app)/') && !path.startsWith('app/(marketing)/'),
-    );
+    const outside = pages.filter((path) => !GROUPS.some((group) => path.startsWith(group)));
     expect(outside).toEqual([]);
   });
 
-  test('both group layouts and the site 404 render SiteHeader', async () => {
+  test('the (app) layout and the public shell render SiteHeader', async () => {
     for (const path of SHELLS) {
       const source = await Bun.file(`${ROOT}/${path}`).text();
       expect(source).toContain('<SiteHeader');
+    }
+  });
+
+  test('the public group layouts and the site 404 render the public shell', async () => {
+    for (const path of PUBLIC_SHELLS) {
+      const source = await Bun.file(`${ROOT}/${path}`).text();
+      expect(source).toContain('<PublicShell');
     }
   });
 

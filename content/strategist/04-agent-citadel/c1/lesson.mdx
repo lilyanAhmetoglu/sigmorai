@@ -1,7 +1,7 @@
 ---
 id: strategist/r4/c1/lesson
 title: What agents do
-minutes: 7
+minutes: 11
 sources:
   - kind: blog
     title: Anthropic Engineering · Building effective agents
@@ -23,62 +23,157 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/agents
 ---
 
-## Why it matters
+## Goal
 
-"Agent" is on every vendor slide. Some mean a chat assistant with one extra button. Some mean software that works alone for hours. If you can't tell the two apart, you can't judge cost, risk or who must watch it.
+After this lesson you can:
 
-This realm is about agents at work: what they do, how much freedom to give them, where a person must check, and how they fail.
+- Tell a fixed **workflow** from an **agent**, and say when one model call is enough.
+- Check if a task fits an agent: open steps, a clear goal, feedback, and a person who watches.
+- Estimate the token bill for an agent pilot, and set turn and budget limits.
 
-## Workflow or agent
+## The problem
 
-Anthropic's "Building effective agents" post calls all of these **agentic systems**, and splits them into two kinds:
+A travel insurance company gets about 2,000 small claims a month. Each claim has a form, some receipts and sometimes a doctor's note. The head of claims saw a demo and writes to the team: "Let's build an agent for claims. It should handle everything and run until each claim is done."
 
-- **Workflows:** the model and its tools follow a path that someone set in advance.
-- **Agents:** the model directs its own process and tool use. It decides how to do the task.
+The team sees three very different jobs inside "claims":
 
-OpenAI's agents guide describes agents in a similar way: they can plan and complete tasks using tools, work with other agents, and keep context across steps.
+1. Turn each claim form into a short summary for the file. The steps are the same every time.
+2. Run five fixed checks: is the policy active, is the date inside the trip, is the amount under the limit, and so on.
+3. Chase missing proof. Some claims need one email to the customer. Others need a hotel, an airline and a clinic. Nobody knows in advance how many steps a claim will need.
 
-Example: "Every invoice goes through extract, check, then file" is a workflow. The steps never change. "Find out why our March cloud bill went up, and tell me what to cut" is agent work. Nobody knows in advance which reports it must open.
+The head of claims wants one big agent with no limits. This lesson shows how to decide which parts need an agent, which parts don't, and what an agent costs. The guidance below is from each vendor's docs (October 2026).
 
-## The loop at the centre
+## The idea
 
-Under the label, an agent is a loop. Anthropic's Agent SDK docs describe it: the model looks at the prompt, calls tools to take action, gets the results, and repeats until the task is complete. OpenAI's guide to running agents describes the same loop: call the model, run any tool calls, hand off to another agent if asked, and stop when there is a final answer with no more tool work.
+**Two kinds of systems.** The post [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) on Anthropic's engineering blog calls both kinds **agentic systems**, but splits them clearly:
 
-Anthropic's post adds a key point. At each step the agent should get "ground truth" from its environment, such as a tool result, to check its progress. It can pause for human feedback at checkpoints or when it is blocked.
+- A **workflow** follows "predefined code paths". Someone decided the steps in advance.
+- **Agents** are systems where models "dynamically direct their own processes and tool usage". The model decides how to do the task.
 
-Example: OpenAI's cookbook builds a sales agent that runs each day. It checks tomorrow's customer meetings in a calendar, pulls account notes from SharePoint, searches the web for company news, writes a meeting brief, saves it and sends a summary. Nobody tells it how many searches to run. It decides as it goes.
+So the question is not "does it use AI?" The question is "who chooses the next step: the plan or the model?" A job that runs on a timer is still a workflow if the steps never change. A job that talks to customers is still a workflow if the path is fixed.
 
-## When an agent fits
+The [OpenAI agents guide](https://developers.openai.com/api/docs/guides/agents) describes agents in a similar way: they "can plan and complete tasks using tools, work with other agents, and maintain context across steps".
 
-Anthropic's post says agents suit open-ended problems where you can't predict the number of steps and can't hard-code a fixed path. It also says you must have some level of trust in the agent's decisions.
+**Under the label, an agent is a loop.** The [Claude Agent SDK docs](https://code.claude.com/docs/en/agent-sdk/agent-loop) (a toolkit for building agents) describe it: the model "evaluates your prompt, calls tools to take action, receives the results, and repeats until the task is complete". The [OpenAI guide to running agents](https://developers.openai.com/api/docs/guides/agents/running-agents) lists the same loop:
 
-In its appendix, the post says agents add the most value for tasks that:
+```text
+call the model
+  -> tool calls?   run them, go back to the model
+  -> hand-off?     switch to another agent, continue
+  -> final answer with no more tool work?  stop
+```
 
-- need both conversation and action,
-- have clear success criteria,
-- allow feedback loops, and
-- include meaningful human oversight.
+The Anthropic post adds a key point. At each step the agent should get **"ground truth"** from its environment, such as a tool result, to check its progress. Agents "can then pause for human feedback at checkpoints or when encountering blockers."
 
-Customer support is its main business example. A support agent can pull customer data and order history, and take actions such as issuing refunds or updating tickets.
+A real example: the [OpenAI cookbook](https://developers.openai.com/cookbook/articles/chatgpt-agents-sales-meeting-prep) builds an agent that runs each day. It checks tomorrow's customer meetings, pulls notes from SharePoint, searches the web for company news, writes a brief, saves it and sends a summary. Nobody tells it how many searches to run.
 
-## When not to use one
+**Start simple.** The Anthropic post says: "we recommend finding the simplest solution possible, and only increasing complexity when needed." It adds that this "might mean not building agentic systems at all". For many applications, the post says, one good model call is "usually enough". You improve it with **retrieval** (the app looks up the right documents and adds them to the prompt) and **in-context examples** (sample answers inside the prompt). When a task is well defined, workflows give "predictability and consistency".
 
-The same post recommends the simplest solution possible. That might mean no agentic system at all. For many applications, it says, one well-built model call with retrieval and examples is usually enough. When a task is well defined, workflows give predictability and consistency.
+**When an agent fits.** The post says agents suit "open-ended problems where it's difficult or impossible to predict the required number of steps, and where you can't hardcode a fixed path". You "must have some level of trust" in the model's decisions. In its appendix, the post says agents add the most value for tasks that:
 
-Example: a team wants an "agent" to translate each product description into French. The task is the same every time. A single prompt, or a short fixed workflow, is cheaper and easier to check.
+- need both **conversation and action**,
+- have **clear success criteria** (you can tell when the job is done well),
+- allow **feedback loops** (the agent can see if a step worked), and
+- include **meaningful human oversight** (a person watches the important parts).
 
-## Autonomy has a price
+Customer support is the post's main business example. Tools can pull "customer data, order history, and knowledge base articles", and actions "such as issuing refunds or updating tickets" can run through code.
 
-Anthropic's post is direct: the autonomous nature of agents means higher costs and the potential for compounding errors. One wrong step early can steer every later step. The post recommends extensive testing in sandboxed (safe, separated) environments, with guardrails.
+**Autonomy has a price.** The post is direct: "The autonomous nature of agents means higher costs, and the potential for compounding errors." **Compounding** means one wrong step early makes every later step wrong too. The post recommends "extensive testing in sandboxed environments" (safe, separated test spaces) with guardrails.
 
-The cost can be large. Google's Gemini agents overview says a single interaction with its managed agents can trigger multiple reasoning loops, typically using 100k to 3M tokens. Compare that with a chat answer of a few hundred tokens.
+The cost can be large. For its managed agents, the [Gemini agents overview](https://ai.google.dev/gemini-api/docs/agents) says: "A single interaction can trigger multiple reasoning loops, typically consuming 100k to 3M tokens." (A **token** is a small piece of text, about part of a word. The Gemini page says managed agents are billed on "Gemini model tokens and tool usage".) A normal chat answer uses far fewer.
 
-Limits help. Anthropic's Agent SDK lets you cap the loop with a maximum number of turns and a maximum budget in US dollars. Without limits, the docs say, the loop runs until the model finishes, which can run long on open-ended prompts. They call a budget a good default for production agents.
+**Set limits.** The Claude Agent SDK lets you cap the loop with a **maximum number of turns** and a **maximum budget** in US dollars. Its docs warn: "Without limits, the loop runs until Claude finishes on its own", which "can run long on open-ended prompts". They add: "Setting a budget is a good default for production agents."
 
-## Key points
+Our example: a workflow is a train on fixed rails. An agent is a taxi driver who picks the route. You pay the taxi by the minute, so you agree on a top price before the ride.
 
-- A workflow follows a fixed path; an agent chooses its own steps and tools.
-- Every agent is a loop: think, use a tool, read the result, repeat until done.
-- Agents fit open-ended tasks with clear success criteria and human oversight.
-- If one call or a fixed workflow does the job, don't build an agent.
-- Agents cost more and errors can compound; set turn and budget limits.
+## Worked example
+
+### Step 1: the weak plan
+
+```text
+Claims agent, plan v1
+- One agent does all claims work: summaries, checks and chasing proof.
+- It decides its own steps for every claim.
+- Success: "claims get handled".
+- Limits: none. It runs until each claim is done.
+- Review: none planned.
+```
+
+What goes wrong:
+
+- Summaries and the five checks have fixed steps. An agent there adds cost and makes results less predictable, with no gain.
+- "Claims get handled" is not a clear success measure. Nobody can tell a good run from a bad one.
+- With no limits, one confusing claim can loop for a long time and cost a lot.
+- One wrong lookup early (the wrong hotel booking) can lead to a wrong decision at the end, and nobody checks.
+
+### Step 2: the good plan
+
+```text
+Claims system, plan v2
+1. Summary: one model call per claim, with two sample summaries
+   in the prompt. No agent.
+2. Five checks: a fixed workflow. The same steps every time.
+3. Missing proof: an agent.
+   - Tools: read the claim, search policy records, draft emails
+     to the customer or a provider.
+   - Success: proof complete, or a clear "cannot get proof" note.
+   - Limits: max 15 turns and a 2 USD budget per claim.
+   - Oversight: a claims handler reads every decision before it
+     goes to the customer.
+```
+
+### Step 3: estimate the cost
+
+The team plans a pilot of 500 agent runs. The Gemini range is 100k to 3M tokens per interaction. Say one run is one interaction. We use a made-up price of 2 USD per million tokens.
+
+```text
+low:   500 runs x 100k tokens =    50M tokens x 2 USD/M =   100 USD
+high:  500 runs x 3M tokens   = 1,500M tokens x 2 USD/M = 3,000 USD
+```
+
+The high number is 30 times the low one. That wide range is the reason for the turn and budget limits in step 2.
+
+### Step 4: the hard case
+
+**This is the hard case.** A claim has a doctor's note in another language, and the clinic does not reply. The agent could keep trying other contacts for hours. In plan v2 the limits stop it after 15 turns or 2 USD. It then writes what it tried and hands the claim to a person. That pause is planned, not a failure.
+
+### Step 5: why it is better
+
+- **Each job gets the simplest tool that works.** One call for summaries, a workflow for fixed checks, an agent only where the steps are open.
+- **The agent part meets all four signs:** it mixes talking and acting, success is clear, each lookup shows if it worked, and a person checks decisions.
+- **Cost has a ceiling, and errors are caught early.** Limits cap the bill. Human review stops one bad lookup from reaching a customer.
+
+## Common mistakes
+
+1. **Calling any AI feature an agent.** A model that translates or summarises on a fixed path is a single call or a workflow. Fix: ask who chooses the next step.
+2. **Picking the most open task because it sounds the most "agentic".** Open steps alone are not enough. Fix: also check for a clear success measure and human oversight.
+3. **No limits "so it can finish".** An open loop can run long and the bill can grow fast. Fix: set a maximum number of turns and a budget for every run.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A recruitment firm lists two jobs. Decide for each one: single call, workflow, or agent. Then do the cost sum.
+
+```text
+Job 1: Each morning, copy new CVs from the inbox to the
+       hiring system, add the job code, and send a "received"
+       email. Always the same three steps.
+Job 2: For each senior role, find out why the last three
+       candidates turned down the offer. This means reading
+       notes, checking pay data and asking hiring managers.
+Pilot for job 2: 200 runs. Use the 100k to 3M token range.
+Made-up price: 5 USD per million tokens.
+```
+
+### Answer
+
+1. **Job 1 is a workflow.** The steps never change. A timer does not make it an agent.
+2. **Job 2 can be an agent.** Nobody knows the steps in advance, and it mixes reading and asking. Before you start, add a clear success measure ("a short list of reasons, with sources"), a person who reviews the result, and limits.
+3. **Cost:** 200 x 100k = 20M tokens = 100 USD. 200 x 3M = 600M tokens = 3,000 USD. So the pilot could cost 100 to 3,000 USD in model tokens. Set a budget per run.
+
+## Recap
+
+- A workflow follows steps set in advance. An agent is a loop where the model chooses its own steps and tools.
+- Use the simplest thing that works. Agents fit open tasks with clear success, feedback and a person watching.
+- Agents cost more and errors can compound. Estimate tokens x runs x price, and set turn and budget limits.

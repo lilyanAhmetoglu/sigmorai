@@ -28,10 +28,23 @@ describe('curriculum constants', () => {
     expect(REALMS.filter((r) => r.track !== null).every((r) => r.id >= 9)).toBe(true);
   });
 
-  test('r9 Canvas Workshop: creator only, no art yet (flat surface-3 scene)', () => {
-    expect(REALMS[9]).toMatchObject({ slug: 'canvas-workshop', track: 'creator', scene: false });
+  test('r9 Canvas Workshop: creator only, with its own level art (realm-09)', () => {
+    expect(REALMS[9]).toMatchObject({ slug: 'canvas-workshop', track: 'creator', scene: true });
+    expect(realmArt(9)).toBe('/levels/realm-09');
   });
 
+  test('r12–r15 have their own level art (realm-12 … realm-15)', () => {
+    expect(REALMS[12]).toMatchObject({ slug: 'echo-caverns', track: 'creator', scene: true });
+    expect(REALMS[13]).toMatchObject({ slug: 'pattern-atelier', track: 'creator', scene: true });
+    expect(REALMS[14]).toMatchObject({ slug: 'agent-workshop', track: 'builder', scene: true });
+    expect(REALMS[15]).toMatchObject({ slug: 'guild-hall', track: 'strategist', scene: true });
+    for (const id of [12, 13, 14, 15]) expect(realmArt(id)).toBe(`/levels/realm-${id}`);
+  });
+
+  test('r16 Trade Quarter: strategist only, no level art yet (flat neutral scene)', () => {
+    expect(REALMS[16]).toMatchObject({ slug: 'trade-quarter', track: 'strategist', scene: false });
+    expect(realmArt(16)).toBeNull();
+  });
   test('one floor row per floor, n = position + 1', () => {
     expect(MATH_FLOORS.map((f): number => f.n)).toEqual(
       [...Array(MATH_FLOOR_COUNT).keys()].map((i) => i + 1),
@@ -76,6 +89,10 @@ describe('realm lists per track (fixture table: r9 creator, r10 builder)', () =>
     expect(trackRealms('strategist')).toContain(REALMS[15]);
     expect(trackRealms('builder')).not.toContain(REALMS[15]);
     expect(trackRealms('creator')).not.toContain(REALMS[15]);
+    // r16 Trade Quarter is strategist only too.
+    expect(trackRealms('strategist')).toContain(REALMS[16]);
+    expect(trackRealms('builder')).not.toContain(REALMS[16]);
+    expect(trackRealms('creator')).not.toContain(REALMS[16]);
   });
 
   test('a track gets the core realms plus only the specialist realms it owns', () => {
@@ -143,7 +160,7 @@ describe('realm paths', () => {
     },
   );
 
-  test('folders of the real realms with no art yet (r9, r10, r11, r12, r13, r14, r15)', () => {
+  test('folders of the specialist realms (r9 to r16)', () => {
     expect(realmFolder(9)).toBe('09-canvas-workshop');
     expect(realmFolder(10)).toBe('10-reel-hollow');
     expect(realmFolder(11)).toBe('11-pigment-bazaar');
@@ -151,5 +168,6 @@ describe('realm paths', () => {
     expect(realmFolder(13)).toBe('13-pattern-atelier');
     expect(realmFolder(14)).toBe('14-agent-workshop');
     expect(realmFolder(15)).toBe('15-guild-hall');
+    expect(realmFolder(16)).toBe('16-trade-quarter');
   });
 });

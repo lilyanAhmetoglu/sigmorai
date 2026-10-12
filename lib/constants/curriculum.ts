@@ -133,7 +133,7 @@ export const REALMS = [
     npc: 'Guildmaster Ines',
     tier: 'intermediate',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 10,
@@ -142,7 +142,7 @@ export const REALMS = [
     npc: 'Lanternist Oto',
     tier: 'intermediate',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 11,
@@ -151,7 +151,7 @@ export const REALMS = [
     npc: 'Dyer Sabe',
     tier: 'beginner',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 12,
@@ -160,7 +160,7 @@ export const REALMS = [
     npc: 'Bard Lio',
     tier: 'beginner',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 13,
@@ -169,7 +169,7 @@ export const REALMS = [
     npc: 'Weaver Hale',
     tier: 'intermediate',
     track: 'creator',
-    scene: false,
+    scene: true,
   },
   {
     id: 14,
@@ -178,13 +178,22 @@ export const REALMS = [
     npc: 'Foreman Ryn',
     tier: 'intermediate',
     track: 'builder',
-    scene: false,
+    scene: true,
   },
   {
     id: 15,
     slug: 'guild-hall',
     name: 'Guild Hall',
     npc: 'Steward Oda',
+    tier: 'beginner',
+    track: 'strategist',
+    scene: true,
+  },
+  {
+    id: 16,
+    slug: 'trade-quarter',
+    name: 'Trade Quarter',
+    npc: 'Envoy Rasa',
     tier: 'beginner',
     track: 'strategist',
     scene: false,

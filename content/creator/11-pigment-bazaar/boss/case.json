@@ -2,18 +2,18 @@
   "id": "creator/r11/boss/challenge",
   "title": "Write one launch brief as prompts and settings for four different image models, and mark which outputs need a human check",
   "scenario": "A lighting brand launches a desk lamp called Lumen. Your teammate turned one brief into prompts and settings for four image models, and marked which outputs need a human check. You review the plan before the first request.\n\nUse the exhibit. The brand, the files and the plan are made up for this case. The model names, fields and licences are from the vendors' docs in October 2026.",
-  "exhibit": "BRIEF (made up):\n  Lumen desk lamp launch. One hero poster, a set of web\n  images in one look, and a desk scene without people or clutter.\n  Headline on the poster: LUMEN\n  Brand yellow: #F2B705\n  Two approved product photos: lamp-a.png, lamp-b.png\n  The brand owns both photos.\n\nPLAN (draft, made up):\n  Model 1  Ideogram 4.5 (Image app)\n           Prompt:   \"A brass desk lamp on an oak desk, warm evening light\"\n           Negative prompt field: \"people, clutter\"\n           Human check: no\n\n  Model 2  FLUX 3 Image (BFL API)\n           Layout element: { \"id\": \"title\", \"bbox\": [60, 100, 220, 900],\n             \"desc\": \"the word \\\"LUMEN\\\" in bold yellow capitals\" }\n           \"seed\": 777   (so we can make the poster again later)\n           Human check: no, the box fixes the headline\n\n  Model 3  Recraft V4.1 (API)\n           Step 1: train a custom model on lamp-a.png and lamp-b.png\n           Step 2: wait for training, then send its style_id with\n                   each web image request\n           Human check: colour only\n\n  Model 4  FLUX.2 [klein] 4B Base\n           Train a small LoRA on the two photos, then call the\n           Base model through BFL's public API with the LoRA\n           Human check: yes",
+  "exhibit": "BRIEF (made up):\n  Lumen desk lamp launch. One hero poster, a set of web\n  images in one look, and a desk scene without people or clutter.\n  Headline on the poster: LUMEN\n  Brand yellow: #F2B705\n  Two approved product photos: lamp-a.png, lamp-b.png\n  The brand owns both photos.\n\nPLAN (draft, made up):\n  Model 1  Ideogram 4.5 (Image app)\n           Prompt:   \"A brass desk lamp on an oak desk, warm evening light\"\n           Negative prompt field: \"people, clutter\"\n           Human check: no\n\n  Model 2  FLUX 3 Image (BFL API)\n           Layout element: { \"id\": \"title\", \"bbox\": [60, 100, 220, 900],\n             \"desc\": \"the word \\\"LUMEN\\\" in bold yellow capitals\" }\n           \"seed\": 777   (so we can make the poster again later)\n           Human check: no, the box fixes the headline\n\n  Model 3  Recraft V4.1 (API)\n           Step 1: train a custom model on lamp-a.png and lamp-b.png\n           Step 2: wait for training, then send its style_id with\n                   each web image request\n           Human check: colour only\n\n  Model 4  FLUX.2 [klein] 4B Base\n           Train a small LoRA on the two photos\n           Human check: yes",
   "questions": [
     {
       "prompt": "Model 1 uses a negative prompt field on Ideogram 4.5. What should change?",
       "options": [
         {
           "text": "Keep the field; on Ideogram 4.5 it always wins over the main prompt",
-          "explanation": "Only Ideogram 3.0 has a separate Negative prompt field, and there Ideogram says the main prompt always wins."
+          "explanation": "Only Ideogram 3.0 has a separate Negative prompt field, and there the Ideogram docs say the main prompt always wins."
         },
         {
           "text": "Drop the field and describe what you want, such as an empty, clear desk",
-          "explanation": "Right. Only Ideogram 3.0 has a separate Negative prompt field. Ideogram says \"An empty street\" works better than \"a street with no people\".",
+          "explanation": "Right. Only Ideogram 3.0 has a separate Negative prompt field. The Ideogram docs say \"An empty street\" works better than \"a street with no people\".",
           "correct": true
         },
         {
@@ -53,7 +53,7 @@
       "options": [
         {
           "text": "FLUX 3 Image rejects unknown fields like seed with an HTTP 422 error",
-          "explanation": "Right. BFL says the FLUX 3 Image endpoint rejects unknown fields with HTTP 422, so fields such as seed don't work there.",
+          "explanation": "Right. The BFL docs say the FLUX 3 Image endpoint rejects unknown fields with HTTP 422, so fields such as seed don't work there.",
           "correct": true
         },
         {
@@ -62,7 +62,7 @@
         },
         {
           "text": "FLUX 3 Image ignores the seed quietly and makes a random poster",
-          "explanation": "BFL says the endpoint rejects unknown fields with HTTP 422. It does not ignore them."
+          "explanation": "The BFL docs say the endpoint rejects unknown fields with HTTP 422. It does not ignore them."
         },
         {
           "text": "The seed works only if the prompt is also set to the same 777 words",
@@ -97,16 +97,16 @@
       "options": [
         {
           "text": "Download [klein] 4B Base (Apache 2.0); train and run the LoRA on our own GPU",
-          "explanation": "Right. BFL lists 4B Base under Apache 2.0 and calls the Base models ideal for fine-tuning. They are open weights, not on the public API, so this runs on your own machine.",
+          "explanation": "Right. The BFL docs list 4B Base under Apache 2.0 and call the Base models ideal for fine-tuning and LoRA training. Training and running it on your own GPU keeps the plan on those Apache 2.0 weights.",
           "correct": true
         },
         {
-          "text": "Keep [klein] 4B Base, but send the LoRA requests to BFL's public API endpoint",
-          "explanation": "BFL says the Base models are not offered on the public API. The plan must run them locally."
+          "text": "Train an Ideogram custom model on the two photos instead of the LoRA",
+          "explanation": "The Ideogram docs list 15 to 100 images of the style or subject you want. Two photos are far too few."
         },
         {
           "text": "Download [klein] 9B Base instead, since open weights are free for any paid work",
-          "explanation": "BFL lists 9B Base under the FLUX Non-Commercial License. Free to download is not free to use for paid work."
+          "explanation": "The BFL docs list 9B Base under the FLUX Non-Commercial License. Free to download is not free to use for paid work."
         },
         {
           "text": "Run FLUX.2 [dev] locally instead, since BFL's pricing row lists it as free",

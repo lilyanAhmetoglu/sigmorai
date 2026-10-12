@@ -1,7 +1,7 @@
 ---
 id: creator/r9/c6/lesson
 title: Export & handoff
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Figma developer docs · What the MCP sends vs. what the agent does
@@ -44,79 +44,175 @@ sources:
     url: https://developers.figma.com/docs/rest-api/variables-endpoints/
 ---
 
-## Why it matters
+## Goal
 
-The design is approved. Now two groups need it. The social team needs files. The developers need code that uses your real components.
+After this lesson you can:
 
-Export gives files. A handoff gives meaning: which component, which token, which link to open. Chapter 1 quoted Figma: its server won't know your conventions "unless you provide that information through Code Connect, variables or prompts". This chapter sets those up.
+- Export files from Figma and Canva with the right settings, and read what comes back.
+- Say what links design components and tokens to code, and who may use it.
+- Check plans, seats and expiry rules before you promise a handoff.
 
-## Export: files out
+## The problem
 
-**Figma REST API.** The GET image endpoint "Renders images from a file". You pass node IDs (the IDs of layers), a `format` (`jpg`, `png`, `svg` or `pdf`) and a `scale` "between 0.01 and 4". Three facts to plan around:
+You design an app for a city's bike-share service. The screens are done. A web developer needs two things from you:
+
+- the map icons as SVG files (a vector format that stays sharp at any size)
+- a small chart graphic whose labels must be real, selectable text, so they can be translated later
+
+Last time, the SVG labels came out as shapes, and the translator could not select them. The icons had no layer names inside, so the developer could not find the parts.
+
+This lesson covers what a good handoff needs: export settings, link rules and the link from design to code.
+
+## The idea
+
+### Figma: export images with the REST API
+
+The **REST API** is the web API a script calls from outside Figma. The [Figma docs on file endpoints](https://developers.figma.com/docs/rest-api/file-endpoints/) describe GET image. It returns a map "from node IDs to URLs of the rendered images" (a **node** is one item in the file, like a frame or an icon).
+
+Rules from that page:
 
 - "The image assets will expire after 30 days."
 - "Images up to 32 megapixels can be exported. Any images that are larger will be scaled down."
-- The answer "may contain values that are null". A null means "rendering of that specific node has failed", for example "a node that is invisible or has 0% opacity".
+- `scale` is "A number between 0.01 and 4". `format` is `jpg`, `png`, `svg` or `pdf`.
+- "the image map may contain values that are null. This indicates that rendering of that specific node has failed." For example, "a node that is invisible or has 0% opacity cannot be rendered."
 
-For SVG, `svg_outline_text` is on by default. Outlined text "looks exactly the same" as in Figma. Real `<text>` stays selectable, but "visual accuracy is not guaranteed".
+Three SVG settings matter for a handoff:
 
-**Figma MCP server.** The `download_assets` tool gives two things for each layer: an "Export render" and the "Raw source images", the original photos placed in it. "Up to 20 nodes can be passed per call." Figma's rule: use `get_screenshot` to see a design, and `download_assets` to "save, deliver, or transfer an asset".
+| Setting               | Default | What it does                                                                                                      |
+| --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `svg_outline_text`    | true    | text as outlines (shapes), or as `<text>` elements                                                                |
+| `svg_include_id`      | false   | "Adds the layer name to the id attribute of an svg element."                                                      |
+| `use_absolute_bounds` | false   | "Use the full dimensions of the node regardless of whether or not it is cropped or the space around it is empty." |
 
-**Canva MCP server.** First, `get-export-formats` tells you "which export file types an existing design supports, and which of its pages are available in each type". Then `export-design` returns download links. These are signed URLs (links with a built-in key that stop working later). Canva warns: "Signed export URLs expire. Use them immediately, and don't store or share them." The plan matters too. On Free plans, export is "Standard quality". "Canva Pro and above" adds "lossless PNG, transparent backgrounds, and premium element export". A design with premium elements "may fail with license_required".
+The page weighs the two:
 
-Example (ours). You export 12 social cards from Figma. The answer holds 11 links and one null. That card was hidden. Count the files before you send anything.
+- Outlines: "Rendering text elements as outlines guarantees that the text looks exactly the same in the SVG as it does in the browser/inside Figma."
+- `<text>`: it "allows text to be selectable inside SVGs", but "visual accuracy is not guaranteed".
 
-Chapter 2 gave Canva's rule: "Don't end the workflow at export." Canva calls an export "a delivery mechanism, not a handoff". It says to "Always offer the edit URL alongside or before an export".
+The Figma MCP server has its own export tool. The [Figma tools page](https://developers.figma.com/docs/figma-mcp-server/tools-and-prompts/) says `download_assets` returns "temporary URLs that must be fetched to retrieve file contents".
 
-## Code Connect: components to code
+### Canva: exports and their links
 
-Figma calls Code Connect "a bridge between your codebase and Figma's Dev Mode". It connects "components in your repositories directly to components in your design files". It is "Available on a Dev or Full seat on the Organization, and Enterprise plans".
+The [Canva docs on get-export-formats](https://www.canva.dev/docs/apps/mcp/tools/get-export-formats/) say to call it before an export. It returns only "the formats this design supports". Each format can list `page_numbers`; "when `page_numbers` is omitted, every page supports the format."
 
-There are two ways to set it up.
+The [Canva docs on export-design](https://www.canva.dev/docs/apps/mcp/tools/export-design/) say: "Signed export URLs expire. Use them immediately, and don't store or share them." (A **signed URL** is a download link with a built-in key.)
 
-|              | Code Connect CLI                             | Code Connect UI                                     |
-| ------------ | -------------------------------------------- | --------------------------------------------------- |
-| Who          | "developer-focused"                          | for "accessibility and collaboration"               |
-| Where        | "runs locally in your repository"            | "runs entirely within Figma", in files or libraries |
-| Gives the AI | "property mapping and dynamic code examples" | component path and name, plus your instructions     |
+The [Canva tools page](https://www.canva.dev/docs/apps/mcp/tools/) adds plan rules. Export works on all plans, but:
 
-"Property mapping" links a Figma property to a code prop. In Figma's template example, the `Size` value `Large` becomes `large` in code. The UI "doesn't yet support property mapping or dynamic examples". It can connect to your GitHub repository to find component paths and names.
+- "**Free plans:** Standard quality export"
+- "**Canva Pro and above:** Pro quality with lossless PNG, transparent backgrounds, and premium element export"
+- "If a design contains premium elements, export may fail with `license_required`"
 
-**What the AI agent gets.** When a frame uses connected components, the MCP server adds `<CodeConnectSnippet>` wrappers. Each holds the design properties, "Import statements", the "Component snippet" and any "Instructions" you added. With the UI, you write those with "Add instructions for MCP", for example accessibility rules.
+The [Canva handoff page](https://www.canva.dev/docs/apps/mcp/workflows/design-edit/) warns: "Don't end the workflow at export." About an export it says: "It's a delivery mechanism, not a handoff." Offer the edit link too.
 
-Example. Chapter 1's price card came back with a new `green-btn` button. Figma's own template example imports `import { Button } from "components/Button"`. With your Button connected, the `<CodeConnectSnippet>` for it carries the "Import statements" for your real Button.
+### From design to code: Code Connect
 
-Two rules from Figma's pages:
+The [Figma page on what the server does](https://developers.figma.com/docs/figma-mcp-server/mcp-vs-agent/) says the server "won't know your conventions or strategies unless you provide that information through Code Connect, variables or prompts."
 
-- **Connect the core first.** "Start by connecting the most frequently used components in your design system."
-- **Keep it current.** "When component APIs change in your codebase, update the corresponding Code Connect mappings."
+The [Code Connect introduction](https://developers.figma.com/docs/code-connect/) says it connects "components in your repositories directly to components in your design files". It is "Available on a Dev or Full seat on the Organization, and Enterprise plans".
 
-Chapter 2 named one write limit here: "Components must be manually published before Code Connect completes".
+When a frame has connected components, the [Figma docs on Code Connect and the MCP server](https://developers.figma.com/docs/figma-mcp-server/code-connect-integration/) say the server adds `<CodeConnectSnippet>` wrappers. They hold design properties, "Import statements", the "Component snippet" and any custom instructions.
 
-## Variables: tokens in sync
+There are two ways to set it up. The [Figma comparison page](https://developers.figma.com/docs/code-connect/comparing-cc/) says:
 
-Your colour and spacing tokens live as Figma variables. The Variables REST API can query, create, update and delete them. Figma says you can use it to "Sync design system source of truth to and from Figma".
+| What the MCP server gets | Code Connect CLI                                    | Code Connect UI                           |
+| ------------------------ | --------------------------------------------------- | ----------------------------------------- |
+| Context                  | path, name, property mapping, dynamic code examples | path, name, user prompt, codebase context |
+| Where you set it up      | locally in the repository, from the terminal        | inside Figma                              |
 
-This one is **Enterprise-only**. Figma's intro says: "To use this API, you must have a Full seat in an Enterprise org; guests cannot use the API." Its own table is more exact. Reading (GET) is open to "Any organization member" of an Enterprise org, with "View access" to the file. Writing (POST) needs "Full seats, admins" and "Edit access". One more rule: after an update through the API, "you will need to publish the variables before they can be used in other files".
+The same page says the UI "doesn't yet support property mapping or dynamic examples". The [Figma write-to-canvas page](https://developers.figma.com/docs/figma-mcp-server/write-to-canvas/) also lists: "Components must be manually published before Code Connect completes".
 
-Chapter 1's `get_variable_defs` is a different, read-only way in. Through the MCP server, it returns "the variables and styles used in your Figma selection".
+### Tokens: the Variables REST API
 
-## A handoff pack
+**Variables** are named values in Figma, like colours and spacing (often called design tokens). The [Figma Variables REST API page](https://developers.figma.com/docs/rest-api/variables/) sets the rules:
 
-This checklist is ours.
+- "To use this API, you must have a Full seat in an Enterprise org; guests cannot use the API."
+- Reading needs view access to the file. Writing needs a Full seat or admin role, plus edit access.
+- The [Figma variables endpoints page](https://developers.figma.com/docs/rest-api/variables-endpoints/) lists "Limited by Figma plan" as one possible 403 error (403: the server refused you).
 
-1. **Edit links.** One per design, so people can open the source.
-2. **Files.** Downloaded at once and stored by you, because links expire.
-3. **A file count.** Exports match the list, with no nulls.
-4. **Code Connect** for the core components, with instructions.
-5. **Tokens.** Synced through the API, or listed with `get_variable_defs`.
-6. **Notes.** What was generated (chapter 4), and who approved it.
+A comparison: an export is a photo of a dish. Code Connect and variables are the recipe card.
 
-## What this means for your work
+## Worked example
 
-- **Export is delivery, not handoff.** Send the edit link too.
-- **Download right away.** Figma image links last 30 days; Canva says to use its links immediately.
-- **Check for nulls and missing pages** before you send.
-- **Connect your core components** so the AI uses your real code.
-- **Name the plan.** The Variables REST API is Enterprise-only.
-- **Keep mappings current** when the code changes.
+The bike-share handoff from the problem. The node names are our example.
+
+### Step 1: the weak export
+
+```text
+GET /v1/images/:key?ids=icon_dock,icon_bike,icon_pin,chart_trips&format=svg
+```
+
+All settings stay at their defaults. What comes back:
+
+- The chart labels are outlines (the default), so nobody can select or translate them.
+- The SVG elements have no layer names, so the developer cannot find the parts.
+- `use_absolute_bounds` is off. Our reading: the empty space around an icon may not be kept.
+
+### Step 2: split the request by job
+
+```text
+Icons:
+GET /v1/images/:key?ids=icon_dock,icon_bike,icon_pin
+    &format=svg&svg_include_id=true&use_absolute_bounds=true
+
+Chart:
+GET /v1/images/:key?ids=chart_trips
+    &format=svg&svg_outline_text=false&svg_include_id=true
+```
+
+Simplified. See the docs for the exact request shape.
+
+`use_absolute_bounds` keeps the full frame of each icon, empty space included. `svg_include_id` puts the layer names into the SVG, so the developer can find `wheel` or `label`.
+
+### Step 3: the hard case, look or selectable text
+
+**This is the hard part.** The chart needs real text for translation. But the page warns that `<text>` "relies on the browser's rendering engine", so the look may change between browsers.
+
+So you choose per asset. Our advice:
+
+- **Chart labels:** `<text>`. Translation needs real text. Check the chart in two browsers before you sign it off.
+- **The service's logo wordmark** (the name drawn as a logo): keep outlines. Its shape must never change, and nobody translates a logo.
+
+### Step 4: why it is better
+
+```text
+Weak                           Better
+one request, all defaults ->   icons and chart exported with their own settings
+labels as outlines        ->   labels as text, checked in two browsers
+no layer names            ->   layer names as SVG ids
+icon edges may be trimmed ->   full frame of each icon
+```
+
+## Common mistakes
+
+1. **Exporting before you check the formats.** Some pages may not support a format. Fix: call `get-export-formats` first, and use a listed key.
+2. **Promising a transparent PNG on a Free plan.** The Canva docs list transparent backgrounds for Pro and above. Fix: check the plan before you promise.
+3. **Turning every SVG text into `<text>`.** The look is not guaranteed. Fix: keep outlines when the exact shape matters more than editing.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A teammate wants the three pages of a Canva promo design as MP4 videos. `get-export-formats` returns:
+
+```text
+pdf  pages 1, 2, 3
+png  pages 1, 2, 3
+mp4  pages 3
+```
+
+1. Which pages can be exported as MP4?
+2. What `format` value goes into `export-design`?
+3. The export returns `license_required`. What is the likely cause?
+
+### Answer
+
+1. **Only page 3.** It is the only page listed under `mp4`.
+2. **`mp4`.** The docs say to use a listed key as the `format` value.
+3. **A premium element in the design.** The tools page says export may fail with `license_required` when a design contains premium elements.
+
+## Recap
+
+- Figma GET image: links expire after 30 days, images over 32 megapixels are scaled down, and null means that node did not render. Pick SVG settings per asset.
+- Canva: check formats first, use signed export URLs at once, and hand over the edit link too, not only the export.
+- Code Connect (Dev or Full seat, Organization or Enterprise) sends real components to the agent; only the CLI adds property mapping. Variables through the REST API are for Enterprise orgs only, and guests are left out.

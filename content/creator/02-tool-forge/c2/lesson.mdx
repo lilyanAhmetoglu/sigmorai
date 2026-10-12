@@ -1,11 +1,14 @@
 ---
 id: creator/r2/c2/lesson
 title: Tools in chat
-minutes: 6
+minutes: 11
 sources:
   - kind: docs
     title: Claude docs · Tool use overview
     url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview
+  - kind: docs
+    title: Claude docs · Define tools
+    url: https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools
   - kind: docs
     title: OpenAI docs · Function calling
     url: https://developers.openai.com/api/docs/guides/function-calling
@@ -23,69 +26,170 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/image-generation
 ---
 
-## Why it matters
+## Goal
 
-Many studios now work in a chat window: "make me a banner", "now try it in blue", "post it". Behind that chat, the assistant is not making the picture itself. It is **calling tools**. A tool is a small service the assistant can ask for help: an image maker, a file saver, a posting button.
+After this lesson you can:
 
-If you design or approve such a chat, you decide which tools exist, what they are called, and which ones need a human check. This lesson shows how tools work, so you can make those calls.
+- Explain who runs a tool: the model only asks, and your app or the vendor does the work.
+- Write tool names and descriptions that lead the model to the right tool with the right values.
+- Decide which tools need a person to approve each call, and which can run freely.
 
-## The model asks, the app does
+## The problem
 
-All three vendors describe the same loop.
+A stationery shop adds a chat assistant to its website. Couples use it to design wedding invitations. The assistant has three tools: one makes a card design, one changes it, and one orders the printed cards.
 
-- Anthropic: Claude "determines when to call a tool based on the user's request and the tool's description". It "returns a structured call that your application executes".
-- OpenAI: the model may decide it needs a tool. It returns a tool call. Your application runs it and sends back the output.
-- Google: "The model _doesn't_ execute the function itself." You extract the name and arguments and run it in your application.
+In the first week:
 
-So the model only writes a request, such as "call `make_image` with these settings". Something else runs it.
+- A couple asked for "a card with our names". The card came back in landscape. They wanted portrait. Nobody asked them.
+- A couple loved a design and said "make the gold a bit softer". The assistant made a brand new card. The approved design was gone from the screen.
+- One couple typed "looks great!" and the assistant placed a print order for 150 cards.
 
-There is one more kind. Anthropic calls tools that Anthropic runs for you **server tools** (web search is one). OpenAI has **built-in tools**, and image generation is one of them. For those, the vendor runs the tool and you do not write the running code.
+The model is not broken. The tools were designed badly. This lesson shows how tools work in a chat, so you can design them well.
 
-Example: you ask a chat assistant for a banner. The assistant calls an image tool. The tool makes the image. The assistant shows it to you and says what it did.
+## The idea
 
-## Image generation as a tool
+### The model asks, something else does the work
 
-OpenAI offers image generation as a built-in tool in its Responses API. Two settings matter to you:
+A **tool** is a small service the assistant can call: make an image, save a file, send an order. All three vendors describe the same loop:
 
-- **Action.** The model can choose to generate a new image or edit an image already in the conversation. The `action` setting controls this. `auto` lets the model decide. `generate` or `edit` forces one. The default is `auto`.
-- **Revised prompt.** In the tool, the model rewrites your prompt first. The revised text comes back in a `revised_prompt` field.
+- The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview) say the model looks at what the user asked and at the tool's description, then decides whether to call it. It returns a structured call. For your own tools, "your application executes" it.
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling) describe the same steps: the model returns a tool call, your app runs the code, and you send the output back.
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/function-calling) are the clearest: "The model _doesn't_ execute the function itself."
 
-Google's image models work inside the conversation too. Its docs say a Gemini 3 image model (not 3.1 Flash Lite) can use Google Search as a tool "to verify facts and generate imagery based on real-time data", such as weather maps or recent events.
+```text
+user  -->  model: "call make_card(style=..., shape=...)"
+                         |
+                         v
+           your app (or the vendor) runs it
+                         |
+                         v
+           result goes back --> model answers the user
+```
 
-Claude does not make images (Chapter 1 of the Bootstrap Village covered this). But Anthropic's docs say Claude can call functions that you define. So a studio could give Claude a function that sends a request to an image model. Claude asks, your function makes the image. This is our example, not a feature Anthropic sells.
+Some tools are run by the vendor. The Claude docs call them **server tools**, which Anthropic runs on its own side. The OpenAI docs call them **built-in tools**, and image generation is one. Either way, the model still only asks. Tools you define run in your app. Built-in and server tools run at the vendor.
 
-## Auto or forced
+### Names and descriptions steer the choice
 
-By default, the model chooses. Anthropic's docs say that with the default `tool_choice` of `auto`, "Claude determines on each turn whether to call a tool or respond directly". To require a tool call, set `tool_choice`.
+The model reads each tool's name and description to choose. So the description is a brief for the model, like a brief for a freelancer.
 
-Why would a creator care? Example: the client approved image 3. A teammate types "make the sky bluer". With `action: auto`, the tool may generate a brand new image instead of editing image 3. Forcing `edit` keeps the approved picture as the starting point. Forcing `generate` is right when the client wants fresh ideas.
+- The Gemini docs: "Be clear and specific." Use descriptive names without spaces.
+- The OpenAI docs: "Write clear and detailed function names, parameter descriptions, and instructions."
 
-## Names and descriptions are part of the design
+The model only sees what you send: the name, the description and the input schema. Two tools with fuzzy descriptions, like "makes a card" and "does card stuff", leave the model to guess which one fits. It may call a tool at the wrong moment, or never call it at all.
 
-The model picks a tool from its **name and description**. So a vague description causes wrong calls. Google's best practices say: "Function and Parameter Descriptions: Be clear and specific." and "Naming: Use descriptive names without spaces or special characters."
+More tools do not fix a fuzzy pair. The Gemini docs advise a small set: "Keep active set to 10-20 tools maximum."
 
-Missing details are another risk. Anthropic's docs show an example. A weather tool needs a `location`. A user asks "What's the weather?" with no place. Claude "might guess values you didn't supply". The docs add: "This behavior is not guaranteed".
+### Missing values get guessed
 
-Example: a `make_image` tool needs an `aspect_ratio`. The user only says "a banner". The assistant may pick 1:1, and the client wanted 16:9. Fix this in the tool design: say in the description that the ratio must come from the user, or make the chat ask first.
+What if a tool needs a value the user never gave? The Claude docs give an example with a weather tool and no city. The model "might guess values" that nobody gave it. The docs add: "This behavior is not guaranteed". So you cannot rely on the model to ask. Put it in the design: the description says the value must come from the user, and the assistant asks when it is missing.
 
-## Check before the tool acts
+### Make or change
 
-Google lists "Validate function calls before executing" as a best practice. Why: a tool call is the model's request, not a promise that the request is wise.
+The image tool in OpenAI's Responses API can make a new image or edit one already in the chat. Its `action` setting decides: `auto` lets the model choose, `generate` or `edit` forces one. The docs say: "If not specified, the default is `auto`."
 
-Our rule for studios: split tools into two kinds.
+Other tools have a similar switch, called `tool_choice`. The default is `auto`: the model decides on each turn whether to call a tool. You can also force a call:
 
-- **Make tools** create drafts: generate, edit, resize. A wrong call wastes a little time.
-- **Send tools** have outside effects: publish, email, delete, pay. A wrong call reaches a client or a customer.
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/function-calling): "You can force specific behavior with the `tool_choice` parameter", for example `required`.
+- The [Claude docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools): `any` means Claude "must use one of the provided tools", and `tool` forces one named tool. They also warn: "Not every model and setting supports forced tool use."
+- On Claude Opus 5.5, Sonnet 5.5 and Fable 5.1, the docs say `any` and `tool` "return a 400 error", so `auto` is the option there.
 
-Put a person between the model and every send tool.
+So a clear description comes first. Forcing is a second lever, and not every model has it.
 
-## Tools have a cost
+### Check the call, then guard the risky ones
 
-Tool definitions are not free. Anthropic says the names, descriptions and schemas in the `tools` parameter count as input tokens. OpenAI says Responses API requests include the main model's token use in addition to the image generation costs. A chat with many tools and long descriptions costs more on every turn.
+A tool call is a request, not a promise that the request is sensible. The Gemini docs list validation as a best practice: check each function call before you run it. Your app checks the values against what is allowed before it runs anything.
 
-## What this means for your work
+Then sort tools by what a wrong call does. This split is our rule, not a vendor rule:
 
-- **Know who runs the tool.** The model asks. Your app, or the vendor, does the work.
-- **Choose auto or forced on purpose.** Use forced `edit` when a picture is approved.
-- **Write tool descriptions like a brief.** Say what the tool does, and which details must come from the user.
-- **Keep a human before every send tool.** Make tools can be tried freely. Send tools cannot.
+- **Make tools** create drafts: make, change, resize. A wrong call wastes a minute. Let them run.
+- **Send tools** reach the outside world: order, email, publish, pay. A wrong call costs money or reaches a customer. Put a person in front of every call.
+
+### Tools cost tokens on every turn
+
+Every request carries the full tool list. The Claude docs say the `tools` parameter adds input tokens: the tool names, their descriptions and their schemas. The OpenAI docs say function definitions "are billed as input tokens". More tools with longer descriptions means a higher cost for every turn, even turns where no tool is called.
+
+## Worked example
+
+### Step 1: the weak tool list
+
+```text
+make_card     "Makes a card."
+              inputs: prompt, shape (required)
+edit          "Card stuff."
+              inputs: request
+order_prints  "Orders the cards."
+              inputs: quantity
+```
+
+What goes wrong:
+
+- `shape` is required, but nothing says it must come from the couple. The model guessed landscape.
+- `edit` has a vague name and a vague description, so the model could not tell it apart from `make_card`.
+- `order_prints` runs as soon as the model calls it. "Looks great!" was enough.
+
+### Step 2: rewrite the names and descriptions
+
+```text
+make_card      "Creates a NEW invitation design from scratch. Use only
+                when the couple asks for a new design. Ask the couple
+                for the shape (portrait or landscape) if they have not
+                said it. Never choose the shape yourself."
+               inputs: prompt, shape: portrait | landscape (required)
+
+change_card    "Changes the design the couple is looking at now. Use
+                for every small change: colours, fonts, wording."
+               inputs: instruction
+```
+
+### Step 3: the hard case
+
+The hard case is the print order. Good descriptions are not enough here. Even a perfect description cannot stop the model from reading "looks great!" as "order now". The call has a real cost: 150 printed cards.
+
+```text
+order_prints   "Prepares a print order for the approved design.
+                The order is NOT sent until the couple confirms
+                on the order screen."
+               inputs: design_id, quantity
+App rule:      the app checks design_id exists and quantity is
+               between 10 and 500, then shows a confirm button.
+               Only a click by the couple sends the order.
+```
+
+### Step 4: why it is better
+
+- **Who runs what is clear.** The model asks. The app checks the values, then runs `make_card` and `change_card` freely.
+- **The right tool gets picked.** "New design" and "change the current design" are now different in name and in description.
+- **No guessed shape.** The description tells the model to ask.
+- **The send tool has a person in front of it.** The model can prepare an order. Only a person can send it.
+- **Short list.** Three tools, not ten, so each turn costs fewer input tokens.
+
+## Common mistakes
+
+1. **Thinking the model runs the tool.** Then nobody owns the checks. Fix: your app (or the vendor, for built-in tools) runs it, so your app validates every call first.
+2. **Two tools with blurry descriptions.** The model picks the wrong one. Fix: say what each tool is for and when to use it, in plain words.
+3. **The same approval rule for every tool.** Approving every draft slows the work. Approving nothing lets a bad order out. Fix: run make tools freely and put a person before every send tool.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A podcast studio gives its assistant these tools:
+
+```text
+make_cover      "Image tool."               inputs: prompt, size (required)
+upload_episode  "Uploads the episode to all podcast apps."
+                                             inputs: file, title
+```
+
+Find two problems and fix each one.
+
+### Answer
+
+1. **`make_cover` has a vague description, and `size` can be guessed.** Fix: "Creates a NEW square cover image. Ask the host for the size if they have not given it."
+2. **`upload_episode` is a send tool with no person in front of it.** It publishes to the world. Fix: the app shows the title and file, and the host clicks to confirm.
+
+## Recap
+
+- The model only asks for a tool call. Your app runs your tools. The vendor runs its built-in or server tools. Your app checks each call before it runs.
+- Names and descriptions steer the choice. Make them specific, and say which values must come from the user, or the model may guess.
+- Let make tools run, put a person before send tools, and keep the tool list short: definitions cost input tokens on every turn.
