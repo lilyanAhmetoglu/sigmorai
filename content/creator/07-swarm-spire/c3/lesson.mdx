@@ -64,12 +64,12 @@ The patterns have opposite defaults. This is the part teams get wrong.
 
 - **OpenAI handoff.** The SDK docs say "it's as though the new agent takes over the conversation, and gets to see the entire previous conversation history." You can change this with an **input filter**, a function that picks which parts of the history go on.
 - **OpenAI agent as a tool.** The [SDK tools page](https://github.com/openai/openai-agents-python/blob/main/docs/tools.md) says "the parent run's conversation state is not inherited automatically."
-- **Claude subagent.** (A **subagent** is a helper agent that a main agent starts.) The [Claude Agent SDK docs](https://platform.claude.com/docs/en/agent-sdk/subagents) say its context "starts fresh, with no parent conversation". The parent's chat, tool results and system prompt are not part of it. The docs say: "The only content you pass from parent to subagent is the Agent tool's prompt string".
+- **Claude subagent.** (A **subagent** is a helper agent that a main agent starts.) The [Claude Agent SDK docs](https://platform.claude.com/docs/en/agent-sdk/subagents) say its context "starts fresh, with no parent conversation". The parent's chat, tool results and system prompt are not part of it. But the context "isn't empty": the subagent still has its own system prompt and tool definitions. The docs say: "The only content you pass from parent to subagent is the Agent tool's prompt string".
 
 ```text
 handoff (OpenAI)      -> sees the whole chat, unless you filter it
 agent as tool (OpenAI)-> does not get the parent's chat
-subagent (Claude)     -> sees only the prompt you write
+subagent (Claude)     -> gets from the parent only the prompt you write
 ```
 
 So one pattern can share too much, and the others can share too little.
@@ -82,11 +82,13 @@ The OpenAI SDK also has **nested handoff history**, an opt-in beta (a feature st
 
 Our reading: a line like "please ignore the fee notes" does not help. Both the agent and the company that runs its model already have them. Use an input filter so the data never goes.
 
+If the chat is stored on OpenAI's servers, handoff input filters do not work there. The worked example shows what to do.
+
 ### Too little: a fresh helper knows only your note
 
 The Claude docs say to include "any file paths, error messages, or decisions the subagent needs directly in that prompt." "See the chat above" points to a chat the helper cannot see.
 
-A handoff can also carry a small piece of data that the model fills in. The OpenAI SDK docs give `reason`, `language`, `priority` or `summary` as examples. They say it "does not replace the next agent's main input". It is a label, not a place for the whole brief.
+A handoff can also carry a small piece of data (**metadata**) that the model fills in. The OpenAI SDK docs give `reason`, `language`, `priority` or `summary` as examples. They say it "does not replace the next agent's main input". It is a label, not a place for the whole brief.
 
 ### The return trip
 
@@ -109,88 +111,66 @@ This template is ours. Write one for every move:
 
 ## Worked example
 
-### Step 1: the weak note to the Mockup maker
+### Step 1: the set-up
 
-```text
-Do the mockup we talked about.
-```
+The portal keeps each client chat on OpenAI's servers and continues it with a `conversation_id`. The Revisions specialist should take over a chat, without the fee notes.
 
-The Mockup maker is called as a tool, so it does not get the front desk's chat. "We talked about" points to nothing it can read. It guessed the book.
-
-### Step 2: the better note
-
-```text
-Goal:        One mockup of the cover for "The Salt Road", 6x9 inch template.
-Done so far: Client approved draft v3 on Tuesday.
-Inputs:      salt-road-v3.png, template-6x9.psd
-Must hold:   Title top centre, author name bottom, no text over the boat.
-Open:        Spine width not known yet. Leave the spine blank.
-Return:      One PNG named salt-road-mockup-v3.png, and one line
-             listing anything you could not do.
-```
-
-Every fact the helper needs is in the note. Files are named, not pasted. The open question is said out loud, so the helper does not invent a spine.
-
-### Step 3: the hard case
-
-**The hard case is the Revisions specialist.** A handoff fits, because the specialist should own the chat with the client. But by default it sees the whole history, and the history holds the agency's fee notes.
-
-Weak fix: add "Ignore the fee notes" to the instructions. The notes are still sent.
-
-Good fix: an input filter that passes only the client's messages about the commission and the approved brief.
+### Step 2: the first plan
 
 ```text
 handoff to:    Revisions specialist
-input filter:  keep the client's messages about this commission
-               keep the approved brief
-               drop internal fee notes and other clients' names
-metadata:      reason = "client asks for colour change", priority = "normal"
+input filter:  drop the fee notes
+```
+
+### Step 3: the hard case
+
+**The hard case is where the history lives.** The SDK docs say server-managed conversations "do not support handoff input filters". Their fix: "use a separate run with explicitly selected input". And: "Do not reuse the original `conversation_id` or `previous_response_id` in that separate run."
+
+So the first plan cannot work here. The filter never runs.
+
+### Step 4: the better plan
+
+```text
+new run for:   Revisions specialist
+input:         the approved brief
+               the client's messages about this commission
+not sent:      fee notes, other clients' names
+conversation:  a new one, not the old conversation_id
+metadata:      reason = "client asks for colour change"
 ```
 
 Simplified. See the docs for the exact request shape.
 
-### Step 4: the return trip
-
-The quality helper finds five problems. The fix has two parts:
-
-- The helper saves its report as `salt-road-qa-v3.md` and returns the file name.
-- The main prompt says: "Quote the quality report in full to the client manager. Do not summarize it."
-
 ### Step 5: why it is better
 
-- **The right owner.** The front desk keeps the reply for mockups. The specialist owns the chat for revisions.
-- **No guessing.** A tool helper gets a full note, because it cannot see the chat.
-- **No leaks.** The filter decides what leaves. A polite request does not.
-- **No lost detail.** The full report lives in a file, and the summary rule is written down.
+- **The specialist gets only what you chose.** Nothing else is sent.
+- **The plan fits where the chat is stored.** Use a filter for history your app holds. Use a separate run for a chat held on the vendor's servers.
+- **The metadata is a short label**, not the brief.
 
 ## Common mistakes
 
-1. **Pointing to a chat the helper cannot see.** Fix: write the goal, files, rules and open questions into the note.
-2. **Forwarding the full history by default.** Fix: use an input filter, and drop what the next agent does not need.
-3. **Trusting the parent's summary of a report.** Fix: save the report as a file, and ask for it word for word.
+1. **Adding a filter to a server-stored chat.** The docs say those chats "do not support handoff input filters". Fix: start a separate run with the input you choose.
+2. **Putting the whole brief in handoff metadata.** The docs say it "does not replace the next agent's main input". Fix: keep it to a short label like `reason`.
+3. **Expecting a helper's tool results in the parent.** Only its final message comes back. Fix: ask the helper to put what you need in its final report.
 
 ## Try it
 
 Not graded. Write your answer down before you read the answer.
 
-A main agent starts a Claude subagent with this prompt:
+A main agent starts a Claude subagent to check 40 cover files. The subagent opens every file and runs 12 searches, then writes a final report.
 
-```text
-Fix the export problem from before and use the size we agreed.
-```
-
-1. What will the subagent know about "the export problem" and "the size"?
-2. Name three kinds of facts the prompt should carry, using the Claude docs' list.
-3. Rewrite the prompt.
+1. What does the main agent get back?
+2. The main agent later needs the list of files the subagent opened. Where is it?
+3. What should the prompt have asked for?
 
 ### Answer
 
-1. **Nothing.** A fresh subagent does not get the parent's chat or tool results. It gets only this prompt string.
-2. **File paths, error messages and decisions.** The docs list these as things to put directly in the prompt.
-3. Our example: "Re-export `poster-final.psd` as PNG at 2400x3600 (size agreed with the client on Monday). The last export failed with the error `Image too large for target`. Return the new file name."
+1. **The final report only.** The Claude docs say "intermediate tool calls and results stay inside the subagent; only its final message returns to the parent."
+2. **Inside the subagent**, not in the main agent's context.
+3. Our example: "In your final report, list every file you opened, one per line, with PASS or FAIL."
 
 ## Recap
 
 - Ask who owns the reply. Control moves with a handoff; with an agent as a tool, the manager keeps the reply.
-- Know what the next agent sees. An OpenAI handoff sends the whole history unless you filter it. A tool helper and a fresh Claude subagent see only what you write.
+- Know what the next agent sees. An OpenAI handoff sends the whole history unless you filter it. A tool helper and a fresh Claude subagent get none of the parent's chat; only what you pass in.
 - Protect both directions. Filter private data before it leaves, and save important reports as files so a summary cannot drop the detail.
