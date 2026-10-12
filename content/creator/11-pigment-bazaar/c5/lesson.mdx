@@ -1,7 +1,7 @@
 ---
 id: creator/r11/c5/lesson
 title: Styles & tuning
-minutes: 9
+minutes: 12
 sources:
   - kind: docs
     title: Recraft docs · Styles
@@ -35,96 +35,165 @@ sources:
     url: https://huggingface.co/docs/diffusers/en/quicktour
 ---
 
-## Why it matters
+## Goal
 
-A bakery chain has a hand-drawn look: ink lines, soft wash, cream paper. It needs 60 menu drawings this year. It also has a mascot, a small fox, who must look the same in every one.
+After this lesson you can:
 
-Prompt Forest, chapter 3, showed how to write a style block and how Google's Nano Banana takes style references. Context Library, chapter 2, showed how to build a reference set. This chapter goes one step further. There are two ways to give a model your look:
+- Give a model your look by showing it reference images, with no training.
+- Say when it is worth training a custom model or a LoRA, and what each one needs.
+- Choose reference images and a match level that fit the job.
 
-1. **Show it.** Attach reference images to each request. No training.
+## The problem
+
+Northbound is a travel magazine. Its look is papercut art: layers of coloured paper with soft shadows between them. Each month it needs two cover illustrations and about twenty small spot illustrations for the inside pages.
+
+The designer collects 10 images for the look and sends them all to an image model: 6 papercut pieces, 2 watercolours the editor likes, and 2 travel photos. The results are a mix. Some look like paper, some look like paint, and one looks like a photo with a filter.
+
+There are two ways to give a model a look. This lesson shows both, and how to choose.
+
+1. **Show it.** Attach reference images to the request. No training.
 2. **Teach it.** Train a model, or a small add-on, on your images. Then call it by name.
 
-## Way 1: style from references
+## The idea
 
-Three vendors in this realm take a look from your images, with no training.
+### Way 1: show it, with references
 
-**Recraft.** Its V4 styles are "built from your own reference images — one is enough, no training required". You give "from one to ten images". Recraft's tip: "similar images sharpen the match, diverse ones widen the range."
+**Recraft.** The [Recraft styles page](https://www.recraft.ai/docs/api-reference/styles) says its V4 styles are "built from your own reference images — one is enough, no training required". You give "from one to ten images". Then: "similar images sharpen the match, diverse ones widen the range."
 
-You can apply a style in two ways:
+There are two ways to apply a style:
 
 - `style_id`: create the style once, then pass its id in each request.
-- **style references**: attach the images to the request. Recraft creates a private style and "returns the resolved `style_id` in the response so later requests can reuse it."
+- Style references: attach the images to the request. Recraft makes a private style and "returns the resolved `style_id` in the response so later requests can reuse it."
 
-Don't send both. "a request with both a `style_id` and style references is rejected."
+You can't send both: "a request with both a `style_id` and style references is rejected."
 
-A style also has a `match` value. `flexible` (the default) "matches the general vibe". `precise` "follows the style meticulously".
+A style also stores a `match` value:
 
-**Ideogram 3.0.** Its **Style reference images** setting takes up to 10 images "and copy their look". Pick "images that share a look and mood for a steady style". Ideogram's tip: "turn Magic Prompt off and keep style words out of your prompt."
+- `flexible`, the default, "matches the general vibe".
+- `precise` "follows the style meticulously".
 
-**FLUX.2.** BFL's models take several input images at once: up to 8 on the API for [max], [pro] and [flex], and up to 4 for [klein]. BFL's prompting guide says to "refer to references by position: "image 1" is the first entry in `images`, "image 2" the second." Chapter 1 showed this too.
+One more rule: "Passing `style_match` in a generation request overrides the style's stored value for that request".
 
-**OpenAI.** Its image guide has an example that uses "4 input images to generate a new image of a gift basket containing the items in the reference images." That example keeps items, not a style, but the input works the same way (our reading).
+**Ideogram 3.0.** The [Ideogram settings page](https://docs.ideogram.ai/create/image-settings) says **Style reference images** take up to 10 of your images "and copy their look". Its advice: "Pick images that share a look and mood for a steady style". For the references to come through: "turn Magic Prompt off and keep style words out of your prompt. Short prompts work best."
 
-References are fast and cheap to change. But you send them every time, and the match is a "vibe" or a "blueprint", not a promise (our reading).
+**FLUX.2.** The [FLUX.2 overview](https://docs.bfl.ai/flux_2/flux2_overview) lists multi-reference input: up to 8 images on the API for [max], [pro] and [flex], and up to 4 for [klein]. The [FLUX prompting guide](https://docs.bfl.ai/guides/prompting_unified_basics) says to "refer to references by position".
 
-## Way 2: a trained model
+**OpenAI.** Its [image guide](https://developers.openai.com/api/docs/guides/image-generation) has an example that uses "4 input images to generate a new image of a gift basket containing the items in the reference images." That example copies items, not a style (our reading).
 
-A **trained model** has learned your look from a set of images. After that, a short prompt is enough (our plain gloss).
+References are fast and easy to change. But you send them every time, and a match is a match, not a copy (our reading).
 
-**Adobe Firefly custom models** come in two kinds:
+### Way 2: teach it, with a trained model
 
-- **Subject models** "focus on representing specific characters, products, or objects", such as "your brand mascot".
-- **Style models** "emphasize aesthetic qualities like color palettes, patterns, brush stroke techniques, or illustrative cues".
+**Adobe Firefly** offers a subject kind and a style kind of custom model. The [Adobe docs](https://developer.adobe.com/firefly-services/docs/firefly-api/guides/concepts/custom-models/) say:
 
-Each model has an **asset ID**. Adobe says asset IDs help you track "styles, subjects, or structures captured in versions over time." In the API you call `/v3/images/generate-async` with the header `x-model-version: image3_custom` and a `customModelId`.
+- Subject models "focus on representing specific characters, products, or objects". Their example is "your brand mascot".
+- Style models "emphasize aesthetic qualities like color palettes, patterns, brush stroke techniques, or illustrative cues".
 
-**Ideogram custom models** are trained in the app. The page lists, in October 2026:
+Each model has a unique **asset ID**. Adobe says asset IDs help with "tracking updates and maintaining a clear record of styles, subjects, or structures captured in versions over time." In the API, a request goes to `/v3/images/generate-async` with the header `x-model-version: image3_custom` and a `customModelId`.
 
-- **15 to 100 images** of the style or subject.
-- A **Pro** or **Team** plan, on desktop only.
-- 4,000 credits, shown on the **Start training** button.
+**Ideogram custom models** are trained in the app. The [custom models page](https://docs.ideogram.ai/create/custom-models) lists, in October 2026:
+
+- A **Pro** plan, or a **Team** plan in a team space. Desktop only.
+- "**15 to 100 images** of the style or subject you want."
+- A cost of 4,000 credits, which the **Start training** button displays.
 - "Training usually takes a few hours."
-- The base model is Ideogram 3.0, and you can't change it.
+- The base model is Ideogram 3.0, and "You can't change it."
 
-Its tips: "Quality over quantity", "Add enough variety", and "Make each caption say what is in the image."
+Its tips: "Quality over quantity." "Add enough variety." And: "Make each caption say what is in the image."
 
-## A LoRA: the small add-on
+Sharing: "Your model starts private." You can share it with your team in a team space. **Publish** is different: "Make your model discoverable in the community gallery. Anyone will be able to find and use your model."
 
-BFL's FLUX.2 [klein] training page calls **LoRA** (Low-Rank Adaptation) "the most popular training method". Diffusers explains it: LoRA works "by inserting new weights into the diffusion model and then only the new weights are trained instead of the entire model." **Weights** are the numbers a model learned (our gloss).
+### A LoRA: a small add-on
 
-So a LoRA is a small file that sits on top of a base model. BFL says LoRAs are "Lightweight (typically 10-200MB)" and train in "1-3 hours on consumer GPUs". To train on FLUX.2 [klein] 4B Base, it lists an NVIDIA GPU with 12GB of VRAM (graphics memory).
+The [BFL training page](https://docs.bfl.ai/flux_2/flux2_klein_training) calls **LoRA** (Low-Rank Adaptation) "the most popular training method". The [diffusers docs](https://huggingface.co/docs/diffusers/main/en/using-diffusers/loading_adapters) explain it: it works "by inserting new weights into the diffusion model and then only the new weights are trained instead of the entire model." **Weights** are the numbers a model has learned (our gloss).
 
-Two habits from the pages:
+So a LoRA is a small file that sits on top of a base model. BFL lists it as "Lightweight (typically 10-200MB)" with "Fast training (1-3 hours on consumer GPUs)". Its minimum hardware starts at an NVIDIA GPU with 12GB of VRAM (memory on the graphics card).
 
-- **Captions.** BFL: "Include your trigger word consistently" and "Describe everything visible except the style/concept you want to teach the model." A **trigger word** is a made-up word that switches the LoRA on in a prompt (our gloss). Diffusers: "Some LoRAs need a trigger phrase. Check the LoRA's model card."
-- **Strength.** In diffusers you load one with `load_lora_weights()`. A scale of 0 "is the same as only using the base model weights", and 1 is the full LoRA.
+BFL's caption rules for a training set:
 
-Note the word "steps" here. BFL suggests 1,500 to 2,500 **training** steps for a style LoRA. That is not the same as the 4 **image** steps BFL lists for [klein]. Chapter 4 covers image steps (our note).
+- "Include your trigger word consistently"
+- "Describe everything visible except the style/concept you want to teach the model"
 
-## Which one is worth it?
+A **trigger word** is a made-up word that switches the LoRA on in a prompt (our gloss). The [diffusers quickstart](https://huggingface.co/docs/diffusers/en/quicktour) adds: "Some LoRAs need a trigger phrase."
 
-Our advice, built from the pages above:
+Strength: in diffusers, "A value of 0 is the same as only using the base model weights, and a value of 1 is equivalent to using the fully finetuned LoRA."
 
-| Your job                                  | Start with                                             |
-| ----------------------------------------- | ------------------------------------------------------ |
-| A few images, this week                   | References (Recraft style, Ideogram 3.0, FLUX.2)       |
-| A look you will reuse for months          | A saved style (`style_id`), then a trained style model |
-| One product or mascot that must stay true | A **subject** model (Adobe) or a subject LoRA          |
-| Fewer than 15 good images                 | References. Ideogram training needs 15 to 100          |
+Two kinds of steps: BFL suggests "1500-2500 steps" of **training** for a style LoRA. That is not the same as the 4 **image** steps BFL lists for [klein] models (our note).
 
-For the bakery: start with a Recraft style from 3 good drawings today. Train a fox subject model later, when you have 15 or more clean fox images (our example).
+Our advice on rights: train only on images your client owns or has licensed. Ideogram also asks you to accept its terms before your first model.
 
-## Rights before training
+## Worked example
 
-Training copies a look into a model. So train only on images your client owns or has licensed. Bootstrap Village, chapter 6, covers what vendor policies say.
+Our example. The magazine and the files are made up.
 
-Two details from the pages. Ideogram asks you to accept its terms before your first model. A model "starts private". You can share it with your team in a team space. But **Publish** makes it "discoverable in the community gallery. Anyone will be able to find and use your model." Don't publish a client's model (our advice).
+### Step 1: the weak reference set
 
-## What this means for your work
+```text
+6 papercut pieces   (layered paper, soft shadows, flat colours)
+2 watercolours      (the editor's favourites)
+2 travel photos     (for the places)
+```
 
-- **Try references first.** One image can be enough on Recraft. No training, no wait.
-- **Send `style_id` or references, never both**, on Recraft.
-- **Train when the look or the subject must last.** Pick subject or style on purpose.
-- **Count your images.** Ideogram needs 15 to 100.
-- **Caption what is in the image, not the style.** Use one trigger word.
-- **Keep client models private**, and train only on images you may use.
+Recraft says diverse images "widen the range". This set is very diverse, so the style spreads across paper, paint and photo.
+
+### Step 2: pick for one look
+
+Keep only images that share the look. The designer picks 5 of the 6 papercut pieces. The sixth uses neon paper, so it is left out. The places go in the prompt as words, not in the references.
+
+```text
+references: 5 papercut pieces, same paper texture, same soft shadows
+prompt:     "A harbour town at dusk with fishing boats and a lighthouse"
+```
+
+### Step 3: save the style once
+
+The designer creates the style once and saves the returned `style_id`. Every request in the month uses that id. The 5 images are not sent again.
+
+### Step 4: the hard case
+
+**The hard case is the two kinds of picture.** Covers must hold the look closely: every layer, every shadow. Spot illustrations are small. A looser look is fine there, and the editor wants more variety between them.
+
+One answer is two styles. But the two would drift apart over time. Recraft offers a simpler way: keep one style, and pass `style_match` per request.
+
+```text
+cover request:  style_id: northbound-paper   style_match: precise
+spot request:   style_id: northbound-paper   style_match: flexible
+```
+
+The page says a request value overrides the stored value "for that request". A value the model doesn't support is rejected. So check the model: V2 and V3 take only `regular` (our note from the same page).
+
+### Step 5: why it is better
+
+- **One look, not three.** Similar references sharpen the match.
+- **One saved style** for the whole month, with no images resent.
+- **Two strengths from one style.** Covers stay tight, spots stay loose.
+
+## Common mistakes
+
+1. **Mixing up training steps and image steps.** A style LoRA trains for 1,500 to 2,500 steps. A [klein] image uses 4. Fix: say which kind of step you mean in every note.
+2. **Sending more references than the model takes.** FLUX.2 [klein] takes up to 4; [pro], [max] and [flex] take up to 8 on the API. Fix: check the limit for the exact model first.
+3. **Losing track of which model made an image.** A trained model can change over time. Fix: on Adobe, record the asset ID with each image.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A teammate plans a style LoRA for a pottery brand on FLUX.2 [klein] 4B Base. The training set has 20 images:
+
+- All 20 are 400 px wide, copied from the shop's web page.
+- 18 of them show the pots on the same white wall.
+- 2 have a stock-photo watermark across them.
+
+Using BFL's dataset tips, what would you fix before training?
+
+### Answer
+
+1. **Size.** BFL says to "Use high-resolution images (1024px or higher)". Find the original photos, not the web copies.
+2. **Backgrounds.** BFL says to "Avoid repetitive backgrounds" and to vary settings. Otherwise the LoRA may learn the white wall as part of the look (our reading).
+3. **Watermarks.** BFL says to "Remove artifacts and low-quality samples". Drop the two watermarked images. The watermark also hints that the brand may not own them (our reading).
+
+## Recap
+
+- To show a look, attach references. Recraft builds a style from 1 to 10 images with no training; similar images sharpen it, and `match` sets how closely it is followed.
+- To teach a look or a subject, train: an Adobe style or subject model, an Ideogram custom model (15 to 100 images, Ideogram 3.0 base), or a LoRA on top of an open base model.
+- Keep training data clean and owned, keep client models private, and record which model made each image.
