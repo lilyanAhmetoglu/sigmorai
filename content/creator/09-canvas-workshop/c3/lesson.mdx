@@ -1,7 +1,7 @@
 ---
 id: creator/r9/c3/lesson
 title: Template fills
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Canva developer docs · Best practices for Canva MCP
@@ -29,80 +29,168 @@ sources:
     url: https://developer.adobe.com/firefly-services/docs/indesign-apis/guides/working-with-datamerge-api/
 ---
 
-## Why it matters
+## Goal
 
-A café brand opens in 24 cities. Each city needs the same poster with its own name, date and photo. You could ask a model to generate 24 posters. You would get 24 different layouts.
+After this lesson you can:
 
-A **template fill** works the other way round. The layout is fixed and approved. Only named fields change: a city, a date, a photo. This chapter shows how two vendors do it, and the limits that bite.
+- Decide when a layout should be filled from data, not generated again each time.
+- Read a template's fields and send data that fits them, in Canva and in Adobe InDesign.
+- Set up a data merge so each card gets its own file name, its line breaks and a safe place to land.
 
-## Generate, template or fill?
+## The problem
 
-Canva's best-practice page gives a clear rule:
+You design for a small chain of bookshops. Every month there are 40 author evenings. Each one needs a print card: the author's name, the date and the shop's address, which takes two lines.
+
+The layout is approved. You do not want 40 new designs. You want one design and 40 rows of data.
+
+Last month a script made the cards. Three things went wrong. The files were named `merged.png`, `merged2.png` and so on, so nobody could find one author. The two-line addresses came out wrong. And the output link stopped working a day later.
+
+## The idea
+
+### Fill, generate or use approved assets
+
+A **template fill** keeps the layout fixed and changes only named **fields** (empty slots, like a name or a photo). The [Canva best-practice page](https://www.canva.dev/docs/apps/mcp/best-practices/) gives three routes:
 
 - "Use generation when a user needs a new concept or creative direction."
-- "Use a brand template and autofill when the user needs consistent, repeatable output from prepared content".
+- Pick a brand template plus autofill when the same layout must come out many times, from content that is ready. (The page adds that this needs "a Canva Pro, Business, or Enterprise account".)
 - "Use user-provided, approved assets when the design has brand, legal, or compliance requirements that a generated asset might not meet."
 
-Example. The campaign idea is still open: generate. The idea is approved and you need 24 versions: template and autofill. The photo of the store front must be the real store: an approved asset, not a generated one.
+A comparison: a fill is a rubber stamp with a blank line. The stamp stays the same. Only what you write on the line changes.
 
-## Fields with names
+### Canva: read the fields first
 
-Both vendors fill named slots in a template.
+A **brand template** is a Canva design your team publishes for reuse. Its **dataset** is the list of its fields. The [Canva docs on get-brand-template-dataset](https://www.canva.dev/docs/apps/mcp/tools/get-brand-template-dataset/) list the field types: "`text`, `image`, `video`, `chart`, or `sheet` (`autofill-design` can't yet write `sheet` fields)". Two more lines from that page:
 
-**Canva.** A brand template has data fields. Canva's REST guide shows a weather poster with "Two text fields named `CITY` and `TEMPERATURE`" and "One image field named `BACKGROUND`". The MCP tool `get-brand-template-dataset` lists a template's fields and their types: `text`, `image`, `video`, `chart` or `sheet`. Canva adds that "`autofill-design` can't yet write `sheet` fields", and "An empty `dataset` means the template can't be autofilled."
+- "An empty `dataset` means the template can't be autofilled."
+- "For users whose plan doesn't include Brand Templates, the tool returns an empty `dataset` rather than an error."
 
-**Adobe InDesign.** Adobe's Data Merge API "generates variations of a template document from data in a provided CSV file". It has two parts: "the data merge and the data merge tags". A separate call retrieves the data merge tags from the document, so you can see the fields first.
+The same page says Brand Templates "are available to users on Canva Pro, Business, and Enterprise plans". The [search-brand-templates page](https://www.canva.dev/docs/apps/mcp/tools/search-brand-templates/) has the same rule for search: an empty `items` list, "rather than an error".
 
-So the first step is the same on both sides (our summary): **read the fields, then build the data.** Your spreadsheet columns must match the field names.
+### Canva: fill the fields
 
-## Three ways to run a fill
+The [Canva docs on autofill-design](https://www.canva.dev/docs/apps/mcp/tools/autofill-design/) say: "Pass exactly one of `brand_template_id` or `design_id`, plus a `data` object whose keys match the source's field names and whose values match each field's type." On success, "Give the user the `edit_url`."
 
-| Route                        | You send                                                         | You get back                                   |
-| ---------------------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
-| Canva REST API               | a brand template ID and a `data` object, as an async job         | a design URL to open in the Canva editor       |
-| Canva MCP, `autofill-design` | "exactly one of `brand_template_id` or `design_id`", plus `data` | a new or updated design, with an edit URL      |
-| Adobe Data Merge API         | an InDesign file and a CSV                                       | variations as InDesign, PDF, PNG or JPEG files |
+One switch needs care: "`update_in_place` replaces the existing design's content and can't be undone, so only set it when the user explicitly asks to refill that design." Without it, the tool makes a new design.
 
-A few details:
+The [Canva REST autofill guide](https://www.canva.dev/docs/apps/rest-apis/autofill-guide/) (REST: the web API a developer's own script calls) adds the rules for scripts:
 
-- In Canva's REST guide, you poll the job until it is done. Then the guide says: "Direct your user to the design's URL so they can open it in the Canva editor".
-- On the MCP route, "The Canva MCP server polls the job for you for up to about a minute before responding".
-- An assistant can find templates with `search-brand-templates` before it fills one.
-- Adobe's overview lists the Data Merge API as one of the InDesign APIs. It "Creates document variations from CSV data and an InDesign file". It runs as a server job: you send links to your InDesign file and CSV in the request, not from the desktop app.
+- **Missing fields.** "You don't have to fill every available field. If you omit a field, Canva uses the default value from your template when generating your final design."
+- **Media.** "All media used in autofill must first be uploaded to the asset library." Then you send the asset ID.
+- **Limits.** "Only image assets can be used for autofill. Video assets are currently not supported." And: "External image URLs are currently not supported for autofill."
+- **Modes.** `update_design` fills an existing design "without creating a new design".
 
-## Limits that bite
+Our reading: the MCP tool page lists videos as a fill type, but the REST guide does not support video assets. Check the page for the route you use.
 
-**Plans.** Canva's REST guide says autofill and brand templates are for "Canva Pro (including Canva Education and Canva for Nonprofits), Canva Teams, or Canva Enterprise", and "Usage limits will be introduced in the future." The MCP pages say "Canva Pro, Business, and Enterprise plans". The REST guide also says the Canva account you build with must have multi-factor authentication (MFA) enabled.
+### Adobe: a template plus a CSV file
 
-**Silent empties.** This one is easy to miss. "For users whose plan doesn't include Brand Templates, the tool returns an empty `dataset` rather than an error." `search-brand-templates` does the same with an empty list. So an empty answer can mean "wrong plan", not "no fields".
+A **CSV file** is a table saved as plain text, one row per line, with commas between the cells. The [Adobe InDesign API page](https://developer.adobe.com/firefly-services/docs/indesign-apis/) says the Data Merge API "Creates document variations from CSV data and an InDesign file."
 
-**Missing values.** On the REST route: "If you omit a field, Canva uses the default value from your template". Example: row 7 has no date, and your tool leaves the empty field out of the request. Poster 7 goes out with the template's sample date. Nobody gets an error.
+The [Adobe Data Merge guide](https://developer.adobe.com/firefly-services/docs/indesign-apis/guides/working-with-datamerge-api/) gives the rules:
 
-**Media.** The REST guide says: "Only image assets can be used for autofill. Video assets are currently not supported." Also, "External image URLs are currently not supported for autofill." Upload first. The MCP tool page lists videos and chart data as fill types. So the two routes differ. Read the page for the route you use (our advice).
+- **Text encoding** (how letters are saved as bytes). The guide says to save the CSV "as UTF-8 (with or without BOM), especially if your data includes non-English or special characters." It also says: "Make sure applied font is available and have the required glyphs." A **glyph** is the drawn shape of one character in a font.
+- **File names.** Put the names in a column whose header starts with `&`, for example `&FileName`. "Only one variable file name column is allowed. If multiple columns have '&' prefix the job will fail."
+- **When names do not work.** For PNG and JPEG, file naming is not supported with `allowMultipleRecordsPerPage` set to true. The guide's reason: "several records can share a page, so row-level names are ambiguous."
+- **Line breaks.** "Multiline content can be included by enclosing field values in double quotes", and the line breaks inside "will be preserved".
+- **Where the files go.** "Without an outputs parameter, the output assets are stored in a temporary repository, and a pre-signed URL will be shared for those assets, which will be valid for 24hrs." A **pre-signed URL** is a download link that works for a short time only.
 
-**Overwrites.** On the MCP tool, "`update_in_place` replaces the existing design's content and can't be undone". Canva says to set it only "when the user explicitly asks to refill that design".
+### Always hand back the design
 
-**Text and fonts in InDesign.** The Data Merge page names two CSV encodings. It "supports UTF-16BE encoding for CSV files", and it "now supports CSV files encoded in UTF-8", for accents, other scripts and emoji. Adobe adds: "Make sure applied font is available and have the required glyphs." For text on several lines, wrap the field value in double quotes.
+The [Canva handoff page](https://www.canva.dev/docs/apps/mcp/workflows/design-edit/) lists `autofill-design` among the tools that need a link back, because "Autofilled content may need a final human check."
 
-**File names.** Adobe lets one CSV column name each output file. You prefix its header with `&`, for example `&FileName`. "Only one variable file name column is allowed."
+## Worked example
 
-## Check before you send
+The bookshop cards from the problem, made with Adobe's Data Merge API. The data, names and numbers are our example.
 
-Canva's handoff page says: "Autofilled content may need a final human check." A fill is fast, so mistakes are fast too.
+### Step 1: the weak set-up
 
-This test set is ours. Before the full run, fill three rows only:
+```text
+CSV
+Author,Date,Venue
+Ada Okafor,3 March,Riverside Books
+12 Mill Lane
+...
 
-1. **The longest text.** Does it still fit the box?
-2. **A row with special characters.** Accents, another script. Do the glyphs show?
-3. **A row with an empty cell.** What does it fall back to?
+Request
+outputMediaType: image/png
+outputFileBaseString: merged
+allowMultipleRecordsPerPage: true     (4 cards per page, to save paper)
+outputs: (none)
+```
 
-Then open each result in the editor and look. Only then run all 24.
+Three problems:
 
-## What this means for your work
+- No `&` column, so the cards get the base name and a number, like the guide's own output examples.
+- The guide keeps a line break inside a field when the value is in double quotes. Here it is not.
+- No `outputs`, so the files sit in a temporary place behind a 24-hour link.
 
-- **Fill, don't generate,** when the layout is approved and only data changes.
-- **Read the fields first** and match your columns to them.
-- **Treat an empty field list as a question,** not an answer. Check the plan.
-- **Fill every field.** A gap can turn into template sample text.
-- **Never overwrite in place** unless someone asked for it.
-- **Test three hard rows,** then run the batch.
+### Step 2: fix the CSV
+
+```text
+&FileName,Author,Date,Venue
+card-okafor,Ada Okafor,3 March,"Riverside Books
+12 Mill Lane"
+card-lindqvist,Mia Lindqvist,10 March,"Harbour Street Books
+4 Quay Road"
+```
+
+One `&` column, one name per row. Each two-line address sits inside double quotes.
+
+### Step 3: the hard case, names or four-up pages
+
+**This is the hard part.** The print shop wants four cards on each page. But the request also wants one named file per author. The guide says these two do not mix for PNG: with `allowMultipleRecordsPerPage` true, file naming is not supported.
+
+So you must choose. Our advice: the named files matter more, because people search for one author. Set `allowMultipleRecordsPerPage` to false, so each card is its own PNG. If the printer needs four-up sheets, the printer can place the 40 PNGs.
+
+### Step 4: say where the files go
+
+```text
+Request
+outputMediaType: image/png
+allowMultipleRecordsPerPage: false
+outputs: destination url = <your storage upload link>
+```
+
+Simplified. See the docs for the exact request shape.
+
+Now the files land in your own storage, not behind a link that dies after 24 hours.
+
+### Step 5: why it is better
+
+```text
+merged.png, merged2.png ...   ->  card-okafor.png, card-lindqvist.png ...
+address broken over two rows  ->  address kept, two lines, one field
+link gone after a day         ->  files in your own storage
+```
+
+## Common mistakes
+
+1. **Guessing field names.** Canva says the keys must match the field names, and the values each field's type. Fix: read the dataset first and copy its names exactly.
+2. **Line breaks without quotes.** The break is only kept inside double quotes. Fix: wrap every multi-line value in double quotes.
+3. **No place for the output.** The temporary link lasts 24 hours. Fix: set `outputs` to your own storage.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A teammate uses Canva's `autofill-design` tool on a menu template. The dataset says:
+
+```text
+DISH_NAME    text
+DISH_PHOTO   image
+WEEKLY_SALES chart
+PRICE_TABLE  sheet
+```
+
+1. Which field can the tool not fill yet?
+2. The job comes back with `status` set to `success`. What does the teammate give the person who asked for the menu?
+
+### Answer
+
+1. **`PRICE_TABLE`.** The dataset page says `autofill-design` "can't yet write `sheet` fields". Type those prices by hand in Canva, or use a text field.
+2. **The `edit_url`.** The autofill page says to give it to the user. The handoff page adds that autofilled content may need a final human check.
+
+## Recap
+
+- Fill a template when the layout stays the same and just the data is new. Generate for new ideas; use approved assets when rules are strict.
+- In Canva, read the dataset, send keys and types that match, upload media first, and use `update_in_place` only when someone asks to refill that exact design.
+- In Adobe Data Merge, send an InDesign file and a UTF-8 CSV, check the font's glyphs, name files with one `&` column, quote multi-line values, and set `outputs`.
