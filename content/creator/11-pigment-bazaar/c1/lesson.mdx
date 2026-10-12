@@ -1,11 +1,14 @@
 ---
 id: creator/r11/c1/lesson
 title: Model dialects
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: OpenAI docs · GPT Image prompting guide
     url: https://developers.openai.com/api/docs/guides/image-prompting
+  - kind: docs
+    title: OpenAI docs · Image generation
+    url: https://developers.openai.com/api/docs/guides/image-generation
   - kind: docs
     title: Gemini API docs · Image generation (Nano Banana)
     url: https://ai.google.dev/gemini-api/docs/image-generation
@@ -33,89 +36,179 @@ sources:
   - kind: docs
     title: Recraft docs · Endpoints
     url: https://www.recraft.ai/docs/api-reference/endpoints
-  - kind: docs
-    title: OpenAI docs · Image generation
-    url: https://developers.openai.com/api/docs/guides/image-generation
 ---
 
-## Why it matters
+## Goal
 
-A tea shop sends one brief: "A launch poster for our new jasmine tea. Calm, green, premium." You try it on five image models. You get five different readings.
+After this lesson you can:
 
-Prompt Forest, chapter 1, gave you the parts of a shot prompt. Chapter 9 put a text prompt next to an image prompt. This chapter goes one step further. Each image model has its own **dialect**: the way its guide asks you to write. Same brief, different wording.
+- Turn mood words into things a model can draw.
+- Write one brief in the habits of five image models: OpenAI, Gemini, FLUX, Ideogram and Recraft.
+- Say where each model takes negatives, settings, vector output and prompt rewrites.
 
-A note on dates. The model names below are the ones on each vendor's page in October 2026. They change often.
+## The problem
 
-## Five guides, five habits
+Wheelhouse is a small bike repair shop. It wants one hero image for its new website. The owner writes the brief: "Friendly, honest, a bit retro." The designer writes one prompt and pastes it into five image models:
 
-| Model (October 2026)           | What its guide asks for                                                                                                                        |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| OpenAI GPT Image 2.5           | Name the subject and the use. "For complex requests, organize the prompt as scene, subject, details, and constraints, using labeled sections." |
-| Google Nano Banana (Gemini)    | "Be hyper-specific: The more detail you provide, the more control you have." Say the purpose of the image.                                     |
-| Black Forest Labs FLUX 3 Image | Describe what appears. Refer to input images by position: "image 1", "image 2".                                                                |
-| Ideogram 4.5 and 4.0           | Full sentences, main idea first. Plain language or a JSON prompt.                                                                              |
-| Recraft V4 and V4.1            | The model name decides raster or vector. Short prompts to explore, structured prompts for a set art direction.                                 |
+```text
+A beautiful, iconic photo of our friendly retro bike shop, masterpiece, 8k.
+Use the photo for the look.
+```
 
-The habits overlap. All five want things you can see. The differences are in the details below.
+The designer also attaches two files: a photo of the real shopfront, and an old film photo whose colours the owner loves.
 
-## Write only what can be seen
+Five models give five different images. Two copy the street from the film photo. Nobody can say which words caused what.
 
-FLUX's basics page shows a long caption and lists what makes it work. One point is "Only what's visible: no "beautiful", "iconic", or "masterpiece"." Every phrase names something "you could point to in the frame".
+Each model has its own **dialect**: the way its official guide asks you to write. One prompt cannot fit all five.
 
-Ideogram says the same in its own words. It "reads your words literally and tries to show every one of them". So "Add a word you don't need and it may show up in the image."
+## The idea
 
-For the tea poster, "premium" is a mood word. Turn it into things you can see (our example): "a matte white tin with a thin gold rim, on pale stone".
+A note on dates: the model names here are the ones on each vendor's page in October 2026. They change often.
 
-## No hidden syntax
+### Five guides, five habits
 
-Some designers bring habits from other tools: weights like `::1`, or flags like `--ar 16:9` at the end of a prompt. Ideogram says it doesn't read these as commands; "it treats them as words." Its advice: "Set aspect ratio, seed and quality in the Image app settings instead."
+| Model family (October 2026)    | What its guide asks for                                                  |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| OpenAI GPT Image 2.5           | The subject and the intended use; labelled parts for complex requests    |
+| Google Nano Banana (Gemini)    | Many specific details, and the purpose of the image                      |
+| Black Forest Labs FLUX 3 Image | Only what is visible; reference images named by position                 |
+| Ideogram 4.5, 4.0 and 3.0      | Full sentences, main idea first, said in positive words                  |
+| Recraft V4 and V4.1            | The model name picks raster or vector; vector prompts describe structure |
 
-FLUX works the same way. On FLUX 3 Image, "the prompt carries everything you want to control", and the request has fields such as `aspect_ratio` and `resolution`. So keep settings in the settings and the picture in the prompt (our advice). Tool Forge, chapter 1, showed the OpenAI and Gemini settings.
+The [OpenAI prompting guide](https://developers.openai.com/api/docs/guides/image-prompting) says: "Name the subject and intended use". It adds: "For complex requests, organize the prompt as scene, subject, details, and constraints, using labeled sections."
 
-## Negatives, again
+The [Gemini docs](https://ai.google.dev/gemini-api/docs/image-generation) say: "Be hyper-specific: The more detail you provide, the more control you have." They also say: "Explain the purpose of the image."
 
-Chapter 9 of Prompt Forest showed that OpenAI, Gemini and older Imagen treat "don't" differently. The three newer vendors add more variety.
+### Write only what can be seen
 
-- **FLUX 3 Image** "has no negative prompt field". Its guide says: describe "an empty promenade" instead of "no crowds".
-- **Ideogram** says "An empty street" works better than "a street with no people." Only Ideogram 3.0 has a separate **Negative prompt** field, and "Your main prompt always wins."
-- **Recraft** lists `negative_prompt` in its API for V2 and V3 models only.
+The [FLUX basics guide](https://docs.bfl.ai/guides/prompting_unified_basics) lists what makes a good caption. One point is "Only what's visible". It says: "Every phrase names something you could point to in the frame." It names three words to drop: "beautiful", "iconic" and "masterpiece".
 
-So start with positive words on all five (our reading). OpenAI's guide also shows a short exclusion line: "No extra text, no watermarks, no unrelated logos." Use a negative field only where the model has one.
+The [Ideogram guide](https://docs.ideogram.ai/prompting/prompting) explains why. Ideogram "reads your words literally and tries to show every one of them". So: "Add a word you don't need and it may show up in the image." Its habit: "Describe what can be seen."
 
-## Raster or vector
+OpenAI's guide says the same for big scenes: "specify scale, atmosphere, and color instead of relying on mood words alone."
 
-Most image models make **raster** images: a grid of pixels, like a PNG or JPEG. A **vector** image (SVG) stores shapes and lines instead of pixels (our plain gloss).
+### Settings stay out of the prompt
 
-Recraft makes both. Its model list says names "ending in `_vector` produce vector (SVG) images; all other models produce raster images". It also has a `/generations/vector` **endpoint** (the API address you send the request to) that accepts only vector models.
+Ideogram says: "There is no hidden syntax." A weight like `::1` or a flag like `--ar` is read as plain words, not as a command. Its advice: "Set aspect ratio, seed and quality in the Image app settings instead."
 
-The prompt changes too. For logo and vector work, Recraft's V4 guide says to define the graphic type, shape logic, colour system, line discipline, layout and constraints. In plain words: what shapes it is built from, and how thick and even the lines are. It adds: "Avoid texture or material-focused language." So "matte white tin with a gold rim" suits a raster photo. For an SVG icon of the same tin, write "flat outline icon, two colours, even stroke, centred" (our example).
+The [FLUX technical page](https://docs.bfl.ai/guides/prompting_unified_technical) says: "On FLUX 3 Image, the prompt carries everything you want to control." Format goes in request fields, such as `aspect_ratio` (our reading: picture in the prompt, format in the fields).
 
-## Who rewrites your prompt?
+### Say what you want, not what you don't
 
-Some models change your words before they draw. Know which ones do.
+Models treat "no" in different ways.
 
-- **Ideogram Magic Prompt** "Enhances your prompt to improve image variety and richness." It starts on. "Turn it off when you want the model to follow your exact words."
-- **FLUX 3 Image** expands a short prompt "into a detailed description before it generates the image". There is no switch for it (our reading): the guide says FLUX 3 Image has no `prompt_upsampling` field.
-- **Recraft Enhance prompt** is a separate request. It returns one `enhanced_prompt` string, and you choose whether to use it. Price on the page in October 2026: $0.01 per request.
-- **OpenAI** says the mainline model in its image generation tool "will automatically revise your prompt". You can read the new version in the `revised_prompt` field (Prompt Forest, chapter 9).
+- **FLUX 3 Image** "has no negative prompt field". Its guide says to name what you would see there instead: an empty promenade, not a promenade with no crowds. Its swap table turns "no people" into words like "empty" or "solitary", and "no text" into words like "unmarked".
+- **Ideogram** says: "Say what you want, not what you don't." Its example: an empty street works better than a street with no people.
+- **Ideogram 3.0** is the only Ideogram model with a **Negative prompt** field, by the [Ideogram settings page](https://docs.ideogram.ai/create/image-settings). Even there, "Your main prompt always wins."
+- **Recraft** lists `negative_prompt` in its [API reference](https://www.recraft.ai/docs/api-reference/endpoints) for "V2 / V3 models" only.
+- **OpenAI** shows a short exclusion line in one example: "No extra text, no watermarks, no unrelated logos."
 
-Our advice: when exact wording matters, such as a product name or a legal line, turn the rewriter off or read what it wrote.
+Our reading: start with positive words on all five. Use a negative field only on a model that has one.
 
-## One brief, written five ways
+### Raster or vector
 
-Here is the start of the tea brief in each dialect (our examples):
+Most image models make **raster** images: a grid of pixels, like a PNG or a JPEG. A **vector** image (SVG) stores shapes and lines instead, so it stays sharp at any size (our plain gloss).
 
-- **OpenAI:** labelled parts. "Scene: … Subject: … Details: … Constraints: …"
-- **Gemini:** one rich scene paragraph, with the purpose: "A launch poster for a premium jasmine tea brand…"
-- **FLUX:** medium first, then subject and positions: "Studio product photograph. In the centre, a matte white tin…"
-- **Ideogram:** the main idea in the first sentence. Magic Prompt off if the wording is final.
-- **Recraft:** pick `recraftv4_1` for a raster photo or a `_vector` model for the SVG icon, then write for that format.
+Recraft makes both. Its [model list](https://www.recraft.ai/docs/api-reference/models/overview) says names "ending in `_vector` produce vector (SVG) images; all other models produce raster images". Its API also has a `/generations/vector` **endpoint** (the web address a request goes to). It accepts only vector models.
 
-## What this means for your work
+The prompt changes too. For logo and vector work, the [Recraft V4 guide](https://www.recraft.ai/docs/prompt-engineering-guide/prompting-with-recraft-v4) asks you to define the graphic type, shape logic, colour system, line discipline, layout structure and constraints. It adds: "Avoid texture or material-focused language." In plain words: describe shapes, colours and lines, not shine or metal.
 
-- **Read the guide for the model you use.** The habits overlap, but the details differ.
-- **Only write what can be seen.** Swap mood words for objects, light and colour.
-- **Keep settings out of the prompt.** Flags like `--ar` are just words to Ideogram.
-- **Positive words first.** OpenAI's guide also shows a short exclusion line.
-- **Pick raster or vector first** when the vendor offers both.
-- **Know your rewriter.** Turn it off, or read its version, when words must stay exact.
+### Who rewrites your prompt?
+
+Some models change your words before they draw.
+
+- **Ideogram Magic Prompt** "Enhances your prompt to improve image variety and richness." The prompting guide says it is a toggle "On every Ideogram model", and the settings page says it "starts on". Its advice: "Turn it off when you want the model to follow your exact words."
+- **FLUX 3 Image** expands a short prompt "into a detailed description before it generates the image". It has no `prompt_upsampling` field, so there is no switch for this (our reading).
+- **Recraft Enhance prompt** is a separate request. It returns an `enhanced_prompt`, and you decide whether to use it. The [page](https://www.recraft.ai/docs/api-reference/tools/enhance-prompt) lists "$0.01 per request".
+- **OpenAI**: in the image generation tool, the mainline model "will automatically revise your prompt for improved performance", says the [OpenAI image docs](https://developers.openai.com/api/docs/guides/image-generation). You can read the new version in `revised_prompt`.
+
+Our advice: when exact words matter, turn the rewriter off or read what it wrote.
+
+### Reference images by position
+
+FLUX 3 Image takes reference images in an `images` list. The guide says to "refer to references by position: "image 1" is the first entry in `images`, "image 2" the second." It also says: "Clarify the purpose of each image."
+
+## Worked example
+
+Our example. The shop, the files and the prompts are made up.
+
+### Step 1: find the mood words
+
+```text
+A beautiful, iconic photo of our friendly retro bike shop, masterpiece, 8k.
+Use the photo for the look.
+```
+
+"Beautiful", "iconic" and "masterpiece" are the three words FLUX names. "Friendly" and "retro" are moods too. You cannot point to any of them in the frame.
+
+### Step 2: turn each mood into things you can see
+
+```text
+friendly  -> open door, a hand-painted OPEN sign, a bike on a stand by the door
+honest    -> tools hanging on a pegboard, a work bench you can see from the street
+retro     -> faded mint-green paint, a 1970s racing bike in the window
+```
+
+### Step 3: the OpenAI version, in labelled parts
+
+```text
+Use: hero image for a bike repair shop's website, wide 16:9 banner.
+Scene: a narrow street on a sunny morning.
+Subject: a small bike repair shop with faded mint-green paint and an open door.
+Details: a 1970s racing bike in the window; tools on a pegboard inside;
+a bike on a work stand by the door; warm, low sunlight from the left.
+Constraints: photorealistic; no people; keep the left third calm for a headline.
+```
+
+The use comes first, as OpenAI's guide asks. Each part can change on its own later.
+
+### Step 4: the hard case, two reference images
+
+**The hard case is the two attached photos.** "Use the photo" does not say which one. It does not say what to take from it, either. The model took the street from the film photo.
+
+Name each image by its place in the `images` list, and give each one a job:
+
+```text
+images: [shopfront.jpg, film-sample.jpg]
+
+Prompt (FLUX 3 Image):
+Street-level photograph of the bike repair shop in image 1, same mint-green
+front and same window. Colour and grain like image 2: warm faded film tones,
+soft yellow highlights. A 1970s racing bike in the window. A bare, sunny
+pavement in front of the open door.
+```
+
+Image 1 gives the subject. Image 2 gives only the colour.
+
+### Step 5: why it is better
+
+- **Every word can be drawn.** No model guesses what "iconic" looks like.
+- **Each model gets its own shape**, and **each image has one job**.
+
+## Common mistakes
+
+1. **Praise words in the prompt.** "Stunning" and "masterpiece" name nothing in the frame. Fix: swap each one for an object, a light or a colour.
+2. **One prompt, pasted into every model.** The habits differ in the details. Fix: read the guide for the model you use, and reshape the prompt for it.
+3. **Leaving out the use.** "A photo of a bike shop" could be a poster or a tiny icon. Fix: start with what the image is for, as the OpenAI and Gemini guides ask.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A café asks for a menu-board photo. For each phrase, say whether you could point to it in the frame. Rewrite the ones you can't.
+
+1. "cosy autumn vibe"
+2. "a ceramic cup of hot chocolate on a dark wooden counter"
+3. "award-winning, trending, professional"
+
+### Answer
+
+1. **Not visible.** "Cosy" and "vibe" are moods. Our rewrite: "a knitted blanket on a window seat, orange maple leaves outside the glass, low warm lamp light".
+2. **Visible.** A cup, a drink, a material and a surface. Keep it as it is.
+3. **Not visible.** These are praise words, like the three FLUX tells you to drop. Delete them. If you want a quality look, describe it: "sharp focus on the cup, soft blurred background" (our example).
+
+## Recap
+
+- Write only what you could point to in the frame. Mood and praise words give the model nothing to draw.
+- Each model has a dialect: the use and labelled parts for OpenAI, detail and purpose for Gemini, visible captions and image positions for FLUX, positive sentences for Ideogram, and the model name for Recraft's raster or vector.
+- Keep settings in settings, say what you want instead of "no", and know which models rewrite your prompt.

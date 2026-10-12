@@ -1,7 +1,7 @@
 ---
 id: creator/r11/c2/lesson
 title: Hex & palettes
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Black Forest Labs docs · HEX color code prompting (FLUX.2)
@@ -12,6 +12,9 @@ sources:
   - kind: docs
     title: Ideogram docs · JSON prompting
     url: https://docs.ideogram.ai/prompting/json-prompting
+  - kind: docs
+    title: Ideogram docs · Prompting basics
+    url: https://docs.ideogram.ai/prompting/prompting
   - kind: docs
     title: Ideogram docs · Models
     url: https://docs.ideogram.ai/create/models
@@ -26,101 +29,184 @@ sources:
     url: https://www.recraft.ai/docs/recraft-studio/color-palettes/using-color-palettes-in-generation
 ---
 
-## Why it matters
+## Goal
 
-A brand book says: "Our green is #2E6B4F." You write "forest green" in the prompt. The model gives you a green, but not that green.
+After this lesson you can:
 
-Prompt Forest, chapter 7, showed the colour words that OpenAI's and Google's guides use. Their examples use words, not codes. This chapter shows three image vendors whose docs take exact colour codes: Black Forest Labs (FLUX), Ideogram and Recraft. Each one takes them in a different place.
+- Read a hex code and turn it into RGB numbers.
+- Put an exact colour in the right place for FLUX, Ideogram and Recraft.
+- Plan a palette for a whole image and for one part of it, inside each tool's limits.
 
-## What a hex code is
+## The problem
 
-A **hex code** is a `#` and six characters that name one exact screen colour (our plain gloss). For example, BFL's guide calls `#1B6B6F` "deep teal". Designers copy them from a brand book or a colour picker.
+Fernline sells camping gear. Its brand book has three colours:
 
-Some tools want **RGB** numbers instead: three numbers from 0 to 255 for red, green and blue. The six characters are those three numbers, two characters each, written with the digits 0–9 and the letters A–F (base 16). So `#2E6B4F` is `[46, 107, 79]` (our worked example).
+```text
+Pine     #1F4D3A
+Sand     #E9D8B4
+Ember    #E8622C
+```
 
-## Three places a colour code can go
+The team needs six web banners, each with an orange tent. The designer writes "a bright orange tent" in every prompt. The six tents come out in six oranges. One is almost red. The shop page looks like six brands, not one.
 
-| Where                | Vendor (October 2026)         | What you write                                                  |
-| -------------------- | ----------------------------- | --------------------------------------------------------------- |
-| In the prompt text   | BFL FLUX                      | "the mug in color #FF0000"                                      |
-| In a JSON prompt     | Ideogram 4.5 and 4.0          | a `color_palette` list, for the whole image or for one element  |
-| In a request setting | Recraft API; Ideogram 3.0 app | Recraft `controls.colors`; Ideogram's **Color palette** setting |
+Colour words name a family of colours. A brand needs one exact colour. Three image vendors take exact colour codes: Black Forest Labs (FLUX), Ideogram and Recraft. Each takes them in a different place, in a different format, with different limits.
 
-## In the prompt: tie each code to one thing
+## The idea
 
-BFL's hex page is written for FLUX.2. Its rule: "Associate each code with an object or surface, using a phrase such as "the mug in color #FF0000"."
+### Hex and RGB
 
-It also warns: "Hex codes work best when clearly associated with specific objects. Vague references like "use #FF0000 somewhere" may produce inconsistent results."
+A **hex code** is a `#` and six characters that name one exact screen colour (our plain gloss). The [FLUX 3 style guide](https://docs.bfl.ai/guides/prompting_unified_style) says: "A hex code names an exact color."
 
-One of its examples gives each surface its own code: "warm terracotta walls in hex #C4725A, a large L-shaped sectional sofa in deep teal hex #1B6B6F". Notice it keeps a colour word next to each code.
+Some tools want **RGB** numbers instead: three numbers from 0 to 255 for red, green and blue. A hex code holds the same three numbers, two characters each, written in base 16 (the digits 0–9, then the letters A–F). Our worked conversion for Ember:
 
-The FLUX 3 style guide uses the same idea in an edit: "change the color of only one bird in the middle to #e01075". Its advice: "Tie each hex code to one named object".
+```text
+#E8622C  ->  E8 = 232   62 = 98   2C = 44   ->  [232, 98, 44]
+```
 
-For our brand (our example):
+### Three places a code can go
 
-> A matte tin in color #2E6B4F with a cream label in color #F5F0E8, on a pale stone shelf.
+| Where                | Vendor (October 2026)         | What you write                                 |
+| -------------------- | ----------------------------- | ---------------------------------------------- |
+| In the prompt text   | BFL FLUX.2 and FLUX 3 Image   | each code beside the thing it paints           |
+| In a JSON prompt     | Ideogram 4.5 and 4.0          | a `color_palette` list of uppercase hex codes  |
+| In a request setting | Recraft API; Ideogram 3.0 app | Recraft `controls`; Ideogram **Color palette** |
 
-## In a JSON prompt: Ideogram's `color_palette`
+### In the prompt: FLUX
 
-Ideogram 4.5 and 4.0 accept a **JSON prompt**. JSON is a text format of named fields in curly brackets. There are two palette places:
+The [BFL hex guide](https://docs.bfl.ai/guides/usecases_t2i_hex_color_prompting) is written for FLUX.2. It says to signal a code "with keywords like "color" or "hex" followed by the code". Its main rule: "Associate each code with an object or surface, using a phrase such as "the mug in color #FF0000"."
 
-- `style_description.color_palette`: "Up to 16 hex colors that steer the main colors."
-- `color_palette` on one element: "Up to 5 uppercase `#RRGGBB` colors for this element."
+It also warns: "Hex codes work best when clearly associated with specific objects." A vague line such as "use #FF0000 somewhere" "may produce inconsistent results."
 
-The format is strict. "Write hex codes in uppercase `#RRGGBB`, never `#rgb` or lowercase." So `#2e6b4f` must become `#2E6B4F`.
+The FLUX 3 style guide gives the same advice in an edit example: "Tie each hex code to one named object". In its example, one bird in a flock turns pink and the rest stay black.
 
-Ideogram's tips: add the background colours to the palette "if you want to set the overall tone", and add "both highlight and shadow colors for more control over lighting".
+BFL's own examples keep a colour word next to the code, such as "deep teal hex #1B6B6F".
 
-It is also honest about the limit. The colours "steer the colors strongly but don't lock every pixel."
+### In a JSON prompt: Ideogram 4.5 and 4.0
 
-## In a setting: Recraft and Ideogram 3.0
+**JSON** is a text format of named fields inside curly brackets. The [Ideogram JSON guide](https://docs.ideogram.ai/prompting/json-prompting) has two palette places:
 
-**Recraft's API** has a `controls` object. Its `colors` field is "An array of preferable colors", and `background_color` is "a desired background color". Each colour is an `rgb` list, not a hex code. The rules on the page:
+- The whole image, in the `color_palette` inside `style_description`: "Up to 16 hex colors that steer the main colors."
+- One element, in its own `color_palette`: "Up to 5 uppercase `#RRGGBB` colors for this element."
 
-- At most 10 colours.
-- An optional `weight` from 0.0 to 1.0 for each colour.
-- Weights go on every colour or on none, and they must not add up to more than 1.0.
+The format is strict: "Write hex codes in uppercase `#RRGGBB`, never `#rgb` or lowercase."
 
-For our brand green with a strong preference (our example):
+Two more tips from the same page:
+
+- "Add the background colors to the palette if you want to set the overall tone."
+- "Add both highlight and shadow colors for more control over lighting."
+
+And one honest limit: the colours "steer the colors strongly but don't lock every pixel."
+
+The [Ideogram prompting guide](https://docs.ideogram.ai/prompting/prompting) adds that JSON works on 4.5 and 4.0 only. Plain language "is all Ideogram 3.0 accepts."
+
+### In a setting: Recraft and Ideogram 3.0
+
+The [Recraft API reference](https://www.recraft.ai/docs/api-reference/endpoints) has a `controls` object:
+
+- `colors` is "An array of preferable colors."
+- `background_color` sets "a desired background color".
+
+A colour is written as `rgb`: three whole numbers, "each in the `0...255` range". It is not a hex string. The page lists three more rules:
+
+- "A `colors` array may contain at most 10 colors."
+- Each colour can have an optional `weight` from 0.0 to 1.0: "The relative preference of this color".
+- "Weights must be set either for every color in the array or for none, and their sum across the array must not exceed `1.0`."
+
+The [Ideogram models page](https://docs.ideogram.ai/create/models) says Ideogram 3.0 "is the only model with" color palettes in the app. The [settings page](https://docs.ideogram.ai/create/image-settings) explains the **Color palette** setting:
+
+- A custom palette takes "up to 8 hex codes separated by spaces".
+- "Treat it as a direction, not an exact color match; it works best alongside color words in your prompt."
+- "Custom palettes need a Plus, Pro, Team or Enterprise plan."
+
+Recraft's app has palettes too. Its [palette page](https://www.recraft.ai/docs/recraft-studio/color-palettes/using-color-palettes-in-generation) gives a tip: "The more complex your prompt or style, the harder it may be for the model to strictly adhere to limited palettes."
+
+### Codes steer, they do not lock
+
+Every vendor here hedges. BFL: "Check the rendered color when accuracy matters." Ideogram: "a direction, not an exact color match". Recraft calls them "preferable" colours.
+
+So a code is a strong hint, not a promise (our reading). Our check: open the image in a design tool, pick the brand area with a colour picker, and compare the code with the brand book. If it is too far off, try again, simplify the prompt, or fix that area by hand.
+
+## Worked example
+
+Our example. The brand, the colours and the JSON are made up.
+
+### Step 1: the weak plan
+
+```text
+Prompt, all six banners: "... a bright orange tent ..."
+```
+
+The word "orange" covers hundreds of colours. Nothing ties the six tents together.
+
+### Step 2: a palette for the whole banner set
+
+The team uses Ideogram 4.5 with a JSON prompt. Every banner shares one whole-image palette. It includes the sand background, because the JSON guide says background colours "set the overall tone".
 
 ```json
-"controls": {
-  "colors": [{ "rgb": [46, 107, 79], "weight": 0.6 }],
-  "background_color": { "rgb": [245, 240, 232] }
+"style_description": {
+  "medium": "photograph",
+  "color_palette": ["#1F4D3A", "#E9D8B4", "#E8622C"]
 }
 ```
 
-**Ideogram's app** has a **Color palette** setting, and the models page says Ideogram 3.0 is the only Ideogram model with it. Custom palettes take "up to 8 hex codes separated by spaces". The page says to "Treat it as a direction, not an exact color match; it works best alongside color words in your prompt." Custom palettes need a Plus, Pro, Team or Enterprise plan.
+### Step 3: a palette for one element
 
-Recraft Studio has palettes too, with a tip: "The more complex your prompt or style, the harder it may be for the model to strictly adhere to limited palettes."
+The tent is the hero, so it gets its own element palette. The JSON guide's tip is to add highlight and shadow colours for light. The designer's first list:
 
-## One palette, three formats
+```text
+#E8622C  Ember (main)
+#F4935F  Ember highlight
+#B8461B  Ember shadow
+#1F4D3A  Pine trim
+#FFFFFF  logo white
+#8A8A8A  rope grey
+#C0C0C0  pole silver
+```
 
-The brand has two colours: green `#2E6B4F` and cream `#F5F0E8`. Here is the same pair for each vendor (our examples):
+### Step 4: the hard case
 
-| Vendor        | How the pair goes in                                                                 |
-| ------------- | ------------------------------------------------------------------------------------ |
-| FLUX          | "a tin in color #2E6B4F with a label in color #F5F0E8", each code next to its object |
-| Ideogram JSON | `"color_palette": ["#2E6B4F", "#F5F0E8"]`, uppercase                                 |
-| Recraft API   | `"rgb": [46, 107, 79]` in `colors`, and `[245, 240, 232]` as `background_color`      |
+**The hard case is the tent list.** It has 7 colours. An element palette takes "Up to 5". So two must go. But which?
 
-Keep this table in the brand file. Then nobody converts the codes by hand twice (our habit).
+Our reading: keep what gives the tent its look and its light. The main colour, the highlight and the shadow stay. Pine trim stays, because it ties the tent to the brand. White stays for the logo. Grey rope and silver poles are small, so they become plain words in the element's description.
 
-## Check the colour every time
+```json
+{
+  "type": "obj",
+  "desc": "A dome tent with pine-green trim, a small white logo, grey guy ropes and silver poles",
+  "color_palette": ["#E8622C", "#F4935F", "#B8461B", "#1F4D3A", "#FFFFFF"]
+}
+```
 
-Every vendor here hedges. BFL: "Check the rendered color when accuracy matters." Ideogram: "don't lock every pixel" and "a direction, not an exact color match". Recraft: "preferable colors".
+### Step 5: why it is better
 
-So treat a code as a strong hint, not a promise (our reading). Our check:
+- **One palette, six banners.** The whole-image list keeps the set in one family.
+- **The hero gets its own list,** with light and shade, inside the limit of 5.
+- **Small parts still get a colour,** in words. Each palette stays short and clear.
 
-1. Open the image in your design tool.
-2. Pick the brand area with a colour picker.
-3. Compare the code to the brand book.
-4. Too far off? Try again, simplify the prompt, or fix it by hand. Prompt Forest, chapter 7, shows when to composite instead (paste the approved part back into the original).
+## Common mistakes
 
-## What this means for your work
+1. **A JSON palette sent to Ideogram 3.0.** Ideogram 3.0 accepts plain language only. Fix: use its **Color palette** setting and add colour words to the prompt.
+2. **A long, busy prompt with a tight palette.** Recraft warns that a complex prompt makes a limited palette harder to follow. Fix: shorten the prompt when exact colour matters most.
+3. **A palette with no background colour.** The main object may be right, but the mood is off. Fix: add the background colours when you want to set the overall tone.
 
-- **Write the code next to the thing it colours.** Never "somewhere".
-- **Keep a colour word too.** "Deep teal #1B6B6F" reads better than a bare code.
-- **Match the format.** Uppercase hex for Ideogram JSON; RGB numbers for Recraft.
-- **Use the palette fields for sets.** One palette, many images.
-- **Check with a colour picker.** Codes steer; they do not lock.
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+Pick the best place for the colour in each job. Say why.
+
+1. On Ideogram 4.5, a team photo where only one person's scarf must be the club's red.
+2. On Ideogram 3.0, ten quick drafts in a warm autumn look, on a Pro plan.
+3. On Recraft's API, a set of icons on a pale grey background.
+
+### Answer
+
+1. **An element palette in a JSON prompt.** The scarf is one element, so its own `color_palette` holds the red. The rest of the photo keeps its own colours.
+2. **The Color palette setting.** Ideogram 3.0 takes plain language only, so there is no JSON. A custom palette needs a paid plan such as Pro. Add colour words like "rust" and "amber" too, since the setting works best with them.
+3. **`background_color` in `controls`.** It sets the desired background colour for that request, so every icon in the set can share the same grey.
+
+## Recap
+
+- A hex code and an RGB list name the same colour. FLUX reads codes in the prompt text, Ideogram 4.5 and 4.0 read uppercase codes in JSON, and Recraft reads RGB numbers in `controls`.
+- Each place has its own limits: 16 colours for an Ideogram image, 5 per element, 8 in the Ideogram 3.0 setting, and 10 in a Recraft `colors` array.
+- Codes steer the colour; they do not lock it. Check every brand area with a colour picker.
