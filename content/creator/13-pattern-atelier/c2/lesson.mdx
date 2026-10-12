@@ -1,7 +1,7 @@
 ---
 id: creator/r13/c2/lesson
 title: Modes & themes
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
     title: Figma Learn · Modes for variables
@@ -20,83 +20,197 @@ sources:
     url: https://www.designtokens.org/tr/2025.10/resolver/
 ---
 
-## Why it matters
+## Goal
 
-Marlow Tea, the shop from chapter 1, now wants a dark theme for its app. Next year it opens a second brand, Marlow Kids, with brighter colours. That makes four looks: two brands, each light and dark.
+After this lesson you can:
 
-You could copy every screen four times. Or you could keep one set of screens and switch the values under them. That switch is a **mode** in Figma and a **theme** in Penpot. The DTCG Resolver Module calls it a **context** of a **modifier**.
+- Give one token name more than one value, with modes in Figma, themes in Penpot, or a DTCG resolver file.
+- Count how many looks a design system makes, and keep that number small.
+- Say which value a tool or an agent will use when nobody names a mode.
 
-Chapter 1 built one token file with names and aliases. This chapter gives each name more than one value. Canvas Workshop, chapter 6, showed how Figma variables sync and publish; that is not repeated here.
+## The problem
 
-A note on dates. The tool details below are from each vendor's page in October 2026.
+A museum guide app has a light look and a dark look. Visitors can also turn on large text. The designer has started to copy every screen: light, dark, light with large text, dark with large text. That is four copies of 30 screens. Each fix must now be made four times.
 
-## Modes in Figma
+The fix is a single set of screens, with the values under them swapped by a setting. Figma calls the switch a **mode**. Penpot calls it a **theme**. The DTCG resolver file calls each choice a **context** of a **modifier**.
 
-Figma says: "A mode is a list of values for a variable in a collection, storing one value per variable." A **collection** is a set of variables and modes (our plain gloss: one table, one column per mode).
+## The idea
 
-Here is a colour collection (our example):
+### Modes in Figma
 
-| Variable         | Light     | Dark      |
-| ---------------- | --------- | --------- |
-| `bg/page`        | `#ffffff` | `#10201a` |
-| `text/primary`   | `#10201a` | `#f2f5f3` |
-| `button/primary` | `#21734d` | `#5fbf8f` |
+The [Figma variables overview](https://help.figma.com/hc/en-us/articles/14506821864087-Overview-of-variables-collections-and-modes) gives two definitions:
 
-Designers apply `bg/page` once. Then they switch the frame between Light and Dark. Figma says that for a third theme, "all we need to do is create a new mode and input values for that theme." Figma's own ideas for modes include "accessible color themes, like high contrast mode", languages and device sizes.
+- "A collection is a set of variables and modes."
+- "A mode is a list of values for a variable in a collection, storing one value per variable."
 
-Two rules decide which value a layer shows, and one limit applies:
+A small comparison: a collection is like a table. Each variable is a row, and each mode is a column.
 
-- **The default mode** is "the left-most column" of the collection. A design uses it "until you explicitly set a specific mode".
-- **Auto** is the starting setting for objects. An Auto object takes "the mode of their parent container". If no parent sets a mode, it falls back to the default.
-- **Plan limits.** "The number of modes you can create per variable collection depends on your plan."
+| Variable       | Light     | Dark      |
+| -------------- | --------- | --------- |
+| `bg/page`      | `#ffffff` | `#141414` |
+| `text/primary` | `#141414` | `#f2f2f2` |
 
-## Modes from token files
+The [Figma modes page](https://help.figma.com/hc/en-us/articles/15343816063383-Modes-for-variables) says a new theme is cheap: "all we need to do is create a new mode and input values for that theme." Its ideas for modes include "high contrast mode", languages, and device sizes like "watch, mobile, and desktop". A mode can be set on a layer, frame, component, section, group or page. "The number of modes you can create per variable collection depends on your plan."
 
-Chapter 1's token file can carry modes too. Figma imports DTCG files into modes: "A new mode will be created for each file you import." So `light.tokens.json` and `dark.tokens.json` become two columns.
+### Which mode wins
 
-Figma creates a variable only for tokens that are "present in all imported files" and "Have the same $type across all imported files". If `dark.tokens.json` forgets `button/primary`, that variable is not created at all (our reading of that rule). You can also export one mode, or all modes of a collection, back to JSON.
+Two rules on the Figma modes page decide the value a layer shows:
 
-## Themes in Penpot
+- **Default.** "The default mode of a variable collection is the left-most column." Objects use it "until you explicitly set a specific mode to the object or page."
+- **Auto.** "Objects with variables have their modes set to Auto by default. This means they take on the mode of their parent container." If no parent sets a mode, "the objects fallback to the collection's default mode".
 
-Penpot builds themes from **token sets**. A set is a group of tokens, such as one set per mode. Order matters: if two sets have a token with the same name, "the tokens that are in the set that appears last in the list will override the previous ones".
+Our reading: if nobody sets a mode, the left-most column wins.
 
-A Penpot theme turns sets on for "a specific context, such as a brand, a mode or a touchpoint". Themes can sit in groups. Penpot's own example has groups like "Mode - Light, Dark" and "Brand - RedPlanet, YellowCab". In each group, "only one of the themes in this group can be active". So you pick one mode and one brand at the same time.
+### Modes from token files
 
-## Themes in the standard: the Resolver
+Figma can import DTCG token files into a new collection. "A new mode will be created for each file you import." Variables are only created for tokens that:
 
-The DTCG's **Resolver Module 2025.10** (a stable community group report, like the Format Module) describes this in a file. A resolver is a file that says which tokens apply for a given choice, such as dark theme plus kids brand (our plain gloss). It names the problem first: theme contexts are "susceptible to combinatorial explosion". **Combinatorial explosion** means every new option multiplies the number of looks (our plain gloss).
+- "Are present in all imported files"
+- "Have the same $type across all imported files"
 
-A resolver file has **sets** (tokens that always apply) and **modifiers** (tokens that depend on a choice). Each modifier has **contexts**, such as `light` and `dark`, and may name a `default`. A `default` must be one of its contexts. The spec counts the results as "the product of all contexts across all modifiers". Two brands times two themes is four.
+You can also export one mode, or all modes of a collection, back to a JSON file.
 
-The order matters here too: tokens "later in the array" override earlier ones.
+### Themes in Penpot
 
-## Brand A and brand B
+The [Penpot tokens page](https://help.penpot.app/user-guide/design-systems/design-tokens/) builds themes from **token sets**. A set is a group of tokens you can turn on or off. Order matters: when two sets have a token with the same name, "the tokens that are in the set that appears last in the list will override the previous ones".
 
-Two brands that share most tokens need a parent and a child, not two copies.
+A Penpot theme turns sets on "in a specific context, such as a brand, a mode or a touchpoint". Themes can sit in **theme groups**, like "Mode - Light, Dark" and "Brand - RedPlanet, YellowCab". Penpot says: "When you have various themes inside a group, only one of the themes in this group can be active." Themes from different groups can be active together, so you pick one mode and one brand.
 
-- **Figma.** Figma says extended collections need the Enterprise plan. An **extended collection** is a child of a parent collection, one per brand. It "will inherit updates made to any variables that have not been explicitly overridden". You cannot "add additional variables or modes" in the child; change those in the parent.
-- **Penpot.** A Brand theme group with one theme per brand, each turning on its own brand set.
-- **DTCG Resolver.** A `brand` modifier next to a `theme` modifier. The spec warns about **orthogonality**: if both modifiers set `color.button`, "array order determines the final value". Keep brand tokens and theme tokens apart where you can (the spec's advice: it "reduces user error").
+### The DTCG resolver
 
-## How an agent picks a mode
+The [DTCG Resolver Module 2025.10](https://www.designtokens.org/tr/2025.10/resolver/) is a "Final Community Group Report", like the format spec. A **resolver** file says which tokens apply for a given choice. The spec names the problem it solves: contexts "are susceptible to combinatorial explosion". In plain words, every new option multiplies the number of looks.
 
-An agent cannot see which mode you mean. It reads what the tool gives it.
+A resolver has three main parts:
 
-The Resolver spec makes this explicit. The chosen contexts are an **input**, such as `{ "theme": "dark", "brand": "kids" }` (our example). Tools that load modifiers "SHOULD throw an error if an accompanying input is not provided". An input with an unknown context, like `"theme": "blue"`, is invalid. A modifier that names a `default` can be left out of the input; the spec needs no error for it.
+- **Sets.** "A set is a collection of design tokens in DTCG format." Their tokens always apply.
+- **Modifiers.** "A modifier is similar to a set, but allows for conditional inclusion via the contexts map." Each modifier has **contexts**, such as `light` and `dark`.
+- **Resolution order.** An array of sets and modifiers. "Tokens later in the array" override "any tokens that came before them".
 
-In Figma, the risk is quieter. A frame left on Auto, with no parent mode, shows the default column. So an agent that reads that frame may get the Light values, even if you are building the dark screen (our note).
+A modifier "MAY declare a default value that MUST match one of the keys in contexts." The number of looks is "the product of all contexts across all modifiers". The spec's own sum: 2 modifiers with 2 contexts each give "4 resolutions, or 2 × 2".
 
-So write the mode down every time:
+**Orthogonal** means two modifiers set different tokens. The spec's example: if a theme modifier and a brand modifier both set `color.button`, "array order determines the final value". It adds that orthogonal modifiers reduce "user error".
 
-- Put it in the request: "Build the dark-mode, Marlow Kids version."
-- Set the mode on the frame in Figma, not Auto, before the agent reads it.
-- In a resolver or build script, pass the input. Don't rely on a default you forgot.
+### The input
 
-## What this means for your work
+A resolver needs a choice to build one look. The spec calls that choice an **input**, such as `{ "theme": "dark", "size": "large" }`. "Tools that load a resolver that declares modifiers SHOULD throw an error if an accompanying input is not provided." An input with an unknown context, like `"theme": "blue"`, is invalid. The spec's list of errors also includes a missing modifier, with "no error needed" for a modifier that has a default.
 
-- **One name, many values.** A mode or theme switches the values. The names stay.
-- **Know the default.** In Figma it is the left-most column, and Auto falls back to it.
-- **Keep files complete.** Figma's import skips a token missing from any mode file.
-- **Parent and child for brands.** Extended collections (Figma Enterprise), theme groups (Penpot), modifiers (DTCG).
-- **Keep modifiers apart.** If brand and theme both set one token, order decides.
-- **Tell the agent the mode.** In the request, on the frame and in the resolver input.
+### Two brands: parent and child
+
+The [Figma extend page](https://help.figma.com/hc/en-us/articles/36346281624471-Extend-a-variable-collection) has **extended collections**, "Available on the Enterprise plan" (Figma's top plan). One parent collection gets one extended child per brand. A child "will inherit updates made to any variables that have not been explicitly overridden". There is a limit: "You cannot add additional variables or modes" in the child. "Open the parent collection" to change them.
+
+### Tell the agent the mode
+
+An AI agent that reads a design file sees what the tool gives it. Our advice: name the mode in the request, set it on the frame, and pass the input in any build script.
+
+## Worked example
+
+The museum app again. The team has these tokens:
+
+```text
+bg/page, text/primary, text/muted   change with light or dark
+text/body-size, space/row            change with regular or large text
+logo/red, font/brand                 never change
+```
+
+### Step 1: count the looks
+
+Two choices with two options each: 2 × 2 = 4 looks. Copying screens means 4 copies. With modes, there is one set of screens and 4 ways to fill it.
+
+### Step 2: one choice, one collection
+
+In Figma, we make one collection per choice:
+
+```text
+Collection "Colour"   modes: Light | Dark
+Collection "Text"     modes: Regular | Large
+```
+
+We do not make one collection with four modes ("Light Regular", "Dark Large" and so on). Then a new text size would mean new columns for every colour mode too.
+
+### Step 3: the same idea in a resolver file
+
+```json
+{
+  "version": "2025.10",
+  "sets": {
+    "base": { "sources": [{ "$ref": "base.tokens.json" }] }
+  },
+  "modifiers": {
+    "theme": {
+      "contexts": {
+        "light": [{ "$ref": "theme/light.tokens.json" }],
+        "dark": [{ "$ref": "theme/dark.tokens.json" }]
+      }
+    },
+    "text": {
+      "contexts": {
+        "regular": [{ "$ref": "text/regular.tokens.json" }],
+        "large": [{ "$ref": "text/large.tokens.json" }]
+      }
+    }
+  },
+  "resolutionOrder": [
+    { "$ref": "#/sets/base" },
+    { "$ref": "#/modifiers/theme" },
+    { "$ref": "#/modifiers/text" }
+  ]
+}
+```
+
+(Our sketch, using the field names from the spec examples. The spec says `version` "MUST be 2025.10".)
+
+### Step 4: the hard case
+
+**The hard case is `logo/red`.** It is a colour, so it is tempting to put it in the theme files, with the same red in light and dark. That works today. But now the red lives in two files. One day someone edits one file and not the other, and the logo has two reds.
+
+The logo red does not depend on any choice. So it goes in the `base` set, which always applies. In Figma, it goes in its own collection with one mode, not in "Colour".
+
+Our rule: a token goes in a modifier only if its value really changes with that choice.
+
+### Step 5: why it is better
+
+- **One set of screens.** A fix is made once.
+- **Choices multiply, files do not.** A third text size adds one file, not four.
+- **Fixed values stay in one place.** The logo red cannot drift between modes.
+
+## Common mistakes
+
+1. **One mode for every mix of choices.** "Dark Large" as its own mode grows fast. Fix: one collection or modifier per choice, and let them multiply.
+2. **Copying a whole set to change two values.** The copy goes stale. Fix: in Penpot, put only the changed tokens in a small set after the base set, since the later set wins.
+3. **Adding an option without counting.** A third theme turns 4 looks into 6, and every look needs a check. Fix: multiply the contexts before you add one.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A weather app has light and dark themes, and two densities: compact and roomy. Its tokens are:
+
+```text
+bg/card, text/temp       light or dark
+space/card, size/icon    compact or roomy
+brand/sun-yellow         never changes
+```
+
+1. How many looks does the app have?
+2. Plan the Penpot theme groups.
+3. Where does `brand/sun-yellow` go?
+
+### Answer
+
+1. **4 looks.** 2 themes × 2 densities.
+2. Two theme groups:
+
+```text
+Mode     - Light, Dark        (sets: light, dark)
+Density  - Compact, Roomy     (sets: compact, roomy)
+```
+
+A `base` set with the fixed tokens stays on in every theme.
+
+3. **In the base set.** Its value does not change with any choice, so it does not belong in the light or dark sets. Your group names can differ. Check that each fixed token lives in one place.
+
+## Recap
+
+- A mode or theme gives one token name more than one value. Figma uses collections and modes, Penpot uses sets and theme groups, and the DTCG resolver uses sets and modifiers.
+- Looks multiply: the count is the product of the contexts. Use one choice per collection or modifier, and keep fixed tokens in a base set.
+- When nobody names a mode, a tool falls back to a default. Name the mode for every person, tool and agent.
