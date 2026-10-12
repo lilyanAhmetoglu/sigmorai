@@ -30,17 +30,15 @@ After this lesson you can:
 
 ## The problem
 
-Driftwood is an animation studio. A streaming client needs a short text description for each of 1,800 storyboard panels. The studio's script calls a Claude model through the API (the service its tools call), overnight.
+Driftwood is an animation studio. One client job uses three APIs (services your tools call): a Claude model writes panel descriptions, a Gemini model makes still frames, and an OpenAI model writes captions.
 
-The script has one rule for errors:
+Before the job starts, the lead writes one rule for the money errors of all three:
 
 ```text
-On any error: send the same request again at once. Up to 10 times.
+If an error mentions spend or a usage limit: stop the whole job.
 ```
 
-In the morning the job is half done. The log holds about 14,000 failed calls. From 02:40 every call failed with the same code, `429`, and the script kept trying until 07:00. Nobody was told.
-
-The script treated every error the same way. This lesson shows why that fails.
+The rule sounds careful. But the vendors do not use the word "spend" the same way. On one of them, this rule stops the job for an error that clears in minutes.
 
 ## The idea
 
@@ -57,7 +55,11 @@ A **rate limit** is a cap on how much you can send in a stretch of time. Every v
 | RPD   | requests per day         | OpenAI, Gemini         |
 | IPM   | images per minute        | OpenAI, Gemini         |
 
-A token is a small piece of text, roughly part of a word. The [Gemini docs](https://ai.google.dev/gemini-api/docs/rate-limits) say: "Your usage is evaluated against each limit, and exceeding any of them will trigger a rate limit error." The [OpenAI docs](https://developers.openai.com/api/docs/guides/rate-limits) say limits can be hit "depending on what occurs first". Gemini counts IPM only for models that can make images. The Gemini docs add that limits are "more restricted for experimental and preview models".
+A token is a small piece of text, roughly part of a word.
+
+- The [Gemini docs](https://ai.google.dev/gemini-api/docs/rate-limits) say: "Your usage is evaluated against each limit, and exceeding any of them will trigger a rate limit error."
+- The [OpenAI docs](https://developers.openai.com/api/docs/guides/rate-limits) say limits can be hit "depending on what occurs first".
+- The Gemini docs add that limits are "more restricted for experimental and preview models". Gemini counts IPM only for models that can make images.
 
 A comparison: a car has a speed limit, a fuel tank and a driving-hours rule. Any one of them can stop the trip.
 
@@ -71,7 +73,11 @@ For tests, the [OpenAI production guide](https://developers.openai.com/api/docs/
 
 ### Pace and ramp
 
-The Claude docs say the API uses a token bucket: capacity "is continuously replenished up to your maximum limit, rather than being reset at fixed intervals". A rate of 60 requests per minute "might be enforced as 1 request per second", so "Short bursts of requests can exceed the limit".
+The Claude docs describe a token bucket:
+
+- Capacity "is continuously replenished up to your maximum limit, rather than being reset at fixed intervals".
+- A rate of 60 requests per minute "might be enforced as 1 request per second".
+- So "Short bursts of requests can exceed the limit".
 
 Limits also watch how fast traffic grows:
 
@@ -80,98 +86,74 @@ Limits also watch how fast traffic grows:
 
 ### Money stops traffic too
 
-- **OpenAI** has two controls. A spend alert "Sends a notification; API traffic continues". With a hard spend limit, "Affected API requests return a `429` error".
-- **Claude** has a monthly spend cap per tier. A tier is a level that rises as you use and pay more. At the cap, the [Claude errors page](https://platform.claude.com/docs/en/api/errors) says the `429` "has no `retry-after` header and keeps failing until access resumes". The rate-limits page adds that its `error_code` is `enforced_spend_limit_reached`. A lower spend limit you set yourself returns a `400` error instead.
+- **OpenAI** has two controls. A spend alert "Sends a notification; API traffic continues". With a hard spend limit, "Affected API requests return a `429` error". A `429` is the status code vendors return for a rate-limit error.
+- **Claude** has a monthly spend cap (the most an organization may spend on the API in a month) per tier. A tier is a level that rises as you use and pay more. At the cap, the [Claude errors page](https://platform.claude.com/docs/en/api/errors) says the `429` "has no `retry-after` header and keeps failing until access resumes". The rate-limits page adds that its `error_code` is `enforced_spend_limit_reached`. A lower spend limit you set yourself returns a `400` error instead.
 - **Gemini** has spend-based limits over a rolling 10-minute window. If you hit one, you get a `429 RESOURCE_EXHAUSTED` error, and the docs say "Wait and retry after a short period."
 
 ### Which errors are worth a retry
 
 A **retry** sends the same request again. **Backoff** means you wait a little longer after each failed try. **Jitter** is a small random extra wait, so many scripts do not retry at the same second. A **header** is an extra line of data on a reply. An **SDK** is the vendor's code library.
 
-- **A rate-limit `429`** usually says when to try again. Claude sends `retry-after`. OpenAI says to treat `Retry-After` as a minimum, "and add a small random delay".
-- **No header?** OpenAI says: "fall back to exponential backoff with jitter. Limit both the number of attempts and the total time spent retrying."
+- **A rate-limit `429`** usually says when to try again. The Claude API sends `retry-after`. The OpenAI docs say to treat `Retry-After` as a minimum, "and add a small random delay".
+- **No header?** The OpenAI docs say: "fall back to exponential backoff with jitter. Limit both the number of attempts and the total time spent retrying."
 - **An overload** is about the vendor's traffic, not your limit: `529` on Claude, `503` with `server_is_overloaded` on OpenAI.
-- **An error that needs a person:** OpenAI says: "Don't retry quota, billing, or other errors that require you to take action."
+- **An error that needs a person:** the OpenAI docs say: "Don't retry quota, billing, or other errors that require you to take action."
 
 Two more facts matter for scripts:
 
 - The Claude SDK already "retries transient failures", "twice by default, honoring the `retry-after` header when present".
-- OpenAI warns that "unsuccessful requests contribute to your per-minute limit, so continuously resending a request won’t work".
+- The OpenAI docs warn that "unsuccessful requests contribute to your per-minute limit, so continuously resending a request won't work".
 
 ## Worked example
 
 ### Step 1: the weak rule
 
 ```text
-On any error: send the same request again at once. Up to 10 times.
-SDK retries: left on (default)
+If an error mentions spend or a usage limit: stop the whole job.
 ```
 
-### Step 2: count the real calls
+### Step 2: list each vendor's money errors
 
-Our maths: one try of the script can be up to 3 calls, because the SDK adds 2 retries. So 10 tries can be 30 calls for one panel. OpenAI names this trap: turn off SDK retries, or count them, "so nested retry loops don't multiply requests".
-
-Our pick: one retry layer only. Here the script handles retries, so it sets `max_retries=0` on the SDK client.
-
-### Step 3: sort the errors
-
-Our table, built from the docs above:
+Our table, built from the pages above:
 
 ```text
-Error                                   Action
-429 + retry-after (rate limit)          wait at least that long + a little jitter,
-                                        then retry; max 5 tries
-529 overloaded                          backoff with jitter; max 5 tries
-500 api_error                           backoff; if it persists, contact
-                                        support with the request ID
-429, no retry-after,                    stop the job, tell a person
-  error_code enforced_spend_limit_reached
-400 "You have reached your specified    stop the job, tell a person
-  API usage limits"
+Vendor  What comes back                            What the docs say
+Claude  429 rate_limit_error, no retry-after,      monthly spend cap: keeps failing
+        error_code enforced_spend_limit_reached    until access resumes
+Claude  400 "You have reached your specified       your own limit: raise or remove it
+        API usage limits"                          to get access back sooner
+OpenAI  429 at a hard spend limit                  affected requests return 429
+Gemini  429 RESOURCE_EXHAUSTED, spend-based        rolling 10-minute window:
+                                                   "Wait and retry after a short period."
 ```
 
-### Step 4: the hard case
+### Step 3: the hard case
 
-**The hard case is two errors that look the same.** At 02:39 and 02:40 the log shows:
+**The hard case is the Gemini row.** It is a spend limit, so the weak rule stops the job. But the limit is counted over a rolling 10-minute window. The Gemini docs say to wait and retry after a short period, and to reduce the rate of expensive requests. Stopping the whole job here loses hours for a pause of minutes.
+
+### Step 4: the better rule
 
 ```text
-02:39  HTTP 429  type rate_limit_error  retry-after: 20
-02:40  HTTP 429  type rate_limit_error  (no retry-after)
-       error_code: enforced_spend_limit_reached
+Claude 429 + enforced_spend_limit_reached   stop the job, tell the lead
+Claude 400 "specified API usage limits"     stop; the lead decides whether to raise it
+Gemini 429 RESOURCE_EXHAUSTED (spend)       pause a few minutes, slow the expensive
+                                            requests, retry; tell the lead if it repeats
+Every failed call                           log the request ID
 ```
 
-Same code, same type. A script that reads only `429` treats them the same. But:
+Our note: the OpenAI rate-limits page does not show how a hard-limit `429` differs from a rate-limit `429`. Read OpenAI's spend-limits guide before you write that row.
 
-- The first is a normal rate limit. Waiting 20 seconds helps.
-- The second is the monthly spend cap. The Claude docs say retrying, "including the SDK's automatic retries, fails until access resumes".
+### Step 5: why it is better
 
-So the second error should stop the job at 02:40 and send a message to the producer. Retrying until 07:00 could never work.
-
-One more trap: the word "spend" does not always mean "stop". A Gemini spend-based `429 RESOURCE_EXHAUSTED` is on a 10-minute window, and its docs say to wait and retry. Read each vendor's page for each error.
-
-### Step 5: the better rule
-
-```text
-SDK retries:   off (the script is the one retry layer)
-Per request:   max 5 tries, max 10 minutes in total
-Wait:          retry-after if present, plus jitter;
-               else backoff with jitter (2 s, 4 s, 8 s ...)
-Stop at once:  spend cap 429, own spend limit 400 -> alert the producer
-After the cap: park the unfinished panels in a queue for a person
-```
-
-### Step 6: why it is better
-
-- **Waiting only when it helps.** Rate limits and overloads get a pause. Caps get a stop.
-- **No hidden multiplier.** One retry layer, so 5 tries means 5 calls.
-- **An end to every request.** Tries and total time both have a cap.
-- **A person hears at 02:40,** not at 09:00.
+- **Each row comes from that vendor's page.** The same word gets different actions.
+- **A wait where the docs say wait.** The Gemini pause costs minutes, not the day.
+- **A stop where only a person can help.** The Claude cap and your own limit go to the lead.
 
 ## Common mistakes
 
-1. **Retrying faster than the header says.** Earlier retries fail and still use up the limit. Fix: wait at least the `retry-after` value, then add jitter.
-2. **Two retry layers at once.** Your loop times the SDK's loop multiplies the calls. Fix: keep one layer, and set the other to zero.
-3. **No total time cap.** A script with only a try count can still run all night on slow waits. Fix: cap the total time too, then park the job for a person.
+1. **Copying one vendor's error rule to another.** "Spend" means a monthly cap on Claude and a 10-minute window on Gemini. Fix: write each row from that vendor's page.
+2. **Sizing a big job on a preview model.** The Gemini docs say limits are "more restricted for experimental and preview models". Fix: check the limits for the exact model first.
+3. **Not logging request IDs.** For a Claude `500` that persists, the Claude docs say to "contact support with the request ID". Fix: log the request ID of every failed call.
 
 ## Try it
 
@@ -187,9 +169,9 @@ The Claude docs say: "For most Claude models, only uncached input tokens count t
 
 ### Answer
 
-1. **About 500.** Only the uncached part counts.
+1. **Our maths: about 500.** Only the uncached part counts.
 2. **Yes.** The docs say tokens being written to the cache count toward ITPM.
-3. **No.** The docs name Claude Haiku 3.5 as a model that also counts cached reads (`cache_read_input_tokens`) toward ITPM. Check the page for your model.
+3. **No.** The docs name Claude Haiku 3.5 (retired, except on Google Cloud) as a model that also counts cached reads (`cache_read_input_tokens`) toward ITPM. Check the page for your model.
 
 ## Recap
 
