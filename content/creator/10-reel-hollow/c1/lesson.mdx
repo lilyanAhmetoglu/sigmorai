@@ -1,11 +1,11 @@
 ---
 id: creator/r10/c1/lesson
 title: Camera moves
-minutes: 8
+minutes: 11
 sources:
   - kind: docs
-    title: Google Cloud docs · Video generation prompt guide (Veo)
-    url: https://docs.cloud.google.com/vertex-ai/generative-ai/docs/video/video-gen-prompt-guide
+    title: Google Cloud docs · Video generation prompt guide (Gemini Enterprise Agent Platform)
+    url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/video/video-gen-prompt-guide
   - kind: docs
     title: Gemini API docs · Generate videos with Veo 3.1
     url: https://ai.google.dev/gemini-api/docs/veo
@@ -20,90 +20,193 @@ sources:
     url: https://docs.dev.runwayml.com/recipes/multi-shot-video
 ---
 
-## Why it matters
+## Goal
 
-A client asks: "Show the new grinder, with some camera movement." One take spins the grinder. Another is a shaky close-up. Neither is wrong: the brief named no move.
+After this lesson you can:
 
-Prompt Forest, chapter 5, gave the camera a slot in a video prompt. Chapter 8 of the same realm gave you distance, position and lens words for still images. This chapter fills in what a still image does not have: **how the camera moves during the shot**.
+- Name the main camera moves, and say if the camera turns on one spot or travels through the space.
+- Write one move as one clear sentence: speed, move, direction, start and end.
+- Say who moves in a shot: the camera, the subject, or the focus of the lens.
 
-A note on the main source. In October 2026, Google's old Vertex AI link for this guide opens the same guide in its Gemini Enterprise Agent Platform docs. That version is written for Veo and Gemini Omni Flash. We use its lists as a word bank, not as a promise that every model obeys every word.
+## The problem
 
-## Turn or travel
+A small bookshop wants a 5-second clip for its window screen. The owner writes one line: "Make it cinematic, with lots of camera movement." The first take drifts left, then shakes, then zooms on a random book. The second take is still and calm, but the camera never moves.
 
-Google's guide defines each camera move. We sort them into two groups (our grouping): the camera **turns** on one spot, or the camera **travels** through the space.
+Neither take is wrong. The prompt named no move, so the model guessed. This lesson gives you the words for camera moves and a sentence pattern to use them.
 
-| Group   | Move          | Google's definition (short)                                                    |
-| ------- | ------------- | ------------------------------------------------------------------------------ |
-| None    | Static        | "the camera remains completely still"                                          |
-| Turns   | Pan           | "rotates horizontally left or right from a fixed position"                     |
-| Turns   | Tilt          | "rotates vertically up or down from a fixed position"                          |
-| Turns   | Whip pan      | "an extremely fast pan that blurs the image"                                   |
-| Travels | Dolly         | "physically moves closer to the subject or further away"                       |
-| Travels | Truck         | "physically moves horizontally (sideways) left or right"                       |
-| Travels | Pedestal      | "physically moves vertically up or down while maintaining a level perspective" |
-| Travels | Crane         | moves "vertically (up or down) or in sweeping arcs"                            |
-| Travels | Arc           | "moves in a circular or semi-circular path around the subject"                 |
-| Travels | Aerial, drone | "taken from a high altitude", "often involving smooth, flying movements"       |
+## The idea
 
-**Handheld** is its own kind. Google says the camera "is held by the operator, resulting in less stable, often jerky movements that can convey realism, immediacy, or unease".
+### A shot has a camera move
 
-## A zoom is not a dolly
+A **prompt** is the text you send to the model. In a video prompt, the camera has its own part. The [Gemini API docs](https://ai.google.dev/gemini-api/docs/veo) list "Camera positioning and motion" as an optional part of a Veo prompt, next to subject, action and style. (Veo is Google's video model.)
 
-Google defines a **zoom** as the lens changing "its focal length to magnify or de-magnify the subject". (Focal length is the lens setting that makes the subject look nearer or farther.) It adds: "This is different from a dolly, as the camera itself doesn't move."
+Other vendors say the same:
 
-So pick the word for what you mean. "Slow zoom in on the grinder" asks for a bigger picture from the same spot. "Slow dolly in toward the grinder" asks for the camera itself to come closer.
+- The [Luma docs](https://docs.agents.lumalabs.ai/guides/videos/generation) say: "Be specific about subject, motion, camera movement, lighting, and pacing."
+- The [Runway docs](https://docs.dev.runwayml.com/recipes/product-ad) give the Product Ad recipe a `userConcept` field for "brand voice, scene specifics, lighting, camera motion, and narrative". (A recipe is a ready-made Runway workflow.)
 
-Google also lists a move that uses both at once: the **dolly zoom** (or vertigo effect). The camera dollies one way "while simultaneously zooming the lens in the opposite direction". The subject stays "roughly the same size", but "the background perspective changes dramatically, often conveying disorientation or unease".
+### Turn or travel
 
-## Moves inside the lens
+The [Google prompt guide](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/video/video-gen-prompt-guide) defines each move. We sort them into two groups (our grouping): the camera **turns** on one spot, or the camera **travels** through the space.
 
-Some moves happen in the focus, not the camera body. A **rack focus** is "shifting the focus of the lens from one subject or plane of depth to another within a single, continuous shot".
+| Group   | Move     | The Google docs (short)                                                        |
+| ------- | -------- | ------------------------------------------------------------------------------ |
+| None    | Static   | "the camera remains completely still"                                          |
+| Turns   | Pan      | "rotates horizontally left or right from a fixed position"                     |
+| Turns   | Tilt     | "rotates vertically up or down from a fixed position"                          |
+| Turns   | Whip pan | "an extremely fast pan that blurs the image"                                   |
+| Travels | Dolly    | "physically moves closer to the subject or further away"                       |
+| Travels | Truck    | "physically moves horizontally (sideways) left or right"                       |
+| Travels | Pedestal | "physically moves vertically up or down while maintaining a level perspective" |
+| Travels | Crane    | moves "vertically (up or down) or in sweeping arcs"                            |
+| Travels | Arc      | "moves in a circular or semi-circular path around the subject"                 |
+| Travels | Aerial   | "taken from a high altitude"                                                   |
 
-Google adds a warning to its lens list: "Some advanced camera lenses are not officially supported. The results and reliability may vary depending on the overall prompt and your specific use case." Its camera-angle list has the same note. So test a rare move on a short draft first (our advice).
+A small comparison: turning is like moving your head. Travelling is like walking.
 
-## Write the move as a sentence
+**Handheld** is its own kind. The camera "is held by the operator, resulting in less stable, often jerky movements that can convey realism, immediacy, or unease".
 
-All three video vendors here show the move written into the prompt.
+### The lens can move too
 
-- **Google Veo.** The Veo page lists "Camera positioning and motion" as an optional prompt part, with terms like "aerial view, eye-level, top-down shot, dolly shot, or worms eye".
-- **Google's guide** writes a whole move with a start and an end: "The camera starts wide, showing the map and a flickering candle, then smoothly zooms in until the intricate, glowing symbols on the compass face fill the entire frame."
-- **Luma.** Its video page says: "Be specific about subject, motion, camera movement, lighting, and pacing." Its example prompt is "A slow dolly shot through a misty greenhouse at sunrise".
-- **Runway.** The Product Ad recipe has a `userConcept` field for "brand voice, scene specifics, lighting, camera motion, and narrative". Its example: "Bright, refreshing summer campaign with slow dolly moves".
+A **zoom** is a lens move. The lens "changes its focal length to magnify or de-magnify the subject". (Focal length is the lens setting that makes things look nearer or farther.) The Google docs add: "This is different from a dolly, as the camera itself doesn't move."
 
-From these, we use one pattern (ours): **speed, move, direction, from what, to what.**
+The **dolly zoom** uses both at once: the camera dollies one way "while simultaneously zooming the lens in the opposite direction". The subject stays "roughly the same size", and the background changes a lot.
 
-> Slow dolly in from a wide view of the counter to a close-up of the grinder's dial.
+A **rack focus** moves the sharp part of the picture. It is "shifting the focus of the lens from one subject or plane of depth to another within a single, continuous shot". The camera can stay still while the focus moves.
 
-## Who moves: the camera or the subject?
+The guide has a warning for its lens list: "Some advanced camera lenses are not officially supported." Results "may vary depending on the overall prompt and your specific use case".
 
-Runway's Multi-Shot page has this example shot: "Product hero shot rotating against a clean background". Does the product spin, or does the camera go around it? The words allow both.
+### Every move has a feeling
 
-Google's guide keeps them apart. An **arc shot** is the camera moving around the subject. "Spinning" is in its list of things a subject does. So say which one moves (our advice):
+The Google docs tie moves to moods:
 
-- "The grinder turns slowly on a turntable. Static shot."
-- "Slow arc shot around the grinder, which stays still."
+- Dolly out: "to emphasize their isolation".
+- Crane: "often used for dramatic reveals or high-angle perspectives".
+- Dolly zoom: "often conveying disorientation or unease".
 
-## One main move, with a reason
+So pick a move for what it makes the viewer feel, not only for how it looks.
 
-Prompt Forest, chapter 5, said one camera setup per shot. We add our own rule: **one main move per shot.** A tilt, a truck and a zoom in one short clip are really three shots. Google's tilt and compass examples each use one move with a clear start and end.
+### Say who moves
 
-Pick the move for its feeling. Google ties moves to moods: a dolly out "to emphasize their isolation", a crane "for dramatic reveals", handheld for "realism, immediacy, or unease". A calm premium brand may not want unease in its product shot.
+A word like "rotating" or "spinning" can mean two things. In the Google guide, "spinning" is in the list of basic movements a subject makes. An **arc shot** is the camera that goes around. The [Runway Multi-Shot docs](https://docs.dev.runwayml.com/recipes/multi-shot-video) use the shot "Product hero shot rotating against a clean background". The words do not say what turns.
 
-## Check every take
+Our advice: in every shot, say what moves and what stays still. There are three options: the camera, the subject, or the focus.
 
-This checklist is ours:
+### One move as one sentence
 
-1. **Did the camera move at all?** Or did only the subject move?
-2. **Is it the right move?** A zoom when you asked for a dolly is a miss.
-3. **Right direction and speed?** "Slow pan left" should not be a fast pan right.
-4. **Did anything move that should stay still?** The product, the label, the horizon.
-5. **Where does the move end?** Chapter 3 joins clips at that point.
+The Google guide writes a whole move with a start and an end: "The camera starts wide, showing the map and a flickering candle, then smoothly zooms in until the intricate, glowing symbols on the compass face fill the entire frame."
 
-## What this means for your work
+The example prompt in the Luma docs is shorter: "A slow dolly shot through a misty greenhouse at sunrise".
 
-- **Name the move.** Pan, tilt, dolly, truck, pedestal, crane, arc, aerial, handheld, static.
-- **Zoom is the lens, dolly is the camera.** Choose the one you mean.
-- **Write speed, move, direction, start and end** in one sentence.
-- **Say who moves:** the camera, the subject, or both.
-- **One main move per shot**, chosen for the feeling it gives.
-- **Test rare moves first.** Google says some are not officially supported.
+From these we use one pattern (ours):
+
+```text
+speed + move + direction + from what + to what
+"Slow truck right along the shelf, from the door to the window."
+```
+
+Our rule: **one main move per shot.** Three moves in a 5-second clip are really three shots. The Runway Multi-Shot docs give a similar tip: "Write one clear idea per shot".
+
+## Worked example
+
+The bookshop clip again. The owner wants three things: the long poetry shelf, the shop sign above the door, and the shop cat asleep on a chair at the back.
+
+### Step 1: the weak prompt
+
+```text
+Cinematic camera movement through a cosy bookshop, past the shelves,
+up to the sign, and onto the cat. Lots of motion.
+```
+
+This asks for three moves in one shot and names none of them. "Lots of motion" gives the model no speed and no end point.
+
+### Step 2: split into one move per shot
+
+```text
+Shot 1  the poetry shelf
+Shot 2  the sign above the door
+Shot 3  the cat on the chair
+```
+
+### Step 3: name each move and write the sentence
+
+Shot 1. The owner wants the camera to glide along the shelf, side by side with it. The camera travels sideways, so it is a truck, not a turn.
+
+```text
+Slow truck right along the poetry shelf, from the first row of spines
+to the window. Warm afternoon light. The books stay still.
+```
+
+Shot 2. The owner wants the camera to rise straight up, staying level, until the sign is in the frame. The camera travels up and the view does not tip. In the Google list, that is a pedestal.
+
+```text
+Slow pedestal up from the shop door to the painted sign above it.
+The camera stays level. Static sign, no wind.
+```
+
+### Step 4: the hard case
+
+**The hard case is Shot 3.** The owner says: "Keep the camera still. First show the open book on the table in front, sharp. Then the cat at the back becomes sharp."
+
+Nothing travels and nothing turns. Only the focus moves. That is a rack focus, a lens move. A truck or a dolly would move the wrong thing.
+
+```text
+Static shot. Rack focus from an open book on the front table to a cat
+asleep on a chair at the back of the shop. The cat stays asleep.
+```
+
+Rack focus is in the guide's lens list, and that list carries the warning about lenses that are "not officially supported". Our advice: test this shot as a short, cheap draft before the final run.
+
+### Step 5: why it is better
+
+- **Each shot has one named move**, so the model does not guess.
+- **Each sentence has a start and an end**, so you can check the take.
+- **Each shot says what stays still**: the books, the sign, the cat.
+
+## Common mistakes
+
+1. **Many moves in one short shot.** The take drifts from move to move. Fix: one main move per shot, and split the rest into new shots.
+2. **A move name with no start or end.** "Truck right" alone gives the model no stop point. Fix: write speed, move, direction, from what, to what.
+3. **Trusting a rare lens move on the first try.** The Google guide says some are not officially supported. Fix: run a short draft first, then check it.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A flower market wants a clip. A teammate wrote this prompt:
+
+```text
+The camera moves sideways past the flower stalls, then rises straight
+up to the market banner, then the focus moves from the tulips in front
+to a seller at the back.
+```
+
+1. How many shots is this, by our one-move rule?
+2. Name the move in each part, with the group: turn, travel or lens.
+3. Write each shot as one sentence: speed, move, direction, from what, to what.
+
+### Answer
+
+1. **Three shots.** There are three moves, so we split them.
+2. The moves:
+   - Sideways past the stalls: **truck**, a travel move. The camera moves along, not around.
+   - Straight up to the banner: **pedestal**, a travel move. The camera rises and stays level.
+   - Focus from tulips to seller: **rack focus**, a lens move. The camera can stay still.
+3. One way to write them:
+
+```text
+Shot 1  Slow truck left past the flower stalls, from the roses to the
+        tulips. The flowers stay still.
+Shot 2  Slow pedestal up from the tulip stall to the market banner.
+        The camera stays level.
+Shot 3  Static shot. Rack focus from the red tulips in front to a seller
+        at the back stall.
+```
+
+Your speeds can differ. Check that each shot has one move, a start and an end.
+
+## Recap
+
+- Name the move. The camera turns on one spot (pan, tilt), travels (dolly, truck, pedestal, crane, arc), or only the lens changes (zoom, rack focus).
+- Write one main move per shot as one sentence: speed, move, direction, from what, to what. Say what moves and what stays still.
+- Pick a move for its feeling, and test rare lens moves with a short draft first.
