@@ -1,7 +1,7 @@
 ---
 id: creator/r10/c4/lesson
 title: Edit a clip
-minutes: 8
+minutes: 12
 sources:
   - kind: docs
     title: Luma Agents docs · Video editing
@@ -20,110 +20,171 @@ sources:
     url: https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/video/edit-videos
 ---
 
-## Why it matters
+## Goal
 
-A juice brand approved a 5-second clip: a bottle turns slowly on a sunny counter. A week later the client wants three changes. Make it an evening scene. Make the cap the new brand green. Try a 35mm film look for one post.
+After this lesson you can:
 
-You could make new clips. But a new take changes the motion, the framing and the timing the client already approved. A **video-to-video edit** starts from the clip you have and changes only what you ask. (Video-to-video means a video goes in and a new video comes out.)
+- Choose a video edit instead of a new take, and name the kind of change: restyle, replace or relight.
+- Pick a tool that accepts your clip, and set how much of the source the edit keeps.
+- Steer an edit with guide frames, write a short edit prompt, and check the result.
 
-Prompt Forest, chapter 4, taught image edits: name one change, say what stays, compare before and after. This chapter adds what is new in video: time, motion and the edit controls.
+## The problem
 
-## Three kinds of change
+A dance school has an approved 25-second clip: a dancer spins across a studio floor. The school now wants the same clip in a hand-painted watercolour look for a poster campaign. The spin, the timing and the framing must not change.
 
-This grouping is ours.
+A new take would change all of that. The motion took many tries to get right. You need a way to change the look and keep the motion.
 
-| Kind    | Example                | What must stay           |
-| ------- | ---------------------- | ------------------------ |
-| Restyle | the whole clip as 35mm | motion, framing, timing  |
-| Replace | grey cap to green cap  | everything but the cap   |
-| Relight | day light to evening   | product, motion, framing |
+## The idea
 
-Luma names the first one: "Restyle an existing video while preserving its motion". Google's edit prompts include "Make this video anime" and "Change the lighting to be more dramatic". It says each turn can make changes "like adjusting lighting, and swapping backgrounds".
+### Edit, don't regenerate
 
-## Where each vendor edits (October 2026)
+A **video-to-video edit** starts from a clip you already have and changes only what you ask. (Video-to-video means a video goes in and a new video comes out.) The [Luma docs](https://docs.agents.lumalabs.ai/guides/videos/editing) say an edit "re-renders a previous video generation under a new prompt".
 
-**Luma** (`ray-3.2`). Send `type: "video_edit"`. Luma says an edit "re-renders a previous video generation under a new prompt". The source can be an earlier Luma generation id, a video URL, inline video or an uploaded file. A source sent by URL or inline must be at most 200 MB and 18 seconds.
+We sort edits into three kinds (our grouping):
 
-**Runway** (Aleph 2.0, `aleph2`). Send a `videoUri` and an optional `promptText` to `video_to_video`. The input must be 2–30 seconds and 30 FPS or lower (FPS: frames per second). The output keeps the input's resolution, up to 1080p.
+| Kind    | Example                     | What must stay           |
+| ------- | --------------------------- | ------------------------ |
+| Restyle | the whole clip as a cartoon | motion, framing, timing  |
+| Replace | a red scarf becomes blue    | everything but the scarf |
+| Relight | noon becomes night          | subject, motion, framing |
 
-**Google** (Gemini Omni Flash). Google's edit pages use Gemini Omni Flash, not Veo (our reading, October 2026). An edit is a conversation: each turn "builds on the previous result". You pass `previous_interaction_id` instead of uploading the video again. An uploaded video must be 10 seconds or less. On Google Cloud, the same edit sets `"task": "edit"`, and stored interactions are "retained for up to 14 days".
+Luma lists the first one as "Restyle an existing video while preserving its motion". The [Gemini API docs](https://ai.google.dev/gemini-api/docs/omni) give edit prompts such as "Make this video anime" and "Change the lighting to be more dramatic".
 
-## How much may change: Luma's strength
+### Where each vendor edits (October 2026)
 
-Luma's `strength` has nine values in three bands:
+**Luma** (`ray-3.2`). Send `type: "video_edit"`. The source can be a prior Luma generation id, a video URL, inline video, or an uploaded file. A source by URL or inline is "Max 200 MB, ≤18s".
 
-| Band      | Luma's description                                                       |
+**Runway** (Aleph 2.0, model `aleph2`). The [API reference](https://docs.dev.runwayml.com/api) says `videoUri` is "The input video to edit. Must be 30 seconds or shorter." The [inputs page](https://docs.dev.runwayml.com/assets/inputs) adds that Aleph 2.0 "preserves the input video's resolution (up to 1080p)" and that input videos "must be 2–30 seconds and 30 FPS or lower". (FPS means frames per second.)
+
+**Google** (Gemini Omni Flash). An edit is a conversation. "Each turn builds on the previous result." You pass the `previous_interaction_id` "without re-uploading the previous video". Uploaded videos for editing "must be 10 seconds or less". On [Google Cloud](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/video/edit-videos), the request sets `"task": "edit"`, and "Stored and asynchronous interactions are retained for up to 14 days."
+
+### How much may change: Luma's strength
+
+Luma's `strength` has nine values in three bands. "Lower numbers within each band are lighter, higher numbers stronger."
+
+| Band      | The Luma docs                                                            |
 | --------- | ------------------------------------------------------------------------ |
 | Adhere    | "Closely preserves source motion, composition, and structure"            |
 | Flex      | "Balanced — preserves motion, lets the prompt reshape style and content" |
 | Reimagine | "The prompt drives most of the output; source provides loose grounding"  |
 
-Composition means where things sit in the frame. Grounding means how much the source steers the result.
+Composition is where things sit in the frame. Grounding is how much the source steers the result. The docs call `flex_2` the "Common default for most edits".
 
-Each band has levels 1 to 3, and "lower numbers within each band are lighter". Luma calls `flex_2` the "Common default for most edits".
+Our advice: Adhere for a relight or a small replace, Flex for a restyle, and Reimagine only for a new idea that may move far from the source.
 
-Luma's recommended start is `auto_controls: true`. Then the model "derives the full conditioning schedule from the source video". (Conditioning means the signals from the source clip that steer the new one.)
+A small comparison: strength is like a leash. Adhere is short, Reimagine is long.
 
-Pick the band for the kind of change (our advice):
+### Auto or manual controls
 
-- **Relight or a small replace:** Adhere. The bottle and the motion must not move.
-- **Restyle:** Flex. The look changes; the motion stays.
-- **Reimagine:** only for a new idea that may move far from the approved clip.
+Luma's recommended start is `auto_controls: true`. Then "the model derives the full conditioning schedule from the source video". (Conditioning means the signals from the source clip that steer the new one.)
 
-## Per-signal controls
+For finer work, `controls` turns on single signals: `pose` (the body skeleton), `depth` (scene shape), `normals` (surface shape), `trajectory` (motion paths) and `face` (face identity). One rule: "controls cannot be combined with auto_controls: true". Pick one or the other.
 
-For finer work, Luma's `controls` turns on single signals from the source:
+### Guide frames steer an edit
 
-| Signal     | What it holds                                              |
-| ---------- | ---------------------------------------------------------- |
-| pose       | the body pose (skeleton)                                   |
-| depth      | the shape of the scene; a higher `blur` gives more freedom |
-| normals    | the shape of surfaces                                      |
-| trajectory | the paths things move along                                |
-| face       | face identity                                              |
+The Luma docs say: "Keyframes are the secret to a great edit." You pin guide images "in the source video's frame grid" with `video.edit.keyframes` (up to 64) and `video.edit.keyframe_indexes`.
 
-One rule matters: `controls` "cannot be combined with `auto_controls: true`". Example (ours): a model drinks the juice in the clip. For the film-look restyle, turn on `face` so she is still the same person.
+Runway Aleph 2.0 takes `keyframes` too: "Up to 5 keyframes." You place each one by:
 
-## Keyframes steer an edit
+- `seconds`: "Absolute timestamp in seconds from the start of the input video".
+- `at`: "Position as a fraction [0.0, 1.0] of the input video duration".
+- `range`: a start and an end second.
 
-Chapter 2 pinned images to a new clip. Edits take keyframes too.
+Our advice: make each guide image from a frame of the approved clip. Save the frame, change it as a still, then pin it back at the same moment.
 
-- **Luma:** up to 64 guide images in `video.edit.keyframes`, placed by frame number in "the source video's frame grid". Luma treats keyframes as its main quality control for most non-trivial edits.
-- **Runway Aleph 2.0:** up to 5 keyframes. You place each one by `seconds`, by `at` (a share of the clip, from 0 to 1) or by a `range`.
+### Prompt the change, not the scene
 
-Make each guide image from a frame of the approved clip (our advice). For the evening version, save frame 0, relight it as a still and pin it at 0.
+The Gemini API docs say: "Simple prompts work best for video editing. Overly descriptive prompts can lead to unintended changes." For one change, they suggest adding "Keep everything else the same".
 
-## Prompt the change, not the scene
+### What an edit does not change
 
-Google says: "Simple prompts work best for video editing. Overly descriptive prompts can lead to unintended changes." For one change, it adds "Keep everything else the same". Its example: "Make the phone invisible. Keep everything else the same."
+- **Shape.** Luma: "The output preserves the source video's aspect ratio." Setting `aspect_ratio` on an edit "is silently ignored".
+- **Voice.** The Gemini API docs: "Voice editing is not supported."
+- **Later turns.** On Omni, `store=false` means the video "won't be editable in subsequent turns".
+- **Loop and end frame.** In Luma's rules, `video.loop` is "Rejected on video_edit — create-only", and `video.end_frame` is "Rejected on video_edit — generation-only".
 
-So write: "Change the cap to bright green. Keep everything else the same."
+### Check after every edit
 
-## What an edit does not change
-
-- **Shape.** Luma: "The output preserves the source video's aspect ratio". An `aspect_ratio` setting on an edit is "silently ignored". New shapes are chapter 6.
-- **Voice.** Google: "Voice editing is not supported."
-- **Later turns.** On Google, `store=false` means the video "won't be editable in subsequent turns".
-- **Loop and end frame.** Luma rejects `video.loop` and `video.end_frame` on an edit.
-
-## Re-check after every edit
-
-This checklist is ours. Play the source and the edit side by side, then frame by frame.
+Our checklist. Play the source and the edit side by side, then frame by frame:
 
 1. **Motion.** Same move, same speed, same timing?
-2. **The change.** Is the cap green on every frame, not only the first?
-3. **What you did not mention.** Label, logo text, hands, faces.
-4. **Light.** Does the new light fall on the bottle the same way all through?
-5. **Sound.** Does the audio still fit the new picture?
-6. **File.** Same length, shape and resolution as the brief?
+2. **The change.** Is it on every frame, not only the first?
+3. **What you did not mention.** Faces, hands, logos, text.
+4. **File.** Same length, shape and resolution as the brief?
 
-If the middle drifts, add a keyframe there. Keep the generation id: Luma says to keep it "for any further edits or reframes".
+Keep the new generation id. Luma says to keep it "for any further edits or reframes".
 
-## What this means for your work
+## Worked example
 
-- **Edit, don't regenerate**, when the client approved the motion.
-- **Name the kind of change:** restyle, replace or relight.
-- **Choose the band:** Adhere for small fixes, Flex for a new look.
-- **Pin guide frames** made from the approved clip.
-- **Prompt one change** and say what stays the same.
-- **Check every frame**, and keep the source id.
+The dance clip again: 25 seconds, approved, to become watercolour.
+
+### Step 1: the weak plan
+
+```text
+Luma video_edit
+source.url: dance-approved.mp4   (25 s)
+prompt: Turn this into a watercolour painting.
+```
+
+### Step 2: the hard case
+
+**The hard case is the length.** A Luma source by URL must be 18 seconds or less. An uploaded Omni video must be 10 seconds or less. The clip is 25 seconds. Runway Aleph 2.0 takes input up to 30 seconds, so it fits in one request.
+
+The other option is to cut the clip into parts and edit each one. But then each part may get a slightly different watercolour look. One request keeps one look.
+
+### Step 3: guide frames
+
+The watercolour look must hold for all 25 seconds. We save three frames from the approved clip: the start, the middle and the end. A designer paints each one in watercolour as a still. Then we pin them back with `at`.
+
+```json
+{
+  "model": "aleph2",
+  "videoUri": "https://example.com/dance-approved.mp4",
+  "promptText": "Make this video a soft watercolour painting. Keep everything else the same.",
+  "keyframes": [
+    { "uri": "https://example.com/frame-start-watercolour.png", "at": 0 },
+    { "uri": "https://example.com/frame-middle-watercolour.png", "at": 0.5 },
+    { "uri": "https://example.com/frame-end-watercolour.png", "at": 1 }
+  ]
+}
+```
+
+The prompt names one change and says what stays (our advice, taken from the Gemini API docs).
+
+### Step 4: check
+
+Play the source and the edit side by side. The spin should land on the same beat. The dancer's face and hands are the usual weak spots, so check them frame by frame.
+
+### Step 5: why it is better
+
+- **The approved motion stays.** It is an edit, not a new take.
+- **The tool fits the clip**, so there is one request and one look.
+- **The look is pinned** at three moments made from the real clip.
+
+## Common mistakes
+
+1. **Making a new take when the motion is approved.** You lose the move the client liked. Fix: edit the approved clip.
+2. **Checking only the first frame.** A change can fade or drift later in the clip. Fix: check the start, the middle and the end, then step frame by frame.
+3. **Guide images from a new photo shoot.** They do not match the clip's pose and framing. Fix: make guide images from frames of the clip itself.
+
+## Try it
+
+Not graded. Write your answer down before you read the answer.
+
+A 20-second approved clip of a cyclist goes to Runway Aleph 2.0 for a night-time relight. You want guide frames at the start, at 5 seconds, and at the end.
+
+1. Write the three positions with `seconds`.
+2. Write the same three positions with `at`.
+3. Where should the three guide images come from, and why?
+
+### Answer
+
+1. `seconds`: 0, 5 and 20.
+2. `at` is a share of the clip: 0 ÷ 20 = 0, 5 ÷ 20 = 0.25, and 20 ÷ 20 = 1. So 0, 0.25 and 1.
+3. From the clip itself. Save the frames at 0, 5 and 20 seconds, relight each one as a still, and pin it back at the same moment. Then the pose and framing in each guide image match the clip.
+
+## Recap
+
+- Edit when the motion is approved. Name the change (restyle, replace, relight), and pick a tool whose input limits fit your clip.
+- On Luma, `strength` sets how much of the source stays (Adhere, Flex, Reimagine), and `auto_controls` and `controls` cannot be used together. Guide frames from the clip itself steer the look.
+- Write one short change and "Keep everything else the same". An edit keeps the shape, does not edit voice, and cannot loop. Check every frame.
