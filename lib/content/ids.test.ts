@@ -178,9 +178,9 @@ const gridIds = (
 
 /** Realms grown past 6 chapters in each track's committed outline (realm → chapter count). */
 const GROWN: Record<(typeof TRACKS)[number], Record<number, number>> = {
-  builder: { 0: 8 },
-  strategist: { 0: 8 },
-  creator: { 0: 8, 1: 9 },
+  builder: { 0: 10 },
+  strategist: { 0: 10 },
+  creator: { 0: 10, 1: 9 },
 };
 
 /**
