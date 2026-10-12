@@ -15,8 +15,9 @@ import {
 } from 'react';
 import { PixelButton } from '@/components/pixel-button';
 import { XPBar } from '@/components/xp-bar';
-import { LESSON_DONE_ID, QUEST_TEXT } from '@/lib/constants';
+import { QUEST_TEXT } from '@/lib/constants';
 import type { Accent, BlogHeading } from '@/lib/types';
+import { bringIntoView, useLessonFinish } from './lesson-finish';
 
 type StepState = {
   /** The open step, 0-based. */
@@ -94,19 +95,12 @@ type Props = {
   children: ReactNode;
 };
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/** Scroll `box` into view, then focus `target` without a second jump. */
-function bringIntoView(box: HTMLElement, target: HTMLElement, block: ScrollLogicalPosition) {
-  box.scrollIntoView({ block, behavior: reducedMotion() ? 'auto' : 'smooth' });
-  target.focus({ preventScroll: true });
-}
-
 /**
  * A lesson shown one step at a time (interactive-lessons spec, Phase 1):
- * a STEP n/N bar, Back / Continue ("Go to Lesson done" on the last step) and
- * Show all. It never marks the lesson done: the last button only moves focus
- * to that panel.
+ * a STEP n/N bar, Back / Continue ("Finish lesson" on the last step) and
+ * Show all. Finish lesson is the same press as the "Lesson done" panel's
+ * button (LessonFinishProvider): it marks the lesson done once, then the panel
+ * shows the result and Continue. On a replay it only shows that panel.
  * Styles: lesson.css.
  */
 export function LessonStepper({ steps, accent, children }: Props) {
@@ -114,6 +108,7 @@ export function LessonStepper({ steps, accent, children }: Props) {
   const [showAll, setShowAll] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [moved, setMoved] = useState(false);
+  const lesson = useLessonFinish();
   const untilFound = useSyncExternalStore(noSubscribe, supportsUntilFound, onServer);
   const body = useRef<HTMLDivElement>(null);
   /** Set by Back / Continue only: find-in-page opens a step without moving focus. */
@@ -160,14 +155,6 @@ export function LessonStepper({ steps, accent, children }: Props) {
     );
   }
 
-  /** The "Lesson done" panel's first live control (or the panel itself). */
-  function finish() {
-    const panel = document.getElementById(LESSON_DONE_ID);
-    if (!panel) return;
-    const control = panel.querySelector<HTMLElement>('a[href], button:not([disabled])') ?? panel;
-    bringIntoView(panel, control, 'nearest');
-  }
-
   return (
     <StepContext value={{ current, showAll, headingIds: steps.map((step) => step.id), untilFound }}>
       <div
@@ -212,7 +199,15 @@ export function LessonStepper({ steps, accent, children }: Props) {
               {QUEST_TEXT.stepBack}
             </PixelButton>
             {last ? (
-              <PixelButton onClick={finish}>{QUEST_TEXT.finish}</PixelButton>
+              lesson && (
+                <PixelButton
+                  // While saving it stays focusable (aria-disabled); finish() → press() ignores the click.
+                  aria-disabled={lesson.pending || undefined}
+                  onClick={lesson.finish}
+                >
+                  {lesson.pending ? QUEST_TEXT.saving : QUEST_TEXT.finish}
+                </PixelButton>
+              )
             ) : (
               <PixelButton onClick={() => go(current + 1)}>{QUEST_TEXT.continue}</PixelButton>
             )}

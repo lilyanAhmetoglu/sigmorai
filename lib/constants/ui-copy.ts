@@ -235,7 +235,8 @@ export const QUEST_TEXT = {
   lessonNoReply: 'No reply from the server. Reload the page and try again.',
   // Lesson steps (interactive-lessons spec, Phase 1). The forward button reuses `continue`.
   stepBack: 'Back',
-  finish: 'Go to Lesson done',
+  /** The last step's button: the same press as "Lesson done" (marks it done once). */
+  finish: 'Finish lesson',
   showAll: 'Show all',
   showSteps: 'Show steps',
   /** The progress bar's label; XPBar adds "n/N". */
