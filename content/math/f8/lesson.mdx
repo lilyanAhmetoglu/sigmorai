@@ -17,84 +17,151 @@ sources:
     url: https://developers.openai.com/cookbook/articles/gpt-oss/fine-tune-transfomers
 ---
 
-The top floor builds on three earlier floors. Attention is how a token in a transformer looks at the other tokens and decides which ones matter. It uses the dot product (floor 1), matrices (floor 4) and softmax (floor 5). This floor works one attention step by hand.
+## Goal
 
-## Where attention comes from
+After this lesson you can:
 
-In 2017, a paper by researchers mostly at Google, "Attention Is All You Need", proposed "a new simple network architecture, the Transformer, based solely on attention mechanisms". Anthropic's engineering team writes that "LLMs are based on the transformer architecture, which enables every token to attend to every other token across the entire context."
+- Name the query, key and value of a token, and say what each one is for.
+- Work one attention step by hand: score, scale by `√d`, softmax, mix.
+- Read `softmax(QKᵀ/√d)V`, and say why long context costs so much.
 
-Open-weight models have attention too. OpenAI's cookbook guide to fine-tuning the open-weight `gpt-oss-20b` model targets "the attention layers" of the model.
+## The problem
 
-## Queries, keys and values
+You read that a model pays attention to parts of its context, and that long context gets expensive and less focused. Both facts come from one small piece of math, repeated for every token.
 
-Each token starts as a vector. In the math of attention, three new vectors are made from it, each with its own learned matrix (floor 4):
+Attention is how a token in a transformer looks at the other tokens and decides which ones matter for it. It uses three tools: the dot product, matrices and softmax. This lesson puts them together and works one attention step by hand.
+
+## The idea
+
+### Where attention comes from
+
+In 2017, the paper "Attention Is All You Need" ([Google Research](https://research.google/pubs/attention-is-all-you-need/), [arXiv](https://arxiv.org/abs/1706.03762)) proposed "a new simple network architecture, the Transformer, based solely on attention mechanisms". The [Anthropic engineering blog](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) says: "LLMs are based on the transformer architecture, which enables every token to attend to every other token across the entire context."
+
+Open-weight models have attention too. The [OpenAI cookbook](https://developers.openai.com/cookbook/articles/gpt-oss/fine-tune-transfomers) on fine-tuning `gpt-oss-20b` mentions "targeting the attention layers" of that model.
+
+### Queries, keys and values
+
+Each token starts as a vector (a list of numbers). Attention makes three new vectors from it. Each one comes from its own learned matrix:
 
 - **Query (q):** what this token is looking for.
 - **Key (k):** what this token offers, so others can find it.
 - **Value (v):** what this token passes on if it is chosen.
 
-A comparison: a library search. Your query is the question. Each book's key is its label. The value is what is inside the book. You compare your question with every label, then read the best matches most.
+A small comparison: a library. Your query is your question. Each book's key is its label. Its value is what is inside. You compare your question with every label, then read the best matches most.
 
-## One attention step
+### One attention step
 
-For one token's query `q`, the step is:
+For one token's query `q`:
 
-1. **Score:** take the dot product of q with every key. A bigger score means a better match.
-2. **Scale:** divide every score by `√d`, where d is the number of values in each key.
-3. **Weights:** apply softmax to the scaled scores, so they are positive and add up to 1.
-4. **Mix:** add up the value vectors, each times its weight.
+1. **Score:** the dot product of q with every key: multiply the numbers at each position, then add. A bigger score means a better match.
+2. **Scale:** divide every score by `√d` (the square root of d). d is how many numbers each key has. Our example: scores 6 and 3 with `d = 9`. `√9 = 3`, so they become `6 / 3 = 2` and `3 / 3 = 1`.
+3. **Weights:** apply softmax to the scaled scores. Softmax takes `e^s` of each score s (`e ≈ 2.718`, and `e^s` is e to the power s), then divides by the total. The weights are positive and add up to 1.
+4. **Mix:** multiply each value vector by its weight, then add the results. Our example: weights 0.75 and 0.25, values `(4, 0)` and `(0, 8)`. The mix is `0.75 × (4, 0) + 0.25 × (0, 8) = (3, 0) + (0, 2) = (3, 2)`.
 
-The result is a new vector for this token: a blend of the other tokens, weighted by how well they matched.
+The result is a new vector for this token: a blend of the values, weighted by how well each key matched.
+
+### Why divide by √d
+
+Dividing every score by the same number works like a temperature in softmax. Bigger gaps between scores make softmax sharper, until one token takes almost all the weight. A dot product adds up d products, so with longer keys the scores tend to get bigger. Dividing by `√d` keeps the gaps in a range where several tokens can still share the weight. The order is always: score, scale, then softmax.
+
+### All tokens at once
+
+Each token has its own query, so the step repeats for every token. With matrices, it is one formula. Put every query in a row of `Q`, every key in a row of `K`, and every value in a row of `V`:
+
+`softmax(QKᵀ/√d)V`: multiply the queries Q by the keys K transposed, divide by the square root of the key size d, apply softmax, then multiply by the values V.
+
+`Kᵀ` is K **transposed**: rows become columns. So `QKᵀ` is one matrix multiply that gives every query · key score. For n tokens, that is an n × n grid. Softmax runs on each row on its own. The multiply by `V` does the mixing for every token at once.
+
+### Why long context is hard
+
+That n × n grid is why long context costs so much. Anthropic says attention "results in n² pairwise relationships for n tokens." (`n²` means n × n.)
+
+- 1,000 tokens: `1,000² = 1,000,000` pairs.
+- 10,000 tokens: `10,000² = 100,000,000` pairs.
+
+Anthropic adds three points:
+
+- "As its context length increases, a model's ability to capture these pairwise relationships gets stretched thin".
+- LLMs have an "attention budget", and "Every new token introduced depletes this budget by some amount".
+- Good context engineering means "finding the smallest possible set of high-signal tokens that maximize the likelihood of some desired outcome."
 
 ## Worked example
 
-Three tokens. Keys have `d = 4` numbers, so `√d = 2`. The query is `q = (1, 0, 1, 0)`.
+Our example: three tokens. Each key has `d = 4` numbers, so `√d = 2`. We compute the new vector for one token, with query `q = (1, 0, 1, 0)`.
 
-| Token | Key k          | `q·k`       | `÷ 2` | Weight | Value v  |
-| ----- | -------------- | ----------- | ----- | ------ | -------- |
-| 1     | `(1, 0, 1, 0)` | `1 + 1 = 2` | 1     | 0.506  | `(1, 0)` |
-| 2     | `(0, 1, 0, 1)` | `0`         | 0     | 0.186  | `(0, 1)` |
-| 3     | `(1, 1, 0, 0)` | `1`         | 0.5   | 0.307  | `(1, 1)` |
+```text
+token   key k          value v
+1       (1, 0, 1, 0)   (1, 0)
+2       (0, 1, 0, 1)   (0, 1)
+3       (1, 1, 0, 0)   (1, 1)
+```
 
-The weights are softmax of `(1, 0, 0.5)`: `e^1 ≈ 2.718`, `e^0 = 1`, `e^0.5 ≈ 1.649`, total `5.367`. So `2.718 / 5.367 ≈ 0.506`, `1 / 5.367 ≈ 0.186`, and `1.649 / 5.367 ≈ 0.307`. The weights add up to 1 (the rounded numbers show 0.999).
+The questions: which token's value counts most, and does token 2 still count?
 
-Now mix the values:
+### Step 1: score
+
+- token 1: `1×1 + 0×0 + 1×1 + 0×0 = 2`
+- token 2: `1×0 + 0×1 + 1×0 + 0×1 = 0`
+- token 3: `1×1 + 0×1 + 1×0 + 0×0 = 1`
+
+### Step 2: scale
+
+Divide by `√4 = 2`: the scores `(2, 0, 1)` become `(1, 0, 0.5)`.
+
+### Step 3: softmax
+
+- `e^1 ≈ 2.718`, `e^0 = 1`, `e^0.5 ≈ 1.649`
+- total: `2.718 + 1 + 1.649 = 5.367`
+- weights: `2.718 / 5.367 ≈ 0.506`, `1 / 5.367 ≈ 0.186`, `1.649 / 5.367 ≈ 0.307`
+
+The rounded weights add up to 0.999. The exact ones add up to 1.
+
+### Step 4: mix
 
 - first number: `0.506 × 1 + 0.186 × 0 + 0.307 × 1 ≈ 0.814`
 - second number: `0.506 × 0 + 0.186 × 1 + 0.307 × 1 ≈ 0.494`
 - output: `(0.814, 0.494)`
 
-(With the rounded weights you get 0.813 and 0.493; the small gap is rounding.)
+(With the rounded weights you get 0.813 and 0.493. The small gap is rounding.)
 
-Token 1's key matched the query best, so its value counts most. Token 2 did not match at all (score 0), but softmax still gives it a small share.
+Token 1 matched best, so its value counts most. Token 2 had a score of 0, but softmax still gives it 0.186 of the weight. So yes, token 2 still counts.
 
-## Why divide by √d
+### Step 5: the hard case, skip the scale
 
-Compare floor 5. Dividing the scores by `√d = 2` is the same as softmax with temperature 2. Without it, the scores `(2, 0, 1)` give weights `0.665, 0.090, 0.245`: sharper.
+**This is the hard case.** What if Step 2 is left out? Softmax of `(2, 0, 1)` gives about `0.665, 0.090, 0.245`. The output becomes about `(0.910, 0.335)`.
 
-As math: a dot product adds up d products, so with longer keys the scores tend to get bigger. Bigger gaps make softmax sharper, until one token takes almost all the weight. Dividing by `√d` keeps the gaps in a range where several tokens can still share the weight.
+Before (no scale): token 1 takes 0.665 and token 2 drops to 0.090. After (with scale): 0.506 and 0.186. Here `d` is only 4, so the change is small. With real key sizes, `√d` is much bigger, and leaving it out lets one token take almost all the weight.
 
-## All tokens at once
+### Step 6: why it is better
 
-Each token has its own query, so you repeat the step for every token. With matrices this is one formula. Put every query in a row of Q, every key in a row of K, and every value in a row of V:
+- **Softer weights.** With the scale, the weights stay spread out (0.506, 0.186, 0.307), so the output carries something from all three tokens.
+- **Same math for every token.** Each query runs these four steps, and the matrix form runs them all at once.
+- **Easy to check.** Each row of weights adds up to 1.
 
-`softmax(QKᵀ/√d)V`: multiply the queries Q by the keys K transposed, divide by the square root of the key size d, apply softmax, then multiply by the values V.
+## Common mistakes
 
-`QKᵀ` is floor 4's trick: one matrix multiply gives every query · key score. For n tokens, that is an n × n grid of scores. Softmax runs on each row, and the multiply by V does the mixing for every token at once.
+1. **Scoring the query against the values.** Values are not compared with anything. Fix: score with the keys, and use the values only in the mix.
+2. **Using the value size as d.** In our example the values have 2 numbers, but the keys have 4. Fix: d is the number of numbers in each key.
+3. **Running softmax over the whole n × n grid at once.** Then the weights for one token don't add up to 1. Fix: softmax runs on each row, one query at a time.
 
-## Why long context is hard
+## Try it
 
-That n × n grid is why context length costs so much. Anthropic: every token attending to every other token "results in n² pairwise relationships for n tokens."
+Not graded. Write your answer down before you read the answer.
 
-- 1,000 tokens: `1,000² = 1,000,000` pairs.
-- 10,000 tokens: `100,000,000` pairs. Ten times the text, a hundred times the pairs.
+Our example: same query and same three tokens as the worked example. A fourth token joins. Its key is a copy of token 1's key, `(1, 0, 1, 0)`.
 
-Anthropic adds: "As its context length increases, a model's ability to capture these pairwise relationships gets stretched thin". It calls this the model's "attention budget", and says every new token "depletes this budget by some amount". Its advice is to find "the smallest possible set of high-signal tokens that maximize the likelihood of some desired outcome." Put the tokens that matter in the context, and leave out the rest.
+1. What are the four scaled scores?
+2. What are the four weights?
+3. Does token 1 alone get more or less weight than before? What do token 1 and its copy get together?
 
-## Key points
+### Answer
 
-- Attention lets each token build a new vector from the other tokens, weighted by how well they match.
-- Each token has a query, a key and a value, made with learned matrices.
-- One step: dot product q with every key, divide by `√d`, softmax, then a weighted sum of the values.
-- Dividing by `√d` works like a temperature: it stops softmax from getting too sharp.
+1. Token 4 scores `2`, like token 1, and `2 / 2 = 1`. The scaled scores are `(1, 0, 0.5, 1)`.
+2. `e^1 ≈ 2.718`, `e^0 = 1`, `e^0.5 ≈ 1.649`, `e^1 ≈ 2.718`. The total is `8.085`. Weights: `2.718 / 8.085 ≈ 0.336`, `1 / 8.085 ≈ 0.124`, `1.649 / 8.085 ≈ 0.204`, and `0.336` again.
+3. Less: token 1 drops from 0.506 to 0.336. The weights must still add up to 1, so a new token takes a share from the others. Together, the two copies get `0.336 + 0.336 = 0.672`, more than token 1 had alone.
+
+## Recap
+
+- Each token has a query, a key and a value, made with learned matrices. Its new vector is a blend of the values, weighted by how well its query matches each key.
+- One step: dot product with every key, divide by `√d`, softmax, then mix the values. Dividing by `√d` stops softmax from getting too sharp.
 - `softmax(QKᵀ/√d)V` does it for all tokens at once. The n × n score grid is why long context is costly.
