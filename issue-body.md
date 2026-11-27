@@ -170,7 +170,6 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://docs.dev.runwayml.com/recipes/multi-shot-video | `runway-api-docs` | 2026-11-17 | `creator/r1/c5/lesson`, `creator/r10/c1/lesson`, `creator/r10/c3/lesson`, `creator/r2/c6/lesson`, `creator/r4/c2/lesson` |
 | https://docs.dev.runwayml.com/recipes/product-ad | `runway-api-docs` | 2026-11-17 | `creator/r10/c1/lesson`, `creator/r10/c5/lesson`, `creator/r2/c6/lesson` |
 | https://docs.dev.runwayml.com/recipes/reference-media | `runway-api-docs` | 2026-11-17 | `creator/r2/c6/lesson`, `creator/r3/c2/lesson`, `creator/r3/c5/lesson`, `creator/r3/c6/lesson` |
-| https://docs.ideogram.ai | `ideogram-docs` | 2026-11-17 | — |
 | https://docs.ideogram.ai/create/custom-models | `ideogram-docs` | 2026-11-17 | `creator/r11/c5/lesson` |
 | https://docs.ideogram.ai/prompting/text-in-images | `ideogram-docs` | 2026-11-17 | `creator/r11/c3/lesson` |
 | https://learn.chatgpt.com/docs/enterprise/admin-setup | `chatgpt-docs` | 2026-11-17 | `strategist/r7/c3/lesson`, `strategist/r7/c4/lesson`, `strategist/r8/c5/lesson` |
@@ -209,7 +208,6 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://developers.openai.com/api/docs/guides/your-data | `openai-docs` | 2026-11-18 | `builder/r8/c4/lesson`, `creator/r3/c6/lesson`, `strategist/r0/c6/lesson`, `strategist/r3/c4/lesson`, `strategist/r5/c4/lesson`, `strategist/r5/c6/lesson`, `strategist/r8/c1/lesson`, `strategist/r8/c3/lesson` |
 | https://developers.openai.com/api/docs/models/gpt-6-astra | `openai-docs` | 2026-11-18 | `builder/r6/c3/lesson` |
 | https://github.com/modelcontextprotocol/servers | `mcp-servers` | 2026-11-18 | `builder/r5/c2/lesson`, `strategist/r5/c3/lesson` |
-| https://github.com/modelcontextprotocol/servers/releases.atom | `mcp-servers` | 2026-11-18 | — |
 | https://learn.chatgpt.com/docs | `chatgpt-docs` | 2026-11-18 | — |
 | https://learn.chatgpt.com/docs/plugins | `chatgpt-docs` | 2026-11-18 | `builder/r14/c3/lesson`, `strategist/r15/c3/lesson` |
 | https://learn.chatgpt.com/docs/prompting | `chatgpt-docs` | 2026-11-18 | `strategist/r16/c3/lesson` |
@@ -328,7 +326,6 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://docs.dev.runwayml.com/assets/outputs | `runway-api-docs` | 2026-11-23 | `creator/r2/c4/lesson` |
 | https://learn.chatgpt.com/docs/get-started-with-work | `chatgpt-docs` | 2026-11-23 | `strategist/r15/c4/lesson` |
 | https://support.google.com/gemini/answer/16275805 | `gemini-apps-help` | 2026-11-23 | `strategist/r15/c6/lesson` |
-| https://about.fb.com/news | `meta-newsroom` | 2026-11-24 | — |
 | https://ai.google.dev/gemini-api/docs/agents | `gemini-docs` | 2026-11-24 | `creator/r4/c1/lesson`, `creator/r4/c4/lesson`, `creator/r4/c5/lesson`, `creator/r4/c6/lesson`, `strategist/r4/c1/lesson` |
 | https://ai.google.dev/gemini-api/docs/code-execution | `gemini-docs` | 2026-11-24 | `strategist/r16/c3/lesson` |
 | https://claude.com/docs/connectors/building | `claude-connectors-docs` | 2026-11-24 | `creator/r5/c3/lesson` |
@@ -391,7 +388,6 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://developers.openai.com/api/docs/guides/supervised-fine-tuning | `openai-docs` | 2026-11-25 | `math/f7/lesson` |
 | https://developers.openai.com/api/reference/resources/responses/methods/create | `openai-api-reference` | 2026-11-25 | `math/f5/lesson` |
 | https://digital-strategy.ec.europa.eu/en/policies/code-practice-ai-generated-content | `ec-digital-strategy` | 2026-11-25 | `creator/r8/c3/lesson` |
-| https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai | `ec-digital-strategy` | 2026-11-25 | `creator/r8/c3/lesson`, `strategist/r16/c1/lesson` |
 | https://docs.dev.runwayml.com/ai-context.md | `runway-api-docs` | 2026-11-25 | `creator/r2/c3/lesson`, `creator/r2/c4/lesson`, `creator/r2/c6/lesson` |
 | https://docs.dev.runwayml.com/assets/inputs | `runway-api-docs` | 2026-11-25 | `creator/r10/c2/lesson`, `creator/r10/c4/lesson`, `creator/r2/c4/lesson` |
 | https://docs.dev.runwayml.com/guides/models | `runway-api-docs` | 2026-11-25 | `creator/r0/c4/lesson` |
@@ -454,10 +450,14 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://recraft.ai/docs/api-reference/models/overview | `recraft-docs` | 2026-11-26 | `creator/r11/c1/lesson` |
 | https://recraft.ai/docs/api-reference/styles | `recraft-docs` | 2026-11-26 | `creator/r11/c5/lesson` |
 | https://recraft.ai/docs/api-reference/tools/enhance-prompt | `recraft-docs` | 2026-11-26 | `creator/r11/c1/lesson` |
-| https://research.google/pubs | `google-research-pubs` | 2026-11-26 | — |
-| https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context | `claude-support` | 2026-11-26 | `builder/r0/c7/lesson`, `creator/r0/c7/lesson`, `strategist/r0/c7/lesson` |
-| https://support.claude.com/en/articles/12883420-view-usage-analytics-for-team-and-enterprise-plans | `claude-support` | 2026-11-26 | `strategist/r15/c6/lesson` |
-| https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork | `claude-support` | 2026-11-26 | `strategist/r15/c4/lesson` |
-| https://support.claude.com/en/articles/8114491-get-started-with-claude | `claude-support` | 2026-11-26 | `builder/r0/c7/lesson`, `creator/r0/c7/lesson`, `strategist/r0/c7/lesson` |
-| https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects | `claude-support` | 2026-11-26 | `strategist/r15/c2/lesson` |
 | https://www.recraft.ai/docs | `recraft-docs` | 2026-11-26 | — |
+| https://about.fb.com/news | `meta-newsroom` | 2026-11-27 | — |
+| https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai | `ec-digital-strategy` | 2026-11-27 | `creator/r8/c3/lesson`, `strategist/r16/c1/lesson` |
+| https://docs.ideogram.ai | `ideogram-docs` | 2026-11-27 | — |
+| https://github.com/modelcontextprotocol/servers/releases.atom | `mcp-servers` | 2026-11-27 | — |
+| https://research.google/pubs | `google-research-pubs` | 2026-11-27 | — |
+| https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context | `claude-support` | 2026-11-27 | `builder/r0/c7/lesson`, `creator/r0/c7/lesson`, `strategist/r0/c7/lesson` |
+| https://support.claude.com/en/articles/12883420-view-usage-analytics-for-team-and-enterprise-plans | `claude-support` | 2026-11-27 | `strategist/r15/c6/lesson` |
+| https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork | `claude-support` | 2026-11-27 | `strategist/r15/c4/lesson` |
+| https://support.claude.com/en/articles/8114491-get-started-with-claude | `claude-support` | 2026-11-27 | `builder/r0/c7/lesson`, `creator/r0/c7/lesson`, `strategist/r0/c7/lesson` |
+| https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects | `claude-support` | 2026-11-27 | `strategist/r15/c2/lesson` |
