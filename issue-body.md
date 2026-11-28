@@ -332,8 +332,6 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://code.claude.com/docs/en/analytics | `claude-code-docs` | 2026-11-24 | `strategist/r6/c3/lesson`, `strategist/r6/c6/lesson`, `strategist/r7/c3/lesson`, `strategist/r7/c5/lesson`, `strategist/r7/c6/lesson` |
 | https://code.claude.com/docs/en/managed-mcp | `claude-code-docs` | 2026-11-24 | `strategist/r5/c3/lesson`, `strategist/r5/c4/lesson` |
 | https://developers.openai.com/api/docs/pricing | `openai-docs` | 2026-11-24 | `builder/r0/c1/lesson`, `builder/r0/c6/lesson`, `creator/r0/c2/lesson`, `creator/r0/c5/lesson`, `creator/r7/c6/lesson`, `strategist/r0/c4/lesson`, `strategist/r3/c2/lesson`, `strategist/r3/c5/lesson`, `strategist/r5/c5/lesson` |
-| https://docs.ideogram.ai/create/image-settings | `ideogram-docs` | 2026-11-24 | `creator/r11/c1/lesson`, `creator/r11/c2/lesson`, `creator/r11/c4/lesson`, `creator/r11/c5/lesson` |
-| https://docs.ideogram.ai/create/models | `ideogram-docs` | 2026-11-24 | `creator/r11/c2/lesson` |
 | https://docs.ideogram.ai/prompting/json-prompting | `ideogram-docs` | 2026-11-24 | `creator/r11/c2/lesson`, `creator/r11/c3/lesson` |
 | https://docs.ideogram.ai/prompting/prompting | `ideogram-docs` | 2026-11-24 | `creator/r11/c1/lesson`, `creator/r11/c2/lesson` |
 | https://elevenlabs.io/docs/overview/capabilities/voices | `elevenlabs-docs` | 2026-11-24 | `creator/r12/c1/lesson`, `creator/r12/c3/lesson` |
@@ -453,11 +451,13 @@ The knowledge-sync routine reads this list, checks each citing lesson against th
 | https://www.recraft.ai/docs | `recraft-docs` | 2026-11-26 | — |
 | https://about.fb.com/news | `meta-newsroom` | 2026-11-27 | — |
 | https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai | `ec-digital-strategy` | 2026-11-27 | `creator/r8/c3/lesson`, `strategist/r16/c1/lesson` |
-| https://docs.ideogram.ai | `ideogram-docs` | 2026-11-27 | — |
-| https://github.com/modelcontextprotocol/servers/releases.atom | `mcp-servers` | 2026-11-27 | — |
-| https://research.google/pubs | `google-research-pubs` | 2026-11-27 | — |
-| https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context | `claude-support` | 2026-11-27 | `builder/r0/c7/lesson`, `creator/r0/c7/lesson`, `strategist/r0/c7/lesson` |
-| https://support.claude.com/en/articles/12883420-view-usage-analytics-for-team-and-enterprise-plans | `claude-support` | 2026-11-27 | `strategist/r15/c6/lesson` |
-| https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork | `claude-support` | 2026-11-27 | `strategist/r15/c4/lesson` |
-| https://support.claude.com/en/articles/8114491-get-started-with-claude | `claude-support` | 2026-11-27 | `builder/r0/c7/lesson`, `creator/r0/c7/lesson`, `strategist/r0/c7/lesson` |
-| https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects | `claude-support` | 2026-11-27 | `strategist/r15/c2/lesson` |
+| https://docs.ideogram.ai | `ideogram-docs` | 2026-11-28 | — |
+| https://docs.ideogram.ai/create/image-settings | `ideogram-docs` | 2026-11-28 | `creator/r11/c1/lesson`, `creator/r11/c2/lesson`, `creator/r11/c4/lesson`, `creator/r11/c5/lesson` |
+| https://docs.ideogram.ai/create/models | `ideogram-docs` | 2026-11-28 | `creator/r11/c2/lesson` |
+| https://github.com/modelcontextprotocol/servers/releases.atom | `mcp-servers` | 2026-11-28 | — |
+| https://research.google/pubs | `google-research-pubs` | 2026-11-28 | — |
+| https://support.claude.com/en/articles/11817273-use-claude-s-chat-search-and-memory-to-build-on-previous-context | `claude-support` | 2026-11-28 | `builder/r0/c7/lesson`, `creator/r0/c7/lesson`, `strategist/r0/c7/lesson` |
+| https://support.claude.com/en/articles/12883420-view-usage-analytics-for-team-and-enterprise-plans | `claude-support` | 2026-11-28 | `strategist/r15/c6/lesson` |
+| https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork | `claude-support` | 2026-11-28 | `strategist/r15/c4/lesson` |
+| https://support.claude.com/en/articles/8114491-get-started-with-claude | `claude-support` | 2026-11-28 | `builder/r0/c7/lesson`, `creator/r0/c7/lesson`, `strategist/r0/c7/lesson` |
+| https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects | `claude-support` | 2026-11-28 | `strategist/r15/c2/lesson` |
